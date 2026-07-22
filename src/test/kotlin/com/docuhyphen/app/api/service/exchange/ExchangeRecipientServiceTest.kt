@@ -17,7 +17,9 @@ import com.docuhyphen.app.api.repository.ExchangeRecipientRepository
 import com.docuhyphen.app.api.service.organization.OrganizationGroupService
 import com.docuhyphen.app.api.service.organization.TrustedRecipientValidationService
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertThrows
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
 import org.mockito.kotlin.anyOrNull
@@ -47,6 +49,24 @@ class ExchangeRecipientServiceTest
         validationService,
         externalEmailAcceptancePolicyService,
     )
+
+    @Test
+    fun `pending trusted participant invitations use the scoped repository query`()
+    {
+        val appUserId = UUID.randomUUID()
+        val invitations = listOf(
+            pendingRecipient(UUID.randomUUID()).apply {
+                purpose = ExchangeRecipientPurpose.PARTICIPANT
+                selectionType = ExchangeRecipientSelectionType.TRUSTED_PERSON
+            },
+        )
+        whenever(repository.findPendingTrustedParticipantsFor(appUserId)).thenReturn(invitations)
+
+        assertEquals(invitations, service.pendingTrustedParticipantInvitationsFor(appUserId))
+
+        verify(repository).findPendingTrustedParticipantsFor(appUserId)
+        verify(shareService, never()).getById(any())
+    }
 
     @Test
     fun `creates one primary recipient binding for a direct non-owner Share`()
@@ -86,6 +106,65 @@ class ExchangeRecipientServiceTest
         )
 
         assertEquals(existing, recipient)
+    }
+
+    @Test
+    fun `pending primary user can view the invitation while its Share is inactive`()
+    {
+        val appUserId = UUID.randomUUID()
+        val share = directShare(PrincipalKind.USER, appUserId).apply {
+            status = com.docuhyphen.app.api.model.entity.ShareStatus.PENDING_APPROVAL
+        }
+        whenever(repository.findPrimary(exchangeId)).thenReturn(pendingRecipient(share.id))
+        whenever(shareService.getById(share.id)).thenReturn(share)
+
+        assertTrue(service.canViewPendingPrimaryInvitation(exchangeId, appUserId))
+        assertFalse(service.canViewPendingPrimaryInvitation(exchangeId, UUID.randomUUID()))
+    }
+
+    @Test
+    fun `pending participant cannot use primary invitation visibility`()
+    {
+        val appUserId = UUID.randomUUID()
+        val share = directShare(PrincipalKind.USER, appUserId).apply {
+            status = com.docuhyphen.app.api.model.entity.ShareStatus.PENDING_APPROVAL
+        }
+        val participant = pendingRecipient(share.id).apply { purpose = ExchangeRecipientPurpose.PARTICIPANT }
+        whenever(repository.findPrimary(exchangeId)).thenReturn(null)
+        whenever(repository.findByDirectShareId(share.id)).thenReturn(participant)
+
+        assertFalse(service.canViewPendingPrimaryInvitation(exchangeId, appUserId))
+    }
+
+    @Test
+    fun `pending primary group is visible to an active owner or manager`()
+    {
+        val groupId = UUID.randomUUID()
+        val decisionMakerId = UUID.randomUUID()
+        val share = directShare(PrincipalKind.PRINCIPAL_GROUP, groupId).apply {
+            status = com.docuhyphen.app.api.model.entity.ShareStatus.PENDING_APPROVAL
+        }
+        whenever(repository.findPrimary(exchangeId)).thenReturn(pendingRecipient(share.id))
+        whenever(shareService.getById(share.id)).thenReturn(share)
+        whenever(organizationGroupService.isActiveOwnerOrManager(groupId, decisionMakerId)).thenReturn(true)
+
+        assertTrue(service.canViewPendingPrimaryInvitation(exchangeId, decisionMakerId))
+    }
+
+    @Test
+    fun `pending primary group stays hidden from members former members and unrelated users`()
+    {
+        val groupId = UUID.randomUUID()
+        val share = directShare(PrincipalKind.PRINCIPAL_GROUP, groupId).apply {
+            status = com.docuhyphen.app.api.model.entity.ShareStatus.PENDING_APPROVAL
+        }
+        whenever(repository.findPrimary(exchangeId)).thenReturn(pendingRecipient(share.id))
+        whenever(shareService.getById(share.id)).thenReturn(share)
+
+        listOf(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID()).forEach { ineligibleUserId ->
+            whenever(organizationGroupService.isActiveOwnerOrManager(groupId, ineligibleUserId)).thenReturn(false)
+            assertFalse(service.canViewPendingPrimaryInvitation(exchangeId, ineligibleUserId))
+        }
     }
 
     @Test

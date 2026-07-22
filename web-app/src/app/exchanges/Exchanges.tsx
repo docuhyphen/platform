@@ -10,7 +10,6 @@ import {
     useToastController
 } from "@fluentui/react-components";
 import {
-    checkSignedInAppUserHasExchanges,
     fetchSignedInUserAppUserExchange
 } from "../../services/exchangeApi.ts";
 import useToken from "../../context/useToken.tsx";
@@ -53,6 +52,7 @@ import ExchangeWorkflowTab from "./components/exchange-workflow-tab/ExchangeWork
 import ExchangeFieldsTab from "./components/exchange-fields-tab/ExchangeFieldsTab.tsx";
 import ExchangeTabsHeader from "./components/exchange-tabs-header/ExchangeTabsHeader.tsx";
 import {useExchangeRouteState} from './useExchangeRouteState';
+import {hasExchangeWorkspaceContent} from "./exchangeWorkspaceAvailability.ts";
 
 type ExchangePaneNavigationDirection = "forward" | "back" | null;
 
@@ -103,9 +103,11 @@ const Exchanges: React.FC = () =>
     const [routeSelectionVersion, setRouteSelectionVersion] = useState(0);
     const permissions = useMemo<ExchangePermissions>(
         () => getPermissions(exchangeDetails, appUser),
-        [exchangeDetails, appUser?.id],
+        [exchangeDetails, appUser],
     );
 
+    const tokenRef = useRef(token);
+    tokenRef.current = token;
     const deepLinkedExchangeIdRef = useRef<string | null>(null);
     const deepLinkedDocumentIdRef = useRef<string | null>(null);
     const deepLinkedDocumentExchangeIdRef = useRef<string | null>(null);
@@ -179,12 +181,12 @@ const Exchanges: React.FC = () =>
         return documents[0];
     };
 
-    const checkAppUserExchanges = async () =>
+    const checkAppUserExchanges = React.useCallback(async () =>
     {
         try
         {
-            const hasExchanges = await checkSignedInAppUserHasExchanges(token);
-            setAppUserHasExchanges(hasExchanges);
+            const hasWorkspaceContent = await hasExchangeWorkspaceContent(tokenRef.current);
+            setAppUserHasExchanges(hasWorkspaceContent);
         }
         catch (error)
         {
@@ -200,7 +202,7 @@ const Exchanges: React.FC = () =>
         {
             setPreparingExchanges(false);
         }
-    }
+    }, []);
 
     // Keep selection state synchronized with React Router navigation, including notification clicks.
     useEffect(() =>
@@ -296,7 +298,10 @@ const Exchanges: React.FC = () =>
         {
             cancelled = true;
         };
-    }, [appUser?.id]);
+        // Token rotation intentionally does not restart the workspace. The callback
+        // reads the current token from tokenRef when it makes the request.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [appUser?.id, checkAppUserExchanges]);
     //
     // useEffect(() => {
     //     if (exchangeId) {
@@ -389,6 +394,8 @@ const Exchanges: React.FC = () =>
         // refresh shouldn't re-pull the exchange details. `appUser` only
         // affects the permissions computation, which is cheap and stable
         // for the lifetime of the page.
+        // Document selection and error helpers do not trigger Exchange refetches.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedExchangeId, routeSelectionVersion]);
 
     useEffect(() =>
@@ -435,7 +442,7 @@ const Exchanges: React.FC = () =>
 
         // Clear the deep-link ref now that we have applied the correct tab.
         deepLinkedExchangeIdRef.current = null;
-    }, [exchangeDetails, selectedExchangeId, activeListTab]);
+    }, [exchangeDetails, selectedExchangeId, activeListTab, appUser?.id]);
 
     // Subscribe to live document + status events for the currently-selected exchange.
     // Triggers a single refetch on relevant message types. The server-side subscription
@@ -487,6 +494,8 @@ const Exchanges: React.FC = () =>
             offRemoved();
             offUpdated();
         };
+        // The selected Exchange controls the subscription lifecycle.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedExchangeId]);
 
     // Process exchange status events for all exchanges visible to this user.
@@ -523,16 +532,18 @@ const Exchanges: React.FC = () =>
         {
             offStatus();
         };
+        // The selected Exchange controls whether detail state is updated.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedExchangeId]);
 
     useEffect(() =>
     {
-        const initiationSubscription = exchangeInitiationObservable.subscribe(exchange =>
+        const initiationSubscription = exchangeInitiationObservable.subscribe(() =>
         {
             checkAppUserExchanges();
         });
 
-        const deletionSubscription = exchangeDeletionObservable.subscribe(exchangeId =>
+        const deletionSubscription = exchangeDeletionObservable.subscribe(() =>
         {
             checkAppUserExchanges();
         });
@@ -542,7 +553,7 @@ const Exchanges: React.FC = () =>
             initiationSubscription.unsubscribe();
             deletionSubscription.unsubscribe();
         };
-    }, []);
+    }, [checkAppUserExchanges]);
 
     const onDocumentDeleted = (documentId: string) =>
     {

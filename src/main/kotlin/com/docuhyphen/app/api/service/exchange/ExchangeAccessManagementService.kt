@@ -25,7 +25,6 @@ import com.docuhyphen.app.api.repository.ExternalParticipantRepository
 import com.docuhyphen.app.api.repository.ShareRepository
 import com.docuhyphen.app.api.repository.ExchangeRepository
 import com.docuhyphen.app.api.service.AppUserService
-import com.docuhyphen.app.api.service.communication.EmailService
 import com.docuhyphen.app.api.service.communication.EmailTemplateService
 import com.docuhyphen.app.api.service.config.ConfigurationService
 import com.docuhyphen.app.api.service.auth.authz.Action
@@ -79,10 +78,10 @@ class ExchangeAccessManagementService @Inject constructor(
     private val authorizationService: AuthorizationService,
     private val authorizationContextFactory: AuthorizationContextFactory,
     private val organizationExchangePolicyService: OrganizationExchangePolicyService,
-    private val emailService: EmailService,
     private val emailTemplateService: EmailTemplateService,
     private val configurationService: ConfigurationService,
     private val auditRecorder: AuditRecorder,
+    private val exchangeNotificationDeliveryService: ExchangeNotificationDeliveryService,
 )
 {
     companion object
@@ -101,6 +100,7 @@ class ExchangeAccessManagementService @Inject constructor(
     )
     {
         val session = requireSessionOwnerAndReturn(exchangeId)
+        val senderOrganizationId = manageAccessSenderOrganization(session, requireOrganization = false)
 
         val requestedKind = parsePrincipalKind(principalKind)
         requireAssignableRole(roleName)
@@ -125,7 +125,7 @@ class ExchangeAccessManagementService @Inject constructor(
         val (kind, principalUuid) = resolvePrincipal(requestedKind, principalId)
         val actorId = callerAppUserId
             ?: throw ForbiddenException("A user account is required to manage access")
-        enforceSharingPolicy(actorId, kind, principalUuid)
+        enforceSharingPolicy(senderOrganizationId, actorId, kind, principalUuid)
         // Reject malformed/contradictory constraints up front and store a canonical form.
         val normalizedConstraints = ShareConstraints.normalizeForStorage(constraintsJson)
 
@@ -150,8 +150,13 @@ class ExchangeAccessManagementService @Inject constructor(
             acceptanceStatus = ExchangeRecipientAcceptanceStatus.NOT_REQUIRED,
         )
 
-        // Send invitation email to the newly added person.
-        sendAccessGrantedNotification(session, kind, principalUuid, principalId.trim())
+        scheduleAccessGrantedNotification(
+            session = session,
+            kind = kind,
+            principalUuid = principalUuid,
+            rawPrincipalId = principalId.trim(),
+            trustedInvitation = false,
+        )
     }
 
     /**
@@ -169,11 +174,13 @@ class ExchangeAccessManagementService @Inject constructor(
     ): List<SessionAccessEntryDto>
     {
         val session = requireSessionOwnerAndReturn(exchangeId)
+        val senderOrganizationId = requireNotNull(
+            manageAccessSenderOrganization(session, requireOrganization = true),
+        )
         requireAssignableRole(roleName)
         val caller = authTokenContext.authToken.appUser
             ?: throw ForbiddenException("A user account is required to manage access")
-        val activeOrganizationId = authTokenContext.activeOrganizationId
-        val resolved = resolveTrustedSelection(selection, caller, activeOrganizationId)
+        val resolved = resolveTrustedSelection(selection, caller, senderOrganizationId)
         require(!(resolved.principalKind == PrincipalKind.USER && resolved.principalId == caller.id)) {
             "You cannot add yourself to an Exchange you own"
         }
@@ -204,22 +211,21 @@ class ExchangeAccessManagementService @Inject constructor(
             exchangeRecipientAttestationService.createGroupAttestation(participant, validation)
         }
         resolved.preparedPersonResolution?.let { prepared ->
-            val callerOrganizationId = activeOrganizationId
-                ?: throw IllegalArgumentException("An active organization is required for a trusted person")
             externalIdentityResolutionService.consumeForExchange(
                 resolutionId = prepared.resolution.id,
                 actorAppUserId = caller.id,
-                callerOrganizationId = callerOrganizationId,
+                callerOrganizationId = senderOrganizationId,
                 targetOrganizationId = prepared.resolution.targetOrganizationId,
                 exchangeId = exchangeId,
             )
             exchangeRecipientAttestationService.createPersonAttestation(participant, prepared)
         }
-        sendAccessGrantedNotification(
-            session,
-            resolved.principalKind,
-            resolved.principalId,
-            resolved.appUser?.email.orEmpty(),
+        scheduleAccessGrantedNotification(
+            session = session,
+            kind = resolved.principalKind,
+            principalUuid = resolved.principalId,
+            rawPrincipalId = resolved.appUser?.email.orEmpty(),
+            trustedInvitation = true,
         )
         return shareQueryService.getSessionAccessView(exchangeId)
     }
@@ -266,6 +272,9 @@ class ExchangeAccessManagementService @Inject constructor(
     ): List<SessionAccessEntryDto>
     {
         val session = requireSessionOwnerAndReturn(exchangeId)
+        val senderOrganizationId = requireNotNull(
+            manageAccessSenderOrganization(session, requireOrganization = true),
+        )
 
         if (session.status != ExchangeStatus.INITIATED)
         {
@@ -289,9 +298,8 @@ class ExchangeAccessManagementService @Inject constructor(
 
         val caller = authTokenContext.authToken.appUser
             ?: throw ForbiddenException("A user account is required to manage access")
-        val activeOrganizationId = authTokenContext.activeOrganizationId
 
-        val resolved = resolveTrustedSelection(selection, caller, activeOrganizationId)
+        val resolved = resolveTrustedSelection(selection, caller, senderOrganizationId)
 
         val previousShare = shareService.getById(currentPrimary.directShareId)
             ?: throw IllegalArgumentException("The current primary recipient Share was not found")
@@ -323,6 +331,16 @@ class ExchangeAccessManagementService @Inject constructor(
             resourceLabel = session.name,
         )
 
+        exchangeRecipientService.findByDirectShareId(newShare.id)?.let { existingBinding ->
+            require(
+                existingBinding.exchangeId == exchangeId &&
+                    existingBinding.purpose == ExchangeRecipientPurpose.PARTICIPANT,
+            ) {
+                "Replacement recipient has an incompatible Exchange binding"
+            }
+            exchangeRecipientService.deleteBinding(existingBinding)
+        }
+
         val newPrimary = exchangeRecipientService.createBinding(
             exchangeId = exchangeId,
             directShare = newShare,
@@ -335,23 +353,22 @@ class ExchangeAccessManagementService @Inject constructor(
             exchangeRecipientAttestationService.createGroupAttestation(newPrimary, validation)
         }
         resolved.preparedPersonResolution?.let { prepared ->
-            val callerOrganizationId = activeOrganizationId
-                ?: throw IllegalArgumentException("An active organization is required for a trusted person")
             externalIdentityResolutionService.consumeForExchange(
                 resolutionId = prepared.resolution.id,
                 actorAppUserId = caller.id,
-                callerOrganizationId = callerOrganizationId,
+                callerOrganizationId = senderOrganizationId,
                 targetOrganizationId = prepared.resolution.targetOrganizationId,
                 exchangeId = exchangeId,
             )
             exchangeRecipientAttestationService.createPersonAttestation(newPrimary, prepared)
         }
 
-        sendAccessGrantedNotification(
-            session,
-            resolved.principalKind,
-            resolved.principalId,
-            resolved.appUser?.email.orEmpty(),
+        scheduleAccessGrantedNotification(
+            session = session,
+            kind = resolved.principalKind,
+            principalUuid = resolved.principalId,
+            rawPrincipalId = resolved.appUser?.email.orEmpty(),
+            trustedInvitation = true,
         )
 
         return shareQueryService.getSessionAccessView(exchangeId)
@@ -383,53 +400,98 @@ class ExchangeAccessManagementService @Inject constructor(
 
     // -------------------------------------------------------------------------
 
-    /**
-     * Send an invitation/notification email to a person who was just granted access.
-     * For USER principals, looks up the user's email; for PARTICIPANT principals,
-     * looks up the ExternalParticipant's email; for other kinds, the original
-     * [rawPrincipalId] is used if it looks like an email.
-     */
-    private fun sendAccessGrantedNotification(
+    private fun scheduleAccessGrantedNotification(
         session: Exchange,
         kind: PrincipalKind,
         principalUuid: UUID,
         rawPrincipalId: String,
+        trustedInvitation: Boolean,
     )
     {
-        val recipientEmail: String? = when (kind)
+        val appUsers = when (kind)
         {
-            PrincipalKind.USER -> appUserService.getById(principalUuid)?.email
+            PrincipalKind.USER -> listOfNotNull(appUserService.getById(principalUuid))
+            PrincipalKind.PRINCIPAL_GROUP ->
+                (if (trustedInvitation)
+                    organizationGroupService.activeOwnerOrManagerUserIds(principalUuid)
+                else
+                    organizationGroupService.activeUserIds(principalUuid))
+                    .mapNotNull(appUserService::getById)
+            else -> emptyList()
+        }
+        val externalEmail: String? = when (kind)
+        {
             PrincipalKind.PARTICIPANT -> externalParticipantRepository.findById(principalUuid)?.email
-            else -> rawPrincipalId.normalizeEmailOrNull()
+            else -> null
         }
-
-        if (recipientEmail.isNullOrBlank()) return
-
-        try
+        val fallbackEmail = externalEmail ?: rawPrincipalId.normalizeEmailOrNull()
+        if (appUsers.isEmpty() && fallbackEmail.isNullOrBlank())
         {
-            val initiator = authTokenContext.authToken.appUser
-            val initiatorName = initiator?.person?.let { "${it.firstName} ${it.lastName}" }
-                ?: initiator?.email ?: "Someone"
-
-            val body = emailTemplateService.renderExchangeCreatedRecipientEmail(
-                exchangeId = session.id.toString(),
-                name = session.name.orEmpty(),
-                initiatorName = initiatorName,
-                initiatorOrganization = null,
-                sessionMessage = "You have been added to this exchange.",
-                documents = session.documents.map { it.title },
-            )
-            emailService.sendEmail(
-                to = recipientEmail,
-                subject = "${configurationService.emailSubjectTitle} | You've been added to a Document Exchange",
+            return
+        }
+        val initiator = authTokenContext.authToken.appUser
+        val initiatorName = initiator?.person?.let { "${it.firstName} ${it.lastName}" }
+            ?: initiator?.email ?: "Someone"
+        val sessionMessage = if (trustedInvitation)
+            "You have a trusted invitation that remains inactive until you accept."
+        else
+            "You have been added to this Exchange."
+        val body = emailTemplateService.renderExchangeCreatedRecipientEmail(
+            exchangeId = session.id.toString(),
+            name = session.name.orEmpty(),
+            initiatorName = initiatorName,
+            initiatorOrganization = null,
+            sessionMessage = sessionMessage,
+            documents = session.documents.map { it.title },
+            requireSignIn = trustedInvitation,
+        )
+        val subject = if (trustedInvitation)
+            "${configurationService.emailSubjectTitle} | Trusted Exchange invitation"
+        else
+            "${configurationService.emailSubjectTitle} | You've been added to a Document Exchange"
+        val emails = appUsers.map { appUser ->
+            ExchangeEmailDelivery(
+                to = appUser.email,
+                subject = subject,
                 body = body,
-                useHtml = true,
+                preferenceAppUserId = appUser.id,
+            )
+        }.toMutableList()
+        if (appUsers.isEmpty() && !fallbackEmail.isNullOrBlank())
+        {
+            emails += ExchangeEmailDelivery(
+                to = fallbackEmail,
+                subject = subject,
+                body = body,
             )
         }
-        catch (e: Exception)
-        {
-            logger.error("Failed to send access-granted email to {}", recipientEmail, e)
-        }
+        val eventType = if (trustedInvitation)
+            "exchange.recipient_invitation"
+        else
+            "exchange.access_granted"
+        val title = if (trustedInvitation)
+            "Trusted participant invitation"
+        else
+            "Exchange access granted"
+        val message = if (trustedInvitation)
+            "You were invited to access Exchange ${session.name.orEmpty().ifBlank { session.id.toString() }}."
+        else
+            "Exchange ${session.name.orEmpty().ifBlank { session.id.toString() }} was shared with you."
+        exchangeNotificationDeliveryService.scheduleAfterCommit(
+            exchangeId = session.id,
+            exchangeStatus = session.status.name,
+            emails = emails,
+            inAppNotifications = appUsers.map { appUser ->
+                ExchangeInAppDelivery(
+                    appUserId = appUser.id,
+                    type = eventType,
+                    title = title,
+                    message = message,
+                    data = mapOf("exchangeId" to session.id.toString()),
+                )
+            },
+            refreshAppUserIds = appUsers.mapTo(mutableSetOf()) { it.id },
+        )
     }
 
     /**
@@ -476,6 +538,30 @@ class ExchangeAccessManagementService @Inject constructor(
             throw ForbiddenException("Not authorized to manage access on this session")
         }
         return session
+    }
+
+    private fun manageAccessSenderOrganization(
+        exchange: Exchange,
+        requireOrganization: Boolean,
+    ): UUID?
+    {
+        val ownerOrganizationId = exchange.ownerOrganizationId
+        if (ownerOrganizationId == null)
+        {
+            if (requireOrganization)
+            {
+                throw IllegalArgumentException(
+                    "A trusted recipient can be added only to an organization-owned Exchange",
+                )
+            }
+            return null
+        }
+
+        if (authTokenContext.activeOrganizationId != ownerOrganizationId)
+        {
+            throw ForbiddenException("The active organization does not own this Exchange")
+        }
+        return ownerOrganizationId
     }
 
     private fun loadSessionOrThrow(exchangeId: UUID) =
@@ -544,7 +630,7 @@ class ExchangeAccessManagementService @Inject constructor(
     private fun resolveTrustedSelection(
         selection: ExchangeRecipientSelectionRequest,
         caller: com.docuhyphen.app.api.model.entity.AppUser,
-        activeOrganizationId: UUID?,
+        senderOrganizationId: UUID,
     ): ResolvedExchangeRecipientSelection
     {
         if (selection !is TrustedPersonRecipientSelectionRequest &&
@@ -554,7 +640,7 @@ class ExchangeAccessManagementService @Inject constructor(
                 "A trusted participant must be a verified member or published group from a Trusted Organization",
             )
         }
-        val resolved = exchangeRecipientSelectionResolver.resolve(selection, caller, activeOrganizationId)
+        val resolved = exchangeRecipientSelectionResolver.resolve(selection, caller, senderOrganizationId)
         when (selection)
         {
             is TrustedPersonRecipientSelectionRequest ->
@@ -630,18 +716,30 @@ class ExchangeAccessManagementService @Inject constructor(
         }
     }
 
-    private fun enforceSharingPolicy(actorId: UUID, kind: PrincipalKind, principalId: UUID)
+    private fun enforceSharingPolicy(
+        senderOrganizationId: UUID?,
+        actorId: UUID,
+        kind: PrincipalKind,
+        principalId: UUID,
+    )
     {
-        val callerOrganizationId = authTokenContext.activeOrganizationId
         when (kind)
         {
-            PrincipalKind.USER -> organizationExchangePolicyService.assertCanShareWithUser(callerOrganizationId, actorId, principalId)
-            PrincipalKind.PARTICIPANT -> organizationExchangePolicyService.assertCanShareWithUser(callerOrganizationId, actorId, null)
+            PrincipalKind.USER -> organizationExchangePolicyService.assertCanShareWithUser(
+                senderOrganizationId,
+                actorId,
+                principalId,
+            )
+            PrincipalKind.PARTICIPANT -> organizationExchangePolicyService.assertCanShareWithUser(
+                senderOrganizationId,
+                actorId,
+                null,
+            )
             PrincipalKind.PRINCIPAL_GROUP ->
             {
                 val group = organizationGroupService.getById(principalId.toString())
                     ?: throw IllegalArgumentException("Group not found")
-                organizationExchangePolicyService.assertCanShareWithGroup(callerOrganizationId, actorId, group)
+                organizationExchangePolicyService.assertCanShareWithGroup(senderOrganizationId, actorId, group)
             }
 
             else -> throw IllegalArgumentException("Principal kind is not supported for Exchange access")

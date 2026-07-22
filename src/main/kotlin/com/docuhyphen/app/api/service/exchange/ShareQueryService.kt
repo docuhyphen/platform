@@ -11,6 +11,7 @@ import com.docuhyphen.app.api.repository.PrincipalGroupRepository
 import com.docuhyphen.app.api.repository.ShareRepository
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
+import jakarta.inject.Provider
 import java.util.UUID
 
 /**
@@ -25,17 +26,22 @@ class ShareQueryService @Inject constructor(
     private val appUserRepository: AppUserRepository,
     private val principalGroupRepository: PrincipalGroupRepository,
     private val externalParticipantRepository: ExternalParticipantRepository,
+    private val exchangeRecipientServiceProvider: Provider<ExchangeRecipientService>,
 )
 {
     /** All access entries (any status) for a exchange, newest grant first.
      *  INHERITED_FROM_GROUP rows are internal materialisation details and are excluded;
      *  the group's own DIRECT share row already represents them in the UI. */
-    fun getSessionAccessView(exchangeId: UUID): List<SessionAccessEntryDto> =
-        shareRepository.findAllByResource(ResourceType.EXCHANGE, exchangeId)
+    fun getSessionAccessView(exchangeId: UUID): List<SessionAccessEntryDto>
+    {
+        val recipientPurposes = exchangeRecipientServiceProvider.get().findByExchangeId(exchangeId)
+            .associate { recipient -> recipient.directShareId to recipient.purpose.name }
+        return shareRepository.findAllByResource(ResourceType.EXCHANGE, exchangeId)
             .filter { it.source != ShareSource.INHERITED_FROM_GROUP }
-            .map { it.toAccessEntry() }
+            .map { share -> share.toAccessEntry(recipientPurposes[share.id]) }
+    }
 
-    private fun Share.toAccessEntry(): SessionAccessEntryDto =
+    private fun Share.toAccessEntry(recipientPurpose: String?): SessionAccessEntryDto =
         SessionAccessEntryDto(
             shareId = id,
             principalKind = principalKind.name,
@@ -44,6 +50,7 @@ class ShareQueryService @Inject constructor(
             roleName = roleName,
             source = source.name,
             status = status.name,
+            recipientPurpose = recipientPurpose,
             grantedByAppUserId = grantedByAppUserId,
             grantedAt = grantedAt,
             expiresAt = expiresAt,

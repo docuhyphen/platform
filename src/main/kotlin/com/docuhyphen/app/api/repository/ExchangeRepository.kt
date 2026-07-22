@@ -5,6 +5,9 @@ import com.docuhyphen.app.api.model.entity.PrincipalKind
 import com.docuhyphen.app.api.model.entity.ResourceType
 import com.docuhyphen.app.api.model.entity.Exchange
 import com.docuhyphen.app.api.model.entity.ExchangeStatus
+import com.docuhyphen.app.api.model.entity.ExchangeRecipientAcceptanceStatus
+import com.docuhyphen.app.api.model.entity.ExchangeRecipientPurpose
+import com.docuhyphen.app.api.model.entity.PrincipalGroupRoleName
 import com.docuhyphen.app.api.model.entity.ShareStatus
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.transaction.Transactional
@@ -17,23 +20,36 @@ class ExchangeRepository : BaseRepository<Exchange>(Exchange::class.java)
     companion object
     {
         /**
-         * A session is accessible to a user if they initiated it, or they hold an active USER
-         * [com.docuhyphen.app.api.model.entity.Share] on it. Group/participant access is
-         * materialised as per-member USER shares, so this single condition covers direct,
-         * group-inherited, participant, and owner access.
+         * An Exchange is accessible when the user initiated it, holds an active USER Share, or is
+         * the pending primary recipient. Pending primary visibility is limited to the exact Share
+         * referenced by the primary recipient binding, so pending participant Shares stay hidden.
          */
+        private const val PENDING_PRIMARY_ACCESS =
+            "EXISTS (SELECT er FROM ExchangeRecipient er, Share psh " +
+                "WHERE er.exchangeId = s.id AND er.purpose = :primaryPurpose " +
+                "AND er.acceptanceStatus = :pendingAcceptanceStatus " +
+                "AND psh.id = er.directShareId AND psh.status = :pendingShareStatus " +
+                "AND ((psh.principalKind = :upk AND psh.principalId = :appUserId) OR " +
+                "(psh.principalKind = :gpk AND EXISTS (SELECT pgm FROM PrincipalGroupMember pgm " +
+                "WHERE pgm.principalGroupId = psh.principalId AND pgm.principalKind = :upk " +
+                "AND pgm.principalId = :appUserId AND pgm.isActive = true " +
+                "AND pgm.groupRole IN :decisionGroupRoles))) " +
+                "AND (psh.expiresAt IS NULL OR psh.expiresAt > CURRENT_TIMESTAMP))"
+
         private const val ACCESSIBLE =
             "(s.initiator.id = :appUserId OR EXISTS (" +
                 "SELECT sh FROM Share sh WHERE sh.resourceType = :srt AND sh.resourceId = s.id " +
                 "AND sh.principalKind = :upk AND sh.principalId = :appUserId AND sh.status = :ass " +
-                "AND (sh.expiresAt IS NULL OR sh.expiresAt > CURRENT_TIMESTAMP)))"
+                "AND (sh.expiresAt IS NULL OR sh.expiresAt > CURRENT_TIMESTAMP)) OR " +
+                PENDING_PRIMARY_ACCESS + ")"
 
         /**
          * Visibility predicate for INITIATED (draft) exchanges in [searchSessions] /
          * [countSearchResults]. A draft exchange is visible to the user when at least one of:
          *  - the exchange is not in draft state (status != INITIATED)
          *  - the user is the initiator
-         *  - the user holds an active USER share with a role other than PARTICIPANT
+         *  - the user holds an active USER Share with a role other than PARTICIPANT
+         *  - the user is the pending primary recipient
          *
          * This prevents pure participant-role users (co-witnesses added at creation) from seeing
          * an exchange before the primary recipient has accepted, while correctly showing it to
@@ -47,15 +63,15 @@ class ExchangeRepository : BaseRepository<Exchange>(Exchange::class.java)
                 "SELECT sh2 FROM Share sh2 WHERE sh2.resourceType = :srt AND sh2.resourceId = s.id " +
                 "AND sh2.principalKind = :upk AND sh2.principalId = :appUserId AND sh2.status = :ass " +
                 "AND (sh2.expiresAt IS NULL OR sh2.expiresAt > CURRENT_TIMESTAMP) " +
-                "AND sh2.roleName <> PARTICIPANT))"
+                "AND sh2.roleName <> PARTICIPANT) OR " + PENDING_PRIMARY_ACCESS + ")"
 
         /**
          * Free-text predicate for [searchSessions] / [countSearchResults]. Matches the session's
          * own fields plus its recipients, which under the unified model live in `share` rows keyed
          * by a polymorphic `principalId` (no JPA relationship), so each recipient kind is reached
-         * via a correlated subquery: USER shares → [com.docuhyphen.app.api.model.entity.AppUser]
-         * email, PARTICIPANT shares → [com.docuhyphen.app.api.model.entity.ExternalParticipant]
-         * email/name, PRINCIPAL_GROUP shares → [com.docuhyphen.app.api.model.entity.PrincipalGroup]
+         * via a correlated subquery: USER shares map to [com.docuhyphen.app.api.model.entity.AppUser]
+         * email, PARTICIPANT shares map to [com.docuhyphen.app.api.model.entity.ExternalParticipant]
+         * email/name, and PRINCIPAL_GROUP shares map to [com.docuhyphen.app.api.model.entity.PrincipalGroup]
          * name. Requires :query, :srt, :upk, :ass (bound by [bindAccess]) plus :ppk, :gpk.
          */
         private const val SEARCH_PREDICATE =
@@ -93,8 +109,19 @@ class ExchangeRepository : BaseRepository<Exchange>(Exchange::class.java)
             .setParameter("upk", PrincipalKind.USER)
             .setParameter("ass", ShareStatus.ACTIVE)
 
+    private fun <T> bindAccessible(query: jakarta.persistence.TypedQuery<T>, userId: UUID): jakarta.persistence.TypedQuery<T> =
+        bindAccess(query, userId)
+            .setParameter("primaryPurpose", ExchangeRecipientPurpose.PRIMARY)
+            .setParameter("pendingAcceptanceStatus", ExchangeRecipientAcceptanceStatus.PENDING)
+            .setParameter("pendingShareStatus", ShareStatus.PENDING_APPROVAL)
+            .setParameter("gpk", PrincipalKind.PRINCIPAL_GROUP)
+            .setParameter(
+                "decisionGroupRoles",
+                setOf(PrincipalGroupRoleName.OWNER, PrincipalGroupRoleName.MANAGER),
+            )
+
     fun userHasExchanges(userId: UUID): Boolean {
-        val count = bindAccess(
+        val count = bindAccessible(
             entityManager.createQuery(
                 "SELECT COUNT(DISTINCT s) FROM Exchange s WHERE $ACCESSIBLE AND s.isDeleted = false",
                 Long::class.java,
@@ -119,7 +146,7 @@ class ExchangeRepository : BaseRepository<Exchange>(Exchange::class.java)
 
     fun findByParticipatingAppUser(appUserId: UUID): List<Exchange>
     {
-        return bindAccess(
+        return bindAccessible(
             entityManager.createQuery(
                 "SELECT DISTINCT s FROM Exchange s WHERE $ACCESSIBLE AND s.isDeleted = false",
                 Exchange::class.java,
@@ -275,7 +302,7 @@ class ExchangeRepository : BaseRepository<Exchange>(Exchange::class.java)
 
         queryBuilder.append(" ORDER BY s.$safeSort $safeDirection")
 
-        val jpaQuery = bindAccess(entityManager.createQuery(queryBuilder.toString(), Exchange::class.java), appUserId)
+        val jpaQuery = bindAccessible(entityManager.createQuery(queryBuilder.toString(), Exchange::class.java), appUserId)
         jpaQuery.setParameter("initiatedStatus", ExchangeStatus.INITIATED)
 
         if (!query.isNullOrBlank())
@@ -339,7 +366,7 @@ class ExchangeRepository : BaseRepository<Exchange>(Exchange::class.java)
             }
         }
 
-        val jpaQuery = bindAccess(entityManager.createQuery(queryBuilder.toString(), Long::class.java), appUserId)
+        val jpaQuery = bindAccessible(entityManager.createQuery(queryBuilder.toString(), Long::class.java), appUserId)
         jpaQuery.setParameter("initiatedStatus", ExchangeStatus.INITIATED)
 
         if (!query.isNullOrBlank())
@@ -358,7 +385,7 @@ class ExchangeRepository : BaseRepository<Exchange>(Exchange::class.java)
 
     fun getAppUserLinkedExchanges(appUserId: UUID): List<Exchange>
     {
-        return bindAccess(
+        return bindAccessible(
             entityManager.createQuery(
                 "SELECT s FROM Exchange s WHERE $ACCESSIBLE AND s.isDeleted = false",
                 Exchange::class.java,

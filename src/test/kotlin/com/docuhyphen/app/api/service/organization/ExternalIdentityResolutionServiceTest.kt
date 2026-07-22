@@ -201,12 +201,121 @@ class ExternalIdentityResolutionServiceTest
     }
 
     @Test
+    fun `unchanged current resolution prepares with bound relationship policies and membership`()
+    {
+        val resolution = resolution()
+        whenever(repository.findById(resolution.id)).thenReturn(resolution)
+        configureCurrentEvidence(resolution)
+
+        val prepared = service.prepareForInitiation(
+            resolution.id,
+            actorId,
+            callerOrganizationId,
+            now,
+        )
+
+        assertEquals(resolution.id, prepared.resolution.id)
+        assertEquals(resolvedUserId, prepared.appUser.id)
+        assertEquals(membershipId, prepared.membership.id)
+    }
+
+    @Test
+    fun `changed sender or target policy revision invalidates prepared evidence`()
+    {
+        listOf(
+            validation(senderRevision = 3),
+            validation(targetRevision = 5),
+        ).forEach { currentValidation ->
+            val resolution = resolution()
+            whenever(repository.findById(resolution.id)).thenReturn(resolution)
+            configureCurrentEvidence(resolution, currentValidation)
+
+            assertThrows<ExternalIdentityResolutionUnavailableException> {
+                service.prepareForInitiation(
+                    resolution.id,
+                    actorId,
+                    callerOrganizationId,
+                    now,
+                )
+            }
+        }
+
+        verify(repository, never()).update(any())
+    }
+
+    @Test
+    fun `changed relationship generation invalidates prepared evidence`()
+    {
+        val resolution = resolution()
+        whenever(repository.findById(resolution.id)).thenReturn(resolution)
+        configureCurrentEvidence(
+            resolution,
+            validation(currentRelationshipId = UUID.randomUUID()),
+        )
+
+        assertThrows<ExternalIdentityResolutionUnavailableException> {
+            service.prepareForInitiation(
+                resolution.id,
+                actorId,
+                callerOrganizationId,
+                now,
+            )
+        }
+    }
+
+    @Test
+    fun `display name collected under an older disclosure revision cannot be prepared`()
+    {
+        val resolution = resolution().apply { displayNameSnapshot = "Ada Lovelace" }
+        whenever(repository.findById(resolution.id)).thenReturn(resolution)
+        configureCurrentEvidence(
+            resolution,
+            validation(shareDisplayName = false, targetRevision = 5),
+        )
+
+        assertThrows<ExternalIdentityResolutionUnavailableException> {
+            service.prepareForInitiation(
+                resolution.id,
+                actorId,
+                callerOrganizationId,
+                now,
+            )
+        }
+
+        verify(repository, never()).update(any())
+    }
+
+    @Test
+    fun `row locked consumption rejects a policy revision changed after preparation`()
+    {
+        val resolution = resolution()
+        whenever(repository.findForUpdate(resolution.id)).thenReturn(resolution)
+        configureCurrentEvidence(resolution, validation(targetRevision = 5))
+
+        assertThrows<ExternalIdentityResolutionUnavailableException> {
+            service.consumeForExchange(
+                resolution.id,
+                actorId,
+                callerOrganizationId,
+                targetOrganizationId,
+                UUID.randomUUID(),
+                now,
+            )
+        }
+
+        assertNull(resolution.consumedAt)
+        assertNull(resolution.consumedByExchangeId)
+        verify(repository, never()).update(any())
+    }
+
+    @Test
     fun `valid consumption binds the resolution to exactly one Exchange`()
     {
         val resolution = resolution()
         val exchangeId = UUID.randomUUID()
         whenever(repository.findForUpdate(resolution.id)).thenReturn(resolution)
         whenever(repository.update(any())).thenAnswer { it.arguments[0] as ExternalIdentityResolution }
+        configureCurrentEvidence(resolution)
 
         val consumed = service.consumeForExchange(
             resolution.id,
@@ -219,6 +328,17 @@ class ExternalIdentityResolutionServiceTest
 
         assertEquals(exchangeId, consumed.consumedByExchangeId)
         assertEquals(Timestamp.from(now), consumed.consumedAt)
+        assertThrows<ExternalIdentityResolutionUnavailableException> {
+            service.consumeForExchange(
+                resolution.id,
+                actorId,
+                callerOrganizationId,
+                targetOrganizationId,
+                UUID.randomUUID(),
+                now,
+            )
+        }
+        verify(repository).update(resolution)
     }
 
     @Test
@@ -241,12 +361,17 @@ class ExternalIdentityResolutionServiceTest
         whenever(authorizationService.authorize(any(), any(), any(), any())).thenReturn(Decision.Allow())
     }
 
-    private fun validation(shareDisplayName: Boolean = true): TrustedExchangePolicyValidation
+    private fun validation(
+        shareDisplayName: Boolean = true,
+        senderRevision: Long = 2,
+        targetRevision: Long = 4,
+        currentRelationshipId: UUID = relationshipId,
+    ): TrustedExchangePolicyValidation
     {
-        val relationship = OrganizationTrustRelationship().apply { id = relationshipId }
-        val senderPolicy = OrganizationTrustPartyPolicy().apply { revision = 2 }
+        val relationship = OrganizationTrustRelationship().apply { id = currentRelationshipId }
+        val senderPolicy = OrganizationTrustPartyPolicy().apply { revision = senderRevision }
         val targetPolicy = OrganizationTrustPartyPolicy().apply {
-            revision = 4
+            revision = targetRevision
             shareMemberDisplayName = shareDisplayName
         }
         return TrustedExchangePolicyValidation(
@@ -279,11 +404,34 @@ class ExternalIdentityResolutionServiceTest
         callerOrganizationId = this@ExternalIdentityResolutionServiceTest.callerOrganizationId
         targetOrganizationId = this@ExternalIdentityResolutionServiceTest.targetOrganizationId
         relationshipId = this@ExternalIdentityResolutionServiceTest.relationshipId
+        senderPolicyRevision = 2
+        targetPolicyRevision = 4
         resolvedAppUserId = resolvedUserId
         resolvedMembershipId = membershipId
         normalizedEmail = "member@example.test"
         createdAt = Timestamp.from(now.minusSeconds(60))
         expiresAt = Timestamp.from(now.plusSeconds(60))
+    }
+
+    private fun configureCurrentEvidence(
+        resolution: ExternalIdentityResolution,
+        currentValidation: TrustedExchangePolicyValidation = validation(),
+    )
+    {
+        whenever(
+            validationService.validatePersonResolution(
+                resolution.callerOrganizationId,
+                resolution.targetOrganizationId,
+                now,
+            ),
+        ).thenReturn(currentValidation)
+        whenever(
+            membershipService.findActiveMembershipsByOrganizationAndExactEmail(
+                resolution.targetOrganizationId,
+                resolution.normalizedEmail,
+            ),
+        ).thenReturn(listOf(membership()))
+        whenever(appUserService.getById(resolution.resolvedAppUserId)).thenReturn(appUser())
     }
 
     private fun organization(id: UUID, value: String): Organization = Organization().apply {

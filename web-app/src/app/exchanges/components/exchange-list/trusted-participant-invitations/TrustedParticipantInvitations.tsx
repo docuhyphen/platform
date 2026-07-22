@@ -5,6 +5,7 @@ import {
     decideExchangeRecipientInvitation,
     fetchPendingExchangeRecipientInvitations,
 } from "../../../../../services/exchangeApi.ts";
+import {realtimeService} from "../../../../../services/NotificationService.tsx";
 import {useTrustedParticipantInvitationsStyles} from "./TrustedParticipantInvitationsStyles.tsx";
 
 interface TrustedParticipantInvitationsProps
@@ -19,6 +20,13 @@ const TrustedParticipantInvitations: React.FC<TrustedParticipantInvitationsProps
     const [loading, setLoading] = React.useState(true);
     const [pendingId, setPendingId] = React.useState<string | null>(null);
     const [error, setError] = React.useState<string | null>(null);
+    const [refreshVersion, setRefreshVersion] = React.useState(0);
+
+    React.useEffect(() =>
+        realtimeService.on("EXCHANGE_LIST_CHANGED", () =>
+        {
+            setRefreshVersion(version => version + 1);
+        }), []);
 
     React.useEffect(() =>
     {
@@ -42,7 +50,7 @@ const TrustedParticipantInvitations: React.FC<TrustedParticipantInvitationsProps
         {
             current = false;
         };
-    }, [onCountChange]);
+    }, [onCountChange, refreshVersion]);
 
     const decide = async (invitation: ExchangeRecipientInvitationDto, decision: "ACCEPT" | "REJECT") =>
     {

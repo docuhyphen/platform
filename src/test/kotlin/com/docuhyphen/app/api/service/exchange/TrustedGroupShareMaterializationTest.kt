@@ -11,6 +11,7 @@ import com.docuhyphen.app.api.repository.PrincipalGroupMemberRepository
 import com.docuhyphen.app.api.repository.ShareRepository
 import com.docuhyphen.app.api.service.audit.AuditRecorder
 import com.docuhyphen.app.api.service.organization.TrustedRecipientValidationService
+import jakarta.inject.Provider
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.mockito.kotlin.any
@@ -33,6 +34,7 @@ class TrustedGroupShareMaterializationTest
         mock<ExchangeAuthorizationContextProvider>(),
         attestationService,
         validationService,
+        mock<Provider<ExchangeRecipientService>>(),
     )
 
     @Test

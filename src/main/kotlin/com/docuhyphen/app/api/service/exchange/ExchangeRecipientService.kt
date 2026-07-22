@@ -94,6 +94,9 @@ class ExchangeRecipientService @Inject constructor(
     fun findPrimary(exchangeId: UUID): ExchangeRecipient? =
         exchangeRecipientRepository.findPrimary(exchangeId)
 
+    fun findByExchangeId(exchangeId: UUID): List<ExchangeRecipient> =
+        exchangeRecipientRepository.findByExchangeId(exchangeId)
+
     /**
      * Removes a recipient binding and its attestation, if any. Used when an Exchange owner replaces
      * a pending primary recipient so the single-primary and Share-uniqueness constraints stay
@@ -115,12 +118,16 @@ class ExchangeRecipientService @Inject constructor(
             .mapTo(mutableSetOf()) { it.directShareId }
 
     fun pendingTrustedParticipantInvitationsFor(appUserId: UUID): List<ExchangeRecipient> =
-        exchangeRecipientRepository.findAllPendingTrustedParticipants()
-            .filter { recipient ->
-                shareService.getById(recipient.directShareId)
-                    ?.let { share -> canDecide(share, appUserId) }
-                    ?: false
-            }
+        exchangeRecipientRepository.findPendingTrustedParticipantsFor(appUserId)
+
+    fun canViewPendingPrimaryInvitation(exchangeId: UUID, appUserId: UUID): Boolean
+    {
+        val recipient = exchangeRecipientRepository.findPrimary(exchangeId) ?: return false
+        if (recipient.acceptanceStatus != ExchangeRecipientAcceptanceStatus.PENDING) return false
+        val share = shareService.getById(recipient.directShareId) ?: return false
+        if (share.status != ShareStatus.PENDING_APPROVAL) return false
+        return canDecide(share, appUserId)
+    }
 
     fun recordPrimaryDecision(
         exchange: Exchange,

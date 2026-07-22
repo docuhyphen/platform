@@ -34,13 +34,6 @@ export function HeroSection()
                         Securely exchange documents, automate workflows, and collaborate seamlessly with clients, teams,
                         and partners using configurable workflows built for your business.
                     </Text>
-                    <Text
-                        id="home-product-definition"
-                        className={styles.productDefinition}
-                    >
-                        DocuHyphen is a secure document exchange and workflow platform that helps organizations request,
-                        collect, review, approve, share, and audit sensitive documents in one controlled workspace.
-                    </Text>
                     <div
                         id="home-hero-actions"
                         className={styles.actions}

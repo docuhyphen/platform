@@ -47,7 +47,6 @@ class ExchangeInitiationFieldsTest
             exchangeRepository = mock(),
             appUserRepository = mock(),
             appUserService = mock(),
-            emailService = mock(),
             emailTemplateService = mock(),
             otpService = mock(),
             authTokenContext = mock(),
@@ -57,13 +56,11 @@ class ExchangeInitiationFieldsTest
             authRateLimitService = mock(),
             configurationService = mock(),
             authAuditService = mock(),
-            inAppNotificationService = mock(),
             shareService = mock(),
             exchangeRecipientService = mock(),
             exchangeRecipientAttestationService = mock(),
             externalIdentityResolutionService = mock(),
             exchangeRecipientSelectionResolver = mock(),
-            principalGroupMemberRepository = mock(),
             organizationGroupService = mock(),
             workflowEngineService = mock(),
             organizationService = mock(),
@@ -72,8 +69,7 @@ class ExchangeInitiationFieldsTest
             fileStorageService = mock(),
             schemaAssignmentService = schemaAssignmentService,
             noAuthExchangeAccessTokenService = mock(),
-            realtimeEventService = mock(),
-            transactionSynchronizationRegistry = mock(),
+            exchangeNotificationDeliveryService = mock(),
         )
 
     private fun entry(): FieldValueEntry =

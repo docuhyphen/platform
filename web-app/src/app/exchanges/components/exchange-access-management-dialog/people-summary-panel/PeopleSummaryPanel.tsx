@@ -1,7 +1,7 @@
 import {Badge, Button, Divider, Text, Tooltip} from "@fluentui/react-components";
 import {ExchangeDetailedDto, ExchangeStatus} from "../../../../models/models.tsx";
-import {ExchangeParticipantView} from "../exchangeAccessManagementTypes.ts";
 import {usePeopleSummaryPanelStyles} from "./PeopleSummaryPanelStyles.tsx";
+import {useParticipantSummary} from "./useParticipantSummary.ts";
 
 interface PeopleSummaryPanelProps
 {
@@ -15,17 +15,17 @@ const formatName = (firstName?: string, lastName?: string, fallback?: string): s
     return fullName || fallback || "Unknown user";
 };
 
-const participantLabel = (participantType?: string): string =>
+const participantLabel = (principalKind: string, status: string): string =>
 {
-    if (participantType === "GROUP") return "Group participant";
-    if (participantType === "APP_USER") return "User participant";
+    if (status === "PENDING_APPROVAL") return "Invitation pending";
+    if (principalKind === "PRINCIPAL_GROUP") return "Group participant";
     return "Participant";
 };
 
 const PeopleSummaryPanel = ({exchange, onReplacePrimary}: PeopleSummaryPanelProps) =>
 {
     const styles = usePeopleSummaryPanelStyles();
-    const participants = (exchange.participants ?? []) as ExchangeParticipantView[];
+    const {participants, loading: loadingParticipants} = useParticipantSummary(exchange.id);
     const initiatorHasName = !!(exchange.initiator?.person?.firstName || exchange.initiator?.person?.lastName);
     const recipientHasName = !!(exchange.recipient?.person?.firstName || exchange.recipient?.person?.lastName);
     const recipientName = exchange.recipientGroupName
@@ -107,36 +107,34 @@ const PeopleSummaryPanel = ({exchange, onReplacePrimary}: PeopleSummaryPanelProp
             )}
             {participants.map(participant => (
                 <div
-                    id={`access-mgmt-participant-${participant.id}`}
-                    key={participant.id}
+                    id={`access-mgmt-participant-${participant.shareId}`}
+                    key={participant.shareId}
                     className={styles.personCard}
                 >
                     <div className={styles.personDetails}>
-                        <Text weight={"semibold"}>
-                            {participant.organizationGroupName
-                                || formatName(participant.appUserFirstName, participant.appUserLastName, participant.appUserEmail)}
-                        </Text>
+                        <Text weight={"semibold"}>{participant.displayName || "Exchange participant"}</Text>
                         <Text
                             size={200}
                             className={styles.secondaryText}
                         >
-                            {participant.appUserEmail || participant.organizationGroupName || "Exchange participant"}
+                            {participant.principalKind === "PRINCIPAL_GROUP" ? "Trusted group" : "Trusted person"}
                         </Text>
                     </div>
                     <Tooltip
-                        content={participant.addedDate ? new Date(participant.addedDate).toLocaleString() : "Added date unavailable"}
+                        content={participant.grantedAt ? new Date(participant.grantedAt).toLocaleString() : "Added date unavailable"}
                         relationship={"label"}
                     >
                         <Badge
                             appearance={"outline"}
                             color={"subtle"}
                         >
-                            {participantLabel(participant.participantType)}
+                            {participantLabel(participant.principalKind, participant.status)}
                         </Badge>
                     </Tooltip>
                 </div>
             ))}
-            {!participants.length && <Text size={200}>No additional participants added.</Text>}
+            {loadingParticipants && <Text size={200}>Loading participants.</Text>}
+            {!loadingParticipants && !participants.length && <Text size={200}>No additional participants added.</Text>}
         </section>
     );
 };

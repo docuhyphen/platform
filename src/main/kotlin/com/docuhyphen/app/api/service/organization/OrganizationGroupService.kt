@@ -90,6 +90,32 @@ class OrganizationGroupService @Inject constructor(
             }
     }
 
+    fun activeOwnerOrManagerUserIds(groupId: UUID): Set<UUID>
+    {
+        val group = principalGroupRepository.findById(groupId)
+            ?: return emptySet()
+        if (!group.isActive)
+        {
+            return emptySet()
+        }
+        return principalGroupMemberRepository.findActiveMembers(groupId)
+            .asSequence()
+            .filter { it.principalKind == PrincipalKind.USER }
+            .filter {
+                it.groupRole == PrincipalGroupRoleName.OWNER ||
+                    it.groupRole == PrincipalGroupRoleName.MANAGER
+            }
+            .map { it.principalId }
+            .toSet()
+    }
+
+    fun activeUserIds(groupId: UUID): Set<UUID> =
+        principalGroupMemberRepository.findActiveMembers(groupId)
+            .asSequence()
+            .filter { it.principalKind == PrincipalKind.USER }
+            .map { it.principalId }
+            .toSet()
+
     fun getOrganizationByAppUserIdAndPersonId(appUserId: UUID, personId: UUID): Organization =
         organizationRepository.findByAppUserIdAndPersonId(appUserId, personId)
             ?: throw OrganizationNotFoundException("Organization not found for appUserId: $appUserId and personId: $personId")

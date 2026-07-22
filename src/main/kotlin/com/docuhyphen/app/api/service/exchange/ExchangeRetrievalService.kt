@@ -8,6 +8,7 @@ import com.docuhyphen.app.api.model.dto.NoAuthExchangeBasicDto
 import com.docuhyphen.app.api.model.entity.Document
 import com.docuhyphen.app.api.model.entity.Exchange
 import com.docuhyphen.app.api.model.entity.ExchangeStatus
+import com.docuhyphen.app.api.model.entity.PrincipalKind
 import com.docuhyphen.app.api.model.entity.ExchangeStatus.ACCEPTED_STARTED
 import com.docuhyphen.app.api.model.entity.ExchangeStatus.INITIATED
 import com.docuhyphen.app.api.repository.ExchangeRepository
@@ -15,6 +16,7 @@ import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
 import com.docuhyphen.app.api.service.auth.authz.Decision
+import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.auth.authz.ResourceRef
 import com.docuhyphen.app.api.service.auth.authz.ShareConstraints
 import jakarta.enterprise.context.ApplicationScoped
@@ -41,6 +43,7 @@ class ExchangeRetrievalService @Inject constructor(
     private val authorizationService: AuthorizationService,
     private val authorizationContextFactory: AuthorizationContextFactory,
     private val shareService: ShareService,
+    private val exchangeRecipientService: ExchangeRecipientService,
     private val noAuthExchangeAccessTokenService: NoAuthExchangeAccessTokenService,
 )
 {
@@ -65,7 +68,7 @@ class ExchangeRetrievalService @Inject constructor(
             resource = ResourceRef.exchange(session.id),
             context = authorizationContextFactory.currentContext(),
         )
-        if (decision is Decision.Deny)
+        if (decision is Decision.Deny && !canViewPendingPrimaryInvitation(session, principal))
         {
             throw ExchangeNotFoundException("Exchange not found")
         }
@@ -229,13 +232,19 @@ class ExchangeRetrievalService @Inject constructor(
     private fun canCurrentPrincipalView(exchange: Exchange): Boolean
     {
         val principal = authorizationContextFactory.currentPrincipal() ?: return false
-        return authorizationService.authorize(
+        val decision = authorizationService.authorize(
             principal = principal,
             action = Action.EXCHANGE_VIEW,
             resource = ResourceRef.exchange(exchange.id),
             context = authorizationContextFactory.currentContext(),
-        ) is Decision.Allow
+        )
+        return decision is Decision.Allow || canViewPendingPrimaryInvitation(exchange, principal)
     }
+
+    private fun canViewPendingPrimaryInvitation(exchange: Exchange, principal: PrincipalRef): Boolean =
+        principal.kind == PrincipalKind.USER &&
+            exchange.status == ExchangeStatus.INITIATED &&
+            exchangeRecipientService.canViewPendingPrimaryInvitation(exchange.id, principal.id)
 
     fun getExchangesLinkedToAppUserId(appUserId: UUID): List<Exchange>
     {

@@ -17,9 +17,6 @@ import com.docuhyphen.app.api.resource.model.RegisteredUserRecipientSelectionReq
 import com.docuhyphen.app.api.resource.model.TrustedGroupRecipientSelectionRequest
 import com.docuhyphen.app.api.resource.model.TrustedPersonRecipientSelectionRequest
 import com.docuhyphen.app.api.service.organization.ExternalIdentityResolutionService
-import com.docuhyphen.app.api.realtime.RealtimeEventService
-import com.docuhyphen.app.api.realtime.RealtimeMessage
-import com.docuhyphen.app.api.realtime.RealtimeMessageType
 import com.docuhyphen.app.api.service.AppUserService
 import com.docuhyphen.app.api.service.auth.AuthAuditService
 import com.docuhyphen.app.api.service.auth.AuthRateLimitService
@@ -30,15 +27,12 @@ import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
 import com.docuhyphen.app.api.service.auth.authz.Decision as AuthorizationDecision
 import com.docuhyphen.app.api.service.auth.authz.ResourceRef
-import com.docuhyphen.app.api.service.communication.EmailService
 import com.docuhyphen.app.api.service.communication.EmailTemplateService
 import com.docuhyphen.app.api.service.communication.OtpService
 import com.docuhyphen.app.api.service.config.ConfigurationService
 import com.docuhyphen.app.api.service.organization.OrganizationGroupService
 import com.docuhyphen.app.api.service.organization.OrganizationService
 import com.docuhyphen.app.api.service.documentlibrary.DocumentLibraryService
-import com.docuhyphen.app.api.service.notification.InAppNotificationService
-import com.docuhyphen.app.api.service.notification.UserNotificationPreference
 import com.docuhyphen.app.api.service.storage.FileStorageService
 import com.docuhyphen.app.api.service.variable.TemplateVariableInterpolator
 import com.docuhyphen.app.api.service.variable.VariableResolutionContext
@@ -48,9 +42,6 @@ import jakarta.inject.Inject
 import jakarta.persistence.EntityManager
 import jakarta.persistence.PersistenceContext
 import jakarta.transaction.Transactional
-import jakarta.transaction.Status
-import jakarta.transaction.Synchronization
-import jakarta.transaction.TransactionSynchronizationRegistry
 import io.quarkus.security.ForbiddenException
 import org.slf4j.LoggerFactory
 import java.sql.Timestamp
@@ -62,7 +53,6 @@ class ExchangeInitiationService @Inject constructor(
     private val exchangeRepository: ExchangeRepository,
     private val appUserRepository: AppUserRepository,
     private val appUserService: AppUserService,
-    private val emailService: EmailService,
     private val emailTemplateService: EmailTemplateService,
     private val otpService: OtpService,
     private val authTokenContext: AuthTokenContext,
@@ -72,13 +62,11 @@ class ExchangeInitiationService @Inject constructor(
     private val authRateLimitService: AuthRateLimitService,
     private val configurationService: ConfigurationService,
     private val authAuditService: AuthAuditService,
-    private val inAppNotificationService: InAppNotificationService,
     private val shareService: ShareService,
     private val exchangeRecipientService: ExchangeRecipientService,
     private val exchangeRecipientAttestationService: ExchangeRecipientAttestationService,
     private val externalIdentityResolutionService: ExternalIdentityResolutionService,
     private val exchangeRecipientSelectionResolver: ExchangeRecipientSelectionResolver,
-    private val principalGroupMemberRepository: com.docuhyphen.app.api.repository.PrincipalGroupMemberRepository,
     private val organizationGroupService: OrganizationGroupService,
     private val workflowEngineService: com.docuhyphen.app.api.service.workflow.WorkflowEngineService,
     private val organizationService: OrganizationService,
@@ -87,8 +75,7 @@ class ExchangeInitiationService @Inject constructor(
     private val fileStorageService: FileStorageService,
     private val schemaAssignmentService: com.docuhyphen.app.api.service.fields.SchemaAssignmentService,
     private val noAuthExchangeAccessTokenService: NoAuthExchangeAccessTokenService,
-    private val realtimeEventService: RealtimeEventService,
-    private val transactionSynchronizationRegistry: TransactionSynchronizationRegistry,
+    private val exchangeNotificationDeliveryService: ExchangeNotificationDeliveryService,
 )
 {
     @PersistenceContext
@@ -389,17 +376,6 @@ class ExchangeInitiationService @Inject constructor(
         grantParticipantShares(savedExchange, resolvedParticipants, initiator)
 
         val externalEmailSelection = primarySelectionRequest as? ExternalEmailRecipientSelectionRequest
-        sendNotifications(
-            recipientType = resolvedPrimary.recipientType,
-            initiator = initiator,
-            recipientAppUser = appUserRecipient,
-            recipientGroupId = recipientGroupId,
-            exchange = savedExchange,
-            recipientEmail = externalEmailSelection?.email,
-            recipientFirstName = externalEmailSelection?.firstName,
-            recipientLastName = externalEmailSelection?.lastName,
-            pendingApproval = recipientNeedsApproval,
-        )
         val primaryRecipient = exchangeRecipientService.createBinding(
             exchangeId = savedExchange.id,
             directShare = primaryRecipientShare,
@@ -419,14 +395,17 @@ class ExchangeInitiationService @Inject constructor(
             exchangeRecipientAttestationService.createPersonAttestation(primaryRecipient, prepared)
         }
 
-        publishInitiatedNotifications(savedExchange, initiator.id, recipientNeedsApproval)
-
-        registerExchangeListBroadcastAfterCommit(
+        scheduleNotificationsAfterCommit(
             exchange = savedExchange,
-            initiatorId = initiator.id,
-            recipientAppUserId = appUserRecipient?.id,
+            initiator = initiator,
+            primarySelectionType = resolvedPrimary.selectionType,
+            recipientType = resolvedPrimary.recipientType,
+            recipientAppUser = appUserRecipient,
             recipientGroupId = recipientGroupId,
-            participantPrincipals = participantPrincipals,
+            participants = resolvedParticipants,
+            externalEmailSelection = externalEmailSelection,
+            draftApprovalPending = draftApprovalPending,
+            recipientNeedsApproval = recipientNeedsApproval,
         )
 
         logger.info("Sharing Exchange Initiated ID: ${exchange.id}")
@@ -448,93 +427,6 @@ class ExchangeInitiationService @Inject constructor(
         {
             throw ForbiddenException("Not authorized to initiate an Exchange for the active organization")
         }
-    }
-
-    private fun publishInitiatedNotifications(
-        exchange: Exchange,
-        initiatorId: UUID,
-        pendingApproval: Boolean,
-    )
-    {
-        val recipientUserIds = if (pendingApproval) emptySet() else shareService.recipientUserIds(exchange.id).toSet()
-        buildSet {
-            add(initiatorId)
-            addAll(recipientUserIds)
-        }.forEach { appUserId ->
-            publishInitiatedNotification(exchange, appUserId, appUserId == initiatorId)
-        }
-    }
-
-    private fun publishInitiatedNotification(exchange: Exchange, appUserId: UUID, isInitiator: Boolean)
-    {
-        val exchangeLabel = exchange.name.orEmpty().ifBlank { exchange.id.toString() }
-        val message = if (isInitiator)
-        {
-            "Exchange $exchangeLabel was sent."
-        }
-        else
-        {
-            "A new Exchange, $exchangeLabel, was sent to you."
-        }
-        inAppNotificationService.publishIfEnabled(
-            appUserId = appUserId,
-            preference = UserNotificationPreference.EXCHANGE_INITIATED,
-            type = "exchange.initiated",
-            title = "Exchange initiated",
-            message = message,
-            data = mapOf("exchangeId" to exchange.id.toString()),
-        )
-    }
-
-    private fun registerExchangeListBroadcastAfterCommit(
-        exchange: Exchange,
-        initiatorId: UUID,
-        recipientAppUserId: UUID?,
-        recipientGroupId: UUID?,
-        participantPrincipals: List<Pair<PrincipalKind, UUID>>,
-    )
-    {
-        val recipientUserIds = buildSet {
-            add(initiatorId)
-            recipientAppUserId?.let(::add)
-            recipientGroupId?.let { groupId ->
-                principalGroupMemberRepository.findActiveMembers(groupId)
-                    .filter { it.principalKind == PrincipalKind.USER }
-                    .forEach { add(it.principalId) }
-            }
-            participantPrincipals.forEach { (principalKind, principalId) ->
-                if (principalKind == PrincipalKind.USER)
-                {
-                    add(principalId)
-                }
-                else if (principalKind == PrincipalKind.PRINCIPAL_GROUP)
-                {
-                    principalGroupMemberRepository.findActiveMembers(principalId)
-                        .filter { it.principalKind == PrincipalKind.USER }
-                        .forEach { add(it.principalId) }
-                }
-            }
-        }
-        val message = RealtimeMessage(
-            type = RealtimeMessageType.EXCHANGE_LIST_CHANGED,
-            exchangeId = exchange.id.toString(),
-            status = exchange.status.name,
-        )
-
-        transactionSynchronizationRegistry.registerInterposedSynchronization(
-            object : Synchronization
-            {
-                override fun beforeCompletion() = Unit
-
-                override fun afterCompletion(status: Int)
-                {
-                    if (status == Status.STATUS_COMMITTED)
-                    {
-                        recipientUserIds.forEach { realtimeEventService.broadcastToUser(it, message) }
-                    }
-                }
-            },
-        )
     }
 
     /**
@@ -856,16 +748,17 @@ class ExchangeInitiationService @Inject constructor(
         }
     }
 
-    fun sendNotifications(
-        recipientType: ExchangeRecipientType,
+    private fun scheduleNotificationsAfterCommit(
+        exchange: Exchange,
         initiator: AppUser,
+        primarySelectionType: ExchangeRecipientSelectionType,
+        recipientType: ExchangeRecipientType,
         recipientAppUser: AppUser?,
         recipientGroupId: UUID?,
-        exchange: Exchange,
-        recipientEmail: String? = null,
-        recipientFirstName: String? = null,
-        recipientLastName: String? = null,
-        pendingApproval: Boolean = false,
+        participants: List<ResolvedParticipant>,
+        externalEmailSelection: ExternalEmailRecipientSelectionRequest?,
+        draftApprovalPending: Boolean,
+        recipientNeedsApproval: Boolean,
     )
     {
         val initiatorName = listOfNotNull(
@@ -875,24 +768,45 @@ class ExchangeInitiationService @Inject constructor(
         val documentTitles = exchange.documents.map { it.title }
         val exchangeIdStr = exchange.id.toString()
         val subjectTitle = configurationService.emailSubjectTitle
-
-        val recipientEmails: List<Pair<String, String>> = when (recipientType)
-        {
-            GROUP -> recipientGroupId
-                ?.let { groupId ->
-                    principalGroupMemberRepository.findActiveMembers(groupId)
-                        .filter { it.principalKind == PrincipalKind.USER }
-                        .mapNotNull { appUserService.getById(it.principalId) }
-                }
-                ?.filter { it.id != initiator.id }
-                ?.filter { it.settings?.notifyShareStart != false }
-                ?.map { it.email to (it.person?.firstName ?: "there") }
-                ?: emptyList()
-            else -> recipientAppUser
-                ?.takeIf { !it.email.isNullOrBlank() && it.settings?.notifyShareStart != false }
-                ?.let { listOf(it.email to (it.person?.firstName ?: "there")) }
-                ?: emptyList()
-        }
+        val trustedPrimary = primarySelectionType == ExchangeRecipientSelectionType.TRUSTED_PERSON ||
+            primarySelectionType == ExchangeRecipientSelectionType.TRUSTED_GROUP
+        val notifyPrimary = !draftApprovalPending && (trustedPrimary || !recipientNeedsApproval)
+        val primaryAudience = if (notifyPrimary)
+            notificationAudience(
+                selectionType = primarySelectionType,
+                principalKind = if (recipientType == GROUP) PrincipalKind.PRINCIPAL_GROUP else PrincipalKind.USER,
+                principalId = recipientGroupId ?: recipientAppUser?.id,
+            ).filter { it.id != initiator.id }
+        else
+            emptyList()
+        val trustedParticipantAudience = participants
+            .filter {
+                it.selection.selectionType == ExchangeRecipientSelectionType.TRUSTED_PERSON ||
+                    it.selection.selectionType == ExchangeRecipientSelectionType.TRUSTED_GROUP
+            }
+            .flatMap { participant ->
+                notificationAudience(
+                    selectionType = participant.selection.selectionType,
+                    principalKind = participant.selection.principalKind,
+                    principalId = participant.selection.principalId,
+                )
+            }
+            .filter { it.id != initiator.id }
+            .distinctBy { it.id }
+        val ordinaryParticipantAudience = participants
+            .filterNot {
+                it.selection.selectionType == ExchangeRecipientSelectionType.TRUSTED_PERSON ||
+                    it.selection.selectionType == ExchangeRecipientSelectionType.TRUSTED_GROUP
+            }
+            .flatMap { participant ->
+                notificationAudience(
+                    selectionType = participant.selection.selectionType,
+                    principalKind = participant.selection.principalKind,
+                    principalId = participant.selection.principalId,
+                )
+            }
+            .filter { it.id != initiator.id }
+            .distinctBy { it.id }
 
         val recipientLabel = when (recipientType)
         {
@@ -901,119 +815,177 @@ class ExchangeInitiationService @Inject constructor(
             else -> listOfNotNull(
                 recipientAppUser?.person?.firstName?.trim()?.takeIf { it.isNotBlank() },
                 recipientAppUser?.person?.lastName?.trim()?.takeIf { it.isNotBlank() },
-                recipientFirstName?.trim()?.takeIf { it.isNotBlank() },
-                recipientLastName?.trim()?.takeIf { it.isNotBlank() },
+                externalEmailSelection?.firstName?.trim()?.takeIf { it.isNotBlank() },
+                externalEmailSelection?.lastName?.trim()?.takeIf { it.isNotBlank() },
             ).joinToString(" ").ifBlank {
-                recipientAppUser?.email ?: recipientEmail ?: "Recipient"
+                recipientAppUser?.email ?: externalEmailSelection?.email ?: "Recipient"
             }
         }
 
         val requireSignInForRecipient = recipientType == EMAIL && exchange.requireRecipientSignIn
-
-        // A temporary recipient on a no-sign-in exchange has no account to sign in with.
-        // Send the no-auth OTP email so they get the /nas link and an access code up front.
         val isNoAuthTempRecipient = recipientType == EMAIL &&
             recipientAppUser?.isTemporary == true &&
             !exchange.requireRecipientSignIn
-
-        // Do not notify the recipient while the Exchange is awaiting approval because the approval
-        // workflow's own NOTIFICATION step (or a post-approval trigger) should deliver that.
-        if (!pendingApproval)
+        val emails = mutableListOf<ExchangeEmailDelivery>()
+        if (notifyPrimary)
         {
             if (isNoAuthTempRecipient)
             {
                 val recipientEmailAddr = recipientAppUser!!.email
                 if (!recipientEmailAddr.isNullOrBlank())
                 {
-                    try
-                    {
-                        val otp = otpService.generateEmailOtp()
-                        val accessToken = noAuthExchangeAccessTokenService.issue(exchange)
-                        val validityDays = exchange.noAuthAccessValidityDays.toLong()
-                        // Set OTP on the managed entity; Hibernate dirty-check flushes at commit.
-                        // The code is valid for the full noAuthAccessValidityDays window so recipients
-                        // aren't forced to act within minutes. noAuthAccessValidityDays also controls the
-                        // document-access window after verification, so the two lifetimes are aligned.
-                        exchange.recipientOtpHash = otpService.hashOtp(otp)
-                        exchange.recipientOtpExpiry = Timestamp.from(
-                            Instant.now().plusSeconds(validityDays * 24 * 3600)
-                        )
-                        val expiryLabel = if (validityDays == 1L) "1 day" else "$validityDays days"
-                        val rendered = emailTemplateService.renderExchangeCreatedNoAuthRecipientEmail(
-                            exchangeId = exchangeIdStr,
-                            name = exchange.name.orEmpty(),
-                            initiatorName = initiatorName,
-                            initiatorOrganization = null,
-                            sessionMessage = exchange.initialShareMessage,
-                            documents = documentTitles,
-                            otp = otp,
-                            accessToken = accessToken,
-                            expiryLabel = expiryLabel,
-                        )
-                        emailService.sendEmail(
-                            to = recipientEmailAddr,
-                            subject = rendered.subject,
-                            body = rendered.body,
-                            useHtml = true,
-                        )
-                    }
-                    catch (e: Exception)
-                    {
-                        logger.error("Failed to send no-auth exchange OTP email to {}", recipientEmailAddr, e)
-                    }
+                    val otp = otpService.generateEmailOtp()
+                    val accessToken = noAuthExchangeAccessTokenService.issue(exchange)
+                    val validityDays = exchange.noAuthAccessValidityDays.toLong()
+                    exchange.recipientOtpHash = otpService.hashOtp(otp)
+                    exchange.recipientOtpExpiry = Timestamp.from(
+                        Instant.now().plusSeconds(validityDays * 24 * 3600),
+                    )
+                    val expiryLabel = if (validityDays == 1L) "1 day" else "$validityDays days"
+                    val rendered = emailTemplateService.renderExchangeCreatedNoAuthRecipientEmail(
+                        exchangeId = exchangeIdStr,
+                        name = exchange.name.orEmpty(),
+                        initiatorName = initiatorName,
+                        initiatorOrganization = null,
+                        sessionMessage = exchange.initialShareMessage,
+                        documents = documentTitles,
+                        otp = otp,
+                        accessToken = accessToken,
+                        expiryLabel = expiryLabel,
+                    )
+                    emails += ExchangeEmailDelivery(
+                        to = recipientEmailAddr,
+                        subject = rendered.subject,
+                        body = rendered.body,
+                    )
                 }
             }
             else
             {
-                recipientEmails.forEach { (email, _) ->
-                    try
-                    {
-                        val body = emailTemplateService.renderExchangeCreatedRecipientEmail(
-                            exchangeId = exchangeIdStr,
-                            name = exchange.name.orEmpty(),
-                            initiatorName = initiatorName,
-                            initiatorOrganization = null,
-                            sessionMessage = exchange.initialShareMessage,
-                            documents = documentTitles,
-                            requireSignIn = requireSignInForRecipient,
-                        )
-                        emailService.sendEmail(
-                            to = email,
-                            subject = "$subjectTitle | Exchange request from $initiatorName",
-                            body = body,
-                            useHtml = true,
-                        )
-                    }
-                    catch (e: Exception)
-                    {
-                        logger.error("Failed to send exchange recipient email to {}", email, e)
-                    }
+                val body = emailTemplateService.renderExchangeCreatedRecipientEmail(
+                    exchangeId = exchangeIdStr,
+                    name = exchange.name.orEmpty(),
+                    initiatorName = initiatorName,
+                    initiatorOrganization = null,
+                    sessionMessage = exchange.initialShareMessage,
+                    documents = documentTitles,
+                    requireSignIn = requireSignInForRecipient || trustedPrimary,
+                )
+                primaryAudience.forEach { appUser ->
+                    emails += ExchangeEmailDelivery(
+                        to = appUser.email,
+                        subject = "$subjectTitle | Exchange request from $initiatorName",
+                        body = body,
+                        preferenceAppUserId = appUser.id,
+                    )
                 }
             }
         }
 
-        if (initiator.settings?.notifyShareStart != false)
+        if (trustedParticipantAudience.isNotEmpty())
         {
-            try
-            {
-                val body = emailTemplateService.renderExchangeCreatedInitiatorEmail(
-                    exchangeId = exchangeIdStr,
-                    name = exchange.name.orEmpty(),
-                    recipientLabel = recipientLabel,
-                    documents = documentTitles,
-                )
-                emailService.sendEmail(
-                    to = initiator.email,
-                    subject = "$subjectTitle | Exchange request sent",
+            val body = emailTemplateService.renderExchangeCreatedRecipientEmail(
+                exchangeId = exchangeIdStr,
+                name = exchange.name.orEmpty(),
+                initiatorName = initiatorName,
+                initiatorOrganization = null,
+                sessionMessage = "You have been invited as a trusted participant.",
+                documents = documentTitles,
+                requireSignIn = true,
+            )
+            trustedParticipantAudience.forEach { appUser ->
+                emails += ExchangeEmailDelivery(
+                    to = appUser.email,
+                    subject = "$subjectTitle | Trusted participant invitation from $initiatorName",
                     body = body,
-                    useHtml = true,
+                    preferenceAppUserId = appUser.id,
                 )
-            }
-            catch (e: Exception)
-            {
-                logger.error("Failed to send exchange initiator email to {}", initiator.email, e)
             }
         }
+
+        emails += ExchangeEmailDelivery(
+            to = initiator.email,
+            subject = "$subjectTitle | Exchange request sent",
+            body = emailTemplateService.renderExchangeCreatedInitiatorEmail(
+                exchangeId = exchangeIdStr,
+                name = exchange.name.orEmpty(),
+                recipientLabel = recipientLabel,
+                documents = documentTitles,
+            ),
+            preferenceAppUserId = initiator.id,
+        )
+
+        val exchangeLabel = exchange.name.orEmpty().ifBlank { exchangeIdStr }
+        val inAppNotifications = mutableListOf(
+            ExchangeInAppDelivery(
+                appUserId = initiator.id,
+                type = "exchange.initiated",
+                title = "Exchange initiated",
+                message = "Exchange $exchangeLabel was sent.",
+                data = mapOf("exchangeId" to exchangeIdStr),
+            ),
+        )
+        primaryAudience.forEach { appUser ->
+            inAppNotifications += ExchangeInAppDelivery(
+                appUserId = appUser.id,
+                type = "exchange.initiated",
+                title = "Exchange invitation",
+                message = "A new Exchange, $exchangeLabel, is waiting for your decision.",
+                data = mapOf("exchangeId" to exchangeIdStr),
+            )
+        }
+        ordinaryParticipantAudience.forEach { appUser ->
+            inAppNotifications += ExchangeInAppDelivery(
+                appUserId = appUser.id,
+                type = "exchange.initiated",
+                title = "Exchange initiated",
+                message = "A new Exchange, $exchangeLabel, was shared with you.",
+                data = mapOf("exchangeId" to exchangeIdStr),
+            )
+        }
+        trustedParticipantAudience.forEach { appUser ->
+            inAppNotifications += ExchangeInAppDelivery(
+                appUserId = appUser.id,
+                type = "exchange.recipient_invitation",
+                title = "Trusted participant invitation",
+                message = "You were invited to access Exchange $exchangeLabel.",
+                data = mapOf("exchangeId" to exchangeIdStr),
+            )
+        }
+        val refreshAppUserIds = buildSet {
+            add(initiator.id)
+            addAll(primaryAudience.map { it.id })
+            addAll(ordinaryParticipantAudience.map { it.id })
+            addAll(trustedParticipantAudience.map { it.id })
+        }
+        exchangeNotificationDeliveryService.scheduleAfterCommit(
+            exchangeId = exchange.id,
+            exchangeStatus = exchange.status.name,
+            emails = emails.distinctBy { it.to.lowercase() to it.subject },
+            inAppNotifications = inAppNotifications.distinctBy { it.appUserId to it.type },
+            refreshAppUserIds = refreshAppUserIds,
+        )
+    }
+
+    private fun notificationAudience(
+        selectionType: ExchangeRecipientSelectionType,
+        principalKind: PrincipalKind,
+        principalId: UUID?,
+    ): List<AppUser>
+    {
+        val resolvedPrincipalId = principalId ?: return emptyList()
+        val appUserIds = if (principalKind == PrincipalKind.PRINCIPAL_GROUP)
+        {
+            if (selectionType == ExchangeRecipientSelectionType.TRUSTED_GROUP)
+                organizationGroupService.activeOwnerOrManagerUserIds(resolvedPrincipalId)
+            else
+                organizationGroupService.activeUserIds(resolvedPrincipalId)
+        }
+        else
+        {
+            setOf(resolvedPrincipalId)
+        }
+        return appUserIds.mapNotNull(appUserService::getById)
     }
 
     /**
@@ -1035,52 +1007,61 @@ class ExchangeInitiationService @Inject constructor(
         val recipientGroupId = shareService.primaryRecipientGroupId(exchangeId)
         val recipientUserId = if (recipientGroupId == null) shareService.primaryRecipientUserId(exchangeId) else null
 
-        val emails: List<String> = when
+        val recipientAppUsers: List<AppUser> = when
         {
             recipientGroupId != null ->
-                principalGroupMemberRepository.findActiveMembers(recipientGroupId)
-                    .filter { it.principalKind == PrincipalKind.USER }
-                    .mapNotNull { appUserService.getById(it.principalId) }
-                    .filter { it.id != initiator.id && it.settings?.notifyShareStart != false }
-                    .mapNotNull { it.email }
+                organizationGroupService.activeUserIds(recipientGroupId)
+                    .mapNotNull(appUserService::getById)
+                    .filter { it.id != initiator.id }
 
             recipientUserId != null ->
                 appUserService.getById(recipientUserId)
-                    ?.takeIf { it.settings?.notifyShareStart != false }
-                    ?.email
                     ?.let { listOf(it) }
                     ?: emptyList()
 
             else -> emptyList()
         }
 
-        emails.forEach { email ->
-            try
-            {
-                val body = emailTemplateService.renderExchangeCreatedRecipientEmail(
-                    exchangeId = exchangeId.toString(),
-                    name = exchange.name.orEmpty(),
-                    initiatorName = initiatorName,
-                    initiatorOrganization = null,
-                    sessionMessage = exchange.initialShareMessage,
-                    documents = documentTitles,
-                    requireSignIn = false,
-                )
-                emailService.sendEmail(
-                    to = email,
-                    subject = "$subjectTitle | Exchange request from $initiatorName",
-                    body = body,
-                    useHtml = true,
-                )
+        val body = emailTemplateService.renderExchangeCreatedRecipientEmail(
+            exchangeId = exchangeId.toString(),
+            name = exchange.name.orEmpty(),
+            initiatorName = initiatorName,
+            initiatorOrganization = null,
+            sessionMessage = exchange.initialShareMessage,
+            documents = documentTitles,
+            requireSignIn = false,
+        )
+        val emails = recipientAppUsers
+            .filter { it.settings?.notifyShareStart != false }
+            .mapNotNull { appUser ->
+                appUser.email?.let { email ->
+                    ExchangeEmailDelivery(
+                        to = email,
+                        subject = "$subjectTitle | Exchange request from $initiatorName",
+                        body = body,
+                        preferenceAppUserId = appUser.id,
+                    )
+                }
             }
-            catch (e: Exception)
-            {
-                logger.error("Failed to send post-activation invite email to {}", email, e)
-            }
-        }
-
-        shareService.recipientUserIds(exchangeId)
+        val notificationAppUserIds = shareService.recipientUserIds(exchangeId)
             .filterNot { it == initiator.id }
-            .forEach { publishInitiatedNotification(exchange, it, isInitiator = false) }
+            .toSet()
+        val exchangeLabel = exchange.name?.takeIf { it.isNotBlank() } ?: "Exchange"
+        val inAppNotifications = notificationAppUserIds.map { appUserId ->
+            ExchangeInAppDelivery(
+                appUserId = appUserId,
+                type = "exchange.initiated",
+                title = "Exchange initiated",
+                message = "A new Exchange, $exchangeLabel, was shared with you.",
+                data = mapOf("exchangeId" to exchangeId.toString()),
+            )
+        }
+        exchangeNotificationDeliveryService.scheduleAfterCommit(
+            exchangeId = exchangeId,
+            exchangeStatus = exchange.status.name,
+            emails = emails,
+            inAppNotifications = inAppNotifications,
+            refreshAppUserIds = notificationAppUserIds,
+        )
     }
 }

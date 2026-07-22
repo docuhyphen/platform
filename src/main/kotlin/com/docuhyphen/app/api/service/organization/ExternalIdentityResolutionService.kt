@@ -153,27 +153,7 @@ class ExternalIdentityResolutionService @Inject constructor(
         {
             unavailable()
         }
-        val validation = validationService.validatePersonResolution(
-            resolution.callerOrganizationId,
-            resolution.targetOrganizationId,
-            now,
-        )
-        if (validation.relationship.id != resolution.relationshipId)
-        {
-            unavailable()
-        }
-        val membership = eligibleMembership(resolution.targetOrganizationId, resolution.normalizedEmail, now)
-        if (membership.id != resolution.resolvedMembershipId || membership.appUserId != resolution.resolvedAppUserId)
-        {
-            unavailable()
-        }
-        val appUser = appUserService.getById(resolution.resolvedAppUserId) ?: unavailable()
-        if (!appUser.isActive || appUser.deprovisionedAt != null ||
-            appUser.email.trim().lowercase(Locale.ROOT) != resolution.normalizedEmail)
-        {
-            unavailable()
-        }
-        return PreparedPersonResolution(resolution, appUser, membership, validation)
+        return revalidateCurrentEvidence(resolution, now)
     }
 
     @Transactional
@@ -203,6 +183,15 @@ class ExternalIdentityResolutionService @Inject constructor(
         {
             record(resolution, AuditEventType.ORG_TRUST_IDENTITY_RESOLUTION_DENIED, AuditOutcome.DENIED)
             unavailable()
+        }
+        try
+        {
+            revalidateCurrentEvidence(resolution, now)
+        }
+        catch (exception: ExternalIdentityResolutionUnavailableException)
+        {
+            record(resolution, AuditEventType.ORG_TRUST_IDENTITY_RESOLUTION_DENIED, AuditOutcome.DENIED)
+            throw exception
         }
         resolution.consumedAt = Timestamp.from(now)
         resolution.consumedByExchangeId = exchangeId
@@ -275,6 +264,43 @@ class ExternalIdentityResolutionService @Inject constructor(
             unavailable()
         }
         return membership
+    }
+
+    private fun revalidateCurrentEvidence(
+        resolution: ExternalIdentityResolution,
+        now: Instant,
+    ): PreparedPersonResolution
+    {
+        val validation = try
+        {
+            validationService.validatePersonResolution(
+                resolution.callerOrganizationId,
+                resolution.targetOrganizationId,
+                now,
+            )
+        }
+        catch (exception: OrganizationTrustNotFoundException)
+        {
+            unavailable()
+        }
+        if (validation.relationship.id != resolution.relationshipId ||
+            validation.senderPolicy.revision != resolution.senderPolicyRevision ||
+            validation.targetPolicy.revision != resolution.targetPolicyRevision)
+        {
+            unavailable()
+        }
+        val membership = eligibleMembership(resolution.targetOrganizationId, resolution.normalizedEmail, now)
+        if (membership.id != resolution.resolvedMembershipId || membership.appUserId != resolution.resolvedAppUserId)
+        {
+            unavailable()
+        }
+        val appUser = appUserService.getById(resolution.resolvedAppUserId) ?: unavailable()
+        if (!appUser.isActive || appUser.deprovisionedAt != null ||
+            appUser.email.trim().lowercase(Locale.ROOT) != resolution.normalizedEmail)
+        {
+            unavailable()
+        }
+        return PreparedPersonResolution(resolution, appUser, membership, validation)
     }
 
     private fun displayName(firstName: String?, lastName: String?): String? =

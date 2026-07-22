@@ -60,6 +60,7 @@ export const useIndustryExperienceStyles = makeStyles({
         display: "flex",
         justifyContent: "flex-start",
         minWidth: "max-content",
+        border: "1px dotted rgba(0, 0, 0, .4)"
     },
 
     experience: {

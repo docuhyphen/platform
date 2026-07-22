@@ -18,6 +18,7 @@ import com.docuhyphen.app.api.service.audit.AuditRecorder
 import com.docuhyphen.app.api.service.audit.catalog.AuditActorKind
 import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
 import com.docuhyphen.app.api.service.organization.TrustedRecipientValidationService
+import jakarta.inject.Provider
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
@@ -62,6 +63,7 @@ class ShareServiceAuditTest
         exchangeAuthorizationContextProvider = contextProvider,
         exchangeRecipientAttestationService = mock<ExchangeRecipientAttestationService>(),
         trustedRecipientValidationService = mock<TrustedRecipientValidationService>(),
+        exchangeRecipientServiceProvider = mock<Provider<ExchangeRecipientService>>(),
     )
 
     @Test

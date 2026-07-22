@@ -35,7 +35,6 @@ import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
 import com.docuhyphen.app.api.service.auth.authz.Decision
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import com.docuhyphen.app.api.service.communication.EmailService
 import com.docuhyphen.app.api.service.communication.EmailTemplateService
 import com.docuhyphen.app.api.service.config.ConfigurationService
 import com.docuhyphen.app.api.service.organization.ExternalIdentityResolutionService
@@ -55,6 +54,7 @@ import org.mockito.kotlin.eq
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
+import org.mockito.kotlin.verifyNoInteractions
 import org.mockito.kotlin.whenever
 import java.util.UUID
 
@@ -79,7 +79,7 @@ class ExchangeAccessManagementServiceTest
     private val authorizationService = mock<AuthorizationService>()
     private val authorizationContextFactory = mock<AuthorizationContextFactory>()
     private val organizationExchangePolicyService = mock<OrganizationExchangePolicyService>()
-    private val emailService = mock<EmailService>()
+    private val notificationDeliveryService = mock<ExchangeNotificationDeliveryService>()
     private val emailTemplateService = mock<EmailTemplateService>()
     private val configurationService = mock<ConfigurationService>()
     private val auditRecorder = mock<AuditRecorder>()
@@ -100,31 +100,38 @@ class ExchangeAccessManagementServiceTest
         authorizationService,
         authorizationContextFactory,
         organizationExchangePolicyService,
-        emailService,
         emailTemplateService,
         configurationService,
         auditRecorder,
+        notificationDeliveryService,
     )
 
-    private fun grantOwnerAuthorization()
+    private fun grantOwnerAuthorization(activeOrgId: UUID? = activeOrganizationId)
     {
         val authToken = mock<AuthToken>()
         val caller = mock<AppUser>()
         whenever(caller.id).thenReturn(callerId)
+        whenever(caller.email).thenReturn("caller@example.test")
         whenever(authToken.appUser).thenReturn(caller)
         whenever(authTokenContext.authToken).thenReturn(authToken)
-        whenever(authTokenContext.activeOrganizationId).thenReturn(activeOrganizationId)
+        whenever(authTokenContext.activeOrganizationId).thenReturn(activeOrgId)
         whenever(authorizationContextFactory.currentPrincipal())
             .thenReturn(PrincipalRef(PrincipalKind.USER, callerId))
         whenever(authorizationContextFactory.currentContext()).thenReturn(mock())
         whenever(authorizationService.authorize(any(), eq(Action.EXCHANGE_MANAGE_ACCESS), any(), any()))
             .thenReturn(Decision.Allow())
+        whenever(
+            emailTemplateService.renderExchangeCreatedRecipientEmail(
+                any(), any(), any(), anyOrNull(), anyOrNull(), any(), any(),
+            ),
+        ).thenReturn("email body")
     }
 
-    private fun draftExchange() = Exchange().apply {
+    private fun draftExchange(ownerOrganizationId: UUID? = activeOrganizationId) = Exchange().apply {
         status = ExchangeStatus.INITIATED
         requireRecipientSignIn = false
         name = "Recovery Exchange"
+        this.ownerOrganizationId = ownerOrganizationId
     }
 
     private fun pendingPrimary(shareId: UUID, selectionType: ExchangeRecipientSelectionType) =
@@ -297,11 +304,19 @@ class ExchangeAccessManagementServiceTest
         whenever(selectionResolver.resolve(any(), any(), eq(activeOrganizationId))).thenReturn(resolved)
 
         val newShare = directShare(PrincipalKind.PRINCIPAL_GROUP, groupId)
+        val previousParticipantBinding = ExchangeRecipient().apply {
+            exchangeId = this@ExchangeAccessManagementServiceTest.exchangeId
+            directShareId = newShare.id
+            purpose = ExchangeRecipientPurpose.PARTICIPANT
+            selectionType = ExchangeRecipientSelectionType.TRUSTED_GROUP
+            acceptanceStatus = ExchangeRecipientAcceptanceStatus.REJECTED
+        }
         whenever(
             shareService.grant(
                 any(), any(), any(), any(), any(), anyOrNull(), any(), anyOrNull(), anyOrNull(), any(), anyOrNull(),
             ),
         ).thenReturn(newShare)
+        whenever(exchangeRecipientService.findByDirectShareId(newShare.id)).thenReturn(previousParticipantBinding)
         val newPrimary = pendingPrimary(newShare.id, ExchangeRecipientSelectionType.TRUSTED_GROUP)
         whenever(
             exchangeRecipientService.createBinding(any(), any(), any(), any(), anyOrNull(), any()),
@@ -327,6 +342,7 @@ class ExchangeAccessManagementServiceTest
             eq(targetOrganizationId),
             eq(ExchangeRecipientAcceptanceStatus.PENDING),
         )
+        verify(exchangeRecipientService).deleteBinding(previousParticipantBinding)
         verify(attestationService).createGroupAttestation(eq(newPrimary), eq(validation), any())
     }
 
@@ -421,6 +437,7 @@ class ExchangeAccessManagementServiceTest
         )
         verify(attestationService, never()).createPersonAttestation(any(), any(), any())
         verify(shareQueryService, never()).getSessionAccessView(exchangeId)
+        verify(notificationDeliveryService, never()).scheduleAfterCommit(any(), any(), any(), any(), any())
     }
 
     @Test
@@ -507,6 +524,17 @@ class ExchangeAccessManagementServiceTest
         whenever(exchangeRecipientService.createBinding(any(), any(), any(), any(), anyOrNull(), any()))
             .thenReturn(participant)
         whenever(shareQueryService.getSessionAccessView(exchangeId)).thenReturn(emptyList())
+        whenever(
+            emailTemplateService.renderExchangeCreatedRecipientEmail(
+                exchangeId.toString(),
+                session.name.orEmpty(),
+                "caller@example.test",
+                null,
+                "You have a trusted invitation that remains inactive until you accept.",
+                emptyList(),
+                true,
+            ),
+        ).thenReturn("email body")
 
         service.inviteTrustedParticipant(
             exchangeId = exchangeId,
@@ -568,6 +596,122 @@ class ExchangeAccessManagementServiceTest
         verify(shareService, never()).grant(
             any(), any(), any(), any(), any(), anyOrNull(), any(), anyOrNull(), anyOrNull(), any(), anyOrNull(),
         )
+    }
+
+    @Test
+    fun `active organization mismatch denies a trusted participant before resolution or writes`()
+    {
+        val ownerOrganizationId = UUID.randomUUID()
+        grantOwnerAuthorization(activeOrganizationId)
+        whenever(exchangeRepository.findById(exchangeId)).thenReturn(draftExchange(ownerOrganizationId))
+
+        assertThrows(ForbiddenException::class.java) {
+            service.inviteTrustedParticipant(
+                exchangeId,
+                TrustedPersonRecipientSelectionRequest(UUID.randomUUID().toString()),
+                ExchangeShareRoleName.VIEWER,
+            )
+        }
+
+        verifyNoInteractions(
+            selectionResolver,
+            shareService,
+            exchangeRecipientService,
+            attestationService,
+            identityResolutionService,
+            organizationExchangePolicyService,
+            notificationDeliveryService,
+            auditRecorder,
+        )
+    }
+
+    @Test
+    fun `active organization mismatch denies primary replacement before recipient state or writes`()
+    {
+        val ownerOrganizationId = UUID.randomUUID()
+        grantOwnerAuthorization(activeOrganizationId)
+        whenever(exchangeRepository.findById(exchangeId)).thenReturn(draftExchange(ownerOrganizationId))
+
+        assertThrows(ForbiddenException::class.java) {
+            service.replacePrimaryRecipient(
+                exchangeId,
+                TrustedGroupRecipientSelectionRequest(
+                    organizationId = UUID.randomUUID().toString(),
+                    groupId = UUID.randomUUID().toString(),
+                ),
+            )
+        }
+
+        verifyNoInteractions(
+            selectionResolver,
+            shareService,
+            exchangeRecipientService,
+            attestationService,
+            identityResolutionService,
+            organizationExchangePolicyService,
+            notificationDeliveryService,
+            auditRecorder,
+        )
+    }
+
+    @Test
+    fun `active organization mismatch denies an ordinary B2B grant before policy or writes`()
+    {
+        val ownerOrganizationId = UUID.randomUUID()
+        grantOwnerAuthorization(activeOrganizationId)
+        whenever(exchangeRepository.findById(exchangeId)).thenReturn(draftExchange(ownerOrganizationId))
+
+        assertThrows(ForbiddenException::class.java) {
+            service.grantAccess(
+                exchangeId = exchangeId,
+                principalKind = PrincipalKind.USER.name,
+                principalId = UUID.randomUUID().toString(),
+                roleName = ExchangeShareRoleName.VIEWER,
+            )
+        }
+
+        verifyNoInteractions(
+            appUserService,
+            externalParticipantRepository,
+            organizationExchangePolicyService,
+            shareService,
+            exchangeRecipientService,
+            notificationDeliveryService,
+            auditRecorder,
+        )
+    }
+
+    @Test
+    fun `personal Exchange rejects a trusted participant even when an organization is active`()
+    {
+        grantOwnerAuthorization(activeOrganizationId)
+        whenever(exchangeRepository.findById(exchangeId)).thenReturn(draftExchange(ownerOrganizationId = null))
+
+        assertThrows(IllegalArgumentException::class.java) {
+            service.inviteTrustedParticipant(
+                exchangeId,
+                TrustedPersonRecipientSelectionRequest(UUID.randomUUID().toString()),
+                ExchangeShareRoleName.VIEWER,
+            )
+        }
+
+        verifyNoInteractions(selectionResolver, shareService, exchangeRecipientService, attestationService)
+    }
+
+    @Test
+    fun `personal Exchange rejects trusted primary replacement before recipient state`()
+    {
+        grantOwnerAuthorization(activeOrganizationId)
+        whenever(exchangeRepository.findById(exchangeId)).thenReturn(draftExchange(ownerOrganizationId = null))
+
+        assertThrows(IllegalArgumentException::class.java) {
+            service.replacePrimaryRecipient(
+                exchangeId,
+                TrustedPersonRecipientSelectionRequest(UUID.randomUUID().toString()),
+            )
+        }
+
+        verifyNoInteractions(selectionResolver, shareService, exchangeRecipientService, attestationService)
     }
 
     @Test
@@ -688,6 +832,7 @@ class ExchangeAccessManagementServiceTest
         )
         verify(attestationService, never()).createPersonAttestation(any(), any(), any())
         verify(shareQueryService, never()).getSessionAccessView(exchangeId)
+        verify(notificationDeliveryService, never()).scheduleAfterCommit(any(), any(), any(), any(), any())
     }
 
     @Test

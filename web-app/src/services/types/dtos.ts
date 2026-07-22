@@ -15,6 +15,7 @@ export interface ExchangeAccessEntryDto
     roleName: ExchangeShareRoleName;
     source: string;           // 'DIRECT' | 'WORKFLOW' etc.
     status: string;           // 'ACTIVE' | 'REVOKED' etc.
+    recipientPurpose?: 'PRIMARY' | 'PARTICIPANT';
     grantedByAppUserId?: string;
     grantedAt: string;        // ISO timestamp
     expiresAt?: string;

@@ -19,6 +19,7 @@ import com.docuhyphen.app.api.service.audit.catalog.AuditOutcome
 import com.docuhyphen.app.api.service.organization.TrustedRecipientValidationService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
+import jakarta.inject.Provider
 import org.slf4j.LoggerFactory
 import java.sql.Timestamp
 import java.time.Instant
@@ -41,6 +42,7 @@ class ShareService @Inject constructor(
     private val exchangeAuthorizationContextProvider: ExchangeAuthorizationContextProvider,
     private val exchangeRecipientAttestationService: ExchangeRecipientAttestationService,
     private val trustedRecipientValidationService: TrustedRecipientValidationService,
+    private val exchangeRecipientServiceProvider: Provider<ExchangeRecipientService>,
 )
 {
     companion object
@@ -367,8 +369,12 @@ class ShareService @Inject constructor(
             ?.principalId
 
     private fun primaryDirectRecipientShare(exchangeId: UUID): Share? =
-        shareRepository.findActiveDirectByResourceOrdered(ResourceType.EXCHANGE, exchangeId)
-            .firstOrNull { it.roleName != ExchangeShareRoleName.OWNER }
+        primaryDirectRecipientShareForDisplay(exchangeId)
+            ?.takeIf { it.status == ShareStatus.ACTIVE }
+
+    private fun primaryDirectRecipientShareForDisplay(exchangeId: UUID): Share? =
+        exchangeRecipientServiceProvider.get().findPrimary(exchangeId)
+            ?.let { recipient -> shareRepository.findById(recipient.directShareId) }
 
     /**
      * Display-only variant of [primaryRecipientUserId]: searches ALL share rows regardless of
@@ -376,23 +382,18 @@ class ShareService @Inject constructor(
      * recipient for display purposes. Must not be used for authorization checks.
      */
     fun primaryRecipientUserIdForDisplay(exchangeId: UUID): UUID? =
-        shareRepository.findAllByResource(ResourceType.EXCHANGE, exchangeId)
-            .firstOrNull {
-                it.principalKind == PrincipalKind.USER &&
-                    it.roleName != ExchangeShareRoleName.OWNER &&
-                    it.source == ShareSource.DIRECT
-            }?.principalId
+        primaryDirectRecipientShareForDisplay(exchangeId)
+            ?.takeIf { it.principalKind == PrincipalKind.USER }
+            ?.principalId
 
     /**
      * Display-only variant of [primaryRecipientGroupId]: searches ALL share rows regardless of
      * status. Must not be used for authorization checks.
      */
     fun primaryRecipientGroupIdForDisplay(exchangeId: UUID): UUID? =
-        shareRepository.findAllByResource(ResourceType.EXCHANGE, exchangeId)
-            .firstOrNull {
-                it.principalKind == PrincipalKind.PRINCIPAL_GROUP &&
-                    it.roleName != ExchangeShareRoleName.OWNER
-            }?.principalId
+        primaryDirectRecipientShareForDisplay(exchangeId)
+            ?.takeIf { it.principalKind == PrincipalKind.PRINCIPAL_GROUP }
+            ?.principalId
 
     /** Whether the session's recipient share permits the given constraint flag (e.g. "allow_document_upload"). */
     fun recipientConstraintAllows(exchangeId: UUID, flag: String): Boolean

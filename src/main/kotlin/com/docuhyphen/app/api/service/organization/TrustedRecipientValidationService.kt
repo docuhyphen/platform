@@ -203,7 +203,7 @@ class TrustedRecipientValidationService @Inject constructor(
         if (!senderPolicy.allowExchangesToPartner || !targetPolicy.allowExchangesFromPartner ||
             (requireGroupDiscovery && !targetPolicy.allowPartnerGroupDiscovery) ||
             (requireMemberResolution && !targetPolicy.allowPartnerMemberResolution) ||
-            isExpired(senderPolicy, now) || isExpired(targetPolicy, now))
+            !isCurrent(senderPolicy, now) || !isCurrent(targetPolicy, now))
         {
             unavailable()
         }
@@ -211,7 +211,9 @@ class TrustedRecipientValidationService @Inject constructor(
         val verificationExpiresAt = listOfNotNull(
             relationship.reviewDueAt?.toInstant(),
             senderPolicy.expiresAt?.toInstant(),
+            senderPolicy.reviewDueAt?.toInstant(),
             targetPolicy.expiresAt?.toInstant(),
+            targetPolicy.reviewDueAt?.toInstant(),
         ).minOrNull()?.takeIf { it.isAfter(now) } ?: unavailable()
 
         return TrustedExchangePolicyValidation(
@@ -235,8 +237,9 @@ class TrustedRecipientValidationService @Inject constructor(
         return organization
     }
 
-    private fun isExpired(policy: OrganizationTrustPartyPolicy, now: Instant): Boolean =
-        policy.expiresAt?.toInstant()?.isAfter(now) == false
+    private fun isCurrent(policy: OrganizationTrustPartyPolicy, now: Instant): Boolean =
+        policy.expiresAt?.toInstant()?.isAfter(now) != false &&
+            policy.reviewDueAt?.toInstant()?.isAfter(now) != false
 
     private fun TrustedExchangePolicyValidation.withGroup(group: PrincipalGroup): TrustedGroupValidation =
         TrustedGroupValidation(

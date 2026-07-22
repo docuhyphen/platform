@@ -62,6 +62,7 @@ data class SessionAccessEntryDto(
     val roleName: ExchangeShareRoleName,
     val source: String,
     val status: String,
+    val recipientPurpose: String? = null,
     @Serializable(with = UUIDSerializer::class)
     val grantedByAppUserId: UUID? = null,
     @Serializable(with = TimestampSerializer::class)

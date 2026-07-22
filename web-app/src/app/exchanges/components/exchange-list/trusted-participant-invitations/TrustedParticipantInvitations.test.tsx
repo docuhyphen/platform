@@ -6,11 +6,22 @@ import TrustedParticipantInvitations from "./TrustedParticipantInvitations.tsx";
 const mocks = vi.hoisted(() => ({
     fetchPending: vi.fn(),
     decide: vi.fn(),
+    realtimeHandler: undefined as undefined | (() => void),
 }));
 
 vi.mock("../../../../../services/exchangeApi.ts", () => ({
     fetchPendingExchangeRecipientInvitations: (...args: unknown[]) => mocks.fetchPending(...args),
     decideExchangeRecipientInvitation: (...args: unknown[]) => mocks.decide(...args),
+}));
+
+vi.mock("../../../../../services/NotificationService.tsx", () => ({
+    realtimeService: {
+        on: vi.fn((_type: string, handler: () => void) =>
+        {
+            mocks.realtimeHandler = handler;
+            return vi.fn();
+        }),
+    },
 }));
 
 describe("TrustedParticipantInvitations", () =>
@@ -29,6 +40,7 @@ describe("TrustedParticipantInvitations", () =>
     {
         mocks.fetchPending.mockReset();
         mocks.decide.mockReset();
+        mocks.realtimeHandler = undefined;
     });
 
     afterEach(cleanup);
@@ -76,5 +88,27 @@ describe("TrustedParticipantInvitations", () =>
             await screen.findByText("This trusted participant invitation can no longer be accepted."),
         ).toBeTruthy();
         expect(screen.getByText("Trusted participant invitation")).toBeTruthy();
+    });
+
+    it("refreshes pending invitations after an Exchange list event", async () =>
+    {
+        mocks.fetchPending
+            .mockResolvedValueOnce([])
+            .mockResolvedValueOnce([
+                {
+                    id: "recipient-3",
+                    exchangeId: "exchange-3",
+                    selectionType: "TRUSTED_GROUP",
+                    createdAt: "2026-07-18T12:00:00Z",
+                },
+            ]);
+
+        render(<TrustedParticipantInvitations onCountChange={vi.fn()}/>);
+        await waitFor(() => expect(mocks.fetchPending).toHaveBeenCalledTimes(1));
+
+        mocks.realtimeHandler?.();
+
+        expect(await screen.findByText("Exchange reference: exchange-3")).toBeTruthy();
+        expect(mocks.fetchPending).toHaveBeenCalledTimes(2);
     });
 });

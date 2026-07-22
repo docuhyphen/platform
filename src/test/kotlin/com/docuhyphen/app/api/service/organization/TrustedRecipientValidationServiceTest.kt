@@ -90,6 +90,75 @@ class TrustedRecipientValidationServiceTest
     }
 
     @Test
+    fun `overdue sender policy review blocks discovery resolution and acceptance`()
+    {
+        configureEligibleTrust(senderReviewDueAt = now.minusSeconds(1))
+
+        assertThrows<OrganizationTrustNotFoundException> {
+            service.validateGroupDiscovery(callerOrganizationId, targetOrganizationId, now)
+        }
+        assertThrows<OrganizationTrustNotFoundException> {
+            service.validatePersonResolution(callerOrganizationId, targetOrganizationId, now)
+        }
+
+        val subjectAppUserId = UUID.randomUUID()
+        val membershipId = UUID.randomUUID()
+        configureEligiblePersonAcceptance(senderReviewDueAt = now.minusSeconds(1))
+        assertThrows<OrganizationTrustNotFoundException> {
+            service.validatePersonAttestation(
+                personAttestation(relationship().id, subjectAppUserId, membershipId, "member@partner.example"),
+                now,
+            )
+        }
+    }
+
+    @Test
+    fun `overdue target policy review blocks discovery resolution and acceptance`()
+    {
+        configureEligibleTrust(targetReviewDueAt = now)
+
+        assertThrows<OrganizationTrustNotFoundException> {
+            service.validateGroupDiscovery(callerOrganizationId, targetOrganizationId, now)
+        }
+        assertThrows<OrganizationTrustNotFoundException> {
+            service.validatePersonResolution(callerOrganizationId, targetOrganizationId, now)
+        }
+
+        val subjectAppUserId = UUID.randomUUID()
+        val membershipId = UUID.randomUUID()
+        configureEligiblePersonAcceptance(targetReviewDueAt = now)
+        assertThrows<OrganizationTrustNotFoundException> {
+            service.validatePersonAttestation(
+                personAttestation(relationship().id, subjectAppUserId, membershipId, "member@partner.example"),
+                now,
+            )
+        }
+    }
+
+    @Test
+    fun `earliest future policy review caps verification expiry`()
+    {
+        configureEligibleTrust(
+            senderReviewDueAt = now.plusSeconds(120),
+            targetReviewDueAt = now.plusSeconds(300),
+        )
+
+        val validation = service.validatePersonResolution(callerOrganizationId, targetOrganizationId, now)
+
+        assertEquals(now.plusSeconds(120), validation.verificationExpiresAt)
+    }
+
+    @Test
+    fun `missing optional policy dates remain eligible`()
+    {
+        configureEligibleTrust()
+
+        val validation = service.validatePersonResolution(callerOrganizationId, targetOrganizationId, now)
+
+        assertEquals(now.plusSeconds(3600), validation.verificationExpiresAt)
+    }
+
+    @Test
     fun `member resolution requires the target member resolution policy independently from group discovery`()
     {
         val relationship = relationship()
@@ -159,7 +228,10 @@ class TrustedRecipientValidationServiceTest
         }
     }
 
-    private fun configureEligiblePersonAcceptance(): OrganizationTrustRelationship
+    private fun configureEligiblePersonAcceptance(
+        senderReviewDueAt: Instant? = null,
+        targetReviewDueAt: Instant? = null,
+    ): OrganizationTrustRelationship
     {
         val relationship = relationship()
         whenever(relationshipService.findCurrentForOrganizations(callerOrganizationId, targetOrganizationId))
@@ -170,9 +242,23 @@ class TrustedRecipientValidationServiceTest
         whenever(organizationService.getOrganizationById(targetOrganizationId))
             .thenReturn(organization(targetOrganizationId))
         whenever(policyService.getPolicy(relationship.id, callerOrganizationId))
-            .thenReturn(policy(relationship.id, callerOrganizationId, toPartner = true))
+            .thenReturn(
+                policy(
+                    relationship.id,
+                    callerOrganizationId,
+                    toPartner = true,
+                    reviewDueAt = senderReviewDueAt,
+                ),
+            )
         whenever(policyService.getPolicy(relationship.id, targetOrganizationId))
-            .thenReturn(policy(relationship.id, targetOrganizationId, fromPartner = true))
+            .thenReturn(
+                policy(
+                    relationship.id,
+                    targetOrganizationId,
+                    fromPartner = true,
+                    reviewDueAt = targetReviewDueAt,
+                ),
+            )
         return relationship
     }
 
@@ -195,7 +281,11 @@ class TrustedRecipientValidationServiceTest
         verificationExpiresAt = Timestamp.from(now.plusSeconds(3600))
     }
 
-    private fun configureEligibleTrust(senderAllows: Boolean = true)
+    private fun configureEligibleTrust(
+        senderAllows: Boolean = true,
+        senderReviewDueAt: Instant? = null,
+        targetReviewDueAt: Instant? = null,
+    )
     {
         val relationship = relationship()
         whenever(relationshipService.findCurrentForOrganizations(callerOrganizationId, targetOrganizationId))
@@ -206,9 +296,25 @@ class TrustedRecipientValidationServiceTest
         whenever(organizationService.getOrganizationById(targetOrganizationId))
             .thenReturn(organization(targetOrganizationId))
         whenever(policyService.getPolicy(relationship.id, callerOrganizationId))
-            .thenReturn(policy(relationship.id, callerOrganizationId, toPartner = senderAllows))
+            .thenReturn(
+                policy(
+                    relationship.id,
+                    callerOrganizationId,
+                    toPartner = senderAllows,
+                    reviewDueAt = senderReviewDueAt,
+                ),
+            )
         whenever(policyService.getPolicy(relationship.id, targetOrganizationId))
-            .thenReturn(policy(relationship.id, targetOrganizationId, fromPartner = true, groupDiscovery = true))
+            .thenReturn(
+                policy(
+                    relationship.id,
+                    targetOrganizationId,
+                    fromPartner = true,
+                    groupDiscovery = true,
+                    memberResolution = true,
+                    reviewDueAt = targetReviewDueAt,
+                ),
+            )
     }
 
     private fun relationship(): OrganizationTrustRelationship = OrganizationTrustRelationship().apply {
@@ -230,6 +336,8 @@ class TrustedRecipientValidationServiceTest
         fromPartner: Boolean = false,
         groupDiscovery: Boolean = false,
         memberResolution: Boolean = false,
+        expiresAt: Instant? = null,
+        reviewDueAt: Instant? = null,
     ): OrganizationTrustPartyPolicy = OrganizationTrustPartyPolicy().apply {
         this.relationshipId = relationshipId
         policyOwnerOrganizationId = organizationId
@@ -237,6 +345,8 @@ class TrustedRecipientValidationServiceTest
         allowExchangesFromPartner = fromPartner
         allowPartnerGroupDiscovery = groupDiscovery
         allowPartnerMemberResolution = memberResolution
+        this.expiresAt = expiresAt?.let(Timestamp::from)
+        this.reviewDueAt = reviewDueAt?.let(Timestamp::from)
         updatedAt = Timestamp.from(now.minusSeconds(60))
     }
 

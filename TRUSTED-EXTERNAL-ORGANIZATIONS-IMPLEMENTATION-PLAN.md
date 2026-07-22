@@ -3087,3 +3087,826 @@ This is the current handoff. The two browser findings remain open and the featur
    unchanged.
 5. Only after finding 1 is fully verified, perform trusted-primary replacement certification.
 6. Run the complete required verification matrix and update this handoff with exact results.
+
+## Continuation handoff - 2026-07-21
+
+The two browser findings from the 2026-07-19 handoff are resolved. This continuation also fixed
+three browser-discovered access and presentation defects that blocked the same certification path.
+
+### Work completed
+
+- Added an Exchange workspace availability check that considers both existing Exchanges and
+  pending trusted-participant invitations. Invitation-only users now reach Requests instead of the
+  first-use empty state. Partial lookup failures no longer produce a false empty result.
+- Made pending primary recipient visibility explicit in Exchange repository searches and retrieval.
+  Only the exact `PENDING_APPROVAL` Share referenced by the pending primary recipient binding gains
+  draft visibility. Pending participant Shares remain inactive and cannot use this path.
+- Changed primary-recipient lookup to follow the `ExchangeRecipient` primary binding rather than
+  selecting an arbitrary direct Share. The Summary tab and primary authorization helpers now remain
+  correct when an accepted additional participant also has a direct Share.
+- Allowed primary-recipient replacement to promote a principal whose reused Share previously had a
+  participant binding. The old participant binding and attestation are removed transactionally
+  before the new primary binding is created.
+- Added recipient purpose to the unified access view. The Manage access Summary tab now lists active
+  and pending additional participants separately from the primary recipient.
+- Added focused backend and frontend regression coverage for primary binding lookup, pending-primary
+  visibility, participant promotion, invitation-only workspace availability, and partial failures.
+
+### Browser and PostgreSQL certification
+
+- Created clean sender-organization members with unique registered emails. PostgreSQL confirmed one
+  account and one active membership for each test member.
+- Accepted trusted participant recipient `1259b8cf-0c81-448a-9034-0cac27ec33de`. Its Share
+  `a9368cd5-1428-42a1-94e2-5fde75c66956` became `ACTIVE`, while the then-primary recipient and
+  Exchange remained pending and `INITIATED`.
+- Rejected trusted participant recipient `51e48995-57a0-488a-b411-ac33a3121377`. Its Share
+  `dedb0697-8f7d-41e6-b75c-df9144622998` became `REVOKED`. The accepted participant stayed active,
+  the primary stayed pending, and the Exchange stayed `INITIATED`.
+- Replaced old primary recipient `6681a766-f950-4679-8d0e-8c43264917b1`. Old Share
+  `da096ddb-230b-449d-a73d-878281dd5f9b` became `REVOKED`. The replacement reused Share
+  `dedb0697-8f7d-41e6-b75c-df9144622998` with new primary binding
+  `3c3a371d-aa98-4ceb-96f3-0339c94b85a2`, `PENDING` and `PENDING_APPROVAL`; the Exchange remained
+  `INITIATED` and required recipient sign-in.
+- Accepted replacement primary `3c3a371d-aa98-4ceb-96f3-0339c94b85a2`. Its Share became `ACTIVE`,
+  the accepted additional participant stayed `ACTIVE`, the old primary stayed `REVOKED`, and
+  Exchange `3e0c87e3-7db2-4b50-b0f8-14fc17bf27e7` became `ACCEPTED_STARTED`.
+- Browser verification confirmed a pending primary-only user sees the Requests workspace and can
+  accept. The final Manage access Summary showed `Codex Trust Reject` as primary and
+  `Codex Trust Member` separately as Participant.
+- Deactivating the completed acceptance fixture changed its account to inactive but did not revoke
+  its already accepted explicit Share, matching the documented post-acceptance contract.
+
+### Files changed in this continuation
+
+- Backend production: `AccessDtos.kt`, `ExchangeRepository.kt`,
+  `ExchangeAccessManagementService.kt`, `ExchangeRecipientService.kt`,
+  `ExchangeRetrievalService.kt`, `ShareQueryService.kt`, and `ShareService.kt`.
+- Backend tests: `ExchangeAccessManagementServiceTest.kt`, `ExchangeRecipientServiceTest.kt`,
+  `ShareServiceAuditTest.kt`, `ShareServicePrimaryRecipientTest.kt`, and
+  `TrustedGroupShareMaterializationTest.kt`.
+- Frontend: `Exchanges.tsx`, `exchangeWorkspaceAvailability.ts`,
+  `exchangeWorkspaceAvailability.test.ts`, `exchangeAccessManagementTypes.ts`, `dtos.ts`,
+  `PeopleSummaryPanel.tsx`, and `useParticipantSummary.ts`.
+- Handoff: this implementation plan.
+
+### Verification results
+
+- Focused backend verification completed with `BUILD SUCCESS`: 44 tests, 0 failures, 0 errors,
+  0 skipped across `ExchangeAccessManagementServiceTest`, `ExchangeRecipientServiceTest`, and
+  `ShareServicePrimaryRecipientTest`.
+- `npx.cmd tsc --noEmit` completed with exit 0.
+- Targeted ESLint completed with exit 0 for every frontend file changed in this continuation.
+- `npm.cmd test -- --run` completed after the final Summary projection edit with 41 files and
+  212 tests passed. Type checking and targeted ESLint also completed with exit 0.
+- The full backend suite ran 985 tests with 1 failure, 0 errors, and 166 skipped. The only failure
+  was `AuditMigrationUpgradeContractTest`, which expects migration version 66 but discovered the
+  unrelated untracked `V67__backfill_exchange_owner_shares.sql`. The migration run itself applied
+  all 64 discovered migrations successfully to PostgreSQL 17.
+- Help search matched `workflowOrgSettingsArticle.tsx`,
+  `trustedOrganizationsAdministrationArticle.tsx`, and `manageAccessArticle.tsx`. Each was read in
+  full and remains accurate. Their line counts are 115, 149, and 147 respectively, so no help edit
+  was required for these behavior-restoring fixes.
+- `git diff --check` completed with exit 0 after the final Summary projection edit. New feature
+  files also passed a trailing-whitespace scan, and changed feature files contained no prohibited
+  em dash or arrow characters.
+
+### External verification issue resolved
+
+- The untracked `V67__backfill_exchange_owner_shares.sql` was removed at the user's request.
+  `AuditMigrationUpgradeContractTest` then completed with `BUILD SUCCESS`: 3 tests, 0 failures,
+  0 errors, and 0 skipped. Flyway validated 63 migrations and upgraded PostgreSQL 17 through V66.
+
+## Production-readiness audit handoff - 2026-07-21
+
+This is the current implementation handoff and supersedes earlier statements that the feature is
+complete. The final production-readiness audit found five release-blocking defects and three
+material readiness concerns. The feature must not be released until every item below is resolved,
+the required regression coverage is enabled, and the full verification matrix passes.
+
+No production or test code was changed during this audit. The findings apply to the working tree
+described by the preceding 2026-07-21 continuation.
+
+### Release blockers
+
+1. **Bind Manage access trust decisions to the Exchange owner organization.**
+   `ExchangeAccessManagementService` authorizes Manage access against the Exchange and its stored
+   owner, but `inviteTrustedParticipant`, `replacePrimaryRecipient`, and the ordinary sharing-policy
+   helper use `AuthTokenContext.activeOrganizationId` as the sender organization. A caller who
+   belongs to more than one organization can therefore manage an Exchange owned by organization A
+   while organization C is active and apply C's relationship and policies to a recipient in
+   organization B. This bypasses A's trust boundary. The same mismatch can affect ordinary B2B
+   Manage access grants through `enforceSharingPolicy`.
+
+   Required implementation:
+
+   - Add one service-layer helper that resolves the trusted or B2B sender organization from the
+     Exchange's stored `ownerOrganizationId`.
+   - Require the validated active organization to match that stored owner organization before an
+     organization-scoped Manage access mutation proceeds.
+   - Reject trusted-recipient selection for a personally owned Exchange. Do not borrow an unrelated
+     active organization as its trust context.
+   - Pass the validated Exchange owner organization to recipient resolution, ordinary B2B policy
+     evaluation, resolution consumption, and attestation creation.
+   - Fail before any Share, recipient binding, attestation, audit mutation, or notification write.
+
+   Required tests:
+
+   - Organization A owns the Exchange, organization C is active, C trusts B, and A does not trust B:
+     trusted participant invitation and primary replacement are denied before writes.
+   - The same mismatch is denied for an ordinary registered B2B Manage access grant.
+   - Active organization A with eligible A-to-B policies succeeds.
+   - A personal Exchange cannot use an active organization to add or replace a trusted recipient.
+
+2. **Enforce both party-policy review deadlines in trusted recipient validation.**
+   `TrustedRecipientValidationService.validatePolicies` checks each policy's `expiresAt` but does
+   not check `reviewDueAt`. Its `verificationExpiresAt` calculation also omits both policy review
+   deadlines. An overdue party policy can therefore continue authorizing published-group
+   discovery, exact-member resolution, Exchange initiation, Share expansion, and acceptance. This
+   is inconsistent with `OrganizationTrustExchangePolicyService`, which checks both dates.
+
+   Required implementation:
+
+   - Treat an absent optional policy expiry or review deadline as valid.
+   - When present, require both `expiresAt` and `reviewDueAt` to be strictly in the future.
+   - Calculate verification expiry from the earliest relationship review deadline, sender policy
+     expiry, sender policy review deadline, target policy expiry, and target policy review deadline.
+   - Keep the current generic not-found or conflict behavior so policy state is not leaked.
+
+   Required tests:
+
+   - An overdue sender policy review blocks discovery, person resolution, initiation, and
+     acceptance.
+   - An overdue target policy review blocks the same operations.
+   - Future policy review deadlines cap `verificationExpiresAt` correctly.
+   - Missing optional policy dates remain eligible when every other condition passes.
+
+3. **Preserve the DTO element type on the published-group list response.**
+   `PublishedExchangeGroupResource.list` returns a bare Kotlin `List`. Manual browser certification
+   previously found live HTTP 500 failures from this exact erased collection-element pattern on the
+   relationship, organization-directory, and recipient-invitation endpoints. Those resources now
+   use typed `GenericEntity` responses, but the published-group endpoint retains the unsafe form and
+   has no equivalent response-type contract test.
+
+   Required implementation:
+
+   - Return `List<PublishedExchangeGroupDto>` through a typed `GenericEntity`, or use the established
+     typed-array convention if it is compatible with the frontend contract.
+   - Keep the resource as a thin HTTP adapter with no policy or repository logic.
+   - Map malformed target organization IDs to the established client-error response rather than an
+     internal server error while touching this boundary.
+
+   Required tests and browser proof:
+
+   - Assert the response entity retains `PublishedExchangeGroupDto` as its element type.
+   - Prove the endpoint serializes both an empty list and at least one published group.
+   - Prove the Trusted Organization group picker loads the response without HTTP 500.
+
+4. **Make pending trusted group primary recipients discoverable to authorized decision makers.**
+   `ExchangeRepository.PENDING_PRIMARY_ACCESS` only matches a pending direct `USER` Share. A pending
+   trusted `PRINCIPAL_GROUP` Share is deliberately not materialized to members until activation.
+   `ExchangeRecipientService.canDecide` permits active group OWNERs and MANAGERs to decide, but the
+   normal Exchange list and workspace-availability queries never return that Exchange to them. The
+   separate invitation endpoint cannot compensate because it lists only trusted bindings whose
+   purpose is `PARTICIPANT`.
+
+   Required implementation:
+
+   - Extend pending-primary candidate selection to match an exact pending direct group Share when
+     the signed-in user is an active OWNER or MANAGER of that group.
+   - Preserve the exact primary recipient binding check so pending participant Shares do not gain
+     Exchange visibility.
+   - Keep MEMBER and OBSERVER roles unable to discover or decide the pending primary invitation.
+   - Ensure `userHasExchanges`, Exchange list searches, counts, workspace availability, and direct
+     retrieval apply the same rule.
+   - Do not materialize inherited member Shares before the group accepts.
+
+   Required tests and browser proof:
+
+   - A group OWNER and MANAGER can each discover a pending trusted-group primary Exchange and reach
+     the acceptance UI.
+   - A group MEMBER, OBSERVER, former member, and unrelated user cannot discover or retrieve it.
+   - A pending trusted-group participant remains visible only in the participant-invitation list
+     and does not enter the Exchange list before independent acceptance.
+   - Acceptance activates and materializes the group Share; rejection revokes it without changing
+     unrelated recipient state.
+
+5. **Enforce the policy revisions bound to an external identity resolution.**
+   `ExternalIdentityResolutionService.resolve` stores `senderPolicyRevision` and
+   `targetPolicyRevision`, but `prepareForInitiation` and `consumeForExchange` never compare them
+   with the revalidated current policies. A resolution can therefore be reused after a policy edit
+   when the current boolean gates still permit the operation. This is especially unsafe when the
+   target disables display-name sharing because the old display-name snapshot can be copied into a
+   new attestation. It also contradicts the help documentation and the Required Test Matrix.
+
+   Required implementation:
+
+   - Reject a resolution when either current policy revision differs from the stored revision.
+   - Revalidate the relationship generation, both policy revisions, expiry, actor, caller
+     organization, target organization, account, and membership immediately before row-locked
+     consumption in the Exchange transaction.
+   - Close the validation and consumption time-of-check gap using the existing persistence and
+     transaction model. Do not add a new infrastructure service.
+   - Never copy a display-name snapshot collected under an older target disclosure policy into a
+     new attestation.
+   - Keep replay and stale-evidence errors generic and non-enumerating.
+
+   Required tests:
+
+   - Changed sender policy revision and changed target policy revision both fail before Exchange or
+     recipient writes.
+   - Disabling display-name sharing after resolution cannot persist the old display name.
+   - Wrong stored revisions, wrong relationship generation, replay, and concurrent consumption fail
+     closed.
+   - An unchanged current resolution still consumes once and creates the expected attestation.
+
+### Material production concerns
+
+6. **Dispatch Exchange and access notifications only after commit or through durable events.**
+   `ExchangeInitiationService` sends email before primary recipient binding, trusted resolution
+   consumption, and attestation creation. A later failure can roll back the Exchange transaction
+   after an initiator has received an `Exchange request sent` email. Manage access trusted
+   invitations and replacements also send email from inside their transaction. In addition,
+   trusted primary recipients are skipped whenever `pendingApproval` is true, even when the pending
+   state represents required trusted-recipient acceptance and no workflow notification exists.
+
+   Required implementation:
+
+   - Use the existing after-commit synchronization or durable notification infrastructure. Do not
+     introduce a new AWS service or paid resource.
+   - Send no email, in-app notification, or realtime invitation event for a rolled-back mutation.
+   - Notify a pending trusted person directly and notify the eligible OWNER and MANAGER decision
+     makers for a pending trusted group.
+   - Keep user notification preferences and non-fatal delivery failure handling intact.
+   - Refresh the open Requests view through the existing realtime mechanism when a new trusted
+     participant invitation arrives.
+
+   Required tests:
+
+   - Resolution-consumption, attestation, binding, and final response failures produce no delivery.
+   - A successful commit sends exactly one appropriate notification.
+   - Trusted-person primary, trusted-group primary, trusted-person participant, and trusted-group
+     participant invitations reach the correct decision makers.
+   - A group MEMBER, OBSERVER, former member, and unrelated user receive no decision notification.
+
+7. **Replace the platform-wide pending invitation scan with an eligible query.**
+   `ExchangeRecipientService.pendingTrustedParticipantInvitationsFor` calls
+   `findAllPendingTrustedParticipants`, loads every tenant's pending trusted participant binding,
+   and filters in application memory with per-row Share and group membership lookups. This is an
+   unbounded cross-tenant scan with N+1 behavior on a user-facing GET endpoint.
+
+   Required implementation:
+
+   - Add a repository query scoped to the requesting user. It must select direct pending USER
+     invitations for that user and direct pending group invitations only when the user is an active
+     OWNER or MANAGER of the group.
+   - Keep tenant-ineligible rows out of application memory and avoid per-invitation lookups.
+   - Preserve deterministic ordering and the current member-free DTO contract.
+
+   Required tests:
+
+   - Mixed-tenant fixtures return only the caller's eligible person and group invitations.
+   - MEMBER, OBSERVER, inactive membership, unrelated group, revoked Share, expired Share, and
+     non-participant-purpose bindings are excluded by the query.
+   - Query count does not grow linearly with the number of returned invitations.
+
+8. **Implement and enable the required adversarial Exchange-access matrix.**
+   The full backend suite currently skips 166 tests. The skipped set includes every class in
+   `service/exchange/permutation`, where trusted user, trusted group, suspension, termination,
+   acceptance-authority, and Manage access cases remain disabled placeholder methods. Focused unit
+   tests and browser certification do not satisfy the plan's Required Test Matrix or Definition of
+   Done while these cases are disabled.
+
+   Required implementation:
+
+   - Replace trusted-feature placeholder bodies with executable assertions and remove the class-level
+     `@Disabled` annotations from the applicable permutation classes.
+   - Cover trusted primary identity, additional participants, group access, acceptance authority,
+     lifecycle changes, multiple Share precedence, constraints, API consistency, and audit
+     observability.
+   - Audit every remaining skipped backend test. Document legitimate environment-only skips and
+     remove all skips that represent unimplemented required behavior.
+
+### Implementation order
+
+1. Fix the Exchange owner and active-organization boundary before changing other Manage access
+   behavior.
+2. Fix policy review deadlines and policy-revision binding together, then add focused stale-policy
+   and rollback tests.
+3. Correct and contract-test the published-group response.
+4. Add trusted-group pending-primary discovery and its repository and browser coverage.
+5. Move notification delivery after commit and replace the global invitation scan.
+6. Implement the trusted permutation matrix, update any affected help content, and run the complete
+   release verification.
+
+### Audit verification baseline
+
+The production-readiness audit ran the current tree before documenting these findings:
+
+- Full backend: 985 tests, 0 failures, 0 errors, and 166 skipped.
+- Testcontainers PostgreSQL 17: clean initialization validated 63 Flyway migrations through V66.
+- Frontend type checking: `npx.cmd tsc --noEmit` passed.
+- Full frontend tests: 41 files and 212 tests passed.
+- Production frontend build: passed. Vite reported an advisory chunk-size warning for the main
+  bundle at 2.742 MB, 735.58 KB gzip.
+- Targeted ESLint over the trusted organization administration, trusted recipient, Manage access,
+  API, and help files passed.
+- Help articles matched by the trusted organization and Manage access terminology were read in full
+  and stayed within the required file-size limits. The policy-revision binding statement is not
+  accurate until finding 5 is fixed.
+
+Passing automated tests do not override the open authorization, validation, serialization, and
+discoverability defects above.
+
+### Required release verification after implementation
+
+1. Run focused backend tests for every changed service, repository, resource, and transaction
+   boundary, including the new adversarial cases listed above.
+2. Run the complete backend suite with Testcontainers PostgreSQL 17 and require 0 failures and
+   0 errors. Audit all skips and confirm no Required Test Matrix case remains disabled.
+3. Run `AuditMigrationUpgradeContractTest` and initialize a clean database through the latest
+   migration. Existing V58 through V66 migrations must not be edited.
+4. Run `npx.cmd tsc --noEmit`, `npm.cmd test -- --run`, the production frontend build, and targeted
+   ESLint over every changed frontend and help file.
+5. Search the help sections for `trusted organization`, `policy revision`, `policy review`,
+   `published group`, `recipient invitation`, `Manage access`, and `primary recipient`. Read every
+   match in full, correct inaccurate behavior, and enforce all article, section, and registry size
+   limits.
+6. Run `git diff --check` and prohibited-character checks over every changed feature file.
+7. Complete browser certification for:
+   - rejection of an active-organization and Exchange-owner mismatch;
+   - expired policy review and changed policy revision failures;
+   - empty and populated published-group list serialization;
+   - trusted-group OWNER and MANAGER primary discovery, acceptance, and rejection;
+   - MEMBER, OBSERVER, inactive, and unrelated-user denial;
+   - trusted person and group invitation notifications after commit;
+   - rollback producing no email, in-app notification, or realtime invitation event; and
+   - mixed person and group participant invitations without changes to primary recipient state.
+8. Record exact command results, migration version, browser evidence, residual risks, and all files
+   changed in a new continuation handoff. Only then reassess the Definition of Done and production
+   readiness.
+
+## Continuation handoff - 2026-07-21 implementation session
+
+The production-readiness audit was not repeated. This session implemented findings 1, 2, 3, and
+5, then implemented the backend candidate-selection portion of finding 4. Findings 6 through 8
+remain open. The feature is not production ready because final browser proofs, live PostgreSQL
+coverage for the new pending-group query, notification work, the invitation query, and the enabled
+permutation matrix remain outstanding.
+
+### Completed behavior
+
+Finding 1, Exchange owner and active-organization boundary:
+
+- `ExchangeAccessManagementService` now derives Manage access sender context from the Exchange's
+  stored `ownerOrganizationId` through one service-layer helper.
+- An organization-owned Exchange requires the validated active organization to equal its stored
+  owner before recipient resolution, external-participant creation, B2B policy evaluation, Share
+  mutation, recipient or attestation mutation, audit mutation, or notification delivery.
+- Trusted participant invitation and trusted primary replacement require an organization-owned
+  Exchange. A personally owned Exchange cannot borrow an unrelated active organization as trust
+  context.
+- Ordinary Manage access grants pass the stored owner organization to B2B policy evaluation. A
+  personal Exchange passes no organization context even when the caller has an active organization.
+- Trusted resolution consumption and attestation inputs use the validated stored owner
+  organization, not an independently read active organization.
+- Tests cover organization A as owner with organization C active for trusted participant,
+  replacement, and ordinary B2B denial; personal Exchange trusted denial; matching-owner success;
+  tampering; and rollback behavior.
+
+Findings 2 and 5, policy review deadlines and resolution policy-revision binding:
+
+- `TrustedRecipientValidationService` treats an optional policy expiry or review date as valid when
+  absent and requires each present date to be strictly after the decision time.
+- Verification expiry is the earliest relationship review, sender policy expiry, sender policy
+  review, target policy expiry, or target policy review deadline.
+- Sender and target policy review expiry now blocks group discovery and selection, exact-person
+  resolution, initiation validation, Share-expansion validation, and acceptance through the shared
+  validation boundary.
+- `ExternalIdentityResolutionService.prepareForInitiation` rejects a changed relationship
+  generation or either changed policy revision before Exchange mutation begins.
+- `consumeForExchange` repeats relationship, policy revision, account, exact membership, actor,
+  caller organization, target organization, expiry, and replay validation while the resolution row
+  is locked and immediately before marking it consumed.
+- A display-name snapshot collected under an older target disclosure-policy revision cannot be
+  prepared or consumed for a new attestation. Stale evidence retains the generic unavailable
+  response.
+- Tests cover overdue sender and target reviews, future review expiry caps, missing optional dates,
+  unchanged preparation and single consumption, sender and target revision changes, relationship
+  generation changes, disclosure-policy changes, row-locked stale rejection, replay, and wrong
+  actor or organization tampering.
+
+Finding 3, published-group response serialization:
+
+- `PublishedExchangeGroupResource` now returns
+  `GenericEntity<List<PublishedExchangeGroupDto>>`, preserving collection element type at the HTTP
+  boundary while leaving policy and query logic in the application-scoped service.
+- Malformed target organization identifiers return HTTP 400 without calling the query service.
+- Contract tests serialize empty and populated responses and assert the retained DTO element type.
+  Final browser proof remains open.
+
+Finding 4, pending trusted-group primary discovery backend portion:
+
+- `ExchangeRepository.PENDING_PRIMARY_ACCESS` now matches either the exact pending direct USER
+  Share or the exact pending direct PRINCIPAL_GROUP Share when the caller has an active USER group
+  membership with OWNER or MANAGER role.
+- The predicate still requires the PRIMARY recipient binding, PENDING recipient status,
+  PENDING_APPROVAL direct Share, and a current Share expiry. Pending participant bindings cannot use
+  this path.
+- All existing repository entry points using `ACCESSIBLE` or `DRAFT_VISIBLE`, including existence,
+  lists, searches, counts, and linked Exchange queries, receive the same group decision-role
+  parameters.
+- Direct retrieval continues through `ExchangeRecipientService.canViewPendingPrimaryInvitation`,
+  whose shared decision check accepts only an active group OWNER or MANAGER.
+- Focused service tests cover an eligible group decision maker and denial for ineligible members,
+  former members, and unrelated users. A source-level repository contract protects the exact
+  binding, active membership, and decision-role clauses.
+- Finding 4 is not closed. A real PostgreSQL query contract and the required OWNER, MANAGER, MEMBER,
+  OBSERVER, inactive, unrelated, participant-isolation, acceptance, rejection, and browser proofs
+  are still required.
+
+### Security and design decisions
+
+- Exchange ownership is the authority for sender policy context. Active organization context is a
+  required matching credential, not an alternative owner selector.
+- Personal Exchanges have no Trusted Organization sender context.
+- Stale identity evidence fails generically both before mutation and again under the row lock.
+- Policy revision equality protects every snapshot-controlled disclosure, including display name.
+- Pending group visibility uses current group decision authority without materializing inherited
+  USER Shares before acceptance.
+- No compatibility fallback, dual write, backfill, migration edit, new migration, AWS service, or
+  paid resource was added.
+
+### Files changed in this session
+
+Backend production:
+
+- `src/main/kotlin/com/docuhyphen/app/api/service/exchange/ExchangeAccessManagementService.kt`
+- `src/main/kotlin/com/docuhyphen/app/api/service/organization/TrustedRecipientValidationService.kt`
+- `src/main/kotlin/com/docuhyphen/app/api/service/organization/ExternalIdentityResolutionService.kt`
+- `src/main/kotlin/com/docuhyphen/app/api/resource/PublishedExchangeGroupResource.kt`
+- `src/main/kotlin/com/docuhyphen/app/api/repository/ExchangeRepository.kt`
+
+Backend tests:
+
+- `src/test/kotlin/com/docuhyphen/app/api/service/exchange/ExchangeAccessManagementServiceTest.kt`
+- `src/test/kotlin/com/docuhyphen/app/api/service/exchange/ExchangeAccessManagementRecipientBindingTest.kt`
+- `src/test/kotlin/com/docuhyphen/app/api/service/organization/TrustedRecipientValidationServiceTest.kt`
+- `src/test/kotlin/com/docuhyphen/app/api/service/organization/ExternalIdentityResolutionServiceTest.kt`
+- `src/test/kotlin/com/docuhyphen/app/api/resource/PublishedExchangeGroupResourceTest.kt`
+- `src/test/kotlin/com/docuhyphen/app/api/service/exchange/ExchangeRecipientServiceTest.kt`
+- `src/test/kotlin/com/docuhyphen/app/api/repository/ExchangeRepositoryPendingPrimaryContractTest.kt`
+
+Handoff:
+
+- `TRUSTED-EXTERNAL-ORGANIZATIONS-IMPLEMENTATION-PLAN.md`
+
+No frontend, help, migration, infrastructure, or AWS file was changed in this session. Existing
+unrelated and earlier-session modifications and untracked files were preserved.
+
+### Commands and exact results
+
+- Initial finding 1 focused command:
+  `.\mvnw.cmd test -DskipFrontend=true "-Dkotlin.compiler.execution.strategy=in-process" "-Dtest=ExchangeAccessManagementServiceTest,ExchangeAccessManagementRecipientBindingTest"`.
+  Result: BUILD FAILURE during Kotlin compilation with four nullable UUID type mismatches in the
+  new helper call sites. No tests ran. The trusted call sites were corrected with explicit non-null
+  narrowing.
+- Finding 1 rerun with the same command: BUILD SUCCESS, 20 tests, 0 failures, 0 errors, 0 skipped.
+- Combined findings 1, 2, and 5 command first attempt:
+  `.\mvnw.cmd test -DskipFrontend=true "-Dkotlin.compiler.execution.strategy=in-process" "-Dtest=TrustedRecipientValidationServiceTest,ExternalIdentityResolutionServiceTest,ExchangeAccessManagementServiceTest,ExchangeAccessManagementRecipientBindingTest"`.
+  Result: Maven wrapper startup failed before compilation with `java.net.SocketException:
+  Permission denied: connect` under the restricted sandbox. It was not reported as a test failure
+  or pass.
+- The exact combined command was rerun with approved Maven network access. Result: BUILD SUCCESS,
+  44 tests, 0 failures, 0 errors, 0 skipped.
+- Finding 3 command:
+  `.\mvnw.cmd test -DskipFrontend=true "-Dkotlin.compiler.execution.strategy=in-process" "-Dtest=PublishedExchangeGroupResourceTest,TrustedOrganizationContainmentTest,TrustedExternalGroupQueryServiceTest"`.
+  Result: BUILD SUCCESS, 7 tests, 0 failures, 0 errors, 0 skipped. Surefire executed
+  `PublishedExchangeGroupResourceTest` and `TrustedOrganizationContainmentTest`; no class named
+  `TrustedExternalGroupQueryServiceTest` exists, so that selector contributed no executed test.
+- Finding 4 focused command:
+  `.\mvnw.cmd test -DskipFrontend=true "-Dkotlin.compiler.execution.strategy=in-process" "-Dtest=ExchangeRecipientServiceTest,ExchangeRepositoryPendingPrimaryContractTest"`.
+  Result: BUILD SUCCESS, 31 tests, 0 failures, 0 errors, 0 skipped.
+- `git diff --check`: PASS, exit 0. Only Git line-ending warnings were emitted outside the check
+  result.
+- Prohibited-character scan over every production and test file changed in this session: PASS for
+  em dash, arrow, and warning-symbol characters.
+
+### Documentation, frontend, migration, and browser checks
+
+- Help search used `trusted organization`, `policy revision`, `policy review`, `published group`,
+  `recipient invitation`, `manage access`, and `primary recipient`.
+- Seven files matched and were read in full:
+  `adminOperationsSection.tsx`, `trustedOrganizationsAdministrationArticle.tsx`,
+  `notificationPreferencesArticle.tsx`, `triggerEventsArticle.tsx`,
+  `workflowOrgSettingsArticle.tsx`, `usingBlueprintsArticle.tsx`, and
+  `manageAccessArticle.tsx`.
+- The existing statements are accurate after findings 1, 2, 3, and 5. No help edit was required.
+- Line counts are 99 for `adminOperationsSection.tsx`; 149, 81, 142, 115, 77, and 147 for the six
+  matched article files respectively; and 58 for `helpDocsRegistry.tsx`. All limits pass.
+- No frontend source changed in this session, so TypeScript, frontend tests, build, and ESLint were
+  not rerun. Their latest baseline remains in the production-readiness audit.
+- No migration changed. Clean PostgreSQL migration verification was not rerun.
+- No browser certification was performed in this session.
+
+### Current status of findings 1 through 8
+
+1. Backend fix and focused tests complete. Final active-organization mismatch browser proof open.
+2. Backend fix and focused tests complete. Final expired-review browser proof open.
+3. Backend fix and contract tests complete. Empty and populated group-picker browser proof open.
+4. Backend candidate and direct-retrieval implementation complete, but live PostgreSQL query,
+   complete role and lifecycle matrix, and browser proof remain open. Finding remains unresolved.
+5. Backend fix and focused stale, replay, tampering, and row-lock tests complete. Final changed
+   revision browser proof and transaction-boundary integration proof remain open.
+6. Open. After-commit Exchange and access notifications have not been implemented.
+7. Open. The platform-wide pending trusted-participant scan has not been replaced.
+8. Open. Trusted permutation placeholder tests remain disabled and the skip audit is outstanding.
+
+### Remaining risks and exact next-session starting point
+
+- Start with finding 4 in
+  `src/test/kotlin/com/docuhyphen/app/api/repository/ExchangeRepositoryPendingPrimaryContractTest.kt`.
+  Replace or supplement the source-level contract with a real PostgreSQL repository contract that
+  executes `userHasExchanges`, Exchange list search, count, linked-list, and direct-retrieval paths
+  for group OWNER, MANAGER, MEMBER, OBSERVER, inactive membership, former member, unrelated user,
+  and pending participant fixtures.
+- Confirm the JPQL group subquery executes successfully against PostgreSQL before claiming the
+  backend portion complete. Then prove acceptance materializes group access and rejection revokes
+  only the pending primary Share without changing unrelated recipient state.
+- Complete finding 4 browser certification before starting finding 6.
+- Next implement findings 6 and 7 together: after-commit notifications plus the user-scoped pending
+  invitation repository query. Then implement and enable finding 8.
+- Final release verification, clean migration proof, full backend and frontend suites, build,
+  targeted ESLint, skip audit, and the complete browser matrix remain mandatory.
+
+## Continuation handoff - 2026-07-22 implementation session
+
+The production-readiness audit was not repeated. This session continued the first unresolved item,
+finding 4, from the newest 2026-07-21 handoff. It completed the live PostgreSQL repository contract
+and direct-retrieval service coverage. Finding 4 remains open only for browser certification. The
+documented order requires that browser proof before finding 6, so findings 6 through 8 were not
+started in this session.
+
+### Finding 4 behavior and tests completed
+
+- Replaced the source-text-only pending-primary repository contract with a Quarkus integration
+  contract that starts PostgreSQL 17, migrates an empty schema through V66, injects the real
+  `ExchangeRepository`, and calls its production methods.
+- The contract executes `userHasExchanges`, `findByParticipatingAppUser`, `searchSessions` with the
+  recipient search predicate, `countSearchResults`, and `getAppUserLinkedExchanges`.
+- Fixtures prove that an active group OWNER and an active group MANAGER can discover pending primary
+  invitations addressed to their group. An exact pending USER primary remains discoverable by that
+  user.
+- Fixtures prove that a group MEMBER, OBSERVER, inactive OWNER, and unrelated user cannot discover
+  the invitations. Pending participant bindings, revoked primary Shares, and expired pending primary
+  Shares are excluded.
+- Added direct retrieval service tests proving an eligible pending-primary decision maker can load
+  an `INITIATED` Exchange despite the inactive pending Share, while an ineligible user receives the
+  same non-enumerating `ExchangeNotFoundException` as a missing Exchange.
+- Existing `ExchangeRecipientServiceTest` coverage was reviewed. It already proves trusted-group
+  manager acceptance, rejection, stale-trust failure without mutation, member denial, trusted-group
+  participant rejection isolation, primary-recipient substitution denial, and stale trusted
+  participant rollback behavior. No duplicate lifecycle tests were added.
+
+### Security and design decisions
+
+- Pending visibility remains tied to the exact direct Share referenced by the PRIMARY recipient
+  binding. Group membership alone cannot expose another Share or a participant invitation.
+- Group decision authority is current active OWNER or MANAGER membership. MEMBER, OBSERVER,
+  inactive, former, and unrelated principals remain outside both repository candidates and direct
+  retrieval.
+- Direct retrieval preserves the generic not-found response for ineligible users.
+- The integration contract uses the production Flyway migrations and production Hibernate query
+  generation. It adds no migration, compatibility fallback, backfill, infrastructure resource, AWS
+  service, or paid resource.
+
+### Files changed in this session
+
+Backend tests:
+
+- `src/test/kotlin/com/docuhyphen/app/api/repository/ExchangeRepositoryPendingPrimaryContractTest.kt`
+- `src/test/kotlin/com/docuhyphen/app/api/service/exchange/ExchangeRetrievalServicePendingPrimaryTest.kt`
+
+Handoff:
+
+- `TRUSTED-EXTERNAL-ORGANIZATIONS-IMPLEMENTATION-PLAN.md`
+
+No production, frontend, migration, infrastructure, AWS, or help file was changed in this session.
+All pre-existing modified and untracked files were preserved.
+
+### Commands and exact results
+
+- Initial combined focused command:
+  `.\mvnw.cmd test -DskipFrontend=true "-Dkotlin.compiler.execution.strategy=in-process" "-Dtest=ExchangeRepositoryPendingPrimaryContractTest,ExchangeRecipientServiceTest"`.
+  The first invocation was terminated by the shell timeout after about five seconds before Maven
+  produced a result. The rerun reached PostgreSQL and failed with 31 tests run, 0 assertion
+  failures, and 1 error because the expired-Share fixture set `expires_at` before `granted_at`, which
+  correctly violated `ck_share_expiry`. This was a test fixture defect, not a production failure.
+- Repository contract rerun after correcting fixture time ordering: BUILD FAILURE, 1 test run,
+  1 failure. PostgreSQL and the real repository returned both group invitations to the OWNER, while
+  the test incorrectly expected only one. The expectation was corrected because an OWNER and a
+  MANAGER of the same group may each decide every invitation addressed to that group.
+- Repository contract rerun after correcting the expectation:
+  `.\mvnw.cmd test -DskipFrontend=true "-Dkotlin.compiler.execution.strategy=in-process" "-Dtest=ExchangeRepositoryPendingPrimaryContractTest"`.
+  Result: BUILD SUCCESS, 1 test, 0 failures, 0 errors, 0 skipped. PostgreSQL 17 applied 63 Flyway
+  migrations and reached V66.
+- First direct-retrieval focused command:
+  `.\mvnw.cmd test -DskipFrontend=true "-Dkotlin.compiler.execution.strategy=in-process" "-Dtest=ExchangeRetrievalServicePendingPrimaryTest,ExchangeRecipientServiceTest"`.
+  Result: BUILD FAILURE, 32 tests run, 1 failure. The negative retrieval test had not supplied the
+  non-null authorization context expected by the production service, so the Mockito stub did not
+  match. The test was corrected to use `AuthorizationContext.ANONYMOUS`.
+- Direct-retrieval focused rerun with the same command: BUILD SUCCESS, 32 tests, 0 failures,
+  0 errors, 0 skipped.
+- Final repository contract after adding real search-text and count-query execution:
+  `.\mvnw.cmd test -DskipFrontend=true "-Dkotlin.compiler.execution.strategy=in-process" "-Dtest=ExchangeRepositoryPendingPrimaryContractTest"`.
+  Result: BUILD SUCCESS, 1 test, 0 failures, 0 errors, 0 skipped. PostgreSQL 17 again migrated cleanly
+  through V66 and all repository paths passed.
+- `git diff --check`: PASS, exit 0. Only Git line-ending warnings were emitted.
+- Prohibited-character scan over both test files changed in this session: PASS for em dash, arrow,
+  and warning-symbol characters.
+
+### Documentation, browser, frontend, and migration checks
+
+- Help search used `trusted organization`, `policy revision`, `policy review`, `published group`,
+  `recipient invitation`, `manage access`, and `primary recipient`.
+- Seven files matched and were read in full: `adminOperationsSection.tsx`,
+  `manageAccessArticle.tsx`, `notificationPreferencesArticle.tsx`, `triggerEventsArticle.tsx`,
+  `trustedOrganizationsAdministrationArticle.tsx`, `usingBlueprintsArticle.tsx`, and
+  `workflowOrgSettingsArticle.tsx`.
+- The documented OWNER and MANAGER decision authority, MEMBER and OBSERVER denial, inactive pending
+  Share, and separate participant-invitation behavior remain accurate. No help edit was required.
+- Line counts are 99 for `adminOperationsSection.tsx`; 147, 81, 142, 149, 77, and 115 for the six
+  matched articles; and 58 for `helpDocsRegistry.tsx`. All limits pass.
+- The in-app browser was connected for the required certification check. It had no open local-app
+  tab or authenticated session. Read-only port inspection also found no listener on 5173, 8080, or
+  8081. No browser case was executed, and no browser result is reported as passing.
+- No frontend source changed, so TypeScript, frontend tests, build, and ESLint were not rerun.
+- No migration changed. The new repository contract independently proved a clean V66 initialization;
+  the complete migration contract was not rerun.
+
+### Current status of findings 1 through 8
+
+1. Backend fix and focused tests complete. Final active-organization mismatch browser proof open.
+2. Backend fix and focused tests complete. Final expired-review browser proof open.
+3. Backend fix and contract tests complete. Empty and populated group-picker browser proof open.
+4. Backend repository, direct retrieval, decision-role, lifecycle, and PostgreSQL coverage complete.
+   Browser proof for OWNER, MANAGER, MEMBER, OBSERVER, inactive, unrelated, acceptance, and rejection
+   remains open, so the finding is not closed.
+5. Backend fix and focused tests complete. Changed-revision browser proof and final transaction
+   boundary integration proof remain open.
+6. Open. After-commit Exchange and access notifications have not been implemented.
+7. Open. The platform-wide pending trusted-participant scan has not been replaced.
+8. Open. Trusted permutation placeholder tests remain disabled and the skip audit is outstanding.
+
+### Remaining risks and exact next-session starting point
+
+- Start by bringing up the local backend and frontend with a safe authenticated browser fixture, or
+  reclaim an existing authenticated local-app tab if one is available. Complete finding 4 browser
+  certification for pending trusted-group primaries: OWNER and MANAGER discovery and direct load,
+  MEMBER, OBSERVER, inactive, former, and unrelated denial, participant isolation, acceptance, and
+  rejection.
+- Record the exact browser accounts, organization and group roles, Exchange IDs, HTTP outcomes, and
+  before-and-after Share and recipient states. Do not infer browser success from the PostgreSQL
+  contract.
+- After finding 4 browser proof is complete, begin finding 6 and finding 7 together at
+  `src/main/kotlin/com/docuhyphen/app/api/service/exchange/ExchangeRecipientService.kt`, its
+  invitation repository, and the existing transaction after-commit notification infrastructure.
+- Findings 6 through 8, full release verification, final clean migration contract, all frontend
+  verification, complete skip audit, and the rest of the browser matrix remain mandatory. The
+  feature is not production ready.
+
+## Continuation handoff - 2026-07-22 findings 6 and 7 implementation
+
+This session implemented the two requested audit fixes: transaction-safe Exchange notification
+delivery and a user-scoped pending trusted-participant invitation query. The disabled trusted
+permutation matrix and browser certification were deliberately left for a later session. The
+feature is therefore not yet declared production ready.
+
+### Finding 6 completed implementation
+
+- Added `ExchangeNotificationDeliveryService` as the single after-commit delivery boundary for
+  Exchange emails, in-app notifications, and `EXCHANGE_LIST_CHANGED` realtime refresh events.
+- Delivery is registered through `TransactionSynchronizationRegistry` and runs only after
+  `STATUS_COMMITTED`. A rolled-back transaction produces no email, in-app notification, preference
+  lookup, or realtime event.
+- Each committed delivery is isolated so one channel failure does not roll back the already
+  committed Exchange mutation or suppress the remaining deliveries.
+- Exchange initiation now prepares notification payloads transactionally but schedules delivery
+  only after recipient binding, attestation, one-time resolution consumption, and the transaction
+  commit.
+- The workflow-activation notification path uses the same after-commit boundary.
+- Manage-access grants, trusted participant invitations, and primary-recipient replacement now
+  schedule their user-visible notifications only after commit. Resolution-consumption failure
+  tests prove that notification scheduling is not reached after the transactional failure.
+- Trusted group notification audiences are limited to active group Owners and Managers. Ordinary
+  group access notifications continue to target active user members.
+- The Requests invitation component now refetches pending trusted-participant invitations after a
+  committed `EXCHANGE_LIST_CHANGED` realtime event.
+
+### Finding 7 completed implementation
+
+- Replaced the platform-wide `findAllPendingTrustedParticipants()` load and per-row Share lookup
+  with `findPendingTrustedParticipantsFor(appUserId)`.
+- The repository query joins each recipient binding to its exact direct Share and requires a
+  current, unexpired `PENDING_APPROVAL` Share.
+- A trusted-person invitation is returned only for its exact user principal.
+- A trusted-group invitation is returned only for an active user membership with group role OWNER
+  or MANAGER. MEMBER, OBSERVER, inactive, and unrelated users are excluded in the database query.
+- Results retain deterministic `createdAt`, then `id`, ordering. The service performs no platform
+  scan and no per-result Share lookup.
+- The real PostgreSQL contract executes the new JPQL against the production schema after all 63
+  Flyway migrations through V66.
+
+### Files changed for findings 6 and 7
+
+Backend production:
+
+- `src/main/kotlin/com/docuhyphen/app/api/service/exchange/ExchangeNotificationDeliveryService.kt`
+- `src/main/kotlin/com/docuhyphen/app/api/service/exchange/ExchangeNotificationDelivery.kt`
+- `src/main/kotlin/com/docuhyphen/app/api/service/exchange/ExchangeInitiationService.kt`
+- `src/main/kotlin/com/docuhyphen/app/api/service/exchange/ExchangeAccessManagementService.kt`
+- `src/main/kotlin/com/docuhyphen/app/api/repository/ExchangeRecipientRepository.kt`
+- `src/main/kotlin/com/docuhyphen/app/api/service/exchange/ExchangeRecipientService.kt`
+- `src/main/kotlin/com/docuhyphen/app/api/service/organization/OrganizationGroupService.kt`
+
+Backend tests:
+
+- `src/test/kotlin/com/docuhyphen/app/api/service/exchange/ExchangeNotificationDeliveryServiceTest.kt`
+- `src/test/kotlin/com/docuhyphen/app/api/service/exchange/ExchangeAccessManagementServiceTest.kt`
+- `src/test/kotlin/com/docuhyphen/app/api/service/exchange/ExchangeAccessManagementRecipientBindingTest.kt`
+- `src/test/kotlin/com/docuhyphen/app/api/service/exchange/ExchangeInitiationFieldsTest.kt`
+- `src/test/kotlin/com/docuhyphen/app/api/service/exchange/ExchangeRecipientServiceTest.kt`
+- `src/test/kotlin/com/docuhyphen/app/api/repository/ExchangeRepositoryPendingPrimaryContractTest.kt`
+
+Frontend production and tests:
+
+- `web-app/src/app/exchanges/components/exchange-list/trusted-participant-invitations/TrustedParticipantInvitations.tsx`
+- `web-app/src/app/exchanges/components/exchange-list/trusted-participant-invitations/TrustedParticipantInvitations.test.tsx`
+
+Handoff:
+
+- `TRUSTED-EXTERNAL-ORGANIZATIONS-IMPLEMENTATION-PLAN.md`
+
+Existing unrelated and earlier-session modifications and untracked files were preserved.
+
+### Verification results
+
+- Focused backend command:
+  `.\mvnw.cmd test -DskipFrontend=true "-Dkotlin.compiler.execution.strategy=in-process" "-Dtest=ExchangeNotificationDeliveryServiceTest,ExchangeAccessManagementServiceTest,ExchangeAccessManagementRecipientBindingTest,ExchangeRecipientServiceTest,ExchangeInitiationFieldsTest"`.
+  Final result: BUILD SUCCESS, 60 tests, 0 failures, 0 errors, 0 skipped.
+- PostgreSQL repository contract:
+  `.\mvnw.cmd test -DskipFrontend=true "-Dkotlin.compiler.execution.strategy=in-process" "-Dtest=ExchangeRepositoryPendingPrimaryContractTest"`.
+  Result: BUILD SUCCESS, 1 test, 0 failures, 0 errors, 0 skipped. PostgreSQL 17 applied all
+  63 migrations and reached V66.
+- Full backend command:
+  `.\mvnw.cmd test -DskipFrontend=true "-Dkotlin.compiler.execution.strategy=in-process"`.
+  Result: BUILD SUCCESS, 1,011 tests, 0 failures, 0 errors, 166 skipped. The skipped tests remain
+  open work under the deferred permutation-matrix and skip-audit item.
+- Final notification-boundary test after moving its payload data classes into their dedicated
+  model file: BUILD SUCCESS, 3 tests, 0 failures, 0 errors, 0 skipped.
+- Focused frontend invitation test: 1 file passed, 3 tests passed.
+- Full frontend test suite: 41 files passed, 213 tests passed.
+- `npx.cmd tsc --noEmit`: PASS with zero TypeScript errors.
+- `npm.cmd run build`: PASS. Vite emitted only the existing large-chunk advisory.
+- Targeted ESLint for the invitation component and test: PASS with zero findings.
+- `git diff --check`: PASS. Only Git line-ending and inaccessible global-ignore warnings were
+  emitted outside the check result.
+- Prohibited-character scan over files changed for findings 6 and 7: PASS.
+
+### Documentation and size review
+
+- Help search used `trusted organization`, `trusted participant`, `recipient invitation`, and
+  `requests`.
+- Eight matched files were read in full: `adminOperationsSection.tsx`,
+  `auditWorkspaceOverviewArticle.tsx`, `manageAccessArticle.tsx`,
+  `notificationPreferencesArticle.tsx`, `triggerEventsArticle.tsx`,
+  `trustedOrganizationsAdministrationArticle.tsx`, `usingBlueprintsArticle.tsx`, and
+  `workflowOrgSettingsArticle.tsx`.
+- Existing help already states that trusted participant invitations appear in Requests, remain
+  inactive until accepted, and refresh automatically when a new Exchange becomes available. No
+  help edit was required.
+- `TrustedParticipantInvitations.tsx` is 142 lines. Matched article and section files remain within
+  their limits, and `helpDocsRegistry.tsx` remains 58 lines.
+
+### Current status and deliberately deferred work
+
+- Finding 6 backend and frontend implementation is complete with rollback, commit, realtime, and
+  regression coverage.
+- Finding 7 implementation is complete with service coverage and a live PostgreSQL query contract.
+- Deferred item 3 remains open: the trusted permutation placeholder tests are still disabled, the
+  complete permutation matrix is not enabled, and the skip audit is not complete.
+- Deferred item 4 remains open: no authenticated browser certification was performed for the full
+  Trusted Organization matrix or the new after-commit Requests refresh behavior.
+- Earlier browser proof still outstanding under findings 1 through 5 remains outstanding. No
+  browser result is inferred from unit, integration, PostgreSQL, or frontend component tests.
+- No migration, compatibility fallback, backfill, infrastructure resource, AWS service, or paid
+  resource was added.
+
+### Exact next-session starting point
+
+- Implement and enable the trusted permutation matrix, then complete the skip audit and explain or
+  remove every remaining skip relevant to this feature.
+- Bring up the local backend and frontend with safe authenticated fixtures and complete the browser
+  certification matrix, including pending trusted group primary discovery, direct load, acceptance,
+  rejection, trusted participant Requests visibility, and realtime refresh after commit.
+- Record accounts, active organizations, group roles, Exchange IDs, HTTP outcomes, and before and
+  after Share and recipient states. Only then reassess production readiness.
