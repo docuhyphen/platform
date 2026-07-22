@@ -40,9 +40,11 @@ export const usingExchangeFieldsArticle = (
 
         <h3>Visibility</h3>
         <p>
-            Access to an Exchange is still governed by its sharing rules. Field values are
-            shown to participants who can view the Exchange. Classifying a field does not by
-            itself grant or restrict access.
+            Access to an Exchange is still governed by its sharing rules. Members of the
+            organization that owns the Exchange see every field value. Recipients from another
+            organization only see fields classified as <b>Public</b>. When none of a schema's
+            fields are shared with them, the Details tab shows a message that no fields have been
+            shared, rather than an empty schema summary.
         </p>
     </>
 );

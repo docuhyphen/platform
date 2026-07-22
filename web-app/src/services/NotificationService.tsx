@@ -110,7 +110,6 @@ class RealtimeService
     connect(appUserId?: string): void
     {
         void appUserId;
-        console.info('[Realtime] connect() called');
         const token = sessionStorage.getItem('accessToken');
         if (!token)
         {
@@ -212,7 +211,6 @@ class RealtimeService
             ? apiBase.replace(/^https:\/\//, 'wss://').replace(/^http:\/\//, 'ws://')
             : 'ws://localhost:8080';
         const url = `${wsBase}/realtime/${encodeURIComponent(userSessionId)}?token=${encodeURIComponent(token)}`;
-        console.info('[Realtime] connecting', {wsBase, userSessionId});
 
         let socket: WebSocket;
         try
@@ -230,7 +228,6 @@ class RealtimeService
 
         socket.onopen = () =>
         {
-            console.info('[Realtime] open', {userSessionId});
             this.reconnectAttempts = 0;
             this.startHeartbeat();
         };
@@ -240,7 +237,6 @@ class RealtimeService
             try
             {
                 const msg = JSON.parse(event.data) as RealtimeMessage;
-                console.info('[Realtime] message', msg.type, msg);
                 this.dispatch(msg);
             }
             catch (err)

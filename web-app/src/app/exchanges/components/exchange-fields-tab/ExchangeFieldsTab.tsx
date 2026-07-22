@@ -1,4 +1,4 @@
-import {useEffect, useMemo, useState} from 'react';
+import {useEffect, useState} from 'react';
 import {Badge, Spinner, Text} from '@fluentui/react-components';
 import {
     ExchangeDetailedDto,
@@ -13,7 +13,6 @@ import {useExchangeFieldsTabStyles} from './ExchangeFieldsTabStyles';
 import SchemaAssignPanel from './SchemaAssignPanel';
 import FieldValuesForm from './FieldValuesForm';
 import FieldValuesReadOnly from './FieldValuesReadOnly';
-import {groupBindingsBySection} from './fieldLayoutUtils';
 
 interface Props
 {
@@ -31,20 +30,6 @@ const ExchangeFieldsTab = ({exchange}: Props) =>
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const fieldCount = resolved?.fields.length ?? assignment?.fields.length ?? 0;
-    const sectionCount = useMemo(() =>
-    {
-        if (resolved?.fields?.length)
-        {
-            return groupBindingsBySection(resolved.fields).length;
-        }
-
-        if (assignment?.fields?.length)
-        {
-            return 1;
-        }
-
-        return 0;
-    }, [assignment?.fields, resolved?.fields]);
 
     const load = () =>
     {
@@ -93,7 +78,14 @@ const ExchangeFieldsTab = ({exchange}: Props) =>
                                    onAssigned={load}/>
             )}
 
-            {assignment && (
+            {assignment && !editable && fieldCount === 0 && (
+                <Text id="exchange-fields-no-visible-fields"
+                      className={styles.subText}>
+                    No more details have been shared with you for this Exchange.
+                </Text>
+            )}
+
+            {assignment && (editable || fieldCount > 0) && (
                 <>
                     <div id="exchange-fields-schema-summary"
                          className={styles.schemaSummaryCard}>
