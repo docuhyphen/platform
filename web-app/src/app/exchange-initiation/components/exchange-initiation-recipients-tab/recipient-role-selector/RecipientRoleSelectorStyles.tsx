@@ -5,6 +5,8 @@ export const useRecipientRoleSelectorStyles = makeStyles({
         marginTop: tokens.spacingVerticalL,
         paddingTop: tokens.spacingVerticalM,
         borderTop: `1px solid ${tokens.colorNeutralStroke2}`,
+        display: "flex",
+
     },
     constraintsRow: {
         marginTop: tokens.spacingVerticalS,

@@ -59,6 +59,7 @@ const SettingsTabContent = ({selectedValue, tabIds, direction}: SettingsTabConte
     const styles = useSettingsStyles();
     const selectedPageId = selectedValue as string;
     const managesOwnContentScroll = [
+        tabIds.profile,
         tabIds.blueprints,
         tabIds.workflows,
         tabIds.variables,

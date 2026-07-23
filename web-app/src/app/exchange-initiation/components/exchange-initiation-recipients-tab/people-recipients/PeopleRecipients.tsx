@@ -380,7 +380,8 @@ const PeopleRecipients: React.FC<PeopleRecipientsProps> = (
                 {renderRecents()}
             </Field>
 
-            <Field label="Find a person or type an email">
+            <div>
+                <Field label="Find a person or type an email">
                 <SinglePersonPicker
                     id={"people-recipients-combobox"}
                     placeholder="Type a name or email"
@@ -409,7 +410,7 @@ const PeopleRecipients: React.FC<PeopleRecipientsProps> = (
                     <Text size={200}>You cannot share with your own email address.</Text>
                 )}
             </Field>
-
+            </div>
             {showEmailFallback && (
                 <NewRecipient
                     isRequestingDocuments={isRequestingDocuments}
