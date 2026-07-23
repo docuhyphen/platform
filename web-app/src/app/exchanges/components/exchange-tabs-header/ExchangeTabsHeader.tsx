@@ -1,6 +1,6 @@
 import React from "react";
 import {Button, ProgressBar, Tab, TabList, TabValue, Text, Tooltip} from "@fluentui/react-components";
-import {AuditIcon, DetailsIcon, DocumentsIcon, ExchangeWorkflowsTabIcon, ZipDocumentsIcon} from "../../../components/IconBundles.tsx";
+import {AuditIcon, DetailsIcon, DocumentsIcon, ExchangeWorkflowsTabIcon, SearchIcon, ZipDocumentsIcon} from "../../../components/IconBundles.tsx";
 import {DocumentDetailedDto} from "../../../models/models.tsx";
 import {useExchangeTabsHeaderStyles} from "./ExchangeTabsHeaderStyles.tsx";
 
@@ -9,8 +9,10 @@ interface ExchangeTabsHeaderProps {
     documents: DocumentDetailedDto[];
     canDownloadZip: boolean;
     canViewAudit: boolean;
+    isDocumentToolbarVisible: boolean;
     onTabChange: (value: TabValue) => void;
     onDownloadZip: () => void;
+    onToggleDocumentToolbar: () => void;
 }
 
 const ExchangeTabsHeader: React.FC<ExchangeTabsHeaderProps> = (props) => {
@@ -77,6 +79,17 @@ const ExchangeTabsHeader: React.FC<ExchangeTabsHeaderProps> = (props) => {
                                  value={progress}
                                  thickness="medium"/>
                 </div>
+                <Tooltip content={props.isDocumentToolbarVisible ? "Hide search and filters" : "Search and filter documents"}
+                         relationship="description">
+                    <Button id="exchange-document-toolbar-toggle"
+                            aria-label={props.isDocumentToolbarVisible ? "Hide search and filters" : "Search and filter documents"}
+                            aria-expanded={props.isDocumentToolbarVisible}
+                            size="small"
+                            onClick={props.onToggleDocumentToolbar}
+                            appearance={props.isDocumentToolbarVisible ? "primary" : "subtle"}
+                            shape="circular"
+                            icon={<SearchIcon/>}/>
+                </Tooltip>
             </div>
         </div>
     );

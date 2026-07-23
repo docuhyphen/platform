@@ -15,8 +15,8 @@ export const useAuditEventTableStyles = makeStyles({
         flex: 1,
         width: "100%",
         minHeight: 0,
-        overflow: "auto",
-        overscrollBehavior: "contain",
+        // overflow: "auto",
+        // overscrollBehavior: "contain",
     },
     table: {
         minWidth: "640px",

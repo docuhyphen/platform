@@ -24,6 +24,7 @@ interface ExchangeDocumentsListProps {
     permissions: ExchangePermissions;
     onFilterDocuments: (event: SearchBoxChangeEvent, data: InputOnChangeData) => void;
     setIsDocumentSidebarOpen: (isOpen: boolean) => void;
+    isToolbarVisible: boolean;
 }
 
 const sortDocuments = (documents: DocumentDetailedDto[], sortOption: DocumentSortOption) => {
@@ -64,6 +65,36 @@ const ExchangeDocumentsList: React.FC<ExchangeDocumentsListProps> = (props) => {
     const canUpload = !isArchived && !!props.permissions?.canUploadDocument;
     const hasOverflow = canScrollLeft || canScrollRight;
 
+    const [showToolbar, setShowToolbar] = React.useState(props.isToolbarVisible);
+    const [isToolbarClosing, setIsToolbarClosing] = React.useState(false);
+    const toolbarCloseTimeoutRef = React.useRef<number | null>(null);
+
+    React.useEffect(() => () => {
+        if (toolbarCloseTimeoutRef.current) window.clearTimeout(toolbarCloseTimeoutRef.current);
+    }, []);
+
+    React.useEffect(() => {
+        if (toolbarCloseTimeoutRef.current) window.clearTimeout(toolbarCloseTimeoutRef.current);
+
+        if (props.isToolbarVisible) {
+            setIsToolbarClosing(false);
+            setShowToolbar(true);
+            return;
+        }
+
+        if (!showToolbar) return;
+
+        setIsToolbarClosing(true);
+        toolbarCloseTimeoutRef.current = window.setTimeout(() => {
+            setShowToolbar(false);
+            setIsToolbarClosing(false);
+        }, 180);
+        // Only the visibility toggle should drive this transition.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [props.isToolbarVisible]);
+
+    const toolbarExpanded = showToolbar && !isToolbarClosing;
+
     React.useEffect(() => {
         setStatusFilter("all");
         setSortOption("default");
@@ -78,14 +109,19 @@ const ExchangeDocumentsList: React.FC<ExchangeDocumentsListProps> = (props) => {
     return (
         <section id="exchange-documents-list"
                  className={styles.container}>
-            <ExchangeDocumentToolbar totalCount={allDocuments.length}
-                                     uploadedCount={uploadedCount}
-                                     activeFilter={statusFilter}
-                                     sortOption={sortOption}
-                                     searchQuery={props.documentSearchQuery}
-                                     onSearchChange={props.onFilterDocuments}
-                                     onFilterChange={setStatusFilter}
-                                     onSortChange={setSortOption}/>
+            {showToolbar && (
+                <div id="exchange-document-toolbar-wrapper"
+                     className={mergeClasses(styles.toolbarWrapper, toolbarExpanded ? styles.toolbarEntering : styles.toolbarLeaving)}>
+                    <ExchangeDocumentToolbar totalCount={allDocuments.length}
+                                             uploadedCount={uploadedCount}
+                                             activeFilter={statusFilter}
+                                             sortOption={sortOption}
+                                             searchQuery={props.documentSearchQuery}
+                                             onSearchChange={props.onFilterDocuments}
+                                             onFilterChange={setStatusFilter}
+                                             onSortChange={setSortOption}/>
+                </div>
+            )}
             <div id="exchange-documents-strip-layout"
                  className={styles.stripLayout}>
                 {hasOverflow && (

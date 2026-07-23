@@ -100,6 +100,7 @@ const Exchanges: React.FC = () =>
     const [documentSearchQuery, setDocumentSearchQuery] = useState<string>("");
     const [appUserHasExchanges, setAppUserHasExchanges] = useState<boolean>(false);
     const [detailsActiveTab, setDetailsActiveTab] = useState<TabValue>('documents');
+    const [isDocumentToolbarVisible, setIsDocumentToolbarVisible] = useState<boolean>(false);
     const [routeSelectionVersion, setRouteSelectionVersion] = useState(0);
     const permissions = useMemo<ExchangePermissions>(
         () => getPermissions(exchangeDetails, appUser),
@@ -403,6 +404,7 @@ const Exchanges: React.FC = () =>
         setIsDocumentSidebarOpen(false);
         setSelectedExchangeDocument(undefined);
         setDetailsActiveTab('documents');
+        setIsDocumentToolbarVisible(false);
     }, [selectedExchangeId]);
 
     // Ensure the correct list tab is active whenever an exchange is selected.
@@ -872,8 +874,10 @@ const Exchanges: React.FC = () =>
                                             documents={exchangeDetails?.documents || []}
                                             canDownloadZip={!!permissions?.canDownloadDocumentsZip}
                                             canViewAudit={canViewExchangeAudit}
+                                            isDocumentToolbarVisible={isDocumentToolbarVisible}
                                             onTabChange={setDetailsActiveTab}
-                                            onDownloadZip={() => setIsDocumentZipDialogOpen(true)}/>
+                                            onDownloadZip={() => setIsDocumentZipDialogOpen(true)}
+                                            onToggleDocumentToolbar={() => setIsDocumentToolbarVisible(visible => !visible)}/>
 
                         {detailsActiveTab === 'documents' && (
                         <div className={styles.documentsSectionContainer} id={"documentsSectionContainer"}>
@@ -882,6 +886,7 @@ const Exchanges: React.FC = () =>
                                     <ExchangeDocumentsList
                                         exchangeDetails={exchangeDetails}
                                         permissions={permissions}
+                                        isToolbarVisible={isDocumentToolbarVisible}
                                         onFilterDocuments={onFilterDocuments}
                                         documentSearchQuery={documentSearchQuery}
                                         filteredDocuments={filteredDocuments}

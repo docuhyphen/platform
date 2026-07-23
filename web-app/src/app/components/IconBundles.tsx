@@ -116,6 +116,8 @@
     PersonAddRegular,
     PersonSettingsFilled,
     PersonSettingsRegular,
+    SearchFilled,
+    SearchRegular,
     SendFilled,
     SendRegular,
     SettingsCogMultipleFilled,
@@ -174,6 +176,7 @@ export const CheckmarkIcon = bundleIcon(CheckmarkFilled, CheckmarkRegular)
 export const DismissIcon = bundleIcon(DismissFilled, DismissRegular)
 export const PersonAddIcon = bundleIcon(PersonAddFilled, PersonAddRegular)
 export const FilterIcon = bundleIcon(FilterFilled, FilterRegular);
+export const SearchIcon = bundleIcon(SearchFilled, SearchRegular);
 export const SortDownIcon = bundleIcon(ArrowSortDownLinesFilled, ArrowSortDownLinesRegular);
 export const SortUpIcon = bundleIcon(ArrowSortUpLinesFilled, ArrowSortUpLinesRegular);
 export const ReceiveDocumentsIcon = bundleIcon(DocumentArrowLeftFilled, DocumentArrowLeftRegular)

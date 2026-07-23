@@ -18,8 +18,10 @@ describe("ExchangeTabsHeader audit tab visibility", () =>
                 documents={[]}
                 canDownloadZip={false}
                 canViewAudit={false}
+                isDocumentToolbarVisible={false}
                 onTabChange={vi.fn()}
                 onDownloadZip={vi.fn()}
+                onToggleDocumentToolbar={vi.fn()}
             />
         );
 
@@ -34,8 +36,10 @@ describe("ExchangeTabsHeader audit tab visibility", () =>
                 documents={[]}
                 canDownloadZip={false}
                 canViewAudit={true}
+                isDocumentToolbarVisible={false}
                 onTabChange={vi.fn()}
                 onDownloadZip={vi.fn()}
+                onToggleDocumentToolbar={vi.fn()}
             />
         );
 

@@ -15,6 +15,27 @@ export const useExchangeDocumentsListStyles = makeStyles({
         gap: tokens.spacingHorizontalS,
         width: "100%",
     },
+    toolbarWrapper: {
+        width: "100%",
+        overflow: "hidden",
+        transformOrigin: "top",
+    },
+    toolbarEntering: {
+        animationName: {
+            from: {opacity: 0, transform: "translateY(-8px) scaleY(0.95)"},
+            to: {opacity: 1, transform: "translateY(0) scaleY(1)"},
+        },
+        animationDuration: "180ms",
+        animationTimingFunction: "cubic-bezier(0.2, 0, 0, 1)",
+    },
+    toolbarLeaving: {
+        animationName: {
+            from: {opacity: 1, transform: "translateY(0) scaleY(1)"},
+            to: {opacity: 0, transform: "translateY(-8px) scaleY(0.95)"},
+        },
+        animationDuration: "180ms",
+        animationTimingFunction: "cubic-bezier(0.2, 0, 0, 1)",
+    },
     searchField: {
         flex: "1 1 280px",
         width: "100%",
