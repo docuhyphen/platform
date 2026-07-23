@@ -15,6 +15,7 @@ export const useExchangeDocumentPreviewerStyles = makeStyles({
     },
 
     previewContainer: {
+        position: "relative",
         display: "flex",
         flexDirection: "column",
         flex: "1",
@@ -31,43 +32,58 @@ export const useExchangeDocumentPreviewerStyles = makeStyles({
         boxSizing: "border-box",
     },
 
-    previewHeader: {
-        display: "flex",
-        flexDirection: "column",
-        padding: tokens.spacingHorizontalS,
-        marginBottom: tokens.spacingVerticalS,
+    // Floating pill toolbar for the inline (not enlarged/fullscreen) preview.
+    // Rendered as a sibling of the scrollable document preview pane (not
+    // nested inside it) and anchored to `previewContainer`, which never
+    // scrolls itself - only the inner pane does. That keeps the bar fixed in
+    // place over the bottom of the document while the user scrolls its
+    // content, instead of scrolling away with it. Sized to fit its own
+    // content instead of spanning the full width, and kept subtle until
+    // hovered/focused so it doesn't obscure the document underneath.
+    inlineControlsBar: {
+        position: "absolute",
+        bottom: 0,
+        left: "50%",
+        transform: "translateX(-50%)",
+        marginBottom: tokens.spacingVerticalM,
+        zIndex: 2,
+        display: "inline-flex",
+        // Deliberately no wrap: wrapping onto multiple lines is what made the
+        // bar look broken on narrower preview panes. `isCompactControls` in
+        // the component drops the secondary controls so the remaining ones
+        // always fit on one row; `overflowX: auto` is just a last-resort
+        // safety net for extreme widths rather than the primary mechanism.
+        flexWrap: "nowrap",
+        overflowX: "auto",
+        scrollbarWidth: "none",
+        "&::-webkit-scrollbar": {
+            display: "none",
+        },
         justifyContent: "center",
         alignItems: "center",
-        width: "100%",
-        minWidth: 0,
-        boxSizing: "border-box",
-        "@media (max-width: 768px)": {
-            padding: tokens.spacingHorizontalXS,
-            marginBottom: tokens.spacingVerticalXS,
-        },
-    },
-
-    previewHeaderActions: {
-        display: "flex",
-        flexDirection: "row-reverse",
-        justifyContent: "space-between",
-        flex: 1,
-        // Wrap the toolbar onto multiple rows when there isn't enough
-        // horizontal room. This is what makes the preview controls
-        // usable on phones / split panes.
-        flexWrap: "wrap",
         gap: tokens.spacingHorizontalXS,
-        alignItems: "center",
-        maxWidth: "100%",
-        minWidth: 0,
-        "@media (max-width: 768px)": {
-            justifyContent: "center",
-            // row-reverse plus wrap on a narrow viewport reads oddly
-            // (groups appear in reverse order on the new line); use a
-            // normal row direction on phones so wrapped controls flow
-            // top-to-bottom, left-to-right.
-            flexDirection: "row",
-            rowGap: tokens.spacingVerticalXS,
+        width: "fit-content",
+        maxWidth: "calc(100% - 32px)",
+        boxSizing: "border-box",
+        padding: `${tokens.spacingVerticalXS} ${tokens.spacingHorizontalM}`,
+        backgroundColor: tokens.colorNeutralBackground1,
+        borderRadius: tokens.borderRadiusCircular,
+        boxShadow: tokens.shadow8,
+        // Keep each control at its natural size rather than letting flex
+        // shrink squash icons/text when the row is at its overflow-scroll
+        // fallback width (see the comment above on flexWrap/overflowX).
+        "& > *": {
+            flexShrink: 0,
+        },
+        opacity: 1,
+        transitionProperty: "opacity",
+        transitionDuration: "160ms",
+        transitionTimingFunction: "ease",
+        ":hover": {
+            opacity: 1,
+        },
+        ":focus-within": {
+            opacity: 1,
         },
     },
 

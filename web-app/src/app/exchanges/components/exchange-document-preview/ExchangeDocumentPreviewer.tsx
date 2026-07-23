@@ -51,6 +51,12 @@ const DEFAULT_PAGE_HEIGHT = 792;
 // Virtualization buffer: number of pages above/below the viewport to keep rendered.
 const VIRTUALIZATION_BUFFER_PAGES = 2;
 
+// Below this *container* width (not device viewport - the preview pane can be
+// narrow on desktop too, e.g. alongside the exchange list), drop the
+// Fullscreen/zoom controls from the inline floating toolbar so it never has
+// to wrap onto multiple lines.
+const COMPACT_CONTROLS_WIDTH_THRESHOLD = 560;
+
 interface PageDimensions
 {
     width: number;
@@ -681,6 +687,13 @@ const ExchangeDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
     const fitToWidth = isMobile && containerWidth > 0;
     const fitWidthPx = fitToWidth ? containerWidth : undefined;
 
+    // Distinct from `isMobile` (a device/viewport check): this reacts to the
+    // *preview pane's own* measured width, which can be narrow on desktop too
+    // (e.g. the details column next to the exchange list). Below the
+    // threshold we drop Fullscreen/zoom from the inline toolbar so it always
+    // fits on one row instead of wrapping.
+    const isCompactControls = containerWidth > 0 && containerWidth < COMPACT_CONTROLS_WIDTH_THRESHOLD;
+
     const placeholderDimensions = useMemo(() =>
     {
         if (fitToWidth && pageDimensions.width > 0)
@@ -888,9 +901,10 @@ const ExchangeDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
         isFullscreen && styles.fullscreenPreviewContainer,
     );
 
+    // Only rendered when isEnlarged (see JSX below), so no inline variant needed here.
     const headerClassName = mergeClasses(
-        isEnlarged ? styles.enlargedPreviewHeader : styles.previewHeader,
-        isEnlarged && isClosingEnlarged && styles.enlargedPreviewHeaderClosing,
+        styles.enlargedPreviewHeader,
+        isClosingEnlarged && styles.enlargedPreviewHeaderClosing,
     );
 
     const documentShellClassName = isEnlarged
@@ -898,6 +912,145 @@ const ExchangeDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
         : undefined;
 
     const scrollPaneClassName = isEnlarged ? styles.mainDocumentPane : styles.pdfDocumentContainer;
+
+    // There's nothing to navigate/zoom while the document hasn't been
+    // uploaded yet, is still being fetched, or failed to render - only show
+    // the controls once an actual PDF is loaded and displayed.
+    const isDocumentReady = !!pdfUrl && !previewError;
+
+    // Inline (not enlarged/fullscreen) controls: Enlarge/Fullscreen/zoom/page-nav.
+    // Rendered *inside* the scrollable document preview container (see scrollPane
+    // below) as a floating pill, rather than as a full-width bar above it.
+    const inlineControlsBar = !isEnlarged && isDocumentReady && (
+        <div className={styles.inlineControlsBar} id="exchange-document-preview-inline-controls">
+            <div className={styles.pagesInputContainer}>
+                <Button
+                    onClick={() => goToPage(1)}
+                    id="exchange-document-preview-page-first"
+                    icon={<FirstPageIcon/>}
+                    disabled={numPages === 0}
+                    appearance="transparent"
+                    shape={"circular"}/>
+
+                <Button
+                    onClick={handlePreviousPage}
+                    id="exchange-document-preview-page-previous"
+                    appearance="transparent"
+                    shape={"circular"}
+                    disabled={numPages === 0 || currentPage <= 1}
+                    icon={<PreviousPageIcon/>}/>
+
+                <Input
+                    id="exchange-document-preview-page-input"
+                    type="text"
+                    value={pageInput}
+                    onChange={handlePageInputChange}
+                    onFocus={() => setIsEditingPageInput(true)}
+                    onBlur={() =>
+                    {
+                        setIsEditingPageInput(false);
+                        commitPageInput();
+                    }}
+                    onKeyDown={(event) =>
+                    {
+                        if (event.key === 'Enter')
+                        {
+                            setIsEditingPageInput(false);
+                            commitPageInput();
+                        }
+                    }}
+                    className={styles.pagesInput}
+                    contentAfter={<Text className={styles.pagesInputAfter}>{` / ${numPages}`}</Text>}
+                />
+
+                <Button
+                    onClick={handleNextPage}
+                    id="exchange-document-preview-page-next"
+                    appearance="transparent"
+                    shape={"circular"}
+                    disabled={numPages === 0 || currentPage >= numPages}
+                    icon={<NextPageIcon/>}/>
+
+                <Button
+                    onClick={() => goToPage(numPages)}
+                    id="exchange-document-preview-page-last"
+                    icon={<LastPageIcon/>}
+                    disabled={numPages === 0}
+                    appearance="transparent"
+                    shape={"circular"}/>
+            </div>
+
+            {/*
+              Mobile (phones):
+              - Hide Zoom in / out / reset entirely; the
+                user can pinch-zoom the PDF directly via
+                the `touch-action` rule on the scroll
+                container.
+              Desktop/tablet keeps all controls.
+            */}
+            {!isMobile && !isCompactControls && (
+                <>
+                    <Divider vertical className={styles.dividerFullHeight}/>
+
+                    <Button
+                        onClick={handleZoomOut}
+                        id="exchange-document-preview-zoom-out-inline"
+                        appearance="transparent"
+                        shape={"circular"}
+                        icon={<ZoomOutIcon/>}/>
+
+                    <Tooltip content="Click to reset" relationship="description">
+                        <Button onClick={handleResetZoom}
+                                id="exchange-document-preview-zoom-reset-inline"
+                                icon={<ResetZoomIcon/>}
+                                shape={"circular"}
+                                appearance="secondary">
+                            {Math.round(scale * 100)}%
+                        </Button>
+                    </Tooltip>
+
+                    <Button
+                        onClick={handleZoomIn}
+                        id="exchange-document-preview-zoom-in-inline"
+                        appearance="transparent"
+                        shape={"circular"}
+                        icon={<ZoomInIcon/>}/>
+
+                    <Divider vertical className={styles.dividerFullHeight}/>
+                </>
+            )}
+
+            {/*
+              Mobile (phones):
+              - Hide Fullscreen (most mobile browsers
+                require an explicit UA prompt to enter
+                fullscreen, and we already promote to
+                enlarged on tap). Show Enlarge instead - it
+                gives a clean in-app reader mode that uses
+                the entire viewport.
+            */}
+            {!isMobile && !isCompactControls && (
+                <Tooltip content="Fullscreen" relationship="description">
+                    <Button
+                        onClick={toggleFullscreen}
+                        id="exchange-document-preview-fullscreen-inline"
+                        appearance="transparent"
+                        shape={"circular"}
+                        icon={<FullScreenEnterIcon/>}/>
+                </Tooltip>
+            )}
+
+            <Tooltip content="Enlarge" relationship="description">
+                <Button
+                    onClick={toggleEnlarge}
+                    id="exchange-document-preview-expand"
+                    appearance="transparent"
+                    shape={"circular"}
+                    className={hideEnlarge ? styles.hiddenControl : undefined}
+                    icon={<ExpandIcon/>}/>
+            </Tooltip>
+        </div>
+    );
 
     // The actual scroll pane. Kept in a local variable so both render paths render
     // *the same* element (same ref, same children), maximising the chance React
@@ -914,208 +1067,132 @@ const ExchangeDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
 
     return (
         <section ref={sectionRef} className={sectionClassName} id={"enlargedPreviewContainer"}>
-            <div className={headerClassName}>
-                {isEnlarged && (
+            {isEnlarged && (
+                <div className={headerClassName}>
                     <div className={styles.documentName}>
                         <Text size={200}>{exchange.name}</Text>
                         <Text size={500}>{exchangeDocument.title}</Text>
                     </div>
-                )}
-                <div className={isEnlarged ? styles.enlargedPreviewHeaderActions : styles.previewHeaderActions}>
-                    {!isEnlarged && (
-                        <>
-                            {/*
-                              Mobile (phones):
-                              - Hide Fullscreen (most mobile browsers
-                                require an explicit UA prompt to enter
-                                fullscreen, and we already promote to
-                                enlarged on tap).
-                              - Show Enlarge instead - it gives a clean
-                                in-app reader mode that uses the entire
-                                viewport.
-                              - Hide Zoom in / out / reset entirely; the
-                                user can pinch-zoom the PDF directly via
-                                the `touch-action` rule on the scroll
-                                container.
-                              Desktop/tablet keeps all controls.
-                            */}
-                            <Tooltip content="Enlarge" relationship="description">
-                                <Button
-                                    onClick={toggleEnlarge}
-                                    id="exchange-document-preview-expand"
-                                    appearance="transparent"
-                                    shape={"circular"}
-                                    className={hideEnlarge ? styles.hiddenControl : undefined}
-                                    icon={<ExpandIcon/>}/>
-                            </Tooltip>
+                    <div className={styles.enlargedPreviewHeaderActions}>
+                        <div className={styles.pagesInputContainer}>
+                            <Button
+                                onClick={() => goToPage(1)}
+                                id="exchange-document-preview-page-first"
+                                icon={<FirstPageIcon/>}
+                                disabled={numPages === 0}
+                                appearance="transparent"
+                                shape={"circular"}/>
 
-                            {!isMobile && (
-                                <Tooltip content="Fullscreen" relationship="description">
-                                    <Button
-                                        onClick={toggleFullscreen}
-                                        id="exchange-document-preview-fullscreen-inline"
-                                        appearance="transparent"
-                                        shape={"circular"}
-                                        icon={<FullScreenEnterIcon/>}/>
-                                </Tooltip>
-                            )}
+                            <Button
+                                onClick={handlePreviousPage}
+                                id="exchange-document-preview-page-previous"
+                                appearance="transparent"
+                                shape={"circular"}
+                                disabled={numPages === 0 || currentPage <= 1}
+                                icon={<PreviousPageIcon/>}/>
 
-                            {!isMobile && (
-                                <>
-                                    <Divider vertical className={styles.dividerFullHeight}/>
-
-                                    <Button
-                                        onClick={handleZoomIn}
-                                        id="exchange-document-preview-zoom-in-inline"
-                                        appearance="transparent"
-                                        shape={"circular"}
-                                        icon={<ZoomInIcon/>}/>
-
-                                    <Tooltip content="Click to reset" relationship="description">
-                                        <Button onClick={handleResetZoom}
-                                                id="exchange-document-preview-zoom-reset-inline"
-                                                icon={<ResetZoomIcon/>}
-                                                shape={"circular"}
-                                                appearance="secondary">
-                                            {Math.round(scale * 100)}%
-                                        </Button>
-                                    </Tooltip>
-
-                                    <Button
-                                        onClick={handleZoomOut}
-                                        id="exchange-document-preview-zoom-out-inline"
-                                        appearance="transparent"
-                                        shape={"circular"}
-                                        icon={<ZoomOutIcon/>}/>
-
-                                    <Divider vertical className={styles.dividerFullHeight}/>
-                                </>
-                            )}
-                        </>
-                    )}
-
-                    <div className={styles.pagesInputContainer}>
-                        <Button
-                            onClick={() => goToPage(1)}
-                            id="exchange-document-preview-page-first"
-                            icon={<FirstPageIcon/>}
-                            disabled={numPages === 0}
-                            appearance="transparent"
-                            shape={"circular"}/>
-
-                        <Button
-                            onClick={handlePreviousPage}
-                            id="exchange-document-preview-page-previous"
-                            appearance="transparent"
-                            shape={"circular"}
-                            disabled={numPages === 0 || currentPage <= 1}
-                            icon={<PreviousPageIcon/>}/>
-
-                        <Input
-                            id="exchange-document-preview-page-input"
-                            type="text"
-                            value={pageInput}
-                            onChange={handlePageInputChange}
-                            onFocus={() => setIsEditingPageInput(true)}
-                            onBlur={() =>
-                            {
-                                setIsEditingPageInput(false);
-                                commitPageInput();
-                            }}
-                            onKeyDown={(event) =>
-                            {
-                                if (event.key === 'Enter')
+                            <Input
+                                id="exchange-document-preview-page-input"
+                                type="text"
+                                value={pageInput}
+                                onChange={handlePageInputChange}
+                                onFocus={() => setIsEditingPageInput(true)}
+                                onBlur={() =>
                                 {
                                     setIsEditingPageInput(false);
                                     commitPageInput();
-                                }
-                            }}
-                            className={styles.pagesInput}
-                            contentAfter={<Text className={styles.pagesInputAfter}>{` / ${numPages}`}</Text>}
-                        />
+                                }}
+                                onKeyDown={(event) =>
+                                {
+                                    if (event.key === 'Enter')
+                                    {
+                                        setIsEditingPageInput(false);
+                                        commitPageInput();
+                                    }
+                                }}
+                                className={styles.pagesInput}
+                                contentAfter={<Text className={styles.pagesInputAfter}>{` / ${numPages}`}</Text>}
+                            />
 
-                        <Button
-                            onClick={handleNextPage}
-                            id="exchange-document-preview-page-next"
-                            appearance="transparent"
-                            shape={"circular"}
-                            disabled={numPages === 0 || currentPage >= numPages}
-                            icon={<NextPageIcon/>}/>
+                            <Button
+                                onClick={handleNextPage}
+                                id="exchange-document-preview-page-next"
+                                appearance="transparent"
+                                shape={"circular"}
+                                disabled={numPages === 0 || currentPage >= numPages}
+                                icon={<NextPageIcon/>}/>
 
-                        <Button
-                            onClick={() => goToPage(numPages)}
-                            id="exchange-document-preview-page-last"
-                            icon={<LastPageIcon/>}
-                            disabled={numPages === 0}
-                            appearance="transparent"
-                            shape={"circular"}/>
-                    </div>
+                            <Button
+                                onClick={() => goToPage(numPages)}
+                                id="exchange-document-preview-page-last"
+                                icon={<LastPageIcon/>}
+                                disabled={numPages === 0}
+                                appearance="transparent"
+                                shape={"circular"}/>
+                        </div>
 
-                    {isEnlarged && (
-                        <>
-                            {/*
-                              Mobile enlarged view: match the inline
-                              mobile toolbar - hide Zoom in/out/reset
-                              (pinch to zoom) and Fullscreen (we never
-                              entered it from mobile inline mode either,
-                              so a toggle here would be confusing). Keep
-                              only the Exit button so the user can
-                              return to the document list view.
-                            */}
-                            {!isMobile && (
-                                <>
-                                    <Divider vertical className={styles.dividerFullHeight}/>
+                        {/*
+                          Mobile enlarged view: match the inline
+                          mobile toolbar - hide Zoom in/out/reset
+                          (pinch to zoom) and Fullscreen (we never
+                          entered it from mobile inline mode either,
+                          so a toggle here would be confusing). Keep
+                          only the Exit button so the user can
+                          return to the document list view.
+                        */}
+                        {!isMobile && (
+                            <>
+                                <Divider vertical className={styles.dividerFullHeight}/>
 
-                                    <Button
-                                        onClick={handleZoomOut}
-                                        id="exchange-document-preview-zoom-out-enlarged"
-                                        appearance="transparent"
-                                        shape={"circular"}
-                                        icon={<ZoomOutIcon/>}/>
-
-                                    <Tooltip content="Click to reset"
-                                             relationship="description">
-                                        <Button onClick={handleResetZoom}
-                                                id="exchange-document-preview-zoom-reset-enlarged"
-                                                icon={<ResetZoomIcon/>}
-                                                shape={"circular"}
-                                                appearance="secondary">
-                                            {Math.round(scale * 100)}%
-                                        </Button>
-                                    </Tooltip>
-
-                                    <Button
-                                        onClick={handleZoomIn}
-                                        id="exchange-document-preview-zoom-in-enlarged"
-                                        appearance="transparent"
-                                        shape={"circular"}
-                                        icon={<ZoomInIcon/>}/>
-
-                                    <Divider vertical className={styles.dividerFullHeight}/>
-
-                                    <Tooltip content={isFullscreen ? "Exit fullscreen" : "Fullscreen"} relationship="description">
-                                        <Button
-                                            onClick={toggleFullscreen}
-                                            id="exchange-document-preview-fullscreen-enlarged"
-                                            appearance="transparent"
-                                            shape={"circular"}
-                                            icon={isFullscreen ? <FullScreenExitIcon/> : <FullScreenEnterIcon/>}/>
-                                    </Tooltip>
-                                </>
-                            )}
-
-                            <Tooltip content="Exit" relationship="description">
                                 <Button
-                                    onClick={toggleEnlarge}
-                                    id="exchange-document-preview-exit-enlarged"
+                                    onClick={handleZoomOut}
+                                    id="exchange-document-preview-zoom-out-enlarged"
                                     appearance="transparent"
                                     shape={"circular"}
-                                    icon={<CollapseIcon/>}/>
-                            </Tooltip>
-                        </>
-                    )}
+                                    icon={<ZoomOutIcon/>}/>
+
+                                <Tooltip content="Click to reset"
+                                         relationship="description">
+                                    <Button onClick={handleResetZoom}
+                                            id="exchange-document-preview-zoom-reset-enlarged"
+                                            icon={<ResetZoomIcon/>}
+                                            shape={"circular"}
+                                            appearance="secondary">
+                                        {Math.round(scale * 100)}%
+                                    </Button>
+                                </Tooltip>
+
+                                <Button
+                                    onClick={handleZoomIn}
+                                    id="exchange-document-preview-zoom-in-enlarged"
+                                    appearance="transparent"
+                                    shape={"circular"}
+                                    icon={<ZoomInIcon/>}/>
+
+                                <Divider vertical className={styles.dividerFullHeight}/>
+
+                                <Tooltip content={isFullscreen ? "Exit fullscreen" : "Fullscreen"} relationship="description">
+                                    <Button
+                                        onClick={toggleFullscreen}
+                                        id="exchange-document-preview-fullscreen-enlarged"
+                                        appearance="transparent"
+                                        shape={"circular"}
+                                        icon={isFullscreen ? <FullScreenExitIcon/> : <FullScreenEnterIcon/>}/>
+                                </Tooltip>
+                            </>
+                        )}
+
+                        <Tooltip content="Exit" relationship="description">
+                            <Button
+                                onClick={toggleEnlarge}
+                                id="exchange-document-preview-exit-enlarged"
+                                appearance="transparent"
+                                shape={"circular"}
+                                icon={<CollapseIcon/>}/>
+                        </Tooltip>
+                    </div>
                 </div>
-            </div>
+            )}
 
             {/*
               * Two render paths so that inline mode mirrors the original (proven) DOM
@@ -1133,7 +1210,10 @@ const ExchangeDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
                     </div>
                 </div>
             ) : (
-                scrollPane
+                <>
+                    {scrollPane}
+                    {inlineControlsBar}
+                </>
             )}
         </section>
     );
