@@ -116,10 +116,12 @@ const FieldDefinitionsPanel = ({definitions, viewMode, canManage, loading, error
                             {definition.namespace}:{definition.fieldKey}
                         </code>
                         {definition.latestContract && (
-                            <FieldTypeLabel
-                                id={`field-type-${definition.id}`}
-                                valueType={definition.latestContract.valueType}
-                            />
+                            <div>
+                                <FieldTypeLabel
+                                    id={`field-type-${definition.id}`}
+                                    valueType={definition.latestContract.valueType}
+                                />
+                            </div>
                         )}
                     </div>
                     <div className={styles.cardCol2}>

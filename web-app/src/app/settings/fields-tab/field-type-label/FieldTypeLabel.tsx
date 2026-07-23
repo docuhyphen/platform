@@ -43,7 +43,6 @@ const FieldTypeLabel = ({id, valueType}: Props) =>
             className={styles.root}
             appearance="outline"
             color="brand"
-            size="small"
             icon={VALUE_TYPE_ICONS[valueType]}
         >
             {VALUE_TYPE_LABELS[valueType]}

@@ -6,7 +6,6 @@ export const useAppSettingsTabStyles = makeStyles({
         flexDirection: "column",
         gap: tokens.spacingVerticalM,
         width: "100%",
-        maxWidth: "760px",
         minWidth: 0,
     },
     mainDivider: {
