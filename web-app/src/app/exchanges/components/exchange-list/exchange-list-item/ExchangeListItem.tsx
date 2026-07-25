@@ -54,7 +54,7 @@ const ExchangeListItem: React.FC<ExchangeListItemProps> = ({exchange, isSelected
         const archiveStatusMeta = getArchiveStatusMeta();
         const descriptionText = exchange.description
             ? (exchange.description.length > 80 ? `${exchange.description.substring(0, 80)}...` : exchange.description)
-            : "\u00A0";
+            : "No description available";
 
         return <div className={styles.listCard}>
             <section className={styles.listCardItem}>

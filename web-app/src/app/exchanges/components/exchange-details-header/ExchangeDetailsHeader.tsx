@@ -330,7 +330,11 @@ const ExchangeDetailsHeader: React.FC<ExchangeDetailsHeaderProps> = (
                     <div
                         className={getAnimatedSectionClass(true)}>
                         <div className={styles.headerLine3}>
-                            <Body1>{exchangeDetails.description}</Body1>
+                            <Body1>
+                                {exchangeDetails.description?.length > 0 ?
+                                    exchangeDetails.description :
+                                    "No description available"}
+                            </Body1>
                         </div>
                     </div>
                 </div>
