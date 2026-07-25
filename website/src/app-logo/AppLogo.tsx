@@ -12,8 +12,6 @@ function AppLogo()
                 src={logo}
                 alt="DocuHyphen"
                 className={styles.appLogo}
-                width={140}
-                height={80}
             />
         </span>
     );

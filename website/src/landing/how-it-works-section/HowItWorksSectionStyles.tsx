@@ -26,6 +26,17 @@ const endDotPulse = {
     "50%": {transform: "scale(1.18)"},
 };
 
+const illustrationBase = {
+    width: "100%",
+    aspectRatio: "1.2",
+    backgroundRepeat: "no-repeat",
+    backgroundPosition: "center",
+    backgroundSize: "cover",
+    backgroundColor: tokens.colorNeutralBackground1,
+    borderRadius: "0.5rem",
+    overflow: "hidden",
+};
+
 export const useHowItWorksSectionStyles = makeStyles({
     section: {
         padding: SECTION_PADDING_DESKTOP,
@@ -227,42 +238,26 @@ export const useHowItWorksSectionStyles = makeStyles({
     },
 
     illustrationOne: {
-        width: "100%",
-        aspectRatio: "1.2",
-        backgroundImage: "url('/illustrations/how-it-works-sprite.webp')",
-        backgroundRepeat: "no-repeat",
-        backgroundSize: "200% 200%",
-        backgroundPosition: "0 0",
-        borderRadius: "1rem",
+        ...illustrationBase,
+        backgroundImage:
+            "url('/illustrations/how-it-works-step-1.png')",
     },
 
     illustrationTwo: {
-        width: "100%",
-        aspectRatio: "1.2",
-        backgroundImage: "url('/illustrations/how-it-works-sprite.webp')",
-        backgroundRepeat: "no-repeat",
-        backgroundSize: "200% 200%",
-        backgroundPosition: "100% 0",
-        borderRadius: "1rem",
+        ...illustrationBase,
+        backgroundImage:
+            "url('/illustrations/how-it-works-step-2.png')",
     },
 
     illustrationThree: {
-        width: "100%",
-        aspectRatio: "1.2",
-        backgroundImage: "url('/illustrations/how-it-works-sprite.webp')",
-        backgroundRepeat: "no-repeat",
-        backgroundSize: "200% 200%",
-        backgroundPosition: "0 100%",
-        borderRadius: "1rem",
+        ...illustrationBase,
+        backgroundImage:
+            "url('/illustrations/how-it-works-step-3.png')",
     },
 
     illustrationFour: {
-        width: "100%",
-        aspectRatio: "1.2",
-        backgroundImage: "url('/illustrations/how-it-works-sprite.webp')",
-        backgroundRepeat: "no-repeat",
-        backgroundSize: "200% 200%",
-        backgroundPosition: "100% 100%",
-        borderRadius: "1rem",
+        ...illustrationBase,
+        backgroundImage:
+            "url('/illustrations/how-it-works-step-4.png')",
     },
 });
