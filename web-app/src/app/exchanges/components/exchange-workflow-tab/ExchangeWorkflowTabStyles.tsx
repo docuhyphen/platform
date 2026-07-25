@@ -96,6 +96,9 @@ export const useExchangeWorkflowTabStyles = makeStyles({
         gap: tokens.spacingHorizontalS,
         marginTop: tokens.spacingVerticalXS,
     },
+    metaText: {
+        border: "5px solid red"
+    },
     progressBar: {
         flexGrow: 1,
     },
@@ -149,7 +152,7 @@ export const useExchangeWorkflowTabStyles = makeStyles({
         flexWrap: "wrap",
     },
     stepHeaderTitle: {
-        flex: "1 1 12rem",
+        flex: "unset",
         minWidth: 0,
         overflowWrap: "anywhere",
     },
