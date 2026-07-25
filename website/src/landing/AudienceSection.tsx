@@ -127,7 +127,7 @@ export function AudienceSection()
             items: [
                 {
                     title: "Accounting & audit firms",
-                    body: "Secure exchange of tax records, financial statements, and supporting documents.",
+                    body: "Secure Exchange of tax records, financial statements, and supporting documents.",
                 },
                 {
                     title: "Financial advisors & wealth managers",

@@ -16,7 +16,7 @@ const NoAuthExchangeHeader: React.FC = () =>
         >
             <div className={styles.brandContainer}>
                 <AppLogo/>
-                <Text className={styles.secureRequestLabel}>Secure exchange</Text>
+                <Text className={styles.secureRequestLabel}>Secure Exchange</Text>
             </div>
             <div className={styles.signInButtonContainer}>
                 <Text className={styles.signInPrompt}>Already have an account?</Text>

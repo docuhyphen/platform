@@ -30,7 +30,7 @@ const NoAuthExchangeOverview: React.FC<NoAuthExchangeOverviewProps> = ({exchange
             <div className={styles.summaryHeader}>
                 <div className={styles.eyebrow}>
                     <ManageAccessIcon/>
-                    <Text weight={"semibold"}>Secure exchange details</Text>
+                    <Text weight={"semibold"}>Secure Exchange details</Text>
                 </div>
                 <Button
                     id={"no-auth-exchange-overview-toggle"}
@@ -77,7 +77,7 @@ const NoAuthExchangeOverview: React.FC<NoAuthExchangeOverviewProps> = ({exchange
                         <div className={styles.assuranceItem}>
                             <DocumentsIcon className={styles.assuranceIcon}/>
                             <div className={styles.assuranceText}>
-                                <Text weight={"semibold"}>Files stay with this exchange</Text>
+                                <Text weight={"semibold"}>Files stay with this Exchange</Text>
                                 <Text size={300}>Use this workspace to view or provide exchange documents.</Text>
                             </div>
                         </div>
