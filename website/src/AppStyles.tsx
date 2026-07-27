@@ -1,4 +1,5 @@
 import {makeStyles, tokens} from "@fluentui/react-components";
+import {BREAKPOINT_MOBILE} from "./landing/shared.ts";
 
 export const appStyles = makeStyles({
     page: {
@@ -15,6 +16,12 @@ export const appStyles = makeStyles({
         flexDirection: "column",
         paddingTop: "4.5rem",
         backgroundColor: tokens.colorNeutralBackground1,
+    },
+
+    mobileSectionGap: {
+        [BREAKPOINT_MOBILE]: {
+            paddingTop: tokens.spacingVerticalXXXL,
+        },
     },
 
     featuresSurface: {

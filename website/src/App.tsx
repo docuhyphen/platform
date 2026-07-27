@@ -37,22 +37,32 @@ function LandingPage({industrySlug}: {industrySlug: IndustrySlug | null})
                 >
                     <FeaturesSection initialIndustrySlug={industrySlug ?? undefined}/>
                 </div>
-                <HowItWorksSection/>
+                <div
+                    id="home-how-it-works-surface"
+                    className={styles.mobileSectionGap}
+                >
+                    <HowItWorksSection/>
+                </div>
                 <div
                     id="home-risks-surface"
-                    className={styles.risksSurface}
+                    className={`${styles.risksSurface} ${styles.mobileSectionGap}`}
                 >
                     <RisksSection/>
                 </div>
                 <div
                     id="home-audience-surface"
-                    className={styles.audienceSurface}
+                    className={`${styles.audienceSurface} ${styles.mobileSectionGap}`}
                 >
                     <AudienceSection/>
                 </div>
                 {/*<PricingTeaserSection/>*/}
             </main>
-            <FinalCtaSection/>
+            <div
+                id="home-final-call-to-action-surface"
+                className={styles.mobileSectionGap}
+            >
+                <FinalCtaSection/>
+            </div>
         </div>
     );
 }
