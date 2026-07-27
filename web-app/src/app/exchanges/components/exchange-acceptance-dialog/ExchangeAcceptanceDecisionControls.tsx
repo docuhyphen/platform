@@ -1,7 +1,7 @@
-import {Button, Checkbox, Divider, Field, MessageBar, MessageBarBody, Spinner, Text, Textarea}
+import {Checkbox, Divider, Field, MessageBar, MessageBarBody, Text, Textarea}
     from '@fluentui/react-components';
-import {useGlobalStyles} from '../../../../GlobalStyles.tsx';
 import {useExchangeAcceptanceDialogStyles} from './ExchangeAcceptanceDialogStyles.tsx';
+import ExchangeAcceptanceActionButtons from './ExchangeAcceptanceActionButtons.tsx';
 
 interface ExchangeAcceptanceDecisionControlsProps
 {
@@ -34,13 +34,15 @@ const ExchangeAcceptanceDecisionControls = ({
     onDismiss,
 }: ExchangeAcceptanceDecisionControlsProps) =>
 {
-    const globalStyles = useGlobalStyles();
     const styles = useExchangeAcceptanceDialogStyles();
     return (
         <div id={'exchange-acceptance-decision-controls'}>
             {rejectingExchange && (
-                <div className={styles.declineFieldContainer}>
-                    <Field>
+                <div
+                    id={'exchange-acceptance-decline-field-container'}
+                    className={styles.declineFieldContainer}
+                >
+                    <Field id={'exchange-acceptance-reject-reason-field'}>
                         <Textarea
                             id={'textarea-acceptance-reject-reason'}
                             placeholder={'Reason for declining (optional)'}
@@ -60,76 +62,29 @@ const ExchangeAcceptanceDecisionControls = ({
                     id={'exchange-acceptance-error'}
                     intent={'error'}
                 >
-                    <MessageBarBody>
-                        <Text size={200}>{dialogErrorMessage}</Text>
+                    <MessageBarBody id={'exchange-acceptance-error-body'}>
+                        <Text
+                            id={'exchange-acceptance-error-text'}
+                            size={200}
+                        >
+                            {dialogErrorMessage}
+                        </Text>
                     </MessageBarBody>
                 </MessageBar>
             )}
-            <Divider/>
-            <div className={styles.actions}>
-                {!isSingleExchange && !rejectingExchange && canDecideLater && (
-                    <div className={styles.tertiaryActions}>
-                        <Button
-                            id={'acceptance-decide-later-btn'}
-                            appearance={'subtle'}
-                            shape={'circular'}
-                            disabled={updatingExchange}
-                            onClick={onDismiss}
-                        >
-                            Decide Later
-                        </Button>
-                    </div>
-                )}
-                <div className={styles.primaryActions}>
-                    {rejectingExchange ? (
-                        <>
-                            <Button
-                                id={'acceptance-confirm-decline-btn'}
-                                appearance={'primary'}
-                                className={globalStyles.buttonWithLoading}
-                                shape={'circular'}
-                                disabled={updatingExchange}
-                                onClick={onReject}
-                            >
-                                {updatingExchange && <Spinner size={'tiny'}/>}
-                                Confirm Decline
-                            </Button>
-                            <Button
-                                id={'acceptance-cancel-decline-btn'}
-                                appearance={'secondary'}
-                                shape={'circular'}
-                                disabled={updatingExchange}
-                                onClick={onCancelDecline}
-                            >
-                                Cancel
-                            </Button>
-                        </>
-                    ) : (
-                        <>
-                            <Button
-                                id={'acceptance-accept-btn'}
-                                appearance={'primary'}
-                                disabled={updatingExchange}
-                                className={globalStyles.buttonWithLoading}
-                                shape={'circular'}
-                                onClick={onAccept}
-                            >
-                                {updatingExchange && <Spinner size={'tiny'}/>}
-                                Accept
-                            </Button>
-                            <Button
-                                id={'acceptance-decline-btn'}
-                                appearance={'secondary'}
-                                shape={'circular'}
-                                disabled={updatingExchange}
-                                onClick={onBeginDecline}
-                            >
-                                Decline
-                            </Button>
-                        </>
-                    )}
-                </div>
-            </div>
+            <Divider id={'exchange-acceptance-actions-divider'}/>
+            <ExchangeAcceptanceActionButtons
+                id={'exchange-acceptance-actions'}
+                isSingleExchange={isSingleExchange}
+                canDecideLater={canDecideLater}
+                updatingExchange={updatingExchange}
+                rejectingExchange={rejectingExchange}
+                onBeginDecline={onBeginDecline}
+                onCancelDecline={onCancelDecline}
+                onAccept={onAccept}
+                onReject={onReject}
+                onDismiss={onDismiss}
+            />
         </div>
     );
 };

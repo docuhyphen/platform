@@ -3,6 +3,7 @@ package com.docuhyphen.app.api.repository
 import io.quarkus.test.common.QuarkusTestResource
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager
 import io.quarkus.test.junit.QuarkusTest
+import io.quarkus.narayana.jta.QuarkusTransaction
 import jakarta.inject.Inject
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -13,6 +14,9 @@ import java.sql.Connection
 import java.sql.Timestamp
 import java.time.Instant
 import java.util.UUID
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 import javax.sql.DataSource
 
 private class PendingPrimaryPostgreSQLContainer(imageName: String) :
@@ -75,7 +79,7 @@ class ExchangeRepositoryPendingPrimaryContractTest
     @Test
     fun `repository queries expose pending group primaries only to active owners and managers`()
     {
-        dataSource.connection.use(::seedFixtures)
+        dataSource.connection.use(::resetAndSeedFixtures)
 
         val groupInvitations = setOf(ownerExchangeId, managerExchangeId)
         assertAccessible(ownerId, groupInvitations)
@@ -111,6 +115,129 @@ class ExchangeRepositoryPendingPrimaryContractTest
                 emptyList<com.docuhyphen.app.api.model.entity.ExchangeRecipient>(),
                 exchangeRecipientRepository.findPendingTrustedParticipantsFor(ineligibleUserId),
             )
+        }
+    }
+
+    @Test
+    fun `primary acceptance row lock serializes competing decisions`()
+    {
+        dataSource.connection.use(::resetAndSeedFixtures)
+
+        assertCompetingTransactionWaits {
+            checkNotNull(exchangeRecipientRepository.findPrimaryForUpdate(ownerExchangeId))
+        }
+    }
+
+    @Test
+    fun `participant decision row lock serializes competing decisions`()
+    {
+        dataSource.connection.use(::resetAndSeedFixtures)
+        val participantId = exchangeRecipientRepository.findPendingTrustedParticipantsFor(ownerId)
+            .single()
+            .id
+
+        assertCompetingTransactionWaits {
+            checkNotNull(exchangeRecipientRepository.findByIdForUpdate(participantId))
+        }
+    }
+
+    private fun assertCompetingTransactionWaits(lockRecipient: () -> Unit)
+    {
+        val firstTransactionLocked = CountDownLatch(1)
+        val releaseFirstTransaction = CountDownLatch(1)
+        val secondTransactionLocked = CountDownLatch(1)
+        val executor = Executors.newFixedThreadPool(2)
+        try
+        {
+            val first = executor.submit {
+                QuarkusTransaction.requiringNew().run {
+                    lockRecipient()
+                    firstTransactionLocked.countDown()
+                    check(releaseFirstTransaction.await(5, TimeUnit.SECONDS))
+                }
+            }
+            assertTrue(firstTransactionLocked.await(5, TimeUnit.SECONDS))
+
+            val second = executor.submit {
+                QuarkusTransaction.requiringNew().run {
+                    lockRecipient()
+                    secondTransactionLocked.countDown()
+                }
+            }
+
+            assertFalse(secondTransactionLocked.await(300, TimeUnit.MILLISECONDS))
+            releaseFirstTransaction.countDown()
+            first.get(5, TimeUnit.SECONDS)
+            assertTrue(secondTransactionLocked.await(5, TimeUnit.SECONDS))
+            second.get(5, TimeUnit.SECONDS)
+        }
+        finally
+        {
+            releaseFirstTransaction.countDown()
+            executor.shutdownNow()
+        }
+    }
+
+    private fun resetAndSeedFixtures(connection: Connection)
+    {
+        deleteFixtures(connection)
+        seedFixtures(connection)
+    }
+
+    private fun deleteFixtures(connection: Connection)
+    {
+        listOf(
+            "exchange_recipient",
+            "share",
+        ).forEach { table ->
+            connection.prepareStatement(
+                """DELETE FROM $table
+                   WHERE ${if (table == "share") "resource_id" else "exchange_id"} IN
+                       (SELECT id FROM exchange WHERE owner_organization_id = ?)""",
+            ).use { statement ->
+                statement.setObject(1, organizationId)
+                statement.executeUpdate()
+            }
+        }
+        connection.prepareStatement(
+            "DELETE FROM exchange WHERE owner_organization_id = ?",
+        ).use { statement ->
+            statement.setObject(1, organizationId)
+            statement.executeUpdate()
+        }
+        connection.prepareStatement(
+            "DELETE FROM principal_group_member WHERE principal_group_id = ?",
+        ).use { statement ->
+            statement.setObject(1, groupId)
+            statement.executeUpdate()
+        }
+        connection.prepareStatement(
+            "DELETE FROM principal_group WHERE id = ?",
+        ).use { statement ->
+            statement.setObject(1, groupId)
+            statement.executeUpdate()
+        }
+        val userIds = listOf(
+            initiatorId,
+            ownerId,
+            managerId,
+            memberId,
+            observerId,
+            inactiveOwnerId,
+            unrelatedId,
+            directUserId,
+        )
+        connection.prepareStatement(
+            "DELETE FROM app_user WHERE id IN (${userIds.joinToString { "?" }})",
+        ).use { statement ->
+            userIds.forEachIndexed { index, userId -> statement.setObject(index + 1, userId) }
+            statement.executeUpdate()
+        }
+        connection.prepareStatement(
+            "DELETE FROM organization WHERE id = ?",
+        ).use { statement ->
+            statement.setObject(1, organizationId)
+            statement.executeUpdate()
         }
     }
 

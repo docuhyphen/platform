@@ -38,6 +38,59 @@ describe('ExchangeAcceptanceDialog', () =>
     });
     afterEach(cleanup);
 
+    it('renders stable IDs for the acceptance summary and decision controls', () =>
+    {
+        const exchange = {
+            id: 'exchange-ids',
+            name: 'ID Coverage Exchange',
+            initialShareMessage: 'Please review the requested and shared documents.',
+            status: ExchangeStatus.INITIATED,
+            documents: [
+                {
+                    id: 'requested-document',
+                    title: 'Requested document',
+                },
+                {
+                    id: 'shared-document',
+                    title: 'Shared document',
+                    uploadDate: '2026-07-27T10:00:00Z',
+                },
+            ],
+            initiator: {
+                id: 'initiator-ids',
+                email: 'initiator@example.test',
+            },
+        } as ExchangeDetailedDto;
+
+        render(
+            <ExchangeAcceptanceDialog
+                exchange={exchange}
+                isSingleExchange={true}
+                canDecideLater={false}
+                activeCount={0}
+                archiveCount={0}
+                onAccepted={vi.fn()}
+                onRejected={vi.fn()}
+                onDismiss={vi.fn()}
+                onOpenActive={vi.fn()}
+                onOpenArchive={vi.fn()}
+            />,
+        );
+
+        [
+            'exchange-acceptance-overlay',
+            'exchange-acceptance-title-divider',
+            'exchange-acceptance-requester-persona',
+            'exchange-acceptance-exchange-name',
+            'exchange-acceptance-message-text',
+            'exchange-acceptance-requested-document-requested-document',
+            'exchange-acceptance-shared-document-shared-document',
+            'exchange-acceptance-actions-divider',
+            'acceptance-accept-btn',
+            'acceptance-decline-btn',
+        ].forEach(id => expect(document.getElementById(id)).not.toBeNull());
+    });
+
     it('does not refetch an Exchange after the recipient rejects it', async () =>
     {
         const exchange = {

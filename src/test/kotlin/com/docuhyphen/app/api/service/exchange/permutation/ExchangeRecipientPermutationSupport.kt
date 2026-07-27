@@ -9,6 +9,8 @@ import com.docuhyphen.app.api.model.entity.ExchangeRecipientPurpose
 import com.docuhyphen.app.api.model.entity.ExchangeRecipientSelectionType
 import com.docuhyphen.app.api.model.entity.ExchangeShareRoleName
 import com.docuhyphen.app.api.model.entity.PrincipalKind
+import com.docuhyphen.app.api.model.entity.PrincipalGroupMember
+import com.docuhyphen.app.api.model.entity.PrincipalGroupRoleName
 import com.docuhyphen.app.api.model.entity.ResourceType
 import com.docuhyphen.app.api.model.entity.Share
 import com.docuhyphen.app.api.model.entity.ShareSource
@@ -27,6 +29,7 @@ import org.mockito.kotlin.any
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.never
+import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import java.util.UUID
@@ -36,8 +39,8 @@ internal class ExchangeRecipientDecisionFixture(
     val purpose: ExchangeRecipientPurpose = ExchangeRecipientPurpose.PRIMARY,
     principalKind: PrincipalKind = PrincipalKind.USER,
     val principalId: UUID = UUID.randomUUID(),
-    val decisionMaker: Boolean = true,
-    val trustedEligible: Boolean = true,
+    groupRole: PrincipalGroupRoleName? = null,
+    val trustLifecycle: AcceptanceTrustLifecycle = AcceptanceTrustLifecycle.ACTIVE,
     val initialAcceptanceStatus: ExchangeRecipientAcceptanceStatus = ExchangeRecipientAcceptanceStatus.PENDING,
     val initialShareStatus: ShareStatus = ShareStatus.PENDING_APPROVAL,
 )
@@ -65,6 +68,14 @@ internal class ExchangeRecipientDecisionFixture(
         acceptanceStatus = initialAcceptanceStatus
         targetOrganizationId = this@ExchangeRecipientDecisionFixture.ownerOrganizationId
     }
+    val groupMember: PrincipalGroupMember? = groupRole?.let { role ->
+        PrincipalGroupMember().apply {
+            principalGroupId = share.principalId
+            this.principalKind = PrincipalKind.USER
+            this.principalId = this@ExchangeRecipientDecisionFixture.principalId
+            this.groupRole = role
+        }
+    }
     val repository: ExchangeRecipientRepository = mock()
     val shareService: ShareService = mock()
     val organizationGroupService: OrganizationGroupService = mock()
@@ -90,7 +101,10 @@ internal class ExchangeRecipientDecisionFixture(
         whenever(repository.update(any())).thenAnswer { it.getArgument(0) }
         whenever(shareService.getById(share.id)).thenReturn(share)
         whenever(organizationGroupService.isActiveDecisionMaker(share.principalId, principalId))
-            .thenReturn(decisionMaker)
+            .thenReturn(
+                groupMember?.groupRole == PrincipalGroupRoleName.OWNER ||
+                    groupMember?.groupRole == PrincipalGroupRoleName.MANAGER,
+            )
 
         if (selectionType == ExchangeRecipientSelectionType.TRUSTED_GROUP ||
             selectionType == ExchangeRecipientSelectionType.TRUSTED_PERSON)
@@ -100,7 +114,7 @@ internal class ExchangeRecipientDecisionFixture(
                 targetOrganizationId = UUID.randomUUID()
             }
             whenever(attestationService.findForRecipient(recipient.id)).thenReturn(attestation)
-            if (trustedEligible)
+            if (trustLifecycle == AcceptanceTrustLifecycle.ACTIVE)
             {
                 whenever(validationService.validateGroupAttestation(eq(attestation), any()))
                     .thenReturn(mock<TrustedGroupValidation>())
@@ -109,10 +123,16 @@ internal class ExchangeRecipientDecisionFixture(
             }
             else
             {
+                val message = when (trustLifecycle)
+                {
+                    AcceptanceTrustLifecycle.SUSPENDED -> "Trust relationship is suspended"
+                    AcceptanceTrustLifecycle.ENDED -> "Trust relationship has ended"
+                    AcceptanceTrustLifecycle.ACTIVE -> error("Active trust was handled above")
+                }
                 whenever(validationService.validateGroupAttestation(eq(attestation), any()))
-                    .thenThrow(OrganizationTrustNotFoundException("Trusted recipient is unavailable"))
+                    .thenThrow(OrganizationTrustNotFoundException(message))
                 whenever(validationService.validatePersonAttestation(eq(attestation), any()))
-                    .thenThrow(OrganizationTrustNotFoundException("Trusted recipient is unavailable"))
+                    .thenThrow(OrganizationTrustNotFoundException(message))
             }
         }
     }
@@ -132,4 +152,31 @@ internal class ExchangeRecipientDecisionFixture(
     {
         verify(shareService, never()).activate(any())
     }
+
+    fun verifyPrimaryLockCount(expected: Int)
+    {
+        verify(repository, times(expected)).findPrimaryForUpdate(exchangeId)
+    }
+
+    fun verifyParticipantLockCount(expected: Int)
+    {
+        verify(repository, times(expected)).findByIdForUpdate(recipient.id)
+    }
+
+    fun verifyDecisionUpdateCount(expected: Int)
+    {
+        verify(repository, times(expected)).update(any())
+    }
+
+    fun verifyParticipantNotRevoked()
+    {
+        verify(shareService, never()).revoke(any(), any(), any())
+    }
+}
+
+internal enum class AcceptanceTrustLifecycle
+{
+    ACTIVE,
+    SUSPENDED,
+    ENDED,
 }

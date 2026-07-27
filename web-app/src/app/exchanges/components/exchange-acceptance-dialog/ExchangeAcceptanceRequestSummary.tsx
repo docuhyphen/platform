@@ -26,9 +26,16 @@ const ExchangeAcceptanceRequestSummary = ({exchange}: ExchangeAcceptanceRequestS
                 id={'exchange-acceptance-requester-section'}
                 className={styles.section}
             >
-                <div className={styles.sectionLabel}>
-                    <PersonRegular className={styles.sectionIcon}/>
+                <div
+                    id={'exchange-acceptance-requester-label'}
+                    className={styles.sectionLabel}
+                >
+                    <PersonRegular
+                        id={'exchange-acceptance-requester-icon'}
+                        className={styles.sectionIcon}
+                    />
                     <Text
+                        id={'exchange-acceptance-requester-title'}
                         size={200}
                         weight={'semibold'}
                         className={styles.labelText}
@@ -36,14 +43,19 @@ const ExchangeAcceptanceRequestSummary = ({exchange}: ExchangeAcceptanceRequestS
                         Requester
                     </Text>
                 </div>
-                <div className={styles.sectionContent}>
+                <div
+                    id={'exchange-acceptance-requester-content'}
+                    className={styles.sectionContent}
+                >
                     <Persona
+                        id={'exchange-acceptance-requester-persona'}
                         name={initiatorName}
                         secondaryText={initiatorEmail}
                         tertiaryText={exchange.initiator?.organization?.name}
                         size={'medium'}
                     />
                     <Text
+                        id={'exchange-acceptance-requester-caption'}
                         size={200}
                         className={styles.requesterCaption}
                     >
@@ -51,14 +63,21 @@ const ExchangeAcceptanceRequestSummary = ({exchange}: ExchangeAcceptanceRequestS
                     </Text>
                 </div>
             </div>
-            <Divider/>
+            <Divider id={'exchange-acceptance-requester-divider'}/>
             <div
                 id={'exchange-acceptance-exchange-section'}
                 className={styles.section}
             >
-                <div className={styles.sectionLabel}>
-                    <FolderRegular className={styles.sectionIcon}/>
+                <div
+                    id={'exchange-acceptance-exchange-label'}
+                    className={styles.sectionLabel}
+                >
+                    <FolderRegular
+                        id={'exchange-acceptance-exchange-icon'}
+                        className={styles.sectionIcon}
+                    />
                     <Text
+                        id={'exchange-acceptance-exchange-title'}
                         size={200}
                         weight={'semibold'}
                         className={styles.labelText}
@@ -66,20 +85,35 @@ const ExchangeAcceptanceRequestSummary = ({exchange}: ExchangeAcceptanceRequestS
                         Exchange
                     </Text>
                 </div>
-                <div className={styles.sectionContent}>
-                    <Text size={300}>{exchange.name}</Text>
+                <div
+                    id={'exchange-acceptance-exchange-content'}
+                    className={styles.sectionContent}
+                >
+                    <Text
+                        id={'exchange-acceptance-exchange-name'}
+                        size={300}
+                    >
+                        {exchange.name}
+                    </Text>
                 </div>
             </div>
             {exchange.initialShareMessage && (
                 <>
-                    <Divider/>
+                    <Divider id={'exchange-acceptance-message-divider'}/>
                     <div
                         id={'exchange-acceptance-message-section'}
                         className={styles.section}
                     >
-                        <div className={styles.sectionLabel}>
-                            <ChatRegular className={styles.sectionIcon}/>
+                        <div
+                            id={'exchange-acceptance-message-label'}
+                            className={styles.sectionLabel}
+                        >
+                            <ChatRegular
+                                id={'exchange-acceptance-message-icon'}
+                                className={styles.sectionIcon}
+                            />
                             <Text
+                                id={'exchange-acceptance-message-title'}
                                 size={200}
                                 weight={'semibold'}
                                 className={styles.labelText}
@@ -87,15 +121,26 @@ const ExchangeAcceptanceRequestSummary = ({exchange}: ExchangeAcceptanceRequestS
                                 Message
                             </Text>
                         </div>
-                        <div className={styles.sectionContent}>
-                            <div className={styles.messageBox}>
-                                <Text size={200}>{exchange.initialShareMessage}</Text>
+                        <div
+                            id={'exchange-acceptance-message-content'}
+                            className={styles.sectionContent}
+                        >
+                            <div
+                                id={'exchange-acceptance-message-box'}
+                                className={styles.messageBox}
+                            >
+                                <Text
+                                    id={'exchange-acceptance-message-text'}
+                                    size={200}
+                                >
+                                    {exchange.initialShareMessage}
+                                </Text>
                             </div>
                         </div>
                     </div>
                 </>
             )}
-            <Divider/>
+            <Divider id={'exchange-acceptance-documents-divider'}/>
             <ExchangeAcceptanceDocumentsSummary exchange={exchange}/>
         </div>
     );

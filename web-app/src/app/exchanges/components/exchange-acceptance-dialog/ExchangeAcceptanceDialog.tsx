@@ -59,7 +59,7 @@ const ExchangeAcceptanceDialog: React.FC<ExchangeAcceptanceDialogProps> = (
                 >
                     Exchange Request
                 </Text>
-                <Divider/>
+                <Divider id={'exchange-acceptance-title-divider'}/>
                 <ExchangeAcceptanceRequestSummary exchange={exchange}/>
                 <ExchangeAcceptanceNavigationNotice
                     isSingleExchange={isSingleExchange}

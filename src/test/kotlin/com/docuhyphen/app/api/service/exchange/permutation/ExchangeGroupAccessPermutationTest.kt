@@ -191,7 +191,7 @@ class ExchangeGroupAccessPermutationTest
         val fixture = ExchangeRecipientDecisionFixture(
             selectionType = ExchangeRecipientSelectionType.TRUSTED_GROUP,
             principalKind = PrincipalKind.PRINCIPAL_GROUP,
-            decisionMaker = true,
+            groupRole = com.docuhyphen.app.api.model.entity.PrincipalGroupRoleName.OWNER,
         )
         fixture.recordPrimary(accepted = true)
     }
@@ -201,7 +201,7 @@ class ExchangeGroupAccessPermutationTest
         val fixture = ExchangeRecipientDecisionFixture(
             selectionType = ExchangeRecipientSelectionType.TRUSTED_GROUP,
             principalKind = PrincipalKind.PRINCIPAL_GROUP,
-            decisionMaker = false,
+            groupRole = com.docuhyphen.app.api.model.entity.PrincipalGroupRoleName.MEMBER,
         )
         assertThrows(IllegalArgumentException::class.java) {
             fixture.recordPrimary(accepted = true)

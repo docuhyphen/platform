@@ -18,9 +18,16 @@ const ExchangeAcceptanceDocumentsSummary = ({exchange}: ExchangeAcceptanceDocume
             id={'exchange-acceptance-documents-section'}
             className={styles.section}
         >
-            <div className={styles.sectionLabel}>
-                <DocumentRegular className={styles.sectionIcon}/>
+            <div
+                id={'exchange-acceptance-documents-label'}
+                className={styles.sectionLabel}
+            >
+                <DocumentRegular
+                    id={'exchange-acceptance-documents-icon'}
+                    className={styles.sectionIcon}
+                />
                 <Text
+                    id={'exchange-acceptance-documents-title'}
                     size={200}
                     weight={'semibold'}
                     className={styles.labelText}
@@ -28,21 +35,37 @@ const ExchangeAcceptanceDocumentsSummary = ({exchange}: ExchangeAcceptanceDocume
                     {requestedDocuments.length > 0 ? ` ${requestedDocuments.length}` : ''} Documents
                 </Text>
             </div>
-            <div className={styles.sectionContent}>
+            <div
+                id={'exchange-acceptance-documents-content'}
+                className={styles.sectionContent}
+            >
                 {requestedDocuments.length > 0 ? (
-                    <div className={styles.documentList}>
+                    <div
+                        id={'exchange-acceptance-requested-document-list'}
+                        className={styles.documentList}
+                    >
                         {requestedDocuments.slice(0, 5).map(document => (
                             <div
+                                id={`exchange-acceptance-requested-document-${document.id}`}
                                 key={document.id}
                                 className={styles.documentItem}
                             >
-                                <CircleFilled className={styles.documentIcon}/>
-                                <Text size={200}>{document.title}</Text>
+                                <CircleFilled
+                                    id={`exchange-acceptance-requested-document-icon-${document.id}`}
+                                    className={styles.documentIcon}
+                                />
+                                <Text
+                                    id={`exchange-acceptance-requested-document-title-${document.id}`}
+                                    size={200}
+                                >
+                                    {document.title}
+                                </Text>
                             </div>
                         ))}
                     </div>
                 ) : (
                     <Text
+                        id={'exchange-acceptance-documents-empty-text'}
                         size={200}
                         className={styles.emptyText}
                     >
@@ -52,20 +75,33 @@ const ExchangeAcceptanceDocumentsSummary = ({exchange}: ExchangeAcceptanceDocume
                 {sharedDocuments.length > 0 && (
                     <>
                         <Text
+                            id={'exchange-acceptance-shared-documents-label'}
                             size={200}
                             weight={'semibold'}
                             className={styles.alreadySharedLabel}
                         >
                             Already shared ({sharedDocuments.length})
                         </Text>
-                        <div className={styles.documentList}>
+                        <div
+                            id={'exchange-acceptance-shared-document-list'}
+                            className={styles.documentList}
+                        >
                             {sharedDocuments.slice(0, 5).map(document => (
                                 <div
+                                    id={`exchange-acceptance-shared-document-${document.id}`}
                                     key={document.id}
                                     className={styles.documentItem}
                                 >
-                                    <CircleFilled className={styles.documentIcon}/>
-                                    <Text size={200}>{document.title}</Text>
+                                    <CircleFilled
+                                        id={`exchange-acceptance-shared-document-icon-${document.id}`}
+                                        className={styles.documentIcon}
+                                    />
+                                    <Text
+                                        id={`exchange-acceptance-shared-document-title-${document.id}`}
+                                        size={200}
+                                    >
+                                        {document.title}
+                                    </Text>
                                 </div>
                             ))}
                         </div>

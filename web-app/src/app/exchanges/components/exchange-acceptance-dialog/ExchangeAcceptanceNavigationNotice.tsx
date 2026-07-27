@@ -35,14 +35,22 @@ const ExchangeAcceptanceNavigationNotice = ({
             <MessageBar
                 id={'exchange-acceptance-last-request-message'}
                 intent={'info'}
-                icon={<InfoRegular/>}
+                icon={<InfoRegular id={'exchange-acceptance-last-request-icon'}/>}
             >
-                <MessageBarBody>
-                    <Text size={200}>This is your last pending request.</Text>
+                <MessageBarBody id={'exchange-acceptance-last-request-body'}>
+                    <Text
+                        id={'exchange-acceptance-last-request-text'}
+                        size={200}
+                    >
+                        This is your last pending request.
+                    </Text>
                 </MessageBarBody>
             </MessageBar>
             {!isSingleExchange && (
-                <div className={styles.navigationActions}>
+                <div
+                    id={'exchange-acceptance-navigation-actions'}
+                    className={styles.navigationActions}
+                >
                     <Button
                         id={'acceptance-open-active-btn'}
                         appearance={'secondary'}
