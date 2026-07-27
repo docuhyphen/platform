@@ -241,7 +241,7 @@ export const FullScreenEnterIcon = bundleIcon(FullScreenMaximizeFilled, FullScre
 export const FullScreenExitIcon = bundleIcon(FullScreenMinimizeFilled, FullScreenMinimizeRegular)
 export const ViewCardsIcon = bundleIcon(GridFilled, GridRegular)
 export const ViewTableIcon = bundleIcon(TableFilled, TableRegular)
-export const OrgPairingIcon = bundleIcon(BuildingSwapFilled, BuildingSwapRegular)
+export const TrustedOrganizationsIcon = bundleIcon(BuildingSwapFilled, BuildingSwapRegular)
 
 // Workflow graph step-kind node icons.
 export const WorkflowApprovalNodeIcon = CheckmarkNoteFilled

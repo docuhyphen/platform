@@ -65,9 +65,10 @@ class ExchangeNotificationDeliveryService @Inject constructor(
         deliveries.forEach { delivery ->
             try
             {
-                if (delivery.preferenceAppUserId != null &&
+                val preferenceAppUserId = delivery.preferenceAppUserId
+                if (preferenceAppUserId != null &&
                     !preferenceService.isEnabled(
-                        delivery.preferenceAppUserId,
+                        preferenceAppUserId,
                         UserNotificationPreference.EXCHANGE_INITIATED,
                         NotificationChannelType.EMAIL,
                     ))
@@ -93,7 +94,7 @@ class ExchangeNotificationDeliveryService @Inject constructor(
         deliveries.forEach { delivery ->
             try
             {
-                inAppNotificationService.publishIfEnabled(
+                inAppNotificationService.publishAfterCommitIfEnabled(
                     appUserId = delivery.appUserId,
                     preference = UserNotificationPreference.EXCHANGE_INITIATED,
                     type = delivery.type,

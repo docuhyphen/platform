@@ -51,6 +51,20 @@ class ShareService @Inject constructor(
     }
 
     fun getById(shareId: UUID): Share? = shareRepository.findById(shareId)
+
+    fun findDirectForPrincipalOnResource(
+        principalKind: PrincipalKind,
+        principalId: UUID,
+        resourceType: ResourceType,
+        resourceId: UUID,
+    ): Share? =
+        shareRepository.findDirectForPrincipalOnResource(
+            principalKind,
+            principalId,
+            resourceType,
+            resourceId,
+        ).firstOrNull()
+
     /**
      * Grant (or refresh) a DIRECT share of [resourceType]/[resourceId] to a principal.
      * Idempotent: an existing ACTIVE DIRECT share to the same principal is updated in place

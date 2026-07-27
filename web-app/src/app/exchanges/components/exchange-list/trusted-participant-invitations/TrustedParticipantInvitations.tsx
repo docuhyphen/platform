@@ -1,11 +1,12 @@
 import React from "react";
-import {Button, Card, MessageBar, MessageBarBody, Spinner, Text} from "@fluentui/react-components";
+import {MessageBar, MessageBarBody, Spinner} from "@fluentui/react-components";
 import {ExchangeRecipientInvitationDto} from "../../../../models/models.tsx";
 import {
     decideExchangeRecipientInvitation,
     fetchPendingExchangeRecipientInvitations,
 } from "../../../../../services/exchangeApi.ts";
 import {realtimeService} from "../../../../../services/NotificationService.tsx";
+import TrustedParticipantInvitationCard from "./TrustedParticipantInvitationCard.tsx";
 import {useTrustedParticipantInvitationsStyles} from "./TrustedParticipantInvitationsStyles.tsx";
 
 interface TrustedParticipantInvitationsProps
@@ -95,45 +96,27 @@ const TrustedParticipantInvitations: React.FC<TrustedParticipantInvitationsProps
         <section
             id={"trusted-participant-invitations"}
             className={styles.container}
-            aria-label={"Trusted participant invitations"}>
+            aria-label={"Trusted participant invitations"}
+        >
             {error && (
                 <MessageBar
                     id={"trusted-participant-invitations-error"}
-                    intent={"error"}>
-                    <MessageBarBody>{error}</MessageBarBody>
+                    intent={"error"}
+                >
+                    <MessageBarBody id={"trusted-participant-invitations-error-message"}>
+                        {error}
+                    </MessageBarBody>
                 </MessageBar>
             )}
             {invitations.map(invitation => (
-                <Card
-                    id={`trusted-participant-invitation-${invitation.id}`}
+                <TrustedParticipantInvitationCard
                     key={invitation.id}
-                    className={styles.card}>
-                    <Text weight={"semibold"}>Trusted participant invitation</Text>
-                    <Text size={200}>
-                        {invitation.selectionType === "TRUSTED_PERSON"
-                            ? "Membership verified person"
-                            : "Published Trusted Organization group"}
-                    </Text>
-                    <Text size={200}>Exchange reference: {invitation.exchangeId}</Text>
-                    <div className={styles.actions}>
-                        <Button
-                            id={`trusted-participant-accept-${invitation.id}`}
-                            appearance={"primary"}
-                            shape={"circular"}
-                            disabled={pendingId !== null}
-                            onClick={() => void decide(invitation, "ACCEPT")}>
-                            Accept access
-                        </Button>
-                        <Button
-                            id={`trusted-participant-reject-${invitation.id}`}
-                            appearance={"secondary"}
-                            shape={"circular"}
-                            disabled={pendingId !== null}
-                            onClick={() => void decide(invitation, "REJECT")}>
-                            Decline
-                        </Button>
-                    </div>
-                </Card>
+                    invitation={invitation}
+                    pending={pendingId !== null}
+                    cardClassName={styles.card}
+                    actionsClassName={styles.actions}
+                    onDecision={(item, decision) => void decide(item, decision)}
+                />
             ))}
         </section>
     );

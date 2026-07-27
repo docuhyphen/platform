@@ -1,22 +1,11 @@
 import {useCallback, useState} from 'react';
-import {
-    Button,
-    Combobox,
-    Field,
-    MessageBar,
-    MessageBarBody,
-    Option,
-    Spinner,
-    Text,
-} from '@fluentui/react-components';
+import {Button, Combobox, Field, MessageBar, MessageBarBody, Option, Spinner, Text} from '@fluentui/react-components';
 import {OrganizationBasicDto} from '../../../../models/models.tsx';
 import {OrganizationGroupBasicDto} from '../../../../../services/organizationApi.ts';
 import {ExternalIdentityResolution} from '../../../../../services/organizationTrust.ts';
-import TrustedOrganizationRecipients
-    from '../../../../exchange-initiation/components/exchange-initiation-recipients-tab/trusted-organization-recipients/TrustedOrganizationRecipients.tsx';
+import TrustedOrganizationRecipients from '../../../../exchange-initiation/components/exchange-initiation-recipients-tab/trusted-organization-recipients/TrustedOrganizationRecipients.tsx';
 import {buildRecipientSelection} from '../../../../exchange-initiation/exchangeInitiationRecipientSelection.ts';
-import {ExchangeInitiationRecipientMode}
-    from '../../../../exchange-initiation/components/exchange-initiation-recipients-tab/exchangeInitiationRecipientMode.ts';
+import {ExchangeInitiationRecipientMode} from '../../../../exchange-initiation/components/exchange-initiation-recipients-tab/exchangeInitiationRecipientMode.ts';
 import {inviteTrustedParticipant} from '../../../../../services/exchangeApi.ts';
 import {AssignableRoleDisplayNames, ExchangeShareRoleName} from '../../../../../services/types/roles.ts';
 import {normalizeApiError} from '../../../../../utils/apiErrorUtils.ts';
@@ -78,14 +67,16 @@ const TrustedParticipantPanel = ({exchangeId, onCancel, onInvited}: TrustedParti
                 className={styles.hint}
             >
                 Verify a member or choose a published group. Access remains inactive until the participant signs in
-                and accepts the Exchange.
+                and accepts or declines the separate access invitation. This does not accept or reject the Exchange.
             </Text>
-            {error && <MessageBar
-                id={"trusted-participant-error"}
-                intent="error"
-            >
-                <MessageBarBody>{error}</MessageBarBody>
-            </MessageBar>}
+            {error && (
+                <MessageBar
+                    id={"trusted-participant-error"}
+                    intent="error"
+                >
+                    <MessageBarBody id={"trusted-participant-error-message"}>{error}</MessageBarBody>
+                </MessageBar>
+            )}
             <TrustedOrganizationRecipients
                 recipientOrg={organization}
                 recipientOrgGroup={group}
@@ -131,7 +122,15 @@ const TrustedParticipantPanel = ({exchangeId, onCancel, onInvited}: TrustedParti
                     disabled={!canSubmit || submitting}
                     onClick={invite}
                 >
-                    {submitting ? <><Spinner size="tiny"/> Inviting</> : 'Invite participant'}
+                    {submitting ? (
+                        <>
+                            <Spinner
+                                id={"trusted-participant-invite-spinner"}
+                                size="tiny"
+                            />
+                            Inviting
+                        </>
+                    ) : 'Invite participant'}
                 </Button>
                 <Button
                     id={"trusted-participant-cancel-btn"}

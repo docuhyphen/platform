@@ -25,10 +25,11 @@ export const triggerEventsArticle = (
 
         <h3>Acceptance Pending <code>(exchange.acceptance_pending)</code></h3>
         <p>
-            Fires after the draft stage when recipient acceptance is required (the
-            org-level "require recipient acceptance" setting is on). The Exchange
-            stays in Draft until this workflow completes. Use this for recipient
-            approval workflows.
+            Fires after the draft stage when recipient acceptance is required. This
+            includes Exchanges covered by the organization setting and every Exchange
+            sent to a verified person or published group in a Trusted Organization.
+            The Exchange stays in Draft until this workflow completes. Use this for
+            recipient approval workflows.
         </p>
         <p><b>Available subject fields:</b></p>
         <ul>

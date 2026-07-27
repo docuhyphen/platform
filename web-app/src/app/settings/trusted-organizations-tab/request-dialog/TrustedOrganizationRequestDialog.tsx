@@ -57,6 +57,7 @@ const TrustedOrganizationRequestDialog = ({open, busy, onDismiss, onSubmit}: Tru
     };
     return (
         <Dialog
+            id={"trusted-organization-request-dialog-root"}
             open={open}
             onOpenChange={(_, data) => !data.open && onDismiss()}
         >

@@ -12,6 +12,10 @@ describe("getAuditEventTypeLabel", () =>
             .toBe("Trusted Organization published groups viewed");
         expect(getAuditEventTypeLabel("organization.trust.identity_resolution.allowed"))
             .toBe("Trusted Organization member verified");
+        expect(getAuditEventTypeLabel("organization.trust.recipient_validation.allowed"))
+            .toBe("Trusted Organization recipient validation allowed");
+        expect(getAuditEventTypeLabel("organization.trust.acceptance.denied"))
+            .toBe("Trusted Organization acceptance denied");
     });
 
     it("humanizes an unmapped key as a title-cased fallback instead of showing raw dots/underscores", () =>

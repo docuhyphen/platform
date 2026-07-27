@@ -24,8 +24,9 @@ export const workflowOverviewArticle = (
             </li>
             <li>
                 <b>Acceptance pending</b> - fires after the draft stage when
-                recipient acceptance is required (the org-level "require recipient acceptance" setting is on). The Exchange stays in Draft until
-                the workflow completes.
+                recipient acceptance is required. This includes the organization
+                setting and Trusted Organization person or group recipients. The
+                Exchange stays in Draft until the workflow completes.
             </li>
             <li>
                 <b>Activated</b> - fires when the Exchange transitions to Active.

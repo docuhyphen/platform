@@ -15,6 +15,7 @@ import com.docuhyphen.app.api.model.entity.Share
 import com.docuhyphen.app.api.model.entity.ShareSource
 import com.docuhyphen.app.api.repository.ExchangeRecipientRepository
 import com.docuhyphen.app.api.service.organization.OrganizationGroupService
+import com.docuhyphen.app.api.service.organization.TrustedRecipientAuditService
 import com.docuhyphen.app.api.service.organization.TrustedRecipientValidationService
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -34,13 +35,18 @@ import java.util.UUID
 class ExchangeRecipientServiceTest
 {
     private val exchangeId = UUID.randomUUID()
+    private val ownerOrganizationId = UUID.randomUUID()
     private val repository = mock<ExchangeRecipientRepository>()
     private val shareService = mock<ShareService>()
     private val organizationGroupService = mock<OrganizationGroupService>()
     private val attestationService = mock<ExchangeRecipientAttestationService>()
     private val validationService = mock<TrustedRecipientValidationService>()
     private val externalEmailAcceptancePolicyService = mock<ExternalEmailAcceptancePolicyService>()
-    private val exchange = Exchange().apply { id = exchangeId }
+    private val trustedRecipientAuditService = mock<TrustedRecipientAuditService>()
+    private val exchange = Exchange().apply {
+        id = exchangeId
+        this.ownerOrganizationId = this@ExchangeRecipientServiceTest.ownerOrganizationId
+    }
     private val service = ExchangeRecipientService(
         repository,
         shareService,
@@ -48,6 +54,7 @@ class ExchangeRecipientServiceTest
         attestationService,
         validationService,
         externalEmailAcceptancePolicyService,
+        trustedRecipientAuditService,
     )
 
     @Test
@@ -239,7 +246,7 @@ class ExchangeRecipientServiceTest
         val recipient = pendingRecipient(share.id).apply {
             selectionType = ExchangeRecipientSelectionType.TRUSTED_GROUP
         }
-        val attestation = ExchangeRecipientAttestation()
+        val attestation = trustedAttestation()
         whenever(repository.findPrimaryForUpdate(exchangeId)).thenReturn(recipient)
         whenever(shareService.getById(share.id)).thenReturn(share)
         whenever(organizationGroupService.isActiveDecisionMaker(groupId, managerId)).thenReturn(true)
@@ -252,6 +259,12 @@ class ExchangeRecipientServiceTest
         assertEquals(ExchangeRecipientAcceptanceStatus.ACCEPTED, updated.acceptanceStatus)
         verify(validationService).validateGroupAttestation(eq(attestation), any())
         verify(attestationService).markAcceptanceVerified(eq(attestation), any())
+        verify(trustedRecipientAuditService).recordAcceptanceAllowed(
+            managerId,
+            ownerOrganizationId,
+            exchangeId,
+            recipient,
+        )
     }
 
     @Test
@@ -284,7 +297,7 @@ class ExchangeRecipientServiceTest
         val recipient = pendingRecipient(share.id).apply {
             selectionType = ExchangeRecipientSelectionType.TRUSTED_GROUP
         }
-        val attestation = ExchangeRecipientAttestation()
+        val attestation = trustedAttestation()
         whenever(repository.findPrimaryForUpdate(exchangeId)).thenReturn(recipient)
         whenever(shareService.getById(share.id)).thenReturn(share)
         whenever(organizationGroupService.isActiveDecisionMaker(groupId, managerId)).thenReturn(true)
@@ -297,6 +310,12 @@ class ExchangeRecipientServiceTest
         }
         verify(attestationService, never()).markAcceptanceVerified(any(), any())
         verify(repository, never()).update(any())
+        verify(trustedRecipientAuditService).recordAcceptanceDenied(
+            managerId,
+            ownerOrganizationId,
+            exchangeId,
+            recipient,
+        )
     }
 
     @Test
@@ -316,6 +335,12 @@ class ExchangeRecipientServiceTest
             service.recordPrimaryDecision(exchange, memberId, accepted = true)
         }
         verify(validationService, never()).validateGroupAttestation(any(), any())
+        verify(trustedRecipientAuditService).recordAcceptanceDenied(
+            memberId,
+            ownerOrganizationId,
+            exchangeId,
+            recipient,
+        )
     }
 
     @Test
@@ -326,7 +351,7 @@ class ExchangeRecipientServiceTest
         val recipient = pendingRecipient(share.id).apply {
             selectionType = ExchangeRecipientSelectionType.TRUSTED_PERSON
         }
-        val attestation = ExchangeRecipientAttestation()
+        val attestation = trustedAttestation()
         whenever(repository.findPrimaryForUpdate(exchangeId)).thenReturn(recipient)
         whenever(shareService.getById(share.id)).thenReturn(share)
         whenever(attestationService.findForRecipient(recipient.id)).thenReturn(attestation)
@@ -338,6 +363,12 @@ class ExchangeRecipientServiceTest
         assertEquals(ExchangeRecipientAcceptanceStatus.ACCEPTED, updated.acceptanceStatus)
         verify(validationService).validatePersonAttestation(eq(attestation), any())
         verify(attestationService).markAcceptanceVerified(eq(attestation), any())
+        verify(trustedRecipientAuditService).recordAcceptanceAllowed(
+            appUserId,
+            ownerOrganizationId,
+            exchangeId,
+            recipient,
+        )
     }
 
     @Test
@@ -348,7 +379,7 @@ class ExchangeRecipientServiceTest
         val recipient = pendingRecipient(share.id).apply {
             selectionType = ExchangeRecipientSelectionType.TRUSTED_PERSON
         }
-        val attestation = ExchangeRecipientAttestation()
+        val attestation = trustedAttestation()
         whenever(repository.findPrimaryForUpdate(exchangeId)).thenReturn(recipient)
         whenever(shareService.getById(share.id)).thenReturn(share)
         whenever(attestationService.findForRecipient(recipient.id)).thenReturn(attestation)
@@ -360,6 +391,12 @@ class ExchangeRecipientServiceTest
         }
         verify(attestationService, never()).markAcceptanceVerified(any(), any())
         verify(repository, never()).update(any())
+        verify(trustedRecipientAuditService).recordAcceptanceDenied(
+            appUserId,
+            ownerOrganizationId,
+            exchangeId,
+            recipient,
+        )
     }
 
     @Test
@@ -527,7 +564,7 @@ class ExchangeRecipientServiceTest
             purpose = ExchangeRecipientPurpose.PARTICIPANT
             selectionType = ExchangeRecipientSelectionType.TRUSTED_PERSON
         }
-        val attestation = ExchangeRecipientAttestation()
+        val attestation = trustedAttestation()
         whenever(repository.findByIdForUpdate(recipient.id)).thenReturn(recipient)
         whenever(shareService.getById(share.id)).thenReturn(share)
         whenever(attestationService.findForRecipient(recipient.id)).thenReturn(attestation)
@@ -541,6 +578,12 @@ class ExchangeRecipientServiceTest
         verify(attestationService).markAcceptanceVerified(eq(attestation), any())
         verify(shareService).activate(share.id)
         verify(shareService, never()).revoke(any(), anyOrNull(), anyOrNull())
+        verify(trustedRecipientAuditService).recordAcceptanceAllowed(
+            appUserId,
+            attestation.callerOrganizationId,
+            exchangeId,
+            recipient,
+        )
     }
 
     @Test
@@ -595,7 +638,7 @@ class ExchangeRecipientServiceTest
             purpose = ExchangeRecipientPurpose.PARTICIPANT
             selectionType = ExchangeRecipientSelectionType.TRUSTED_PERSON
         }
-        val attestation = ExchangeRecipientAttestation()
+        val attestation = trustedAttestation()
         whenever(repository.findByIdForUpdate(recipient.id)).thenReturn(recipient)
         whenever(shareService.getById(share.id)).thenReturn(share)
         whenever(attestationService.findForRecipient(recipient.id)).thenReturn(attestation)
@@ -609,6 +652,12 @@ class ExchangeRecipientServiceTest
         assertEquals(ExchangeRecipientAcceptanceStatus.PENDING, recipient.acceptanceStatus)
         verify(repository, never()).update(any())
         verify(shareService, never()).activate(any())
+        verify(trustedRecipientAuditService).recordAcceptanceDenied(
+            appUserId,
+            attestation.callerOrganizationId,
+            exchangeId,
+            recipient,
+        )
     }
 
     @Test
@@ -645,7 +694,7 @@ class ExchangeRecipientServiceTest
             purpose = ExchangeRecipientPurpose.PARTICIPANT
             selectionType = ExchangeRecipientSelectionType.TRUSTED_PERSON
         }
-        val attestation = ExchangeRecipientAttestation()
+        val attestation = trustedAttestation()
         whenever(repository.findByIdForUpdate(recipient.id)).thenReturn(recipient)
         whenever(shareService.getById(share.id)).thenReturn(share)
         whenever(attestationService.findForRecipient(recipient.id)).thenReturn(attestation)
@@ -676,5 +725,9 @@ class ExchangeRecipientServiceTest
         purpose = ExchangeRecipientPurpose.PRIMARY
         selectionType = ExchangeRecipientSelectionType.REGISTERED_USER
         acceptanceStatus = ExchangeRecipientAcceptanceStatus.PENDING
+    }
+
+    private fun trustedAttestation() = ExchangeRecipientAttestation().apply {
+        callerOrganizationId = ownerOrganizationId
     }
 }

@@ -36,6 +36,7 @@ import {getPermissions, ExchangePermissions} from "./ExchangePermissions.ts";
 import ExchangeDocumentsList from "./components/exchange-document-list/ExchangeDocumentsList.tsx";
 import {realtimeService} from "../../services/NotificationService";
 import {
+    publishExchangeDelete,
     publishRecreateRejectedExchange,
     publishExchangeUpdate,
     exchangeDeletionObservable,
@@ -708,9 +709,11 @@ const Exchanges: React.FC = () =>
         changeSelectedExchangeId(exchange.id);
     };
 
-    const onExchangeRejected = (exchange: ExchangeDetailedDto) =>
+    const onExchangeRejected = (exchangeId: string) =>
     {
-        setExchangeDetails(exchange);
+        publishExchangeDelete(exchangeId);
+        setExchangeDetails(null);
+        changeSelectedExchangeId(null);
     };
 
     const onRecreateRejectedExchange = (exchange: ExchangeDetailedDto) =>

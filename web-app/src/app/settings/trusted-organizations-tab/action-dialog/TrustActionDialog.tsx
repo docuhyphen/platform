@@ -43,6 +43,7 @@ const TrustActionDialog = ({action, partnerName, busy, onDismiss, onConfirm}: Tr
 
     return (
         <Dialog
+            id={"trusted-organization-action-dialog-root"}
             open={true}
             onOpenChange={(_, data) => !data.open && onDismiss()}
         >

@@ -33,7 +33,12 @@ const TrustedRelationshipList = ({relationships, selectedId, onSelect}: TrustedR
                 value={filter}
                 onChange={event => setFilter(event.target.value as OrganizationTrustStatus | "ALL")}
             >
-                <option value={"ALL"}>All statuses</option>
+                <option
+                    id={"trusted-organization-filter-all"}
+                    value={"ALL"}
+                >
+                    All statuses
+                </option>
                 {(["PENDING", "ACTIVE", "REJECTED", "WITHDRAWN", "EXPIRED", "ENDED"] as const).map(status => (
                     <option
                         id={`trusted-organization-filter-${status.toLowerCase()}`}

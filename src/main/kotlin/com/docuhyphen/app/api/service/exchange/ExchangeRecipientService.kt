@@ -1,6 +1,7 @@
 package com.docuhyphen.app.api.service.exchange
 
 import com.docuhyphen.app.api.model.entity.ExchangeRecipient
+import com.docuhyphen.app.api.model.entity.ExchangeRecipientAttestation
 import com.docuhyphen.app.api.model.entity.ExchangeRecipientAcceptanceStatus
 import com.docuhyphen.app.api.model.entity.ExchangeRecipientPurpose
 import com.docuhyphen.app.api.model.entity.ExchangeRecipientSelectionType
@@ -13,6 +14,7 @@ import com.docuhyphen.app.api.model.entity.ShareSource
 import com.docuhyphen.app.api.model.entity.ShareStatus
 import com.docuhyphen.app.api.repository.ExchangeRecipientRepository
 import com.docuhyphen.app.api.service.organization.OrganizationGroupService
+import com.docuhyphen.app.api.service.organization.TrustedRecipientAuditService
 import com.docuhyphen.app.api.service.organization.TrustedRecipientValidationService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
@@ -29,6 +31,7 @@ class ExchangeRecipientService @Inject constructor(
     private val attestationService: ExchangeRecipientAttestationService,
     private val trustedRecipientValidationService: TrustedRecipientValidationService,
     private val externalEmailAcceptancePolicyService: ExternalEmailAcceptancePolicyService,
+    private val trustedRecipientAuditService: TrustedRecipientAuditService,
 )
 {
     fun createBinding(
@@ -137,33 +140,50 @@ class ExchangeRecipientService @Inject constructor(
     {
         val exchangeId = exchange.id
         val recipient = pendingPrimaryForUpdate(exchangeId)
+        if (accepted && recipient.isTrusted())
+        {
+            val ownerOrganizationId = exchange.ownerOrganizationId
+            val (updated, auditOwnerOrganizationId) = try
+            {
+                val share = eligibleDirectShare(recipient, exchangeId)
+                require(canDecide(share, appUserId)) {
+                    "Only the primary recipient may decide this Exchange"
+                }
+                val attestation = attestationService.findForRecipient(recipient.id)
+                    ?: throw IllegalArgumentException("Trusted recipient attestation was not found")
+                validateTrustedAttestation(recipient, attestation)
+                attestationService.markAcceptanceVerified(attestation)
+                recordDecision(recipient, appUserId, accepted = true) to
+                    (ownerOrganizationId ?: attestation.callerOrganizationId)
+            }
+            catch (exception: Exception)
+            {
+                trustedRecipientAuditService.recordAcceptanceDenied(
+                    appUserId,
+                    ownerOrganizationId,
+                    exchangeId,
+                    recipient,
+                )
+                throw exception
+            }
+            trustedRecipientAuditService.recordAcceptanceAllowed(
+                appUserId,
+                auditOwnerOrganizationId,
+                exchangeId,
+                recipient,
+            )
+            return updated
+        }
+
         val share = eligibleDirectShare(recipient, exchangeId)
         if (!canDecide(share, appUserId))
         {
             throw IllegalArgumentException("Only the primary recipient may decide this Exchange")
         }
-        // Accepting a trusted recipient activates access, so it must revalidate current trust,
-        // policy, organization, and subject eligibility and fail closed if any has changed.
-        // Rejecting only declines the invitation and never activates a Share, so it stays permitted
-        // even when activation eligibility has lapsed.
         if (accepted)
         {
             when (recipient.selectionType)
             {
-                ExchangeRecipientSelectionType.TRUSTED_GROUP ->
-                {
-                    val attestation = attestationService.findForRecipient(recipient.id)
-                        ?: throw IllegalArgumentException("Trusted group attestation was not found")
-                    trustedRecipientValidationService.validateGroupAttestation(attestation)
-                    attestationService.markAcceptanceVerified(attestation)
-                }
-                ExchangeRecipientSelectionType.TRUSTED_PERSON ->
-                {
-                    val attestation = attestationService.findForRecipient(recipient.id)
-                        ?: throw IllegalArgumentException("Trusted member attestation was not found")
-                    trustedRecipientValidationService.validatePersonAttestation(attestation)
-                    attestationService.markAcceptanceVerified(attestation)
-                }
                 ExchangeRecipientSelectionType.EXTERNAL_EMAIL ->
                     externalEmailAcceptancePolicyService.validate(exchange, share, appUserId)
                 else -> Unit
@@ -217,36 +237,51 @@ class ExchangeRecipientService @Inject constructor(
             "Trusted participant invitation decision is not pending"
         }
 
+        if (accepted)
+        {
+            var ownerOrganizationId: UUID? = null
+            val updated = try
+            {
+                val attestation = attestationService.findForRecipient(recipient.id)
+                    ?: throw IllegalArgumentException("Trusted participant attestation was not found")
+                ownerOrganizationId = attestation.callerOrganizationId
+                val share = eligibleDirectShare(recipient, exchangeId)
+                require(canDecide(share, appUserId)) {
+                    "Only the invited trusted participant may decide this invitation"
+                }
+                validateTrustedAttestation(recipient, attestation)
+                attestationService.markAcceptanceVerified(attestation)
+                val acceptedRecipient = recordDecision(recipient, appUserId, accepted = true)
+                shareService.activate(share.id)
+                acceptedRecipient
+            }
+            catch (exception: Exception)
+            {
+                trustedRecipientAuditService.recordAcceptanceDenied(
+                    appUserId,
+                    ownerOrganizationId,
+                    exchangeId,
+                    recipient,
+                )
+                throw exception
+            }
+            trustedRecipientAuditService.recordAcceptanceAllowed(
+                appUserId,
+                requireNotNull(ownerOrganizationId),
+                exchangeId,
+                recipient,
+            )
+            return updated
+        }
+
         val share = eligibleDirectShare(recipient, exchangeId)
         if (!canDecide(share, appUserId))
         {
             throw IllegalArgumentException("Only the invited trusted participant may decide this invitation")
         }
 
-        if (accepted)
-        {
-            val attestation = attestationService.findForRecipient(recipient.id)
-                ?: throw IllegalArgumentException("Trusted participant attestation was not found")
-            when (recipient.selectionType)
-            {
-                ExchangeRecipientSelectionType.TRUSTED_PERSON ->
-                    trustedRecipientValidationService.validatePersonAttestation(attestation)
-                ExchangeRecipientSelectionType.TRUSTED_GROUP ->
-                    trustedRecipientValidationService.validateGroupAttestation(attestation)
-                else -> error("Unsupported trusted participant selection")
-            }
-            attestationService.markAcceptanceVerified(attestation)
-        }
-
-        val updated = recordDecision(recipient, appUserId, accepted)
-        if (accepted)
-        {
-            shareService.activate(share.id)
-        }
-        else
-        {
-            shareService.revoke(share.id, appUserId)
-        }
+        val updated = recordDecision(recipient, appUserId, accepted = false)
+        shareService.revoke(share.id, appUserId)
         return updated
     }
 
@@ -290,6 +325,25 @@ class ExchangeRecipientService @Inject constructor(
         recipient.acceptedOrRejectedAt = Timestamp.from(Instant.now())
         return exchangeRecipientRepository.update(recipient)
     }
+
+    private fun validateTrustedAttestation(
+        recipient: ExchangeRecipient,
+        attestation: ExchangeRecipientAttestation,
+    )
+    {
+        when (recipient.selectionType)
+        {
+            ExchangeRecipientSelectionType.TRUSTED_PERSON ->
+                trustedRecipientValidationService.validatePersonAttestation(attestation)
+            ExchangeRecipientSelectionType.TRUSTED_GROUP ->
+                trustedRecipientValidationService.validateGroupAttestation(attestation)
+            else -> error("Trusted recipient selection is required")
+        }
+    }
+
+    private fun ExchangeRecipient.isTrusted(): Boolean =
+        selectionType == ExchangeRecipientSelectionType.TRUSTED_PERSON ||
+            selectionType == ExchangeRecipientSelectionType.TRUSTED_GROUP
 
     private fun validateSelectionPrincipal(
         selectionType: ExchangeRecipientSelectionType,

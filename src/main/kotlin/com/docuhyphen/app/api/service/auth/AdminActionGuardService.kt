@@ -34,8 +34,6 @@ class AdminActionGuardService @Inject constructor(
             "ORG_GROUP_DELETE"                          to "delete a group",
             "PERSONAL_GROUP_DELETE"                     to "delete a personal group",
             "ORG_SHARE_EXTERNAL_CUSTOMER"               to "share with an external customer",
-            "ORG_LINK_CREATE"                           to "create an organization link",
-            "ORG_LINK_DECIDE"                           to "respond to an organization link request",
             "ORG_IDP_CONFIG_CREATE"                     to "add an identity provider",
             "ORG_IDP_CONFIG_UPDATE"                     to "update an identity provider",
             "ORG_IDP_CONFIG_DELETE"                     to "remove an identity provider",

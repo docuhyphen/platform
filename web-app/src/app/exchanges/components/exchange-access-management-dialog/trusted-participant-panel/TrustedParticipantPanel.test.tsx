@@ -91,6 +91,8 @@ describe('TrustedParticipantPanel', () =>
             onInvited={vi.fn()}
         />);
 
+        expect(screen.getByText(/separate access invitation/i)).toBeTruthy();
+        expect(screen.getByText(/does not accept or reject the Exchange/i)).toBeTruthy();
         expect((screen.getByRole('button', {name: 'Invite participant'}) as HTMLButtonElement).disabled).toBe(true);
         expect(mocks.invite).not.toHaveBeenCalled();
     });

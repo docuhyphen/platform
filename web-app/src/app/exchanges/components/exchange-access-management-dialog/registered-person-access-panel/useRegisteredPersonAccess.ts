@@ -7,6 +7,7 @@ import {
     constraintsFromTags,
     isConstrainedRole,
 } from './registeredPersonConstraints.ts';
+import {normalizeApiError} from '../../../../../utils/apiErrorUtils.ts';
 
 export const useRegisteredPersonAccess = (exchangeId: string, onAdded: () => void) =>
 {
@@ -63,7 +64,10 @@ export const useRegisteredPersonAccess = (exchangeId: string, onAdded: () => voi
         }
         catch (caught: unknown)
         {
-            setError(caught instanceof Error ? caught.message : String(caught));
+            setError(normalizeApiError(
+                caught,
+                'Could not add this person. Please try again.',
+            ).message);
         }
         finally
         {

@@ -27,8 +27,8 @@ export const workflowOrgSettingsArticle = (
                 on creation. The <b>Activated</b> <code>(exchange.activated)</code> event fires and
                 the Exchange bypasses the acceptance stage. Use this for internal
                 or automated Exchanges where recipient sign-off is not needed. An Exchange
-                sent to a published group in a Trusted Organization is an exception and always
-                requires group acceptance.
+                sent to a verified person or published group in a Trusted Organization is an
+                exception and always requires recipient acceptance.
             </li>
         </ul>
         <p>
@@ -77,8 +77,8 @@ export const workflowOrgSettingsArticle = (
                 When the setting is <b>off</b>, the{" "}
                 <b>Acceptance Pending</b> <code>(exchange.acceptance_pending)</code> trigger never fires and
                 acceptance workflow definitions for that trigger will not run for ordinary
-                recipients. Trusted Organization group recipients still require a direct group
-                acceptance decision.
+                recipients. Trusted Organization person and group recipients still require a
+                direct recipient acceptance decision.
             </li>
         </ul>
 

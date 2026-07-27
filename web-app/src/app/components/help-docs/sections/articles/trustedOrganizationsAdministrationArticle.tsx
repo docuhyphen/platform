@@ -134,7 +134,6 @@ export const trustedOrganizationsAdministrationArticle = (
             still removes inherited access. When every suspension is cleared, currently eligible group
             members are reconciled. Ending trust remains terminal and blocks future materialization.
         </p>
-
         <h3>Audit and notifications</h3>
         <p>
             Requests, decisions, policy changes, suspensions, resumptions, and endings are recorded in
@@ -143,7 +142,8 @@ export const trustedOrganizationsAdministrationArticle = (
         </p>
         <p>
             Exact-email verification records allowed, denied, expired, used, and blocked-reuse events
-            without storing the searched email in the audit event.
+            without storing the searched email in the audit event. Trusted recipient validation and
+            acceptance also record allowed and denied outcomes without storing resolution evidence.
         </p>
     </>
 );

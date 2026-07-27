@@ -93,7 +93,7 @@ class ExchangeNotificationDeliveryServiceTest
         registeredSynchronization().afterCompletion(Status.STATUS_COMMITTED)
 
         verify(emailService).sendEmail("recipient@example.test", "Subject", "Body", true)
-        verify(inAppNotificationService).publishIfEnabled(
+        verify(inAppNotificationService).publishAfterCommitIfEnabled(
             appUserId,
             UserNotificationPreference.EXCHANGE_INITIATED,
             "exchange.recipient_invitation",
@@ -128,7 +128,7 @@ class ExchangeNotificationDeliveryServiceTest
         registeredSynchronization().afterCompletion(Status.STATUS_COMMITTED)
 
         verify(emailService, never()).sendEmail(any(), any(), any(), any())
-        verify(inAppNotificationService).publishIfEnabled(any(), any(), any(), any(), any(), any())
+        verify(inAppNotificationService).publishAfterCommitIfEnabled(any(), any(), any(), any(), any(), any())
         verify(realtimeEventService).broadcastToUser(eq(appUserId), any(), isNull())
     }
 

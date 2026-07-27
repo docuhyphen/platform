@@ -184,6 +184,27 @@ class ExchangeAccessManagementService @Inject constructor(
         require(!(resolved.principalKind == PrincipalKind.USER && resolved.principalId == caller.id)) {
             "You cannot add yourself to an Exchange you own"
         }
+        val previousDirectShare = shareService.findDirectForPrincipalOnResource(
+            resolved.principalKind,
+            resolved.principalId,
+            ResourceType.EXCHANGE,
+            exchangeId,
+        )
+        if (previousDirectShare != null)
+        {
+            require(previousDirectShare.status == ShareStatus.REVOKED) {
+                "This trusted recipient already has active or pending Exchange access"
+            }
+            exchangeRecipientService.findByDirectShareId(previousDirectShare.id)?.let { previousRecipient ->
+                require(
+                    previousRecipient.exchangeId == exchangeId &&
+                        previousRecipient.purpose == ExchangeRecipientPurpose.PARTICIPANT,
+                ) {
+                    "This trusted recipient has an incompatible Exchange binding"
+                }
+                exchangeRecipientService.deleteBinding(previousRecipient)
+            }
+        }
 
         val normalizedConstraints = ShareConstraints.normalizeForStorage(constraintsJson)
         val participantShare = shareService.grant(

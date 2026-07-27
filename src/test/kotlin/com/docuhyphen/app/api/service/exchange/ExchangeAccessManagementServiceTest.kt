@@ -599,6 +599,83 @@ class ExchangeAccessManagementServiceTest
     }
 
     @Test
+    fun `reinviting a revoked trusted participant replaces the old binding and attestation`()
+    {
+        grantOwnerAuthorization()
+        val session = draftExchange()
+        whenever(exchangeRepository.findById(exchangeId)).thenReturn(session)
+        val resolvedUser = mock<AppUser>()
+        val resolvedUserId = UUID.randomUUID()
+        val targetOrganizationId = UUID.randomUUID()
+        whenever(resolvedUser.id).thenReturn(resolvedUserId)
+        val resolutionEntity = mock<ExternalIdentityResolution>()
+        val resolutionId = UUID.randomUUID()
+        whenever(resolutionEntity.id).thenReturn(resolutionId)
+        whenever(resolutionEntity.targetOrganizationId).thenReturn(targetOrganizationId)
+        val prepared = PreparedPersonResolution(resolutionEntity, resolvedUser, mock(), mock())
+        whenever(selectionResolver.resolve(any(), any(), eq(activeOrganizationId))).thenReturn(
+            ResolvedExchangeRecipientSelection(
+                recipientType = ExchangeRecipientType.APP_USER,
+                selectionType = ExchangeRecipientSelectionType.TRUSTED_PERSON,
+                appUser = resolvedUser,
+                targetOrganizationId = targetOrganizationId,
+                preparedPersonResolution = prepared,
+            ),
+        )
+        val revokedShare = directShare(PrincipalKind.USER, resolvedUserId).apply {
+            status = ShareStatus.REVOKED
+        }
+        val previousRecipient = ExchangeRecipient().apply {
+            exchangeId = this@ExchangeAccessManagementServiceTest.exchangeId
+            directShareId = revokedShare.id
+            purpose = ExchangeRecipientPurpose.PARTICIPANT
+            selectionType = ExchangeRecipientSelectionType.TRUSTED_PERSON
+            acceptanceStatus = ExchangeRecipientAcceptanceStatus.PENDING
+        }
+        whenever(
+            shareService.findDirectForPrincipalOnResource(
+                PrincipalKind.USER,
+                resolvedUserId,
+                ResourceType.EXCHANGE,
+                exchangeId,
+            ),
+        ).thenReturn(revokedShare)
+        whenever(exchangeRecipientService.findByDirectShareId(revokedShare.id)).thenReturn(previousRecipient)
+        whenever(
+            shareService.grant(
+                any(), any(), any(), any(), any(), anyOrNull(), any(), anyOrNull(), anyOrNull(), any(), anyOrNull(),
+            ),
+        ).thenReturn(revokedShare)
+        val replacementRecipient = ExchangeRecipient().apply {
+            exchangeId = this@ExchangeAccessManagementServiceTest.exchangeId
+            directShareId = revokedShare.id
+            purpose = ExchangeRecipientPurpose.PARTICIPANT
+            selectionType = ExchangeRecipientSelectionType.TRUSTED_PERSON
+            acceptanceStatus = ExchangeRecipientAcceptanceStatus.PENDING
+        }
+        whenever(exchangeRecipientService.createBinding(any(), any(), any(), any(), anyOrNull(), any()))
+            .thenReturn(replacementRecipient)
+        whenever(shareQueryService.getSessionAccessView(exchangeId)).thenReturn(emptyList())
+
+        service.inviteTrustedParticipant(
+            exchangeId,
+            TrustedPersonRecipientSelectionRequest(resolutionId.toString()),
+            ExchangeShareRoleName.VIEWER,
+        )
+
+        verify(exchangeRecipientService).deleteBinding(previousRecipient)
+        verify(exchangeRecipientService).createBinding(
+            eq(exchangeId),
+            eq(revokedShare),
+            eq(ExchangeRecipientPurpose.PARTICIPANT),
+            eq(ExchangeRecipientSelectionType.TRUSTED_PERSON),
+            eq(targetOrganizationId),
+            eq(ExchangeRecipientAcceptanceStatus.PENDING),
+        )
+        verify(attestationService).createPersonAttestation(eq(replacementRecipient), eq(prepared), any())
+    }
+
+    @Test
     fun `active organization mismatch denies a trusted participant before resolution or writes`()
     {
         val ownerOrganizationId = UUID.randomUUID()

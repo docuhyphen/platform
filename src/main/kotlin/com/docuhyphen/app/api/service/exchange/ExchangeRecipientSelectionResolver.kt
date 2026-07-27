@@ -22,6 +22,7 @@ import com.docuhyphen.app.api.service.organization.ExternalIdentityResolutionSer
 import com.docuhyphen.app.api.service.organization.OrganizationExchangePolicyService
 import com.docuhyphen.app.api.service.organization.OrganizationGroupService
 import com.docuhyphen.app.api.service.organization.TrustedGroupValidation
+import com.docuhyphen.app.api.service.organization.TrustedRecipientAuditService
 import com.docuhyphen.app.api.service.organization.TrustedRecipientValidationService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
@@ -51,6 +52,7 @@ class ExchangeRecipientSelectionResolver @Inject constructor(
     private val organizationExchangePolicyService: OrganizationExchangePolicyService,
     private val trustedRecipientValidationService: TrustedRecipientValidationService,
     private val externalIdentityResolutionService: ExternalIdentityResolutionService,
+    private val trustedRecipientAuditService: TrustedRecipientAuditService,
 )
 {
     fun resolve(
@@ -63,7 +65,7 @@ class ExchangeRecipientSelectionResolver @Inject constructor(
         is ExternalEmailRecipientSelectionRequest -> resolveExternalEmail(selection, initiator, activeOrganizationId)
         is InternalGroupRecipientSelectionRequest -> resolveInternalGroup(selection, initiator, activeOrganizationId)
         is PersonalGroupRecipientSelectionRequest -> resolvePersonalGroup(selection, initiator, activeOrganizationId)
-        is TrustedGroupRecipientSelectionRequest -> resolveTrustedGroup(selection, activeOrganizationId)
+        is TrustedGroupRecipientSelectionRequest -> resolveTrustedGroup(selection, initiator, activeOrganizationId)
         is TrustedPersonRecipientSelectionRequest -> resolveTrustedPerson(selection, initiator, activeOrganizationId)
     }
 
@@ -152,17 +154,43 @@ class ExchangeRecipientSelectionResolver @Inject constructor(
 
     private fun resolveTrustedGroup(
         selection: TrustedGroupRecipientSelectionRequest,
+        initiator: AppUser,
         activeOrganizationId: UUID?,
     ): ResolvedExchangeRecipientSelection
     {
-        val callerOrganizationId = activeOrganizationId
-            ?: throw IllegalArgumentException("An active organization is required for a trusted group")
-        val targetOrganizationId = parseId(selection.organizationId, "Trusted Organization")
-        val groupId = parseId(selection.groupId, "Trusted group")
-        val validation = trustedRecipientValidationService.validateGroupSelection(
-            callerOrganizationId,
-            targetOrganizationId,
-            groupId,
+        var targetOrganizationId: UUID? = null
+        var groupId: UUID? = null
+        val validation = try
+        {
+            val callerOrganizationId = activeOrganizationId
+                ?: throw IllegalArgumentException("An active organization is required for a trusted group")
+            val parsedTargetOrganizationId = parseId(selection.organizationId, "Trusted Organization")
+            val parsedGroupId = parseId(selection.groupId, "Trusted group")
+            targetOrganizationId = parsedTargetOrganizationId
+            groupId = parsedGroupId
+            trustedRecipientValidationService.validateGroupSelection(
+                callerOrganizationId,
+                parsedTargetOrganizationId,
+                parsedGroupId,
+            )
+        }
+        catch (exception: Exception)
+        {
+            trustedRecipientAuditService.recordValidationDenied(
+                initiator.id,
+                activeOrganizationId,
+                targetOrganizationId,
+                ExchangeRecipientSelectionType.TRUSTED_GROUP,
+                groupId,
+            )
+            throw exception
+        }
+        trustedRecipientAuditService.recordValidationAllowed(
+            initiator.id,
+            requireNotNull(activeOrganizationId),
+            validation.targetOrganization.id,
+            ExchangeRecipientSelectionType.TRUSTED_GROUP,
+            validation.group.id,
         )
         return ResolvedExchangeRecipientSelection(
             ExchangeRecipientType.GROUP,
@@ -179,15 +207,37 @@ class ExchangeRecipientSelectionResolver @Inject constructor(
         activeOrganizationId: UUID?,
     ): ResolvedExchangeRecipientSelection
     {
-        val callerOrganizationId = activeOrganizationId
-            ?: throw IllegalArgumentException("An active organization is required for a trusted person")
-        val resolutionId = parseId(selection.resolutionId, "Trusted member verification")
-        val prepared = externalIdentityResolutionService.prepareForInitiation(
-            resolutionId,
+        val prepared = try
+        {
+            val callerOrganizationId = activeOrganizationId
+                ?: throw IllegalArgumentException("An active organization is required for a trusted person")
+            val resolutionId = parseId(selection.resolutionId, "Trusted member verification")
+            externalIdentityResolutionService.prepareForInitiation(
+                resolutionId,
+                initiator.id,
+                callerOrganizationId,
+            ).also {
+                require(it.appUser.id != initiator.id) { "Recipient and Initiator cannot be the same" }
+            }
+        }
+        catch (exception: Exception)
+        {
+            trustedRecipientAuditService.recordValidationDenied(
+                initiator.id,
+                activeOrganizationId,
+                targetOrganizationId = null,
+                ExchangeRecipientSelectionType.TRUSTED_PERSON,
+                subjectId = null,
+            )
+            throw exception
+        }
+        trustedRecipientAuditService.recordValidationAllowed(
             initiator.id,
-            callerOrganizationId,
+            requireNotNull(activeOrganizationId),
+            prepared.resolution.targetOrganizationId,
+            ExchangeRecipientSelectionType.TRUSTED_PERSON,
+            prepared.appUser.id,
         )
-        require(prepared.appUser.id != initiator.id) { "Recipient and Initiator cannot be the same" }
         return ResolvedExchangeRecipientSelection(
             ExchangeRecipientType.APP_USER,
             ExchangeRecipientSelectionType.TRUSTED_PERSON,

@@ -1,42 +1,21 @@
-import React, {useState} from "react";
-import {
-    Button,
-    Card,
-    Checkbox,
-    Divider,
-    Field,
-    MessageBar,
-    MessageBarBody,
-    Persona,
-    Spinner,
-    Text,
-    Textarea
-} from "@fluentui/react-components";
-import {
-    ChatRegular,
-    CircleFilled,
-    DocumentRegular,
-    FolderRegular,
-    InfoRegular,
-    PersonRegular
-} from "@fluentui/react-icons";
-import {ExchangeDetailedDto, ExchangeStatus, UpdateExchangeRequest} from "../../../models/models.tsx";
-import {useGlobalStyles} from "../../../../GlobalStyles.tsx";
-import {fetchSignedInUserAppUserExchange, updateExchange} from "../../../../services/exchangeApi.ts";
-import {useExchangeAcceptanceDialogStyles} from "./ExchangeAcceptanceDialogStyles.tsx";
-import {publishExchangeUpdate} from "../../../observable/exchangeObservables.ts";
-import {normalizeApiError} from "../../../../utils/apiErrorUtils.ts";
+import React from 'react';
+import {Card, Divider, Text} from '@fluentui/react-components';
+import {ExchangeDetailedDto} from '../../../models/models.tsx';
+import {useExchangeAcceptanceDialogStyles} from './ExchangeAcceptanceDialogStyles.tsx';
+import ExchangeAcceptanceRequestSummary from './ExchangeAcceptanceRequestSummary.tsx';
+import ExchangeAcceptanceNavigationNotice from './ExchangeAcceptanceNavigationNotice.tsx';
+import ExchangeAcceptanceDecisionControls from './ExchangeAcceptanceDecisionControls.tsx';
+import {useExchangeAcceptanceDecision} from './useExchangeAcceptanceDecision.ts';
 
 interface ExchangeAcceptanceDialogProps
 {
     exchange: ExchangeDetailedDto | null;
-    // Controls whether "Decide Later" is shown; dialog remains blocking either way.
     isSingleExchange: boolean;
     canDecideLater: boolean;
     activeCount: number;
     archiveCount: number;
     onAccepted: (exchange: ExchangeDetailedDto) => void;
-    onRejected: (exchange: ExchangeDetailedDto) => void;
+    onRejected: (exchangeId: string) => void;
     onDismiss: () => void;
     onOpenActive: () => void;
     onOpenArchive: () => void;
@@ -56,278 +35,56 @@ const ExchangeAcceptanceDialog: React.FC<ExchangeAcceptanceDialogProps> = (
         onOpenArchive,
     }) =>
 {
-    const [updatingExchange, setUpdatingExchange] = React.useState(false);
-    const [rejectingExchange, setRejectingExchange] = React.useState(false);
-    const [rejectReason, setRejectReason] = React.useState<string>('');
-    const [dialogErrorMessage, setDialogErrorMessage] = useState<string | null>(null);
-    const globalStyles = useGlobalStyles();
     const styles = useExchangeAcceptanceDialogStyles();
+    const decision = useExchangeAcceptanceDecision(exchange, onAccepted, onRejected);
 
-    if (!exchange) return null;
-
-    const onAcceptOrReject = async (status: ExchangeStatus) =>
+    if (!exchange)
     {
-        if (updatingExchange) return;
-        setUpdatingExchange(true);
-        try
-        {
-            const request: UpdateExchangeRequest = {status};
-            if (rejectingExchange) request.rejectionReason = rejectReason;
-
-            await updateExchange(exchange.id, request);
-            const updatedExchange = await fetchSignedInUserAppUserExchange(exchange.id) as ExchangeDetailedDto;
-            publishExchangeUpdate(updatedExchange);
-
-            if (rejectingExchange)
-            {
-                setRejectReason('');
-                onRejected(updatedExchange);
-            }
-            else
-            {
-                onAccepted(updatedExchange);
-            }
-        }
-        catch (error)
-        {
-            setDialogErrorMessage(normalizeApiError(error, "Error updating exchange").message);
-        }
-        finally
-        {
-            setUpdatingExchange(false);
-        }
-    };
-
-    const cancelDecline = () =>
-    {
-        setRejectingExchange(false);
-        setRejectReason('');
-    };
-
-    const initiatorName = [exchange.initiator?.person?.firstName, exchange.initiator?.person?.lastName]
-        .filter(Boolean).join(' ') || exchange.initiator?.email || '';
-    const initiatorEmail = exchange.initiator?.email || 'Not provided';
-    const initiatorOrg = exchange.initiator?.organization?.name;
-
-    const requestedDocuments = (exchange.documents || []).filter(document => !document.uploadDate);
-    const sharedDocuments = (exchange.documents || []).filter(document => !!document.uploadDate);
+        return null;
+    }
 
     return (
-        <div className={styles.overlay}>
-            <Card className={styles.overlayCard}>
-
-                <Text size={500} weight="semibold">Exchange Request</Text>
-
+        <div
+            id={'exchange-acceptance-overlay'}
+            className={styles.overlay}
+        >
+            <Card
+                id={'exchange-acceptance-card'}
+                className={styles.overlayCard}
+            >
+                <Text
+                    id={'exchange-acceptance-title'}
+                    size={500}
+                    weight={'semibold'}
+                >
+                    Exchange Request
+                </Text>
                 <Divider/>
-
-                {/* Requester */}
-                <div className={styles.section}>
-                    <div className={styles.sectionLabel}>
-                        <PersonRegular className={styles.sectionIcon}/>
-                        <Text size={200} weight="semibold" className={styles.labelText}>Requester</Text>
-                    </div>
-                    <div className={styles.sectionContent}>
-                        <Persona
-                            name={initiatorName}
-                            secondaryText={initiatorEmail}
-                            tertiaryText={initiatorOrg}
-                            size="medium"
-                        />
-                        <Text size={200} className={styles.requesterCaption}>wants to exchange documents with you.</Text>
-                    </div>
-                </div>
-
-                <Divider/>
-
-                {/* Exchange */}
-                <div className={styles.section}>
-                    <div className={styles.sectionLabel}>
-                        <FolderRegular className={styles.sectionIcon}/>
-                        <Text size={200} weight="semibold" className={styles.labelText}>Exchange</Text>
-                    </div>
-                    <div className={styles.sectionContent}>
-                        <Text size={300}>{exchange.name}</Text>
-                    </div>
-                </div>
-
-                {/* Message */}
-                {exchange.initialShareMessage && (
-                    <>
-                        <Divider/>
-                        <div className={styles.section}>
-                            <div className={styles.sectionLabel}>
-                                <ChatRegular className={styles.sectionIcon}/>
-                                <Text size={200} weight="semibold" className={styles.labelText}>Message</Text>
-                            </div>
-                            <div className={styles.sectionContent}>
-                                <div className={styles.messageBox}>
-                                    <Text size={200}>{exchange.initialShareMessage}</Text>
-                                </div>
-                            </div>
-                        </div>
-                    </>
-                )}
-
-                <Divider/>
-
-                <div className={styles.section}>
-                    <div className={styles.sectionLabel}>
-                        <DocumentRegular className={styles.sectionIcon}/>
-                        <Text size={200} weight="semibold" className={styles.labelText}>
-                            {requestedDocuments.length > 0 ? ` ${requestedDocuments.length}` : ''} Documents
-                        </Text>
-                    </div>
-                    <div className={styles.sectionContent}>
-                        {requestedDocuments.length > 0 ? (
-                            <div className={styles.documentList}>
-                                {requestedDocuments.slice(0, 5).map(document => (
-                                    <div key={document.id} className={styles.documentItem}>
-                                        <CircleFilled className={styles.documentIcon}/>
-                                        <Text size={200}>{document.title}</Text>
-                                    </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <Text size={200} className={styles.emptyText}>No document details provided yet.</Text>
-                        )}
-
-                        {sharedDocuments.length > 0 && (
-                            <>
-                                <Text size={200} weight="semibold" className={styles.alreadySharedLabel}>
-                                    Already shared ({sharedDocuments.length})
-                                </Text>
-                                <div className={styles.documentList}>
-                                    {sharedDocuments.slice(0, 5).map(document => (
-                                        <div key={document.id} className={styles.documentItem}>
-                                            <CircleFilled className={styles.documentIcon}/>
-                                            <Text size={200}>{document.title}</Text>
-                                        </div>
-                                    ))}
-                                </div>
-                            </>
-                        )}
-                    </div>
-                </div>
-
-                {/* InfoBar: last pending request */}
-                {!rejectingExchange && !canDecideLater && (
-                    <>
-                        <MessageBar intent="info" icon={<InfoRegular/>}>
-                            <MessageBarBody>
-                                <Text size={200}>This is your last pending request.</Text>
-                            </MessageBarBody>
-                        </MessageBar>
-                        {!isSingleExchange && (
-                            <div className={styles.navigationActions}>
-                                <Button
-                                    id={"acceptance-open-active-btn"}
-                                    appearance="secondary"
-                                    shape="circular"
-                                    disabled={updatingExchange || activeCount === 0}
-                                    onClick={onOpenActive}>
-                                    Open Active ({activeCount})
-                                </Button>
-                                <Button
-                                    id={"acceptance-open-archive-btn"}
-                                    appearance="secondary"
-                                    shape="circular"
-                                    disabled={updatingExchange || archiveCount === 0}
-                                    onClick={onOpenArchive}>
-                                    Open Archive ({archiveCount})
-                                </Button>
-                            </div>
-                        )}
-                    </>
-                )}
-
-                {/* Decline reason */}
-                {rejectingExchange && (
-                    <div className={styles.declineFieldContainer}>
-                        <Field>
-                            <Textarea
-                                id={"textarea-acceptance-reject-reason"}
-                                placeholder="Reason for declining (optional)"
-                                value={rejectReason}
-                                onChange={e => setRejectReason(e.target.value)}
-                                maxLength={100}
-                            />
-                        </Field>
-                        <Checkbox id={"checkbox-acceptance-report"} label="Report"/>
-                    </div>
-                )}
-
-                {dialogErrorMessage && (
-                    <MessageBar intent="error">
-                        <MessageBarBody>
-                            <Text size={200}>{dialogErrorMessage}</Text>
-                        </MessageBarBody>
-                    </MessageBar>
-                )}
-
-                <Divider/>
-
-                {/* Actions */}
-                <div className={styles.actions}>
-                    {!isSingleExchange && !rejectingExchange && canDecideLater && (
-                        <div className={styles.tertiaryActions}>
-                            <Button
-                                id={"acceptance-decide-later-btn"}
-                                appearance="subtle"
-                                shape="circular"
-                                disabled={updatingExchange}
-                                onClick={onDismiss}>
-                                Decide Later
-                            </Button>
-                        </div>
-                    )}
-
-                    <div className={styles.primaryActions}>
-                        {rejectingExchange ? (
-                            <>
-                                <Button
-                                    id={"acceptance-confirm-decline-btn"}
-                                    appearance="primary"
-                                    className={globalStyles.buttonWithLoading}
-                                    shape="circular"
-                                    disabled={updatingExchange}
-                                    onClick={() => onAcceptOrReject(ExchangeStatus.REJECTED)}>
-                                    {updatingExchange && <Spinner size="tiny"/>}
-                                    Confirm Decline
-                                </Button>
-                                <Button
-                                    id={"acceptance-cancel-decline-btn"}
-                                    appearance="secondary"
-                                    shape="circular"
-                                    disabled={updatingExchange}
-                                    onClick={cancelDecline}>
-                                    Cancel
-                                </Button>
-                            </>
-                        ) : (
-                            <>
-                                <Button
-                                    id={"acceptance-accept-btn"}
-                                    appearance="primary"
-                                    disabled={updatingExchange}
-                                    className={globalStyles.buttonWithLoading}
-                                    shape="circular"
-                                    onClick={() => onAcceptOrReject(ExchangeStatus.ACCEPTED_STARTED)}>
-                                    {updatingExchange && <Spinner size="tiny"/>}
-                                    Accept
-                                </Button>
-                                <Button
-                                    id={"acceptance-decline-btn"}
-                                    appearance="secondary"
-                                    shape="circular"
-                                    disabled={updatingExchange}
-                                    onClick={() => setRejectingExchange(true)}>
-                                    Decline
-                                </Button>
-                            </>
-                        )}
-                    </div>
-                </div>
-
+                <ExchangeAcceptanceRequestSummary exchange={exchange}/>
+                <ExchangeAcceptanceNavigationNotice
+                    isSingleExchange={isSingleExchange}
+                    canDecideLater={canDecideLater}
+                    rejectingExchange={decision.rejectingExchange}
+                    updatingExchange={decision.updatingExchange}
+                    activeCount={activeCount}
+                    archiveCount={archiveCount}
+                    onOpenActive={onOpenActive}
+                    onOpenArchive={onOpenArchive}
+                />
+                <ExchangeAcceptanceDecisionControls
+                    isSingleExchange={isSingleExchange}
+                    canDecideLater={canDecideLater}
+                    updatingExchange={decision.updatingExchange}
+                    rejectingExchange={decision.rejectingExchange}
+                    rejectReason={decision.rejectReason}
+                    dialogErrorMessage={decision.dialogErrorMessage}
+                    onRejectReasonChange={decision.setRejectReason}
+                    onBeginDecline={decision.beginDecline}
+                    onCancelDecline={decision.cancelDecline}
+                    onAccept={decision.accept}
+                    onReject={decision.reject}
+                    onDismiss={onDismiss}
+                />
             </Card>
         </div>
     );

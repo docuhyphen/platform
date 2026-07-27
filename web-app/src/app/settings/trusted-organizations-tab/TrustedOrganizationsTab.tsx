@@ -1,4 +1,4 @@
-import {Button, MessageBar, MessageBarBody, Spinner, Text, Title2} from "@fluentui/react-components";
+import {Button, MessageBar, MessageBarBody, Spinner, Text} from "@fluentui/react-components";
 import {useAuth} from "../../../context/AuthContext.tsx";
 import {Capability} from "../../models/models.tsx";
 import TrustActionDialog from "./action-dialog/TrustActionDialog.tsx";
@@ -8,7 +8,7 @@ import TrustedOrganizationRequestDialog from "./request-dialog/TrustedOrganizati
 import {useTrustedOrganizationsTabStyles} from "./TrustedOrganizationsTabStyles.tsx";
 import {useTrustedOrganizations} from "./useTrustedOrganizations.ts";
 import {useTrustedOrganizationDialogs} from "./useTrustedOrganizationDialogs.ts";
-import {OrgPairingIcon} from "../../components/IconBundles.tsx";
+import {TrustedOrganizationsIcon} from "../../components/IconBundles.tsx";
 
 const TrustedOrganizationsTab = () =>
 {
@@ -36,12 +36,12 @@ const TrustedOrganizationsTab = () =>
                 id={"trusted-organizations-header"}
                 className={styles.header}
             >
-                <div></div>
+                <div id={"trusted-organizations-header-spacer"}></div>
                 {hasCapability(Capability.ORG_TRUST_REQUEST) && (
                     <Button
                         id={"trusted-organizations-new-request"}
                         shape={"circular"}
-                        icon={<OrgPairingIcon/>}
+                        icon={<TrustedOrganizationsIcon/>}
                         appearance={"subtle"}
                         onClick={() => dialogs.setRequestOpen(true)}
                     >

@@ -69,6 +69,35 @@ class InAppNotificationService @Inject constructor(
             return null
         }
 
+        return publish(appUserId, type, title, message, data)
+    }
+
+    @Transactional(Transactional.TxType.REQUIRES_NEW)
+    fun publishAfterCommitIfEnabled(
+        appUserId: UUID,
+        preference: UserNotificationPreference,
+        type: String,
+        title: String,
+        message: String,
+        data: Map<String, String>,
+    ): NotificationDto?
+    {
+        if (!preferenceService.isEnabled(appUserId, preference, NotificationChannelType.IN_APP))
+        {
+            return null
+        }
+
+        return publish(appUserId, type, title, message, data)
+    }
+
+    private fun publish(
+        appUserId: UUID,
+        type: String,
+        title: String,
+        message: String,
+        data: Map<String, String>,
+    ): NotificationDto
+    {
         val notification = InAppNotification().apply {
             this.appUserId = appUserId
             eventType = type
