@@ -1,6 +1,6 @@
 import {Button, Tab, TabList, Text, Title2} from "@fluentui/react-components";
 import {Open20Regular} from "@fluentui/react-icons";
-import {useEffect, useState} from "react";
+import {useEffect, useRef, useState} from "react";
 import {industryExperiences} from "./featureContent.ts";
 import {IndustryProductDemo} from "./industry-product-demo/IndustryProductDemo.tsx";
 import {useIndustryExperienceStyles} from "./IndustryExperienceStyles.tsx";
@@ -17,9 +17,13 @@ function getInitialIndustrySlug(initialIndustrySlug?: string): string
         : industryExperiences[0].slug;
 }
 
+const MOBILE_MEDIA_QUERY = "(max-width: 48em)";
+
 export function IndustryExperience({initialIndustrySlug}: IndustryExperienceProps)
 {
     const styles = useIndustryExperienceStyles();
+    const tabViewportRef = useRef<HTMLDivElement>(null);
+    const tabRefs = useRef<Record<string, HTMLElement | null>>({});
     const [activeIndustrySlug, setActiveIndustrySlug] = useState(() => getInitialIndustrySlug(initialIndustrySlug));
     const activeIndustry = industryExperiences.find((industry) => industry.slug === activeIndustrySlug)
         ?? industryExperiences[0];
@@ -28,6 +32,21 @@ export function IndustryExperience({initialIndustrySlug}: IndustryExperienceProp
     {
         setActiveIndustrySlug(getInitialIndustrySlug(initialIndustrySlug));
     }, [initialIndustrySlug]);
+
+    useEffect(() =>
+    {
+        if (!window.matchMedia(MOBILE_MEDIA_QUERY).matches) return;
+
+        const tabViewport = tabViewportRef.current;
+        const activeTab = tabRefs.current[activeIndustrySlug];
+        if (!tabViewport || !activeTab) return;
+
+        const targetScrollLeft = activeTab.offsetLeft - ((tabViewport.clientWidth - activeTab.clientWidth) / 2);
+        tabViewport.scrollTo({
+            left: Math.max(0, targetScrollLeft),
+            behavior: "smooth",
+        });
+    }, [activeIndustrySlug]);
 
     return (
         <section
@@ -57,6 +76,7 @@ export function IndustryExperience({initialIndustrySlug}: IndustryExperienceProp
             <div
                 id="industry-product-experience-tab-viewport"
                 className={styles.tabViewport}
+                ref={tabViewportRef}
             >
                 <TabList
                     id="industry-product-experience-tabs"
@@ -72,6 +92,10 @@ export function IndustryExperience({initialIndustrySlug}: IndustryExperienceProp
                             id={`industry-product-experience-tab-${industry.slug}`}
                             key={industry.slug}
                             value={industry.slug}
+                            ref={(element) =>
+                            {
+                                tabRefs.current[industry.slug] = element;
+                            }}
                         >
                             {industry.title}
                         </Tab>

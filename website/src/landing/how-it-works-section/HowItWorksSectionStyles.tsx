@@ -21,16 +21,6 @@ const connectorReveal = {
     to: {transform: "scaleX(1)"},
 };
 
-const progressFill = {
-    from: {width: "0%"},
-    to: {width: "100%"},
-};
-
-const completionDotReveal = {
-    "0%, 99%": {opacity: 0, transform: "scale(0.7)"},
-    "100%": {opacity: 1, transform: "scale(1)"},
-};
-
 const endDotPulse = {
     "0%, 100%": {transform: "scale(1)"},
     "50%": {transform: "scale(1.18)"},
@@ -144,12 +134,16 @@ export const useHowItWorksSectionStyles = makeStyles({
 
     mobileCarouselSlider: {
         width: "100%",
+        gap: SPACE_SM,
     },
 
     mobileCarouselCard: {
         display: "flex",
         flexDirection: "column",
         gap: SPACE_SM,
+        width: "78%",
+        minWidth: "78%",
+        maxWidth: "78%",
     },
 
     step: {
@@ -199,14 +193,13 @@ export const useHowItWorksSectionStyles = makeStyles({
         marginBottom: SPACE_SM,
     },
 
-    stepProgressTrack: {
+    stepProgressBar: {
         position: "relative",
         flexGrow: 1,
-        height: "0.5rem",
+        flexShrink: 1,
+        flexBasis: 0,
+        minWidth: 0,
         marginLeft: SPACE_SM,
-        backgroundColor: tokens.colorNeutralBackground3,
-        borderRadius: "999px",
-        overflow: "hidden",
 
         [BREAKPOINT_MOBILE]: {
             display: "none",
@@ -217,45 +210,13 @@ export const useHowItWorksSectionStyles = makeStyles({
         minWidth: "3.5rem",
     },
 
-    mobileStepProgressTrack: {
+    mobileStepProgressBar: {
         position: "relative",
         flexGrow: 1,
-        height: "0.5rem",
+        flexShrink: 1,
+        flexBasis: 0,
+        minWidth: 0,
         marginLeft: SPACE_SM,
-        backgroundColor: tokens.colorNeutralBackground3,
-        borderRadius: "999px",
-        overflow: "hidden",
-    },
-
-    stepProgressFill: {
-        width: "0%",
-        height: "100%",
-        backgroundColor: tokens.colorBrandBackground,
-        borderRadius: "inherit",
-    },
-
-    stepProgressComplete: {
-        width: "100%",
-
-        "@media (prefers-reduced-motion: reduce)": {
-            width: "100%",
-        },
-    },
-
-    stepProgressActive: {
-        animationName: progressFill,
-        animationDuration: "8s",
-        animationTimingFunction: "linear",
-        animationFillMode: "forwards",
-
-        "@media (prefers-reduced-motion: reduce)": {
-            width: "100%",
-            animationName: "none",
-        },
-    },
-
-    pausedAnimation: {
-        animationPlayState: "paused",
     },
 
     stepMarker: {
@@ -264,8 +225,14 @@ export const useHowItWorksSectionStyles = makeStyles({
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
+        flexShrink: 0,
+        flexGrow: 0,
+        flexBasis: "3.25rem",
         width: "3.25rem",
+        minWidth: "3.25rem",
         height: "3.25rem",
+        minHeight: "3.25rem",
+        aspectRatio: "1 / 1",
         color: tokens.colorBrandForeground1,
         backgroundColor: tokens.colorNeutralBackground1,
         border: `1px solid ${tokens.colorBrandStroke2}`,
@@ -280,7 +247,7 @@ export const useHowItWorksSectionStyles = makeStyles({
     activeStepMarker: {
         color: tokens.colorNeutralForegroundOnBrand,
         backgroundColor: tokens.colorBrandBackground,
-        borderColor: tokens.colorBrandBackground,
+        border: `1px solid ${tokens.colorBrandBackground}`,
         boxShadow: tokens.shadow4,
     },
 
@@ -321,21 +288,6 @@ export const useHowItWorksSectionStyles = makeStyles({
         transform: "scale(0.7)",
     },
 
-    stepCompletionDotPending: {
-        animationName: `${completionDotReveal}, ${endDotPulse}`,
-        animationDuration: "8s, 3.8s",
-        animationTimingFunction: "linear, ease-in-out",
-        animationDelay: "0s, 8s",
-        animationFillMode: "forwards, none",
-        animationIterationCount: "1, infinite",
-
-        "@media (prefers-reduced-motion: reduce)": {
-            opacity: 1,
-            transform: "scale(1)",
-            animationName: "none",
-        },
-    },
-
     stepCompletionDotVisible: {
         opacity: 1,
         transform: "scale(1)",
@@ -351,6 +303,7 @@ export const useHowItWorksSectionStyles = makeStyles({
 
     number: {
         fontWeight: tokens.fontWeightSemibold,
+        lineHeight: 1,
     },
 
     stepCard: {
@@ -370,7 +323,7 @@ export const useHowItWorksSectionStyles = makeStyles({
 
     activeStepCard: {
         backgroundColor: tokens.colorBrandBackground,
-        borderColor: "transparent",
+        border: "1px solid transparent",
         boxShadow: tokens.shadow8,
         transform: "translateY(-0.25rem)",
     },
@@ -386,6 +339,11 @@ export const useHowItWorksSectionStyles = makeStyles({
     stepTitle: {
         color: tokens.colorNeutralForeground1,
         fontWeight: tokens.fontWeightSemibold,
+
+        [BREAKPOINT_MOBILE]: {
+            fontSize: tokens.fontSizeBase600,
+            lineHeight: tokens.lineHeightBase600,
+        },
     },
 
     stepDescription: {
@@ -403,13 +361,16 @@ export const useHowItWorksSectionStyles = makeStyles({
     mobileNavigation: {
         display: "flex",
         alignItems: "center",
-        justifyContent: "space-between",
+        justifyContent: "center",
         gap: SPACE_SM,
+        width: "78%",
+        maxWidth: "78%",
+        margin: "0 auto",
     },
 
     mobileNavButton: {
-        flex: 1,
-        minWidth: 0,
+        flex: "0 0 auto",
+        minWidth: "unset",
     },
 
     mobileStepCount: {

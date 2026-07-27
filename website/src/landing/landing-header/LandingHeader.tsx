@@ -48,6 +48,7 @@ export function LandingHeader({fixed = false}: LandingHeaderProps)
                     <Button
                         id="landing-start-free"
                         appearance="primary"
+                        size={"small"}
                         as="a"
                         className={styles.tryFreeButton}
                         target="_blank"
@@ -61,6 +62,7 @@ export function LandingHeader({fixed = false}: LandingHeaderProps)
                         id="landing-sign-in"
                         appearance="outline"
                         as="a"
+                        size={"small"}
                         className={styles.signInButton}
                         target="_blank"
                         rel="noopener noreferrer"

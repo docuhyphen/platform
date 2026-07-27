@@ -4,6 +4,7 @@ import {
     CarouselCard,
     CarouselSlider,
     mergeClasses,
+    ProgressBar,
     Text,
     Title2,
     Title3,
@@ -65,9 +66,11 @@ export function HowItWorksSection()
     const rotationTimeoutRef = useRef<number | null>(null);
     const rotationStartedAtRef = useRef<number | null>(null);
     const rotationRemainingMsRef = useRef(STEP_ROTATION_INTERVAL_MS);
+    const progressIntervalRef = useRef<number | null>(null);
     const [isVisible, setIsVisible] = useState(false);
     const [activeStepIndex, setActiveStepIndex] = useState(0);
     const [isPaused, setIsPaused] = useState(false);
+    const [activeStepProgress, setActiveStepProgress] = useState(0);
 
     useEffect(() =>
     {
@@ -94,14 +97,43 @@ export function HowItWorksSection()
         rotationTimeoutRef.current = null;
     };
 
+    const clearProgressInterval = () => {
+        if (progressIntervalRef.current === null) return;
+        window.clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+    };
+
     const startRotationTimeout = (delayMs: number) => {
         clearRotationTimeout();
         rotationStartedAtRef.current = window.performance.now();
         rotationTimeoutRef.current = window.setTimeout(() =>
         {
             rotationRemainingMsRef.current = STEP_ROTATION_INTERVAL_MS;
+            setActiveStepProgress(0);
             setActiveStepIndex((currentIndex) => (currentIndex + 1) % steps.length);
         }, delayMs);
+    };
+
+    const startProgressAnimation = (remainingMs: number) => {
+        clearProgressInterval();
+
+        const progressOffset = 1 - (remainingMs / STEP_ROTATION_INTERVAL_MS);
+        const updateProgress = () => {
+            if (rotationStartedAtRef.current === null) return;
+
+            const elapsedMs = window.performance.now() - rotationStartedAtRef.current;
+            const nextProgress = Math.min(1, progressOffset + (elapsedMs / STEP_ROTATION_INTERVAL_MS));
+            setActiveStepProgress(nextProgress);
+
+            if (nextProgress >= 1)
+            {
+                clearProgressInterval();
+            }
+        };
+
+        setActiveStepProgress(progressOffset);
+        updateProgress();
+        progressIntervalRef.current = window.setInterval(updateProgress, 100);
     };
 
     useEffect(() =>
@@ -109,16 +141,23 @@ export function HowItWorksSection()
         if (isPaused)
         {
             clearRotationTimeout();
+            clearProgressInterval();
             return;
         }
 
         startRotationTimeout(rotationRemainingMsRef.current);
+        startProgressAnimation(rotationRemainingMsRef.current);
 
-        return () => clearRotationTimeout();
+        return () =>
+        {
+            clearRotationTimeout();
+            clearProgressInterval();
+        };
     }, [activeStepIndex, isPaused]);
 
     const updateActiveStepIndex = (nextIndex: number) => {
         rotationRemainingMsRef.current = STEP_ROTATION_INTERVAL_MS;
+        setActiveStepProgress(0);
         setActiveStepIndex(nextIndex);
     };
 
@@ -140,6 +179,7 @@ export function HowItWorksSection()
             }
 
             clearRotationTimeout();
+            clearProgressInterval();
             setIsPaused(true);
             return;
         }
@@ -188,23 +228,23 @@ export function HowItWorksSection()
                                 >
                                     <Text className={styles.number}>{step.number}</Text>
                                 </div>
-                                <div
+                                <ProgressBar
+                                    id={`how-it-works-progress-${step.number}`}
                                     className={mergeClasses(
-                                        styles.stepProgressTrack,
+                                        styles.stepProgressBar,
                                         index === steps.length - 1 && styles.lastStepProgressTrack,
                                         isVisible && styles.connectorVisible,
                                     )}
+                                    thickness="medium"
+                                    value={
+                                        index < activeStepIndex
+                                            ? 1
+                                            : index === activeStepIndex
+                                                ? activeStepProgress
+                                                : 0
+                                    }
                                     aria-hidden="true"
-                                >
-                                    <div
-                                        className={mergeClasses(
-                                            styles.stepProgressFill,
-                                            index < activeStepIndex && styles.stepProgressComplete,
-                                            index === activeStepIndex && styles.stepProgressActive,
-                                            isPaused && index === activeStepIndex && styles.pausedAnimation,
-                                        )}
-                                    />
-                                </div>
+                                />
                                 {index === activeStepIndex && (
                                     <Button
                                         id={`how-it-works-pause-button-${step.number}`}
@@ -221,9 +261,9 @@ export function HowItWorksSection()
                                     <div
                                         className={mergeClasses(
                                             styles.stepCompletionDot,
-                                            index === activeStepIndex && styles.stepCompletionDotPending,
-                                            index < activeStepIndex && styles.stepCompletionDotVisible,
-                                            isPaused && index === activeStepIndex && styles.pausedAnimation,
+                                            index === activeStepIndex &&
+                                            activeStepProgress >= 1 &&
+                                            styles.stepCompletionDotVisible,
                                         )}
                                         aria-hidden="true"
                                     />
@@ -277,9 +317,10 @@ export function HowItWorksSection()
                         id="how-it-works-mobile-carousel"
                         className={styles.mobileCarousel}
                         activeIndex={activeStepIndex}
-                        circular
+                        align="center"
                         draggable
                         groupSize={1}
+                        whitespace
                         onActiveIndexChange={(_, data) => updateActiveStepIndex(data.index)}
                         announcement={(index, totalSlides) => `Step ${index + 1} of ${totalSlides}`}
                     >
@@ -302,29 +343,29 @@ export function HowItWorksSection()
                                         >
                                             <Text className={styles.number}>{step.number}</Text>
                                         </div>
-                                        <div
+                                        <ProgressBar
+                                            id={`how-it-works-mobile-progress-${step.number}`}
                                             className={mergeClasses(
-                                                styles.mobileStepProgressTrack,
+                                                styles.mobileStepProgressBar,
                                                 index === steps.length - 1 && styles.lastStepProgressTrack,
                                             )}
+                                            thickness="medium"
+                                            value={
+                                                index < activeStepIndex
+                                                    ? 1
+                                                    : index === activeStepIndex
+                                                        ? activeStepProgress
+                                                        : 0
+                                            }
                                             aria-hidden="true"
-                                        >
-                                            <div
-                                                className={mergeClasses(
-                                                    styles.stepProgressFill,
-                                                    index < activeStepIndex && styles.stepProgressComplete,
-                                                    index === activeStepIndex && styles.stepProgressActive,
-                                                    isPaused && index === activeStepIndex && styles.pausedAnimation,
-                                                )}
-                                            />
-                                        </div>
+                                        />
                                         {index === steps.length - 1 && (
                                             <div
                                                 className={mergeClasses(
                                                     styles.mobileStepCompletionDot,
-                                                    index === activeStepIndex && styles.stepCompletionDotPending,
-                                                    index < activeStepIndex && styles.stepCompletionDotVisible,
-                                                    isPaused && index === activeStepIndex && styles.pausedAnimation,
+                                                    index === activeStepIndex &&
+                                                    activeStepProgress >= 1 &&
+                                                    styles.stepCompletionDotVisible,
                                                 )}
                                                 aria-hidden="true"
                                             />
