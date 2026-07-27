@@ -17,19 +17,6 @@ import org.mockito.kotlin.any
 import org.mockito.quality.Strictness
 import java.util.UUID
 
-/**
- * No REST endpoint may self-bootstrap an APP_ADMIN assignment.
- *
- * Prior to Phase 6, [AppRoleAssignmentService.requireAppAdmin] promoted an org admin to
- * APP_ADMIN when the admin table was empty. This auto-bootstrap path violates the rule that
- * human platform roles must be bootstrapped out-of-band (startup config) rather than via a
- * REST endpoint call.
- *
- * After Phase 6:
- *  - requireAppAdmin throws SecurityException if the caller is not an existing APP_ADMIN.
- *  - No grantAppRole call is made from requireAppAdmin regardless of org-admin status.
- *  - The startup config bootstrap (bootstrapFirstAppAdmin) remains the only in-process path.
- */
 @ExtendWith(MockitoExtension::class)
 @MockitoSettings(strictness = Strictness.LENIENT)
 class AppAdminGuardTest

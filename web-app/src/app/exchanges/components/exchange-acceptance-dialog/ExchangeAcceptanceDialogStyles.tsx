@@ -25,6 +25,11 @@ export const useExchangeAcceptanceDialogStyles = makeStyles({
         borderRadius: tokens.borderRadiusXLarge,
     },
 
+    container: {
+        display: "flex",
+        flexDirection: "column",
+        gap: tokens.spacingVerticalL
+    },
     section: {
         display: "flex",
         flexDirection: "column",

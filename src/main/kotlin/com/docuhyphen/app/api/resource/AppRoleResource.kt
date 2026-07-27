@@ -24,7 +24,7 @@ import java.util.UUID
  * be an App Admin, resolved from the authenticated session, never the request body. App roles
  * are additive, so an admin keeps all their normal org/group/personal grants.
  */
-@Path("admin/roles")
+@Path("/admin/roles")
 @Produces(APPLICATION_JSON)
 @Consumes(APPLICATION_JSON)
 class AppRoleResource @Inject constructor(

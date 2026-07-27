@@ -21,7 +21,7 @@ const ExchangeAcceptanceRequestSummary = ({exchange}: ExchangeAcceptanceRequestS
     const initiatorEmail = exchange.initiator?.email || 'Not provided';
 
     return (
-        <div id={'exchange-acceptance-request-summary'}>
+        <div id={'exchange-acceptance-request-summary'} className={styles.container}>
             <div
                 id={'exchange-acceptance-requester-section'}
                 className={styles.section}
@@ -59,7 +59,6 @@ const ExchangeAcceptanceRequestSummary = ({exchange}: ExchangeAcceptanceRequestS
                         size={200}
                         className={styles.requesterCaption}
                     >
-                        wants to exchange documents with you.
                     </Text>
                 </div>
             </div>
