@@ -46,6 +46,23 @@ export const useSettingsStyles = makeStyles({
         overscrollBehavior: "contain",
         paddingInline: tokens.spacingHorizontalS,
         boxSizing: "border-box",
+        scrollbarWidth: "none",
+        "&::-webkit-scrollbar": {
+            width: 0,
+        },
+        "&:hover": {
+            scrollbarWidth: "thin",
+            scrollbarColor: `${tokens.colorNeutralStroke1} transparent`,
+        },
+        "&:hover::-webkit-scrollbar": {
+            width: "0.5rem",
+        },
+        "&:hover::-webkit-scrollbar-thumb": {
+            backgroundColor: tokens.colorNeutralStroke1,
+        },
+        "&:hover::-webkit-scrollbar-track": {
+            backgroundColor: "transparent",
+        },
         "@media (max-width: 768px)": {
             display: "none",
         },
