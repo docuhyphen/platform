@@ -55,6 +55,14 @@ class DefaultAuthorizationService @Inject constructor(
     private val resourceContextRegistry: ResourceAuthorizationContextRegistry,
 ) : AuthorizationService
 {
+    private val platformAuditGovernanceCapabilities = setOf(
+        Capability.AUDIT_EXPORT_APPROVE,
+        Capability.AUDIT_RETENTION_MANAGE,
+        Capability.AUDIT_LEGAL_HOLD_MANAGE,
+        Capability.AUDIT_INTEGRITY_VERIFY,
+        Capability.AUDIT_ENGAGEMENT_MANAGE,
+    )
+
     override fun authorize(
         principal: PrincipalRef,
         action: Action,
@@ -313,7 +321,15 @@ class DefaultAuthorizationService @Inject constructor(
         {
             if (ra.expiresAt != null && ra.expiresAt!!.before(now)) continue
 
-            val caps = RoleCapabilities.forAppRole(ra.roleName)
+            val roleCapabilities = RoleCapabilities.forAppRole(ra.roleName)
+            val caps = if (resource.type == ResourceType.ORGANIZATION)
+            {
+                roleCapabilities - platformAuditGovernanceCapabilities
+            }
+            else
+            {
+                roleCapabilities
+            }
             if (caps.isEmpty()) continue
 
             results += Grant(

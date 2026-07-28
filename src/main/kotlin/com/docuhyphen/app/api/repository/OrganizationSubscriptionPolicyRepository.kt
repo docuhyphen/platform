@@ -17,5 +17,21 @@ class OrganizationSubscriptionPolicyRepository : BaseRepository<OrganizationSubs
             .resultList
             .firstOrNull()
     }
+
+    fun findByOrganizationIds(organizationIds: Collection<UUID>): List<OrganizationSubscriptionPolicy>
+    {
+        if (organizationIds.isEmpty())
+        {
+            return emptyList()
+        }
+
+        return entityManager.createQuery(
+            """SELECT p FROM OrganizationSubscriptionPolicy p
+               WHERE p.organization.id IN :organizationIds""",
+            OrganizationSubscriptionPolicy::class.java,
+        )
+            .setParameter("organizationIds", organizationIds)
+            .resultList
+    }
 }
 

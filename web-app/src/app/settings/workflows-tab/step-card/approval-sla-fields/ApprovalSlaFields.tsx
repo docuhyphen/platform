@@ -16,6 +16,7 @@ interface Props
     step: WorkflowStepSpecDraft;
     subjectFields: WorkflowSubjectFieldDto[];
     onPatch: (patch: Partial<WorkflowStepSpecDraft>) => void;
+    allowTenantDirectory?: boolean;
 }
 
 const DEFAULT_ESCALATION: EscalationSpecDraft = {
@@ -23,7 +24,13 @@ const DEFAULT_ESCALATION: EscalationSpecDraft = {
     escalateTo: [],
 };
 
-const ApprovalSlaFields = ({index, step, subjectFields, onPatch}: Props) =>
+const ApprovalSlaFields = ({
+    index,
+    step,
+    subjectFields,
+    onPatch,
+    allowTenantDirectory = true,
+}: Props) =>
 {
     const styles = useApprovalSlaFieldsStyles();
     const escalationAction = step.escalation?.afterSlaBreach ?? "AUTO_REJECT";
@@ -135,6 +142,7 @@ const ApprovalSlaFields = ({index, step, subjectFields, onPatch}: Props) =>
                                     assignees={step.escalation?.escalateTo ?? []}
                                     onChange={patchEscalationTargets}
                                     subjectFields={subjectFields}
+                                    allowTenantDirectory={allowTenantDirectory}
                                 />
                             </div>
                         </>

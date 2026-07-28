@@ -82,7 +82,7 @@ export const isAppAdministrator = (caps: Capability[] | null | undefined): boole
     hasCapabilityIn(caps, Capability.APP_ADMIN);
 
 export const canAdministerOrganization = (caps: Capability[] | null | undefined): boolean =>
-    hasCapabilityIn(caps, Capability.APP_ADMIN) || hasCapabilityIn(caps, Capability.ORG_POLICY_MANAGE);
+    hasCapabilityIn(caps, Capability.ORG_POLICY_MANAGE);
 
 export enum PrincipalGroupRoleName
 {

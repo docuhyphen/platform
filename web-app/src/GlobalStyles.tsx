@@ -50,37 +50,6 @@ export const useGlobalStyles = makeStyles({
         opacity: 0.3
     },
 
-    /**
-     * Wrap the FluentUI Persona in this on the main header so that on
-     * phone-sized viewports we collapse it down to just the avatar (the
-     * user name + email texts are hidden), saving roughly 180-220px of
-     * horizontal space.
-     *
-     * The trigger element is a plain Button (no dropdown chevron) so the
-     * collapsed avatar visually matches the other header icon buttons.
-     */
-    mainHeaderPersona: {
-        minWidth: 0,
-        // Strip the default text-button padding so the avatar inside
-        // sits flush with the button edges (same visual footprint as
-        // the surrounding icon-only Buttons in the header).
-        paddingLeft: tokens.spacingHorizontalXS,
-        paddingRight: tokens.spacingHorizontalXS,
-        "@media (max-width: 768px)": {
-            // Mobile: drop the name + email text and shrink the button
-            // to an icon-sized square that lines up with the other
-            // header buttons.
-            paddingLeft: tokens.spacingHorizontalXXS,
-            paddingRight: tokens.spacingHorizontalXXS,
-            "& .fui-Persona__primaryText, & .fui-Persona__secondaryText, & .fui-Persona__tertiaryText, & .fui-Persona__quaternaryText": {
-                display: "none",
-            },
-            "& .fui-Persona": {
-                gap: 0,
-            },
-        },
-    },
-
     mainAppSection: {
         width: "100%",
         height: "100%",

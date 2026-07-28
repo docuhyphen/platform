@@ -116,4 +116,66 @@ class OrganizationRepository : BaseRepository<Organization>(Organization::class.
         query.maxResults = limit.coerceIn(1, 100)
         return query.resultList
     }
+
+    fun findForPlatformAdministration(
+        normalizedQuery: String?,
+        active: Boolean?,
+        tierCode: String?,
+        sort: String,
+        direction: String,
+        limit: Int,
+        offset: Int,
+    ): List<Organization>
+    {
+        val orderField = if (sort == "createdDate") "o.createdDate" else "LOWER(o.name)"
+        val orderDirection = if (direction == "desc") "DESC" else "ASC"
+        val query = entityManager.createQuery(
+            """SELECT o FROM Organization o
+               LEFT JOIN OrganizationSubscriptionPolicy p ON p.organization = o
+               WHERE (:query IS NULL
+                      OR LOWER(o.name) LIKE :queryPattern
+                      OR LOWER(o.registrationNumber) LIKE :queryPattern)
+                 AND (:active IS NULL OR o.isActive = :active)
+                 AND (:tierCode IS NULL OR COALESCE(p.tierCode, 'FREE') = :tierCode)
+               ORDER BY $orderField $orderDirection, o.id ASC""",
+            Organization::class.java,
+        )
+        applyPlatformFilters(query, normalizedQuery, active, tierCode)
+        query.firstResult = offset
+        query.maxResults = limit
+        return query.resultList
+    }
+
+    fun countForPlatformAdministration(
+        normalizedQuery: String?,
+        active: Boolean?,
+        tierCode: String?,
+    ): Long
+    {
+        val query = entityManager.createQuery(
+            """SELECT COUNT(o) FROM Organization o
+               LEFT JOIN OrganizationSubscriptionPolicy p ON p.organization = o
+               WHERE (:query IS NULL
+                      OR LOWER(o.name) LIKE :queryPattern
+                      OR LOWER(o.registrationNumber) LIKE :queryPattern)
+                 AND (:active IS NULL OR o.isActive = :active)
+                 AND (:tierCode IS NULL OR COALESCE(p.tierCode, 'FREE') = :tierCode)""",
+            Long::class.java,
+        )
+        applyPlatformFilters(query, normalizedQuery, active, tierCode)
+        return query.singleResult
+    }
+
+    private fun applyPlatformFilters(
+        query: jakarta.persistence.Query,
+        normalizedQuery: String?,
+        active: Boolean?,
+        tierCode: String?,
+    )
+    {
+        query.setParameter("query", normalizedQuery)
+        query.setParameter("queryPattern", normalizedQuery?.let { "%$it%" })
+        query.setParameter("active", active)
+        query.setParameter("tierCode", tierCode)
+    }
 }

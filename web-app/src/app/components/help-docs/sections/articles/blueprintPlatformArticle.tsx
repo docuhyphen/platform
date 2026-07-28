@@ -36,8 +36,16 @@ export const blueprintPlatformArticle = (
         <h3>Who manages platform blueprints</h3>
         <p>
             Only App Admins can create, edit, activate, deactivate, publish, and
-            delete platform blueprints. Regular users and Organization Admins can
-            view and clone them but cannot modify the originals.
+            delete platform blueprints in <b>Platform Administration - Platform
+            Content - Blueprints</b>. Regular users and Organization Admins can
+            view and clone platform Blueprints from Settings but cannot modify the
+            originals.
+        </p>
+        <p>
+            The platform editor is fixed to APP scope. Its document picker requests
+            only platform library documents, its Business Fields tab requests only
+            platform schemas, and it does not load organization or personal variable
+            definitions.
         </p>
         <p>
             Platform blueprint management can require a 6-digit verification code

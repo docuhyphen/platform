@@ -74,6 +74,7 @@ class AdminActionGuardService @Inject constructor(
             "ORG_IDP_SECRET_ROTATION_PREVIEW"           to "preview an identity provider secret rotation",
             "PLATFORM_ORG_SUBSCRIPTION_POLICY_UPSERT"  to "update an organization subscription policy",
             "PLATFORM_ORG_SUBSCRIPTION_POLICY_DELETE"  to "delete an organization subscription policy",
+            "PLATFORM_ORG_FEATURE_ENTITLEMENTS_UPDATE" to "update organization feature entitlements",
             "ORG_WORKFLOW_DEFINITION_DELETE"            to "delete a workflow",
         )
     }

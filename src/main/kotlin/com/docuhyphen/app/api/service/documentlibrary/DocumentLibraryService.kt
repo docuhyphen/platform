@@ -61,9 +61,8 @@ class DocumentLibraryService @Inject constructor(
         val principal = currentPrincipal()
         val activeOrgId = currentContext().activeOrgId
         val isOrgAdmin = activeOrgId != null && userRoleService.isOrgAdminIn(principal.id, activeOrgId)
-        val isAppAdmin = userRoleService.isAppAdmin(principal.id)
 
-        return repository.findAllAccessibleForCaller(principal.id, activeOrgId, isOrgAdmin, isAppAdmin)
+        return repository.findAllAccessibleForCaller(principal.id, activeOrgId, isOrgAdmin)
             .asSequence()
             .filter { scope == null || it.scope.name == scope.uppercase() }
             .filter { tag == null || decodeTags(it.generalTags).contains(tag) }
@@ -97,7 +96,7 @@ class DocumentLibraryService @Inject constructor(
             description = request.description?.trim()
             generalTags = encodeTags(request.generalTags)
             scope = resolvedScope
-            organizationId = if (resolvedScope == BlueprintScope.PERSONAL) null else activeOrgId
+            organizationId = if (resolvedScope == BlueprintScope.ORG) activeOrgId else null
             createdByAppUserId = principal.id
             restrictType = request.restrictType
             restrictedType = request.restrictedType
@@ -217,13 +216,12 @@ class DocumentLibraryService @Inject constructor(
         val context = currentContext()
         val activeOrgId = context.activeOrgId
         val isOrgAdmin = activeOrgId != null && userRoleService.isOrgAdminIn(principal.id, activeOrgId)
-        val isAppAdmin = userRoleService.isAppAdmin(principal.id)
 
         val source = repository.findById(id)
             ?: throw IllegalArgumentException("Document library entry not found: $id")
         checkReadAccess(source, principal, context)
 
-        val targetScope = resolveCloneTargetScope(request.targetScope, activeOrgId, isOrgAdmin, isAppAdmin)
+        val targetScope = resolveCloneTargetScope(request.targetScope, activeOrgId, isOrgAdmin)
         val clone = DocumentLibraryEntry().apply {
             title = request.newName?.trim()?.ifBlank { null } ?: "${source.title} (copy)"
             description = source.description
@@ -239,7 +237,10 @@ class DocumentLibraryService @Inject constructor(
 
     fun resolveLibraryFileForBlueprintDocument(libraryDocumentId: UUID): File?
     {
+        val principal = currentPrincipal()
+        val context = currentContext()
         val entry = repository.findById(libraryDocumentId) ?: return null
+        checkReadAccess(entry, principal, context)
         val path = entry.storagePath ?: return null
         return runCatching { fileStorageService.downloadDocument(path) }.getOrNull()
     }
@@ -248,7 +249,6 @@ class DocumentLibraryService @Inject constructor(
 
     private fun checkReadAccess(entry: DocumentLibraryEntry, principal: PrincipalRef, context: AuthorizationContext)
     {
-        if (userRoleService.isAppAdmin(principal.id)) return
         when (entry.scope)
         {
             BlueprintScope.PERSONAL ->
@@ -268,7 +268,6 @@ class DocumentLibraryService @Inject constructor(
 
     private fun checkWriteAccess(entry: DocumentLibraryEntry, principal: PrincipalRef, context: AuthorizationContext)
     {
-        if (userRoleService.isAppAdmin(principal.id)) return
         when (entry.scope)
         {
             BlueprintScope.PERSONAL ->
@@ -283,7 +282,8 @@ class DocumentLibraryService @Inject constructor(
                     throw ForbiddenException("Access denied to document library entry ${entry.id}")
             }
             BlueprintScope.APP ->
-                throw ForbiddenException("Platform library entries cannot be modified directly; clone them instead")
+                if (!userRoleService.isAppAdmin(principal.id))
+                    throw ForbiddenException("App admin role required to modify APP-scoped library entries")
         }
     }
 
@@ -309,14 +309,14 @@ class DocumentLibraryService @Inject constructor(
                 .getOrElse { throw IllegalArgumentException("Invalid scope: $requestedScope") }
             if (parsed == BlueprintScope.APP && !isAppAdmin)
                 throw ForbiddenException("App admin role required to create APP-scoped library entries")
-            if (parsed == BlueprintScope.ORG && !isOrgAdmin && !isAppAdmin)
+            if (parsed == BlueprintScope.ORG && !isOrgAdmin)
                 throw ForbiddenException("Org admin role required to create ORG-scoped library entries")
             return parsed
         }
         return when
         {
-            isAppAdmin -> BlueprintScope.APP
             isOrgAdmin && activeOrgId != null -> BlueprintScope.ORG
+            isAppAdmin -> BlueprintScope.APP
             else -> BlueprintScope.PERSONAL
         }
     }
@@ -325,7 +325,6 @@ class DocumentLibraryService @Inject constructor(
         requested: String?,
         activeOrgId: UUID?,
         isOrgAdmin: Boolean,
-        isAppAdmin: Boolean,
     ): BlueprintScope
     {
         if (requested == null) return BlueprintScope.PERSONAL
@@ -334,7 +333,7 @@ class DocumentLibraryService @Inject constructor(
             "PERSONAL" -> BlueprintScope.PERSONAL
             "ORG" ->
             {
-                if (!isOrgAdmin && !isAppAdmin)
+                if (!isOrgAdmin)
                     throw ForbiddenException("Org admin role required to clone into the organization collection")
                 if (activeOrgId == null)
                     throw ForbiddenException("No organization membership found")

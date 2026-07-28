@@ -1,0 +1,69 @@
+export interface PlatformOrganizationFeatureEntitlement
+{
+    featureCode: string;
+    enabled: boolean;
+}
+
+export interface PlatformOrganizationSummary
+{
+    organizationId: string;
+    name: string;
+    registrationNumber: string;
+    active: boolean;
+    verificationComplete: boolean;
+    createdDate: string;
+    tierCode: string;
+    maxUsers: number | null;
+    activeUsers: number;
+    featureEntitlements: PlatformOrganizationFeatureEntitlement[];
+}
+
+export interface PlatformOrganizationList
+{
+    total: number;
+    limit: number;
+    offset: number;
+    items: PlatformOrganizationSummary[];
+}
+
+export interface PlatformOrganizationListQuery
+{
+    query?: string;
+    status?: "ALL" | "ACTIVE" | "INACTIVE";
+    tierCode?: string;
+    sort?: "name" | "createdDate";
+    direction?: "asc" | "desc";
+    limit: number;
+    offset: number;
+}
+
+export interface PlatformOrganizationSubscriptionPolicyRequest
+{
+    tierCode: string;
+    maxUsers: number | null;
+    changeReason?: string;
+}
+
+export interface PlatformOrganizationSubscriptionPolicy
+{
+    organizationId: string;
+    tierCode: string;
+    maxUsers: number | null;
+    currentActiveUsers: number;
+    changeReason: string | null;
+    persisted: boolean;
+    createdDate: string | null;
+    updatedDate: string | null;
+}
+
+export interface PlatformOrganizationFeatureEntitlementsRequest
+{
+    entitlements: PlatformOrganizationFeatureEntitlement[];
+    changeReason?: string;
+}
+
+export interface PlatformOrganizationFeatureEntitlements
+{
+    organizationId: string;
+    entitlements: PlatformOrganizationFeatureEntitlement[];
+}

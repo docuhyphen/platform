@@ -112,4 +112,35 @@ describe("AuditWorkspace", () =>
 
         await waitFor(() => expect(fetchPlatformAuditEvents).toHaveBeenCalled());
     });
+
+    it("uses platform scope without a selector when rendered by the platform route", async () =>
+    {
+        mockHasCapability.mockReturnValue(true);
+        mockCurrentSession.mockReturnValue(organizationSession);
+
+        render(<AuditWorkspace fixedScope={"platform"}/>);
+
+        await waitFor(() => expect(fetchPlatformAuditEvents).toHaveBeenCalled());
+        expect(fetchOrganizationAuditEvents).not.toHaveBeenCalled();
+        expect(document.getElementById("audit-workspace-scope-selector")).toBeFalsy();
+    });
+
+    it("uses left navigation without a scope header on the platform workspace", async () =>
+    {
+        mockHasCapability.mockReturnValue(true);
+        mockCurrentSession.mockReturnValue(organizationSession);
+
+        render(
+            <AuditWorkspace
+                fixedScope={"platform"}
+                navigationMode={"sidebar"}/>
+        );
+
+        await waitFor(() => expect(fetchPlatformAuditEvents).toHaveBeenCalled());
+
+        expect(document.getElementById("audit-workspace-sidebar")).toBeTruthy();
+        expect(document.getElementById("audit-workspace-main-content")).toBeTruthy();
+        expect(document.getElementById("audit-workspace-scope-note")).toBeFalsy();
+        expect(document.getElementById("audit-workspace-tabs")).toBeFalsy();
+    });
 });

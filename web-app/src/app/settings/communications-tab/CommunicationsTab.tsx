@@ -66,9 +66,7 @@ const CommunicationsTab = () =>
     const hasOrg = !!appUserPersonOrganization?.isActive;
     const canManageOrganization =
         appUserPersonOrganization?.isActive &&
-        (hasCapability(Capability.APP_ADMIN) || hasCapability(Capability.ORG_POLICY_MANAGE));
-    const isAppAdmin = hasCapability(Capability.APP_ADMIN);
-
+        hasCapability(Capability.ORG_POLICY_MANAGE);
     const [viewMode, setViewMode] = useState<ViewMode>(appUser?.settings?.communicationsView ?? 'cards');
 
     const [activeTab, setActiveTab] = useState<ActiveTab>('PERSONAL');
@@ -192,13 +190,11 @@ const CommunicationsTab = () =>
 
     const canCreate =
         activeTab === 'PERSONAL' ||
-        (activeTab === 'ORG' && !!canManageOrganization) ||
-        (activeTab === 'PLATFORM' && isAppAdmin);
+        (activeTab === 'ORG' && !!canManageOrganization);
 
     const canManageItem = (t: CommunicationSummaryDto) =>
         t.scope === 'PERSONAL' ||
-        (t.scope === 'ORG' && !!canManageOrganization) ||
-        (t.scope === 'PLATFORM' && isAppAdmin);
+        (t.scope === 'ORG' && !!canManageOrganization);
 
     return (
         <>

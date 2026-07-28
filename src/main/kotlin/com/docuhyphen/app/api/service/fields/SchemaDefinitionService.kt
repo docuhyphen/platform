@@ -27,6 +27,7 @@ import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
 import com.docuhyphen.app.api.service.auth.authz.Decision
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.auth.authz.ResourceRef
+import com.docuhyphen.app.api.service.auth.authz.RoleCapabilities
 import com.docuhyphen.app.api.service.audit.AuditCaptureFailedException
 import com.docuhyphen.app.api.service.audit.AuditDraftInvalidException
 import com.docuhyphen.app.api.service.audit.AuditEventDraft
@@ -69,26 +70,39 @@ class SchemaDefinitionService @Inject constructor(
 
     // ── Reads ─────────────────────────────────────────────────────────────────
 
-    fun listSchemas(): List<SchemaDefinitionDto>
+    fun listSchemas(scopeKind: FieldScopeKind? = null): List<SchemaDefinitionDto>
     {
-        val orgId = requireOrgConfigView()
-        return schemaDefinitionRepository.findAllForOrganization(orgId).map { it.toDto() }
+        val principal = currentPrincipal()
+        if (scopeKind == FieldScopeKind.PLATFORM)
+        {
+            if (!userRoleService.isAppAdmin(principal.id))
+                throw ForbiddenException("Platform schema configuration requires App Administrator access")
+            return schemaDefinitionRepository.findAllPlatform().map { it.toDto() }
+        }
+        val orgId = currentContext().activeOrgId
+        val schemas = if (orgId != null && hasOrganizationAccess(principal, orgId, Action.FIELD_CONFIG_VIEW))
+            schemaDefinitionRepository.findAllForOrganization(orgId)
+        else if (userRoleService.isAppAdmin(principal.id))
+            schemaDefinitionRepository.findAllPlatform()
+        else
+            throw ForbiddenException("Access denied to schema configuration")
+        return schemas.map { it.toDto() }
     }
 
     fun getSchema(id: UUID): SchemaDefinitionDto
     {
-        requireOrgConfigView()
         val def = schemaDefinitionRepository.findById(id)
             ?: throw IllegalArgumentException("Schema not found: $id")
+        requireScopeAccess(def, Action.FIELD_CONFIG_VIEW)
         return def.toDto()
     }
 
     /** Resolved view of the latest PUBLISHED version, for assignment selection and value entry. */
     fun getResolvedLatestPublished(schemaDefinitionId: UUID): ResolvedSchemaViewDto
     {
-        requireOrgConfigView()
         val def = schemaDefinitionRepository.findById(schemaDefinitionId)
             ?: throw IllegalArgumentException("Schema not found: $schemaDefinitionId")
+        requireScopeAccess(def, Action.FIELD_CONFIG_VIEW)
         val version = schemaVersionRepository.findLatestPublished(schemaDefinitionId)
             ?: throw IllegalArgumentException("Schema has no published version")
         return resolvedView(def, version)
@@ -135,9 +149,12 @@ class SchemaDefinitionService @Inject constructor(
     @Transactional
     fun createSchema(request: CreateSchemaRequest): SchemaDefinitionDto
     {
-        val (principal, orgId) = requireOrgConfigEdit()
-        val scopeKind = resolveScope(request.scopeKind, principal)
-        val scopeOrgId = if (scopeKind == FieldScopeKind.ORGANIZATION) orgId else null
+        val principal = currentPrincipal()
+        val scopeKind = resolveCreateScope(request.scopeKind, principal)
+        val scopeOrgId = if (scopeKind == FieldScopeKind.ORGANIZATION)
+            requireActiveOrganizationAccess(principal, Action.FIELD_CONFIG_EDIT)
+        else
+            null
 
         val namespace = request.namespace.trim().lowercase()
         val schemaKey = request.schemaKey.trim().lowercase()
@@ -167,7 +184,7 @@ class SchemaDefinitionService @Inject constructor(
             this.status = FieldLifecycleStatus.DRAFT
         }
         schemaVersionRepository.save(version)
-        replaceBindings(version, orgId, scopeKind, scopeOrgId, request.bindings)
+        replaceBindings(version, scopeKind, scopeOrgId, request.bindings)
 
         recordSchemaEvent(AuditEventType.SCHEMA_DEFINITION_CREATE, definition.id, definition.displayName, principal.id, scopeOrgId)
         return definition.toDto()
@@ -177,13 +194,13 @@ class SchemaDefinitionService @Inject constructor(
     @Transactional
     fun updateDraftBindings(schemaDefinitionId: UUID, bindings: List<BindingRequest>): SchemaDefinitionDto
     {
-        val (_, orgId) = requireOrgConfigEdit()
         val def = schemaDefinitionRepository.findById(schemaDefinitionId)
             ?: throw IllegalArgumentException("Schema not found: $schemaDefinitionId")
+        requireScopeAccess(def, Action.FIELD_CONFIG_EDIT)
         val draft = schemaVersionRepository.findDraft(schemaDefinitionId)
             ?: throw IllegalStateException("Schema has no editable draft version")
         bindingRepository.deleteByVersion(draft.id)
-        replaceBindings(draft, orgId, def.scopeKind, def.scopeOrgId, bindings)
+        replaceBindings(draft, def.scopeKind, def.scopeOrgId, bindings)
         def.updatedAt = Timestamp.from(Instant.now())
         schemaDefinitionRepository.update(def)
         return def.toDto()
@@ -193,9 +210,9 @@ class SchemaDefinitionService @Inject constructor(
     @Transactional
     fun createDraftVersion(schemaDefinitionId: UUID): SchemaDefinitionDto
     {
-        requireOrgConfigEdit()
         val def = schemaDefinitionRepository.findById(schemaDefinitionId)
             ?: throw IllegalArgumentException("Schema not found: $schemaDefinitionId")
+        requireScopeAccess(def, Action.FIELD_CONFIG_EDIT)
         if (schemaVersionRepository.findDraft(schemaDefinitionId) != null)
             throw IllegalStateException("Schema already has an open draft version")
 
@@ -229,9 +246,9 @@ class SchemaDefinitionService @Inject constructor(
     fun publishDraft(schemaDefinitionId: UUID, compatibility: SchemaCompatibility?): SchemaDefinitionDto
     {
         val principal = currentPrincipal()
-        requirePublish()
         val def = schemaDefinitionRepository.findById(schemaDefinitionId)
             ?: throw IllegalArgumentException("Schema not found: $schemaDefinitionId")
+        requireScopeAccess(def, Action.FIELD_CONFIG_PUBLISH)
         val draft = schemaVersionRepository.findDraft(schemaDefinitionId)
             ?: throw IllegalStateException("Schema has no draft version to publish")
         val bindings = bindingRepository.findByVersion(draft.id)
@@ -255,9 +272,9 @@ class SchemaDefinitionService @Inject constructor(
     fun retireSchema(schemaDefinitionId: UUID): SchemaDefinitionDto
     {
         val principal = currentPrincipal()
-        requirePublish()
         val def = schemaDefinitionRepository.findById(schemaDefinitionId)
             ?: throw IllegalArgumentException("Schema not found: $schemaDefinitionId")
+        requireScopeAccess(def, Action.FIELD_CONFIG_PUBLISH)
         def.status = FieldLifecycleStatus.RETIRED
         def.updatedAt = Timestamp.from(Instant.now())
         val updated = schemaDefinitionRepository.update(def)
@@ -269,7 +286,6 @@ class SchemaDefinitionService @Inject constructor(
 
     private fun replaceBindings(
         version: SchemaVersion,
-        orgId: UUID,
         scopeKind: FieldScopeKind,
         scopeOrgId: UUID?,
         bindings: List<BindingRequest>,
@@ -287,8 +303,10 @@ class SchemaDefinitionService @Inject constructor(
                 throw FieldValidationException("Field ${fieldDef.namespace}:${fieldDef.fieldKey} is retired")
             // A field must be visible in the schema's scope (its own org, or platform).
             val visible = fieldDef.scopeKind == FieldScopeKind.PLATFORM ||
-                (fieldDef.scopeKind == FieldScopeKind.ORGANIZATION && fieldDef.scopeOrgId == scopeOrgId)
-            if (scopeKind == FieldScopeKind.ORGANIZATION && !visible)
+                (scopeKind == FieldScopeKind.ORGANIZATION &&
+                    fieldDef.scopeKind == FieldScopeKind.ORGANIZATION &&
+                    fieldDef.scopeOrgId == scopeOrgId)
+            if (!visible)
                 throw FieldValidationException("Field ${fieldDef.namespace}:${fieldDef.fieldKey} is not available in this scope")
 
             bindingRepository.save(SchemaFieldBinding().apply {
@@ -304,9 +322,12 @@ class SchemaDefinitionService @Inject constructor(
         }
     }
 
-    private fun resolveScope(requested: FieldScopeKind?, principal: PrincipalRef): FieldScopeKind
+    private fun resolveCreateScope(requested: FieldScopeKind?, principal: PrincipalRef): FieldScopeKind
     {
-        val scope = requested ?: FieldScopeKind.ORGANIZATION
+        val activeOrgId = currentContext().activeOrgId
+        val hasOrgEdit = activeOrgId != null &&
+            hasOrganizationAccess(principal, activeOrgId, Action.FIELD_CONFIG_EDIT)
+        val scope = requested ?: if (hasOrgEdit) FieldScopeKind.ORGANIZATION else FieldScopeKind.PLATFORM
         if (scope == FieldScopeKind.PLATFORM && !userRoleService.isAppAdmin(principal.id))
             throw ForbiddenException("Only platform administrators may author platform-scoped schemas")
         return scope
@@ -318,40 +339,56 @@ class SchemaDefinitionService @Inject constructor(
             throw FieldValidationException("$label must be lowercase alphanumeric with hyphens (e.g. customer-case)")
     }
 
-    private fun requireOrgConfigView(): UUID
+    private fun requireScopeAccess(definition: SchemaDefinition, action: Action)
     {
         val principal = currentPrincipal()
-        val context = currentContext()
-        val orgId = context.activeOrgId ?: throw ForbiddenException("An active organization is required")
-        val decision = authorizationService.authorize(
-            principal, Action.FIELD_CONFIG_VIEW, ResourceRef.organization(orgId), context,
-        )
-        if (decision is Decision.Deny) throw ForbiddenException("Access denied to schema configuration")
+        when (definition.scopeKind)
+        {
+            FieldScopeKind.PLATFORM ->
+            {
+                if (action == Action.FIELD_CONFIG_VIEW)
+                {
+                    val activeOrgId = currentContext().activeOrgId
+                    if (userRoleService.isAppAdmin(principal.id) ||
+                        (activeOrgId != null &&
+                            hasOrganizationAccess(principal, activeOrgId, Action.FIELD_CONFIG_VIEW)))
+                        return
+                }
+                else if (userRoleService.isAppAdmin(principal.id))
+                    return
+            }
+            FieldScopeKind.ORGANIZATION ->
+            {
+                val organizationId = definition.scopeOrgId
+                    ?: throw ForbiddenException("Organization-scoped schema has no owner")
+                if (currentContext().activeOrgId == organizationId &&
+                    hasOrganizationAccess(principal, organizationId, action))
+                    return
+            }
+        }
+        throw ForbiddenException("Access denied to schema configuration")
+    }
+
+    private fun requireActiveOrganizationAccess(principal: PrincipalRef, action: Action): UUID
+    {
+        val orgId = currentContext().activeOrgId
+            ?: throw ForbiddenException("An active organization is required")
+        if (!hasOrganizationAccess(principal, orgId, action))
+            throw ForbiddenException("Access denied to edit schema configuration")
         return orgId
     }
 
-    private fun requireOrgConfigEdit(): Pair<PrincipalRef, UUID>
+    private fun hasOrganizationAccess(principal: PrincipalRef, organizationId: UUID, action: Action): Boolean
     {
-        val principal = currentPrincipal()
-        val context = currentContext()
-        val orgId = context.activeOrgId ?: throw ForbiddenException("An active organization is required")
-        val decision = authorizationService.authorize(
-            principal, Action.FIELD_CONFIG_EDIT, ResourceRef.organization(orgId), context,
-        )
-        if (decision is Decision.Deny) throw ForbiddenException("Access denied to edit schema configuration")
-        return principal to orgId
-    }
-
-    private fun requirePublish(): UUID
-    {
-        val principal = currentPrincipal()
-        val context = currentContext()
-        val orgId = context.activeOrgId ?: throw ForbiddenException("An active organization is required")
-        val decision = authorizationService.authorize(
-            principal, Action.FIELD_CONFIG_PUBLISH, ResourceRef.organization(orgId), context,
-        )
-        if (decision is Decision.Deny) throw ForbiddenException("Access denied to publish schemas")
-        return orgId
+        val hasOrganizationCapability = userRoleService.orgRolesIn(principal.id, organizationId)
+            .any { action.required in RoleCapabilities.forOrganizationRole(it) }
+        if (!hasOrganizationCapability) return false
+        return authorizationService.authorize(
+            principal,
+            action,
+            ResourceRef.organization(organizationId),
+            currentContext(),
+        ) is Decision.Allow
     }
 
     private fun currentPrincipal(): PrincipalRef =

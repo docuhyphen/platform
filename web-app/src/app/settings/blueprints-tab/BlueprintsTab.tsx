@@ -80,8 +80,7 @@ const BlueprintsTab = () =>
     const hasOrg = !!appUserPersonOrganization?.isActive;
     const canManageOrganization =
         appUserPersonOrganization?.isActive &&
-        (hasCapability(Capability.APP_ADMIN) || hasCapability(Capability.ORG_POLICY_MANAGE));
-    const isAppAdmin = hasCapability(Capability.APP_ADMIN);
+        hasCapability(Capability.ORG_POLICY_MANAGE);
 
     const [viewMode, setViewMode] = useState<ViewMode>(appUser?.settings?.blueprintsView ?? 'cards');
 
@@ -219,13 +218,11 @@ const BlueprintsTab = () =>
 
     const canCreate =
         activeTab === 'PERSONAL' ||
-        (activeTab === 'ORG' && canManageOrganization) ||
-        (activeTab === 'APP' && isAppAdmin);
+        (activeTab === 'ORG' && canManageOrganization);
 
     const canManageItem = (bp: BlueprintDefinitionSummaryDto) =>
         bp.scope === 'PERSONAL' ||
-        (bp.scope === 'ORG' && !!canManageOrganization) ||
-        (bp.scope === 'APP' && isAppAdmin);
+        (bp.scope === 'ORG' && !!canManageOrganization);
 
     return (
         <>

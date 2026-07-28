@@ -23,7 +23,7 @@ interface Props
     loading: boolean;
     error: string | null;
     viewMode: ViewMode;
-    canManage: boolean;
+    canManage: (schema: SchemaDefinitionDto) => boolean;
     onRefresh: () => void;
 }
 
@@ -85,14 +85,14 @@ const SchemasPanel = forwardRef<SchemasPanelHandle, Props>(
                                 <th className={styles.th}>Name</th>
                                 <th className={styles.th}>Key</th>
                                 <th className={styles.th}>Status</th>
-                                {canManage && <th className={styles.th}/>}
+                                {schemas.some(canManage) && <th className={styles.th}/>}
                             </tr>
                         </thead>
                         <tbody>
                             {schemas.map(schema => (
                                 <SchemaCard key={schema.id}
                                             schema={schema}
-                                            canManage={canManage}
+                                            canManage={canManage(schema)}
                                             viewMode="table"
                                             onEdit={openEdit}
                                             onPublish={handlePublish}
@@ -106,7 +106,7 @@ const SchemasPanel = forwardRef<SchemasPanelHandle, Props>(
                         {schemas.map(schema => (
                             <SchemaCard key={schema.id}
                                         schema={schema}
-                                        canManage={canManage}
+                                        canManage={canManage(schema)}
                                         viewMode="cards"
                                         onEdit={openEdit}
                                         onPublish={handlePublish}

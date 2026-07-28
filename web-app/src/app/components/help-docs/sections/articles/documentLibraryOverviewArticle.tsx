@@ -22,8 +22,14 @@ export const documentLibraryOverviewArticle = (
             </li>
             <li>
                 <b>Platform</b> - curated by DocuHyphen and available to all users. Only
-                App Admins can create platform documents. Any user can clone a platform
-                document into their personal library.
+                App Admins can create and manage platform documents from
+                <b> Platform Administration - Platform Content - Documents</b>. The
+                Document Library in Settings keeps platform documents available for
+                browsing and cloning but does not expose platform management actions.
+                Any user can clone a platform document into their personal library.
+                App Admin access alone does not allow management of Organization
+                documents; that requires a separate Organization Admin role in the
+                active organization.
             </li>
         </ul>
 

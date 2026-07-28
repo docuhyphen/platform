@@ -1409,6 +1409,7 @@ export interface CreateCommunicationRequest
     generalTags?: string[];
     scope: CommunicationScope;
     isActive?: boolean;
+    isTemplate?: boolean;
 }
 
 export interface UpdateCommunicationRequest

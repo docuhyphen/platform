@@ -23,6 +23,7 @@ import {
     Capability,
     FieldDefinitionDto,
     FieldLifecycleStatus,
+    FieldScopeKind,
     FieldValueType,
     SchemaDefinitionDto,
     ViewMode,
@@ -51,8 +52,12 @@ const FieldsTab = () =>
 {
     const styles = useFieldsTabStyles();
     const {appUserPersonOrganization, hasCapability} = useAuth();
-    const canManage = !!appUserPersonOrganization?.isActive &&
-        (hasCapability(Capability.APP_ADMIN) || hasCapability(Capability.ORG_POLICY_MANAGE));
+    const canManageOrganization = !!appUserPersonOrganization?.isActive &&
+        hasCapability(Capability.ORG_POLICY_MANAGE);
+    const canManageField = (definition: FieldDefinitionDto) =>
+        canManageOrganization && definition.scopeKind === FieldScopeKind.ORGANIZATION;
+    const canManageSchema = (schema: SchemaDefinitionDto) =>
+        canManageOrganization && schema.scopeKind === FieldScopeKind.ORGANIZATION;
 
     const [selected, setSelected] = useState<TabValue>('fields');
 
@@ -240,7 +245,7 @@ const FieldsTab = () =>
                         </Tab>
                     </TabList>
 
-                    {canManage && selected === 'fields' && (
+                    {canManageOrganization && selected === 'fields' && (
                         <Button id="field-def-create-btn"
                                 appearance="subtle"
                                 shape="circular"
@@ -249,7 +254,7 @@ const FieldsTab = () =>
                             New field
                         </Button>
                     )}
-                    {canManage && selected === 'schemas' && (
+                    {canManageOrganization && selected === 'schemas' && (
                         <Button id="schema-create-btn"
                                 appearance="subtle"
                                 shape="circular"
@@ -507,7 +512,7 @@ const FieldsTab = () =>
             {selected === 'fields' && (
                 <FieldDefinitionsPanel definitions={visibleDefinitions}
                                        viewMode={fieldViewMode}
-                                       canManage={canManage}
+                                       canManage={canManageField}
                                        loading={defsLoading}
                                        error={defsError}
                                        onRetire={handleRetire}/>
@@ -518,7 +523,7 @@ const FieldsTab = () =>
                               loading={schemasLoading}
                               error={schemasError}
                               viewMode={schemaViewMode}
-                              canManage={canManage}
+                              canManage={canManageSchema}
                               onRefresh={loadSchemas}/>
             )}
             </div>

@@ -13,11 +13,8 @@ class DocumentLibraryRepository :
         callerUserId: UUID,
         callerOrgId: UUID?,
         isOrgAdmin: Boolean,
-        isAppAdmin: Boolean,
     ): List<DocumentLibraryEntry>
     {
-        val showUnpublishedOrg = isOrgAdmin || isAppAdmin
-
         return if (callerOrgId != null)
         {
             entityManager.createQuery(
@@ -37,7 +34,7 @@ class DocumentLibraryRepository :
             )
                 .setParameter("uid", callerUserId)
                 .setParameter("oid", callerOrgId)
-                .setParameter("showUnpublished", showUnpublishedOrg)
+                .setParameter("showUnpublished", isOrgAdmin)
                 .resultList
         }
         else

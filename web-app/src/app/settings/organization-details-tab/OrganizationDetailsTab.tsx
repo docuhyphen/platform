@@ -38,7 +38,7 @@ const OrganizationDetailsTab = () =>
     const [phoneManagementMode, setPhoneManagementMode] = useState(PhoneManagementMode.ADD);
     const [emailManagementMode, setEmailManagementMode] = useState(EmailManagementMode.ADD);
     const canManageOrganization = appUserPersonOrganization?.isActive &&
-        (hasCapability(Capability.APP_ADMIN) || hasCapability(Capability.ORG_POLICY_MANAGE));
+        hasCapability(Capability.ORG_POLICY_MANAGE);
 
     const getOrganization = useCallback(async () =>
     {

@@ -1,41 +1,54 @@
 import {useState} from "react";
-import {Dropdown, Option, OptionOnSelectData, SelectionEvents, Tab, TabList, TabValue, Text} from "@fluentui/react-components";
+import {
+    Dropdown,
+    Option,
+    OptionOnSelectData,
+    SelectTabData,
+    SelectTabEvent,
+    SelectionEvents,
+    TabValue,
+    Text,
+} from "@fluentui/react-components";
 import {useAuth} from "../../context/AuthContext.tsx";
 import {Capability} from "../models/models.tsx";
 import AuditEventsSection from "./audit-events-section/AuditEventsSection.tsx";
 import AuditIntegritySection from "./audit-integrity-section/AuditIntegritySection.tsx";
 import AuditExportsSection from "./audit-exports-section/AuditExportsSection.tsx";
+import AuditWorkspaceNavigation from "./audit-workspace-navigation/AuditWorkspaceNavigation.tsx";
+import AuditWorkspaceShell from "./audit-workspace-shell/AuditWorkspaceShell.tsx";
+import {auditWorkspaceTabIds} from "./auditWorkspaceTabs.ts";
 import {useAuditWorkspaceStyles} from "./AuditWorkspaceStyles.tsx";
 import {AuditScope} from "./auditScope.ts";
 
 type ScopeSelection = "organization" | "platform";
+type NavigationMode = "tabs" | "sidebar";
 
-const tabIds = {
-    events: "AuditEventsTab",
-    integrity: "AuditIntegrityTab",
-    exports: "AuditExportsTab",
-};
+interface AuditWorkspaceProps
+{
+    fixedScope?: ScopeSelection;
+    navigationMode?: NavigationMode;
+}
 
-/**
- * Auditor workspace rendered inside the Settings
- * "Audit" tab rather than a standalone top-level route, since the audit workspace is an
- * admin/compliance surface gated the same way as the other Settings administration tabs.
- */
-const AuditWorkspace = () =>
+const AuditWorkspace = ({
+    fixedScope,
+    navigationMode = "tabs",
+}: AuditWorkspaceProps) =>
 {
     const {hasCapability, currentSession} = useAuth();
     const styles = useAuditWorkspaceStyles();
-    const [selectedTab, setSelectedTab] = useState<TabValue>(tabIds.events);
+    const [selectedTab, setSelectedTab] = useState<TabValue>(auditWorkspaceTabIds.events);
     const [scopeSelection, setScopeSelection] = useState<ScopeSelection>("organization");
 
     const hasOrgAudit = hasCapability(Capability.ORG_AUDIT_READ);
     const hasPlatformAudit = hasCapability(Capability.APP_AUDIT_READ);
     const isAuthorized = hasOrgAudit || hasPlatformAudit;
     const organizationId = currentSession?.activeOrganizationId ?? null;
-    const canSelectScope = hasOrgAudit && hasPlatformAudit && organizationId !== null;
+    const canSelectScope = !fixedScope && hasOrgAudit && hasPlatformAudit && organizationId !== null;
     // A user holding only one of the two capabilities has no scope to choose - fall back to
     // whichever surface their capability actually grants, ignoring the (stale-by-default) toggle.
-    const scope: AuditScope = hasOrgAudit && organizationId && (!hasPlatformAudit || scopeSelection === "organization")
+    const effectiveScopeSelection = fixedScope ?? scopeSelection;
+    const scope: AuditScope = hasOrgAudit && organizationId &&
+    (!hasPlatformAudit || effectiveScopeSelection === "organization")
         ? {kind: "organization", organizationId}
         : {kind: "platform"};
 
@@ -45,6 +58,10 @@ const AuditWorkspace = () =>
         {
             setScopeSelection(data.optionValue);
         }
+    };
+    const onTabSelect = (_event: SelectTabEvent, data: SelectTabData) =>
+    {
+        setSelectedTab(data.value);
     };
 
     if (!isAuthorized)
@@ -59,13 +76,42 @@ const AuditWorkspace = () =>
         );
     }
 
+    const selectedSection = (
+        <div
+            id={"audit-workspace-selected-section"}
+            className={styles.tabPanel}>
+            {selectedTab === auditWorkspaceTabIds.events && <AuditEventsSection scope={scope}/>}
+            {selectedTab === auditWorkspaceTabIds.integrity && <AuditIntegritySection scope={scope}/>}
+            {selectedTab === auditWorkspaceTabIds.exports && <AuditExportsSection scope={scope}/>}
+        </div>
+    );
+
+    if (navigationMode === "sidebar")
+    {
+        return (
+            <div
+                id={"audit-workspace-container"}
+                className={styles.container}>
+                <AuditWorkspaceShell
+                    selectedValue={selectedTab}
+                    onTabSelect={onTabSelect}>
+                    {selectedSection}
+                </AuditWorkspaceShell>
+            </div>
+        );
+    }
+
     return (
-        <div id={"audit-workspace-container"} className={styles.container}>
-            <Text size={200} className={styles.scopeNote}>
+        <div
+            id={"audit-workspace-container"}
+            className={styles.container}>
+            <Text
+                id={"audit-workspace-scope-note"}
+                size={200}
+                className={styles.scopeNote}>
                 Showing {scope.kind === "organization" ? "organization" : "platform"}-scoped audit
                 evidence. Sensitive fields are shown only when your access includes them.
             </Text>
-
             {canSelectScope && (
                 <Dropdown
                     id={"audit-workspace-scope-selector"}
@@ -83,22 +129,11 @@ const AuditWorkspace = () =>
                     </Option>
                 </Dropdown>
             )}
-
-            <TabList
-                id={"audit-workspace-tabs"}
+            <AuditWorkspaceNavigation
+                idPrefix={"audit-workspace"}
                 selectedValue={selectedTab}
-                onTabSelect={(_event, data) => setSelectedTab(data.value)}
-            >
-                <Tab id={"tab-audit-events"} value={tabIds.events}>Events</Tab>
-                <Tab id={"tab-audit-integrity"} value={tabIds.integrity}>Integrity</Tab>
-                <Tab id={"tab-audit-exports"} value={tabIds.exports}>Exports</Tab>
-            </TabList>
-
-            <div className={styles.tabPanel}>
-                {selectedTab === tabIds.events && <AuditEventsSection scope={scope}/>}
-                {selectedTab === tabIds.integrity && <AuditIntegritySection scope={scope}/>}
-                {selectedTab === tabIds.exports && <AuditExportsSection scope={scope}/>}
-            </div>
+                onTabSelect={onTabSelect}/>
+            {selectedSection}
         </div>
     );
 };

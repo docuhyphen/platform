@@ -4,9 +4,10 @@ export const managingCommunicationsArticle = (
     <>
         <p>
             The <b>Settings {">"} Automation {">"} Communications</b> tab is where
-            you create, edit, publish, and manage all communications accessible to
-            you. The tab is split into three scope tabs: <b>My Communications</b>,
-            <b>Organization</b>, and <b>Platform</b>.
+            you manage Personal and Organization communications and browse Platform
+            communications. The tab is split into <b>My Communications</b>,
+            <b>Organization</b>, and <b>Platform</b> scopes. App Admins manage the
+            Platform scope in <b>Platform Administration - Platform Content</b>.
         </p>
 
         <h3>Finding communications</h3>
@@ -19,8 +20,11 @@ export const managingCommunicationsArticle = (
 
         <h3>Creating a communication</h3>
         <ol>
-            <li>Open <b>Settings</b> from the top navigation bar.</li>
-            <li>Open <b>Automation</b>, then click the <b>Communications</b> tab.</li>
+            <li>
+                For Personal or Organization communications, open <b>Settings</b>,
+                then <b>Automation - Communications</b>. For Platform communications,
+                open <b>Platform Administration - Platform Content - Communications</b>.
+            </li>
             <li>Select the scope tab where you want to create it.</li>
             <li>Click <b>Create Communication</b>.</li>
             <li>
@@ -48,7 +52,9 @@ export const managingCommunicationsArticle = (
 
         <h3>Editing a communication</h3>
         <p>
-            Click the three-dot menu on any communication row and choose <b>Edit</b>.
+            In Settings, click the three-dot menu on an authorized Personal or
+            Organization communication and choose <b>Edit</b>. In Platform
+            Administration, select <b>Edit</b> on a platform Communication card.
             The editor opens in the <b>Details</b> tab. Make your changes and click
             <b>Save Changes</b>.
         </p>
@@ -94,7 +100,12 @@ export const managingCommunicationsArticle = (
         <ul>
             <li><b>Any user</b> - create, edit, and delete Personal communications.</li>
             <li><b>Organization Admin</b> - create, edit, publish, and delete Org communications.</li>
-            <li><b>App Admin</b> - manage Platform communications and all org communications.</li>
+            <li>
+                <b>App Admin</b> - manage Platform communications only from
+                <b>Platform Administration - Platform Content</b>. An App Admin
+                needs a separate Organization Admin role in the active organization
+                to manage its Organization communications.
+            </li>
         </ul>
     </>
 );

@@ -12,7 +12,6 @@ export const tabIds = {
     organizationTrusted: "TrustedOrganizationsTab",
     blueprints: "BlueprintsTab",
     myGroups: "MyGroupsTab",
-    appAdmins: "AppAdminsTab",
     workflows: "WorkflowsTab",
     sequences: "SequencesTab",
     variables: "VariablesTab",

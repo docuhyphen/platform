@@ -11,9 +11,10 @@ export const orgBlueprintsArticle = (
 
         <h3>Who can manage organization blueprints</h3>
         <p>
-            Only Organization Admins (and App Admins) can create, edit, publish,
-            and delete organization blueprints. Regular members can view and use
-            published blueprints but cannot manage them.
+            Only Organization Admins can create, edit, publish, and delete
+            organization blueprints. An App Admin can manage them only when the same
+            account also holds the required role in that organization. Regular members
+            can view and use published blueprints but cannot manage them.
         </p>
 
         <h3>Creating an organization blueprint</h3>

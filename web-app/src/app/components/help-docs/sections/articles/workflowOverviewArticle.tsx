@@ -60,9 +60,20 @@ export const workflowOverviewArticle = (
 
         <h3>Who can manage workflows</h3>
         <p>
-            Only Organization Admins can create, edit, activate, deactivate, publish,
-            clone, or delete workflow definitions. The Workflows tab in Settings is only
-            visible to users with the admin role.
+            Organization Admins can create, edit, activate, deactivate, publish,
+            clone, or delete workflow definitions for their active organization.
+            The Organization sub-tab exposes management actions only when the active
+            organization grants the required administration capability.
+        </p>
+        <p>
+            App Admins manage platform-scoped workflow definitions and templates.
+            Open <b>Platform Administration</b> from the top application bar and
+            use <b>Platform Content</b>. The platform editor is isolated from
+            organization workflow and directory data.
+            The global App Admin role does not grant access to an organization's
+            workflows or workflow activity. An App Admin needs a separate
+            Organization Admin role in the active organization to manage that
+            organization's workflows.
         </p>
         <p>
             The workflow lists use a fixed footer with the visible range on the
@@ -97,7 +108,7 @@ export const workflowOverviewArticle = (
                    data-help-article="platform-templates">
                     <b>Platform templates</b>
                 </a>{" "}
-                - ready-made workflows you can clone into your organization.
+                - ready-made workflows you can clone into your personal collection.
             </li>
         </ul>
     </>

@@ -53,7 +53,7 @@ class PlatformOrganizationSubscriptionPolicyService @Inject constructor(
 
     fun getEffectivePolicy(organizationId: String, requestId: String?): PolicyResult
     {
-        val actor = requirePlatformAdmin()
+        val actor = requirePlatformAdmin("PLATFORM_ORG_SUBSCRIPTION_POLICY_VIEW")
         val organization = requireOrganization(organizationId)
         val existing = organizationSubscriptionPolicyRepository.findByOrganizationId(organization.id)
 
@@ -88,10 +88,11 @@ class PlatformOrganizationSubscriptionPolicyService @Inject constructor(
             action = "PLATFORM_ORG_SUBSCRIPTION_POLICY_VIEW",
             outcome = "SUCCESS",
             actorId = actor.id,
-            organizationId = organization.id,
             requestId = requestId,
             reason = "Platform admin viewed organization subscription policy",
             afterSnapshot = snapshot(result),
+            targetType = "ORGANIZATION",
+            targetId = organization.id.toString(),
         )
 
         return result
@@ -106,7 +107,7 @@ class PlatformOrganizationSubscriptionPolicyService @Inject constructor(
         requestId: String?,
     ): PolicyListResult
     {
-        val actor = requirePlatformAdmin()
+        val actor = requirePlatformAdmin("PLATFORM_ORG_SUBSCRIPTION_POLICY_LIST")
         validatePaging(limit, offset)
         val normalizedTierCode = tierCode?.trim()?.uppercase()?.takeIf { it.isNotBlank() }
         val includeDefaults = persistedOnly != true
@@ -152,7 +153,7 @@ class PlatformOrganizationSubscriptionPolicyService @Inject constructor(
         adminApprovalContext: AdminApprovalContext,
     ): PolicyResult
     {
-        val actor = requirePlatformAdmin()
+        val actor = requirePlatformAdmin("PLATFORM_ORG_SUBSCRIPTION_POLICY_UPSERT")
         val organization = requireOrganization(organizationId)
         val normalizedTierCode = normalizeTierCode(request.tierCode)
         validateRequest(request, normalizedTierCode)
@@ -192,15 +193,21 @@ class PlatformOrganizationSubscriptionPolicyService @Inject constructor(
             updatedDate = policy.updatedDate,
         )
 
-        authAuditService.emit(
+        authAuditService.emitRequired(
             action = "PLATFORM_ORG_SUBSCRIPTION_POLICY_UPSERT",
             outcome = "SUCCESS",
             actorId = actor.id,
-            organizationId = organization.id,
+            actorRole = "APP_ADMIN",
             requestId = adminApprovalContext.requestId,
             reason = "Platform admin updated organization subscription policy",
             beforeSnapshot = beforeSnapshot,
             afterSnapshot = snapshot(result),
+            targetType = "ORGANIZATION",
+            targetId = organization.id.toString(),
+            structuredDetails = mapOf(
+                "before_state" to (beforeSnapshot ?: "implicit-default"),
+                "after_state" to snapshot(result),
+            ),
         )
 
         return result
@@ -210,7 +217,7 @@ class PlatformOrganizationSubscriptionPolicyService @Inject constructor(
     @Transactional
     fun deletePolicy(organizationId: String, adminApprovalContext: AdminApprovalContext): PolicyResult
     {
-        val actor = requirePlatformAdmin()
+        val actor = requirePlatformAdmin("PLATFORM_ORG_SUBSCRIPTION_POLICY_DELETE")
         val organization = requireOrganization(organizationId)
         val existing = organizationSubscriptionPolicyRepository.findByOrganizationId(organization.id)
             ?: throw IllegalArgumentException("Organization subscription policy not found")
@@ -229,27 +236,40 @@ class PlatformOrganizationSubscriptionPolicyService @Inject constructor(
             updatedDate = null,
         )
 
-        authAuditService.emit(
+        authAuditService.emitRequired(
             action = "PLATFORM_ORG_SUBSCRIPTION_POLICY_DELETE",
             outcome = "SUCCESS",
             actorId = actor.id,
-            organizationId = organization.id,
+            actorRole = "APP_ADMIN",
             requestId = adminApprovalContext.requestId,
             reason = "Platform admin deleted organization subscription policy",
             beforeSnapshot = beforeSnapshot,
             afterSnapshot = snapshot(result),
+            targetType = "ORGANIZATION",
+            targetId = organization.id.toString(),
+            structuredDetails = mapOf(
+                "before_state" to beforeSnapshot,
+                "after_state" to snapshot(result),
+            ),
         )
 
         return result
     }
 
-    private fun requirePlatformAdmin(): AppUser
+    private fun requirePlatformAdmin(attemptedAction: String): AppUser
     {
         val currentUser = authTokenContext.authToken.appUser
             ?: throw UnauthorizedException("User is not authenticated")
 
         if (!userRoleService.isAppAdmin(currentUser.id))
         {
+            authAuditService.emit(
+                action = attemptedAction,
+                outcome = "DENIED",
+                actorId = currentUser.id,
+                reason = "Caller lacks effective App Administrator privilege",
+                targetType = "PLATFORM_ORGANIZATION",
+            )
             throw UnauthorizedException("User does not have permission to manage organization subscription policies")
         }
 

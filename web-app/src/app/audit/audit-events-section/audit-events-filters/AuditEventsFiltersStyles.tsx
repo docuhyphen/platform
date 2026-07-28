@@ -5,6 +5,7 @@ export const useAuditEventsFiltersStyles = makeStyles({
         display: "grid",
         gridTemplateColumns: "minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr)",
         gap: tokens.spacingHorizontalM,
+        flexShrink: 0,
         "@media (max-width: 768px)": {
             gridTemplateColumns: "1fr",
         },

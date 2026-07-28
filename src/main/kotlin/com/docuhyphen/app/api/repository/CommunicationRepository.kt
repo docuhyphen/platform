@@ -12,7 +12,7 @@ class CommunicationRepository :
     /**
      * Returns all communications the caller may see:
      * - PERSONAL communications owned by [callerUserId]
-     * - ORG communications for [callerOrgId] (published-only unless [isOrgAdmin] or [isAppAdmin])
+     * - ORG communications for [callerOrgId] (published-only unless [isOrgAdmin])
      * - PLATFORM-scoped communications (isTemplate=true, always visible to all)
      *
      * Org admins cannot see other users' PERSONAL communications.
@@ -21,11 +21,8 @@ class CommunicationRepository :
         callerUserId: UUID,
         callerOrgId: UUID?,
         isOrgAdmin: Boolean,
-        isAppAdmin: Boolean,
     ): List<Communication>
     {
-        val showUnpublishedOrg = isOrgAdmin || isAppAdmin
-
         return if (callerOrgId != null)
         {
             entityManager.createQuery(
@@ -45,7 +42,7 @@ class CommunicationRepository :
             )
                 .setParameter("uid", callerUserId)
                 .setParameter("oid", callerOrgId)
-                .setParameter("showUnpublished", showUnpublishedOrg)
+                .setParameter("showUnpublished", isOrgAdmin)
                 .resultList
         }
         else

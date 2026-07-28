@@ -25,6 +25,7 @@ interface Props
     onClose: () => void;
     onSelect: (communication: CommunicationSummaryDto) => void;
     selectedId?: string;
+    fixedScope?: ScopeTab;
 }
 
 type ScopeTab = 'PERSONAL' | 'ORG' | 'PLATFORM';
@@ -41,10 +42,10 @@ const scopeColor: Record<ScopeTab, 'brand' | 'success' | 'informative'> = {
     PLATFORM: 'informative',
 };
 
-const CommunicationPickerDialog: React.FC<Props> = ({open, onClose, onSelect, selectedId}) =>
+const CommunicationPickerDialog: React.FC<Props> = ({open, onClose, onSelect, selectedId, fixedScope}) =>
 {
     const styles = useCommunicationPickerDialogStyles();
-    const [activeTab, setActiveTab] = useState<ScopeTab>('PERSONAL');
+    const [activeTab, setActiveTab] = useState<ScopeTab>(fixedScope ?? 'PERSONAL');
     const [communications, setCommunications] = useState<CommunicationSummaryDto[]>([]);
     const [loading, setLoading] = useState(false);
     const [search, setSearch] = useState('');
@@ -53,10 +54,10 @@ const CommunicationPickerDialog: React.FC<Props> = ({open, onClose, onSelect, se
     useEffect(() =>
     {
         if (!open) return;
+        setActiveTab(fixedScope ?? 'PERSONAL');
         setSearch('');
         setPending(null);
-        loadCommunications(activeTab);
-    }, [open]);
+    }, [fixedScope, open]);
 
     useEffect(() =>
     {
@@ -90,19 +91,34 @@ const CommunicationPickerDialog: React.FC<Props> = ({open, onClose, onSelect, se
                     <DialogTitle>Select Communication</DialogTitle>
                     <DialogContent>
                         <div className={styles.contentContainer}>
-                            <TabList
-                                selectedValue={activeTab}
-                                onTabSelect={(_, d) =>
-                                {
-                                    setActiveTab(d.value as ScopeTab);
-                                    setCommunications([]);
-                                    setPending(null);
-                                }}
-                            >
-                                <Tab value="PERSONAL">{scopeLabels.PERSONAL}</Tab>
-                                <Tab value="ORG">{scopeLabels.ORG}</Tab>
-                                <Tab value="PLATFORM">{scopeLabels.PLATFORM}</Tab>
-                            </TabList>
+                            {!fixedScope && (
+                                <TabList
+                                    id={"communication-picker-scope-tabs"}
+                                    selectedValue={activeTab}
+                                    onTabSelect={(_, d) =>
+                                    {
+                                        setActiveTab(d.value as ScopeTab);
+                                        setCommunications([]);
+                                        setPending(null);
+                                    }}
+                                >
+                                    <Tab
+                                        id={"communication-picker-personal-tab"}
+                                        value="PERSONAL">
+                                        {scopeLabels.PERSONAL}
+                                    </Tab>
+                                    <Tab
+                                        id={"communication-picker-organization-tab"}
+                                        value="ORG">
+                                        {scopeLabels.ORG}
+                                    </Tab>
+                                    <Tab
+                                        id={"communication-picker-platform-tab"}
+                                        value="PLATFORM">
+                                        {scopeLabels.PLATFORM}
+                                    </Tab>
+                                </TabList>
+                            )}
 
                             <Input
                                 id={"communication-picker-search-input"}

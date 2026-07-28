@@ -11,6 +11,7 @@ interface Props
     boolean: boolean;
     enumValues: string[] | null;
     lookupType: string | undefined;
+    allowEntityLookup: boolean;
     onChange: (value: string, label: string, quoted: boolean) => void;
 }
 
@@ -20,7 +21,7 @@ const humanizeEnum = (value: string): string => value.trim().split("_")
 const ConditionValueControl = (props: Props) =>
 {
     const styles = useConditionExpressionBuilderStyles();
-    if (props.lookupType)
+    if (props.lookupType && props.allowEntityLookup)
     {
         return (
             <EntityPickerCombobox

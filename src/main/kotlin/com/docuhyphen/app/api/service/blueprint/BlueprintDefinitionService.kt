@@ -71,9 +71,8 @@ class BlueprintDefinitionService @Inject constructor(
         val principal = currentPrincipal()
         val activeOrgId = currentContext().activeOrgId
         val isOrgAdmin = activeOrgId != null && userRoleService.isOrgAdminIn(principal.id, activeOrgId)
-        val isAppAdmin = userRoleService.isAppAdmin(principal.id)
 
-        return repository.findAllAccessibleForCaller(principal.id, activeOrgId, isOrgAdmin, isAppAdmin)
+        return repository.findAllAccessibleForCaller(principal.id, activeOrgId, isOrgAdmin)
             .asSequence()
             .filter { scope == null || it.scope.name == scope.uppercase() }
             .filter { tag == null || decodeTags(it.generalTags).contains(tag) }
@@ -118,7 +117,7 @@ class BlueprintDefinitionService @Inject constructor(
             generalTags = encodeTags(request.generalTags)
             isActive = request.isActive
             scope = resolvedScope
-            organizationId = if (resolvedScope == BlueprintScope.PERSONAL) null else activeOrgId
+            organizationId = if (resolvedScope == BlueprintScope.ORG) activeOrgId else null
             isTemplate = if (isAppAdmin && resolvedScope == BlueprintScope.APP) request.isTemplate else false
             createdByAppUserId = principal.id
         }
@@ -226,13 +225,12 @@ class BlueprintDefinitionService @Inject constructor(
         val authContext = currentContext()
         val activeOrgId = authContext.activeOrgId
         val isOrgAdmin = activeOrgId != null && userRoleService.isOrgAdminIn(principal.id, activeOrgId)
-        val isAppAdmin = userRoleService.isAppAdmin(principal.id)
 
         val source = repository.findById(id)
             ?: throw IllegalArgumentException("Blueprint not found: $id")
         checkReadAccess(source, principal, authContext)
 
-        val targetScope = resolveCloneTargetScope(request.targetScope, activeOrgId, isOrgAdmin, isAppAdmin)
+        val targetScope = resolveCloneTargetScope(request.targetScope, activeOrgId, isOrgAdmin)
         adminActionGuardService.enforce(
             action = actionFor(targetScope, "CLONE"),
             actorId = principal.id,
@@ -261,7 +259,6 @@ class BlueprintDefinitionService @Inject constructor(
 
     private fun checkReadAccess(bp: BlueprintDefinition, principal: PrincipalRef, context: AuthorizationContext)
     {
-        if (userRoleService.isAppAdmin(principal.id)) return
         when (bp.scope)
         {
             BlueprintScope.PERSONAL ->
@@ -281,7 +278,6 @@ class BlueprintDefinitionService @Inject constructor(
 
     private fun checkWriteAccess(bp: BlueprintDefinition, principal: PrincipalRef, context: AuthorizationContext)
     {
-        if (userRoleService.isAppAdmin(principal.id)) return
         when (bp.scope)
         {
             BlueprintScope.PERSONAL ->
@@ -296,7 +292,8 @@ class BlueprintDefinitionService @Inject constructor(
                     throw ForbiddenException("Access denied to blueprint ${bp.id}")
             }
             BlueprintScope.APP ->
-                throw ForbiddenException("Platform blueprints cannot be modified directly; clone them instead")
+                if (!userRoleService.isAppAdmin(principal.id))
+                    throw ForbiddenException("App admin role required to modify APP-scoped blueprints")
         }
     }
 
@@ -322,14 +319,14 @@ class BlueprintDefinitionService @Inject constructor(
                 .getOrElse { throw IllegalArgumentException("Invalid scope: $requestedScope") }
             if (parsed == BlueprintScope.APP && !isAppAdmin)
                 throw ForbiddenException("App admin role required to create APP-scoped blueprints")
-            if (parsed == BlueprintScope.ORG && !isOrgAdmin && !isAppAdmin)
+            if (parsed == BlueprintScope.ORG && !isOrgAdmin)
                 throw ForbiddenException("Org admin role required to create ORG-scoped blueprints")
             return parsed
         }
         return when
         {
-            isAppAdmin -> BlueprintScope.APP
             isOrgAdmin && activeOrgId != null -> BlueprintScope.ORG
+            isAppAdmin -> BlueprintScope.APP
             else -> BlueprintScope.PERSONAL
         }
     }
@@ -338,7 +335,6 @@ class BlueprintDefinitionService @Inject constructor(
         requested: String?,
         activeOrgId: UUID?,
         isOrgAdmin: Boolean,
-        isAppAdmin: Boolean,
     ): BlueprintScope
     {
         if (requested == null) return BlueprintScope.PERSONAL
@@ -347,7 +343,7 @@ class BlueprintDefinitionService @Inject constructor(
             "PERSONAL" -> BlueprintScope.PERSONAL
             "ORG" ->
             {
-                if (!isOrgAdmin && !isAppAdmin)
+                if (!isOrgAdmin)
                     throw ForbiddenException("Org admin role required to clone into the organization collection")
                 if (activeOrgId == null)
                     throw ForbiddenException("No organization membership found")

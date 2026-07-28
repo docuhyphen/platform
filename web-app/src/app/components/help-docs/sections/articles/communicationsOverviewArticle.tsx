@@ -29,9 +29,9 @@ export const communicationsOverviewArticle = (
                 until published.
             </li>
             <li>
-                <b>Platform</b> - provided by DocuHyphen. Read-only; you cannot
-                edit them directly. Clone a platform communication to create your
-                own editable personal copy.
+                <b>Platform</b> - provided by DocuHyphen. App Admins manage these
+                in <b>Platform Administration - Platform Content</b>. Other users
+                can read them and clone one to create an editable personal copy.
             </li>
         </ul>
 
@@ -46,7 +46,8 @@ export const communicationsOverviewArticle = (
         </p>
         <p>
             Available tokens are listed in the editor's token badge bar and in the
-            Settings {">"} Variables section.
+            Settings {">"} Variables section. The platform Communication editor
+            does not load organization or personal variable suggestions.
         </p>
 
         <h3>Draft and published states</h3>

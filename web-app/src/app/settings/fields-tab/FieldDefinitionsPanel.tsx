@@ -19,7 +19,7 @@ interface Props
 {
     definitions: FieldDefinitionDto[];
     viewMode: ViewMode;
-    canManage: boolean;
+    canManage: (definition: FieldDefinitionDto) => boolean;
     loading: boolean;
     error: string | null;
     onRetire: (definition: FieldDefinitionDto) => void;
@@ -35,7 +35,7 @@ const FieldDefinitionsPanel = ({definitions, viewMode, canManage, loading, error
     if (definitions.length === 0) return <Text className={styles.emptyText}>No fields yet.</Text>;
 
     const renderActions = (definition: FieldDefinitionDto) =>
-        canManage ? (
+        canManage(definition) ? (
             <Menu>
                 <MenuTrigger disableButtonEnhancement>
                     <Button id={`field-def-menu-${definition.id}`}
@@ -64,7 +64,7 @@ const FieldDefinitionsPanel = ({definitions, viewMode, canManage, loading, error
                         <th className={styles.th}>Name</th>
                         <th className={styles.th}>Key</th>
                         <th className={styles.th}>Type</th>
-                        {canManage && <th className={styles.th}/>}
+                        {definitions.some(canManage) && <th className={styles.th}/>}
                     </tr>
                 </thead>
                 <tbody>
@@ -90,7 +90,7 @@ const FieldDefinitionsPanel = ({definitions, viewMode, canManage, loading, error
                                     </Badge>
                                 )}
                             </td>
-                            {canManage && (
+                            {definitions.some(canManage) && (
                                 <td className={styles.td}>
                                     {renderActions(definition)}
                                 </td>

@@ -63,7 +63,6 @@ class VariableDefinitionService @Inject constructor(
         val principal = currentPrincipal()
         val authContext = currentContext()
         val activeOrgId = authContext.activeOrgId
-        val isAppAdmin = userRoleService.isAppAdmin(principal.id)
 
         val scope = runCatching { VariableScope.valueOf(request.scope.uppercase()) }
             .getOrElse { throw IllegalArgumentException("Invalid scope '${request.scope}'") }
@@ -76,12 +75,11 @@ class VariableDefinitionService @Inject constructor(
         {
             VariableScope.ORG ->
             {
-                val isOrgAdmin = activeOrgId != null && userRoleService.isOrgAdminIn(principal.id, activeOrgId)
-                if (!isOrgAdmin && !isAppAdmin)
+                val organizationId = activeOrgId
+                    ?: throw IllegalArgumentException("Organization context required for ORG scope")
+                if (!userRoleService.isOrgAdminIn(principal.id, organizationId))
                     throw ForbiddenException("Org admin role required to manage org variables")
-                if (activeOrgId == null)
-                    throw IllegalArgumentException("Organization context required for ORG scope")
-                if (repository.findByOrganizationIdAndKeyAndIsDeletedFalse(activeOrgId, normalizedKey) != null)
+                if (repository.findByOrganizationIdAndKeyAndIsDeletedFalse(organizationId, normalizedKey) != null)
                     throw IllegalArgumentException("Variable '$normalizedKey' already exists in this organization")
             }
             VariableScope.PERSONAL ->
@@ -146,7 +144,6 @@ class VariableDefinitionService @Inject constructor(
 
     private fun checkWriteAccess(variable: VariableDefinition, principal: PrincipalRef, context: AuthorizationContext)
     {
-        if (userRoleService.isAppAdmin(principal.id)) return
         when (variable.scope)
         {
             VariableScope.PERSONAL ->

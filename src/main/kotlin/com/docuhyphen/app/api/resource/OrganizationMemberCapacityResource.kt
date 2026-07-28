@@ -1,12 +1,9 @@
 package com.docuhyphen.app.api.resource
 
-import com.docuhyphen.app.api.interceptor.AuthTokenContext
-import com.docuhyphen.app.api.repository.OrganizationSubscriptionPolicyRepository
 import com.docuhyphen.app.api.resource.model.OrgMemberCapacityResponse
 import com.docuhyphen.app.api.resource.model.ResponseError
-import com.docuhyphen.app.api.service.auth.PlatformOrganizationSubscriptionPolicyService
-import com.docuhyphen.app.api.service.auth.UserRoleService
-import com.docuhyphen.app.api.service.organization.OrganizationService
+import com.docuhyphen.app.api.service.organization.OrganizationMemberCapacityService
+import io.quarkus.security.UnauthorizedException
 import jakarta.inject.Inject
 import jakarta.ws.rs.*
 import jakarta.ws.rs.core.MediaType
@@ -18,11 +15,7 @@ import java.util.UUID
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 class OrganizationMemberCapacityResource @Inject constructor(
-    private val authTokenContext: AuthTokenContext,
-    private val organizationService: OrganizationService,
-    private val organizationSubscriptionPolicyRepository: OrganizationSubscriptionPolicyRepository,
-    private val userRoleService: UserRoleService,
-    private val organizationMembershipService: com.docuhyphen.app.api.service.organization.OrganizationMembershipService,
+    private val organizationMemberCapacityService: OrganizationMemberCapacityService,
 )
 {
     companion object
@@ -36,67 +29,40 @@ class OrganizationMemberCapacityResource @Inject constructor(
     {
         return try
         {
-            val appUser = authTokenContext.authToken.appUser!!
             val orgUuid = runCatching { UUID.fromString(orgId) }.getOrElse {
                 return Response.status(Response.Status.BAD_REQUEST)
                     .entity(ResponseError("Invalid organization ID."))
                     .build()
             }
 
-            val isPlatformAdmin = userRoleService.isAppAdmin(appUser.id)
-            val isOrgAdmin = userRoleService.isOrgAdminIn(appUser.id, orgUuid)
-
-            if (!isPlatformAdmin && !isOrgAdmin)
-            {
-                return Response.status(Response.Status.FORBIDDEN)
-                    .entity(ResponseError("Access denied."))
-                    .build()
-            }
-
-            if (isOrgAdmin)
-            {
-                val memberOrg = appUser.person?.contactDetails?.organization
-                if (memberOrg?.id != orgUuid)
-                {
-                    return Response.status(Response.Status.FORBIDDEN)
-                        .entity(ResponseError("Access denied."))
-                        .build()
-                }
-            }
-
-            val org = runCatching { organizationService.getOrganizationById(orgUuid) }.getOrElse {
-                return Response.status(Response.Status.NOT_FOUND)
-                    .entity(ResponseError("Organization not found."))
-                    .build()
-            }
-
-            val policy = organizationSubscriptionPolicyRepository.findByOrganizationId(orgUuid)
-            val tierCode = policy?.tierCode ?: PlatformOrganizationSubscriptionPolicyService.FREE_TIER_CODE
-            val maxUsers = policy?.maxUsers
-                ?: if (tierCode.equals(PlatformOrganizationSubscriptionPolicyService.FREE_TIER_CODE, ignoreCase = true))
-                    PlatformOrganizationSubscriptionPolicyService.FREE_TIER_MAX_USERS
-                else null
-            val activeUsers = organizationMembershipService.membersOf(orgUuid).count { it.isActive }.toLong()
-            val atCap = maxUsers != null && activeUsers >= maxUsers
-            val nearCap = maxUsers != null && activeUsers >= (maxUsers * 0.8).toLong()
+            val capacity = organizationMemberCapacityService.getForOrganization(orgUuid)
+            val atCap = capacity.maxUsers != null && capacity.activeUsers >= capacity.maxUsers
+            val nearCap = capacity.maxUsers != null && capacity.activeUsers >= (capacity.maxUsers * 0.8).toLong()
 
             Response.ok(
                 OrgMemberCapacityResponse(
-                    organizationId = orgUuid.toString(),
-                    tierCode = tierCode,
-                    maxUsers = maxUsers,
-                    activeUsers = activeUsers,
+                    organizationId = capacity.organizationId.toString(),
+                    tierCode = capacity.tierCode,
+                    maxUsers = capacity.maxUsers,
+                    activeUsers = capacity.activeUsers,
                     atCap = atCap,
                     nearCap = nearCap,
                 )
             ).build()
         }
-        catch (e: Exception)
+        catch (exception: Exception)
         {
-            logger.error("Error fetching org member capacity", e)
-            Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                .entity(ResponseError("Failed to fetch member capacity."))
-                .build()
+            logger.error("Error fetching organization member capacity", exception)
+            when (exception)
+            {
+                is UnauthorizedException -> Response.status(Response.Status.FORBIDDEN)
+                    .entity(ResponseError(exception.message)).build()
+                is com.docuhyphen.app.api.exception.OrganizationNotFoundException ->
+                    Response.status(Response.Status.NOT_FOUND)
+                        .entity(ResponseError(exception.message)).build()
+                else -> Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity(ResponseError("Failed to fetch member capacity.")).build()
+            }
         }
     }
 }

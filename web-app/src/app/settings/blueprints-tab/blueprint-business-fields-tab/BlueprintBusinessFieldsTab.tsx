@@ -2,6 +2,8 @@ import {useEffect, useRef, useState} from 'react';
 import {Text} from '@fluentui/react-components';
 import {
     BlueprintFieldDefaultConfig,
+    BlueprintScope,
+    FieldScopeKind,
     SchemaDefinitionDto,
     SchemaFieldBindingDto,
 } from '../../../models/models';
@@ -19,6 +21,7 @@ interface Props
     initialSchemaDefinitionId?: string;
     initialFieldDefaults?: BlueprintFieldDefaultConfig[];
     onChange: (schemaDefinitionId: string | undefined, fieldDefaults: BlueprintFieldDefaultConfig[]) => void;
+    enforcedScope?: BlueprintScope;
 }
 
 /**
@@ -32,6 +35,7 @@ const BlueprintBusinessFieldsTab = (
         initialSchemaDefinitionId,
         initialFieldDefaults,
         onChange,
+        enforcedScope,
     }: Props) =>
 {
     const styles = useBlueprintBusinessFieldsTabStyles();
@@ -44,10 +48,10 @@ const BlueprintBusinessFieldsTab = (
 
     useEffect(() =>
     {
-        listSchemas()
+        listSchemas(enforcedScope === 'APP' ? {scopeKind: FieldScopeKind.PLATFORM} : undefined)
             .then(all => setSchemas(filterEligibleExchangeSchemas(all)))
             .catch(() => setSchemas([]));
-    }, []);
+    }, [enforcedScope]);
 
     useEffect(() =>
     {

@@ -118,8 +118,15 @@ export const listFieldTypes = (): Promise<FieldTypeInfoDto[]> =>
 
 // ── Field Definitions ─────────────────────────────────────────────────────────
 
-export const listFieldDefinitions = (): Promise<FieldDefinitionDto[]> =>
-    executeRequest(() => apiClient.get('/fields/definitions'));
+export interface ListFieldDefinitionsParams
+{
+    scopeKind?: FieldScopeKind;
+}
+
+export const listFieldDefinitions = (
+    params?: ListFieldDefinitionsParams,
+): Promise<FieldDefinitionDto[]> =>
+    executeRequest(() => apiClient.get('/fields/definitions', {params}));
 
 export const getFieldDefinition = (id: string): Promise<FieldDefinitionDto> =>
     executeRequest(() => apiClient.get(`/fields/definitions/${id}`));
@@ -143,8 +150,13 @@ export const retireFieldDefinition = (id: string): Promise<FieldDefinitionDto> =
 
 // ── Schema Definitions ──────────────────────────────────────────────────────
 
-export const listSchemas = (): Promise<SchemaDefinitionDto[]> =>
-    executeRequest(() => apiClient.get('/schemas/definitions'));
+export interface ListSchemasParams
+{
+    scopeKind?: FieldScopeKind;
+}
+
+export const listSchemas = (params?: ListSchemasParams): Promise<SchemaDefinitionDto[]> =>
+    executeRequest(() => apiClient.get('/schemas/definitions', {params}));
 
 export const getSchema = (id: string): Promise<SchemaDefinitionDto> =>
     executeRequest(() => apiClient.get(`/schemas/definitions/${id}`));

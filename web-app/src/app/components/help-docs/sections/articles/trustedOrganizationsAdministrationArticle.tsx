@@ -13,7 +13,7 @@ export const trustedOrganizationsAdministrationArticle = (
         </p>
         <h3>Allowing other organizations to find you</h3>
         <ol>
-            <li>Open <b>Settings</b> and select <b>Organization</b>.</li>
+            <li>Open <b>Settings</b>, then select <b>Administration</b> under <b>Organization</b>.</li>
             <li>Open <b>Details</b>.</li>
             <li>
                 Enable <b>Allow verified organizations to find us for trust requests</b> under
@@ -32,7 +32,7 @@ export const trustedOrganizationsAdministrationArticle = (
             Email invitations recheck current eligibility at acceptance without a trusted-membership assurance.</p>
         <h3>Sending and deciding requests</h3>
         <ol>
-            <li>Open <b>Settings</b>, select <b>Organization</b>, then <b>Trusted Organizations</b>.</li>
+            <li>Open <b>Settings</b>, select <b>Administration</b> under <b>Organization</b>, then <b>Trusted Organizations</b>.</li>
             <li>Select <b>New request</b> and search by organization name.</li>
             <li>Select the organization, add an optional message, and send the request.</li>
             <li>The requested organization's administrators can accept or reject it.</li>

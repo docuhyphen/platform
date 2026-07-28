@@ -10,8 +10,13 @@ class AppRoleAssignmentRepository : BaseRepository<AppRoleAssignment>(AppRoleAss
 {
     fun findActiveForUser(appUserId: UUID): List<AppRoleAssignment> =
         entityManager.createQuery(
-            """SELECT r FROM AppRoleAssignment r
-               WHERE r.appUserId = :uid AND r.isActive = true""",
+            """SELECT r FROM AppRoleAssignment r, AppUser u
+               WHERE r.appUserId = :uid
+                 AND u.id = r.appUserId
+                 AND r.isActive = true
+                 AND (r.expiresAt IS NULL OR r.expiresAt > CURRENT_TIMESTAMP)
+                 AND u.isActive = true
+                 AND u.deprovisionedAt IS NULL""",
             AppRoleAssignment::class.java,
         )
             .setParameter("uid", appUserId)
@@ -19,8 +24,13 @@ class AppRoleAssignmentRepository : BaseRepository<AppRoleAssignment>(AppRoleAss
 
     fun countActiveAppAdmins(): Long =
         entityManager.createQuery(
-            """SELECT COUNT(r) FROM AppRoleAssignment r
-               WHERE r.roleName = :role AND r.isActive = true""",
+            """SELECT COUNT(r) FROM AppRoleAssignment r, AppUser u
+               WHERE r.roleName = :role
+                 AND u.id = r.appUserId
+                 AND r.isActive = true
+                 AND (r.expiresAt IS NULL OR r.expiresAt > CURRENT_TIMESTAMP)
+                 AND u.isActive = true
+                 AND u.deprovisionedAt IS NULL""",
             Long::class.java,
         )
             .setParameter("role", AppRoleName.APP_ADMIN)
@@ -28,12 +38,31 @@ class AppRoleAssignmentRepository : BaseRepository<AppRoleAssignment>(AppRoleAss
 
     fun findActiveAppAdmins(): List<AppRoleAssignment> =
         entityManager.createQuery(
-            """SELECT r FROM AppRoleAssignment r
-               WHERE r.roleName = :role AND r.isActive = true""",
+            """SELECT r FROM AppRoleAssignment r, AppUser u
+               WHERE r.roleName = :role
+                 AND u.id = r.appUserId
+                 AND r.isActive = true
+                 AND (r.expiresAt IS NULL OR r.expiresAt > CURRENT_TIMESTAMP)
+                 AND u.isActive = true
+                 AND u.deprovisionedAt IS NULL""",
             AppRoleAssignment::class.java,
         )
             .setParameter("role", AppRoleName.APP_ADMIN)
             .resultList
+
+    fun isEffective(assignmentId: UUID): Boolean =
+        entityManager.createQuery(
+            """SELECT COUNT(r) FROM AppRoleAssignment r, AppUser u
+               WHERE r.id = :assignmentId
+                 AND u.id = r.appUserId
+                 AND r.isActive = true
+                 AND (r.expiresAt IS NULL OR r.expiresAt > CURRENT_TIMESTAMP)
+                 AND u.isActive = true
+                 AND u.deprovisionedAt IS NULL""",
+            Long::class.java,
+        )
+            .setParameter("assignmentId", assignmentId)
+            .singleResult > 0
 
     fun findAppRoleForUser(appUserId: UUID, roleName: AppRoleName): AppRoleAssignment? =
         entityManager.createQuery(

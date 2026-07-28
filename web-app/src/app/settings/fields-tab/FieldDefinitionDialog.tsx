@@ -11,8 +11,9 @@ import {
     Tooltip,
 } from '@fluentui/react-components';
 import {QuestionCircleRegular} from '@fluentui/react-icons';
-import {FieldDataClassification, FieldValueType} from '../../models/models';
+import {FieldDataClassification, FieldScopeKind, FieldValueType} from '../../models/models';
 import {createFieldDefinition, FieldContractRequest} from '../../../services/fieldsService';
+import {createPlatformField} from '../../../services/platformFieldsService.ts';
 import {typeSupportsOptions} from './fieldLabels';
 import FieldDefinitionFormBody, {FieldForm} from './FieldDefinitionFormBody';
 import {useFieldsTabStyles} from './FieldsTabStyles';
@@ -24,6 +25,7 @@ interface Props
     onClose: () => void;
     onSaved: () => void;
     existingNamespaces?: string[];
+    enforcedScope?: FieldScopeKind;
 }
 
 const emptyForm = (): FieldForm => ({
@@ -36,7 +38,7 @@ const emptyForm = (): FieldForm => ({
     options: [],
 });
 
-const FieldDefinitionDialog = ({open, onClose, onSaved, existingNamespaces = []}: Props) =>
+const FieldDefinitionDialog = ({open, onClose, onSaved, existingNamespaces = [], enforcedScope}: Props) =>
 {
     const styles = useFieldsTabStyles();
     const {openHelpArticle} = useHelpSidebar();
@@ -75,11 +77,15 @@ const FieldDefinitionDialog = ({open, onClose, onSaved, existingNamespaces = []}
         };
         try
         {
-            await createFieldDefinition({
+            const request = {
                 namespace: form.namespace.trim(),
                 fieldKey: form.fieldKey.trim(),
                 contract,
-            });
+            };
+            if (enforcedScope === FieldScopeKind.PLATFORM)
+                await createPlatformField(request);
+            else
+                await createFieldDefinition(request);
             onSaved();
         }
         catch (e: unknown)

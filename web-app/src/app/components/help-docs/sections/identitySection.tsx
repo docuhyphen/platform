@@ -73,8 +73,8 @@ export const identitySection: HelpDocSectionInput = {
 
                     <h3>Session policy</h3>
                     <p>
-                        Open <b>Settings</b>, <b>Organization</b>, <b>Administration</b>,
-                        then <b>Authentication</b> to review the effective session policy.
+                        Open <b>Settings</b>, select <b>Administration</b> under
+                        <b> Organization</b>, then open <b>Authentication</b> to review the effective session policy.
                         The strictest value from the active Identity Provider configurations applies.
                     </p>
                     <ul>

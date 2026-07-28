@@ -44,6 +44,7 @@ interface Props
     triggers: WorkflowTriggerEventDto[];
     subjectFields: WorkflowSubjectFieldDto[];
     onBack: () => void;
+    platformMode?: boolean;
 }
 
 const OutcomeField = ({label, value, steps, triggers, onChange}: {
@@ -95,7 +96,17 @@ const OutcomeField = ({label, value, steps, triggers, onChange}: {
     );
 };
 
-const StepCard = ({index, step, steps, onChange, onRemove, triggers, subjectFields, onBack}: Props) =>
+const StepCard = ({
+    index,
+    step,
+    steps,
+    onChange,
+    onRemove,
+    triggers,
+    subjectFields,
+    onBack,
+    platformMode = false,
+}: Props) =>
 {
     const styles = useStepCardStyles();
     const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -104,7 +115,7 @@ const StepCard = ({index, step, steps, onChange, onRemove, triggers, subjectFiel
 
     useEffect(() =>
     {
-        if (step.communicationId && step.type === 'NOTIFICATION')
+        if (!platformMode && step.communicationId && step.type === 'NOTIFICATION')
         {
             getCommunication(step.communicationId)
                 .then(t => setSelectedCommunicationName(t.name))
@@ -114,7 +125,7 @@ const StepCard = ({index, step, steps, onChange, onRemove, triggers, subjectFiel
         {
             setSelectedCommunicationName(null);
         }
-    }, [step.communicationId, step.type]);
+    }, [platformMode, step.communicationId, step.type]);
 
     const affectedRoutes = findRoutesReferencingStep(steps, index);
 
@@ -272,6 +283,7 @@ const StepCard = ({index, step, steps, onChange, onRemove, triggers, subjectFiel
                                 expression={step.predicateExpression}
                                 subjectFields={subjectFields}
                                 onChange={expr => patch({predicateExpression: expr})}
+                                allowTenantEntityLookup={!platformMode}
                             />
                         )}
 
@@ -281,6 +293,7 @@ const StepCard = ({index, step, steps, onChange, onRemove, triggers, subjectFiel
                                 step={step}
                                 subjectFields={subjectFields}
                                 onPatch={patch}
+                                allowTenantDirectory={!platformMode}
                             />
                         )}
                     </div>
@@ -293,6 +306,7 @@ const StepCard = ({index, step, steps, onChange, onRemove, triggers, subjectFiel
                                 assignees={step.assignees}
                                 onChange={patchAssignees}
                                 subjectFields={subjectFields}
+                                allowTenantDirectory={!platformMode}
                             />
                         </>
                     )}
@@ -344,6 +358,7 @@ const StepCard = ({index, step, steps, onChange, onRemove, triggers, subjectFiel
                     setTemplatePickerOpen(false);
                 }}
                 selectedId={step.communicationId}
+                fixedScope={platformMode ? "PLATFORM" : undefined}
             />
         </div>
     );

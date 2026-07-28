@@ -52,7 +52,7 @@ const SaveBlueprintPanel: React.FC<SaveBlueprintPanelProps> = (
     const styles = useExchangeInitiationStyles();
     const isAdmin =
         appUserPersonOrganization?.isActive &&
-        (hasCapability(Capability.APP_ADMIN) || hasCapability(Capability.ORG_POLICY_MANAGE));
+        hasCapability(Capability.ORG_POLICY_MANAGE);
 
     const [name, setName] = useState(initialName || '');
     const [summary, setSummary] = useState('');

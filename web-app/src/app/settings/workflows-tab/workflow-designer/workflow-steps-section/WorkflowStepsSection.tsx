@@ -16,9 +16,19 @@ interface Props
     onUpdate: (index: number, step: WorkflowStepSpecDraft) => void;
     onRemove: (index: number) => void;
     onBack: () => void;
+    platformMode?: boolean;
 }
 
-const WorkflowStepsSection = ({steps, triggers, subjectFields, onAdd, onUpdate, onRemove, onBack}: Props) =>
+const WorkflowStepsSection = ({
+    steps,
+    triggers,
+    subjectFields,
+    onAdd,
+    onUpdate,
+    onRemove,
+    onBack,
+    platformMode = false,
+}: Props) =>
 {
     const [selectedStepIndex, setSelectedStepIndex] = useState<number | null>(null);
     const [newStepIndex, setNewStepIndex] = useState<number | null>(null);
@@ -87,6 +97,7 @@ const WorkflowStepsSection = ({steps, triggers, subjectFields, onAdd, onUpdate, 
                     closeStep();
                 }}
                 onBack={closeStep}
+                platformMode={platformMode}
             />
         );
     }

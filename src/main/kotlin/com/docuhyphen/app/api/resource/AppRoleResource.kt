@@ -40,8 +40,8 @@ class AppRoleResource @Inject constructor(
 
     @GET
     @Path("/app-admins")
-    fun listAppAdmins(): Response = guarded {
-        val admins = appRoleAssignmentService.listAppAdmins().map { ra ->
+    fun listAppAdmins(): Response = guarded("APP_ADMIN_LIST") { actor ->
+        val admins = appRoleAssignmentService.listAppAdmins(actor.id).map { ra ->
             val appUser = ra.appUserId?.let { appUserService.getById(it) }
             AppAdminDto(
                 assignmentId = ra.id.toString(),
@@ -58,12 +58,12 @@ class AppRoleResource @Inject constructor(
 
     @POST
     @Path("/app-admins")
-    fun grantAppAdmin(request: GrantAppAdminRequest): Response = guarded {
+    fun grantAppAdmin(request: GrantAppAdminRequest): Response = guarded("APP_ADMIN_GRANT") { actor ->
         val targetId = request.appUserId?.trim()?.takeIf { it.isNotBlank() }
             ?.let { runCatching { UUID.fromString(it) }.getOrElse { throw IllegalArgumentException("Invalid appUserId") } }
             ?: throw IllegalArgumentException("appUserId is required")
 
-        val assignment = appRoleAssignmentService.grantAppRole(targetId, AppRoleName.APP_ADMIN, actorId())
+        val assignment = appRoleAssignmentService.grantAppRole(targetId, AppRoleName.APP_ADMIN, actor.id)
         Response.status(CREATED)
             .entity(AppAdminDto(assignmentId = assignment.id.toString(), appUserId = assignment.appUserId?.toString()))
             .build()
@@ -71,12 +71,13 @@ class AppRoleResource @Inject constructor(
 
     @DELETE
     @Path("/app-admins/{assignmentId}")
-    fun revokeAppAdmin(@PathParam("assignmentId") assignmentId: String): Response = guarded {
-        val id = runCatching { UUID.fromString(assignmentId) }
-            .getOrElse { throw IllegalArgumentException("Invalid assignmentId") }
-        appRoleAssignmentService.revokeAppRole(id, actorId())
-        Response.status(NO_CONTENT).build()
-    }
+    fun revokeAppAdmin(@PathParam("assignmentId") assignmentId: String): Response =
+        guarded("APP_ADMIN_REVOKE") { actor ->
+            val id = runCatching { UUID.fromString(assignmentId) }
+                .getOrElse { throw IllegalArgumentException("Invalid assignmentId") }
+            appRoleAssignmentService.revokeAppRole(id, actor.id)
+            Response.status(NO_CONTENT).build()
+        }
 
     /**
      * Global app-user search for the App Admins picker. App-admin is a global
@@ -89,13 +90,9 @@ class AppRoleResource @Inject constructor(
     fun searchAppAdminCandidates(
         @QueryParam("q") q: String?,
         @QueryParam("limit") @DefaultValue("20") limit: Int,
-    ): Response = guarded {
+    ): Response = guarded("APP_ADMIN_CANDIDATE_SEARCH") { actor ->
         val query = q?.trim().orEmpty()
-        if (query.length < 2)
-        {
-            return@guarded Response.ok(object : GenericEntity<List<AppUserSearchResultDto>>(emptyList()) {}).build()
-        }
-        val hits = appUserService.searchActiveUsers(query, limit).map { u ->
+        val hits = appRoleAssignmentService.searchAppAdminCandidates(query, limit, actor.id).map { u ->
             AppUserSearchResultDto(
                 id = u.id.toString(),
                 email = u.email,
@@ -108,18 +105,19 @@ class AppRoleResource @Inject constructor(
 
     // -------------------------------------------------------------------------
 
-    private fun actorId(): UUID? = authTokenContext.authToken.appUser?.id
-
     /** Require an authenticated App Admin, then run [block] with unified error mapping. */
-    private fun guarded(block: () -> Response): Response
+    private fun guarded(
+        action: String,
+        block: (com.docuhyphen.app.api.model.entity.AppUser) -> Response,
+    ): Response
     {
         return try
         {
             val actor = authTokenContext.authToken.appUser
                 ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Authentication required")).build()
 
-            appRoleAssignmentService.requireAppAdmin(actor.id)
-            block()
+            appRoleAssignmentService.requireAppAdmin(actor.id, action)
+            block(actor)
         }
         catch (exception: Exception)
         {

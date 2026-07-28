@@ -47,7 +47,7 @@ const Settings = () =>
     const hasOrg = !!appUserPersonOrganization?.isActive;
     const canManageOrganization =
         appUserPersonOrganization?.isActive &&
-        (hasCapability(Capability.APP_ADMIN) || hasCapability(Capability.ORG_POLICY_MANAGE));
+        hasCapability(Capability.ORG_POLICY_MANAGE);
     // Show the Administration tab when the user has no org (to register) or a pending org (to
     // view status), in addition to the normal case of an active org with management capabilities.
     const canSeeOrganizationAdminTab = !appUserPersonOrganization?.isActive || canManageOrganization;

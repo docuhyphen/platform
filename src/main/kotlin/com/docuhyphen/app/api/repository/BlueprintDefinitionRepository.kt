@@ -12,7 +12,7 @@ class BlueprintDefinitionRepository :
     /**
      * Returns all blueprints the caller may see:
      * - PERSONAL blueprints owned by [callerUserId]
-     * - ORG blueprints for [callerOrgId] (published-only unless [isOrgAdmin] or [isAppAdmin])
+     * - ORG blueprints for [callerOrgId] (published-only unless [isOrgAdmin])
      * - APP-scoped platform templates (isTemplate=true, always visible)
      *
      * Org admins CANNOT see other users' PERSONAL blueprints.
@@ -21,11 +21,8 @@ class BlueprintDefinitionRepository :
         callerUserId: UUID,
         callerOrgId: UUID?,
         isOrgAdmin: Boolean,
-        isAppAdmin: Boolean,
     ): List<BlueprintDefinition>
     {
-        val showUnpublishedOrg = isOrgAdmin || isAppAdmin
-
         return if (callerOrgId != null)
         {
             entityManager.createQuery(
@@ -45,7 +42,7 @@ class BlueprintDefinitionRepository :
             )
                 .setParameter("uid", callerUserId)
                 .setParameter("oid", callerOrgId)
-                .setParameter("showUnpublished", showUnpublishedOrg)
+                .setParameter("showUnpublished", isOrgAdmin)
                 .resultList
         }
         else

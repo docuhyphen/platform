@@ -63,7 +63,7 @@ const OrganizationSequencesTab = () =>
     const {appUser, setAppUser, token, appUserPersonOrganization, hasCapability} = useAuth();
     const canManage =
         appUserPersonOrganization?.isActive &&
-        (hasCapability(Capability.APP_ADMIN) || hasCapability(Capability.ORG_POLICY_MANAGE));
+        hasCapability(Capability.ORG_POLICY_MANAGE);
 
     const [viewMode, setViewMode] = useState<ViewMode>(appUser?.settings?.sequencesView ?? 'cards');
 

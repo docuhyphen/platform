@@ -46,7 +46,7 @@ const OrganizationVariablesTab = forwardRef<OrganizationVariablesTabHandle, Orga
     const {appUserPersonOrganization, hasCapability} = useAuth();
     const canManage =
         appUserPersonOrganization?.isActive &&
-        (hasCapability(Capability.APP_ADMIN) || hasCapability(Capability.ORG_POLICY_MANAGE));
+        hasCapability(Capability.ORG_POLICY_MANAGE);
 
     const [variables, setVariables] = useState<VariableDefinitionDto[]>([]);
     const [loading, setLoading] = useState(false);

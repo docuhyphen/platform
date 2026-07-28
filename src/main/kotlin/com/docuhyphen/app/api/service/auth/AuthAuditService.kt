@@ -1,6 +1,8 @@
 package com.docuhyphen.app.api.service.auth
 
+import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.service.audit.AuditCaptureFailedException
+import com.docuhyphen.app.api.service.audit.AuditCaptureResult
 import com.docuhyphen.app.api.service.audit.AuditDraftInvalidException
 import com.docuhyphen.app.api.service.audit.AuditEventDraft
 import com.docuhyphen.app.api.service.audit.AuditOwnerScope
@@ -15,6 +17,7 @@ import java.util.UUID
 @RequestScoped
 class AuthAuditService @Inject constructor(
     private val auditRecorder: AuditRecorder,
+    private val authTokenContext: AuthTokenContext,
 )
 {
     companion object
@@ -45,51 +48,139 @@ class AuthAuditService @Inject constructor(
         afterSnapshot: String? = null,
         targetType: String? = null,
         targetId: String? = null,
+        structuredDetails: Map<String, String> = emptyMap(),
     )
     {
-        val eventType = AuditEventType.entries.firstOrNull { it.name == action }
-        if (eventType == null)
-        {
-            logger.warn("Authentication audit action is not registered in the event catalog: {}", action)
-            return
-        }
-
-        val eventId = UUID.randomUUID()
-        try
-        {
-            auditRecorder.record(
-                AuditEventDraft(
-                    eventTypeKey = eventType.key,
-                    outcome = mapOutcome(outcome),
-                    actorId = actorId,
-                    actorRole = actorRole,
-                    targetType = targetType,
-                    targetId = targetId,
-                    owner = organizationId?.let(AuditOwnerScope::Organization) ?: AuditOwnerScope.Platform,
-                    sessionId = sessionId,
-                    reason = sanitize(reason, 2048),
-                    payload = buildMap {
-                        reasonCode?.let { put("reason_code", it.name) }
-                        requestId?.let { put("request_id", it.take(256)) }
-                        if (!beforeSnapshot.isNullOrBlank() || !afterSnapshot.isNullOrBlank())
-                        {
-                            put("state_changed", "true")
-                        }
-                    },
-                    eventId = eventId,
-                    idempotencyKey = "auth:$eventId",
-                )
+        runCatching {
+            record(
+                action,
+                outcome,
+                reasonCode,
+                actorId,
+                actorRole,
+                sessionId,
+                organizationId,
+                requestId,
+                reason,
+                beforeSnapshot,
+                afterSnapshot,
+                targetType,
+                targetId,
+                structuredDetails,
             )
-        }
-        catch (e: AuditDraftInvalidException)
-        {
-            logger.warn("Authentication audit draft rejected for action={}: {}", action, e.message)
-        }
-        catch (e: AuditCaptureFailedException)
-        {
-            logger.error("Authentication audit capture failed for action={}: {}", action, e.message, e)
+        }.onFailure { exception ->
+            when (exception)
+            {
+                is AuditDraftInvalidException ->
+                    logger.warn("Authentication audit draft rejected for action={}: {}", action, exception.message)
+                else ->
+                    logger.error("Authentication audit capture failed for action={}: {}", action, exception.message, exception)
+            }
         }
     }
+
+    fun emitRequired(
+        action: String,
+        outcome: String,
+        reasonCode: RevocationReasonCode? = null,
+        actorId: UUID? = null,
+        actorRole: String? = null,
+        sessionId: String? = null,
+        organizationId: UUID? = null,
+        requestId: String? = null,
+        reason: String? = null,
+        beforeSnapshot: String? = null,
+        afterSnapshot: String? = null,
+        targetType: String? = null,
+        targetId: String? = null,
+        structuredDetails: Map<String, String> = emptyMap(),
+    )
+    {
+        val result = record(
+            action,
+            outcome,
+            reasonCode,
+            actorId,
+            actorRole,
+            sessionId,
+            organizationId,
+            requestId,
+            reason,
+            beforeSnapshot,
+            afterSnapshot,
+            targetType,
+            targetId,
+            structuredDetails,
+        )
+        if (result is AuditCaptureResult.Degraded)
+        {
+            throw AuditCaptureFailedException(
+                "Required audit capture degraded for $action: ${result.reason}",
+                null,
+            )
+        }
+    }
+
+    private fun record(
+        action: String,
+        outcome: String,
+        reasonCode: RevocationReasonCode?,
+        actorId: UUID?,
+        actorRole: String?,
+        sessionId: String?,
+        organizationId: UUID?,
+        requestId: String?,
+        reason: String?,
+        beforeSnapshot: String?,
+        afterSnapshot: String?,
+        targetType: String?,
+        targetId: String?,
+        structuredDetails: Map<String, String>,
+    ): AuditCaptureResult
+    {
+        val eventType = AuditEventType.entries.firstOrNull { it.name == action }
+            ?: throw IllegalArgumentException("Audit action is not registered in the event catalog: $action")
+        val eventId = UUID.randomUUID()
+        return auditRecorder.record(
+            AuditEventDraft(
+                eventTypeKey = eventType.key,
+                outcome = mapOutcome(outcome),
+                actorId = actorId,
+                actorRole = actorRole,
+                targetType = targetType,
+                targetId = targetId,
+                owner = organizationId?.let(AuditOwnerScope::Organization) ?: AuditOwnerScope.Platform,
+                sessionId = sessionId ?: currentSessionId(),
+                reason = sanitize(reason, 2048),
+                payload = buildMap {
+                    reasonCode?.let { put("reason_code", it.name) }
+                    (requestId ?: currentRequestId())?.let { put("request_id", it.take(256)) }
+                    currentSourceIp()?.let { put("source_ip", it.take(64)) }
+                    if (!beforeSnapshot.isNullOrBlank() || !afterSnapshot.isNullOrBlank())
+                    {
+                        put("state_changed", "true")
+                    }
+                    structuredDetails.forEach { (key, value) ->
+                        put(key.take(64), sanitize(value, 2048).orEmpty())
+                    }
+                },
+                eventId = eventId,
+                idempotencyKey = "auth:$eventId",
+            )
+        )
+    }
+
+    private fun currentRequestId(): String? = runCatching {
+        authTokenContext.clientRequestIdHint ?: authTokenContext.correlationId
+    }.getOrNull()
+
+    private fun currentSessionId(): String? = runCatching {
+        authTokenContext.authToken.jti
+    }.getOrNull()
+
+    private fun currentSourceIp(): String? = runCatching {
+        authTokenContext.clientIp
+    }.getOrNull()
 
     private fun sanitize(value: String?, maxLength: Int): String?
     {

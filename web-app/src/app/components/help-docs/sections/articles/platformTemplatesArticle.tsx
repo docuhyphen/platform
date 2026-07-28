@@ -22,13 +22,22 @@ export const platformTemplatesArticle = (
             </li>
         </ol>
 
-        <h3>Adding a template to your organization</h3>
+        <h3>Managing platform templates</h3>
+        <p>
+            App Admins create, edit, publish, activate, and delete platform
+            workflow templates in <b>Platform Administration - Platform Content</b>.
+            This workspace is fixed to platform scope and does not load
+            organization workflows, directory users, groups, or organization
+            communications.
+        </p>
+
+        <h3>Adding a template to your workflows</h3>
         <ol>
             <li>
                 Find the template you want and click <b>Add to my workflows</b>.
             </li>
             <li>
-                A copy of the template is cloned into your organization. The copy
+                A copy of the template is cloned into your personal workflow collection. The copy
                 is independent from the original and can be edited freely.
             </li>
             <li>

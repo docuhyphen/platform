@@ -68,6 +68,7 @@ interface Props
     onChange: (assignees: AssigneeSpecDraft[]) => void;
     label?: string;
     subjectFields?: WorkflowSubjectFieldDto[];
+    allowTenantDirectory?: boolean;
 }
 
 const toPersonPickerItem = (user: AppUserPublicDto): PersonPickerItem => ({
@@ -78,7 +79,13 @@ const toPersonPickerItem = (user: AppUserPublicDto): PersonPickerItem => ({
     avatarUrl: user.avatarUrl,
 });
 
-const AssigneeBuilder = ({assignees, onChange, label, subjectFields = []}: Props) =>
+const AssigneeBuilder = ({
+    assignees,
+    onChange,
+    label,
+    subjectFields = [],
+    allowTenantDirectory = true,
+}: Props) =>
 {
     const styles = useAssigneeBuilderStyles();
     const {appUserPersonOrganization} = useAuth();
@@ -90,14 +97,14 @@ const AssigneeBuilder = ({assignees, onChange, label, subjectFields = []}: Props
 
     const loadOrgData = useCallback(async () =>
     {
-        if (!orgId) return;
+        if (!allowTenantDirectory || !orgId) return;
         const [u, g] = await Promise.all([
             fetchOrganizationUsers(orgId).catch(() => [] as AppUserPublicDto[]),
             fetchOrganizationGroups(orgId).catch(() => [] as OrganizationGroupBasicDto[]),
         ]);
         setUsers(u);
         setGroups(g);
-    }, [orgId]);
+    }, [allowTenantDirectory, orgId]);
 
     useEffect(() => { loadOrgData(); }, [loadOrgData]);
 
@@ -152,8 +159,8 @@ const AssigneeBuilder = ({assignees, onChange, label, subjectFields = []}: Props
                         >
                             <option value="ORGANIZATION_ROLE">Organization Role</option>
                             <option value="APP_ROLE">App Role</option>
-                            <option value="PRINCIPAL">Specific User</option>
-                            <option value="GROUP_ROLE">Group Members</option>
+                            {allowTenantDirectory && <option value="PRINCIPAL">Specific User</option>}
+                            {allowTenantDirectory && <option value="GROUP_ROLE">Group Members</option>}
                         </Select>
 
                         {a.kind === "APP_ROLE" && (

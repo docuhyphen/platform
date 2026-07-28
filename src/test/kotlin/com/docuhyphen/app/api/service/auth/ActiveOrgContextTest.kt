@@ -39,6 +39,7 @@ import java.util.UUID
  *  - ORG_BILLING_ADMIN + ORG_MEMBER compose independently: billing + member capabilities both present.
  *  - ORG_MEMBER capabilities not present when user has org billing role only.
  *  - APP_ADMIN gains APP_ADMIN, APP_AUDIT_READ, APP_REG_READ, APP_REG_ADMIN.
+ *  - Organization switching preserves app capabilities and recalculates organization capabilities.
  *  - Stale roles reflect immediately because capabilities are resolved at call time.
  */
 class ActiveOrgContextTest
@@ -308,6 +309,49 @@ class ActiveOrgContextTest
         assertTrue(Capability.APP_AUDIT_READ.name in caps)
         assertFalse(Capability.EXCHANGE_WRITE.name in caps)
         assertFalse(Capability.DOCUMENT_WRITE.name in caps)
+    }
+
+    @Test
+    fun `switching organizations preserves APP_ADMIN and recalculates tenant capabilities`()
+    {
+        val memberOrgId = UUID.randomUUID()
+        val ctx = makeContext(activeOrgId = orgId, activeMembershipId = membershipId)
+        val userRoleSvc = mock<UserRoleService>()
+        whenever(userRoleSvc.appRoles(userId)).thenReturn(setOf(AppRoleName.APP_ADMIN))
+        whenever(userRoleSvc.orgRolesIn(userId, orgId))
+            .thenReturn(setOf(OrganizationRoleName.ORG_ADMIN))
+        whenever(userRoleSvc.orgRolesIn(userId, memberOrgId))
+            .thenReturn(setOf(OrganizationRoleName.ORG_MEMBER))
+        val svc = makeSessionService(ctx, userRoleSvc)
+
+        val adminSession = svc.currentSession()
+
+        assertEquals(orgId, adminSession.activeOrganizationId)
+        assertTrue(Capability.APP_ADMIN.name in adminSession.capabilities)
+        assertTrue(Capability.ORG_POLICY_MANAGE.name in adminSession.capabilities)
+
+        ctx.activeOrganizationId = memberOrgId
+        ctx.activeMembershipId = UUID.randomUUID()
+        val memberSession = svc.currentSession()
+
+        assertEquals(memberOrgId, memberSession.activeOrganizationId)
+        assertTrue(Capability.APP_ADMIN.name in memberSession.capabilities)
+        assertTrue(Capability.DOC_LIBRARY_DISCOVER.name in memberSession.capabilities)
+        assertFalse(Capability.ORG_POLICY_MANAGE.name in memberSession.capabilities)
+        assertEquals(
+            listOf(OrganizationRoleName.ORG_MEMBER.name),
+            memberSession.organizationRoles,
+        )
+
+        ctx.activeOrganizationId = null
+        ctx.activeMembershipId = null
+        val personalSession = svc.currentSession()
+
+        assertNull(personalSession.activeOrganizationId)
+        assertTrue(Capability.APP_ADMIN.name in personalSession.capabilities)
+        assertFalse(Capability.DOC_LIBRARY_DISCOVER.name in personalSession.capabilities)
+        assertFalse(Capability.ORG_POLICY_MANAGE.name in personalSession.capabilities)
+        assertTrue(personalSession.organizationRoles.isEmpty())
     }
 
     // -----------------------------------------------------------------------

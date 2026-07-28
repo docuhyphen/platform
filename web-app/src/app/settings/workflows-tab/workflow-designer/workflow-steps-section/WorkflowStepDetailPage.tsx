@@ -20,6 +20,7 @@ interface Props
     onUpdate: (index: number, step: WorkflowStepSpecDraft) => void;
     onRemove: (index: number) => void;
     onBack: () => void;
+    platformMode?: boolean;
 }
 
 const WorkflowStepDetailPage = ({
@@ -32,6 +33,7 @@ const WorkflowStepDetailPage = ({
     onUpdate,
     onRemove,
     onBack,
+    platformMode = false,
 }: Props) =>
 {
     const styles = useWorkflowStepsSectionStyles();
@@ -56,6 +58,7 @@ const WorkflowStepDetailPage = ({
                 triggers={triggers}
                 subjectFields={subjectFields}
                 onBack={onBack}
+                platformMode={platformMode}
             />
         </div>
     );

@@ -1,11 +1,8 @@
 import {useEffect, useMemo, useState} from "react";
 import {
-    Spinner,
     Table,
     TableBody,
     TableCell,
-    TableHeader,
-    TableHeaderCell,
     TableRow,
     Text,
 } from "@fluentui/react-components";
@@ -19,7 +16,8 @@ import {
 } from "../../auditDisplayFormatters.ts";
 import AuditCategoryBadge from "../audit-category-badge/AuditCategoryBadge.tsx";
 import {useAuditEventTableStyles} from "./AuditEventTableStyles.tsx";
-import AuditEventTablePagination from "./AuditEventTablePagination.tsx";
+import AuditEventTableHeader from "./AuditEventTableHeader.tsx";
+import AuditEventTableFooter from "./AuditEventTableFooter.tsx";
 
 const AUDIT_EVENTS_PAGE_SIZE = 25;
 
@@ -100,19 +98,12 @@ const AuditEventTable = (
 
     return (
         <div id={"audit-event-table-container"} className={styles.container}>
-            <div className={styles.tableScroller}>
+            <div
+                id={"audit-event-table-scrollable-content"}
+                className={styles.tableScroller}>
                 <Table id={"audit-event-table"} className={styles.table}>
-                    <TableHeader className={styles.tableHeader}>
-                        <TableRow>
-                            <TableHeaderCell>Occurred</TableHeaderCell>
-                            <TableHeaderCell>Category</TableHeaderCell>
-                            <TableHeaderCell>Event</TableHeaderCell>
-                            <TableHeaderCell>Outcome</TableHeaderCell>
-                            <TableHeaderCell>Actor</TableHeaderCell>
-                            <TableHeaderCell>Target</TableHeaderCell>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
+                    <AuditEventTableHeader className={styles.tableHeader}/>
+                    <TableBody id={"audit-event-table-body"}>
                         {visibleItems.map((event) => (
                             <TableRow
                                 id={`audit-event-row-${event.eventId}`}
@@ -134,31 +125,21 @@ const AuditEventTable = (
                 </Table>
             </div>
 
-            {loading && (
-                <div id={"audit-event-table-loading"} className={styles.footer}>
-                    <Spinner size={"small"} label={"Loading audit events..."} labelPosition={"after"}/>
-                </div>
-            )}
-
-            {!loading && (
-                <div className={styles.footer}>
-                    <AuditEventTablePagination
-                        currentPage={currentPage}
-                        loadedPages={loadedPages}
-                        firstItem={firstItem}
-                        lastItem={lastItem}
-                        loadedItems={items.length}
-                        hasMoreItems={canLoadNextPage}
-                        loading={loading}
-                        onFirstPage={() => setCurrentPage(0)}
-                        onPreviousPage={() => setCurrentPage(currentPage - 1)}
-                        onNextPage={handleNextPage}
-                        onLastLoadedPage={() => setCurrentPage(loadedPages - 1)}
-                        controlsClassName={styles.paginationControls}
-                        pageClassName={styles.paginationPageIndicator}
-                    />
-                </div>
-            )}
+            <AuditEventTableFooter
+                loading={loading}
+                currentPage={currentPage}
+                loadedPages={loadedPages}
+                firstItem={firstItem}
+                lastItem={lastItem}
+                loadedItems={items.length}
+                hasMoreItems={canLoadNextPage}
+                footerClassName={styles.footer}
+                controlsClassName={styles.paginationControls}
+                pageClassName={styles.paginationPageIndicator}
+                onFirstPage={() => setCurrentPage(0)}
+                onPreviousPage={() => setCurrentPage(currentPage - 1)}
+                onNextPage={handleNextPage}
+                onLastLoadedPage={() => setCurrentPage(loadedPages - 1)}/>
         </div>
     );
 };

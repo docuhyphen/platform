@@ -62,6 +62,7 @@ interface BlueprintEditorDialogProps
     onSaved: () => void;
     blueprint?: BlueprintDefinitionSummaryDto;
     scope: BlueprintScope;
+    enforcedScope?: BlueprintScope;
 }
 
 type EditorTab = 'details' | 'documents' | 'permissions' | 'fields';
@@ -82,8 +83,10 @@ const BlueprintEditorDialog: React.FC<BlueprintEditorDialogProps> = (
         onSaved,
         blueprint,
         scope,
+        enforcedScope,
     }) =>
 {
+    const effectiveScope = enforcedScope ?? scope;
     const [activeTab, setActiveTab] = useState<EditorTab>('details');
     const [name, setName] = useState('');
     const [summary, setSummary] = useState('');
@@ -104,7 +107,10 @@ const BlueprintEditorDialog: React.FC<BlueprintEditorDialogProps> = (
     useEffect(() =>
     {
         if (!open) return;
-        getAvailableVariables().then(setAvailableVariables).catch(() => null);
+        if (enforcedScope === 'APP')
+            setAvailableVariables(null);
+        else
+            getAvailableVariables().then(setAvailableVariables).catch(() => null);
         if (blueprint)
         {
             setName(blueprint.name);
@@ -131,7 +137,7 @@ const BlueprintEditorDialog: React.FC<BlueprintEditorDialogProps> = (
         setActiveTab('details');
         setPickerOpen(false);
         setError(null);
-    }, [open, blueprint]);
+    }, [open, blueprint, enforcedScope]);
 
     const addTag = () =>
     {
@@ -154,6 +160,11 @@ const BlueprintEditorDialog: React.FC<BlueprintEditorDialogProps> = (
 
     const handleSave = async () =>
     {
+        if (blueprint && enforcedScope && blueprint.scope !== enforcedScope)
+        {
+            setError('The selected Blueprint is outside the enforced editor scope');
+            return;
+        }
         if (!name.trim())
         {
             setError('Name is required');
@@ -187,7 +198,7 @@ const BlueprintEditorDialog: React.FC<BlueprintEditorDialogProps> = (
                     configJson,
                     exchangeDocuments: documents,
                     generalTags: tags,
-                    scope,
+                    scope: effectiveScope,
                     isActive: true,
                     schemaDefinitionId,
                     fieldDefaults: fieldDefaults.length > 0 ? fieldDefaults : undefined,
@@ -211,7 +222,7 @@ const BlueprintEditorDialog: React.FC<BlueprintEditorDialogProps> = (
             <DialogSurface className={editorStyles.dialogSurface}>
                 <DialogBody>
                     <DialogTitle
-                        action={scope !== 'PERSONAL' ? (
+                        action={effectiveScope !== 'PERSONAL' ? (
                             <Checkbox
                                 id={"checkbox-allow-edit-on-exchange-start"}
                                 label="Allow edit on Exchange start"
@@ -493,6 +504,7 @@ const BlueprintEditorDialog: React.FC<BlueprintEditorDialogProps> = (
 
                         {activeTab === 'documents' && pickerOpen && (
                             <DocumentLibraryPicker
+                                enforcedScope={enforcedScope}
                                 onSelect={(entries: DocumentLibraryEntrySummaryDto[]) =>
                                 {
                                     setDocuments(prev => [
@@ -515,6 +527,7 @@ const BlueprintEditorDialog: React.FC<BlueprintEditorDialogProps> = (
                             <BlueprintBusinessFieldsTab
                                 initialSchemaDefinitionId={schemaDefinitionId}
                                 initialFieldDefaults={fieldDefaults}
+                                enforcedScope={enforcedScope}
                                 onChange={(id, defaults) => { setSchemaDefinitionId(id); setFieldDefaults(defaults); }}
                             />
                         )}

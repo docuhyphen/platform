@@ -15,9 +15,5 @@ fun requiresEngagementAccess(capabilities: Set<Capability>, organizationId: UUID
     {
         return false
     }
-    if (Capability.APP_ADMIN in capabilities)
-    {
-        return false
-    }
     return Capability.ORG_POLICY_MANAGE !in capabilities
 }

@@ -11,9 +11,11 @@ export const managingSequencesArticle = (
 
         <h3>Who can manage sequences</h3>
         <p>
-            Only Organization Admins and App Admins can create, edit, reset, and delete
-            sequences. Regular members can use <code>{"{{SEQ:KEY}}"}</code> tokens in
-            blueprints and Exchanges but cannot create or configure sequence definitions.
+            Only Organization Admins can create, edit, reset, and delete sequences.
+            The global App Admin role does not grant access to organization sequences.
+            An App Admin must also be an Organization Admin in the active organization.
+            Regular members can use <code>{"{{SEQ:KEY}}"}</code> tokens in blueprints and
+            Exchanges but cannot create or configure sequence definitions.
         </p>
         <p>
             Sequence changes can require a 6-digit verification code before the create,

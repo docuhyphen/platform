@@ -43,11 +43,23 @@ interface Props
     onSaved: () => void;
     communication?: CommunicationSummaryDto | CommunicationDto;
     scope: CommunicationScope;
+    enforcedScope?: CommunicationScope;
+    createAsTemplate?: boolean;
 }
 
 type EditorTab = 'details' | 'preview';
 
-const CommunicationEditorDialog: React.FC<Props> = ({open, onClose, onSaved, communication, scope}) =>
+const CommunicationEditorDialog: React.FC<Props> = (
+    {
+        open,
+        onClose,
+        onSaved,
+        communication,
+        scope,
+        enforcedScope,
+        createAsTemplate = false,
+    },
+) =>
 {
     const styles = useCommunicationEditorStyles();
     const [activeTab, setActiveTab] = useState<EditorTab>('details');
@@ -70,7 +82,14 @@ const CommunicationEditorDialog: React.FC<Props> = ({open, onClose, onSaved, com
     useEffect(() =>
     {
         if (!open) return;
-        getAvailableVariables().then(setAvailableVariables).catch(() => null);
+        if (enforcedScope === 'PLATFORM')
+        {
+            setAvailableVariables(null);
+        }
+        else
+        {
+            getAvailableVariables().then(setAvailableVariables).catch(() => null);
+        }
         if (communication)
         {
             setName(communication.name);
@@ -94,7 +113,7 @@ const CommunicationEditorDialog: React.FC<Props> = ({open, onClose, onSaved, com
         setPreviewResult(null);
         setPreviewVars('');
         setPreviewError(null);
-    }, [open, communication]);
+    }, [open, communication, enforcedScope]);
 
     const addTag = () =>
     {
@@ -105,6 +124,11 @@ const CommunicationEditorDialog: React.FC<Props> = ({open, onClose, onSaved, com
 
     const handleSave = async () =>
     {
+        if (enforcedScope && communication && communication.scope !== enforcedScope)
+        {
+            setError('This communication is outside the Platform Administration scope.');
+            return;
+        }
         if (!name.trim()) { setError('Name is required'); return; }
         if (!subject.trim()) { setError('Subject is required'); return; }
         if (!body.trim()) { setError('Body is required'); return; }
@@ -133,8 +157,9 @@ const CommunicationEditorDialog: React.FC<Props> = ({open, onClose, onSaved, com
                     subject: subject.trim(),
                     body: body.trim(),
                     generalTags: tags,
-                    scope,
+                    scope: enforcedScope ?? scope,
                     isActive: true,
+                    isTemplate: createAsTemplate,
                 };
                 await createCommunication(req);
             }
@@ -398,6 +423,7 @@ const CommunicationEditorDialog: React.FC<Props> = ({open, onClose, onSaved, com
                         )}
                         <Button
                             id={"button-comm-cancel"}
+                            appearance={"secondary"}
                             shape={"circular"}
                             onClick={onClose}
                             disabled={saving}

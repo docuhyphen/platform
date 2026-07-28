@@ -135,7 +135,7 @@ const VariablesTab = () =>
     const hasOrg = !!appUserPersonOrganization?.isActive;
     const canManageOrg =
         appUserPersonOrganization?.isActive &&
-        (hasCapability(Capability.APP_ADMIN) || hasCapability(Capability.ORG_POLICY_MANAGE));
+        hasCapability(Capability.ORG_POLICY_MANAGE);
 
     const [activeTab, setActiveTab] = useState<ActiveTab>('PERSONAL');
     const [viewMode, setViewMode] = useState<ViewMode>(appUser?.settings?.variablesView ?? 'cards');

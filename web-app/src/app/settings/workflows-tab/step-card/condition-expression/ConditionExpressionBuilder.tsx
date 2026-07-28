@@ -16,9 +16,15 @@ interface Props
     expression: string | undefined;
     subjectFields: WorkflowSubjectFieldDto[];
     onChange: (expression: string | undefined) => void;
+    allowTenantEntityLookup?: boolean;
 }
 
-const ConditionExpressionBuilder = ({expression, subjectFields, onChange}: Props) =>
+const ConditionExpressionBuilder = ({
+    expression,
+    subjectFields,
+    onChange,
+    allowTenantEntityLookup = true,
+}: Props) =>
 {
     const styles = useConditionExpressionBuilderStyles();
     const initial = parseConditionExpression(expression ?? "");
@@ -112,6 +118,7 @@ const ConditionExpressionBuilder = ({expression, subjectFields, onChange}: Props
                     boolean={boolean}
                     enumValues={enumValues}
                     lookupType={lookupType}
+                    allowEntityLookup={allowTenantEntityLookup}
                     onChange={(nextValue, label, quote) =>
                     {
                         setValue(nextValue);

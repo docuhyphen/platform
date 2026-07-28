@@ -21,6 +21,30 @@ class OrganizationMembershipRepository :
             .setParameter("status", OrganizationMembershipStatus.ACTIVE)
             .singleResult ?: 0
 
+    fun countActiveProvisionedMembers(organizationIds: Collection<UUID>): Map<UUID, Long>
+    {
+        if (organizationIds.isEmpty())
+        {
+            return emptyMap()
+        }
+
+        return entityManager.createQuery(
+            """SELECT m.organizationId, COUNT(m)
+               FROM OrganizationMembership m
+               JOIN AppUser u ON u.id = m.appUserId
+               WHERE m.organizationId IN :organizationIds
+                 AND m.status = :status
+                 AND u.isActive = true
+                 AND u.deprovisionedAt IS NULL
+               GROUP BY m.organizationId""",
+            Array<Any>::class.java,
+        )
+            .setParameter("organizationIds", organizationIds)
+            .setParameter("status", OrganizationMembershipStatus.ACTIVE)
+            .resultList
+            .associate { row -> row[0] as UUID to row[1] as Long }
+    }
+
     /** Deletes all membership rows for a user in an org (used on hard-delete of the user). */
     @Transactional
     fun deleteByUserAndOrg(appUserId: UUID, organizationId: UUID): Int =

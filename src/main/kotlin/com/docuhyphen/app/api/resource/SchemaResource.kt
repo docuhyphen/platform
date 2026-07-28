@@ -2,6 +2,7 @@ package com.docuhyphen.app.api.resource
 
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.model.entity.FieldLifecycleStatus
+import com.docuhyphen.app.api.model.entity.FieldScopeKind
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.service.fields.CreateSchemaRequest
 import com.docuhyphen.app.api.service.fields.FieldValidationException
@@ -18,6 +19,7 @@ import jakarta.ws.rs.PUT
 import jakarta.ws.rs.Path
 import jakarta.ws.rs.PathParam
 import jakarta.ws.rs.Produces
+import jakarta.ws.rs.QueryParam
 import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
 import jakarta.ws.rs.core.Response.Status.BAD_REQUEST
@@ -58,8 +60,9 @@ class SchemaResource @Inject constructor(
 
     @GET
     @Path("/definitions")
-    fun listSchemas(): Response = guard {
-        Response.ok(schemaDefinitionService.listSchemas().toTypedArray()).build()
+    fun listSchemas(@QueryParam("scopeKind") scopeKindParam: String?): Response = guard {
+        val scopeKind = scopeKindParam?.let { FieldScopeKind.valueOf(it.uppercase()) }
+        Response.ok(schemaDefinitionService.listSchemas(scopeKind).toTypedArray()).build()
     }
 
     @POST

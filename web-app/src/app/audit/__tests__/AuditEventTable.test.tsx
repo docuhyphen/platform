@@ -48,6 +48,28 @@ describe("AuditEventTable", () =>
         expect(document.getElementById("audit-event-row-e2")).toBeTruthy();
     });
 
+    it("keeps pagination outside the scrollable table region", () =>
+    {
+        render(
+            <AuditEventTable
+                items={[makeEvent("e1")]}
+                nextCursor={null}
+                onLoadMore={vi.fn()}
+                onEventClick={vi.fn()}
+                loading={false}
+            />
+        );
+
+        const scrollableContent = document.getElementById(
+            "audit-event-table-scrollable-content",
+        ) as HTMLElement;
+        const tableHeader = document.getElementById("audit-event-table-header") as HTMLElement;
+        const pagination = document.getElementById("audit-event-table-pagination") as HTMLElement;
+
+        expect(scrollableContent.contains(tableHeader)).toBe(true);
+        expect(scrollableContent.contains(pagination)).toBe(false);
+    });
+
     it("disables the next page button when nextCursor is null", () =>
     {
         render(

@@ -13,9 +13,8 @@ import {useAuth} from "../../../context/AuthContext";
 import {fetchAppUserPersonOrganization} from "../../../services/appUserApi";
 import {updateOrganizationSettings} from "../../../services/organizationApi";
 import {ContactDetailsDetailedDto, OrganizationDetailedDto, OrganizationSettingsDto} from "../../models/models.tsx";
-import {Capability} from '../../models/models.tsx';
 import {
-    ProfileEditBasicDetailsIcon, SettingsAppAdminsIcon,
+    ProfileEditBasicDetailsIcon,
     SettingsAppSettingsTabIcon, SettingsDeviceSessionsTabIcon, SettingsLinkedAccountsTabIcon, SettingsMyGroupsTabIcon,
     SettingsOrganizationGroupsTabIcon,
     SettingsOrganizationPeopleTabIcon,
@@ -37,7 +36,6 @@ import MyGroupsTab from "../my-groups-tab/MyGroupsTab.tsx";
 import OrganizationPeopleTab from "../organization-people-tab/OrganizationPeopleTab.tsx";
 import OrganizationGroupsTab from "../organization-groups-tab/OrganizationGroupsTab.tsx";
 import TrustedOrganizationsTab from "../trusted-organizations-tab/TrustedOrganizationsTab.tsx";
-import AppAdminsTab from "../app-admins-tab/AppAdminsTab.tsx";
 import TemplatesTab from "../blueprints-tab/BlueprintsTab.tsx";
 import OrganizationDetailsTab from "../organization-details-tab/OrganizationDetailsTab.tsx";
 import OrganizationEmptyStateIllustration
@@ -53,12 +51,11 @@ const OrganizationTab = () =>
         organizationTrusted: "TrustedOrganizationsTab",
         templates: "TemplatesTab",
         myGroups: "MyGroupsTab",
-        appAdmins: "AppAdminsTab",
         auth: "AuthTab",
     }
 
     const styles = useOrganizationTabStyles()
-    const {appUser, token, appUserPersonOrganization, hasCapability} = useAuth();
+    const {appUser, token, appUserPersonOrganization} = useAuth();
     const [organization, setOrganization] = useState<OrganizationDetailedDto | null>(null);
     const [fetchingOrganization, setFetchingOrganization] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -76,12 +73,6 @@ const OrganizationTab = () =>
     {
         setSelectedValue(data.value);
     };
-    const canManageOrganization = () =>
-    {
-        return appUserPersonOrganization?.isActive &&
-            (hasCapability(Capability.APP_ADMIN) || hasCapability(Capability.ORG_POLICY_MANAGE));
-    }
-
     const getOrganization = async () =>
     {
         if (!appUser?.id || !appUser?.person?.id) return;
@@ -271,10 +262,6 @@ const OrganizationTab = () =>
                          value={tabIds.organizationTrusted}>
                         Trusted Organizations
                     </Tab>
-                    <Tab id="AppAdminsTab"
-                         value={tabIds.appAdmins}>
-                        Administrators
-                    </Tab>
                     <Tab id="AuthTab"
                          value={tabIds.auth}>
                         Authentication
@@ -289,7 +276,6 @@ const OrganizationTab = () =>
                     {selectedValue === tabIds.groups &&
                         <OrganizationGroupsTab appUserPersonOrganization={appUserPersonOrganization}/>}
                     {selectedValue === tabIds.organizationTrusted && <TrustedOrganizationsTab/>}
-                    {selectedValue === tabIds.appAdmins && <AppAdminsTab/>}
                     {selectedValue === tabIds.templates && <TemplatesTab/>}
                     {selectedValue === tabIds.auth && organization?.id && (
                         <AuthSessionPolicySection organizationId={organization.id}/>

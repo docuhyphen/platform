@@ -10,12 +10,16 @@ import {
     Field,
     Spinner,
 } from '@fluentui/react-components';
-import {FieldDefinitionDto, SchemaDefinitionDto} from '../../models/models';
+import {FieldDefinitionDto, FieldScopeKind, SchemaDefinitionDto} from '../../models/models';
 import {
     BindingRequest,
     createSchema,
     updateSchemaDraftBindings,
 } from '../../../services/fieldsService';
+import {
+    createPlatformSchema,
+    updatePlatformSchemaBindings,
+} from '../../../services/platformFieldsService.ts';
 import {useFieldsTabStyles} from './FieldsTabStyles';
 import SchemaBindingsEditor, {BindingDraft} from './SchemaBindingsEditor';
 import SchemaIdentityFields, {SchemaIdentity} from './SchemaIdentityFields';
@@ -27,6 +31,7 @@ interface Props
     onSaved: () => void;
     definitions: FieldDefinitionDto[];
     schema?: SchemaDefinitionDto;
+    enforcedScope?: FieldScopeKind;
 }
 
 const emptyIdentity = (): SchemaIdentity =>
@@ -40,7 +45,7 @@ const toBindingRequests = (bindings: BindingDraft[]): BindingRequest[] =>
         isReadOnly: b.isReadOnly,
     }));
 
-const SchemaEditorDialog = ({open, onClose, onSaved, definitions, schema}: Props) =>
+const SchemaEditorDialog = ({open, onClose, onSaved, definitions, schema, enforcedScope}: Props) =>
 {
     const styles = useFieldsTabStyles();
     const isEdit = !!schema;
@@ -92,17 +97,25 @@ const SchemaEditorDialog = ({open, onClose, onSaved, definitions, schema}: Props
         {
             if (isEdit && schema)
             {
-                await updateSchemaDraftBindings(schema.id, {bindings: toBindingRequests(bindings)});
+                const requests = toBindingRequests(bindings);
+                if (enforcedScope === FieldScopeKind.PLATFORM)
+                    await updatePlatformSchemaBindings(schema, requests);
+                else
+                    await updateSchemaDraftBindings(schema.id, {bindings: requests});
             }
             else
             {
-                await createSchema({
+                const request = {
                     namespace: identity.namespace.trim(),
                     schemaKey: identity.schemaKey.trim(),
                     displayName: identity.displayName.trim(),
                     description: identity.description.trim() || undefined,
                     bindings: toBindingRequests(bindings),
-                });
+                };
+                if (enforcedScope === FieldScopeKind.PLATFORM)
+                    await createPlatformSchema(request);
+                else
+                    await createSchema(request);
             }
             onSaved();
         }

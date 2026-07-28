@@ -68,51 +68,57 @@ class WorkflowDefinitionRepository :
 
     /**
      * All definitions accessible to the caller:
-     *   - Platform templates (isTemplate = true, any scope)
-     *   - ORG-scoped definitions owned by [organizationId] (when present)
-     *   - PERSONAL definitions owned by [callerUserId] (when present)
+     *   - APP templates for authenticated users and every APP definition for app admins
+     *   - ORG definitions owned by [organizationId], published-only unless [isOrgAdmin]
+     *   - PERSONAL definitions owned by [callerUserId]
      */
-    fun findAllAccessibleForCaller(callerUserId: UUID?, organizationId: UUID?): List<WorkflowDefinition>
+    fun findAllAccessibleForCaller(
+        callerUserId: UUID,
+        organizationId: UUID?,
+        isOrgAdmin: Boolean,
+        isAppAdmin: Boolean,
+    ): List<WorkflowDefinition>
     {
-        return when
+        return if (organizationId != null)
         {
-            callerUserId != null && organizationId != null ->
-                entityManager.createQuery(
-                    """SELECT d FROM WorkflowDefinition d
-                       WHERE d.isDeleted = false
-                         AND (d.isTemplate = true
-                              OR (d.scope = com.docuhyphen.app.api.model.entity.WorkflowScope.ORG
-                                  AND d.organizationId = :oid)
-                              OR (d.scope = com.docuhyphen.app.api.model.entity.WorkflowScope.PERSONAL
-                                  AND d.createdByAppUserId = :uid))
-                       ORDER BY d.createdAt DESC""",
-                    WorkflowDefinition::class.java,
-                )
-                    .setParameter("oid", organizationId)
-                    .setParameter("uid", callerUserId)
-                    .resultList
-
-            callerUserId != null ->
-                entityManager.createQuery(
-                    """SELECT d FROM WorkflowDefinition d
-                       WHERE d.isDeleted = false
-                         AND (d.isTemplate = true
-                              OR (d.scope = com.docuhyphen.app.api.model.entity.WorkflowScope.PERSONAL
-                                  AND d.createdByAppUserId = :uid))
-                       ORDER BY d.createdAt DESC""",
-                    WorkflowDefinition::class.java,
-                )
-                    .setParameter("uid", callerUserId)
-                    .resultList
-
-            else ->
-                entityManager.createQuery(
-                    """SELECT d FROM WorkflowDefinition d
-                       WHERE d.isDeleted = false
-                         AND d.isTemplate = true
-                       ORDER BY d.createdAt DESC""",
-                    WorkflowDefinition::class.java,
-                ).resultList
+            entityManager.createQuery(
+                """SELECT d FROM WorkflowDefinition d
+                   WHERE d.isDeleted = false
+                     AND (
+                           (d.scope = com.docuhyphen.app.api.model.entity.WorkflowScope.PERSONAL
+                            AND d.createdByAppUserId = :uid)
+                        OR (d.scope = com.docuhyphen.app.api.model.entity.WorkflowScope.ORG
+                            AND d.organizationId = :oid
+                            AND (:showUnpublishedOrg = true OR d.isPublished = true))
+                        OR (d.scope = com.docuhyphen.app.api.model.entity.WorkflowScope.APP
+                            AND (:showAllApp = true OR d.isTemplate = true))
+                     )
+                   ORDER BY d.createdAt DESC""",
+                WorkflowDefinition::class.java,
+            )
+                .setParameter("uid", callerUserId)
+                .setParameter("oid", organizationId)
+                .setParameter("showUnpublishedOrg", isOrgAdmin)
+                .setParameter("showAllApp", isAppAdmin)
+                .resultList
+        }
+        else
+        {
+            entityManager.createQuery(
+                """SELECT d FROM WorkflowDefinition d
+                   WHERE d.isDeleted = false
+                     AND (
+                           (d.scope = com.docuhyphen.app.api.model.entity.WorkflowScope.PERSONAL
+                            AND d.createdByAppUserId = :uid)
+                        OR (d.scope = com.docuhyphen.app.api.model.entity.WorkflowScope.APP
+                            AND (:showAllApp = true OR d.isTemplate = true))
+                     )
+                   ORDER BY d.createdAt DESC""",
+                WorkflowDefinition::class.java,
+            )
+                .setParameter("uid", callerUserId)
+                .setParameter("showAllApp", isAppAdmin)
+                .resultList
         }
     }
 }

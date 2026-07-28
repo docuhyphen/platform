@@ -45,14 +45,26 @@ export const fieldsOverviewArticle = (
             stored on existing Exchanges.
         </p>
 
-        <h3>Where to find this feature</h3>
+        <h3>Organization fields and schemas</h3>
         <p>
             Open <b>Settings</b> and select the <b>Fields</b> tab. It is available to
-            organization administrators. The tab has two sub-tabs:
+            organization administrators. An App Administrator needs a separate Organization
+            Admin role in the active organization to manage that organization's fields and
+            schemas. Platform fields and schemas can be viewed here when available, but their
+            management actions are not shown. The tab has two sub-tabs:
         </p>
         <ul>
             <li><b>Fields</b> - create and retire reusable field definitions.</li>
             <li><b>Schemas</b> - compose fields into schemas, publish, and version them.</li>
         </ul>
+
+        <h3>Platform fields and schemas</h3>
+        <p>
+            App Administrators manage reusable platform fields and schemas from
+            <b> Platform Administration - Platform Content - Fields</b>. The platform
+            Fields and Schemas sub-tabs use a fixed PLATFORM scope and do not load
+            organization field configuration. A platform schema can bind only platform
+            fields.
+        </p>
     </>
 );

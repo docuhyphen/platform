@@ -8,6 +8,8 @@ import com.docuhyphen.app.api.service.auth.authz.Capability
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.exchange.ExchangeRetrievalService
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -174,6 +176,41 @@ class AuditSearchProjectionServiceTest
     }
 
     @Test
+    fun `APP_ADMIN does not amplify limited organization audit access`()
+    {
+        val organizationId = UUID.randomUUID()
+        val actor = actor(Capability.APP_ADMIN, Capability.APP_AUDIT_READ, Capability.ORG_AUDIT_READ)
+        val event = organizationEvent(organizationId).apply {
+            actorId = UUID.randomUUID()
+            actorRole = "ORG_MEMBER"
+            actorLabel = "Tenant user"
+            targetLabel = "Quarterly.pdf"
+        }
+        whenever(ledgerRepository.search(eq(organizationId), eq(false), any(), any(), any(), isNull(), any(), any(), isNull(), isNull(), eq(50)))
+            .thenReturn(listOf(event))
+        whenever(engagementService.resolveAccess(any(), any(), any(), any(), any(), any(), any(), any()))
+            .thenReturn(
+                AuditEngagementService.EngagementAccess(
+                    engagementId = UUID.randomUUID(),
+                    sensitivityLevel = com.docuhyphen.app.api.model.entity.AuditEngagementSensitivity.STANDARD,
+                    exportPermitted = false,
+                    maxQueryRangeDays = 30,
+                    downloadLimit = null,
+                )
+            )
+        whenever(auditRecorder.record(any())).thenReturn(AuditCaptureResult.Captured(UUID.randomUUID(), UUID.randomUUID()))
+
+        val projection = service().listOrganizationEvents(actor, organizationId, emptySet(), null, 50).items.single()
+
+        verify(engagementService).resolveAccess(any(), eq(organizationId), any(), any(), any(), any(), any(), any())
+        assertNull(projection.actorId)
+        assertNull(projection.actorRole)
+        assertNull(projection.actorLabel)
+        assertNull(projection.targetLabel)
+        assertFalse("actor_email" in projection.payload)
+    }
+
+    @Test
     fun `listPlatformEvents passes an explicit occurred range through to the ledger search`()
     {
         val actor = actor(Capability.APP_AUDIT_READ)
@@ -220,6 +257,32 @@ class AuditSearchProjectionServiceTest
         }
 
         verify(ledgerRepository, never()).search(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any())
+    }
+
+    @Test
+    fun `platform projection suppresses content fields from content-category events`()
+    {
+        val event = organizationEvent(UUID.randomUUID()).apply {
+            organizationId = null
+            targetLabel = "Quarterly customer file.pdf"
+            reason = "Raw customer communication body"
+            payloadJson =
+                """{"document_title":"Quarterly customer file.pdf","message_body":"Private text","status":"SUCCESS"}"""
+        }
+        val actor = actor(Capability.APP_ADMIN, Capability.APP_AUDIT_READ)
+        whenever(
+            ledgerRepository.search(
+                isNull(), eq(true), any(), any(), any(), isNull(), isNull(), isNull(), isNull(), isNull(), eq(50),
+            )
+        ).thenReturn(listOf(event))
+        whenever(auditRecorder.record(any())).thenReturn(AuditCaptureResult.Captured(UUID.randomUUID(), UUID.randomUUID()))
+
+        val page = service().listPlatformEvents(actor, emptySet(), null, 50)
+
+        val projection = page.items.single()
+        assertEquals(null, projection.targetLabel)
+        assertEquals(null, projection.reason)
+        assertEquals(mapOf("status" to "SUCCESS"), projection.payload)
     }
 
     @Test

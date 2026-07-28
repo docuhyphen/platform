@@ -10,27 +10,37 @@ export const auditWorkspaceOverviewArticle = (
 
         <h3>Who can see it</h3>
         <p>
-            The Audit workspace is available from <b>Settings</b> under the{" "}
-            <b>Audit</b> tab. It is visible only to people who hold the{" "}
-            <b>Organization Audit Read</b> capability (typically Organization
-            Owner, Admin, or Auditor roles) or the platform-wide{" "}
-            <b>Application Audit Read</b> capability. Anyone without either
-            capability sees a not-authorized message instead of the workspace.
+            Organization audit is available from <b>Settings</b> under the{" "}
+            <b>Audit</b> tab to people who hold <b>Organization Audit Read</b>.
+            Platform audit is available from the <b>Platform Audit</b> button in
+            the top application bar to people who hold the platform-wide{" "}
+            <b>Application Audit Read</b> capability. Direct route access is
+            protected by the same live session capabilities.
         </p>
         <p>
-            People who hold both capabilities and an active organization
-            membership see a scope selector above the tabs and can switch
-            between organization-scoped and platform-wide evidence; the
-            workspace defaults to organization scope. Platform auditors
-            without an active organization membership see platform-wide
-            evidence with no selector, since there is no organization scope
-            to switch to.
+            The top-level Platform Audit workspace always uses platform scope,
+            even when the user also has an active organization. The Settings
+            workspace can show a scope selector to people who hold both audit
+            capabilities and have an active organization.
+        </p>
+        <p>
+            Platform Audit places Events, Integrity, and Exports in a navigation
+            menu on the left, with the selected section on the right. On smaller
+            screens, use the navigation button to open the same menu.
+        </p>
+        <p>
+            Platform Audit limits content-category projections to operational
+            fields. Document and workflow names, content-bearing labels, free-form
+            reasons, communication bodies, credentials, and non-allowlisted payload
+            fields are withheld from the platform view.
         </p>
 
         <h3>Events</h3>
         <p>
             The Events section lists audit events in a paginated table, most
-            recent first. Use the filter panel to narrow results:
+            recent first. The filters and column headings stay fixed while the
+            rows scroll, and pagination stays at the bottom of the content view.
+            Use the filter panel to narrow results:
         </p>
         <ul>
             <li>

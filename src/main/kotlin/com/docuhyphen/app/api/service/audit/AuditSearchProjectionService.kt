@@ -99,6 +99,30 @@ class AuditSearchProjectionService @Inject constructor(
             "last_sequence",
             "stream_id",
         )
+        private val platformPayloadKeys = setOf(
+            "assignmentid",
+            "categories",
+            "firstsequence",
+            "lastsequence",
+            "limit",
+            "querylength",
+            "requestid",
+            "resultcount",
+            "schemaversions",
+            "segmentcount",
+            "sensitivitylevel",
+            "sourceip",
+            "statechanged",
+            "status",
+            "streamid",
+        )
+        private val platformDetailCategories = setOf(
+            AuditCategory.ADMINISTRATION,
+            AuditCategory.ARCHIVE,
+            AuditCategory.AUDIT_GOVERNANCE,
+            AuditCategory.PLATFORM,
+            AuditCategory.SECURITY,
+        )
     }
 
     fun listOrganizationEvents(
@@ -506,7 +530,8 @@ class AuditSearchProjectionService @Inject constructor(
             return null
         }
 
-        val canViewSensitive = canViewSensitive(actor, engagement)
+        val canViewSensitive = canViewSensitive(actor, engagement, platformOnly)
+        val canViewPlatformDetails = !platformOnly || category in platformDetailCategories
         val projection = AuditProjectionEvent(
             eventId = event.eventId,
             category = event.category,
@@ -525,9 +550,13 @@ class AuditSearchProjectionService @Inject constructor(
             organizationLabel = event.organizationLabel,
             targetType = event.targetType,
             targetId = event.targetId,
-            targetLabel = event.targetLabel.takeIf { canViewSensitive },
-            reason = event.reason.takeIf { canViewSensitive },
-            payload = redactPayload(parsePayload(event.payloadJson), canViewSensitive),
+            targetLabel = event.targetLabel.takeIf { canViewSensitive && canViewPlatformDetails },
+            reason = event.reason.takeIf { canViewSensitive && canViewPlatformDetails },
+            payload = projectPayload(
+                payload = parsePayload(event.payloadJson),
+                canViewSensitive = canViewSensitive,
+                platformOnly = platformOnly,
+            ),
             eventHash = event.eventHash,
             prevHash = event.prevHash,
         )
@@ -559,9 +588,10 @@ class AuditSearchProjectionService @Inject constructor(
     private fun canViewSensitive(
         actor: AuditAccessActor,
         engagement: AuditEngagementService.EngagementAccess?,
+        platformOnly: Boolean,
     ): Boolean
     {
-        if (Capability.APP_ADMIN in actor.capabilities)
+        if (platformOnly && Capability.APP_ADMIN in actor.capabilities)
         {
             return true
         }
@@ -583,6 +613,19 @@ class AuditSearchProjectionService @Inject constructor(
         }
 
         return payload.filterKeys { key -> normalizeKey(key) in safePayloadKeys }
+    }
+
+    private fun projectPayload(
+        payload: Map<String, String>,
+        canViewSensitive: Boolean,
+        platformOnly: Boolean,
+    ): Map<String, String>
+    {
+        if (platformOnly)
+        {
+            return payload.filterKeys { key -> normalizeKey(key) in platformPayloadKeys }
+        }
+        return redactPayload(payload, canViewSensitive)
     }
 
     private fun normalizeKey(key: String): String = key.lowercase().replace(Regex("[^a-z0-9]"), "")

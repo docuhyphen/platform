@@ -52,6 +52,12 @@ class OrganizationMembershipService @Inject constructor(
     fun activeMemberCount(organizationId: UUID): Long =
         membershipRepository.countActiveMembersOfOrg(organizationId)
 
+    fun activeProvisionedMemberCount(organizationId: UUID): Long =
+        activeProvisionedMemberCounts(listOf(organizationId))[organizationId] ?: 0
+
+    fun activeProvisionedMemberCounts(organizationIds: Collection<UUID>): Map<UUID, Long> =
+        membershipRepository.countActiveProvisionedMembers(organizationIds)
+
     fun rolesOf(appUserId: UUID, organizationId: UUID): Set<OrganizationRoleName> =
         membershipRepository.findActiveByUserAndOrg(appUserId, organizationId)?.roles?.toSet().orEmpty()
 

@@ -1,6 +1,6 @@
 import {makeStyles, shorthands, tokens} from '@fluentui/react-components';
 
-export const useAppAdminsTabStyles = makeStyles({
+export const useAppAdministratorsStyles = makeStyles({
     container: {
         display: 'flex',
         flexDirection: 'column',
@@ -8,24 +8,12 @@ export const useAppAdminsTabStyles = makeStyles({
     },
     header: {
         display: 'flex',
-        justifyContent: 'space-between',
+        justifyContent: 'flex-end',
         alignItems: 'center',
-    },
-    table: {
-        width: '100%',
     },
     loading: {
         display: 'flex',
         justifyContent: 'center',
         ...shorthands.padding(tokens.spacingHorizontalXXXL),
-    },
-    error: {
-        color: tokens.colorPaletteRedForeground1,
-        ...shorthands.padding(tokens.spacingHorizontalS),
-    },
-    actionsCell: {
-        width: '90px',
-        minWidth: '90px',
-        maxWidth: '90px',
     },
 });

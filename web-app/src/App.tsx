@@ -21,6 +21,10 @@ import OAuthLinkConfirm from "./app/authorization/oauth/OAuthLinkConfirm.tsx";
 import StepUpCompletion from "./app/authorization/step-up/StepUpCompletion.tsx";
 import StepUpModal from "./app/components/step-up/StepUpModal.tsx";
 import ThemeSync from "./app/components/ThemeSync.tsx";
+import CapabilityProtectedContent from "./app/components/CapabilityProtectedContent.tsx";
+import {Capability} from "./app/models/models.tsx";
+import PlatformAdministration from "./app/platform-administration/PlatformAdministration.tsx";
+import PlatformAudit from "./app/platform-audit/PlatformAudit.tsx";
 
 const App: React.FC = () =>
 {
@@ -92,6 +96,26 @@ const App: React.FC = () =>
                                element={
                                    <ProtectedRoute path='/sign-in'
                                                    element={<Exchanges/>}/>
+                               }/>
+
+                        <Route path="/platform/administration"
+                               element={
+                                   <ProtectedRoute path='/sign-in'
+                                                   element={
+                                                       <CapabilityProtectedContent
+                                                           capability={Capability.APP_ADMIN}
+                                                           element={<PlatformAdministration/>}/>
+                                                   }/>
+                               }/>
+
+                        <Route path="/platform/audit"
+                               element={
+                                   <ProtectedRoute path='/sign-in'
+                                                   element={
+                                                       <CapabilityProtectedContent
+                                                           capability={Capability.APP_AUDIT_READ}
+                                                           element={<PlatformAudit/>}/>
+                                                   }/>
                                }/>
 
                         <Route path="/oauth/callback"

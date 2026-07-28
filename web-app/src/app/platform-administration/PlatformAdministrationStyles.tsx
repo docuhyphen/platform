@@ -1,0 +1,115 @@
+import {makeStyles, shorthands, tokens} from "@fluentui/react-components";
+
+const APP_HEADER_HEIGHT = "3.75rem";
+
+export const usePlatformAdministrationStyles = makeStyles({
+    container: {
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        boxSizing: "border-box",
+        overflow: "hidden",
+        backgroundColor: tokens.colorNeutralBackground1,
+        paddingTop: APP_HEADER_HEIGHT,
+    },
+    layout: {
+        display: "flex",
+        flexDirection: "row",
+        alignItems: "stretch",
+        flex: 1,
+        minHeight: 0,
+        width: "100%",
+        maxWidth: "85rem",
+        marginLeft: "auto",
+        marginRight: "auto",
+        boxSizing: "border-box",
+        ...shorthands.gap(tokens.spacingHorizontalXXXL),
+        ...shorthands.padding(
+            tokens.spacingVerticalL,
+            tokens.spacingHorizontalXXXL,
+            `calc(${tokens.spacingVerticalXXXL} + ${tokens.spacingVerticalL})`,
+        ),
+        "@media (max-width: 1024px)": {
+            ...shorthands.padding(
+                tokens.spacingVerticalL,
+                tokens.spacingHorizontalXXL,
+                `calc(${tokens.spacingVerticalXXXL} + ${tokens.spacingVerticalL})`,
+            ),
+        },
+        "@media (max-width: 768px)": {
+            flexDirection: "column",
+            ...shorthands.gap(0),
+            ...shorthands.padding(
+                tokens.spacingVerticalS,
+                tokens.spacingHorizontalM,
+                `calc(${tokens.spacingVerticalXXXL} + ${tokens.spacingVerticalL})`,
+            ),
+        },
+    },
+    sidebar: {
+        flexShrink: 0,
+        width: "13.125rem",
+        minHeight: 0,
+        overflowY: "auto",
+        overflowX: "hidden",
+        overscrollBehavior: "contain",
+        paddingInline: tokens.spacingHorizontalS,
+        paddingTop: tokens.spacingVerticalXL,
+        boxSizing: "border-box",
+        "@media (max-width: 768px)": {
+            display: "none",
+        },
+    },
+    mobileMenuBar: {
+        display: "none",
+        "@media (max-width: 768px)": {
+            display: "flex",
+            alignItems: "center",
+            position: "sticky",
+            top: 0,
+            zIndex: 10,
+            backgroundColor: tokens.colorNeutralBackground1,
+            ...shorthands.gap(tokens.spacingHorizontalS),
+            ...shorthands.padding(tokens.spacingVerticalSNudge, tokens.spacingHorizontalM),
+            ...shorthands.borderBottom("1px", "solid", tokens.colorNeutralStroke2),
+        },
+    },
+    content: {
+        display: "flex",
+        flexDirection: "column",
+        flex: 1,
+        minWidth: 0,
+        minHeight: 0,
+        overflow: "hidden",
+    },
+    contentScroller: {
+        flex: 1,
+        minHeight: 0,
+        overflowY: "auto",
+        overflowX: "hidden",
+        overscrollBehavior: "contain",
+        boxSizing: "border-box",
+        backgroundColor: tokens.colorNeutralBackground1,
+        ...shorthands.borderRadius(tokens.borderRadiusLarge),
+        ...shorthands.padding(tokens.spacingVerticalXL, tokens.spacingHorizontalXL),
+        boxShadow: tokens.shadow4,
+        "@media (max-width: 768px)": {
+            ...shorthands.padding(tokens.spacingVerticalL, tokens.spacingHorizontalM),
+        },
+    },
+    managedContent: {
+        display: "flex",
+        flexDirection: "column",
+        flex: 1,
+        minHeight: 0,
+        overflow: "hidden",
+        boxSizing: "border-box",
+        backgroundColor: tokens.colorNeutralBackground1,
+        ...shorthands.borderRadius(tokens.borderRadiusLarge),
+        ...shorthands.padding(tokens.spacingVerticalXL, tokens.spacingHorizontalXL),
+        boxShadow: tokens.shadow4,
+        "@media (max-width: 768px)": {
+            ...shorthands.padding(tokens.spacingVerticalL, tokens.spacingHorizontalM),
+        },
+    },
+});

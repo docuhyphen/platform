@@ -60,9 +60,14 @@ export const blueprintOverviewArticle = (
                 picker and select a blueprint.
             </li>
             <li>
-                <b>Settings - Blueprints</b> - manage all your blueprints across
-                the three scopes (My Blueprints, Organization, Platform) from a
-                single settings page.
+                <b>Settings - Blueprints</b> - manage personal Blueprints, manage
+                organization Blueprints when authorized, and browse or clone
+                platform Blueprints.
+            </li>
+            <li>
+                <b>Platform Administration - Platform Content</b> - App Admins
+                create and manage the original platform Blueprints without loading
+                organization or personal content.
             </li>
         </ul>
 

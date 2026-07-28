@@ -1,12 +1,10 @@
 package com.docuhyphen.app.api.resource
 
 import com.docuhyphen.app.api.resource.model.PlatformOrganizationSubscriptionPolicyRequest
-import com.docuhyphen.app.api.resource.model.PlatformOrganizationSubscriptionPolicyListResponse
-import com.docuhyphen.app.api.resource.model.PlatformOrganizationSubscriptionPolicyResponse
 import com.docuhyphen.app.api.resource.model.ResponseError
+import com.docuhyphen.app.api.model.PlatformOrganizationDtoMapper
 import com.docuhyphen.app.api.service.auth.AdminApprovalContext
 import com.docuhyphen.app.api.service.auth.PlatformOrganizationSubscriptionPolicyService
-import com.docuhyphen.app.api.service.auth.PolicyResult
 import io.quarkus.security.UnauthorizedException
 import jakarta.inject.Inject
 import jakarta.ws.rs.Consumes
@@ -17,7 +15,6 @@ import jakarta.ws.rs.PUT
 import jakarta.ws.rs.Path
 import jakarta.ws.rs.PathParam
 import jakarta.ws.rs.Produces
-import jakarta.ws.rs.QueryParam
 import jakarta.ws.rs.core.MediaType.APPLICATION_JSON
 import jakarta.ws.rs.core.Response
 import jakarta.ws.rs.core.Response.Status.BAD_REQUEST
@@ -30,48 +27,12 @@ import org.slf4j.LoggerFactory
 @Consumes(APPLICATION_JSON)
 class PlatformOrganizationSubscriptionPolicyResource @Inject constructor(
     private val platformOrganizationSubscriptionPolicyService: PlatformOrganizationSubscriptionPolicyService,
+    private val platformOrganizationDtoMapper: PlatformOrganizationDtoMapper,
 )
 {
     companion object
     {
         private val logger = LoggerFactory.getLogger(PlatformOrganizationSubscriptionPolicyResource::class.java)
-    }
-
-    @GET
-    @Path("/list")
-    fun listPolicies(
-        @PathParam("organizationId") organizationId: String,
-        @QueryParam("limit") limit: Int?,
-        @QueryParam("offset") offset: Int?,
-        @QueryParam("tierCode") tierCode: String?,
-        @QueryParam("persistedOnly") persistedOnly: Boolean?,
-        @HeaderParam("X-Request-Id") requestId: String?,
-    ): Response
-    {
-        return try
-        {
-            val result = platformOrganizationSubscriptionPolicyService.listPolicies(
-                organizationId = organizationId,
-                limit = limit ?: 50,
-                offset = offset ?: 0,
-                tierCode = tierCode,
-                persistedOnly = persistedOnly,
-                requestId = requestId,
-            )
-
-            Response.ok(
-                PlatformOrganizationSubscriptionPolicyListResponse(
-                    total = result.total,
-                    limit = result.limit,
-                    offset = result.offset,
-                    items = result.items.map { it.toResponse() },
-                )
-            ).build()
-        }
-        catch (exception: Exception)
-        {
-            handleException("Error listing platform organization subscription policies", exception)
-        }
     }
 
     @GET
@@ -83,7 +44,7 @@ class PlatformOrganizationSubscriptionPolicyResource @Inject constructor(
         return try
         {
             val policy = platformOrganizationSubscriptionPolicyService.getEffectivePolicy(organizationId, requestId)
-            Response.ok(policy.toResponse()).build()
+            Response.ok(platformOrganizationDtoMapper.toSubscriptionPolicy(policy)).build()
         }
         catch (exception: Exception)
         {
@@ -103,7 +64,7 @@ class PlatformOrganizationSubscriptionPolicyResource @Inject constructor(
                 organizationId = organizationId,
                 adminApprovalContext = AdminApprovalContext(requestId = requestId),
             )
-            Response.ok(policy.toResponse()).build()
+            Response.ok(platformOrganizationDtoMapper.toSubscriptionPolicy(policy)).build()
         }
         catch (exception: Exception)
         {
@@ -125,27 +86,12 @@ class PlatformOrganizationSubscriptionPolicyResource @Inject constructor(
                 request = payload,
                 adminApprovalContext = AdminApprovalContext(requestId = requestId),
             )
-            Response.ok(policy.toResponse()).build()
+            Response.ok(platformOrganizationDtoMapper.toSubscriptionPolicy(policy)).build()
         }
         catch (exception: Exception)
         {
             handleException("Error upserting platform organization subscription policy", exception)
         }
-    }
-
-
-    private fun PolicyResult.toResponse(): PlatformOrganizationSubscriptionPolicyResponse
-    {
-        return PlatformOrganizationSubscriptionPolicyResponse(
-            organizationId = organizationId.toString(),
-            tierCode = tierCode,
-            maxUsers = maxUsers,
-            currentActiveUsers = currentActiveUsers,
-            changeReason = changeReason,
-            persisted = persisted,
-            createdDate = createdDate?.toString(),
-            updatedDate = updatedDate?.toString(),
-        )
     }
 
     private fun handleException(message: String, exception: Exception): Response

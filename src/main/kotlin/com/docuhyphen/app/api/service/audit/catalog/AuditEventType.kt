@@ -35,6 +35,11 @@ enum class AuditEventType(val key: String, val category: AuditCategory)
     // Administration.
     ADMIN_APPROVAL_INITIATE("admin.approval.initiate", AuditCategory.ADMINISTRATION),
     ADMIN_APPROVAL_APPROVE("admin.approval.approve", AuditCategory.ADMINISTRATION),
+    APP_ADMIN_CANDIDATE_SEARCH("admin.app_admin.candidate_search", AuditCategory.ADMINISTRATION),
+    APP_ADMIN_GRANT("admin.app_admin.grant", AuditCategory.ADMINISTRATION),
+    APP_ADMIN_LIST("admin.app_admin.list", AuditCategory.ADMINISTRATION),
+    APP_ADMIN_OPERATION_DENIED("admin.app_admin.operation_denied", AuditCategory.ADMINISTRATION),
+    APP_ADMIN_REVOKE("admin.app_admin.revoke", AuditCategory.ADMINISTRATION),
 
     // Security.
     SECURITY_INCIDENT("security.incident.raised", AuditCategory.SECURITY),
@@ -87,6 +92,10 @@ enum class AuditEventType(val key: String, val category: AuditCategory)
     PLATFORM_ORG_SUBSCRIPTION_POLICY_LIST("platform.org_subscription_policy.list", AuditCategory.PLATFORM),
     PLATFORM_ORG_SUBSCRIPTION_POLICY_UPSERT("platform.org_subscription_policy.upsert", AuditCategory.PLATFORM),
     PLATFORM_ORG_SUBSCRIPTION_POLICY_VIEW("platform.org_subscription_policy.view", AuditCategory.PLATFORM),
+    PLATFORM_ORGANIZATION_LIST("platform.organization.list", AuditCategory.PLATFORM),
+    PLATFORM_ORGANIZATION_VIEW("platform.organization.view", AuditCategory.PLATFORM),
+    PLATFORM_ORG_FEATURE_ENTITLEMENTS_VIEW("platform.org_feature_entitlements.view", AuditCategory.PLATFORM),
+    PLATFORM_ORG_FEATURE_ENTITLEMENTS_UPDATE("platform.org_feature_entitlements.update", AuditCategory.PLATFORM),
 
     SCIM_USER_CREATE("scim.user.create", AuditCategory.SCIM),
     SCIM_USER_DEPROVISION("scim.user.deprovision", AuditCategory.SCIM),
@@ -185,7 +194,7 @@ enum class AuditEventType(val key: String, val category: AuditCategory)
          * consumers (ledger, exports, projections) can reason about which catalog shape produced
          * a given event.
          */
-        const val CATALOG_VERSION: Int = 11
+        const val CATALOG_VERSION: Int = 13
 
         private val byKey: Map<String, AuditEventType> = entries.associateBy { it.key }
 

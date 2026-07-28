@@ -10,9 +10,11 @@ export const managingOrgVariablesArticle = (
 
         <h3>Who can manage org variables</h3>
         <p>
-            Only Organization Admins and App Admins can create, edit, and delete org
-            variable definitions. Regular members can see org variable tokens resolved in
-            their Exchanges but cannot create or edit the definitions.
+            Only Organization Admins can create, edit, and delete org variable definitions.
+            The global App Admin role does not grant access to organization variables. An
+            App Admin must also be an Organization Admin in the active organization.
+            Regular members can see org variable tokens resolved in their Exchanges but
+            cannot create or edit the definitions.
         </p>
 
         <h3>How to create an org variable</h3>

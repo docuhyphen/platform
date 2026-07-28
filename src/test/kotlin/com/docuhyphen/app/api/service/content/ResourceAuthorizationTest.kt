@@ -43,10 +43,9 @@ import java.util.UUID
  * Central authorization gates for content service read/write paths.
  *
  * Rules verified:
- *  - PERSONAL scope: only creator can read/write; APP_ADMIN bypasses ownership check.
- *  - ORG scope: auth service gate required (BLUEPRINT_VIEW/EDIT, COMMUNICATION_VIEW/EDIT,
- *    SEQUENCE_VIEW/EDIT, VARIABLE_EDIT); APP_ADMIN bypasses.
- *  - APP/PLATFORM scope: reads open to all authenticated users; writes forbidden (clone instead).
+ *  - PERSONAL scope: only the creator can read or write.
+ *  - ORG scope: the matching resource authorization action is required.
+ *  - APP/PLATFORM scope: reads are open to authenticated users; writes are scope-specific.
  *  - Unauthenticated principal (null from factory) throws ForbiddenException before any access check.
  */
 class ResourceAuthorizationTest
@@ -194,15 +193,14 @@ class ResourceAuthorizationTest
     }
 
     @Test
-    fun `CommunicationService getTemplate - APP_ADMIN bypasses PERSONAL ownership check`()
+    fun `CommunicationService getTemplate - APP_ADMIN does not bypass PERSONAL ownership check`()
     {
         val comm = makeCommunication(CommunicationScope.PERSONAL, createdBy = otherUserId)
         val repo = mock<CommunicationRepository>()
         whenever(repo.findById(comm.id)).thenReturn(comm)
 
         val svc = makeCommunicationService(roleService = makeRoleService(appAdmin = true), repo = repo)
-        val dto = svc.getTemplate(comm.id)
-        assertEquals("Test Comm", dto.name)
+        assertThrows<ForbiddenException> { svc.getTemplate(comm.id) }
     }
 
     @Test
@@ -298,7 +296,7 @@ class ResourceAuthorizationTest
     }
 
     @Test
-    fun `SequenceDefinitionService getSequence - APP_ADMIN bypasses access check`()
+    fun `SequenceDefinitionService getSequence - APP_ADMIN does not bypass access check`()
     {
         val seq = makeSequence()
         val repo = mock<SequenceDefinitionRepository>()
@@ -309,8 +307,7 @@ class ResourceAuthorizationTest
             roleService = makeRoleService(appAdmin = true),
             repo = repo,
         )
-        val dto = svc.getSequence(seq.id)
-        assertEquals("Test Seq", dto.name)
+        assertThrows<ForbiddenException> { svc.getSequence(seq.id) }
     }
 
     @Test
@@ -399,21 +396,15 @@ class ResourceAuthorizationTest
     }
 
     @Test
-    fun `VariableDefinitionService updateVariable - ORG APP_ADMIN bypasses check`()
+    fun `VariableDefinitionService updateVariable - ORG APP_ADMIN does not bypass check`()
     {
         val variable = makeVariable(VariableScope.ORG)
         val repo = mock<VariableDefinitionRepository>()
         whenever(repo.findById(variable.id)).thenReturn(variable)
-        whenever(repo.update(any())).thenReturn(variable)
 
         val svc = makeVariableService(roleService = makeRoleService(appAdmin = true), repo = repo)
-        try
-        {
+        assertThrows<ForbiddenException> {
             svc.updateVariable(variable.id, UpdateVariableRequest(), AdminApprovalContext())
-        }
-        catch (e: Exception)
-        {
-            assert(e !is ForbiddenException) { "Should not throw ForbiddenException; got $e" }
         }
     }
 

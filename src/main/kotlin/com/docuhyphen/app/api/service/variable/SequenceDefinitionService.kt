@@ -66,9 +66,8 @@ class SequenceDefinitionService @Inject constructor(
         val activeOrgId = authContext.activeOrgId
             ?: throw ForbiddenException("Organization context required to manage sequences")
         val isOrgAdmin = userRoleService.isOrgAdminIn(principal.id, activeOrgId)
-        val isAppAdmin = userRoleService.isAppAdmin(principal.id)
 
-        if (!isOrgAdmin && !isAppAdmin)
+        if (!isOrgAdmin)
             throw ForbiddenException("Org admin role required to manage sequences")
 
         val normalizedKey = request.key.trim().uppercase()
@@ -147,7 +146,6 @@ class SequenceDefinitionService @Inject constructor(
 
     private fun checkReadAccess(seq: SequenceDefinition, principal: PrincipalRef, context: AuthorizationContext)
     {
-        if (userRoleService.isAppAdmin(principal.id)) return
         val decision = authorizationService.authorize(
             principal, Action.SEQUENCE_VIEW, ResourceRef.sequence(seq.id), context,
         )
@@ -157,7 +155,6 @@ class SequenceDefinitionService @Inject constructor(
 
     private fun checkWriteAccess(seq: SequenceDefinition, principal: PrincipalRef, context: AuthorizationContext)
     {
-        if (userRoleService.isAppAdmin(principal.id)) return
         val decision = authorizationService.authorize(
             principal, Action.SEQUENCE_EDIT, ResourceRef.sequence(seq.id), context,
         )

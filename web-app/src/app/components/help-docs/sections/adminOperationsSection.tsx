@@ -1,11 +1,17 @@
 import {HelpDocSectionInput} from "../helpDocsRegistry";
 import {auditWorkspaceOverviewArticle} from "./articles/auditWorkspaceOverviewArticle";
 import {trustedOrganizationsAdministrationArticle} from "./articles/trustedOrganizationsAdministrationArticle";
+import {platformAdministrationOverviewArticle} from "./articles/platformAdministrationOverviewArticle";
 
 export const adminOperationsSection: HelpDocSectionInput = {
     id: "admin-operations",
     title: "Admin operations",
     articles: [
+        {
+            id: "platform-administration-overview",
+            title: "Platform Administration overview",
+            content: platformAdministrationOverviewArticle,
+        },
         {
             id: "audit-workspace-overview",
             title: "Audit workspace overview",
@@ -51,6 +57,8 @@ export const adminOperationsSection: HelpDocSectionInput = {
 
                     <h3>Scope isolation</h3>
                     <ul>
+                        <li>App Admin is a platform role. It does not grant access to organization people, groups, settings, content, or member-capacity details.</li>
+                        <li>An App Admin needs a separate organization role and the matching active organization to use organization administration capabilities.</li>
                         <li>An organization role does not grant access to an Exchange by itself.</li>
                         <li>A group Manager role applies only to that group, not to the organization or an Exchange.</li>
                         <li>An Exchange role applies only to the relevant Exchange and its documents.</li>
@@ -68,8 +76,8 @@ export const adminOperationsSection: HelpDocSectionInput = {
 
                     <h3>Finding people</h3>
                     <p>
-                        In Settings, open Administration and select People to search members by
-                        name or email. Filter the list by account status or organization role,
+                        In Settings, select Administration under Organization, then open People
+                        to search members by name or email. Filter the list by account status or organization role,
                         sort it by name, email, or status, and use the pagination controls below
                         the table to move through the results.
                     </p>
@@ -79,7 +87,7 @@ export const adminOperationsSection: HelpDocSectionInput = {
                         pagination controls below the group table.
                     </p>
                     <p>
-                        Person selectors in organization groups and App Admin settings
+                        Person selectors in organization groups and Platform Administration
                         are searchable by name or email. Results show a person card with
                         an avatar or initials, full name, and email. Multi-person selectors
                         keep selected people as removable tags.

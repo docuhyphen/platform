@@ -51,6 +51,8 @@ interface Props
     backDestinationLabel: string;
     onBack: () => void;
     onSaved: () => void;
+    enforcedScope?: 'APP';
+    createAsTemplate?: boolean;
 }
 
 const defaultStep = (): WorkflowStepSpecDraft => ({
@@ -67,7 +69,15 @@ const defaultState = (): WorkflowDesignerState => ({
 type FormPage = "overview" | "configuration" | "applicability" | "steps";
 type FormPageTransitionDirection = "forward" | "back" | null;
 
-const WorkflowDesigner = ({definitionId, scope, backDestinationLabel, onBack, onSaved}: Props) =>
+const WorkflowDesigner = ({
+    definitionId,
+    scope,
+    backDestinationLabel,
+    onBack,
+    onSaved,
+    enforcedScope,
+    createAsTemplate = false,
+}: Props) =>
 {
     const styles = useWorkflowDesignerStyles();
     const {openHelpArticle} = useHelpSidebar();
@@ -76,6 +86,7 @@ const WorkflowDesigner = ({definitionId, scope, backDestinationLabel, onBack, on
     const [triggersError, setTriggersError] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [scopeViolation, setScopeViolation] = useState(false);
     const [showDiscardDialog, setShowDiscardDialog] = useState(false);
     const [showSaveDialog, setShowSaveDialog] = useState(false);
     const [defScope, setDefScope] = useState<'PERSONAL' | 'ORG' | 'APP' | undefined>(scope);
@@ -95,6 +106,7 @@ const WorkflowDesigner = ({definitionId, scope, backDestinationLabel, onBack, on
 
     const load = useCallback(async () =>
     {
+        setScopeViolation(false);
         setFormPage("overview");
         setFormPageTransitionDirection(null);
         try
@@ -112,6 +124,12 @@ const WorkflowDesigner = ({definitionId, scope, backDestinationLabel, onBack, on
             try
             {
                 const def = await getWorkflowDefinition(definitionId);
+                if (enforcedScope && def.scope !== enforcedScope)
+                {
+                    setError("This workflow is outside the Platform Administration scope.");
+                    setScopeViolation(true);
+                    return;
+                }
                 const parsed = JSON.parse(def.stepsJson || '{"steps":[]}');
                 const loaded: WorkflowDesignerState = {
                     id: def.id,
@@ -142,7 +160,7 @@ const WorkflowDesigner = ({definitionId, scope, backDestinationLabel, onBack, on
             setState(fresh);
             initialStateRef.current = JSON.stringify(fresh);
         }
-    }, [definitionId]);
+    }, [definitionId, enforcedScope]);
 
     useEffect(() => { load(); }, [load]);
 
@@ -175,6 +193,10 @@ const WorkflowDesigner = ({definitionId, scope, backDestinationLabel, onBack, on
 
     const performSave = async () =>
     {
+        if (enforcedScope && defScope !== enforcedScope)
+        {
+            throw new Error("Cannot save a workflow outside the Platform Administration scope.");
+        }
         const applicability = state.applicability && state.applicability.fieldConditions.length > 0
             ? state.applicability
             : undefined;
@@ -191,7 +213,8 @@ const WorkflowDesigner = ({definitionId, scope, backDestinationLabel, onBack, on
             await createWorkflowDefinition({
                 name: state.name, summary: state.summary || undefined,
                 triggerEvent: state.triggerEvent, generalTags: state.generalTags,
-                isActive: state.isActive, stepsJson, scope,
+                isActive: state.isActive, stepsJson, scope: enforcedScope ?? scope,
+                isTemplate: createAsTemplate,
             });
         }
         onSaved();
@@ -286,6 +309,7 @@ const WorkflowDesigner = ({definitionId, scope, backDestinationLabel, onBack, on
                 onUpdate={updateStep}
                 onRemove={removeStep}
                 onBack={() => navigateFormPage("overview")}
+                platformMode={enforcedScope === "APP"}
             />
     ) : (
         <div className={styles.formPage}>
@@ -323,6 +347,25 @@ const WorkflowDesigner = ({definitionId, scope, backDestinationLabel, onBack, on
     );
 
     if (loading) return <Spinner label="Loading workflow..." size="small"/>;
+    if (scopeViolation)
+    {
+        return (
+            <div
+                id={"platform-workflow-scope-violation"}
+                className={styles.container}>
+                <MessageBar intent={"error"}>
+                    <MessageBarBody>{error}</MessageBarBody>
+                </MessageBar>
+                <Button
+                    id={"platform-workflow-scope-violation-back"}
+                    appearance={"secondary"}
+                    shape={"circular"}
+                    onClick={onBack}>
+                    Back to Platform Content
+                </Button>
+            </div>
+        );
+    }
 
     return (
         <div className={styles.container}>

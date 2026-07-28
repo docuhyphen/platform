@@ -129,11 +129,14 @@ class AuditMigrationUpgradeContractTest
                 assertFalse(tableExists(connection, "organization_exchange_link"))
                 assertFalse(columnExists(connection, "organization_settings", "allow_share_without_pairing"))
                 assertTrue(columnExists(connection, "organization_settings", "require_trusted_organization_for_b2b"))
+                assertTrue(tableExists(connection, "organization_feature_entitlement"))
+                assertTrue(columnExists(connection, "organization_feature_entitlement", "feature_code"))
+                assertTrue(columnExists(connection, "organization_feature_entitlement", "is_enabled"))
                 verifyTrustPersistenceConstraints(connection)
                 verifyExchangeRecipientShareBinding(connection)
             }
 
-            assertEquals("66", currentFlyway.info().current().version.toString())
+            assertEquals("67", currentFlyway.info().current().version.toString())
         }
         finally
         {

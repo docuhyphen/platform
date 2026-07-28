@@ -81,9 +81,7 @@ const DocumentLibraryTab = () =>
     const hasOrg = !!appUserPersonOrganization?.isActive;
     const canManageOrganization =
         appUserPersonOrganization?.isActive &&
-        (hasCapability(Capability.APP_ADMIN) || hasCapability(Capability.ORG_POLICY_MANAGE));
-    const isAppAdmin = hasCapability(Capability.APP_ADMIN);
-
+        hasCapability(Capability.ORG_POLICY_MANAGE);
     const [viewMode, setViewMode] = useState<ViewMode>(appUser?.settings?.documentLibraryView ?? 'cards');
 
     const [activeTab, setActiveTab] = useState<ActiveTab>('PERSONAL');
@@ -241,13 +239,11 @@ const DocumentLibraryTab = () =>
 
     const canCreate =
         activeTab === 'PERSONAL' ||
-        (activeTab === 'ORG' && !!canManageOrganization) ||
-        (activeTab === 'APP' && isAppAdmin);
+        (activeTab === 'ORG' && !!canManageOrganization);
 
     const canManageItem = (entry: DocumentLibraryEntrySummaryDto) =>
         entry.scope === 'PERSONAL' ||
-        (entry.scope === 'ORG' && !!canManageOrganization) ||
-        (entry.scope === 'APP' && isAppAdmin);
+        (entry.scope === 'ORG' && !!canManageOrganization);
 
     return (
         <>
@@ -593,8 +589,7 @@ const DocumentLibraryTab = () =>
             {uploadingEntry && (
                 <DocumentLibraryUploadDialog
                     open={uploadOpen}
-                    entryId={uploadingEntry.id}
-                    entryTitle={uploadingEntry.title}
+                    entry={uploadingEntry}
                     onClose={() => setUploadOpen(false)}
                     onUploaded={() =>
                     {

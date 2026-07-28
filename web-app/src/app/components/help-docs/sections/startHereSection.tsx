@@ -54,7 +54,7 @@ export const startHereSection: HelpDocSectionInput = {
                         </li>
                         <li>
                             <a href="#"
-                               data-help-article="platform-templates"><b>Platform templates</b></a> - clone ready-made workflows into your organization.
+                               data-help-article="platform-templates"><b>Platform templates</b></a> - clone ready-made workflows into your personal collection.
                         </li>
                         <li>
                             <a href="#"

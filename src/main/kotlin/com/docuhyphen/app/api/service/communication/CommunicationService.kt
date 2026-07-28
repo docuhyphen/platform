@@ -55,9 +55,8 @@ class CommunicationService @Inject constructor(
         val context = currentContext()
         val activeOrgId = context.activeOrgId
         val isOrgAdmin = activeOrgId != null && userRoleService.isOrgAdminIn(principal.id, activeOrgId)
-        val isAppAdmin = userRoleService.isAppAdmin(principal.id)
 
-        return repository.findAllAccessibleForCaller(principal.id, activeOrgId, isOrgAdmin, isAppAdmin)
+        return repository.findAllAccessibleForCaller(principal.id, activeOrgId, isOrgAdmin)
             .asSequence()
             .filter { scope == null || it.scope.name == scope.uppercase() }
             .filter { tag == null || decodeTags(it.generalTags).contains(tag) }
@@ -100,7 +99,7 @@ class CommunicationService @Inject constructor(
             generalTags = encodeTags(request.generalTags)
             isActive = request.isActive
             scope = resolvedScope
-            organizationId = if (resolvedScope == CommunicationScope.PERSONAL) null else activeOrgId
+            organizationId = if (resolvedScope == CommunicationScope.ORG) activeOrgId else null
             isTemplate = if (isAppAdmin && resolvedScope == CommunicationScope.PLATFORM) request.isTemplate else false
             createdByAppUserId = principal.id
         }
@@ -241,7 +240,6 @@ class CommunicationService @Inject constructor(
 
     private fun checkReadAccess(communication: Communication, principal: PrincipalRef, context: AuthorizationContext)
     {
-        if (userRoleService.isAppAdmin(principal.id)) return
         when (communication.scope)
         {
             CommunicationScope.PERSONAL ->
@@ -261,7 +259,6 @@ class CommunicationService @Inject constructor(
 
     private fun checkWriteAccess(communication: Communication, principal: PrincipalRef, context: AuthorizationContext)
     {
-        if (userRoleService.isAppAdmin(principal.id)) return
         when (communication.scope)
         {
             CommunicationScope.PERSONAL ->
@@ -276,7 +273,8 @@ class CommunicationService @Inject constructor(
                     throw ForbiddenException("Access denied to communication ${communication.id}")
             }
             CommunicationScope.PLATFORM ->
-                throw ForbiddenException("Platform communications cannot be modified directly; clone them instead")
+                if (!userRoleService.isAppAdmin(principal.id))
+                    throw ForbiddenException("App admin role required to modify PLATFORM-scoped communications")
         }
     }
 
@@ -302,14 +300,14 @@ class CommunicationService @Inject constructor(
                 .getOrElse { throw IllegalArgumentException("Invalid scope: $requestedScope") }
             if (parsed == CommunicationScope.PLATFORM && !isAppAdmin)
                 throw ForbiddenException("App admin role required to create PLATFORM-scoped communications")
-            if (parsed == CommunicationScope.ORG && !isOrgAdmin && !isAppAdmin)
+            if (parsed == CommunicationScope.ORG && !isOrgAdmin)
                 throw ForbiddenException("Org admin role required to create ORG-scoped communications")
             return parsed
         }
         return when
         {
-            isAppAdmin -> CommunicationScope.PLATFORM
             isOrgAdmin && activeOrgId != null -> CommunicationScope.ORG
+            isAppAdmin -> CommunicationScope.PLATFORM
             else -> CommunicationScope.PERSONAL
         }
     }

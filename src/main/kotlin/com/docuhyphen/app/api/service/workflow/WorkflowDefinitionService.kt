@@ -104,11 +104,14 @@ class WorkflowDefinitionService @Inject constructor(
         val activeOrgId = context.activeOrgId
         val isOrgAdmin = activeOrgId != null && userRoleService.isOrgAdminIn(principal.id, activeOrgId)
         val isAppAdmin = userRoleService.isAppAdmin(principal.id)
-        val showUnpublished = isOrgAdmin || isAppAdmin
 
-        return definitionRepository.findAllAccessibleForCaller(principal.id, activeOrgId)
+        return definitionRepository.findAllAccessibleForCaller(
+            principal.id,
+            activeOrgId,
+            isOrgAdmin,
+            isAppAdmin,
+        )
             .asSequence()
-            .filter { showUnpublished || it.isTemplate || it.isPublished || it.scope == WorkflowScope.PERSONAL }
             .filter { scope == null || it.scope.name == scope.uppercase() }
             .filter { tag == null || decodeTags(it.generalTags).contains(tag) }
             .filter { triggerEvent == null || it.triggerEvent == triggerEvent }
@@ -159,7 +162,7 @@ class WorkflowDefinitionService @Inject constructor(
             isActive = request.isActive
             scope = resolvedScope
             organizationId = if (resolvedScope == WorkflowScope.ORG) activeOrgId else null
-            isTemplate = if (isAppAdmin) request.isTemplate else false
+            isTemplate = resolvedScope == WorkflowScope.APP && isAppAdmin && request.isTemplate
             createdByAppUserId = principal.id
         }
         val saved = definitionRepository.save(def)
@@ -266,7 +269,8 @@ class WorkflowDefinitionService @Inject constructor(
         val source = definitionRepository.findById(id)
             ?: throw IllegalArgumentException("Workflow definition not found: $id")
 
-        val canClone = source.isTemplate
+        val canClone = (source.scope == WorkflowScope.APP &&
+            (source.isTemplate || userRoleService.isAppAdmin(principal.id)))
             || (source.scope == WorkflowScope.PERSONAL && source.createdByAppUserId == principal.id)
             || (source.scope == WorkflowScope.ORG &&
                 authorizationService.authorize(
@@ -387,23 +391,14 @@ class WorkflowDefinitionService @Inject constructor(
 
     fun getInstanceDetail(id: UUID): WorkflowInstanceDetailResponseDto
     {
-        val principal = currentPrincipal()
         val activeOrgId = currentContext().activeOrgId
-        val isAppAdmin = userRoleService.isAppAdmin(principal.id)
 
         val instance = instanceRepository.findById(id)
             ?: throw IllegalArgumentException("Workflow instance not found: $id")
 
-        if (!isAppAdmin)
+        if (activeOrgId == null || instance.organizationId != activeOrgId)
         {
-            if (activeOrgId == null)
-            {
-                throw ForbiddenException("Access denied to workflow instance $id")
-            }
-            if (instance.organizationId != null && instance.organizationId != activeOrgId)
-            {
-                throw ForbiddenException("Access denied to workflow instance $id")
-            }
+            throw ForbiddenException("Access denied to workflow instance $id")
         }
 
         val steps = stepRepository.findByInstance(instance.id)
@@ -418,7 +413,6 @@ class WorkflowDefinitionService @Inject constructor(
 
     private fun checkReadAccess(def: WorkflowDefinition, principal: PrincipalRef, context: AuthorizationContext)
     {
-        if (userRoleService.isAppAdmin(principal.id) || def.isTemplate) return
         when (def.scope)
         {
             WorkflowScope.PERSONAL ->
@@ -439,14 +433,15 @@ class WorkflowDefinitionService @Inject constructor(
                     throw ForbiddenException("Access denied to workflow definition ${def.id}")
             }
             WorkflowScope.APP ->
+            {
+                if (def.isTemplate || userRoleService.isAppAdmin(principal.id)) return
                 throw ForbiddenException("Access denied to workflow definition ${def.id}")
+            }
         }
     }
 
     private fun checkWriteAccess(def: WorkflowDefinition, principal: PrincipalRef, context: AuthorizationContext)
     {
-        if (userRoleService.isAppAdmin(principal.id)) return
-        if (def.isTemplate) throw ForbiddenException("Platform templates cannot be modified directly; clone them instead")
         when (def.scope)
         {
             WorkflowScope.PERSONAL ->
@@ -463,7 +458,8 @@ class WorkflowDefinitionService @Inject constructor(
                     throw ForbiddenException("Access denied to workflow definition ${def.id}")
             }
             WorkflowScope.APP ->
-                throw ForbiddenException("Platform workflow definitions cannot be modified directly; clone them instead")
+                if (!userRoleService.isAppAdmin(principal.id))
+                    throw ForbiddenException("App admin role required to modify APP-scoped workflows")
         }
     }
 
@@ -484,14 +480,14 @@ class WorkflowDefinitionService @Inject constructor(
                 .getOrElse { throw IllegalArgumentException("Invalid scope: $requestedScope") }
             if (parsed == WorkflowScope.APP && !isAppAdmin)
                 throw ForbiddenException("App admin role required to create APP-scoped workflows")
-            if (parsed == WorkflowScope.ORG && !isOrgAdmin && !isAppAdmin)
+            if (parsed == WorkflowScope.ORG && !isOrgAdmin)
                 throw ForbiddenException("Org admin role required to create ORG-scoped workflows")
             return parsed
         }
         return when
         {
-            isAppAdmin -> WorkflowScope.APP
             isOrgAdmin && activeOrgId != null -> WorkflowScope.ORG
+            isAppAdmin -> WorkflowScope.APP
             else -> WorkflowScope.PERSONAL
         }
     }

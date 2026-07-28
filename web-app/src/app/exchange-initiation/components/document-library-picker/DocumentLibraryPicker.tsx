@@ -17,6 +17,7 @@ interface DocumentLibraryPickerProps
 {
     onSelect: (entries: DocumentLibraryEntrySummaryDto[]) => void;
     onBack: () => void;
+    enforcedScope?: PickerTab;
 }
 
 type PickerTab = 'PERSONAL' | 'ORG' | 'APP';
@@ -27,10 +28,10 @@ const tabLabel: Record<PickerTab, string> = {
     APP: 'Platform',
 };
 
-const DocumentLibraryPicker: React.FC<DocumentLibraryPickerProps> = ({onSelect, onBack}) =>
+const DocumentLibraryPicker: React.FC<DocumentLibraryPickerProps> = ({onSelect, onBack, enforcedScope}) =>
 {
     const styles = useExchangeInitiationStyles();
-    const [activeTab, setActiveTab] = useState<PickerTab>('PERSONAL');
+    const [activeTab, setActiveTab] = useState<PickerTab>(enforcedScope ?? 'PERSONAL');
     const [entries, setEntries] = useState<DocumentLibraryEntrySummaryDto[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -51,7 +52,7 @@ const DocumentLibraryPicker: React.FC<DocumentLibraryPickerProps> = ({onSelect, 
             })
             .catch(() => setError('Failed to load documents'))
             .finally(() => setLoading(false));
-    }, [activeTab]);
+    }, [activeTab, enforcedScope]);
 
     const toggleEntry = (id: string) =>
     {
@@ -98,29 +99,31 @@ const DocumentLibraryPicker: React.FC<DocumentLibraryPickerProps> = ({onSelect, 
                 </Button>
             </div>
 
-            <TabList
-                selectedValue={activeTab}
-                onTabSelect={(_, data) => setActiveTab(data.value as PickerTab)}
-            >
-                <Tab
-                    id="doc-picker-tab-personal"
-                    value="PERSONAL"
+            {!enforcedScope && (
+                <TabList
+                    selectedValue={activeTab}
+                    onTabSelect={(_, data) => setActiveTab(data.value as PickerTab)}
                 >
-                    {tabLabel.PERSONAL}
-                </Tab>
-                <Tab
-                    id="doc-picker-tab-org"
-                    value="ORG"
-                >
-                    {tabLabel.ORG}
-                </Tab>
-                <Tab
-                    id="doc-picker-tab-app"
-                    value="APP"
-                >
-                    {tabLabel.APP}
-                </Tab>
-            </TabList>
+                    <Tab
+                        id="doc-picker-tab-personal"
+                        value="PERSONAL"
+                    >
+                        {tabLabel.PERSONAL}
+                    </Tab>
+                    <Tab
+                        id="doc-picker-tab-org"
+                        value="ORG"
+                    >
+                        {tabLabel.ORG}
+                    </Tab>
+                    <Tab
+                        id="doc-picker-tab-app"
+                        value="APP"
+                    >
+                        {tabLabel.APP}
+                    </Tab>
+                </TabList>
+            )}
 
             {loading && (
                 <div className={styles.docPickerSpinnerWrapper}>

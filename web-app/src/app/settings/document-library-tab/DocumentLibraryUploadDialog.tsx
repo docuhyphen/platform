@@ -12,19 +12,21 @@ import {
 } from '@fluentui/react-components';
 import {useDocumentsTabStyles} from './DocumentLibraryTabStyles.tsx';
 import {uploadDocumentLibraryFile} from '../../../services/documentLibraryService.ts';
+import {DocumentLibraryEntrySummaryDto} from '../../models/models.tsx';
+import {uploadPlatformDocumentFile} from '../../../services/platformDocumentLibraryService.ts';
 
 interface Props
 {
     open: boolean;
-    entryId: string;
-    entryTitle: string;
+    entry: DocumentLibraryEntrySummaryDto;
+    enforcedScope?: 'APP';
     onClose: () => void;
     onUploaded: () => void;
 }
 
 const ALLOWED_EXTENSIONS = ['pdf', 'docx', 'doc', 'xlsx', 'xls', 'pptx', 'ppt', 'png', 'jpg'];
 
-const DocumentLibraryUploadDialog = ({open, entryId, entryTitle, onClose, onUploaded}: Props) =>
+const DocumentLibraryUploadDialog = ({open, entry, enforcedScope, onClose, onUploaded}: Props) =>
 {
     const styles = useDocumentsTabStyles();
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -55,7 +57,10 @@ const DocumentLibraryUploadDialog = ({open, entryId, entryTitle, onClose, onUplo
         setError(null);
         try
         {
-            await uploadDocumentLibraryFile(entryId, selectedFile, ext);
+            if (enforcedScope === 'APP')
+                await uploadPlatformDocumentFile(entry, selectedFile, ext);
+            else
+                await uploadDocumentLibraryFile(entry.id, selectedFile, ext);
             setSelectedFile(null);
             if (fileInputRef.current) fileInputRef.current.value = '';
             onUploaded();
@@ -95,7 +100,7 @@ const DocumentLibraryUploadDialog = ({open, entryId, entryTitle, onClose, onUplo
                             className={styles.dialogBody}
                         >
                             <Text size={300}>
-                                Uploading file for: <strong>{entryTitle}</strong>
+                                Uploading file for: <strong>{entry.title}</strong>
                             </Text>
                             <input
                                 id="doc-upload-file-input"

@@ -30,6 +30,10 @@ import {
     createDocumentLibraryEntry,
     updateDocumentLibraryEntry,
 } from '../../../services/documentLibraryService.ts';
+import {
+    createPlatformDocument,
+    updatePlatformDocument,
+} from '../../../services/platformDocumentLibraryService.ts';
 import VariableTokenInput from '../../../components/variable-token-input/VariableTokenInput.tsx';
 import {getAvailableVariables} from '../../../services/variableService.ts';
 import {AddIcon} from "../../components/IconBundles.tsx";
@@ -41,9 +45,10 @@ interface Props
     onSaved: () => void;
     entry?: DocumentLibraryEntrySummaryDto;
     scope: DocumentLibraryScope;
+    enforcedScope?: DocumentLibraryScope;
 }
 
-const DocumentLibraryEditorDialog = ({open, onClose, onSaved, entry, scope}: Props) =>
+const DocumentLibraryEditorDialog = ({open, onClose, onSaved, entry, scope, enforcedScope}: Props) =>
 {
     const styles = useDocumentsTabStyles();
     const exchangeStyles = useExchangeInitiationStyles();
@@ -70,9 +75,11 @@ const DocumentLibraryEditorDialog = ({open, onClose, onSaved, entry, scope}: Pro
             setRestrictedType(entry?.restrictedType);
             setRequired(entry?.required ?? false);
             setError(null);
-            getAvailableVariables().then(setAvailableVariables).catch(() => setAvailableVariables(null));
+            setAvailableVariables(null);
+            if (enforcedScope !== 'APP')
+                getAvailableVariables().then(setAvailableVariables).catch(() => setAvailableVariables(null));
         }
-    }, [open, entry]);
+    }, [open, entry, enforcedScope]);
 
     const addTag = () =>
     {
@@ -94,14 +101,18 @@ const DocumentLibraryEditorDialog = ({open, onClose, onSaved, entry, scope}: Pro
         {
             if (entry)
             {
-                await updateDocumentLibraryEntry(entry.id, {
+                const request = {
                     title: title.trim(),
                     description: description.trim() || undefined,
                     generalTags: tags,
                     restrictType,
                     restrictedType: restrictType ? restrictedType : undefined,
                     required,
-                });
+                };
+                if (enforcedScope === 'APP')
+                    await updatePlatformDocument(entry, request);
+                else
+                    await updateDocumentLibraryEntry(entry.id, request);
             }
             else
             {
@@ -114,7 +125,10 @@ const DocumentLibraryEditorDialog = ({open, onClose, onSaved, entry, scope}: Pro
                     restrictedType: restrictType ? restrictedType : undefined,
                     required,
                 };
-                await createDocumentLibraryEntry(request);
+                if (enforcedScope === 'APP')
+                    await createPlatformDocument(request);
+                else
+                    await createDocumentLibraryEntry(request);
             }
             onSaved();
         }

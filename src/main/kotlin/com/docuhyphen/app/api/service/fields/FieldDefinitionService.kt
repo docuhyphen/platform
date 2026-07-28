@@ -19,6 +19,7 @@ import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
 import com.docuhyphen.app.api.service.auth.authz.Decision
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.auth.authz.ResourceRef
+import com.docuhyphen.app.api.service.auth.authz.RoleCapabilities
 import com.docuhyphen.app.api.service.audit.AuditCaptureFailedException
 import com.docuhyphen.app.api.service.audit.AuditDraftInvalidException
 import com.docuhyphen.app.api.service.audit.AuditEventDraft
@@ -58,25 +59,38 @@ class FieldDefinitionService @Inject constructor(
 
     // ── Reads ─────────────────────────────────────────────────────────────────
 
-    fun listDefinitions(): List<FieldDefinitionDto>
+    fun listDefinitions(scopeKind: FieldScopeKind? = null): List<FieldDefinitionDto>
     {
-        val orgId = requireOrgConfigView()
-        return fieldDefinitionRepository.findAllForOrganization(orgId).map { it.toDto() }
+        val principal = currentPrincipal()
+        if (scopeKind == FieldScopeKind.PLATFORM)
+        {
+            if (!userRoleService.isAppAdmin(principal.id))
+                throw ForbiddenException("Platform field configuration requires App Administrator access")
+            return fieldDefinitionRepository.findAllPlatform().map { it.toDto() }
+        }
+        val orgId = currentContext().activeOrgId
+        val definitions = if (orgId != null && hasOrganizationAccess(principal, orgId, Action.FIELD_CONFIG_VIEW))
+            fieldDefinitionRepository.findAllForOrganization(orgId)
+        else if (userRoleService.isAppAdmin(principal.id))
+            fieldDefinitionRepository.findAllPlatform()
+        else
+            throw ForbiddenException("Access denied to field configuration")
+        return definitions.map { it.toDto() }
     }
 
     fun getDefinition(id: UUID): FieldDefinitionDto
     {
-        requireOrgConfigView()
         val def = fieldDefinitionRepository.findById(id)
             ?: throw IllegalArgumentException("Field definition not found: $id")
+        requireScopeAccess(def, Action.FIELD_CONFIG_VIEW)
         return def.toDto()
     }
 
     fun listContracts(definitionId: UUID): List<FieldContractDto>
     {
-        requireOrgConfigView()
-        fieldDefinitionRepository.findById(definitionId)
+        val definition = fieldDefinitionRepository.findById(definitionId)
             ?: throw IllegalArgumentException("Field definition not found: $definitionId")
+        requireScopeAccess(definition, Action.FIELD_CONFIG_VIEW)
         return fieldContractRepository.findByDefinition(definitionId).map { it.toDto() }
     }
 
@@ -95,9 +109,12 @@ class FieldDefinitionService @Inject constructor(
     @Transactional
     fun createDefinition(request: CreateFieldDefinitionRequest): FieldDefinitionDto
     {
-        val (principal, orgId) = requireOrgConfigEdit()
-        val scopeKind = resolveScope(request.scopeKind, principal)
-        val scopeOrgId = if (scopeKind == FieldScopeKind.ORGANIZATION) orgId else null
+        val principal = currentPrincipal()
+        val scopeKind = resolveCreateScope(request.scopeKind, principal)
+        val scopeOrgId = if (scopeKind == FieldScopeKind.ORGANIZATION)
+            requireActiveOrganizationAccess(principal, Action.FIELD_CONFIG_EDIT)
+        else
+            null
 
         val namespace = request.namespace.trim().lowercase()
         val fieldKey = request.fieldKey.trim().lowercase()
@@ -126,9 +143,9 @@ class FieldDefinitionService @Inject constructor(
     @Transactional
     fun addContractVersion(definitionId: UUID, request: FieldContractRequest): FieldContractDto
     {
-        requireOrgConfigEdit()
         val definition = fieldDefinitionRepository.findById(definitionId)
             ?: throw IllegalArgumentException("Field definition not found: $definitionId")
+        requireScopeAccess(definition, Action.FIELD_CONFIG_EDIT)
 
         val existing = fieldContractRepository.findByDefinition(definitionId)
         val firstType = existing.minByOrNull { it.contractVersion }?.valueType
@@ -145,13 +162,20 @@ class FieldDefinitionService @Inject constructor(
     @Transactional
     fun retireDefinition(id: UUID): FieldDefinitionDto
     {
-        val (principal, orgId) = requireOrgConfigEdit()
+        val principal = currentPrincipal()
         val def = fieldDefinitionRepository.findById(id)
             ?: throw IllegalArgumentException("Field definition not found: $id")
+        requireScopeAccess(def, Action.FIELD_CONFIG_EDIT)
         def.status = FieldLifecycleStatus.RETIRED
         def.updatedAt = Timestamp.from(Instant.now())
         val updated = fieldDefinitionRepository.update(def)
-        recordFieldEvent(AuditEventType.FIELD_DEFINITION_RETIRE, updated.id, "${updated.namespace}:${updated.fieldKey}", principal.id, orgId)
+        recordFieldEvent(
+            AuditEventType.FIELD_DEFINITION_RETIRE,
+            updated.id,
+            "${updated.namespace}:${updated.fieldKey}",
+            principal.id,
+            updated.scopeOrgId,
+        )
         return updated.toDto()
     }
 
@@ -183,9 +207,12 @@ class FieldDefinitionService @Inject constructor(
         return fieldContractRepository.save(contract)
     }
 
-    private fun resolveScope(requested: FieldScopeKind?, principal: PrincipalRef): FieldScopeKind
+    private fun resolveCreateScope(requested: FieldScopeKind?, principal: PrincipalRef): FieldScopeKind
     {
-        val scope = requested ?: FieldScopeKind.ORGANIZATION
+        val activeOrgId = currentContext().activeOrgId
+        val hasOrgEdit = activeOrgId != null &&
+            hasOrganizationAccess(principal, activeOrgId, Action.FIELD_CONFIG_EDIT)
+        val scope = requested ?: if (hasOrgEdit) FieldScopeKind.ORGANIZATION else FieldScopeKind.PLATFORM
         if (scope == FieldScopeKind.PLATFORM && !userRoleService.isAppAdmin(principal.id))
             throw ForbiddenException("Only platform administrators may author platform-scoped fields")
         return scope
@@ -197,30 +224,56 @@ class FieldDefinitionService @Inject constructor(
             throw FieldValidationException("$label must be lowercase alphanumeric with hyphens (e.g. customer-reference)")
     }
 
-    private fun requireOrgConfigView(): UUID
+    private fun requireScopeAccess(definition: FieldDefinition, action: Action)
     {
         val principal = currentPrincipal()
-        val context = currentContext()
-        val orgId = context.activeOrgId
+        when (definition.scopeKind)
+        {
+            FieldScopeKind.PLATFORM ->
+            {
+                if (action == Action.FIELD_CONFIG_VIEW)
+                {
+                    val activeOrgId = currentContext().activeOrgId
+                    if (userRoleService.isAppAdmin(principal.id) ||
+                        (activeOrgId != null &&
+                            hasOrganizationAccess(principal, activeOrgId, Action.FIELD_CONFIG_VIEW)))
+                        return
+                }
+                else if (userRoleService.isAppAdmin(principal.id))
+                    return
+            }
+            FieldScopeKind.ORGANIZATION ->
+            {
+                val organizationId = definition.scopeOrgId
+                    ?: throw ForbiddenException("Organization-scoped field has no owner")
+                if (currentContext().activeOrgId == organizationId &&
+                    hasOrganizationAccess(principal, organizationId, action))
+                    return
+            }
+        }
+        throw ForbiddenException("Access denied to field configuration")
+    }
+
+    private fun requireActiveOrganizationAccess(principal: PrincipalRef, action: Action): UUID
+    {
+        val orgId = currentContext().activeOrgId
             ?: throw ForbiddenException("An active organization is required")
-        val decision = authorizationService.authorize(
-            principal, Action.FIELD_CONFIG_VIEW, ResourceRef.organization(orgId), context,
-        )
-        if (decision is Decision.Deny) throw ForbiddenException("Access denied to field configuration")
+        if (!hasOrganizationAccess(principal, orgId, action))
+            throw ForbiddenException("Access denied to edit field configuration")
         return orgId
     }
 
-    private fun requireOrgConfigEdit(): Pair<PrincipalRef, UUID>
+    private fun hasOrganizationAccess(principal: PrincipalRef, organizationId: UUID, action: Action): Boolean
     {
-        val principal = currentPrincipal()
-        val context = currentContext()
-        val orgId = context.activeOrgId
-            ?: throw ForbiddenException("An active organization is required")
-        val decision = authorizationService.authorize(
-            principal, Action.FIELD_CONFIG_EDIT, ResourceRef.organization(orgId), context,
-        )
-        if (decision is Decision.Deny) throw ForbiddenException("Access denied to edit field configuration")
-        return principal to orgId
+        val hasOrganizationCapability = userRoleService.orgRolesIn(principal.id, organizationId)
+            .any { action.required in RoleCapabilities.forOrganizationRole(it) }
+        if (!hasOrganizationCapability) return false
+        return authorizationService.authorize(
+            principal,
+            action,
+            ResourceRef.organization(organizationId),
+            currentContext(),
+        ) is Decision.Allow
     }
 
     private fun currentPrincipal(): PrincipalRef =

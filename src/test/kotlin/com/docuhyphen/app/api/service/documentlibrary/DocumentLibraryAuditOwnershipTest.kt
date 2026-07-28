@@ -11,6 +11,7 @@ import com.docuhyphen.app.api.service.auth.UserRoleService
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
+import com.docuhyphen.app.api.service.auth.authz.Decision
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.storage.FileStorageService
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -65,13 +66,15 @@ class DocumentLibraryAuditOwnershipTest
             AuthorizationContext(activeOrgId = UUID.randomUUID()),
         )
         val userRoleService = mock<UserRoleService>()
-        whenever(userRoleService.isAppAdmin(principal.id)).thenReturn(scope == BlueprintScope.ORG)
+        whenever(userRoleService.isAppAdmin(principal.id)).thenReturn(false)
+        val authorizationService = mock<AuthorizationService>()
+        whenever(authorizationService.authorize(any(), any(), any(), any())).thenReturn(Decision.Allow())
         val recorder = mock<AuditRecorder>()
         whenever(recorder.record(any())).thenReturn(AuditCaptureResult.Captured(UUID.randomUUID(), UUID.randomUUID()))
         val service = DocumentLibraryService(
             repository,
             storage,
-            mock<AuthorizationService>(),
+            authorizationService,
             contextFactory,
             userRoleService,
             recorder,

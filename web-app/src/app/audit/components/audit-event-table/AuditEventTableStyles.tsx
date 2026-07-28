@@ -19,7 +19,9 @@ export const useAuditEventTableStyles = makeStyles({
         overscrollBehavior: "contain",
     },
     table: {
-        minWidth: "640px",
+        width: "100%",
+        minWidth: "60rem",
+        tableLayout: "fixed",
     },
     tableHeader: {
         position: "sticky",
