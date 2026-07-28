@@ -138,6 +138,13 @@ export function HowItWorksSection()
 
     useEffect(() =>
     {
+        if (!isVisible)
+        {
+            clearRotationTimeout();
+            clearProgressInterval();
+            return;
+        }
+
         if (isPaused)
         {
             clearRotationTimeout();
@@ -153,7 +160,7 @@ export function HowItWorksSection()
             clearRotationTimeout();
             clearProgressInterval();
         };
-    }, [activeStepIndex, isPaused]);
+    }, [activeStepIndex, isPaused, isVisible]);
 
     const updateActiveStepIndex = (nextIndex: number) => {
         rotationRemainingMsRef.current = STEP_ROTATION_INTERVAL_MS;
