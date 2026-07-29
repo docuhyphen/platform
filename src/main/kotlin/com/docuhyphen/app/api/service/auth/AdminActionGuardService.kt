@@ -75,6 +75,7 @@ class AdminActionGuardService @Inject constructor(
             "PLATFORM_ORG_SUBSCRIPTION_POLICY_UPSERT"  to "update an organization subscription policy",
             "PLATFORM_ORG_SUBSCRIPTION_POLICY_DELETE"  to "delete an organization subscription policy",
             "PLATFORM_ORG_FEATURE_ENTITLEMENTS_UPDATE" to "update organization feature entitlements",
+            "PLATFORM_ORGANIZATION_STATUS_UPDATE"      to "update an organization account status",
             "ORG_WORKFLOW_DEFINITION_DELETE"            to "delete a workflow",
         )
     }

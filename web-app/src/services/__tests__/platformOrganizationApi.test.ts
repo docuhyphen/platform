@@ -1,11 +1,13 @@
 import {beforeEach, describe, expect, it, vi} from "vitest";
 
 const get = vi.fn();
+const patch = vi.fn();
 const put = vi.fn();
 
 vi.mock("../apiClient.ts", () => ({
     default: {
         get: (...args: unknown[]) => get(...args),
+        patch: (...args: unknown[]) => patch(...args),
         put: (...args: unknown[]) => put(...args),
     },
 }));
@@ -62,6 +64,27 @@ describe("platformOrganizationApi", () =>
             {
                 entitlements: [{featureCode: "WORKFLOWS", enabled: true}],
                 changeReason: "Annual renewal",
+            },
+        );
+    });
+
+    it("updates account status through the status subresource", async () =>
+    {
+        patch.mockResolvedValue({data: {}});
+        const {updatePlatformOrganizationStatus} = await import("../platformOrganizationApi.ts");
+
+        await updatePlatformOrganizationStatus("organization-1", {
+            active: false,
+            verificationComplete: true,
+            changeReason: "Account review",
+        });
+
+        expect(patch).toHaveBeenCalledWith(
+            "/platform/organizations/organization-1/status",
+            {
+                active: false,
+                verificationComplete: true,
+                changeReason: "Account review",
             },
         );
     });

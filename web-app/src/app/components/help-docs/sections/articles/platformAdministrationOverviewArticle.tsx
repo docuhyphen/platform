@@ -35,10 +35,15 @@ export const platformAdministrationOverviewArticle = (
             Use the <b>Organizations</b> section to search platform organization
             accounts and review account status, tier, licensed capacity, aggregate
             active-user usage, and feature entitlements. Select <b>Edit account</b>
-            to update the tier, capacity, or feature entitlements. These controls
+            to activate or deactivate the account, update its verification status,
+            tier, capacity, or feature entitlements. These controls
             do not open organization Settings or expose member identities. Tier,
             capacity, and entitlement changes record safe before-and-after state
             in Platform Audit.
+        </p>
+        <p>
+            Filters stay at the top and pagination stays at the bottom while the
+            organization rows scroll within the available table area.
         </p>
 
         <h3>Platform Content</h3>

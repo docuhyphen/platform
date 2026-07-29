@@ -43,6 +43,7 @@ const Organizations = () =>
             {state.error && (
                 <MessageBar
                     id={"platform-organizations-error"}
+                    className={styles.feedback}
                     intent={"error"}>
                     <MessageBarBody id={"platform-organizations-error-body"}>
                         <MessageBarTitle id={"platform-organizations-error-title"}>Error</MessageBarTitle>

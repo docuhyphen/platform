@@ -5,6 +5,7 @@ export const useOrganizationFiltersStyles = makeStyles({
         display: "grid",
         gridTemplateColumns: "minmax(180px, 2fr) minmax(140px, 1fr) minmax(140px, 1fr) auto",
         alignItems: "end",
+        flexShrink: 0,
         ...shorthands.gap(tokens.spacingHorizontalM),
         "@media (max-width: 768px)": {
             gridTemplateColumns: "1fr",

@@ -37,6 +37,20 @@ export interface PlatformOrganizationListQuery
     offset: number;
 }
 
+export interface PlatformOrganizationStatusUpdateRequest
+{
+    active: boolean;
+    verificationComplete: boolean;
+    changeReason?: string;
+}
+
+export interface PlatformOrganizationStatus
+{
+    organizationId: string;
+    active: boolean;
+    verificationComplete: boolean;
+}
+
 export interface PlatformOrganizationSubscriptionPolicyRequest
 {
     tierCode: string;

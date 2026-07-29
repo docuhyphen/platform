@@ -98,6 +98,7 @@ const PlatformAdministration = () =>
                     <div
                         id={"platform-administration-section-content"}
                         className={selectedValue === platformAdministrationTabIds.platformContent
+                        || selectedValue === platformAdministrationTabIds.organizations
                             ? styles.managedContent
                             : styles.contentScroller}>
                         {selectedValue === platformAdministrationTabIds.organizations && <Organizations/>}

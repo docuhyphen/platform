@@ -30,7 +30,7 @@ export const useProfileOverviewCardStyles = makeStyles({
     copyBlock: {
         display: "flex",
         flexDirection: "column",
-        gap: tokens.spacingHorizontalS,
+        gap: tokens.spacingHorizontalM,
         minWidth: 0,
     },
 

@@ -38,10 +38,15 @@ const OrganizationsTable = ({organizations, onEdit}: OrganizationsTableProps) =>
                 id={"platform-organizations-table"}
                 size={"small"}
                 className={styles.table}>
-                <TableHeader id={"platform-organizations-table-header"}>
-                    <TableRow id={"platform-organizations-header-row"}>
-                        <TableHeaderCell id={"platform-organizations-name-header"}>Organization</TableHeaderCell>
-                        <TableHeaderCell id={"platform-organizations-status-header"}>Status</TableHeaderCell>
+                <TableHeader
+                    id={"platform-organizations-table-header"}
+                    className={styles.tableHeader}>
+                        <TableRow id={"platform-organizations-header-row"}>
+                            <TableHeaderCell id={"platform-organizations-name-header"}>Organization</TableHeaderCell>
+                            <TableHeaderCell id={"platform-organizations-registration-header"}>
+                                Registration number
+                            </TableHeaderCell>
+                            <TableHeaderCell id={"platform-organizations-status-header"}>Status</TableHeaderCell>
                         <TableHeaderCell id={"platform-organizations-tier-header"}>Tier</TableHeaderCell>
                         <TableHeaderCell id={"platform-organizations-capacity-header"}>Usage</TableHeaderCell>
                         <TableHeaderCell id={"platform-organizations-features-header"}>Features</TableHeaderCell>
@@ -57,9 +62,8 @@ const OrganizationsTable = ({organizations, onEdit}: OrganizationsTableProps) =>
                             key={organization.organizationId}>
                             <TableCell>
                                 <Text weight={"semibold"}>{organization.name}</Text>
-                                <br/>
-                                <Text size={200}>{organization.registrationNumber}</Text>
                             </TableCell>
+                            <TableCell>{organization.registrationNumber}</TableCell>
                             <TableCell>
                                 <Badge
                                     id={`platform-organization-active-status-${organization.organizationId}`}
@@ -94,7 +98,7 @@ const OrganizationsTable = ({organizations, onEdit}: OrganizationsTableProps) =>
                     ))}
                     {organizations.length === 0 && (
                         <TableRow id={"platform-organizations-empty-row"}>
-                            <TableCell colSpan={6}>
+                            <TableCell colSpan={7}>
                                 <Text id={"platform-organizations-empty-message"}>
                                     No organizations match the current filters.
                                 </Text>

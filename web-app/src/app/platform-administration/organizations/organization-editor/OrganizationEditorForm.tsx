@@ -1,5 +1,6 @@
 import {
     Button,
+    Checkbox,
     Field,
     Input,
     MessageBar,
@@ -57,6 +58,22 @@ const OrganizationEditorForm = ({editor}: OrganizationEditorFormProps) =>
                         disabled={editor.saving}
                         onChange={(_, data) => editor.setMaxUsers(data.value)}/>
                 </Field>
+            </div>
+            <div
+                id={"platform-organization-status-fields"}
+                className={styles.statusOptions}>
+                <Checkbox
+                    id={"platform-organization-active-checkbox"}
+                    label={"Active"}
+                    checked={editor.active}
+                    disabled={editor.saving}
+                    onChange={(_, data) => editor.setActive(data.checked === true)}/>
+                <Checkbox
+                    id={"platform-organization-verified-checkbox"}
+                    label={"Verified"}
+                    checked={editor.verificationComplete}
+                    disabled={editor.saving}
+                    onChange={(_, data) => editor.setVerificationComplete(data.checked === true)}/>
             </div>
             <Field
                 id={"platform-organization-change-reason-field"}

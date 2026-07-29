@@ -281,4 +281,5 @@ class PlatformOrganizationService @Inject constructor(
     private fun entitlementSnapshot(entitlements: List<OrganizationFeatureEntitlement>): String =
         entitlements.sortedBy { it.featureCode }
             .joinToString(",") { "${it.featureCode}=${it.isEnabled}" }
+
 }

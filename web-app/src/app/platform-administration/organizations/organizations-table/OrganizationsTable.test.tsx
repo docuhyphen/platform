@@ -32,9 +32,37 @@ describe("OrganizationsTable", () =>
         );
 
         expect(screen.getByText("Acme")).toBeTruthy();
+        expect(screen.getByText("Registration number")).toBeTruthy();
+        expect(screen.getByText("REG-1")).toBeTruthy();
         expect(screen.getByText("12 / 50")).toBeTruthy();
         expect(screen.getByText("WORKFLOWS: On")).toBeTruthy();
         expect(screen.queryByText("Tenant Member")).toBeNull();
         expect(screen.queryByText("tenant-secret")).toBeNull();
+        const headers = Array.from(
+            document.querySelectorAll("#platform-organizations-header-row th"),
+        ).map((header) => header.textContent);
+        expect(headers.slice(0, 3)).toEqual([
+            "Organization",
+            "Registration number",
+            "Status",
+        ]);
+    });
+
+    it("keeps the column header inside the scrollable table region", () =>
+    {
+        render(
+            <OrganizationsTable
+                organizations={[]}
+                onEdit={vi.fn()}/>,
+        );
+
+        const scrollContainer = document.getElementById(
+            "platform-organizations-table-scroll-container",
+        ) as HTMLElement;
+        const tableHeader = document.getElementById(
+            "platform-organizations-table-header",
+        ) as HTMLElement;
+
+        expect(scrollContainer.contains(tableHeader)).toBe(true);
     });
 });

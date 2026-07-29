@@ -93,6 +93,7 @@ enum class AuditEventType(val key: String, val category: AuditCategory)
     PLATFORM_ORG_SUBSCRIPTION_POLICY_UPSERT("platform.org_subscription_policy.upsert", AuditCategory.PLATFORM),
     PLATFORM_ORG_SUBSCRIPTION_POLICY_VIEW("platform.org_subscription_policy.view", AuditCategory.PLATFORM),
     PLATFORM_ORGANIZATION_LIST("platform.organization.list", AuditCategory.PLATFORM),
+    PLATFORM_ORGANIZATION_STATUS_UPDATE("platform.organization_status.update", AuditCategory.PLATFORM),
     PLATFORM_ORGANIZATION_VIEW("platform.organization.view", AuditCategory.PLATFORM),
     PLATFORM_ORG_FEATURE_ENTITLEMENTS_VIEW("platform.org_feature_entitlements.view", AuditCategory.PLATFORM),
     PLATFORM_ORG_FEATURE_ENTITLEMENTS_UPDATE("platform.org_feature_entitlements.update", AuditCategory.PLATFORM),

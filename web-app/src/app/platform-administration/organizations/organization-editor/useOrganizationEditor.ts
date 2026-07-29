@@ -2,6 +2,7 @@ import {useEffect, useState} from "react";
 import {
     PlatformApiError,
     updatePlatformOrganizationFeatureEntitlements,
+    updatePlatformOrganizationStatus,
     updatePlatformOrganizationSubscriptionPolicy,
 } from "../../../../services/platformOrganizationApi.ts";
 import {
@@ -32,6 +33,8 @@ export const useOrganizationEditor = (
 {
     const [tierCode, setTierCode] = useState("");
     const [maxUsers, setMaxUsers] = useState("");
+    const [active, setActive] = useState(false);
+    const [verificationComplete, setVerificationComplete] = useState(false);
     const [changeReason, setChangeReason] = useState("");
     const [entitlements, setEntitlements] = useState<PlatformOrganizationFeatureEntitlement[]>([]);
     const [saving, setSaving] = useState(false);
@@ -42,6 +45,8 @@ export const useOrganizationEditor = (
         if (!organization) return;
         setTierCode(organization.tierCode);
         setMaxUsers(organization.maxUsers?.toString() ?? "");
+        setActive(organization.active);
+        setVerificationComplete(organization.verificationComplete);
         setChangeReason("");
         setEntitlements(organization.featureEntitlements.map((item) => ({...item})));
         setError(null);
@@ -82,6 +87,17 @@ export const useOrganizationEditor = (
                 })),
                 changeReason: reason,
             });
+            if (
+                active !== organization.active
+                || verificationComplete !== organization.verificationComplete
+            )
+            {
+                await updatePlatformOrganizationStatus(organization.organizationId, {
+                    active,
+                    verificationComplete,
+                    changeReason: reason,
+                });
+            }
             onSaved();
         }
         catch (saveError: unknown)
@@ -97,12 +113,16 @@ export const useOrganizationEditor = (
     return {
         tierCode,
         maxUsers,
+        active,
+        verificationComplete,
         changeReason,
         entitlements,
         saving,
         error,
         setTierCode,
         setMaxUsers,
+        setActive,
+        setVerificationComplete,
         setChangeReason,
         updateEntitlement,
         removeEntitlement,

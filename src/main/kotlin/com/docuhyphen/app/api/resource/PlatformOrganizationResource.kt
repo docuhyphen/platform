@@ -1,13 +1,17 @@
 package com.docuhyphen.app.api.resource
 
 import com.docuhyphen.app.api.exception.OrganizationNotFoundException
+import com.docuhyphen.app.api.model.dto.PlatformOrganizationStatusUpdateRequest
 import com.docuhyphen.app.api.resource.model.ResponseError
+import com.docuhyphen.app.api.service.auth.AdminApprovalContext
 import com.docuhyphen.app.api.service.platform.PlatformOrganizationService
+import com.docuhyphen.app.api.service.platform.PlatformOrganizationStatusService
 import io.quarkus.security.UnauthorizedException
 import jakarta.inject.Inject
 import jakarta.ws.rs.Consumes
 import jakarta.ws.rs.GET
 import jakarta.ws.rs.HeaderParam
+import jakarta.ws.rs.PATCH
 import jakarta.ws.rs.Path
 import jakarta.ws.rs.PathParam
 import jakarta.ws.rs.Produces
@@ -21,6 +25,7 @@ import org.slf4j.LoggerFactory
 @Consumes(APPLICATION_JSON)
 class PlatformOrganizationResource @Inject constructor(
     private val platformOrganizationService: PlatformOrganizationService,
+    private val platformOrganizationStatusService: PlatformOrganizationStatusService,
 )
 {
     companion object
@@ -75,6 +80,30 @@ class PlatformOrganizationResource @Inject constructor(
         catch (exception: Exception)
         {
             handleException("Error fetching restricted platform organization summary", exception)
+        }
+    }
+
+    @PATCH
+    @Path("/{organizationId}/status")
+    fun updateStatus(
+        @PathParam("organizationId") organizationId: String,
+        @HeaderParam("X-Request-Id") requestId: String?,
+        payload: PlatformOrganizationStatusUpdateRequest,
+    ): Response
+    {
+        return try
+        {
+            Response.ok(
+                platformOrganizationStatusService.update(
+                    organizationId = organizationId,
+                    request = payload,
+                    adminApprovalContext = AdminApprovalContext(requestId),
+                ),
+            ).build()
+        }
+        catch (exception: Exception)
+        {
+            handleException("Error updating platform organization status", exception)
         }
     }
 

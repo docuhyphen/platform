@@ -31,6 +31,20 @@ data class PlatformOrganizationListDto(
 )
 
 @Serializable
+data class PlatformOrganizationStatusUpdateRequest(
+    val active: Boolean,
+    val verificationComplete: Boolean,
+    val changeReason: String? = null,
+)
+
+@Serializable
+data class PlatformOrganizationStatusDto(
+    val organizationId: String,
+    val active: Boolean,
+    val verificationComplete: Boolean,
+)
+
+@Serializable
 data class PlatformOrganizationFeatureEntitlementUpdateDto(
     val featureCode: String,
     val enabled: Boolean,

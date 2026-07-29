@@ -4,6 +4,8 @@ import {
     PlatformOrganizationFeatureEntitlementsRequest,
     PlatformOrganizationList,
     PlatformOrganizationListQuery,
+    PlatformOrganizationStatus,
+    PlatformOrganizationStatusUpdateRequest,
     PlatformOrganizationSubscriptionPolicy,
     PlatformOrganizationSubscriptionPolicyRequest,
 } from "./types/platformOrganizations.ts";
@@ -44,6 +46,15 @@ export const fetchPlatformOrganizations = (
     query: PlatformOrganizationListQuery,
 ): Promise<PlatformOrganizationList> =>
     executeRequest(() => apiClient.get("/platform/organizations", {params: query}));
+
+export const updatePlatformOrganizationStatus = (
+    organizationId: string,
+    request: PlatformOrganizationStatusUpdateRequest,
+): Promise<PlatformOrganizationStatus> =>
+    executeRequest(() => apiClient.patch(
+        `/platform/organizations/${organizationId}/status`,
+        request,
+    ));
 
 export const updatePlatformOrganizationSubscriptionPolicy = (
     organizationId: string,

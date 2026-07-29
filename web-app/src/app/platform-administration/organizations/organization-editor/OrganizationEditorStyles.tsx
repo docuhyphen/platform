@@ -20,6 +20,11 @@ export const useOrganizationEditorStyles = makeStyles({
             gridTemplateColumns: "1fr",
         },
     },
+    statusOptions: {
+        display: "flex",
+        flexWrap: "wrap",
+        ...shorthands.gap(tokens.spacingHorizontalL),
+    },
     entitlements: {
         display: "flex",
         flexDirection: "column",

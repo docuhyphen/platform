@@ -18,6 +18,7 @@ import com.docuhyphen.app.api.service.auth.AuthAuditService
 import com.docuhyphen.app.api.service.auth.UserRoleService
 import com.docuhyphen.app.api.service.organization.OrganizationMembershipService
 import com.docuhyphen.app.api.service.platform.PlatformOrganizationService
+import com.docuhyphen.app.api.service.platform.PlatformOrganizationStatusService
 import jakarta.ws.rs.core.Response
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
@@ -175,7 +176,10 @@ class PlatformOrganizationAuthorizationMatrixTest
         )
 
         return Harness(
-            resource = PlatformOrganizationResource(service),
+            resource = PlatformOrganizationResource(
+                service,
+                mock<PlatformOrganizationStatusService>(),
+            ),
             organizationRepository = organizationRepository,
         )
     }
