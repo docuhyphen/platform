@@ -11,7 +11,9 @@ import com.docuhyphen.app.api.model.entity.Share
 import com.docuhyphen.app.api.repository.AppUserRepository
 import com.docuhyphen.app.api.repository.ExchangeRepository
 import com.docuhyphen.app.api.resource.model.ExchangeInitiationDto
+import com.docuhyphen.app.api.resource.model.ExchangeRecipientSelectionRequest
 import com.docuhyphen.app.api.resource.model.ExchangeRequestDocumentRequest
+import com.docuhyphen.app.api.resource.model.ExternalEmailRecipientSelectionRequest
 import com.docuhyphen.app.api.resource.model.RegisteredUserRecipientSelectionRequest
 import com.docuhyphen.app.api.service.AppUserService
 import com.docuhyphen.app.api.service.auth.AuthAuditService
@@ -58,6 +60,8 @@ internal class ExchangeInitiationAutoAcceptFixture
     val exchangeRepository: ExchangeRepository = mock()
     val recipientService: ExchangeRecipientService = mock()
     val workflowEngineService: WorkflowEngineService = mock()
+    val emailTemplateService: EmailTemplateService = mock()
+    val recipientSelectionResolver: ExchangeRecipientSelectionResolver = mock()
     val service: ExchangeInitiationService
 
     init
@@ -78,11 +82,9 @@ internal class ExchangeInitiationAutoAcceptFixture
         val authorizationService = mock<AuthorizationService>()
         val appUserService = mock<AppUserService>()
         val organizationService = mock<OrganizationService>()
-        val selectionResolver = mock<ExchangeRecipientSelectionResolver>()
         val shareService = mock<ShareService>()
         val templateInterpolator = mock<TemplateVariableInterpolator>()
         val configurationService = mock<ConfigurationService>()
-        val emailTemplateService = mock<EmailTemplateService>()
         val entityManager = mock<EntityManager>()
         val principal = PrincipalRef.user(initiator.id)
 
@@ -92,7 +94,7 @@ internal class ExchangeInitiationAutoAcceptFixture
         whenever(organizationService.getOrganizationById(organizationId)).thenReturn(organization)
         whenever(appUserService.getById(recipient.id)).thenReturn(recipient)
         whenever(
-            selectionResolver.resolve(
+            recipientSelectionResolver.resolve(
                 RegisteredUserRecipientSelectionRequest(recipient.id.toString()),
                 initiator,
                 organizationId,
@@ -165,7 +167,7 @@ internal class ExchangeInitiationAutoAcceptFixture
             exchangeRecipientService = recipientService,
             exchangeRecipientAttestationService = mock<ExchangeRecipientAttestationService>(),
             externalIdentityResolutionService = mock<ExternalIdentityResolutionService>(),
-            exchangeRecipientSelectionResolver = selectionResolver,
+            exchangeRecipientSelectionResolver = recipientSelectionResolver,
             organizationGroupService = mock<OrganizationGroupService>(),
             workflowEngineService = workflowEngineService,
             organizationService = organizationService,
@@ -182,8 +184,28 @@ internal class ExchangeInitiationAutoAcceptFixture
         }
     }
 
-    fun initiate(): Exchange
+    fun initiate(
+        primaryRecipient: ExchangeRecipientSelectionRequest =
+            RegisteredUserRecipientSelectionRequest(recipient.id.toString()),
+        requestRecipientSignIn: Boolean = false,
+    ): Exchange
     {
+        if (primaryRecipient is ExternalEmailRecipientSelectionRequest)
+        {
+            whenever(
+                recipientSelectionResolver.resolve(
+                    primaryRecipient,
+                    initiator,
+                    organizationId,
+                ),
+            ).thenReturn(
+                ResolvedExchangeRecipientSelection(
+                    recipientType = com.docuhyphen.app.api.model.entity.ExchangeRecipientType.EMAIL,
+                    selectionType = com.docuhyphen.app.api.model.entity.ExchangeRecipientSelectionType.EXTERNAL_EMAIL,
+                    appUser = recipient,
+                ),
+            )
+        }
         val document = ExchangeRequestDocumentRequest().apply {
             title = "Requested document"
             required = true
@@ -191,7 +213,8 @@ internal class ExchangeInitiationAutoAcceptFixture
         return service.initiateExchange(
             ExchangeInitiationDto(
                 name = "Auto-start Exchange",
-                primaryRecipient = RegisteredUserRecipientSelectionRequest(recipient.id.toString()),
+                primaryRecipient = primaryRecipient,
+                requestRecipientSignIn = requestRecipientSignIn,
                 exchangeDocuments = listOf(document),
             ),
         )

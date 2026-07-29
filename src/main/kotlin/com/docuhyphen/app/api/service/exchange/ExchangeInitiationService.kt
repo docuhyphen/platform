@@ -822,11 +822,15 @@ class ExchangeInitiationService @Inject constructor(
             }
         }
 
-        val requireSignInForRecipient = recipientType == EMAIL && exchange.requireRecipientSignIn
+        val requireSignInForRecipient = recipientType == EMAIL &&
+            recipientAppUser?.isTemporary == true &&
+            exchange.requireRecipientSignIn
+
         val isNoAuthTempRecipient = recipientType == EMAIL &&
             recipientAppUser?.isTemporary == true &&
             !exchange.requireRecipientSignIn
         val emails = mutableListOf<ExchangeEmailDelivery>()
+
         if (notifyPrimary)
         {
             if (isNoAuthTempRecipient)
