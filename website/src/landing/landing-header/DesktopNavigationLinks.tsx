@@ -1,4 +1,4 @@
-import {Menu, MenuItem, MenuList, MenuPopover, MenuTrigger, Text} from "@fluentui/react-components";
+import {Menu, MenuItem, MenuList, MenuPopover, MenuTrigger, Text, mergeClasses} from "@fluentui/react-components";
 import {ChevronDown16Regular} from "@fluentui/react-icons";
 import {Link} from "react-router-dom";
 import {LANDING_INDUSTRIES, toNavigationId} from "./landingNavigation.ts";
@@ -6,12 +6,16 @@ import {useLandingHeaderStyles} from "./LandingHeaderStyles.tsx";
 
 interface DesktopNavigationLinksProps
 {
+    activePath: string;
     onNavigate: (to: string) => void;
 }
 
-export function DesktopNavigationLinks({onNavigate}: DesktopNavigationLinksProps)
+export function DesktopNavigationLinks({activePath, onNavigate}: DesktopNavigationLinksProps)
 {
     const styles = useLandingHeaderStyles();
+    const industriesActive = activePath.startsWith("/industries");
+    const getNavLinkClassName = (to: string) =>
+        mergeClasses(styles.navLink, activePath === to && styles.activeNavLink);
 
     return (
         <div
@@ -22,8 +26,9 @@ export function DesktopNavigationLinks({onNavigate}: DesktopNavigationLinksProps
                 <MenuTrigger disableButtonEnhancement>
                     <button
                         id="landing-industries-menu-trigger"
-                        className={styles.navLink}
+                        className={mergeClasses(styles.navLink, industriesActive && styles.activeNavLink)}
                         type="button"
+                        aria-current={industriesActive ? "page" : undefined}
                     >
                         Industries <ChevronDown16Regular/>
                     </button>
@@ -35,6 +40,8 @@ export function DesktopNavigationLinks({onNavigate}: DesktopNavigationLinksProps
                                 key={industry.to}
                                 id={`landing-industry-${toNavigationId(industry.label)}`}
                                 onClick={() => onNavigate(industry.to)}
+                                className={activePath === industry.to ? styles.activeSubMenuItem : undefined}
+                                aria-current={activePath === industry.to ? "page" : undefined}
                             >
                                 {industry.label}
                             </MenuItem>
@@ -46,21 +53,24 @@ export function DesktopNavigationLinks({onNavigate}: DesktopNavigationLinksProps
             <Link
                 id="landing-pricing-link"
                 to="/pricing"
-                className={styles.navLink}
+                className={getNavLinkClassName("/pricing")}
+                aria-current={activePath === "/pricing" ? "page" : undefined}
             >
                 <Text>Pricing</Text>
             </Link>
             <Link
                 id="landing-about-link"
                 to="/about"
-                className={styles.navLink}
+                className={getNavLinkClassName("/about")}
+                aria-current={activePath === "/about" ? "page" : undefined}
             >
                 <Text>About</Text>
             </Link>
             <Link
                 id="landing-contact-link"
                 to="/contact"
-                className={styles.navLink}
+                className={getNavLinkClassName("/contact")}
+                aria-current={activePath === "/contact" ? "page" : undefined}
             >
                 <Text>Contact</Text>
             </Link>

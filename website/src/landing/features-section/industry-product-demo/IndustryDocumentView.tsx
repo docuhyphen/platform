@@ -97,24 +97,15 @@ export function IndustryDocumentView({industry}: IndustryDocumentViewProps)
                 id="industry-demo-document-canvas"
                 className={previewStyles.documentCanvas}
             >
-                <a
-                    id="industry-demo-document-preview-link"
-                    className={previewStyles.documentPreviewLink}
-                    href={industry.document.pdfSrc}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label={`Open ${industry.document.title} PDF`}
-                >
-                    <img
-                        id="industry-demo-document-preview"
-                        className={previewStyles.documentPreview}
-                        src={industry.document.previewSrc}
-                        alt={`${industry.document.title} preview`}
-                        loading="lazy"
-                        width={595}
-                        height={842}
-                    />
-                </a>
+                <img
+                    id="industry-demo-document-preview"
+                    className={previewStyles.documentPreview}
+                    src={industry.document.previewSrc}
+                    alt={`${industry.document.title} preview`}
+                    loading="lazy"
+                    width={595}
+                    height={842}
+                />
             </div>
         </section>
     );

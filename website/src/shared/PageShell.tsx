@@ -1,6 +1,7 @@
 import type {ReactNode} from "react";
 import {makeStyles, tokens} from "@fluentui/react-components";
 import {LandingHeader} from "../landing/landing-header/LandingHeader.tsx";
+import {SiteFooter} from "./site-footer/SiteFooter.tsx";
 import {
     BREAKPOINT_MOBILE,
     SECTION_PADDING_DESKTOP,
@@ -74,6 +75,7 @@ export function PageShell({children, constrain = true}: PageShellProps)
                     </div>
                 ) : children}
             </main>
+            <SiteFooter/>
         </div>
     );
 }

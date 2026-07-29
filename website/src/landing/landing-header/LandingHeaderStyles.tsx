@@ -77,6 +77,7 @@ export const useLandingHeaderStyles = makeStyles({
     },
 
     navLink: {
+        position: "relative",
         display: "inline-flex",
         alignItems: "center",
         gap: tokens.spacingHorizontalXXS,
@@ -90,6 +91,21 @@ export const useLandingHeaderStyles = makeStyles({
 
         ":hover": {
             color: tokens.colorBrandForeground1,
+        },
+    },
+
+    activeNavLink: {
+        color: tokens.colorBrandForeground1,
+
+        "::after": {
+            content: '""',
+            position: "absolute",
+            left: tokens.spacingHorizontalXS,
+            right: tokens.spacingHorizontalXS,
+            bottom: 0,
+            height: "2px",
+            borderRadius: tokens.borderRadiusCircular,
+            backgroundColor: tokens.colorCompoundBrandStroke,
         },
     },
 
@@ -126,6 +142,26 @@ export const useLandingHeaderStyles = makeStyles({
 
     mainMobileMenuItem: {
         backgroundColor: tokens.colorNeutralBackground2,
+    },
+
+    activeMenuItem: {
+        position: "relative",
+        color: tokens.colorBrandForeground1,
+
+        "::after": {
+            content: '""',
+            position: "absolute",
+            left: tokens.spacingHorizontalXS,
+            right: tokens.spacingHorizontalXS,
+            bottom: 0,
+            height: "2px",
+            borderRadius: tokens.borderRadiusCircular,
+            backgroundColor: tokens.colorCompoundBrandStroke,
+        },
+    },
+
+    activeSubMenuItem: {
+        color: tokens.colorBrandForeground1,
     },
 
     mainMobileSubMenuItem: {

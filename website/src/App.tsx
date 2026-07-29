@@ -18,6 +18,7 @@ import {AboutPage} from "./pages/about-page/AboutPage.tsx";
 import {ContactPage} from "./pages/ContactPage.tsx";
 import {NotFoundPage} from "./pages/NotFoundPage.tsx";
 import {Seo} from "./seo/Seo.tsx";
+import {SiteFooter} from "./shared/site-footer/SiteFooter.tsx";
 
 function LandingPage({industrySlug}: {industrySlug: IndustrySlug | null})
 {
@@ -63,6 +64,7 @@ function LandingPage({industrySlug}: {industrySlug: IndustrySlug | null})
             >
                 <FinalCtaSection/>
             </div>
+            <SiteFooter/>
         </div>
     );
 }

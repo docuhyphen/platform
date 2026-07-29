@@ -5,12 +5,22 @@ import {useLandingHeaderStyles} from "./LandingHeaderStyles.tsx";
 
 interface MobileNavigationMenuProps
 {
+    activePath: string;
     onNavigate: (to: string) => void;
 }
 
-export function MobileNavigationMenu({onNavigate}: MobileNavigationMenuProps)
+export function MobileNavigationMenu({activePath, onNavigate}: MobileNavigationMenuProps)
 {
     const styles = useLandingHeaderStyles();
+    const industriesActive = activePath.startsWith("/industries");
+    const getMenuItemClassName = (to: string) =>
+        mergeClasses(styles.mainMobileMenuItem, activePath === to && styles.activeMenuItem);
+    const getSubMenuItemClassName = (to: string) =>
+        mergeClasses(
+            styles.mainMobileMenuItem,
+            styles.mainMobileSubMenuItem,
+            activePath === to && styles.activeSubMenuItem,
+        );
 
     return (
         <Menu>
@@ -29,13 +39,20 @@ export function MobileNavigationMenu({onNavigate}: MobileNavigationMenuProps)
                     id="landing-mobile-menu"
                     className={styles.mainMobileMenu}
                 >
-                    <MenuItem id="landing-mobile-industries-label">Industries</MenuItem>
+                    <MenuItem
+                        id="landing-mobile-industries-label"
+                        className={mergeClasses(styles.mainMobileMenuItem, industriesActive && styles.activeMenuItem)}
+                        aria-current={industriesActive ? "page" : undefined}
+                    >
+                        Industries
+                    </MenuItem>
                     {LANDING_INDUSTRIES.map((industry) => (
                         <MenuItem
                             key={industry.to}
                             id={`landing-mobile-industry-${toNavigationId(industry.label)}`}
                             onClick={() => onNavigate(industry.to)}
-                            className={mergeClasses(styles.mainMobileMenuItem, styles.mainMobileSubMenuItem)}
+                            className={getSubMenuItemClassName(industry.to)}
+                            aria-current={activePath === industry.to ? "page" : undefined}
                         >
                             {industry.label}
                         </MenuItem>
@@ -43,21 +60,24 @@ export function MobileNavigationMenu({onNavigate}: MobileNavigationMenuProps)
                     <MenuItem
                         id="landing-mobile-pricing"
                         onClick={() => onNavigate("/pricing")}
-                        className={styles.mainMobileMenuItem}
+                        className={getMenuItemClassName("/pricing")}
+                        aria-current={activePath === "/pricing" ? "page" : undefined}
                     >
                         Pricing
                     </MenuItem>
                     <MenuItem
                         id="landing-mobile-about"
                         onClick={() => onNavigate("/about")}
-                        className={styles.mainMobileMenuItem}
+                        className={getMenuItemClassName("/about")}
+                        aria-current={activePath === "/about" ? "page" : undefined}
                     >
                         About
                     </MenuItem>
                     <MenuItem
                         id="landing-mobile-contact"
                         onClick={() => onNavigate("/contact")}
-                        className={styles.mainMobileMenuItem}
+                        className={getMenuItemClassName("/contact")}
+                        aria-current={activePath === "/contact" ? "page" : undefined}
                     >
                         Contact
                     </MenuItem>

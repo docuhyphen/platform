@@ -1,5 +1,5 @@
 import {Button, mergeClasses} from "@fluentui/react-components";
-import {Link, useNavigate} from "react-router-dom";
+import {Link, useLocation, useNavigate} from "react-router-dom";
 import AppLogo from "../../app-logo/AppLogo.tsx";
 import {SIGN_IN_URL, SIGN_UP_URL} from "../shared.ts";
 import {DesktopNavigationLinks} from "./DesktopNavigationLinks.tsx";
@@ -15,6 +15,7 @@ export function LandingHeader({fixed = false}: LandingHeaderProps)
 {
     const styles = useLandingHeaderStyles();
     const navigate = useNavigate();
+    const location = useLocation();
 
     return (
         <header
@@ -38,7 +39,10 @@ export function LandingHeader({fixed = false}: LandingHeaderProps)
                     >
                         <AppLogo/>
                     </Link>
-                    <DesktopNavigationLinks onNavigate={navigate}/>
+                    <DesktopNavigationLinks
+                        activePath={location.pathname}
+                        onNavigate={navigate}
+                    />
                 </div>
 
                 <div
@@ -71,7 +75,10 @@ export function LandingHeader({fixed = false}: LandingHeaderProps)
                     >
                         Sign in
                     </Button>
-                    <MobileNavigationMenu onNavigate={navigate}/>
+                    <MobileNavigationMenu
+                        activePath={location.pathname}
+                        onNavigate={navigate}
+                    />
                 </div>
             </nav>
         </header>

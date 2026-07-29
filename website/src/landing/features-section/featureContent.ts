@@ -18,7 +18,6 @@ export interface IndustryDocumentExample
 {
     title: string;
     previewSrc: string;
-    pdfSrc: string;
 }
 
 export interface IndustryExperience
@@ -58,7 +57,6 @@ export const industryExperiences: readonly IndustryExperience[] = [
         document: {
             title: "Case File Summary",
             previewSrc: "/demo-previews/law-firms-legal-practices.svg",
-            pdfSrc: "/demo-pdfs/law-firms-legal-practices.pdf",
         },
     },
     {
@@ -86,7 +84,6 @@ export const industryExperiences: readonly IndustryExperience[] = [
         document: {
             title: "Property Investment Report",
             previewSrc: "/demo-previews/real-estate-property-management.svg",
-            pdfSrc: "/demo-pdfs/real-estate-property-management.pdf",
         },
     },
     {
@@ -114,7 +111,6 @@ export const industryExperiences: readonly IndustryExperience[] = [
         document: {
             title: "Patient Referral Summary",
             previewSrc: "/demo-previews/healthcare-medical-practices.svg",
-            pdfSrc: "/demo-pdfs/healthcare-medical-practices.pdf",
         },
     },
     {
@@ -142,7 +138,6 @@ export const industryExperiences: readonly IndustryExperience[] = [
         document: {
             title: "Quarterly Financial Report",
             previewSrc: "/demo-previews/accounting-audit-firms.svg",
-            pdfSrc: "/demo-pdfs/accounting-audit-firms.pdf",
         },
     },
     {
@@ -170,7 +165,6 @@ export const industryExperiences: readonly IndustryExperience[] = [
         document: {
             title: "Credit Risk Assessment",
             previewSrc: "/demo-previews/banks-lending-institutions.svg",
-            pdfSrc: "/demo-pdfs/banks-lending-institutions.pdf",
         },
     },
 ];

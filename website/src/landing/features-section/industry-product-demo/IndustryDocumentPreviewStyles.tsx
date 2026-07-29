@@ -15,19 +15,13 @@ export const useIndustryDocumentPreviewStyles = makeStyles({
         backgroundColor: tokens.colorNeutralBackground2,
     },
 
-    documentPreviewLink: {
+    documentPreview: {
         display: "block",
+        width: "auto",
         height: "36rem",
         maxWidth: "100%",
         boxShadow: tokens.shadow8,
         transform: "translateY(-3.5rem)",
-    },
-
-    documentPreview: {
-        display: "block",
-        width: "auto",
-        height: "100%",
-        maxWidth: "100%",
         backgroundColor: tokens.colorNeutralBackground1,
         objectFit: "contain",
     },
