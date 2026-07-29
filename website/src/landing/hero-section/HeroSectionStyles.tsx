@@ -89,14 +89,14 @@ export const useHeroSectionStyles = makeStyles({
 
     actions: {
         display: "flex",
-        alignItems: "center",
+        alignItems: "flex-start",
         flexWrap: "wrap",
         gap: tokens.spacingHorizontalM,
         marginTop: tokens.spacingVerticalL,
 
         [BREAKPOINT_MOBILE]: {
             flexDirection: "column",
-            justifyContent: "center",
+            justifyContent: "flex-start",
             gap: tokens.spacingHorizontalS,
             width: "100%",
         },
