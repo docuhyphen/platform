@@ -1,6 +1,7 @@
 ﻿package com.docuhyphen.app.api.service.workflow
 
 import com.docuhyphen.app.api.model.entity.PrincipalKind
+import com.docuhyphen.app.api.model.entity.ResourceType
 import com.docuhyphen.app.api.model.entity.WorkflowInstance
 import com.docuhyphen.app.api.model.entity.WorkflowInstanceStatus
 import com.docuhyphen.app.api.model.entity.WorkflowStepInstance
@@ -117,13 +118,48 @@ class DefaultWorkflowEngineService : WorkflowEngineService
             return null
         }
 
+        val enrichedRequest = enrichSubjectData(request)
         var firstResult: TriggerResult? = null
         for (definition in definitions)
         {
-            val result = triggerOne(definition, request)
+            val result = triggerOne(definition, enrichedRequest)
             if (firstResult == null) firstResult = result
         }
         return firstResult
+    }
+
+    private fun enrichSubjectData(request: TriggerRequest): TriggerRequest
+    {
+        if (request.subjectResourceType != ResourceType.EXCHANGE.name || request.subjectResourceId == null)
+        {
+            return request
+        }
+        if (!::exchangeRepository.isInitialized) return request
+
+        val exchange = runCatching { exchangeRepository.findById(request.subjectResourceId) }.getOrNull()
+            ?: return request
+        val enriched = request.subjectData.toMutableMap()
+
+        fun putIfMissing(key: String, value: String?)
+        {
+            val normalized = value?.trim()?.takeIf { it.isNotBlank() } ?: return
+            if (enriched[key].isNullOrBlank()) enriched[key] = normalized
+        }
+
+        putIfMissing("exchangeName", exchange.name)
+        putIfMissing("orgId", exchange.ownerOrganizationId?.toString())
+        exchange.initiator?.let { initiator ->
+            putIfMissing("initiatorId", initiator.id.toString())
+            val initiatorName = initiator.person?.let { person ->
+                listOfNotNull(person.firstName, person.lastName)
+                    .joinToString(" ")
+                    .trim()
+                    .takeIf { it.isNotBlank() }
+            } ?: runCatching { initiator.email }.getOrNull()
+            putIfMissing("initiatorName", initiatorName)
+        }
+
+        return if (enriched == request.subjectData) request else request.copy(subjectData = enriched)
     }
 
     private fun triggerOne(definition: com.docuhyphen.app.api.model.entity.WorkflowDefinition, request: TriggerRequest): TriggerResult?
