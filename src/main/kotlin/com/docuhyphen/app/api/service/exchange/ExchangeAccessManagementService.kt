@@ -4,7 +4,7 @@ import com.docuhyphen.app.api.extension.normalizeEmailOrNull
 import com.docuhyphen.app.api.exception.ExchangeNotFoundException
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.model.dto.SessionAccessEntryDto
-import com.docuhyphen.app.api.model.entity.ExternalParticipant
+import com.docuhyphen.app.api.model.entity.AppUser
 import com.docuhyphen.app.api.model.entity.PrincipalKind
 import com.docuhyphen.app.api.model.entity.ResourceType
 import com.docuhyphen.app.api.model.entity.ExchangeShareRoleName
@@ -446,6 +446,7 @@ class ExchangeAccessManagementService @Inject constructor(
             else -> null
         }
         val fallbackEmail = externalEmail ?: rawPrincipalId.normalizeEmailOrNull()
+        val hasTemporaryUsers = appUsers.any { it.isTemporary }
         if (appUsers.isEmpty() && fallbackEmail.isNullOrBlank())
         {
             return
@@ -453,10 +454,12 @@ class ExchangeAccessManagementService @Inject constructor(
         val initiator = authTokenContext.authToken.appUser
         val initiatorName = initiator?.person?.let { "${it.firstName} ${it.lastName}" }
             ?: initiator?.email ?: "Someone"
-        val sessionMessage = if (trustedInvitation)
-            "You have a trusted invitation that remains inactive until you accept."
-        else
-            "You have been added to this Exchange."
+        val sessionMessage = when
+        {
+            trustedInvitation -> "You have a trusted invitation that remains inactive until you accept."
+            hasTemporaryUsers -> "Create your account to access this Exchange."
+            else -> "You have been added to this Exchange."
+        }
         val body = emailTemplateService.renderExchangeCreatedRecipientEmail(
             exchangeId = session.id.toString(),
             name = session.name.orEmpty(),
@@ -464,18 +467,21 @@ class ExchangeAccessManagementService @Inject constructor(
             initiatorOrganization = null,
             sessionMessage = sessionMessage,
             documents = session.documents.map { it.title },
-            requireSignIn = trustedInvitation,
+            requireSignIn = trustedInvitation || hasTemporaryUsers,
+            title = "Document Exchange invitation",
+            introText = "You have been invited to access a Document Exchange from $initiatorName.",
         )
-        val subject = if (trustedInvitation)
-            "${configurationService.emailSubjectTitle} | Trusted Exchange invitation"
-        else
-            "${configurationService.emailSubjectTitle} | You've been added to a Document Exchange"
+        val subject = when
+        {
+            trustedInvitation -> "${configurationService.emailSubjectTitle} | Trusted Exchange invitation"
+            else -> "${configurationService.emailSubjectTitle} | Document Exchange invitation"
+        }
         val emails = appUsers.map { appUser ->
             ExchangeEmailDelivery(
                 to = appUser.email,
                 subject = subject,
                 body = body,
-                preferenceAppUserId = appUser.id,
+                preferenceAppUserId = appUser.id.takeUnless { appUser.isTemporary },
             )
         }.toMutableList()
         if (appUsers.isEmpty() && !fallbackEmail.isNullOrBlank())
@@ -691,9 +697,8 @@ class ExchangeAccessManagementService @Inject constructor(
 
     /**
      * Resolve the effective principal for a manage-access grant. For USER kind the value can be
-     * a UUID or an email. If the email matches an existing user, grant as USER; otherwise fall
-     * back to a (created-or-reused) [ExternalParticipant] and grant as [PrincipalKind.PARTICIPANT]
-     * so future sign-up can be reconciled by email.
+     * a UUID or an email. If the email has no registered account yet, create a temporary inactive
+     * AppUser and grant against that user id so sign-up can upgrade the row in place.
      */
     private fun resolvePrincipal(kind: PrincipalKind, value: String): Pair<PrincipalKind, UUID>
     {
@@ -707,9 +712,14 @@ class ExchangeAccessManagementService @Inject constructor(
             val normalizedEmail = trimmed.normalizeEmailOrNull()
                 ?: throw IllegalArgumentException("Invalid principalId")
             appUserService.getAppUserByEmail(normalizedEmail)?.let { return kind to it.id }
-            // No registered user, promote to an ExternalParticipant so the invite is durable.
-            val participantId = findOrCreateExternalParticipant(normalizedEmail).id
-            return PrincipalKind.PARTICIPANT to participantId
+            val temporaryUser = appUserService.create(
+                AppUser().apply {
+                    email = normalizedEmail
+                    isActive = false
+                    isTemporary = true
+                },
+            )
+            return kind to temporaryUser.id
         }
         val principalId = parseUuid(trimmed, "principalId")
         when (kind)
@@ -749,7 +759,7 @@ class ExchangeAccessManagementService @Inject constructor(
             PrincipalKind.USER -> organizationExchangePolicyService.assertCanShareWithUser(
                 senderOrganizationId,
                 actorId,
-                principalId,
+                principalId.takeUnless { appUserService.getById(it)?.isTemporary == true },
             )
             PrincipalKind.PARTICIPANT -> organizationExchangePolicyService.assertCanShareWithUser(
                 senderOrganizationId,
@@ -780,7 +790,10 @@ class ExchangeAccessManagementService @Inject constructor(
         when (principalKind)
         {
             PrincipalKind.USER -> RecipientBinding(
-                selectionType = ExchangeRecipientSelectionType.REGISTERED_USER,
+                selectionType = if (appUserService.getById(principalId)?.isTemporary == true)
+                    ExchangeRecipientSelectionType.EXTERNAL_EMAIL
+                else
+                    ExchangeRecipientSelectionType.REGISTERED_USER,
                 targetOrganizationId = null,
             )
             PrincipalKind.PARTICIPANT -> RecipientBinding(
@@ -808,17 +821,6 @@ class ExchangeAccessManagementService @Inject constructor(
             }
             else -> throw IllegalArgumentException("Principal kind is not supported for Exchange access")
         }
-
-    private fun findOrCreateExternalParticipant(email: String): ExternalParticipant
-    {
-        externalParticipantRepository.findByOwnerAndEmail(ownerOrganizationId = null, email = email)
-            ?.let { return it }
-        val created = ExternalParticipant().apply {
-            this.email = email
-            this.emailLower = email.lowercase()
-        }
-        return externalParticipantRepository.save(created)
-    }
 
     /**
      * Records denied `EXCHANGE_MANAGE_ACCESS` authorization as a

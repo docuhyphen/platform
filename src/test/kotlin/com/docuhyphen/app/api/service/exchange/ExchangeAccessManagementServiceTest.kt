@@ -120,9 +120,10 @@ class ExchangeAccessManagementServiceTest
         whenever(authorizationContextFactory.currentContext()).thenReturn(mock())
         whenever(authorizationService.authorize(any(), eq(Action.EXCHANGE_MANAGE_ACCESS), any(), any()))
             .thenReturn(Decision.Allow())
+        whenever(configurationService.emailSubjectTitle).thenReturn("DocuHyphen")
         whenever(
             emailTemplateService.renderExchangeCreatedRecipientEmail(
-                any(), any(), any(), anyOrNull(), anyOrNull(), any(), any(),
+                any(), any(), any(), anyOrNull(), anyOrNull(), any(), any(), anyOrNull(), anyOrNull(),
             ),
         ).thenReturn("email body")
     }
@@ -533,6 +534,8 @@ class ExchangeAccessManagementServiceTest
                 "You have a trusted invitation that remains inactive until you accept.",
                 emptyList(),
                 true,
+                "Document Exchange invitation",
+                "You have been invited to access a Document Exchange from caller@example.test.",
             ),
         ).thenReturn("email body")
 
@@ -755,6 +758,88 @@ class ExchangeAccessManagementServiceTest
             exchangeRecipientService,
             notificationDeliveryService,
             auditRecorder,
+        )
+    }
+
+    @Test
+    fun `granting access to an unknown user email creates a temporary user invitation`()
+    {
+        grantOwnerAuthorization(activeOrgId = null)
+        val session = draftExchange(ownerOrganizationId = null).apply { id = exchangeId }
+        val recipientEmail = "new.person@example.test"
+        whenever(exchangeRepository.findById(exchangeId)).thenReturn(session)
+        whenever(appUserService.getAppUserByEmail(recipientEmail)).thenReturn(null)
+
+        val createdUserCaptor = argumentCaptor<AppUser>()
+        whenever(appUserService.create(createdUserCaptor.capture())).thenAnswer { invocation -> invocation.getArgument(0) }
+        whenever(appUserService.getById(any())).thenAnswer { createdUserCaptor.firstValue }
+        whenever(
+            shareService.grant(
+                any(), any(), any(), any(), any(), anyOrNull(), any(), anyOrNull(), anyOrNull(), any(), anyOrNull(),
+            ),
+        ).thenAnswer { invocation ->
+            directShare(
+                invocation.getArgument<PrincipalKind>(2),
+                invocation.getArgument<UUID>(3),
+            ).apply { status = ShareStatus.ACTIVE }
+        }
+
+        service.grantAccess(
+            exchangeId = exchangeId,
+            principalKind = PrincipalKind.USER.name,
+            principalId = recipientEmail,
+            roleName = ExchangeShareRoleName.VIEWER,
+        )
+
+        val createdUser = createdUserCaptor.firstValue
+        assertEquals(recipientEmail, createdUser.email)
+        assertEquals(false, createdUser.isActive)
+        assertEquals(true, createdUser.isTemporary)
+        verify(organizationExchangePolicyService).assertCanShareWithUser(null, callerId, null)
+        verify(shareService).grant(
+            eq(ResourceType.EXCHANGE),
+            eq(exchangeId),
+            eq(PrincipalKind.USER),
+            eq(createdUser.id),
+            eq(ExchangeShareRoleName.VIEWER),
+            eq(callerId),
+            eq(ShareSource.DIRECT),
+            anyOrNull(),
+            anyOrNull(),
+            eq(ShareStatus.ACTIVE),
+            eq(session.name),
+        )
+        verify(exchangeRecipientService).createBinding(
+            eq(exchangeId),
+            any(),
+            eq(ExchangeRecipientPurpose.PARTICIPANT),
+            eq(ExchangeRecipientSelectionType.EXTERNAL_EMAIL),
+            anyOrNull(),
+            eq(ExchangeRecipientAcceptanceStatus.NOT_REQUIRED),
+        )
+
+        val emailDeliveries = argumentCaptor<List<ExchangeEmailDelivery>>()
+        verify(notificationDeliveryService).scheduleAfterCommit(
+            eq(exchangeId),
+            eq(session.status.name),
+            emailDeliveries.capture(),
+            any(),
+            any(),
+        )
+        val email = emailDeliveries.firstValue.single()
+        assertEquals(recipientEmail, email.to)
+        assertEquals("DocuHyphen | Document Exchange invitation", email.subject)
+        assertEquals(null, email.preferenceAppUserId)
+        verify(emailTemplateService).renderExchangeCreatedRecipientEmail(
+            exchangeId.toString(),
+            session.name.orEmpty(),
+            "caller@example.test",
+            null,
+            "Create your account to access this Exchange.",
+            emptyList(),
+            true,
+            "Document Exchange invitation",
+            "You have been invited to access a Document Exchange from caller@example.test.",
         )
     }
 

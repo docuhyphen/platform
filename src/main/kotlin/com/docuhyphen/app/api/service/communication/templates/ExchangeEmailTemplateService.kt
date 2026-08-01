@@ -20,6 +20,8 @@ class ExchangeEmailTemplateService @Inject constructor(
         sessionMessage: String?,
         documents: List<String>,
         requireSignIn: Boolean = false,
+        title: String? = null,
+        introText: String? = null,
     ): String
     {
         val exchangeLink = "${configurationService.baseUrl}/exchanges?s=$exchangeId"
@@ -35,6 +37,8 @@ class ExchangeEmailTemplateService @Inject constructor(
         )
         if (!initiatorOrganization.isNullOrBlank()) model["initiatorOrganization"] = initiatorOrganization
         if (!sessionMessage.isNullOrBlank()) model["sessionMessage"] = sessionMessage
+        if (!title.isNullOrBlank()) model["emailTitle"] = "${configurationService.emailSubjectTitle} - $title"
+        if (!introText.isNullOrBlank()) model["introText"] = introText
 
         return renderer.render("exchange-created-recipient.ftl", model)
     }

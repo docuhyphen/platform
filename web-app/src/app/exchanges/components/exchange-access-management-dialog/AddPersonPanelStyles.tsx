@@ -5,6 +5,7 @@ export const useAddPersonPanelStyles = makeStyles({
         display: 'flex',
         flexDirection: 'column',
         gap: tokens.spacingHorizontalL,
+        paddingBottom: tokens.spacingVerticalL,
     },
     topBar: {
         display: 'flex',

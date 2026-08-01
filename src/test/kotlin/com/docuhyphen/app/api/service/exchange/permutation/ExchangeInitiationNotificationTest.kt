@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
 import org.mockito.kotlin.anyOrNull
 import org.mockito.kotlin.eq
+import org.mockito.kotlin.isNull
 import org.mockito.kotlin.verify
 
 class ExchangeInitiationNotificationTest
@@ -32,6 +33,8 @@ class ExchangeInitiationNotificationTest
             anyOrNull(),
             any(),
             eq(false),
+            isNull(),
+            isNull(),
         )
     }
 }

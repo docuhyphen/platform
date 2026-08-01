@@ -144,7 +144,7 @@ internal class ExchangeInitiationAutoAcceptFixture
             .thenReturn(ExchangeRecipient())
         whenever(configurationService.emailSubjectTitle).thenReturn("DocuHyphen")
         whenever(emailTemplateService.renderExchangeCreatedRecipientEmail(
-            any(), any(), any(), anyOrNull(), anyOrNull(), any(), any(),
+            any(), any(), any(), anyOrNull(), anyOrNull(), any(), any(), anyOrNull(), anyOrNull(),
         )).thenReturn("Recipient message")
         whenever(emailTemplateService.renderExchangeCreatedInitiatorEmail(
             any(), any(), any(), any(),

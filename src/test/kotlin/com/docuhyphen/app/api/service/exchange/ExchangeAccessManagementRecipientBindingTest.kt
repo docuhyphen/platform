@@ -86,7 +86,7 @@ class ExchangeAccessManagementRecipientBindingTest
         val emailTemplateService = mock<EmailTemplateService>()
         whenever(
             emailTemplateService.renderExchangeCreatedRecipientEmail(
-                any(), any(), any(), anyOrNull(), anyOrNull(), any(), any(),
+                any(), any(), any(), anyOrNull(), anyOrNull(), any(), any(), anyOrNull(), anyOrNull(),
             ),
         ).thenReturn("email body")
         whenever(

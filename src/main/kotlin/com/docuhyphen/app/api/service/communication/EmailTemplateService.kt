@@ -202,6 +202,8 @@ class EmailTemplateService @Inject constructor(
         sessionMessage: String?,
         documents: List<String>,
         requireSignIn: Boolean = false,
+        title: String? = null,
+        introText: String? = null,
     ): String = exchangeTemplates.renderExchangeCreatedRecipientEmail(
         exchangeId,
         name,
@@ -210,6 +212,8 @@ class EmailTemplateService @Inject constructor(
         sessionMessage,
         documents,
         requireSignIn,
+        title,
+        introText,
     )
 
     fun renderExchangeCreatedInitiatorEmail(

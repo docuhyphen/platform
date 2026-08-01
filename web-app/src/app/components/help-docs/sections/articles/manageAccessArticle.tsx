@@ -78,6 +78,8 @@ export const manageAccessArticle = (
             In <strong>Manage access</strong>, open <strong>Access &amp; permissions</strong> and choose
             <strong>Add person</strong>. Use <strong>Person</strong> to search contacts or enter a complete email
             address, then choose an access role and allowed constraints.
+            If the email address does not belong to an existing account, DocuHyphen sends an account-required
+            invitation and keeps the Exchange access attached to that email after the person signs up.
         </p>
         <p>
             Use <strong>Trusted Organization</strong> to add a verified member or published group from an active
