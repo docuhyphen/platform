@@ -102,7 +102,7 @@ class StepUpMfaChallengeService(
     }
 
     @Transactional
-    fun regenerateOrFallback(appUser: AppUser, sessionId: String, ipAddress: String): String
+    fun regenerateOrFallback(appUser: AppUser, sessionId: String, ipAddress: String): StepUpMfaChallenge
     {
         val record = mfaService.getMfaRecordByEmailAndSessionId(appUser.email, sessionId)
             ?: throw InvalidOtpException("Invalid step-up session.")
@@ -114,7 +114,8 @@ class StepUpMfaChallengeService(
         {
             throw MaxAttemptsOTPExceededException("Too many invalid attempts.")
         }
-        if (record.mfaType?.isAuthenticator() == true)
+        val usingEmailFallback = record.mfaType?.isAuthenticator() == true
+        if (usingEmailFallback)
         {
             if (!appUser.emailMfaFallbackEnabled)
             {
@@ -123,15 +124,23 @@ class StepUpMfaChallengeService(
             record.mfaType = EMAIL
         }
 
-        val cooldownUntil = record.createdDate.toInstant()
-            .plusSeconds(configurationService.getSignInResendCooldownSeconds())
-        if (Instant.now().isBefore(cooldownUntil))
+        if (!usingEmailFallback)
         {
-            throw StepUpMfaRateLimitedException(cooldownUntil.epochSecond - Instant.now().epochSecond)
+            val cooldownUntil = record.createdDate.toInstant()
+                .plusSeconds(configurationService.getSignInResendCooldownSeconds())
+            if (Instant.now().isBefore(cooldownUntil))
+            {
+                throw StepUpMfaRateLimitedException(cooldownUntil.epochSecond - Instant.now().epochSecond)
+            }
         }
         mfaService.enforceRateLimits(appUser.email, record.ipAddress ?: ipAddress)
         val newCode = mfaService.regenerateOtp(record)
         mfaService.doEmailMFA(appUser, newCode, record.actionDescription)
-        return "A new verification code has been sent."
+        return StepUpMfaChallenge(
+            sessionId = sessionId,
+            message = "A new verification code has been sent.",
+            mfaType = EMAIL.name,
+            emailFallbackEnabled = appUser.emailMfaFallbackEnabled,
+        )
     }
 }

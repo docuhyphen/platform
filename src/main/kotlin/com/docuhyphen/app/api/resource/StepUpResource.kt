@@ -53,7 +53,12 @@ data class StepUpOtpRegenerationRequest(
 )
 
 @Serializable
-data class StepUpResponse(val fresh: Boolean, val message: String)
+data class StepUpResponse(
+    val fresh: Boolean,
+    val message: String,
+    val mfaType: String? = null,
+    val emailFallbackEnabled: Boolean = false,
+)
 
 @Path("/auth/step-up")
 @Produces(MediaType.APPLICATION_JSON)
@@ -302,14 +307,21 @@ class StepUpResource @Inject constructor(
 
         return try
         {
-            val message = stepUpMfaChallengeService.regenerateOrFallback(appUser, mfaSessionId, ip)
+            val challenge = stepUpMfaChallengeService.regenerateOrFallback(appUser, mfaSessionId, ip)
             authAuditService.emit(
                 action = "STEP_UP_REGENERATE_OTP",
                 outcome = "SUCCESS",
                 actorId = appUser.id,
                 requestId = requestId,
             )
-            Response.ok(StepUpResponse(fresh = false, message = message)).build()
+            Response.ok(
+                StepUpResponse(
+                    fresh = false,
+                    message = challenge.message,
+                    mfaType = challenge.mfaType,
+                    emailFallbackEnabled = challenge.emailFallbackEnabled,
+                )
+            ).build()
         }
         catch (exception: Exception)
         {

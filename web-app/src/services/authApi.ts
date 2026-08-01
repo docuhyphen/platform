@@ -376,7 +376,13 @@ export interface StepUpInitiateResponse
     emailFallbackEnabled?: boolean;
 }
 
-export interface StepUpResult { fresh: boolean; message: string; }
+export interface StepUpResult
+{
+    fresh: boolean;
+    message: string;
+    mfaType?: 'EMAIL' | 'GOOGLE_AUTHENTICATOR' | 'MICROSOFT_AUTHENTICATOR';
+    emailFallbackEnabled?: boolean;
+}
 
 export const initiateStepUp = async (returnTo: string, action?: string | null): Promise<StepUpInitiateResponse> =>
 {

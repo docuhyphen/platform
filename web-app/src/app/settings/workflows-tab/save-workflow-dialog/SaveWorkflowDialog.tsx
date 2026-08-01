@@ -26,6 +26,7 @@ import {
 } from "../../../../services/authApi.ts";
 import {getOtpFriendlyMessage, normalizeApiError} from "../../../../utils/apiErrorUtils.ts";
 import StepUpVerification, {STEP_UP_DIALOG_TITLE} from "../../../components/step-up/StepUpVerification.tsx";
+import {useResendCooldownError} from "../../../components/step-up/useResendCooldownError.ts";
 
 type Phase = 'review' | 'verify-otp' | 'verify-external';
 
@@ -53,6 +54,12 @@ const SaveWorkflowDialog = ({open, onClose, onConfirm, isEdit, state, triggers, 
     const [resending, setResending] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [info, setInfo] = useState<string | null>(null);
+    const {
+        cooldownMessage,
+        cooldownRemaining,
+        startResendCooldown,
+        clearResendCooldown,
+    } = useResendCooldownError();
 
     const reset = () => {
         setPhase('review');
@@ -63,6 +70,7 @@ const SaveWorkflowDialog = ({open, onClose, onConfirm, isEdit, state, triggers, 
         setResending(false);
         setError(null);
         setInfo(null);
+        clearResendCooldown();
     };
 
     const handleClose = () => {
@@ -74,6 +82,7 @@ const SaveWorkflowDialog = ({open, onClose, onConfirm, isEdit, state, triggers, 
     const handleProceedToVerify = async () => {
         setInitiating(true);
         setError(null);
+        clearResendCooldown();
         try {
             const returnTo = `${window.location.pathname}${window.location.search}`;
             const session = await initiateStepUp(returnTo, WORKFLOW_SAVE_ACTION);
@@ -116,11 +125,38 @@ const SaveWorkflowDialog = ({open, onClose, onConfirm, isEdit, state, triggers, 
         if (!stepUpSession?.mfaSessionId || resending) return;
         setResending(true);
         setError(null);
+        clearResendCooldown();
         try {
             const result = await regenerateStepUpOtp(stepUpSession.mfaSessionId);
+            setStepUpSession((current) => current
+                ? {
+                    ...current,
+                    message: result?.mfaType === 'EMAIL' && current.mfaType !== 'EMAIL'
+                        ? "Enter the email verification code."
+                        : current.message,
+                    mfaType: result?.mfaType ?? current.mfaType,
+                    emailFallbackEnabled: result?.emailFallbackEnabled ?? current.emailFallbackEnabled,
+                }
+                : current);
             setInfo(result?.message || "A new verification code has been sent.");
         } catch (e: unknown) {
-            setError(getOtpFriendlyMessage(normalizeApiError(e, "Could not resend code.")));
+            const normalized = normalizeApiError(e, "Could not resend code.");
+            if (normalized.reasonCode === "OTP_RATE_LIMITED")
+            {
+                startResendCooldown(normalized);
+                if (stepUpSession.mfaType !== 'EMAIL' && stepUpSession.emailFallbackEnabled)
+                {
+                    setStepUpSession((current) => current
+                        ? {
+                            ...current,
+                            message: "Enter the email verification code.",
+                            mfaType: 'EMAIL',
+                        }
+                        : current);
+                }
+                return;
+            }
+            setError(getOtpFriendlyMessage(normalized));
         } finally {
             setResending(false);
         }
@@ -263,7 +299,7 @@ const SaveWorkflowDialog = ({open, onClose, onConfirm, isEdit, state, triggers, 
                                     actionLabel={<>{isEdit ? "update" : "save"} this workflow</>}
                                     provider={stepUpSession?.provider}
                                     message={stepUpSession?.message}
-                                    error={error}
+                                    error={error ?? cooldownMessage}
                                     otp={otp}
                                     onOtpChange={setOtp}
                                     onSubmitOtp={handleSubmitOtp}
@@ -273,7 +309,7 @@ const SaveWorkflowDialog = ({open, onClose, onConfirm, isEdit, state, triggers, 
                                         ? handleResendOtp
                                         : undefined}
                                     resending={resending}
-                                    resendDisabled={isBusy}
+                                    resendDisabled={isBusy || cooldownRemaining > 0}
                                     otpInputId="input-workflow-otp"
                                     resendButtonId="button-workflow-resend-code"
                                     resendLabel={stepUpSession?.mfaType === 'EMAIL' ? 'Resend code' : 'Use email fallback'}

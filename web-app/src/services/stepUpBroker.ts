@@ -12,9 +12,11 @@ import {
     initiateStepUp,
     regenerateStepUpOtp,
     StepUpInitiateResponse,
+    StepUpResult,
 } from "./authApi";
 
 export type StepUpMethod = 'INTERNAL_EMAIL_OTP' | 'EXTERNAL_RELOGIN';
+export type StepUpMfaType = 'EMAIL' | 'GOOGLE_AUTHENTICATOR' | 'MICROSOFT_AUTHENTICATOR';
 
 export interface StepUpPrompt
 {
@@ -24,9 +26,10 @@ export interface StepUpPrompt
     provider?: string | null;
     authorizeUrl?: string | null;
     mfaSessionId?: string | null;
-    mfaType?: 'EMAIL' | 'GOOGLE_AUTHENTICATOR' | 'MICROSOFT_AUTHENTICATOR';
+    mfaType?: StepUpMfaType;
+    emailFallbackEnabled?: boolean;
     submitOtp?: (otp: string) => Promise<boolean>;
-    resendOtp?: () => Promise<string>;
+    resendOtp?: () => Promise<StepUpResult>;
     continueExternal?: () => Promise<void>;
     cancel: () => void;
 }
@@ -83,6 +86,7 @@ export const requestStepUp = (opts: { action?: string | null; message?: string |
                     message: initiation.message ?? opts.message ?? null,
                     mfaSessionId,
                     mfaType: initiation.mfaType,
+                    emailFallbackEnabled: initiation.emailFallbackEnabled,
                     submitOtp: async (otp: string): Promise<boolean> =>
                     {
                         const result = await completeStepUpWithOtp(mfaSessionId, otp);
@@ -94,10 +98,9 @@ export const requestStepUp = (opts: { action?: string | null; message?: string |
                         return false;
                     },
                     resendOtp: initiation.mfaType === 'EMAIL' || initiation.emailFallbackEnabled
-                        ? async (): Promise<string> =>
+                        ? async (): Promise<StepUpResult> =>
                         {
-                            const result = await regenerateStepUpOtp(mfaSessionId);
-                            return result?.message || 'A new verification code has been sent.';
+                            return regenerateStepUpOtp(mfaSessionId);
                         }
                         : undefined,
                     cancel: () =>
