@@ -36,15 +36,16 @@ class StepUpMfaChallengeService(
     @Transactional
     fun initiate(appUser: AppUser, ipAddress: String, actionDescription: String?): StepUpMfaChallenge
     {
+        val friendlyActionDescription = StepUpActionLabelFormatter.labelFor(actionDescription)
         val mfaSession = mfaService.createMfaSession(
             user = appUser,
             mfaType = appUser.mfaType,
             ipAddress = ipAddress,
-            actionDescription = actionDescription,
+            actionDescription = friendlyActionDescription,
         )
         if (appUser.mfaType == EMAIL)
         {
-            mfaService.doEmailMFA(appUser, mfaSession.mfaToken!!, actionDescription)
+            mfaService.doEmailMFA(appUser, mfaSession.mfaToken!!, friendlyActionDescription)
         }
         return StepUpMfaChallenge(
             sessionId = mfaSession.id.toString(),

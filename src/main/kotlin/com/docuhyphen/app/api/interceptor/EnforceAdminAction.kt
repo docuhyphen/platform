@@ -6,8 +6,8 @@ import jakarta.interceptor.InterceptorBinding
 /**
  * Marks a CDI bean method as requiring an admin action guard check before execution.
  *
- * The [value] must be one of the action keys defined in
- * [com.docuhyphen.app.api.service.auth.AdminActionGuardService.ACTION_LABELS].
+ * The [value] is formatted for user-facing step-up prompts by
+ * [com.docuhyphen.app.api.service.auth.StepUpActionLabelFormatter].
  *
  * The interceptor resolves the [com.docuhyphen.app.api.service.auth.AdminApprovalContext]
  * automatically from the method's parameter list (first matching parameter wins).

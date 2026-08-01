@@ -1,5 +1,6 @@
 package com.docuhyphen.app.api.service.communication.templates
 
+import com.docuhyphen.app.api.service.auth.StepUpActionLabelFormatter
 import com.docuhyphen.app.api.service.config.ConfigurationService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
@@ -71,7 +72,7 @@ class AuthEmailTemplateService @Inject constructor(
             "verificationCode" to otp,
             "expiryMinutes" to expiryMinutes,
             "appName" to configurationService.emailSubjectTitle,
-            "actionDescription" to actionDescription,
+            "actionDescription" to (StepUpActionLabelFormatter.labelFor(actionDescription) ?: "complete this action"),
         )
 
         return renderer.render("step-up-email-MFA.ftl", model)

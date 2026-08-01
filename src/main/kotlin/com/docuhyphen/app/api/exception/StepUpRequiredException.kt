@@ -13,6 +13,7 @@ import kotlinx.serialization.json.Json
  * Extends WebApplicationException so it propagates through resource catch blocks
  * (when they re-throw it) and returns a structured 401 with reasonCode=STEP_UP_REQUIRED
  * that the web client can detect and trigger the re-auth modal.
+ * User-facing action labels are prepared by StepUpActionLabelFormatter.
  */
 class StepUpRequiredException(
     val action: String? = null,
