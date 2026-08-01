@@ -1,8 +1,8 @@
 package com.docuhyphen.app.api.service.exchange.permutation
 
 import com.docuhyphen.app.api.exception.ExchangeNotFoundException
-import com.docuhyphen.app.api.extension.normalizeEmailOrNull
-import com.docuhyphen.app.api.model.entity.Exchange
+import com.docuhyphen.app.api.exception.EmailNotFoundException
+import com.docuhyphen.app.api.exception.NoAuthOtpException
 import com.docuhyphen.app.api.model.entity.ExchangeRecipientAcceptanceStatus
 import com.docuhyphen.app.api.model.entity.ExchangeRecipientSelectionType
 import com.docuhyphen.app.api.model.entity.ExchangeStatus
@@ -10,11 +10,8 @@ import com.docuhyphen.app.api.model.entity.ShareStatus
 import com.docuhyphen.app.api.service.exchange.NoAuthExchangeAccessTokenService
 import org.junit.jupiter.api.Assertions.assertDoesNotThrow
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Assertions.assertThrows
-import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
-import java.sql.Timestamp
 import java.time.Instant
 
 class ExchangeNewUserAccessPermutationTest
@@ -22,8 +19,11 @@ class ExchangeNewUserAccessPermutationTest
     @Test
     fun `EX-REG-01 required sign-in blocks anonymous access`()
     {
-        val exchange = Exchange().apply { requireRecipientSignIn = true }
-        assertTrue(exchange.requireRecipientSignIn)
+        val fixture = NoAuthRetrievalFixture(requireSignIn = true)
+
+        assertThrows(ExchangeNotFoundException::class.java) {
+            fixture.retrieve()
+        }
     }
 
     @Test
@@ -33,17 +33,18 @@ class ExchangeNewUserAccessPermutationTest
         val originalId = fixture.temporaryUser.id
         val user = fixture.complete()
         assertEquals(originalId, user.id)
-        assertTrue(user.isActive)
-        assertTrue(!user.isTemporary)
+        assertEquals(true, user.isActive)
+        assertEquals(false, user.isTemporary)
     }
 
     @Test
     fun `EX-REG-03 different registration email does not expose Exchange`()
     {
-        assertNotEquals(
-            "invited@example.test".normalizeEmailOrNull(),
-            "different@example.test".normalizeEmailOrNull(),
-        )
+        val fixture = SignUpPermutationFixture("invited@example.test")
+
+        assertThrows(EmailNotFoundException::class.java) {
+            fixture.complete("different@example.test")
+        }
     }
 
     @Test
@@ -73,32 +74,45 @@ class ExchangeNewUserAccessPermutationTest
         val userId = fixture.temporaryUser.id
         val user = fixture.complete()
         assertEquals(userId, user.id)
-        assertTrue(user.isActive)
+        assertEquals(true, user.isActive)
     }
 
     @Test
     fun `EX-REG-07 correct no-auth code grants access`()
     {
-        val (service, exchange, token) = noAuthFixture()
-        assertDoesNotThrow { service.requireValid(exchange, token) }
+        val fixture = NoAuthOtpVerificationFixture(
+            expiry = Instant.now().plusSeconds(60),
+        )
+
+        assertDoesNotThrow { fixture.verify() }
     }
 
     @Test
     fun `EX-REG-08 incorrect no-auth code is denied`()
     {
-        val (service, exchange) = noAuthFixture()
-        assertThrows(ExchangeNotFoundException::class.java) {
-            service.requireValid(exchange, "incorrect")
+        val fixture = NoAuthOtpVerificationFixture(
+            expiry = Instant.now().plusSeconds(60),
+        )
+
+        val exception = assertThrows(NoAuthOtpException::class.java) {
+            fixture.verify("incorrect")
         }
+
+        assertEquals("OTP_INVALID", exception.reasonCode)
     }
 
     @Test
     fun `EX-REG-09 expired no-auth credentials are denied`()
     {
-        val exchange = Exchange().apply {
-            recipientOtpExpiry = Timestamp.from(Instant.now().minusSeconds(1))
+        val fixture = NoAuthOtpVerificationFixture(
+            expiry = Instant.now().minusSeconds(1),
+        )
+
+        val exception = assertThrows(NoAuthOtpException::class.java) {
+            fixture.verify()
         }
-        assertTrue(requireNotNull(exchange.recipientOtpExpiry).before(Timestamp.from(Instant.now())))
+
+        assertEquals("OTP_EXPIRED", exception.reasonCode)
     }
 
     @Test
@@ -124,33 +138,32 @@ class ExchangeNewUserAccessPermutationTest
     @Test
     fun `EX-REG-12 no-auth recipient can access active Exchange`()
     {
-        val (service, exchange, token) = noAuthFixture()
-        exchange.status = ExchangeStatus.ACCEPTED_STARTED
-        assertDoesNotThrow { service.requireValid(exchange, token) }
+        val fixture = NoAuthRetrievalFixture(status = ExchangeStatus.ACCEPTED_STARTED)
+        assertDoesNotThrow { fixture.retrieve() }
     }
 
     @Test
     fun `EX-REG-13 verified no-auth session works within validity`()
     {
-        val exchange = Exchange().apply {
-            noAuthAccessVerifiedAt = Timestamp.from(Instant.now())
-            noAuthAccessValidityDays = 7
-        }
-        val expiresAt = requireNotNull(exchange.noAuthAccessVerifiedAt).toInstant()
-            .plusSeconds(exchange.noAuthAccessValidityDays * 86_400L)
-        assertTrue(expiresAt.isAfter(Instant.now()))
+        val fixture = NoAuthDocumentAccessFixture(
+            verifiedAt = Instant.now().minusSeconds(6 * 86_400L),
+            validityDays = 7,
+        )
+
+        assertDoesNotThrow { fixture.download() }
     }
 
     @Test
     fun `EX-REG-14 no-auth session is denied after validity expires`()
     {
-        val exchange = Exchange().apply {
-            noAuthAccessVerifiedAt = Timestamp.from(Instant.now().minusSeconds(8 * 86_400L))
-            noAuthAccessValidityDays = 7
+        val fixture = NoAuthDocumentAccessFixture(
+            verifiedAt = Instant.now().minusSeconds(8 * 86_400L),
+            validityDays = 7,
+        )
+
+        assertThrows(IllegalArgumentException::class.java) {
+            fixture.download()
         }
-        val expiresAt = requireNotNull(exchange.noAuthAccessVerifiedAt).toInstant()
-            .plusSeconds(exchange.noAuthAccessValidityDays * 86_400L)
-        assertTrue(expiresAt.isBefore(Instant.now()))
     }
 
     @Test
@@ -192,10 +205,10 @@ class ExchangeNewUserAccessPermutationTest
             initialShareStatus = ShareStatus.PENDING_APPROVAL,
         )
 
-    private fun noAuthFixture(): Triple<NoAuthExchangeAccessTokenService, Exchange, String>
+    private fun noAuthFixture(): Triple<NoAuthExchangeAccessTokenService, com.docuhyphen.app.api.model.entity.Exchange, String>
     {
         val service = NoAuthExchangeAccessTokenService()
-        val exchange = Exchange()
+        val exchange = com.docuhyphen.app.api.model.entity.Exchange()
         val token = service.issue(exchange)
         return Triple(service, exchange, token)
     }

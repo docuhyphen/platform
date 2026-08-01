@@ -4,12 +4,58 @@ import com.docuhyphen.app.api.model.entity.ExchangeShareRoleName
 import com.docuhyphen.app.api.model.entity.ShareStatus
 import com.docuhyphen.app.api.service.auth.authz.Action
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.EnumSource
 import java.time.Instant
 
 class ExchangeLifecycleAccessPermutationTest
 {
     private val probe = ExchangeAuthorizationProbe()
+
+    @ParameterizedTest
+    @EnumSource(ShareStatus::class)
+    fun `every Share status has explicit view and acceptance behavior`(status: ShareStatus)
+    {
+        val share = probe.share(ExchangeShareRoleName.VIEWER, status)
+        when (status)
+        {
+            ShareStatus.ACTIVE ->
+            {
+                probe.assertAllowed(Action.EXCHANGE_VIEW, listOf(share))
+                probe.assertAllowed(Action.EXCHANGE_ACCEPT, listOf(share))
+            }
+            ShareStatus.PENDING_APPROVAL ->
+            {
+                probe.assertDenied(Action.EXCHANGE_VIEW, listOf(share))
+                probe.assertAllowed(Action.EXCHANGE_ACCEPT, listOf(share))
+            }
+            ShareStatus.REVOKED,
+            ShareStatus.EXPIRED,
+            ->
+            {
+                probe.assertDenied(Action.EXCHANGE_VIEW, listOf(share))
+                probe.assertDenied(Action.EXCHANGE_ACCEPT, listOf(share))
+            }
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(
+        value = com.docuhyphen.app.api.model.entity.ExchangeStatus::class,
+        names = ["ENDED", "REJECTED", "RESCINDED"],
+    )
+    fun `terminal Exchange states deny no-auth retrieval`(
+        status: com.docuhyphen.app.api.model.entity.ExchangeStatus,
+    )
+    {
+        val fixture = NoAuthRetrievalFixture(status = status)
+
+        assertThrows(com.docuhyphen.app.api.exception.ExchangeNotFoundException::class.java) {
+            fixture.retrieve()
+        }
+    }
 
     @Test
     fun `EX-LIF-01 Owner can edit documents in Draft`()

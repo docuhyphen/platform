@@ -14,10 +14,23 @@ import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.Arguments
+import org.junit.jupiter.params.provider.MethodSource
 import java.util.UUID
+import java.util.stream.Stream
 
 class ExchangePrimaryRecipientIdentityPermutationTest
 {
+    companion object
+    {
+        @JvmStatic
+        fun lifecycleIneligibleRegisteredUsers(): Stream<Arguments> = Stream.of(
+            Arguments.of(false, false, "inactive"),
+            Arguments.of(true, true, "deprovisioned"),
+        )
+    }
+
     @Test
     fun `EX-PRI-01 registered personal user can be primary recipient`()
     {
@@ -136,6 +149,25 @@ class ExchangePrimaryRecipientIdentityPermutationTest
         assertThrows(IllegalArgumentException::class.java) {
             probe.resolve(RegisteredUserRecipientSelectionRequest(user.id.toString()))
         }
+    }
+
+    @ParameterizedTest(name = "{2} registered account")
+    @MethodSource("lifecycleIneligibleRegisteredUsers")
+    fun `registered-user resolution currently relies on downstream policy for account lifecycle eligibility`(
+        active: Boolean,
+        deprovisioned: Boolean,
+        lifecycle: String,
+    )
+    {
+        val probe = ExchangeRecipientSelectionProbe()
+        val user = probe.appUser(active = active, deprovisioned = deprovisioned)
+        probe.registerUser(user)
+
+        val resolved = probe.resolve(
+            RegisteredUserRecipientSelectionRequest(user.id.toString()),
+        )
+
+        assertEquals(user.id, resolved.principalId, "$lifecycle account reached resolved selection")
     }
 
     @Test
