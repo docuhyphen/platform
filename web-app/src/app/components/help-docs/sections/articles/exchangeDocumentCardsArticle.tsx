@@ -14,7 +14,7 @@ export const exchangeDocumentCardsArticle = (
 
         <h3>Finding documents</h3>
         <ul>
-            <li>Use <b>Search documents</b> to match document titles.</li>
+            <li>Open search and filters, then use <b>Search documents</b> to match document titles.</li>
             <li><b>All</b> shows every search result.</li>
             <li><b>Not uploaded</b> shows search results that do not yet have a file.</li>
             <li><b>Uploaded</b> shows search results that have a file.</li>
