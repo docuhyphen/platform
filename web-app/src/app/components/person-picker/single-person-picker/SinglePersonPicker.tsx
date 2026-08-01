@@ -40,6 +40,11 @@ const SinglePersonPicker = ({
     size,
 }: Props) =>
 {
+    const selectedPerson = selectedPersonId
+        ? people.find(candidate => candidate.id === selectedPersonId)
+        : undefined;
+    const displayValue = query || (selectedPerson ? `${getPersonName(selectedPerson)} (${selectedPerson.email})` : "");
+
     const handleSelect: ComboboxProps["onOptionSelect"] = (_, data) =>
     {
         const person = people.find(candidate => candidate.id === data.optionValue) ?? null;
@@ -53,7 +58,7 @@ const SinglePersonPicker = ({
             size={size}
             id={id}
             placeholder={placeholder}
-            value={query}
+            value={displayValue}
             selectedOptions={selectedPersonId ? [selectedPersonId] : []}
             onChange={event =>
             {

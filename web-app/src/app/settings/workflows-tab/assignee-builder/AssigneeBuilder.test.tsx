@@ -1,5 +1,5 @@
 /** @vitest-environment jsdom */
-import {cleanup, render, waitFor} from "@testing-library/react";
+import {cleanup, render, screen, waitFor} from "@testing-library/react";
 import {afterEach, describe, expect, it, vi} from "vitest";
 import AssigneeBuilder from "./AssigneeBuilder.tsx";
 
@@ -25,6 +25,40 @@ afterEach(() =>
 
 describe("AssigneeBuilder", () =>
 {
+    it("shows the selected user when editing a principal assignee", async () =>
+    {
+        fetchOrganizationUsers.mockResolvedValue([
+            {
+                id: "user-1",
+                email: "jordan@example.com",
+                person: {
+                    firstName: "Jordan",
+                    lastName: "Lee",
+                },
+                avatarUrl: null,
+            },
+        ]);
+        fetchOrganizationGroups.mockResolvedValue([]);
+
+        render(
+            <AssigneeBuilder
+                assignees={[
+                    {
+                        kind: "PRINCIPAL",
+                        principalKind: "USER",
+                        principalId: "user-1",
+                    },
+                ]}
+                onChange={vi.fn()}/>,
+        );
+
+        await waitFor(() =>
+        {
+            const input = screen.getByPlaceholderText("Find a user") as HTMLInputElement;
+            expect(input.value).toBe("Jordan Lee (jordan@example.com)");
+        });
+    });
+
     it("does not load tenant directory data in platform mode", async () =>
     {
         render(
