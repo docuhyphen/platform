@@ -6,6 +6,7 @@ import {
     NoAuthExchangeBasicDto,
     ResponseError,
     ExchangeBasicDto,
+    ExchangeDetailedDto,
     ExchangeStatus,
     ExchangeInitiationRequest,
     ExchangeRecipientInvitationDto,
@@ -121,7 +122,7 @@ export const updateNoAuthExchange = (exchangeId: string, request: UpdateNoAuthEx
         })
     );
 
-export const updateExchange = (exchangeId: string, request: UpdateExchangeRequest) =>
+export const updateExchange = (exchangeId: string, request: UpdateExchangeRequest): Promise<ExchangeDetailedDto | void> =>
 {
     if (request.status === ExchangeStatus.ACCEPTED_STARTED || request.status === ExchangeStatus.REJECTED)
     {

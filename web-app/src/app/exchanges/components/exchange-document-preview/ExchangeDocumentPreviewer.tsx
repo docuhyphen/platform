@@ -145,6 +145,7 @@ const ExchangeDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
     const scrollTrackingRafRef = useRef<number | null>(null);
     const programmaticScrollTimeoutRef = useRef<number | null>(null);
     const isProgrammaticScrollRef = useRef(false);
+    const fullscreenStartedInlineRef = useRef(false);
     // Tracks which PDF URL we last fired the "reset to page 1" logic for. When the
     // <Document> remounts (e.g. when toggling enlarged/fullscreen, which changes the
     // surrounding JSX tree) onDocumentLoadSuccess fires again with the *same* URL exch-
@@ -287,6 +288,13 @@ const ExchangeDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
             if (active)
             {
                 setIsEnlarged(true);
+                return;
+            }
+
+            if (fullscreenStartedInlineRef.current)
+            {
+                fullscreenStartedInlineRef.current = false;
+                setIsEnlarged(false);
             }
         };
         window.document.addEventListener('fullscreenchange', handleFullscreenChange);
@@ -652,7 +660,9 @@ const ExchangeDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
             }
             else
             {
-                if (!isEnlarged)
+                const startedInline = !isEnlarged;
+                fullscreenStartedInlineRef.current = startedInline;
+                if (startedInline)
                 {
                     setIsEnlarged(true);
                 }
@@ -661,6 +671,11 @@ const ExchangeDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
         }
         catch (err)
         {
+            if (fullscreenStartedInlineRef.current)
+            {
+                fullscreenStartedInlineRef.current = false;
+                setIsEnlarged(false);
+            }
             console.warn('Fullscreen request failed:', err);
         }
     };

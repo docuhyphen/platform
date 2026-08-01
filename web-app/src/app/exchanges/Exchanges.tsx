@@ -633,12 +633,15 @@ const Exchanges: React.FC = () =>
     const onExchangeEnded = (exchange: ExchangeDetailedDto) =>
     {
         setExchangeDetails(exchange);
+        setActiveListTab('archive');
+        changeSelectedExchangeId(exchange.id);
     };
 
     const onExchangeRescinded = (exchange: ExchangeDetailedDto) =>
     {
         setExchangeDetails(exchange);
         setActiveListTab('archive');
+        changeSelectedExchangeId(exchange.id);
     };
 
     const onExchangeEdited = (exchange: ExchangeDetailedDto) =>

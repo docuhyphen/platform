@@ -125,9 +125,9 @@ export const workflowActivityMonitoringArticle = (
             detail column (summary, action required, and Timeline) on the left and
             a live diagram preview on the right. Each diagram also has a{" "}
             bottom-right orientation button so viewers can switch between vertical
-            and horizontal layouts. The canvas controls include enlarge and full
-            screen buttons for focused viewing. The Diagram overlays runtime state
-            and the traversed route onto the frozen workflow structure. If a
+            and horizontal layouts. The canvas controls include fit to window,
+            enlarge, and full screen buttons for focused viewing. The Diagram
+            overlays runtime state and the traversed route onto the frozen workflow structure. If a
             diagram cannot render, that section offers a <b>View timeline</b>
             button and falls back to the Timeline. See{" "}
             <a href="#"

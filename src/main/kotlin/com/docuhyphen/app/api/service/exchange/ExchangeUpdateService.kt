@@ -5,6 +5,8 @@ import com.docuhyphen.app.api.exception.ExchangeNotFoundException
 import com.docuhyphen.app.api.exception.WorkflowConflictException
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.model.BasicEntityToDtoTransformer
+import com.docuhyphen.app.api.model.DetailedEntityToDtoTransformer
+import com.docuhyphen.app.api.model.dto.ExchangeDetailedDto
 import com.docuhyphen.app.api.model.dto.NoAuthExchangeBasicDto
 import com.docuhyphen.app.api.model.entity.PrincipalKind
 import com.docuhyphen.app.api.model.entity.ResourceType
@@ -111,13 +113,15 @@ class ExchangeUpdateService @Inject constructor(
     fun updateExchange(
         exchangeId: String,
         request: UpdateExchangeRequest?
-    )
+    ): ExchangeDetailedDto
     {
         if (request?.status == ExchangeStatus.ACCEPTED_STARTED || request?.status == ExchangeStatus.REJECTED)
         {
             throw IllegalArgumentException("Use the Exchange acceptance decision resource")
         }
-        updateExchangeInternal(exchangeId, request)
+        val updatedExchange = updateExchangeInternal(exchangeId, request)
+        return DetailedEntityToDtoTransformer.toDto(updatedExchange)
+            ?: throw IllegalStateException("Updated Exchange could not be mapped")
     }
 
     @Transactional(dontRollbackOn = [WorkflowConflictException::class])
@@ -141,7 +145,7 @@ class ExchangeUpdateService @Inject constructor(
         exchangeId: String,
         request: UpdateExchangeRequest?,
         recipientDecision: Boolean = false,
-    )
+    ): Exchange
     {
         val sessionUUID = UUID.fromString(exchangeId)
 
@@ -251,6 +255,7 @@ class ExchangeUpdateService @Inject constructor(
                     exchangeRepository.updateStatus(sessionUUID, newStatus)
                     if (newStatus == ExchangeStatus.REJECTED)
                     {
+                        exchangeRepository.updateEndDate(sessionUUID, Timestamp.from(Instant.now()))
                         shareService.revokeAllForResource(ResourceType.EXCHANGE, sessionUUID, resourceLabel = existingExchange.name)
                     }
                     request.rejectionReason?.let { exchangeRepository.updateRejectionReason(sessionUUID, it) }
@@ -263,7 +268,7 @@ class ExchangeUpdateService @Inject constructor(
                         "Exchange {}: routed {} decision through acceptance workflow",
                         sessionUUID, newStatus,
                     )
-                    return
+                    return updatedSession
                 }
             }
 
@@ -326,7 +331,7 @@ class ExchangeUpdateService @Inject constructor(
             }
             exchangeRepository.updateStatus(sessionUUID, newStatus)
 
-            if (newStatus == ExchangeStatus.ENDED)
+            if (newStatus == ExchangeStatus.ENDED || newStatus == ExchangeStatus.REJECTED)
             {
                 exchangeRepository.updateEndDate(sessionUUID, Timestamp.from(Instant.now()))
             }
@@ -455,6 +460,7 @@ class ExchangeUpdateService @Inject constructor(
         }
 
         logger.info("Exchange ${updatedSession.name} completed")
+        return updatedSession
     }
 
     @Transactional
@@ -753,6 +759,7 @@ class ExchangeUpdateService @Inject constructor(
                     exchangeRepository.updateStatus(sessionUUID, requestedStatus)
                     if (requestedStatus == ExchangeStatus.REJECTED)
                     {
+                        exchangeRepository.updateEndDate(sessionUUID, Timestamp.from(Instant.now()))
                         shareService.revokeAllForResource(ResourceType.EXCHANGE, sessionUUID, resourceLabel = session.name)
                     }
                     if (requestedStatus == ExchangeStatus.ACCEPTED_STARTED)

@@ -1,6 +1,5 @@
 ﻿import {ExchangeDetailedDto, ExchangeStatus, UpdateExchangeRequest} from "../../../models/models.tsx";
 import React, {useEffect, useState} from "react";
-import useToken from "../../../../context/useToken.tsx";
 import {useGlobalStyles} from "../../../../GlobalStyles.tsx";
 import {
     Button,
@@ -19,7 +18,7 @@ import {
     Textarea
 } from "@fluentui/react-components";
 import {useExchangeEndDialogStyles} from "./ExchangeEndDialogStyles.tsx";
-import {fetchSignedInUserAppUserExchange, updateExchange} from "../../../../services/exchangeApi.ts";
+import {updateExchange} from "../../../../services/exchangeApi.ts";
 import {publishExchangeUpdate} from "../../../observable/exchangeObservables.ts";
 
 interface ExchangeEndDialogProps
@@ -39,7 +38,6 @@ const ExchangeEndDialog: React.FC<ExchangeEndDialogProps> = (
     }) =>
 {
     const styles = useExchangeEndDialogStyles()
-    const token = useToken();
     const [exchangeEndNote, setExchangeEndNote] = React.useState('');
     const [endingExchange, setEndingExchange] = React.useState(false);
     const globalStyles = useGlobalStyles()
@@ -60,10 +58,13 @@ const ExchangeEndDialog: React.FC<ExchangeEndDialogProps> = (
                 status: ExchangeStatus.ENDED
             } as UpdateExchangeRequest
 
-            await updateExchange(exchange.id, request, token);
-            const updatedExchange = await fetchSignedInUserAppUserExchange(exchange.id, token);
-            publishExchangeUpdate(updatedExchange as ExchangeDetailedDto);
-            onExchangeEnded(updatedExchange as ExchangeDetailedDto);
+            const updatedExchange = await updateExchange(exchange.id, request);
+            if (!updatedExchange)
+            {
+                throw new Error("Ended Exchange response was empty");
+            }
+            publishExchangeUpdate(updatedExchange);
+            onExchangeEnded(updatedExchange);
             setExchangeEndNote('');
             onDismiss()
         }

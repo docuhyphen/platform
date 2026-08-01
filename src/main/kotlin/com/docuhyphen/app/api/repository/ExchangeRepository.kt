@@ -43,6 +43,16 @@ class ExchangeRepository : BaseRepository<Exchange>(Exchange::class.java)
                 "AND (sh.expiresAt IS NULL OR sh.expiresAt > CURRENT_TIMESTAMP)) OR " +
                 PENDING_PRIMARY_ACCESS + ")"
 
+        private const val ARCHIVED_VISIBLE =
+            "(s.status IN :archivedStatuses AND (s.initiator.id = :appUserId OR EXISTS (" +
+                "SELECT ash FROM Share ash WHERE ash.resourceType = :srt AND ash.resourceId = s.id " +
+                "AND ash.principalKind = :upk AND ash.principalId = :appUserId " +
+                "AND s.endDate IS NOT NULL AND ash.grantedAt <= s.endDate " +
+                "AND (ash.expiresAt IS NULL OR ash.expiresAt >= s.endDate) " +
+                "AND (ash.revokedAt IS NULL OR ash.revokedAt >= s.endDate))))"
+
+        private const val ACCESSIBLE_OR_ARCHIVED = "($ACCESSIBLE OR $ARCHIVED_VISIBLE)"
+
         /**
          * Visibility predicate for INITIATED (draft) exchanges in [searchSessions] /
          * [countSearchResults]. A draft exchange is visible to the user when at least one of:
@@ -114,6 +124,10 @@ class ExchangeRepository : BaseRepository<Exchange>(Exchange::class.java)
             .setParameter("primaryPurpose", ExchangeRecipientPurpose.PRIMARY)
             .setParameter("pendingAcceptanceStatus", ExchangeRecipientAcceptanceStatus.PENDING)
             .setParameter("pendingShareStatus", ShareStatus.PENDING_APPROVAL)
+            .setParameter(
+                "archivedStatuses",
+                setOf(ExchangeStatus.ENDED, ExchangeStatus.REJECTED, ExchangeStatus.RESCINDED),
+            )
             .setParameter("gpk", PrincipalKind.PRINCIPAL_GROUP)
             .setParameter(
                 "decisionGroupRoles",
@@ -123,7 +137,7 @@ class ExchangeRepository : BaseRepository<Exchange>(Exchange::class.java)
     fun userHasExchanges(userId: UUID): Boolean {
         val count = bindAccessible(
             entityManager.createQuery(
-                "SELECT COUNT(DISTINCT s) FROM Exchange s WHERE $ACCESSIBLE AND s.isDeleted = false",
+                "SELECT COUNT(DISTINCT s) FROM Exchange s WHERE $ACCESSIBLE_OR_ARCHIVED AND s.isDeleted = false",
                 Long::class.java,
             ),
             userId,
@@ -148,7 +162,7 @@ class ExchangeRepository : BaseRepository<Exchange>(Exchange::class.java)
     {
         return bindAccessible(
             entityManager.createQuery(
-                "SELECT DISTINCT s FROM Exchange s WHERE $ACCESSIBLE AND s.isDeleted = false",
+                "SELECT DISTINCT s FROM Exchange s WHERE $ACCESSIBLE_OR_ARCHIVED AND s.isDeleted = false",
                 Exchange::class.java,
             ),
             appUserId,
@@ -268,7 +282,7 @@ class ExchangeRepository : BaseRepository<Exchange>(Exchange::class.java)
         val queryBuilder = StringBuilder(
             """
         SELECT DISTINCT s FROM Exchange s
-        WHERE $ACCESSIBLE
+        WHERE $ACCESSIBLE_OR_ARCHIVED
         AND s.isDeleted = false
         AND $DRAFT_VISIBLE
     """
@@ -338,7 +352,7 @@ class ExchangeRepository : BaseRepository<Exchange>(Exchange::class.java)
         val queryBuilder = StringBuilder(
             """
         SELECT COUNT(DISTINCT s) FROM Exchange s
-        WHERE $ACCESSIBLE
+        WHERE $ACCESSIBLE_OR_ARCHIVED
         AND s.isDeleted = false
         AND $DRAFT_VISIBLE
     """
@@ -387,11 +401,36 @@ class ExchangeRepository : BaseRepository<Exchange>(Exchange::class.java)
     {
         return bindAccessible(
             entityManager.createQuery(
-                "SELECT s FROM Exchange s WHERE $ACCESSIBLE AND s.isDeleted = false",
+                "SELECT s FROM Exchange s WHERE $ACCESSIBLE_OR_ARCHIVED AND s.isDeleted = false",
                 Exchange::class.java,
             ),
             appUserId,
         ).resultList
+    }
+
+    fun hasHistoricalArchiveAccess(exchangeId: UUID, appUserId: UUID): Boolean
+    {
+        val count = entityManager.createQuery(
+            """
+            SELECT COUNT(DISTINCT s)
+            FROM Exchange s
+            WHERE s.id = :exchangeId
+              AND s.isDeleted = false
+              AND $ARCHIVED_VISIBLE
+            """.trimIndent(),
+            Long::class.java,
+        )
+            .setParameter("exchangeId", exchangeId)
+            .setParameter("appUserId", appUserId)
+            .setParameter("srt", ResourceType.EXCHANGE)
+            .setParameter("upk", PrincipalKind.USER)
+            .setParameter(
+                "archivedStatuses",
+                setOf(ExchangeStatus.ENDED, ExchangeStatus.REJECTED, ExchangeStatus.RESCINDED),
+            )
+            .singleResult ?: 0
+
+        return count > 0
     }
 
     fun findByIdWithDocumentsOrderedByTitle(exchangeId: UUID): Exchange?

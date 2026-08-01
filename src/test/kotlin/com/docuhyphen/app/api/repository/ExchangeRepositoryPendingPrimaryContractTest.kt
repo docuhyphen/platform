@@ -1,5 +1,6 @@
 package com.docuhyphen.app.api.repository
 
+import com.docuhyphen.app.api.model.entity.ExchangeStatus
 import io.quarkus.test.common.QuarkusTestResource
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager
 import io.quarkus.test.junit.QuarkusTest
@@ -75,6 +76,9 @@ class ExchangeRepositoryPendingPrimaryContractTest
     private val ownerExchangeId = UUID.fromString("50000000-0000-0000-0000-000000000001")
     private val managerExchangeId = UUID.fromString("50000000-0000-0000-0000-000000000002")
     private val directUserExchangeId = UUID.fromString("50000000-0000-0000-0000-000000000003")
+    private val archivedExchangeId = UUID.fromString("50000000-0000-0000-0000-000000000004")
+    private val revokedBeforeEndExchangeId = UUID.fromString("50000000-0000-0000-0000-000000000005")
+    private val expiredBeforeEndExchangeId = UUID.fromString("50000000-0000-0000-0000-000000000006")
 
     @Test
     fun `repository queries expose pending group primaries only to active owners and managers`()
@@ -116,6 +120,77 @@ class ExchangeRepositoryPendingPrimaryContractTest
                 exchangeRecipientRepository.findPendingTrustedParticipantsFor(ineligibleUserId),
             )
         }
+    }
+
+    @Test
+    fun `archive queries preserve access held at the terminal timestamp only`()
+    {
+        dataSource.connection.use { connection ->
+            resetAndSeedFixtures(connection)
+            val endedAt = Timestamp.from(now.toInstant().plusSeconds(12 * 60 * 60))
+
+            insertArchivedExchange(connection, archivedExchangeId, endedAt)
+            insertShare(
+                connection,
+                UUID.randomUUID(),
+                archivedExchangeId,
+                directUserId,
+                "USER",
+                "REVOKED",
+                null,
+                Timestamp.from(endedAt.toInstant().plusSeconds(1)),
+            )
+
+            insertArchivedExchange(connection, revokedBeforeEndExchangeId, endedAt)
+            insertShare(
+                connection,
+                UUID.randomUUID(),
+                revokedBeforeEndExchangeId,
+                memberId,
+                "USER",
+                "REVOKED",
+                null,
+                Timestamp.from(endedAt.toInstant().minusSeconds(1)),
+            )
+
+            insertArchivedExchange(connection, expiredBeforeEndExchangeId, endedAt)
+            insertShare(
+                connection,
+                UUID.randomUUID(),
+                expiredBeforeEndExchangeId,
+                observerId,
+                "USER",
+                "ACTIVE",
+                Timestamp.from(endedAt.toInstant().minusSeconds(1)),
+            )
+        }
+
+        assertEquals(
+            setOf(archivedExchangeId),
+            repository.searchSessions(
+                directUserId,
+                null,
+                listOf(ExchangeStatus.ENDED),
+                null,
+                0,
+                100,
+                "createdDate",
+                "ASC",
+            ).ids(),
+        )
+        assertEquals(
+            1L,
+            repository.countSearchResults(
+                directUserId,
+                null,
+                listOf(ExchangeStatus.ENDED),
+                null,
+            ),
+        )
+        assertTrue(repository.hasHistoricalArchiveAccess(archivedExchangeId, directUserId))
+        assertFalse(repository.hasHistoricalArchiveAccess(revokedBeforeEndExchangeId, memberId))
+        assertFalse(repository.hasHistoricalArchiveAccess(expiredBeforeEndExchangeId, observerId))
+        assertFalse(repository.hasHistoricalArchiveAccess(archivedExchangeId, unrelatedId))
     }
 
     @Test
@@ -421,6 +496,26 @@ class ExchangeRepositoryPendingPrimaryContractTest
         }
     }
 
+    private fun insertArchivedExchange(connection: Connection, exchangeId: UUID, endedAt: Timestamp)
+    {
+        connection.prepareStatement(
+            """INSERT INTO exchange
+               (id, is_deleted, require_recipient_sign_in, created_date, last_activity, initiator_id,
+                owner_organization_id, description, initial_share_message, name, status, end_date,
+                no_auth_access_validity_days)
+               VALUES (?, FALSE, TRUE, ?, ?, ?, ?, 'Description', 'Message', ?, 'ENDED', ?, 7)""",
+        ).use { statement ->
+            statement.setObject(1, exchangeId)
+            statement.setTimestamp(2, now)
+            statement.setTimestamp(3, endedAt)
+            statement.setObject(4, initiatorId)
+            statement.setObject(5, organizationId)
+            statement.setString(6, "Archived Exchange $exchangeId")
+            statement.setTimestamp(7, endedAt)
+            statement.executeUpdate()
+        }
+    }
+
     private fun insertShare(
         connection: Connection,
         shareId: UUID,
@@ -429,13 +524,14 @@ class ExchangeRepositoryPendingPrimaryContractTest
         principalKind: String,
         status: String,
         expiresAt: Timestamp?,
+        revokedAt: Timestamp? = null,
     )
     {
         connection.prepareStatement(
             """INSERT INTO share
                (id, resource_type, resource_id, principal_kind, principal_id, role_name, source,
-                status, granted_at, expires_at)
-               VALUES (?, 'EXCHANGE', ?, ?, ?, 'VIEWER', 'DIRECT', ?, ?, ?)""",
+                status, granted_at, expires_at, revoked_at)
+               VALUES (?, 'EXCHANGE', ?, ?, ?, 'VIEWER', 'DIRECT', ?, ?, ?, ?)""",
         ).use { statement ->
             statement.setObject(1, shareId)
             statement.setObject(2, exchangeId)
@@ -444,6 +540,7 @@ class ExchangeRepositoryPendingPrimaryContractTest
             statement.setString(5, status)
             statement.setTimestamp(6, now)
             statement.setTimestamp(7, expiresAt)
+            statement.setTimestamp(8, revokedAt)
             statement.executeUpdate()
         }
     }

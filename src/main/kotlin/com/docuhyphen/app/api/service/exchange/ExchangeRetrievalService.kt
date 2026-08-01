@@ -68,7 +68,9 @@ class ExchangeRetrievalService @Inject constructor(
             resource = ResourceRef.exchange(session.id),
             context = authorizationContextFactory.currentContext(),
         )
-        if (decision is Decision.Deny && !canViewPendingPrimaryInvitation(session, principal))
+        if (decision is Decision.Deny &&
+            !canViewPendingPrimaryInvitation(session, principal) &&
+            !canViewArchivedExchange(session, principal))
         {
             throw ExchangeNotFoundException("Exchange not found")
         }
@@ -238,13 +240,24 @@ class ExchangeRetrievalService @Inject constructor(
             resource = ResourceRef.exchange(exchange.id),
             context = authorizationContextFactory.currentContext(),
         )
-        return decision is Decision.Allow || canViewPendingPrimaryInvitation(exchange, principal)
+        return decision is Decision.Allow ||
+            canViewPendingPrimaryInvitation(exchange, principal) ||
+            canViewArchivedExchange(exchange, principal)
     }
 
     private fun canViewPendingPrimaryInvitation(exchange: Exchange, principal: PrincipalRef): Boolean =
         principal.kind == PrincipalKind.USER &&
             exchange.status == ExchangeStatus.INITIATED &&
             exchangeRecipientService.canViewPendingPrimaryInvitation(exchange.id, principal.id)
+
+    private fun canViewArchivedExchange(exchange: Exchange, principal: PrincipalRef): Boolean =
+        principal.kind == PrincipalKind.USER &&
+            (
+                exchange.status == ExchangeStatus.ENDED ||
+                    exchange.status == ExchangeStatus.REJECTED ||
+                    exchange.status == ExchangeStatus.RESCINDED
+            ) &&
+            exchangeRepository.hasHistoricalArchiveAccess(exchange.id, principal.id)
 
     fun getExchangesLinkedToAppUserId(appUserId: UUID): List<Exchange>
     {

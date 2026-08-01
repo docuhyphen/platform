@@ -421,8 +421,9 @@ class ExchangeResource @Inject constructor(
     {
         return try
         {
-            exchangeUpdateService.updateExchange(exchangeId, request)
-            Response.ok().build()
+            val exchangeDto = exchangeUpdateService.updateExchange(exchangeId, request)
+            val enriched = enrichSessionWithRecipient(enrichSessionWithPermissions(enrichSessionWithFileSizes(exchangeDto)))
+            Response.ok(enriched).build()
         }
         catch (exception: Exception)
         {

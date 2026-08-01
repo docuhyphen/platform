@@ -109,15 +109,16 @@ class ExchangeApprovalEventHandler @Inject constructor(
 
             EVENT_REJECTED ->
             {
-                shareService.revokePendingForResource(ResourceType.EXCHANGE, exchangeId)
                 exchangeRepository.findById(exchangeId)?.let { session ->
                     if (session.status != ExchangeStatus.REJECTED)
                     {
                         session.status = ExchangeStatus.REJECTED
+                        session.endDate = Timestamp.from(Instant.now())
                         exchangeRepository.update(session)
                         lifecycleNotificationService.publish(session, ExchangeStatus.REJECTED)
                     }
                 }
+                shareService.revokePendingForResource(ResourceType.EXCHANGE, exchangeId)
                 logger.info("Exchange {} rejected by approval workflow: pending shares revoked", exchangeId)
             }
 

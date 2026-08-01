@@ -37,7 +37,7 @@ export const exchangesSection: HelpDocSectionInput = {
                     <ul>
                         <li><b>Draft:</b> Exchange is created and prepared by the initiator.</li>
                         <li><b>Active:</b> Recipients can interact with the Exchange.</li>
-                        <li><b>Completed/Ended:</b> Exchange is closed and no further changes should occur.</li>
+                        <li><b>Completed/Ended:</b> Exchange is closed, moves to archive, and becomes read-only.</li>
                         <li><b>Rejected:</b> A recipient declined the Exchange, or an approval workflow rejected it.</li>
                         <li><b>Rescinded:</b> The initiator cancelled the Exchange without deleting it. It moves to archive and becomes read-only.</li>
                     </ul>

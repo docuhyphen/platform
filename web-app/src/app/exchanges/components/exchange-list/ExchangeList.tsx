@@ -463,6 +463,10 @@ const ExchangeList: React.FC<ExchangeListProps> = (
 
                     if (currentIndex === -1)
                     {
+                        if (shouldRemainVisible)
+                        {
+                            return [updatedExchange, ...prevExchanges];
+                        }
                         return prevExchanges;
                     }
 
@@ -491,23 +495,10 @@ const ExchangeList: React.FC<ExchangeListProps> = (
 
                     if (!shouldRemainVisible)
                     {
-                        const filteredExchanges = prevExchanges.filter(exchange => exchange.id !== updatedExchange.id);
-
-                        if (selectedItemsRef.current.includes(updatedExchange.id))
-                        {
-                            if (filteredExchanges.length > 0)
-                            {
-                                setSelectedItems([filteredExchanges[0].id]);
-                                onSelectionChange(filteredExchanges[0].id);
-                            }
-                            else
-                            {
-                                setSelectedItems([]);
-                                onSelectionChange(null);
-                            }
-                        }
-
-                        return filteredExchanges;
+                        // Preserve the selected Exchange while the controlled tab moves to its
+                        // destination list. Clearing it here races the lifecycle callback and can
+                        // leave an ended Exchange unselected after Archive becomes active.
+                        return prevExchanges.filter(exchange => exchange.id !== updatedExchange.id);
                     }
 
                     return prevExchanges.map(exchange =>

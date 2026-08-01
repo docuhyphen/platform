@@ -15,6 +15,7 @@ import {
     ExpandIcon,
     FullScreenEnterIcon,
     FullScreenExitIcon,
+    ResetZoomIcon,
     VerticalLayoutIcon,
 } from "../../../components/IconBundles.tsx";
 import {WorkflowGraphEdge} from "./WorkflowGraphEdge.tsx";
@@ -243,6 +244,12 @@ export default function WorkflowGraphCanvas(props: WorkflowGraphCanvasProps)
                     <Controls id="workflow-graph-controls"
                               showFitView={false}
                               showInteractive={false}>
+                        <ControlButton id="workflow-graph-fit-view-btn"
+                                       onClick={scheduleFitView}
+                                       title="Fit to window"
+                                       aria-label="Fit to window">
+                            <ResetZoomIcon />
+                        </ControlButton>
                         <ControlButton id="workflow-graph-enlarge-btn"
                                        onClick={toggleEnlarged}
                                        title={isEnlarged ? "Exit enlarged view" : "Enlarge"}

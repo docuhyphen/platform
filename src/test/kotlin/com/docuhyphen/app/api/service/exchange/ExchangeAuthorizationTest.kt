@@ -6,6 +6,7 @@ import com.docuhyphen.app.api.model.entity.AppUser
 import com.docuhyphen.app.api.model.entity.AuthToken
 import com.docuhyphen.app.api.model.entity.Exchange
 import com.docuhyphen.app.api.model.entity.ExchangeStatus
+import com.docuhyphen.app.api.model.entity.Person
 import com.docuhyphen.app.api.repository.ExchangeRepository
 import com.docuhyphen.app.api.repository.WorkflowInstanceRepository
 import com.docuhyphen.app.api.model.entity.WorkflowInstance
@@ -295,6 +296,12 @@ class ExchangeAuthorizationTest
     fun `updateExchange - EXCHANGE_WRITE allows name change`()
     {
         val exchange = makeExchange()
+        exchange.initiator = makeUser().apply {
+            person = Person().apply {
+                firstName = "Test"
+                lastName = "Initiator"
+            }
+        }
         val repo = mock<ExchangeRepository>()
         whenever(repo.findById(exchangeId)).thenReturn(exchange)
 
@@ -302,8 +309,10 @@ class ExchangeAuthorizationTest
             authSvc = makeAuthService(Action.EXCHANGE_VIEW, Action.EXCHANGE_EDIT),
             exchangeRepo = repo,
         )
-        // No exception expected; name update should proceed through the auth gate.
-        svc.updateExchange(exchangeId.toString(), UpdateExchangeRequest(name = "Updated"))
+        val result = svc.updateExchange(exchangeId.toString(), UpdateExchangeRequest(name = "Updated"))
+
+        assertEquals("Test", result.initiator?.person?.firstName)
+        assertEquals("Initiator", result.initiator?.person?.lastName)
     }
 
     // -------------------------------------------------------------------------
