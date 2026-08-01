@@ -1,5 +1,5 @@
 ﻿import React from 'react';
-import {Avatar, Badge, Divider, ListItem, Text} from "@fluentui/react-components";
+import {Avatar, Badge, Divider, ListItem, mergeClasses, Text} from "@fluentui/react-components";
 import {useExchangeStyles} from "../ExchangeListStyles.tsx";
 import {ExchangeBasicDto, ExchangeStatus} from "../../../../models/models.tsx";
 import {formatDateWithOrdinal} from "../../../../helpers.ts";
@@ -10,11 +10,16 @@ interface ExchangeListItemProps
     exchange: ExchangeBasicDto;
     isSelected: boolean;
     activeTab: ExchangeListTab;
+    staggerIndex: number;
 }
 
-const ExchangeListItem: React.FC<ExchangeListItemProps> = ({exchange, isSelected, activeTab}) =>
+const MAX_STAGGER_INDEX = 29;
+const STAGGER_DELAY_MS = 50;
+
+const ExchangeListItem: React.FC<ExchangeListItemProps> = ({exchange, isSelected, activeTab, staggerIndex}) =>
 {
     const styles = useExchangeStyles();
+    const animationDelay = `${Math.min(staggerIndex, MAX_STAGGER_INDEX) * STAGGER_DELAY_MS}ms`;
 
     const getArchiveStatusMeta = () =>
     {
@@ -106,10 +111,15 @@ const ExchangeListItem: React.FC<ExchangeListItemProps> = ({exchange, isSelected
 
     return (
         <ListItem
-            className={isSelected ? styles.exchangesListSelectedItem : styles.exchangesListItem}
+            id={`exchange-list-item-${exchange.id}`}
+            className={mergeClasses(
+                styles.exchangeListItemEnter,
+                isSelected ? styles.exchangesListSelectedItem : styles.exchangesListItem
+            )}
             key={exchange.id}
             value={exchange.id}
             data-value={exchange.id}
+            style={{animationDelay}}
             checkmark={null}>
             {listItemCard()}
         </ListItem>

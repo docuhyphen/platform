@@ -76,6 +76,8 @@ const Exchanges: React.FC = () =>
     const [inboxRole, setInboxRole] = useState<InboxRole>('incoming');
     const [tabCounts, setTabCounts] = useState<ExchangeTabCounts>({inbox: 0, active: 0, archive: 0});
     const [selectedExchangeId, setSelectedExchangeId] = useState<string | null>(null);
+    const [detailsTransitionAnimationSuppressedForId, setDetailsTransitionAnimationSuppressedForId] =
+        useState<string | null>(null);
     const [paneNavigationDirection, setPaneNavigationDirection] =
         useState<ExchangePaneNavigationDirection>(null);
     const [preparingExchanges, setPreparingExchanges] = useState<boolean>(true);
@@ -97,6 +99,7 @@ const Exchanges: React.FC = () =>
     const [selectedUpdateExchangeDocument, setSelectedUpdateExchangeDocument] = React.useState<DocumentDetailedDto>(undefined);
     const [exchangeDetails, setExchangeDetails] = useState<ExchangeDetailedDto | null>(null);
     const [fetchingDetails, setFetchingDetails] = useState<boolean>(true);
+    const [isExchangeListLoading, setIsExchangeListLoading] = useState<boolean>(true);
     const [filteredDocuments, setFilteredDocuments] = useState<DocumentDetailedDto[]>([]);
     const [documentSearchQuery, setDocumentSearchQuery] = useState<string>("");
     const [appUserHasExchanges, setAppUserHasExchanges] = useState<boolean>(false);
@@ -143,6 +146,15 @@ const Exchanges: React.FC = () =>
 
     const changeSelectedExchangeId = (exchangeId: string | null) =>
     {
+        if (exchangeId && isExchangeListLoading && !selectedExchangeId)
+        {
+            setDetailsTransitionAnimationSuppressedForId(exchangeId);
+        }
+        else if (!exchangeId || exchangeId !== detailsTransitionAnimationSuppressedForId)
+        {
+            setDetailsTransitionAnimationSuppressedForId(null);
+        }
+
         setPaneNavigationDirection(exchangeId ? "forward" : "back");
         setSelectedExchangeId(exchangeId);
     };
@@ -762,12 +774,13 @@ const Exchanges: React.FC = () =>
         const isArchiveTab = activeListTab === 'archive';
         const isCurrentTabEmpty = exchangeList.length === 0;
         const shouldShowIncomingInboxEmptyDetails =
-            !fetchingDetails && !hasSelectedDetails && isInboxTab && inboxRole === 'incoming' && isCurrentTabEmpty;
+            !isExchangeListLoading && !fetchingDetails && !hasSelectedDetails && isInboxTab && inboxRole === 'incoming' && isCurrentTabEmpty;
         const shouldShowOutgoingInboxEmptyDetails =
-            !fetchingDetails && !hasSelectedDetails && isInboxTab && inboxRole === 'outgoing' && isCurrentTabEmpty;
-        const shouldShowActiveEmptyDetails = !fetchingDetails && !hasSelectedDetails && isActiveTab && isCurrentTabEmpty;
-        const shouldShowArchiveEmptyDetails = !fetchingDetails && !hasSelectedDetails && isArchiveTab && isCurrentTabEmpty;
+            !isExchangeListLoading && !fetchingDetails && !hasSelectedDetails && isInboxTab && inboxRole === 'outgoing' && isCurrentTabEmpty;
+        const shouldShowActiveEmptyDetails = !isExchangeListLoading && !fetchingDetails && !hasSelectedDetails && isActiveTab && isCurrentTabEmpty;
+        const shouldShowArchiveEmptyDetails = !isExchangeListLoading && !fetchingDetails && !hasSelectedDetails && isArchiveTab && isCurrentTabEmpty;
         const shouldShowSelectionHint =
+            !isExchangeListLoading &&
             !fetchingDetails &&
             !selectedExchangeId &&
             !exchangeDetails &&
@@ -806,6 +819,8 @@ const Exchanges: React.FC = () =>
             styles.detailsContainer,
             isMobile && !hasMobileSelection ? styles.detailsPaneHidden : undefined,
         );
+        const shouldAnimateDetailsTransition =
+            selectedExchangeId !== detailsTransitionAnimationSuppressedForId;
 
         // The empty-state fallbacks below (inbox empty, "select a exchange"
         // hint, etc.) belong to the desktop details column. On mobile,
@@ -826,16 +841,26 @@ const Exchanges: React.FC = () =>
                         onTabChange={setActiveListTab}
                         onInboxRoleChange={setInboxRole}
                         onTabCountsChange={setTabCounts}
+                        onLoadingChange={setIsExchangeListLoading}
                         controlledSelectedId={selectedExchangeId}
                         controlledActiveTab={activeListTab}
                     />
                 </div>
 
+                {showDetailsColumnFallbacks && isExchangeListLoading && !selectedExchangeId && (
+                    <div className={styles.detailsTransitionFrame}>
+                        <ExchangeDetailsLoading/>
+                    </div>
+                )}
+
                 {!!selectedExchangeId && (
                     <div
                         id={`exchange-details-transition-${selectedExchangeId}`}
                         key={selectedExchangeId}
-                        className={mergeClasses(styles.detailsTransitionFrame, styles.detailsSlideInFromRight)}
+                        className={mergeClasses(
+                            styles.detailsTransitionFrame,
+                            shouldAnimateDetailsTransition && styles.detailsSlideInFromRight
+                        )}
                     >
                         {fetchingDetails && !exchangeDetails && <ExchangeDetailsLoading/>}
 

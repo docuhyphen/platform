@@ -1,6 +1,6 @@
 import React, {useEffect, useRef, useState} from 'react';
 import {searchExchanges} from "../../../../services/exchangeApi.ts";
-import {Button, CounterBadge, List, Tab, TabList, Text} from "@fluentui/react-components";
+import {Button, CounterBadge, List, mergeClasses, Tab, TabList, Text} from "@fluentui/react-components";
 import {ExchangeBasicDto, ExchangeStatus} from "../../../models/models.tsx";
 import {useExchangeStyles} from "./ExchangeListStyles.tsx";
 import {
@@ -34,6 +34,7 @@ interface ExchangeListProps
     onTabChange?: (tab: ExchangeListTab) => void;
     onInboxRoleChange?: (role: InboxRole) => void;
     onTabCountsChange?: (counts: ExchangeTabCounts) => void;
+    onLoadingChange?: (loading: boolean) => void;
     controlledSelectedId?: string | null;
     controlledActiveTab?: ExchangeListTab;
 }
@@ -96,6 +97,7 @@ const ExchangeList: React.FC<ExchangeListProps> = (
         onTabChange,
         onInboxRoleChange,
         onTabCountsChange,
+        onLoadingChange,
         controlledSelectedId,
         controlledActiveTab,
     }) =>
@@ -105,6 +107,7 @@ const ExchangeList: React.FC<ExchangeListProps> = (
     const [exchanges, setExchanges] = useState<ExchangeBasicDto[]>([]);
     const [loadingExchanges, setLoadingExchanges] = useState(true);
     const [showLoadingState, setShowLoadingState] = useState(false);
+    const [hasListScrolled, setHasListScrolled] = useState(false);
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() =>
     {
         if (typeof window === 'undefined') return false;
@@ -182,6 +185,11 @@ const ExchangeList: React.FC<ExchangeListProps> = (
 
     useEffect(() =>
     {
+        onLoadingChange?.(loadingExchanges);
+    }, [loadingExchanges, onLoadingChange]);
+
+    useEffect(() =>
+    {
         return realtimeService.on('EXCHANGE_LIST_CHANGED', () =>
         {
             setRealtimeRefreshVersion((version) => version + 1);
@@ -204,6 +212,17 @@ const ExchangeList: React.FC<ExchangeListProps> = (
         {
             console.error(error);
         }
+    };
+
+    const beginListScopeLoading = () =>
+    {
+        latestFetchRequestIdRef.current += 1;
+        setLoadingExchanges(true);
+        setShowLoadingState(true);
+        setHasListScrolled(false);
+        setExchanges([]);
+        setTotalPages(0);
+        setTotalElements(0);
     };
 
     const fetchExchanges = async () =>
@@ -354,7 +373,7 @@ const ExchangeList: React.FC<ExchangeListProps> = (
         if (!controlledActiveTab || controlledActiveTab === activeTab) return;
 
         // Avoid one-frame empty-state flashes while the controlled tab transition triggers a fetch.
-        setLoadingExchanges(true);
+        beginListScopeLoading();
         setActiveTab(controlledActiveTab);
         setCurrentPage(0);
         setSearchQuery('');
@@ -405,6 +424,7 @@ const ExchangeList: React.FC<ExchangeListProps> = (
                 {
                     // Switch to the correct tab. Set state directly (not via controlledActiveTab)
                     // so the inbox role is not reset to 'incoming' by that effect.
+                    beginListScopeLoading();
                     setActiveTab(targetTab);
                     setCurrentPage(0);
                     setSearchQuery('');
@@ -563,7 +583,7 @@ const ExchangeList: React.FC<ExchangeListProps> = (
     const handleTabChange = (tab: ExchangeListTab) =>
     {
         // Enter loading immediately so empty states do not flash before fetchExchanges sets loading.
-        setLoadingExchanges(true);
+        beginListScopeLoading();
         setActiveTab(tab);
         setCurrentPage(0);
         setSearchQuery('');
@@ -582,7 +602,7 @@ const ExchangeList: React.FC<ExchangeListProps> = (
 
     const handleInboxRoleChange = (role: InboxRole) =>
     {
-        setLoadingExchanges(true);
+        beginListScopeLoading();
         setInboxRole(role);
         onInboxRoleChange?.(role);
         setCurrentPage(0);
@@ -594,6 +614,11 @@ const ExchangeList: React.FC<ExchangeListProps> = (
     {
         setSelectedItems(data.selectedItems);
         onSelectionChange(data.selectedItems[0] ?? null);
+    };
+
+    const handleListScroll: React.UIEventHandler<HTMLElement> = (event) =>
+    {
+        setHasListScrolled(event.currentTarget.scrollTop > 0);
     };
 
     const handlePageChange = (page: number) =>
@@ -686,7 +711,10 @@ const ExchangeList: React.FC<ExchangeListProps> = (
             />
 
             {!isSidebarVisuallyCollapsed && isInboxMode && (
-                <div className={styles.exchangesListHeader}>
+                <div className={mergeClasses(
+                    styles.exchangesListHeader,
+                    hasListScrolled && styles.exchangesListHeaderElevated
+                )}>
                     <TabList
                         id="exchange-list-inbox-role-tabs"
                         selectedValue={inboxRole}
@@ -710,7 +738,10 @@ const ExchangeList: React.FC<ExchangeListProps> = (
             )}
 
             {!isSidebarVisuallyCollapsed && !isInboxMode && (
-                <div className={styles.exchangesListHeader}>
+                <div className={mergeClasses(
+                    styles.exchangesListHeader,
+                    hasListScrolled && styles.exchangesListHeaderElevated
+                )}>
                     <ExchangeListSearchControls
                         searchQuery={searchQuery}
                         onSearchQueryChange={handleSearchQueryChange}
@@ -732,16 +763,18 @@ const ExchangeList: React.FC<ExchangeListProps> = (
                     selectionMode="single"
                     navigationMode="items"
                     selectedItems={selectedItems}
-                    onSelectionChange={handleSelectionChange}>
+                    onSelectionChange={handleSelectionChange}
+                    onScroll={handleListScroll}>
 
                     {showLoadingState && exchanges.length === 0 && <ExchangeListSkeleton count={10}/>}
 
-                    {exchanges.map((exchange: ExchangeBasicDto) => (
+                    {exchanges.map((exchange: ExchangeBasicDto, index: number) => (
                         <ExchangeListItem
                             key={exchange.id}
                             exchange={exchange}
                             isSelected={selectedItems.includes(exchange.id)}
                             activeTab={activeTab}
+                            staggerIndex={index}
                         />
                     ))}
 
@@ -759,7 +792,10 @@ const ExchangeList: React.FC<ExchangeListProps> = (
                 </List>
             )}
 
-            <div className={styles.exchangesListFooter}>
+            <div className={mergeClasses(
+                styles.exchangesListFooter,
+                hasListScrolled && styles.exchangesListFooterElevated
+            )}>
                 {!isMobile && (
                     <ExchangeListSidebarToggle
                         isSidebarCollapsed={isSidebarCollapsed}

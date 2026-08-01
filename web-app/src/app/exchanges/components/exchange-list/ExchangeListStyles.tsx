@@ -125,7 +125,6 @@ const useExchangeStyles = makeStyles({
 
     exchangesListHeader: {
         background: tokens.colorNeutralBackground1,
-        boxShadow: tokens.shadow4,
         width: "100%",
         height: "48px",
         paddingTop: tokens.spacingVerticalS,
@@ -134,6 +133,13 @@ const useExchangeStyles = makeStyles({
         boxSizing: "border-box",
         display: "flex",
         gap: tokens.spacingHorizontalS,
+        transitionProperty: "box-shadow",
+        transitionDuration: "160ms",
+        transitionTimingFunction: "ease",
+    },
+
+    exchangesListHeaderElevated: {
+        boxShadow: tokens.shadow4,
     },
 
     filterSearchField: {
@@ -172,6 +178,12 @@ const useExchangeStyles = makeStyles({
         display: "flex",
         justifyContent: "space-between",
         marginTop: "auto",
+        transitionProperty: "box-shadow",
+        transitionDuration: "160ms",
+        transitionTimingFunction: "ease",
+    },
+
+    exchangesListFooterElevated: {
         boxShadow: tokens.shadow4,
     },
     footerControls: {
@@ -284,6 +296,31 @@ const useExchangeStyles = makeStyles({
             borderLeft: "3px solid",
             borderLeftColor: tokens.colorBrandForeground1,
             transition: "all 0.1s ease",
+        },
+    },
+
+    exchangeListItemEnter: {
+        opacity: 0,
+        transform: "translateX(-18px)",
+        animationName: {
+            from: {
+                opacity: 0,
+                transform: "translateX(-18px)",
+            },
+            to: {
+                opacity: 1,
+                transform: "translateX(0)",
+            },
+        },
+        animationDuration: "220ms",
+        animationTimingFunction: "cubic-bezier(0.2, 0, 0, 1)",
+        animationFillMode: "both",
+        willChange: "opacity, transform",
+        "@media (prefers-reduced-motion: reduce)": {
+            animationName: "none",
+            animationDuration: "0ms",
+            opacity: 1,
+            transform: "none",
         },
     },
 
