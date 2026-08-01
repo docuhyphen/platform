@@ -6,13 +6,13 @@ import {DocumentCommentDetailedDto, DocumentDetailedDto} from "../../../../model
 import {DocumentCommentService} from "../../../../../services/DocumentCommentService.tsx";
 import ExchangeDocumentCommentComposer from
     "./exchange-document-comment-composer/ExchangeDocumentCommentComposer.tsx";
+import {useNotifications} from "../../../../../context/NotificationContext.tsx";
 
 interface ExchangeDocumentCommentsProps
 {
     exchangeId: string;
     exchangeDocument: DocumentDetailedDto;
 }
-
 const ExchangeDocumentComments: React.FC<ExchangeDocumentCommentsProps> = (
     {
         exchangeId,
@@ -27,7 +27,7 @@ const ExchangeDocumentComments: React.FC<ExchangeDocumentCommentsProps> = (
     const commentService = new DocumentCommentService();
     const styles = useExchangeDocumentCommentsStyles();
     const commentsListRef = useRef<HTMLDivElement>(null);
-
+    const {markMatchingAsRead} = useNotifications();
     const fetchComments = async () =>
     {
         try
@@ -35,6 +35,13 @@ const ExchangeDocumentComments: React.FC<ExchangeDocumentCommentsProps> = (
             setLoading(true);
             const fetchedComments = await commentService.getComments(exchangeId, exchangeDocument.id);
             setComments(fetchedComments);
+            markMatchingAsRead({
+                eventTypes: ["document.commented"],
+                data: {
+                    exchangeId,
+                    documentId: exchangeDocument.id,
+                },
+            });
         }
         catch (error)
         {
@@ -45,7 +52,6 @@ const ExchangeDocumentComments: React.FC<ExchangeDocumentCommentsProps> = (
             setLoading(false);
         }
     };
-
     const onAddComment = async () =>
     {
         if (addingComment)

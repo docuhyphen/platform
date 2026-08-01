@@ -5,6 +5,7 @@ import {PendingWorkflowStep} from "../../../../services/types/dtos.ts";
 import {fetchExchangeWorkflowClearanceStatus, fetchExchangeWorkflowInstances} from "../../../../services/exchangeApi.ts";
 import {getWorkflowInstanceDetail} from "../../../../services/workflowService.ts";
 import {getMyPendingDecisions} from "../../../../services/workflowApi.ts";
+import {useNotifications} from "../../../../context/NotificationContext.tsx";
 import {useExchangeWorkflowTabStyles} from "./ExchangeWorkflowTabStyles.tsx";
 import ClearanceStatusCard from "./ClearanceStatusCard.tsx";
 import WorkflowInstanceSection from "./WorkflowInstanceSection.tsx";
@@ -25,6 +26,7 @@ const ExchangeWorkflowTab = ({exchange}: Props) =>
     const [clearanceStatus, setClearanceStatus] = useState<ExchangeClearanceStatusDto | null>(null);
     // Tab-level view preference (Decision 8, Decision 15): local state only, default Timeline.
     const [viewMode, setViewMode] = useState<WorkflowViewMode>("BOTH");
+    const {markMatchingAsRead} = useNotifications();
 
     const fetchData = async () =>
     {
@@ -60,6 +62,17 @@ const ExchangeWorkflowTab = ({exchange}: Props) =>
     {
         fetchData();
     }, [exchange.id]);
+
+    useEffect(() =>
+    {
+        markMatchingAsRead({
+            eventTypes: ["workflow.step_assigned", "workflow.escalated"],
+            data: {
+                subjectType: "EXCHANGE",
+                subjectId: exchange.id,
+            },
+        });
+    }, [exchange.id, markMatchingAsRead]);
 
     if (loading)
     {

@@ -10,6 +10,7 @@ const NotificationContext = createContext<NotificationInboxState>({
     loadMoreNotifications: async () => {},
     markAsRead: () => {},
     markAllAsRead: () => {},
+    markMatchingAsRead: () => {},
 });
 
 export const NotificationProvider: React.FC<{children: React.ReactNode}> = ({children}) =>

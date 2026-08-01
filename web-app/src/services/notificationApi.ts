@@ -15,6 +15,20 @@ export interface NotificationPage
     unreadCount: number;
 }
 
+export interface NotificationReadReceiptRequest
+{
+    all?: boolean;
+    notificationIds?: string[];
+    eventTypes?: string[];
+    data?: Record<string, string>;
+}
+
+export interface NotificationReadReceiptResponse
+{
+    readNotificationIds: string[];
+    unreadCount: number;
+}
+
 export const fetchNotifications = async (
     limit: number = 20,
     cursor?: NotificationPageCursor,
@@ -27,5 +41,16 @@ export const fetchNotifications = async (
             beforeId: cursor?.id,
         },
     });
+    return response.data;
+};
+
+export const createNotificationReadReceipts = async (
+    request: NotificationReadReceiptRequest,
+): Promise<NotificationReadReceiptResponse> =>
+{
+    const response = await apiClient.post<NotificationReadReceiptResponse>(
+        '/notifications/read-receipts',
+        request,
+    );
     return response.data;
 };

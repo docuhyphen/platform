@@ -15,6 +15,8 @@ import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import java.sql.Timestamp
 import java.time.Instant
 import java.util.UUID
@@ -50,6 +52,42 @@ class InAppNotificationService @Inject constructor(
                 )
             },
             hasMore = hasMore,
+            unreadCount = repository.countUnread(appUserId),
+        )
+    }
+
+    @Transactional
+    fun markAsRead(appUserId: UUID, criteria: NotificationReadCriteria): NotificationReadResult
+    {
+        val unread = when
+        {
+            criteria.all -> repository.findUnreadForUser(appUserId)
+            criteria.notificationIds.isNotEmpty() -> repository.findUnreadByIdsForUser(
+                appUserId,
+                criteria.notificationIds,
+            )
+            criteria.eventTypes.isNotEmpty() -> repository.findUnreadByEventTypesForUser(
+                appUserId,
+                criteria.eventTypes,
+            )
+            else -> repository.findUnreadForUser(appUserId)
+        }
+
+        val matching = unread.filter { notification ->
+            criteria.eventTypes.isEmpty() || notification.eventType in criteria.eventTypes
+        }.filter { notification ->
+            payloadMatches(notification, criteria.data)
+        }
+
+        val now = Timestamp.from(Instant.now())
+        matching.forEach { notification ->
+            notification.isRead = true
+            notification.readAt = now
+            repository.update(notification)
+        }
+
+        return NotificationReadResult(
+            readNotificationIds = matching.map { it.id },
             unreadCount = repository.countUnread(appUserId),
         )
     }
@@ -114,6 +152,26 @@ class InAppNotificationService @Inject constructor(
         return dto
     }
 
+    private fun payloadMatches(notification: InAppNotification, data: Map<String, String>): Boolean
+    {
+        if (data.isEmpty())
+        {
+            return true
+        }
+
+        val payload = notification.payloadJson
+            ?.let { payloadJson ->
+                runCatching {
+                    json.parseToJsonElement(payloadJson) as? JsonObject
+                }.getOrNull()
+            }
+            ?: return false
+
+        return data.all { (key, value) ->
+            (payload[key] as? JsonPrimitive)?.content == value
+        }
+    }
+
     @Transactional
     fun publishAdministrative(
         appUserId: UUID,
@@ -139,3 +197,15 @@ class InAppNotificationService @Inject constructor(
         return dto
     }
 }
+
+data class NotificationReadCriteria(
+    val all: Boolean = false,
+    val notificationIds: Set<UUID> = emptySet(),
+    val eventTypes: Set<String> = emptySet(),
+    val data: Map<String, String> = emptyMap(),
+)
+
+data class NotificationReadResult(
+    val readNotificationIds: List<UUID>,
+    val unreadCount: Long,
+)

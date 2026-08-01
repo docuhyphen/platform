@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
     notificationHandler: null as ((notification: unknown) => void) | null,
     probeHandler: null as ((message: {message?: string; serverTime?: number}) => void) | null,
     fetchNotifications: vi.fn(),
+    createNotificationReadReceipts: vi.fn(),
 }));
 
 vi.mock('./AuthContext.tsx', () => ({
@@ -17,6 +18,8 @@ vi.mock('./AuthContext.tsx', () => ({
 vi.mock('../services/notificationApi', () => ({
     fetchNotifications: (limit: number, cursor?: {timestamp: number; id: string}) =>
         mocks.fetchNotifications(limit, cursor),
+    createNotificationReadReceipts: (request: unknown) =>
+        mocks.createNotificationReadReceipts(request),
 }));
 
 vi.mock('../services/BrowserNotificationService.ts', () => ({
@@ -48,7 +51,13 @@ vi.mock('../app/components/global-realtime-toast/GlobalRealtimeToast', () => ({
 
 const NotificationConsumer: React.FC = () =>
 {
-    const {notifications, unreadCount, hasMoreNotifications, loadMoreNotifications} = useNotifications();
+    const {
+        notifications,
+        unreadCount,
+        hasMoreNotifications,
+        loadMoreNotifications,
+        markMatchingAsRead,
+    } = useNotifications();
     return (
         <div id="test-notification-consumer">
             <span id="test-unread-count">{unreadCount}</span>
@@ -59,6 +68,16 @@ const NotificationConsumer: React.FC = () =>
                 onClick={() => void loadMoreNotifications()}
             >
                 Load more
+            </button>
+            <button
+                id="test-mark-document-read"
+                type="button"
+                onClick={() => markMatchingAsRead({
+                    eventTypes: ['document.commented'],
+                    data: {documentId: 'document-1'},
+                })}
+            >
+                Mark document read
             </button>
             {notifications.map((notification) => (
                 <span
@@ -76,6 +95,7 @@ afterEach(() =>
 {
     cleanup();
     mocks.fetchNotifications.mockReset();
+    mocks.createNotificationReadReceipts.mockReset();
     mocks.notificationHandler = null;
     mocks.probeHandler = null;
 });
@@ -169,5 +189,44 @@ describe('NotificationProvider', () =>
         expect(screen.getAllByText('Newest notification')).toHaveLength(1);
         expect(document.getElementById('test-has-more')?.textContent).toBe('false');
         expect(mocks.fetchNotifications).toHaveBeenLastCalledWith(20, {timestamp: 1000, id: 'cursor-1'});
+    });
+
+    it('marks matching loaded notifications read and persists the receipt', async () =>
+    {
+        mocks.fetchNotifications.mockResolvedValue({
+            notifications: [{
+                id: 'notification-1',
+                type: 'document.commented',
+                message: 'Document comment',
+                timestamp: '2026-07-15T12:00:00.000Z',
+                documentId: 'document-1',
+                isRead: false,
+                data: {documentId: 'document-1'},
+            }],
+            hasMore: false,
+            unreadCount: 1,
+        });
+        mocks.createNotificationReadReceipts.mockResolvedValue({
+            readNotificationIds: ['notification-1'],
+            unreadCount: 0,
+        });
+
+        render(
+            <NotificationProvider>
+                <NotificationConsumer/>
+            </NotificationProvider>,
+        );
+
+        await waitFor(() => expect(screen.getByText('Document comment')).toBeTruthy());
+
+        fireEvent.click(screen.getByRole('button', {name: 'Mark document read'}));
+
+        await waitFor(() =>
+            expect(mocks.createNotificationReadReceipts).toHaveBeenCalledWith({
+                eventTypes: ['document.commented'],
+                data: {documentId: 'document-1'},
+            }),
+        );
+        expect(document.getElementById('test-unread-count')?.textContent).toBe('0');
     });
 });

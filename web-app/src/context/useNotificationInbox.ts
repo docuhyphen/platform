@@ -3,7 +3,12 @@ import {NotificationDto} from '../app/models/models';
 import {useAuth} from './AuthContext.tsx';
 import {notificationService} from '../services/NotificationService.tsx';
 import {showBrowserNotification} from '../services/BrowserNotificationService.ts';
-import {fetchNotifications, NotificationPageCursor} from '../services/notificationApi';
+import {
+    createNotificationReadReceipts,
+    fetchNotifications,
+    NotificationPageCursor,
+    NotificationReadReceiptRequest,
+} from '../services/notificationApi';
 
 export interface NotificationInboxState
 {
@@ -14,6 +19,7 @@ export interface NotificationInboxState
     loadMoreNotifications: () => Promise<void>;
     markAsRead: (notificationId: string) => void;
     markAllAsRead: () => void;
+    markMatchingAsRead: (criteria: NotificationReadReceiptRequest) => void;
 }
 
 interface NotificationInboxResult
@@ -34,6 +40,35 @@ const mergeNotifications = (
     );
 };
 
+const notificationValue = (notification: NotificationDto, key: string): string | undefined =>
+{
+    if (key === 'exchangeId') return notification.exchangeId ?? notification.data?.exchangeId;
+    if (key === 'documentId') return notification.documentId ?? notification.data?.documentId;
+    if (key === 'commentId') return notification.commentId ?? notification.data?.commentId;
+    if (key === 'userId') return notification.userId ?? notification.data?.userId;
+    return notification.data?.[key];
+};
+
+const notificationMatchesReadCriteria = (
+    notification: NotificationDto,
+    criteria: NotificationReadReceiptRequest,
+): boolean =>
+{
+    if (criteria.all) return true;
+    if (criteria.notificationIds?.includes(notification.id)) return true;
+    if (criteria.eventTypes && criteria.eventTypes.length > 0 && !criteria.eventTypes.includes(notification.type))
+    {
+        return false;
+    }
+    const data = criteria.data ?? {};
+    const dataEntries = Object.entries(data);
+    if (dataEntries.length === 0)
+    {
+        return !!criteria.eventTypes && criteria.eventTypes.length > 0;
+    }
+    return dataEntries.every(([key, value]) => notificationValue(notification, key) === value);
+};
+
 export const useNotificationInbox = (): NotificationInboxResult =>
 {
     const [notifications, setNotifications] = useState<NotificationDto[]>([]);
@@ -45,19 +80,48 @@ export const useNotificationInbox = (): NotificationInboxResult =>
     const loadingMoreRef = useRef(false);
     const {appUser} = useAuth();
 
-    const markAsRead = (notificationId: string) => setNotifications((current) =>
-        current.map((notification) =>
-        {
-            if (notification.id !== notificationId || notification.isRead) return notification;
-            setUnreadCount((count) => Math.max(0, count - 1));
-            return {...notification, isRead: true};
-        }));
-
-    const markAllAsRead = () =>
+    const applyReadState = useCallback((criteria: NotificationReadReceiptRequest) => setNotifications((current) =>
     {
-        setUnreadCount(0);
-        setNotifications((current) => current.map((notification) => ({...notification, isRead: true})));
-    };
+        let changedCount = 0;
+        const updated = current.map((notification) =>
+        {
+            if (notification.isRead || !notificationMatchesReadCriteria(notification, criteria))
+            {
+                return notification;
+            }
+            changedCount += 1;
+            return {...notification, isRead: true};
+        });
+        if (changedCount > 0)
+        {
+            setUnreadCount((count) => Math.max(0, count - changedCount));
+        }
+        return updated;
+    }), []);
+
+    const persistReadState = useCallback((criteria: NotificationReadReceiptRequest) =>
+    {
+        void createNotificationReadReceipts(criteria)
+            .then((response) => setUnreadCount(response.unreadCount))
+            .catch((error: unknown) => console.warn('Failed to mark notifications read', error));
+    }, []);
+
+    const markMatchingAsRead = useCallback((criteria: NotificationReadReceiptRequest) =>
+    {
+        applyReadState(criteria);
+        persistReadState(criteria);
+    }, [applyReadState, persistReadState]);
+
+    const markAsRead = useCallback((notificationId: string) =>
+    {
+        markMatchingAsRead({notificationIds: [notificationId]});
+    }, [markMatchingAsRead]);
+
+    const markAllAsRead = useCallback(() =>
+    {
+        applyReadState({all: true});
+        persistReadState({all: true});
+    }, [applyReadState, persistReadState]);
 
     const loadMoreNotifications = useCallback(async () =>
     {
@@ -155,6 +219,7 @@ export const useNotificationInbox = (): NotificationInboxResult =>
             loadMoreNotifications,
             markAsRead,
             markAllAsRead,
+            markMatchingAsRead,
         },
         probeToast,
     };

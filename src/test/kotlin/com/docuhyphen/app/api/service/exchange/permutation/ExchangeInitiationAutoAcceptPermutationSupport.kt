@@ -62,6 +62,7 @@ internal class ExchangeInitiationAutoAcceptFixture
     val workflowEngineService: WorkflowEngineService = mock()
     val emailTemplateService: EmailTemplateService = mock()
     val recipientSelectionResolver: ExchangeRecipientSelectionResolver = mock()
+    val exchangeNotificationDeliveryService: ExchangeNotificationDeliveryService = mock()
     val service: ExchangeInitiationService
 
     init
@@ -176,7 +177,7 @@ internal class ExchangeInitiationAutoAcceptFixture
             fileStorageService = mock<FileStorageService>(),
             schemaAssignmentService = mock<SchemaAssignmentService>(),
             noAuthExchangeAccessTokenService = mock<NoAuthExchangeAccessTokenService>(),
-            exchangeNotificationDeliveryService = mock<ExchangeNotificationDeliveryService>(),
+            exchangeNotificationDeliveryService = exchangeNotificationDeliveryService,
         )
         ExchangeInitiationService::class.java.getDeclaredField("entityManager").apply {
             isAccessible = true

@@ -44,10 +44,14 @@ export const notificationPreferencesArticle = (
             specific document open the Exchange with that document selected. The same
             navigation applies when you select a native browser alert.
         </p>
+        <p>
+            Opening a notified item directly also clears its unread notification when
+            you view its workflow or document comments.
+        </p>
 
         <h3>Exchange notifications</h3>
         <ul>
-            <li><b>Exchange initiated</b> covers Exchanges sent to you and Exchanges you send.</li>
+            <li><b>Exchange initiated</b> covers Exchanges sent to you.</li>
             <li><b>Exchange accepted</b> covers recipient acceptance of an Exchange you initiated.</li>
             <li><b>Exchange declined</b> covers recipient rejection of an Exchange you initiated.</li>
             <li><b>Exchange ended</b> covers Exchanges that move to their completed state.</li>

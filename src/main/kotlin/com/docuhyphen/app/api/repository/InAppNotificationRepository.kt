@@ -50,6 +50,53 @@ class InAppNotificationRepository : BaseRepository<InAppNotification>(InAppNotif
         )
             .setParameter("uid", appUserId)
             .singleResult ?: 0
+
+    fun findUnreadForUser(appUserId: UUID): List<InAppNotification> =
+        entityManager.createQuery(
+            """SELECT n FROM InAppNotification n
+               WHERE n.appUserId = :uid AND n.isRead = false""",
+            InAppNotification::class.java,
+        )
+            .setParameter("uid", appUserId)
+            .resultList
+
+    fun findUnreadByIdsForUser(appUserId: UUID, notificationIds: Set<UUID>): List<InAppNotification>
+    {
+        if (notificationIds.isEmpty())
+        {
+            return emptyList()
+        }
+
+        return entityManager.createQuery(
+            """SELECT n FROM InAppNotification n
+               WHERE n.appUserId = :uid
+                 AND n.isRead = false
+                 AND n.id IN :notificationIds""",
+            InAppNotification::class.java,
+        )
+            .setParameter("uid", appUserId)
+            .setParameter("notificationIds", notificationIds)
+            .resultList
+    }
+
+    fun findUnreadByEventTypesForUser(appUserId: UUID, eventTypes: Set<String>): List<InAppNotification>
+    {
+        if (eventTypes.isEmpty())
+        {
+            return emptyList()
+        }
+
+        return entityManager.createQuery(
+            """SELECT n FROM InAppNotification n
+               WHERE n.appUserId = :uid
+                 AND n.isRead = false
+                 AND n.eventType IN :eventTypes""",
+            InAppNotification::class.java,
+        )
+            .setParameter("uid", appUserId)
+            .setParameter("eventTypes", eventTypes)
+            .resultList
+    }
 }
 
 @ApplicationScoped

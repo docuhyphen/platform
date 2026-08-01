@@ -2,6 +2,7 @@ import {useCallback, useEffect, useState} from 'react';
 import {getMyPendingDecisions, recordWorkflowDecision} from '../../../../../services/workflowApi';
 import {PendingWorkflowStep} from '../../../../../services/types/dtos';
 import {realtimeService} from '../../../../../services/NotificationService';
+import {useNotifications} from '../../../../../context/NotificationContext';
 
 export interface PendingApprovalsState
 {
@@ -20,6 +21,7 @@ export const usePendingApprovals = (): PendingApprovalsState =>
     const [deciding, setDeciding] = useState<string | null>(null);
     const [comments, setComments] = useState<Record<string, string>>({});
     const [decisionError, setDecisionError] = useState<string | null>(null);
+    const {markMatchingAsRead} = useNotifications();
 
     useEffect(() =>
     {
@@ -91,6 +93,10 @@ export const usePendingApprovals = (): PendingApprovalsState =>
                 decision,
                 reason: comments[step.stepInstanceId]?.trim() || undefined,
             });
+            markMatchingAsRead({
+                eventTypes: ['workflow.step_assigned', 'workflow.escalated'],
+                data: {stepInstanceId: step.stepInstanceId},
+            });
             setItems((current) => current.filter((item) => item.stepInstanceId !== step.stepInstanceId));
         }
         catch (error: unknown)
@@ -103,7 +109,7 @@ export const usePendingApprovals = (): PendingApprovalsState =>
         {
             setDeciding(null);
         }
-    }, [comments]);
+    }, [comments, markMatchingAsRead]);
 
     return {
         items,

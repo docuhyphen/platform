@@ -920,15 +920,7 @@ class ExchangeInitiationService @Inject constructor(
         )
 
         val exchangeLabel = exchange.name.orEmpty().ifBlank { exchangeIdStr }
-        val inAppNotifications = mutableListOf(
-            ExchangeInAppDelivery(
-                appUserId = initiator.id,
-                type = "exchange.initiated",
-                title = "Exchange initiated",
-                message = "Exchange $exchangeLabel was sent.",
-                data = mapOf("exchangeId" to exchangeIdStr),
-            ),
-        )
+        val inAppNotifications = mutableListOf<ExchangeInAppDelivery>()
         primaryAudience.forEach { appUser ->
             inAppNotifications += ExchangeInAppDelivery(
                 appUserId = appUser.id,

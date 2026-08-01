@@ -20,6 +20,8 @@ import com.docuhyphen.app.api.service.communication.MarkdownRenderer
 import com.docuhyphen.app.api.service.communication.templates.EmailTemplateRenderer
 import com.docuhyphen.app.api.service.notification.DomainEvent
 import com.docuhyphen.app.api.service.notification.DomainEventPublisher
+import com.docuhyphen.app.api.service.notification.InAppNotificationService
+import com.docuhyphen.app.api.service.notification.NotificationReadCriteria
 import com.docuhyphen.app.api.service.communication.CommunicationResolver
 import com.docuhyphen.app.api.service.variable.VariableResolutionContext
 import org.eclipse.microprofile.config.inject.ConfigProperty
@@ -81,6 +83,7 @@ class DefaultWorkflowEngineService : WorkflowEngineService
     @Inject private lateinit var conditionPredicateService: ConditionPredicateService
     @Inject private lateinit var triggerEventRepository: WorkflowTriggerEventRepository
     @Inject private lateinit var transactionSynchronizationRegistry: TransactionSynchronizationRegistry
+    @Inject private lateinit var inAppNotificationService: InAppNotificationService
     @Inject private lateinit var self: DefaultWorkflowEngineService
 
     @ConfigProperty(name = "app.url", defaultValue = "https://app.docuhyphen.com")
@@ -278,6 +281,7 @@ class DefaultWorkflowEngineService : WorkflowEngineService
         {
             throw IllegalStateException("Decider ${decider.kind}/${decider.id} is not an assignee of step $stepInstanceId")
         }
+        markWorkflowAssignmentNotificationRead(decider, step.id)
 
         // Re-read under the locks: a racing approval, auto-decision, escalation, or cancellation may
         // have already resolved this step or ended the instance while this caller waited for the
@@ -1158,10 +1162,10 @@ class DefaultWorkflowEngineService : WorkflowEngineService
     /**
      * Emits the definition-level terminal event when the instance reaches a terminal state.
      * Uses the explicit [WorkflowSpec.onComplete] / [WorkflowSpec.onReject] when set, otherwise
-     * falls back to [defaultTerminalEvent] derived from the definition's trigger — so a lifecycle
+     * falls back to [defaultTerminalEvent] derived from the definition's trigger, so a lifecycle
      * workflow activates/rejects its exchange without the author having to wire up emit events.
      * This fires unconditionally so the correct outcome event is always published regardless of
-     * how individual steps are configured — the handlers are idempotent so a step-level emit on
+     * how individual steps are configured. The handlers are idempotent so a step-level emit on
      * the same event name is harmless.
      *
      * Also triggers the counterparty-clearance unblock sweep so any AWAITING_COUNTERPARTY steps
@@ -1381,6 +1385,26 @@ class DefaultWorkflowEngineService : WorkflowEngineService
                 },
                 payload = payload,
             )
+        )
+    }
+
+    private fun markWorkflowAssignmentNotificationRead(decider: PrincipalRef, stepInstanceId: UUID)
+    {
+        if (decider.kind != PrincipalKind.USER)
+        {
+            return
+        }
+        if (!::inAppNotificationService.isInitialized)
+        {
+            return
+        }
+
+        inAppNotificationService.markAsRead(
+            appUserId = decider.id,
+            criteria = NotificationReadCriteria(
+                eventTypes = setOf("workflow.step_assigned", "workflow.escalated"),
+                data = mapOf("stepInstanceId" to stepInstanceId.toString()),
+            ),
         )
     }
 

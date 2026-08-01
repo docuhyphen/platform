@@ -33,6 +33,20 @@ data class NotificationPageCursorDto(
     val id: String,
 )
 
+@Serializable
+data class NotificationReadReceiptRequest(
+    val all: Boolean = false,
+    val notificationIds: List<String> = emptyList(),
+    val eventTypes: List<String> = emptyList(),
+    val data: Map<String, String> = emptyMap(),
+)
+
+@Serializable
+data class NotificationReadReceiptResponse(
+    val readNotificationIds: List<String>,
+    val unreadCount: Long,
+)
+
 enum class NotificationType
 {
     NEW_COMMENT,
