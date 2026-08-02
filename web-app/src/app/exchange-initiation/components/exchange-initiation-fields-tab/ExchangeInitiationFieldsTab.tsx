@@ -5,6 +5,8 @@ import {getResolvedSchema} from '../../../../services/fieldsService';
 import FieldValueEditor from '../../../exchanges/components/exchange-fields-tab/FieldValueEditor';
 import {useExchangeInitiationFieldsTabStyles} from './ExchangeInitiationFieldsTabStyles';
 
+const NO_SCHEMA_OPTION = 'NO_BUSINESS_SCHEMA';
+
 interface Props
 {
     schemas: SchemaDefinitionDto[];
@@ -39,7 +41,10 @@ const ExchangeInitiationFieldsTab = (
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    const selectedName = schemas.find(s => s.id === schemaDefinitionId)?.displayName ?? '';
+    const selectedName = schemaDefinitionId
+        ? schemas.find(s => s.id === schemaDefinitionId)?.displayName ?? ''
+        : 'No business schema';
+    const selectedOptions = schemaDefinitionId ? [schemaDefinitionId] : [NO_SCHEMA_OPTION];
 
     useEffect(() =>
     {
@@ -75,8 +80,15 @@ const ExchangeInitiationFieldsTab = (
                               placeholder="Select a schema (optional)..."
                               disabled={locked || schemas.length === 0}
                               value={selectedName}
-                              selectedOptions={schemaDefinitionId ? [schemaDefinitionId] : []}
-                              onOptionSelect={(_, d) => onSchemaChange(d.optionValue as string | undefined)}>
+                              selectedOptions={selectedOptions}
+                              onOptionSelect={(_, d) =>
+                                  onSchemaChange(d.optionValue === NO_SCHEMA_OPTION
+                                      ? undefined
+                                      : d.optionValue)}>
+                        <Option key={NO_SCHEMA_OPTION}
+                                value={NO_SCHEMA_OPTION}>
+                            No business schema
+                        </Option>
                         {schemas.map(schema => (
                             <Option key={schema.id}
                                     value={schema.id}>

@@ -1,15 +1,12 @@
-﻿import React from 'react';
-import {Button, SelectTabData, SelectTabEvent, Tab, TabList, TabValue, Text, Tooltip} from "@fluentui/react-components";
-import {useExchangeInitiationStyles} from "../../ExchangeInitiationStyles.tsx";
+import React from 'react';
 import {
-    BlueprintAddIcon,
-    DetailsIcon,
-    DocumentsIcon,
-    OptionsIcon,
-    RecipientsIcon,
-    SettingsFieldsTabIcon
-} from "../../../components/IconBundles.tsx";
-import {useIsMobile} from "../../../../utils/useMediaQuery.ts";
+    Button,
+    TabValue,
+    Text,
+} from "@fluentui/react-components";
+import {useExchangeInitiationStyles} from "../../ExchangeInitiationStyles.tsx";
+import {BlueprintAddIcon} from "../../../components/IconBundles.tsx";
+import ExchangeInitiationDialogTabs from "./ExchangeInitiationDialogTabs.tsx";
 
 interface DialogTitleSectionProps
 {
@@ -19,25 +16,9 @@ interface DialogTitleSectionProps
     selectedBlueprintName?: string | null;
     selectedTab: TabValue;
     showFieldsTab?: boolean;
-    onTabSelect: (event: SelectTabEvent, data: SelectTabData) => void;
+    onTabSelect: (value: TabValue) => void;
     onSaveAsBlueprint?: () => void;
 }
-
-/**
- * Labels for each tab. Used in two places:
- * - As the visible tab label on tablet/desktop.
- * - As an h-level title rendered ABOVE the tab content on mobile, where
- *   the tabs themselves collapse to icon-only buttons to fit narrow
- *   viewports (long labels like "Recipients & Participants" would
- *   otherwise overflow horizontally with no scroll affordance).
- */
-const TAB_LABELS: Record<string, string> = {
-    "recipients-tab": "Recipients & Participants",
-    "details-tab": "Details",
-    "fields-tab": "Business Fields",
-    "documents-tab": "Documents",
-    "options-tab": "Options",
-};
 
 const ExchangeInitiationDialogTitleSection: React.FC<DialogTitleSectionProps> = (
     {
@@ -52,27 +33,6 @@ const ExchangeInitiationDialogTitleSection: React.FC<DialogTitleSectionProps> = 
     }) =>
 {
     const styles = useExchangeInitiationStyles();
-    const isMobile = useIsMobile();
-
-    const selectedTabLabel = TAB_LABELS[String(selectedTab)] ?? '';
-
-    const renderTab = (id: string, value: string, icon: React.ReactNode) =>
-    {
-        const label = TAB_LABELS[value];
-        // Mobile: render only the icon (with a tooltip so the label is
-        // still discoverable). Desktop/tablet: render icon + label.
-        if (isMobile)
-        {
-            return (
-                <Tooltip content={label} relationship="label">
-                    <Tab id={id} icon={icon} value={value} aria-label={label}/>
-                </Tooltip>
-            );
-        }
-        return (
-            <Tab id={id} icon={icon} value={value}>{label}</Tab>
-        );
-    };
 
     return (
         <>
@@ -104,20 +64,9 @@ const ExchangeInitiationDialogTitleSection: React.FC<DialogTitleSectionProps> = 
                 </Text>
             )}
             {(!choosingBlueprint && !exchangeInitiatedSuccessfully) &&
-                <>
-                    <TabList selectedValue={selectedTab} onTabSelect={onTabSelect}>
-                        {renderTab("recipients", "recipients-tab", <RecipientsIcon/>)}
-                        {renderTab("details", "details-tab", <DetailsIcon/>)}
-                        {showFieldsTab && renderTab("fields", "fields-tab", <SettingsFieldsTabIcon/>)}
-                        {renderTab("documents", "documents-tab", <DocumentsIcon/>)}
-                        {renderTab("options", "options-tab", <OptionsIcon/>)}
-                    </TabList>
-                    {isMobile && selectedTabLabel && (
-                        <Text size={400} weight={"semibold"} className={styles.mobileSelectedTabTitle}>
-                            {selectedTabLabel}
-                        </Text>
-                    )}
-                </>
+                <ExchangeInitiationDialogTabs selectedTab={selectedTab}
+                                              showFieldsTab={showFieldsTab}
+                                              onTabSelect={onTabSelect}/>
             }
         </>
     );

@@ -197,6 +197,22 @@ export const useExchangeInitiationStyles = makeStyles({
         display: "block",
         marginTop: tokens.spacingVerticalXS,
     },
+    exchangeInitiationTabsViewport: {
+        width: "100%",
+        minWidth: 0,
+        overflowX: "auto",
+        overflowY: "hidden",
+        paddingBottom: tokens.spacingVerticalXS,
+        scrollbarWidth: "none",
+        "&::-webkit-scrollbar": {
+            display: "none",
+        },
+    },
+    exchangeInitiationTabsList: {
+        display: "flex",
+        justifyContent: "flex-start",
+        minWidth: "max-content",
+    },
     tagInput: {
         display: "flex",
         flexWrap: "wrap",

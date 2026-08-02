@@ -1123,10 +1123,10 @@ const ExchangeInitiation: React.FC = () =>
                                     selectedBlueprintName={selectedBlueprintName}
                                     selectedTab={selectedTab}
                                     showFieldsTab={eligibleSchemas.length > 0}
-                                    onTabSelect={(_, data) =>
+                                    onTabSelect={(value) =>
                                     {
                                         setMessageGroupMessages([]);
-                                        setSelectedTab(data.value);
+                                        setSelectedTab(value);
                                     }}
                                     onSaveAsBlueprint={openSaveBlueprintPanel}
                                 />
