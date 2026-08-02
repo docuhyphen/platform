@@ -26,7 +26,7 @@ import java.util.UUID
  * unions APP-wide capabilities on top (see [com.docuhyphen.app.api.service.auth.authz.DefaultAuthorizationService]).
  *
  * Authorization of *who* may call grant/revoke lives at the endpoint
- * ([com.docuhyphen.app.api.resource.AppRoleResource]); this service trusts its actorId.
+ * ([com.docuhyphen.app.api.resource.application.AppRoleResource]); this service trusts its actorId.
  */
 @ApplicationScoped
 class AppRoleAssignmentService @Inject constructor(
