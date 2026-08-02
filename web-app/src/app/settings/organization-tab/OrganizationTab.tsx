@@ -27,7 +27,7 @@ import {useOrganizationTabStyles} from "./OrganizationTabStyles.tsx";
 import OrganizationDetailsEditDialog from "./details-edit-dialog/OrganizationDetailsEditDialog.tsx";
 import {AxiosError} from "axios";
 import OrganizationOnboardingDialog from "./organization-onboarding-dialog/OrganizationOnboardingDialog.tsx";
-import {AuthSessionPolicySection} from "./AuthSessionPolicySection.tsx";
+import {SecuritySessionPolicySection} from "./SecuritySessionPolicySection.tsx";
 import ProfileTab from "../profile-tab/ProfileTab.tsx";
 import LinkedAccountsTab from "../linked-accounts-tab/LinkedAccountsTab.tsx";
 import SessionsTab from "../sessions-tab/SessionsTab.tsx";
@@ -51,7 +51,7 @@ const OrganizationTab = () =>
         organizationTrusted: "TrustedOrganizationsTab",
         templates: "TemplatesTab",
         myGroups: "MyGroupsTab",
-        auth: "AuthTab",
+        security: "SecurityTab",
     }
 
     const styles = useOrganizationTabStyles()
@@ -262,9 +262,9 @@ const OrganizationTab = () =>
                          value={tabIds.organizationTrusted}>
                         Trusted Organizations
                     </Tab>
-                    <Tab id="AuthTab"
-                         value={tabIds.auth}>
-                        Authentication
+                    <Tab id="SecurityTab"
+                         value={tabIds.security}>
+                        Security
                     </Tab>
                 </TabList>
                 </div>
@@ -277,8 +277,8 @@ const OrganizationTab = () =>
                         <OrganizationGroupsTab appUserPersonOrganization={appUserPersonOrganization}/>}
                     {selectedValue === tabIds.organizationTrusted && <TrustedOrganizationsTab/>}
                     {selectedValue === tabIds.templates && <TemplatesTab/>}
-                    {selectedValue === tabIds.auth && organization?.id && (
-                        <AuthSessionPolicySection organizationId={organization.id}/>
+                    {selectedValue === tabIds.security && organization?.id && (
+                        <SecuritySessionPolicySection organizationId={organization.id}/>
                     )}
                 </div>
             </div>

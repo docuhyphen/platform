@@ -66,7 +66,7 @@ export const platformAdministrationOverviewArticle = (
         <h3>Organization boundaries</h3>
         <p>
             App Admin is a platform role. It does not grant access to
-            organization people, groups, authentication, trusted organizations,
+            organization people, groups, security, trusted organizations,
             Exchanges, documents, workflows, communications, or audit evidence.
             Those areas require a separate organization role and matching active
             organization context.
