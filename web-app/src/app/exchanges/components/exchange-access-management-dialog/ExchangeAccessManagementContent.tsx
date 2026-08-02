@@ -84,13 +84,17 @@ const ExchangeAccessManagementContent = ({exchange, state}: ExchangeAccessManage
                         requireRecipientSignIn={state.requireRecipientSignIn}
                         setRequireRecipientSignIn={state.setRequireRecipientSignIn}
                         sendingAccessCode={state.sendingAccessCode}
+                        sendingInvitation={state.sendingInvitation}
                         resendCooldownRemaining={state.resendCooldownRemaining}
                         onSendAccessCode={state.onSendAccessCode}
+                        onResendInvitation={state.onResendInvitation}
                         buttonWithLoadingClassName={globalStyles.buttonWithLoading}
                         noAuthAccessValidityDays={state.noAuthAccessValidityDays}
                         setNoAuthAccessValidityDays={state.setNoAuthAccessValidityDays}
                         accessCodeStatus={state.accessCodeStatus}
                         accessCodeError={state.accessCodeError}
+                        invitationStatus={state.invitationStatus}
+                        invitationError={state.invitationError}
                     />
                 )}
             </div>

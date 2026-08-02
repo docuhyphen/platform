@@ -26,6 +26,7 @@ import com.docuhyphen.app.api.repository.ShareRepository
 import com.docuhyphen.app.api.repository.ExchangeRepository
 import com.docuhyphen.app.api.service.AppUserService
 import com.docuhyphen.app.api.service.communication.EmailTemplateService
+import com.docuhyphen.app.api.service.communication.OtpService
 import com.docuhyphen.app.api.service.config.ConfigurationService
 import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
@@ -49,6 +50,7 @@ import jakarta.inject.Inject
 import jakarta.transaction.Transactional
 import org.slf4j.LoggerFactory
 import java.sql.Timestamp
+import java.time.Instant
 import java.util.UUID
 
 /**
@@ -79,6 +81,8 @@ class ExchangeAccessManagementService @Inject constructor(
     private val authorizationContextFactory: AuthorizationContextFactory,
     private val organizationExchangePolicyService: OrganizationExchangePolicyService,
     private val emailTemplateService: EmailTemplateService,
+    private val otpService: OtpService,
+    private val noAuthExchangeAccessTokenService: NoAuthExchangeAccessTokenService,
     private val configurationService: ConfigurationService,
     private val auditRecorder: AuditRecorder,
     private val exchangeNotificationDeliveryService: ExchangeNotificationDeliveryService,
@@ -393,6 +397,79 @@ class ExchangeAccessManagementService @Inject constructor(
         )
 
         return shareQueryService.getSessionAccessView(exchangeId)
+    }
+
+    @Transactional
+    fun resendNoAuthPrimaryRecipientInvitation(exchangeId: UUID)
+    {
+        val exchange = requireSessionOwnerAndReturn(exchangeId)
+        if (exchange.requireRecipientSignIn)
+        {
+            throw IllegalArgumentException("Only no-sign-in Exchange invitations can be resent from this action")
+        }
+        if (exchange.status !in setOf(ExchangeStatus.INITIATED, ExchangeStatus.ACCEPTED_STARTED))
+        {
+            throw IllegalArgumentException("Only active or pending no-sign-in Exchange invitations can be resent")
+        }
+
+        val primaryRecipient = exchangeRecipientService.findPrimary(exchangeId)
+            ?: throw IllegalArgumentException("The Exchange has no primary recipient")
+        require(primaryRecipient.selectionType == ExchangeRecipientSelectionType.EXTERNAL_EMAIL) {
+            "Only external email recipient invitations can be resent from this action"
+        }
+        val primaryShare = shareService.getById(primaryRecipient.directShareId)
+            ?: throw IllegalArgumentException("The primary recipient Share was not found")
+        require(primaryShare.resourceType == ResourceType.EXCHANGE && primaryShare.resourceId == exchangeId) {
+            "The primary recipient Share does not belong to this Exchange"
+        }
+        require(primaryShare.status == ShareStatus.ACTIVE || primaryShare.status == ShareStatus.PENDING_APPROVAL) {
+            "The primary recipient invitation is no longer active"
+        }
+        require(primaryShare.principalKind == PrincipalKind.USER) {
+            "The primary recipient does not have an email invitation"
+        }
+
+        val recipientEmail = appUserService.getById(primaryShare.principalId)?.email
+            ?.normalizeEmailOrNull()
+            ?: throw IllegalArgumentException("The primary recipient email was not found")
+        val otp = otpService.generateEmailOtp()
+        val accessToken = noAuthExchangeAccessTokenService.issue(exchange)
+        val validityDays = exchange.noAuthAccessValidityDays.coerceIn(1, 30)
+        exchange.recipientOtpHash = otpService.hashOtp(otp)
+        exchange.recipientOtpExpiry = Timestamp.from(Instant.now().plusSeconds(validityDays.toLong() * 24 * 3600))
+        exchangeRepository.update(exchange)
+
+        val initiatorName = exchange.initiator?.let { initiator ->
+            listOfNotNull(
+                initiator.person?.firstName?.trim()?.takeIf { it.isNotBlank() },
+                initiator.person?.lastName?.trim()?.takeIf { it.isNotBlank() },
+            ).joinToString(" ").ifBlank { initiator.email }
+        } ?: "Someone"
+        val expiryLabel = if (validityDays == 1) "1 day" else "$validityDays days"
+        val rendered = emailTemplateService.renderExchangeCreatedNoAuthRecipientEmail(
+            exchangeId = exchangeId.toString(),
+            name = exchange.name.orEmpty(),
+            initiatorName = initiatorName,
+            initiatorOrganization = null,
+            sessionMessage = exchange.initialShareMessage,
+            documents = exchange.documents.filter { !it.isDeleted }.map { it.title },
+            otp = otp,
+            accessToken = accessToken,
+            expiryLabel = expiryLabel,
+        )
+        exchangeNotificationDeliveryService.scheduleAfterCommit(
+            exchangeId = exchangeId,
+            exchangeStatus = exchange.status.name,
+            emails = listOf(
+                ExchangeEmailDelivery(
+                    to = recipientEmail,
+                    subject = rendered.subject,
+                    body = rendered.body,
+                ),
+            ),
+            inAppNotifications = emptyList(),
+            refreshAppUserIds = emptySet(),
+        )
     }
 
     fun getSessionAccessView(exchangeId: UUID): List<SessionAccessEntryDto>

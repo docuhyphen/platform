@@ -1,8 +1,10 @@
 package com.docuhyphen.app.api.service.exchange.permutation
 
 import com.docuhyphen.app.api.resource.model.ExternalEmailRecipientSelectionRequest
+import com.docuhyphen.app.api.model.entity.Person
 import com.docuhyphen.app.api.service.exchange.ExchangeEmailDelivery
 import com.docuhyphen.app.api.service.exchange.ExchangeInAppDelivery
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -64,5 +66,34 @@ class ExchangeInitiationNotificationTest
         assertFalse(notifiedUserIds.contains(fixture.initiator.id))
         assertTrue(notifiedUserIds.contains(fixture.recipient.id))
         assertTrue(refreshCaptor.firstValue.contains(fixture.initiator.id))
+    }
+
+    @Test
+    fun `initiator email recipient label does not duplicate external recipient name`()
+    {
+        val fixture = ExchangeInitiationAutoAcceptFixture()
+        fixture.recipient.isTemporary = true
+        fixture.recipient.person = Person().apply {
+            firstName = "Jane"
+            lastName = "Doe"
+        }
+
+        fixture.initiate(
+            primaryRecipient = ExternalEmailRecipientSelectionRequest(
+                fixture.recipient.email,
+                "Jane",
+                "Doe",
+            ),
+            requestRecipientSignIn = true,
+        )
+
+        val recipientLabelCaptor = argumentCaptor<String>()
+        verify(fixture.emailTemplateService).renderExchangeCreatedInitiatorEmail(
+            any(),
+            any(),
+            recipientLabelCaptor.capture(),
+            any(),
+        )
+        assertEquals("Jane Doe", recipientLabelCaptor.firstValue)
     }
 }

@@ -812,14 +812,7 @@ class ExchangeInitiationService @Inject constructor(
         {
             GROUP -> recipientGroupId?.let { organizationGroupService.getById(it.toString())?.name }
                 ?.let { "Group: $it" } ?: "Group"
-            else -> listOfNotNull(
-                recipientAppUser?.person?.firstName?.trim()?.takeIf { it.isNotBlank() },
-                recipientAppUser?.person?.lastName?.trim()?.takeIf { it.isNotBlank() },
-                externalEmailSelection?.firstName?.trim()?.takeIf { it.isNotBlank() },
-                externalEmailSelection?.lastName?.trim()?.takeIf { it.isNotBlank() },
-            ).joinToString(" ").ifBlank {
-                recipientAppUser?.email ?: externalEmailSelection?.email ?: "Recipient"
-            }
+            else -> recipientPersonLabel(recipientAppUser, externalEmailSelection)
         }
 
         val requireSignInForRecipient = recipientType == EMAIL &&
@@ -983,6 +976,32 @@ class ExchangeInitiationService @Inject constructor(
         }
         return appUserIds.mapNotNull(appUserService::getById)
     }
+
+    private fun recipientPersonLabel(
+        recipientAppUser: AppUser?,
+        externalEmailSelection: ExternalEmailRecipientSelectionRequest?,
+    ): String
+    {
+        val resolvedUserName = personLabel(
+            recipientAppUser?.person?.firstName,
+            recipientAppUser?.person?.lastName,
+        )
+        val requestedExternalName = personLabel(
+            externalEmailSelection?.firstName,
+            externalEmailSelection?.lastName,
+        )
+        return resolvedUserName
+            ?: requestedExternalName
+            ?: recipientAppUser?.email
+            ?: externalEmailSelection?.email
+            ?: "Recipient"
+    }
+
+    private fun personLabel(firstName: String?, lastName: String?): String? =
+        listOfNotNull(
+            firstName?.trim()?.takeIf { it.isNotBlank() },
+            lastName?.trim()?.takeIf { it.isNotBlank() },
+        ).joinToString(" ").takeIf { it.isNotBlank() }
 
     /**
      * Sends the initial "document request" invite email to the recipient(s) after the exchange

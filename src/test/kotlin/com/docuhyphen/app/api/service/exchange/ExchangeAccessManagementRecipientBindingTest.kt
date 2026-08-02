@@ -24,6 +24,7 @@ import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
 import com.docuhyphen.app.api.service.auth.authz.Decision
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.communication.EmailTemplateService
+import com.docuhyphen.app.api.service.communication.OtpService
 import com.docuhyphen.app.api.service.config.ConfigurationService
 import com.docuhyphen.app.api.service.organization.OrganizationExchangePolicyService
 import com.docuhyphen.app.api.service.organization.OrganizationGroupService
@@ -122,6 +123,8 @@ class ExchangeAccessManagementRecipientBindingTest
             authorizationContextFactory = authorizationContextFactory,
             organizationExchangePolicyService = organizationExchangePolicyService,
             emailTemplateService = emailTemplateService,
+            otpService = mock<OtpService>(),
+            noAuthExchangeAccessTokenService = mock<NoAuthExchangeAccessTokenService>(),
             configurationService = mock<ConfigurationService>(),
             auditRecorder = mock<AuditRecorder>(),
             exchangeNotificationDeliveryService = mock<ExchangeNotificationDeliveryService>(),

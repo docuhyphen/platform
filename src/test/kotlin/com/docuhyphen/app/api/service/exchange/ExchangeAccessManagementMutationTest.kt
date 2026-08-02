@@ -20,6 +20,7 @@ import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
 import com.docuhyphen.app.api.service.auth.authz.Decision
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.communication.EmailTemplateService
+import com.docuhyphen.app.api.service.communication.OtpService
 import com.docuhyphen.app.api.service.config.ConfigurationService
 import com.docuhyphen.app.api.service.organization.ExternalIdentityResolutionService
 import com.docuhyphen.app.api.service.organization.OrganizationExchangePolicyService
@@ -283,6 +284,8 @@ class ExchangeAccessManagementMutationTest
                 authorizationContextFactory = authorizationContextFactory,
                 organizationExchangePolicyService = mock<OrganizationExchangePolicyService>(),
                 emailTemplateService = mock<EmailTemplateService>(),
+                otpService = mock<OtpService>(),
+                noAuthExchangeAccessTokenService = mock<NoAuthExchangeAccessTokenService>(),
                 configurationService = mock<ConfigurationService>(),
                 auditRecorder = mock<AuditRecorder>(),
                 exchangeNotificationDeliveryService = mock<ExchangeNotificationDeliveryService>(),

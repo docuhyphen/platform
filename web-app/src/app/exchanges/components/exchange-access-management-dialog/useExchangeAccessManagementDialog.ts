@@ -3,6 +3,7 @@ import {useEffect, useState} from "react";
 import {
     fetchSignedInUserAppUserExchange,
     requestExchangeRecipientOtp,
+    resendNoAuthExchangeInvitation,
     updateExchange,
 } from "../../../../services/exchangeApi.ts";
 import {getOtpFriendlyMessage, normalizeApiError} from "../../../../utils/apiErrorUtils.ts";
@@ -23,8 +24,11 @@ export const useExchangeAccessManagementDialog = (
 {
     const [updatingExchange, setUpdatingExchange] = useState(false);
     const [sendingAccessCode, setSendingAccessCode] = useState(false);
+    const [sendingInvitation, setSendingInvitation] = useState(false);
     const [accessCodeStatus, setAccessCodeStatus] = useState("");
     const [accessCodeError, setAccessCodeError] = useState("");
+    const [invitationStatus, setInvitationStatus] = useState("");
+    const [invitationError, setInvitationError] = useState("");
     const [resendCooldownRemaining, setResendCooldownRemaining] = useState(0);
     const [requireRecipientSignIn, setRequireRecipientSignIn] = useState(true);
     const [allowDocumentAddition, setAllowDocumentAddition] = useState(false);
@@ -51,6 +55,8 @@ export const useExchangeAccessManagementDialog = (
         setNoAuthAccessValidityDays(String(exchange.noAuthAccessValidityDays ?? 7));
         setAccessCodeError("");
         setAccessCodeStatus("");
+        setInvitationError("");
+        setInvitationStatus("");
         setResendCooldownRemaining(0);
         setSelectedTab(accessManagementTabIds.people);
         setAccessView("list");
@@ -81,14 +87,16 @@ export const useExchangeAccessManagementDialog = (
         if (sendingAccessCode || resendCooldownRemaining > 0) return;
         setAccessCodeStatus("");
         setAccessCodeError("");
+        setInvitationStatus("");
+        setInvitationError("");
         if (requireRecipientSignIn)
         {
-            setAccessCodeError('Disable "Require recipient sign in" to send a no-auth access code.');
+            setAccessCodeError('Disable "Require recipient sign in" before sending an access code.');
             return;
         }
         if (exchange.requestRecipientSignIn)
         {
-            setAccessCodeError("Save your access changes first, then send the access code.");
+            setAccessCodeError("Save changes before sending an access code.");
             return;
         }
         setSendingAccessCode(true);
@@ -110,6 +118,46 @@ export const useExchangeAccessManagementDialog = (
         finally
         {
             setSendingAccessCode(false);
+        }
+    };
+
+    const onResendInvitation = async () =>
+    {
+        if (!exchange)
+        {
+            setInvitationError("No Exchange selected. Close and reopen Manage access.");
+            return;
+        }
+        if (sendingInvitation || resendCooldownRemaining > 0) return;
+        setInvitationStatus("");
+        setInvitationError("");
+        setAccessCodeStatus("");
+        setAccessCodeError("");
+        if (requireRecipientSignIn)
+        {
+            setInvitationError('Disable "Require recipient sign in" before resending an invitation.');
+            return;
+        }
+        if (exchange.requestRecipientSignIn)
+        {
+            setInvitationError("Save changes before resending an invitation.");
+            return;
+        }
+        setSendingInvitation(true);
+        try
+        {
+            await resendNoAuthExchangeInvitation(exchange.id);
+            setInvitationStatus("Invitation link and access code sent to recipient email.");
+            setResendCooldownRemaining(RESEND_COOLDOWN_SECONDS);
+        }
+        catch (error: unknown)
+        {
+            const normalized = normalizeApiError(error, "Could not resend invitation. Please try again.");
+            setInvitationError(normalized.message);
+        }
+        finally
+        {
+            setSendingInvitation(false);
         }
     };
 
@@ -171,8 +219,11 @@ export const useExchangeAccessManagementDialog = (
     return {
         updatingExchange,
         sendingAccessCode,
+        sendingInvitation,
         accessCodeStatus,
         accessCodeError,
+        invitationStatus,
+        invitationError,
         resendCooldownRemaining,
         requireRecipientSignIn,
         setRequireRecipientSignIn,
@@ -196,6 +247,7 @@ export const useExchangeAccessManagementDialog = (
         dialogErrorMessage,
         onTabSelect,
         onSendAccessCode,
+        onResendInvitation,
         onUpdate,
         onPrimaryRecipientReplaced,
     };

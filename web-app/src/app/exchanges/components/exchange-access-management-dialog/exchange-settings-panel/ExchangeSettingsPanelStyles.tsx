@@ -16,4 +16,14 @@ export const useExchangeSettingsPanelStyles = makeStyles({
             alignItems: "stretch",
         },
     },
+    actionGroup: {
+        display: "flex",
+        justifyContent: "flex-end",
+        flexWrap: "wrap",
+        gap: tokens.spacingHorizontalS,
+        flexDirection: "column",
+        "@media (max-width: 640px)": {
+            justifyContent: "flex-start",
+        },
+    },
 });

@@ -24,6 +24,7 @@ import com.docuhyphen.app.api.service.auth.authz.ResourceRef
 import com.docuhyphen.app.api.service.communication.EmailService
 import com.docuhyphen.app.api.service.communication.EmailTemplateService
 import com.docuhyphen.app.api.service.communication.OtpService
+import com.docuhyphen.app.api.service.communication.templates.RenderedEmailTemplate
 import com.docuhyphen.app.api.service.workflow.WorkflowEngineService
 import io.quarkus.security.ForbiddenException
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -35,6 +36,8 @@ import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
 import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
+import java.sql.Timestamp
+import java.time.Instant
 import java.util.UUID
 
 /**
@@ -116,19 +119,25 @@ class ExchangeAuthorizationTest
         workflowInstanceRepo: WorkflowInstanceRepository = mock(),
         workflowEngine: WorkflowEngineService = mock(),
         exchangeRecipientService: ExchangeRecipientService = mock(),
+        emailService: EmailService = mock(),
+        emailTemplateService: EmailTemplateService = mock(),
+        otpService: OtpService = mock(),
+        shareService: ShareService = mock(),
+        appUserService: AppUserService = mock(),
+        noAuthExchangeAccessTokenService: NoAuthExchangeAccessTokenService = mock(),
     ): ExchangeUpdateService = ExchangeUpdateService(
         exchangeRepository = exchangeRepo,
-        emailService = mock(),
-        emailTemplateService = mock(),
+        emailService = emailService,
+        emailTemplateService = emailTemplateService,
         realtimeEventService = mock(),
-        otpService = mock(),
+        otpService = otpService,
         userContactService = mock(),
-        shareService = mock(),
+        shareService = shareService,
         exchangeRecipientService = exchangeRecipientService,
         externalParticipantRepository = mock(),
         principalGroupRepository = mock(),
         shareRepository = mock(),
-        appUserService = mock(),
+        appUserService = appUserService,
         workflowInstanceRepository = workflowInstanceRepo,
         workflowStepRepository = mock(),
         workflowEngineService = workflowEngine,
@@ -136,7 +145,7 @@ class ExchangeAuthorizationTest
         authorizationService = authSvc,
         authorizationContextFactory = factory,
         auditRecorder = mock(),
-        noAuthExchangeAccessTokenService = mock(),
+        noAuthExchangeAccessTokenService = noAuthExchangeAccessTokenService,
         lifecycleNotificationService = mock(),
     )
 
@@ -434,5 +443,68 @@ class ExchangeAuthorizationTest
         assertThrows<ForbiddenException> {
             svc.issueRecipientOtp(exchangeId.toString())
         }
+    }
+
+    @Test
+    fun `issueRecipientOtp - manage access can send code for active no-auth Exchange`()
+    {
+        val recipientId = UUID.randomUUID()
+        val recipient = AppUser().apply {
+            id = recipientId
+            email = "recipient@example.test"
+            isActive = false
+            isTemporary = true
+        }
+        val exchange = makeExchange(ExchangeStatus.ACCEPTED_STARTED).apply {
+            id = exchangeId
+            initiator = makeUser()
+            requireRecipientSignIn = false
+            name = "Active no-auth Exchange"
+            recipientOtpExpiry = Timestamp.from(Instant.now().plusSeconds(3600))
+        }
+        val repo = mock<ExchangeRepository>()
+        val emailService = mock<EmailService>()
+        val emailTemplateService = mock<EmailTemplateService>()
+        val otpService = mock<OtpService>()
+        val shareService = mock<ShareService>()
+        val appUserService = mock<AppUserService>()
+        val tokenService = mock<NoAuthExchangeAccessTokenService>()
+        whenever(repo.findById(exchangeId)).thenReturn(exchange)
+        whenever(shareService.primaryRecipientUserId(exchangeId)).thenReturn(recipientId)
+        whenever(appUserService.getById(recipientId)).thenReturn(recipient)
+        whenever(otpService.generateEmailOtp()).thenReturn("123456")
+        whenever(otpService.hashOtp("123456")).thenReturn("hashed-code")
+        whenever(tokenService.issue(exchange)).thenReturn("fresh-token")
+        whenever(
+            emailTemplateService.renderNoAuthExchangeOtpEmail(
+                any(),
+                any(),
+                any(),
+                any(),
+                any(),
+                any(),
+            ),
+        ).thenReturn(RenderedEmailTemplate("Access code", "Email body"))
+
+        val svc = makeService(
+            authSvc = makeAuthService(Action.EXCHANGE_MANAGE_ACCESS),
+            exchangeRepo = repo,
+            emailService = emailService,
+            emailTemplateService = emailTemplateService,
+            otpService = otpService,
+            shareService = shareService,
+            appUserService = appUserService,
+            noAuthExchangeAccessTokenService = tokenService,
+        )
+
+        svc.issueRecipientOtp(exchangeId.toString())
+
+        verify(repo).update(exchange)
+        verify(emailService).sendEmail(
+            "recipient@example.test",
+            "Access code",
+            "Email body",
+            true,
+        )
     }
 }

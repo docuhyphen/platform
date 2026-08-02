@@ -110,8 +110,8 @@ export const manageAccessArticle = (
                 an account. The link credential is required on every no-sign-in request.
             </li>
             <li>
-                <strong>Send access code</strong> - When sign-in is not required, a one-time access code can
-                be sent to the recipient's email. The code expires after the configured number of days.
+                <strong>Resend invitation</strong> and <strong>Send access code</strong> - When sign-in is
+                not required, send a fresh email link and one-time access code to the recipient's email.
             </li>
             <li>
                 <strong>No-auth access validity</strong> - Sets how many days the one-time access code

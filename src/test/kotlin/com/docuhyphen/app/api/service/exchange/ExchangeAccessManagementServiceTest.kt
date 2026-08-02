@@ -3,6 +3,7 @@ package com.docuhyphen.app.api.service.exchange
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.model.entity.AppUser
 import com.docuhyphen.app.api.model.entity.AuthToken
+import com.docuhyphen.app.api.model.entity.Document
 import com.docuhyphen.app.api.model.entity.Exchange
 import com.docuhyphen.app.api.model.entity.ExchangeRecipient
 import com.docuhyphen.app.api.model.entity.ExchangeRecipientAcceptanceStatus
@@ -36,6 +37,8 @@ import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
 import com.docuhyphen.app.api.service.auth.authz.Decision
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.communication.EmailTemplateService
+import com.docuhyphen.app.api.service.communication.OtpService
+import com.docuhyphen.app.api.service.communication.templates.RenderedEmailTemplate
 import com.docuhyphen.app.api.service.config.ConfigurationService
 import com.docuhyphen.app.api.service.organization.ExternalIdentityResolutionService
 import com.docuhyphen.app.api.service.organization.ExternalIdentityResolutionService.PreparedPersonResolution
@@ -51,6 +54,7 @@ import org.mockito.kotlin.anyOrNull
 import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.doThrow
 import org.mockito.kotlin.eq
+import org.mockito.kotlin.isNull
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
@@ -81,6 +85,8 @@ class ExchangeAccessManagementServiceTest
     private val organizationExchangePolicyService = mock<OrganizationExchangePolicyService>()
     private val notificationDeliveryService = mock<ExchangeNotificationDeliveryService>()
     private val emailTemplateService = mock<EmailTemplateService>()
+    private val otpService = mock<OtpService>()
+    private val noAuthExchangeAccessTokenService = mock<NoAuthExchangeAccessTokenService>()
     private val configurationService = mock<ConfigurationService>()
     private val auditRecorder = mock<AuditRecorder>()
 
@@ -101,6 +107,8 @@ class ExchangeAccessManagementServiceTest
         authorizationContextFactory,
         organizationExchangePolicyService,
         emailTemplateService,
+        otpService,
+        noAuthExchangeAccessTokenService,
         configurationService,
         auditRecorder,
         notificationDeliveryService,
@@ -345,6 +353,93 @@ class ExchangeAccessManagementServiceTest
         )
         verify(exchangeRecipientService).deleteBinding(previousParticipantBinding)
         verify(attestationService).createGroupAttestation(eq(newPrimary), eq(validation), any())
+    }
+
+    @Test
+    fun `resends a no-auth primary recipient invitation with a fresh link and code`()
+    {
+        grantOwnerAuthorization()
+        val recipientId = UUID.randomUUID()
+        val recipient = AppUser().apply {
+            id = recipientId
+            email = "recipient@example.test"
+            isTemporary = true
+        }
+        val initiator = AppUser().apply {
+            id = callerId
+            email = "owner@example.test"
+        }
+        val exchange = draftExchange().apply {
+            this.initiator = initiator
+            initialShareMessage = "Please upload these documents."
+            noAuthAccessValidityDays = 3
+            documents = mutableListOf(
+                Document().apply {
+                    title = "Passport"
+                    isDeleted = false
+                },
+            )
+        }
+        val primaryShare = directShare(PrincipalKind.USER, recipientId).apply {
+            status = ShareStatus.ACTIVE
+        }
+        val primaryRecipient = pendingPrimary(primaryShare.id, ExchangeRecipientSelectionType.EXTERNAL_EMAIL)
+
+        whenever(exchangeRepository.findById(exchangeId)).thenReturn(exchange)
+        whenever(exchangeRecipientService.findPrimary(exchangeId)).thenReturn(primaryRecipient)
+        whenever(shareService.getById(primaryShare.id)).thenReturn(primaryShare)
+        whenever(appUserService.getById(recipientId)).thenReturn(recipient)
+        whenever(otpService.generateEmailOtp()).thenReturn("123456")
+        whenever(otpService.hashOtp("123456")).thenReturn("hashed-code")
+        whenever(noAuthExchangeAccessTokenService.issue(exchange)).thenReturn("fresh-token")
+        whenever(
+            emailTemplateService.renderExchangeCreatedNoAuthRecipientEmail(
+                any(), any(), any(), anyOrNull(), anyOrNull(), any(), any(), any(), any(),
+            ),
+        ).thenReturn(RenderedEmailTemplate(subject = "Document request", body = "Email body"))
+
+        service.resendNoAuthPrimaryRecipientInvitation(exchangeId)
+
+        assertEquals("hashed-code", exchange.recipientOtpHash)
+        verify(exchangeRepository).update(exchange)
+        verify(noAuthExchangeAccessTokenService).issue(exchange)
+        verify(emailTemplateService).renderExchangeCreatedNoAuthRecipientEmail(
+            exchangeId = eq(exchangeId.toString()),
+            name = eq(exchange.name.orEmpty()),
+            initiatorName = eq("owner@example.test"),
+            initiatorOrganization = isNull(),
+            sessionMessage = eq(exchange.initialShareMessage),
+            documents = eq(listOf("Passport")),
+            otp = eq("123456"),
+            accessToken = eq("fresh-token"),
+            expiryLabel = eq("3 days"),
+        )
+        val emailCaptor = argumentCaptor<List<ExchangeEmailDelivery>>()
+        verify(notificationDeliveryService).scheduleAfterCommit(
+            eq(exchangeId),
+            eq(exchange.status.name),
+            emailCaptor.capture(),
+            any(),
+            any(),
+        )
+        assertEquals("recipient@example.test", emailCaptor.firstValue.single().to)
+        assertEquals("Document request", emailCaptor.firstValue.single().subject)
+    }
+
+    @Test
+    fun `resend no-auth invitation rejects sign-in required Exchanges`()
+    {
+        grantOwnerAuthorization()
+        whenever(exchangeRepository.findById(exchangeId)).thenReturn(
+            draftExchange().apply { requireRecipientSignIn = true },
+        )
+
+        assertThrows(IllegalArgumentException::class.java) {
+            service.resendNoAuthPrimaryRecipientInvitation(exchangeId)
+        }
+
+        verify(exchangeRecipientService, never()).findPrimary(any())
+        verify(notificationDeliveryService, never()).scheduleAfterCommit(any(), any(), any(), any(), any())
     }
 
     @Test

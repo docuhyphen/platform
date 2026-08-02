@@ -894,13 +894,17 @@ class ExchangeUpdateService @Inject constructor(
         if (session.requireRecipientSignIn)
         {
             // OTP is only relevant for the no-auth recipient flow.
-            throw ForbiddenException("Exchange not found")
+            if (noAuthAccessToken != null)
+            {
+                throw ForbiddenException("Exchange not found")
+            }
+            throw IllegalArgumentException("Save changes before sending an access code.")
         }
 
-        if (session.status == ExchangeStatus.ACCEPTED_STARTED)
+        if (session.status == ExchangeStatus.ACCEPTED_STARTED && noAuthAccessToken != null)
         {
-            // Recipient already verified and accepted � OTP re-issuance via this endpoint is
-            // not permitted. Any re-verification is handled by the initiator from Manage Access.
+            // Recipient self-service OTP re-issuance is not permitted after acceptance.
+            // Any re-verification is handled by the initiator from Manage Access.
             throw ForbiddenException("Exchange not found")
         }
 
@@ -915,11 +919,10 @@ class ExchangeUpdateService @Inject constructor(
 
         throwIfOtpLocked(sessionUUID)
 
-        // If a valid OTP already exists (including the long-lived initial invite code), silently
-        // succeed without sending another email. The frontend calls this on page load � returning
-        // 204 lets the user proceed to enter the code they already received.
+        // If a valid OTP already exists for a recipient self-service request, silently succeed.
+        // The frontend calls this on page load; returning 204 lets the user enter the code they already received.
         val existingExpiry = session.recipientOtpExpiry?.toInstant()
-        if (existingExpiry != null && existingExpiry.isAfter(Instant.now()))
+        if (noAuthAccessToken != null && existingExpiry != null && existingExpiry.isAfter(Instant.now()))
         {
             logger.info("noAuthOtp.issue.skipped exchangeId={} reason=EXISTING_OTP_VALID", exchangeId)
             return session

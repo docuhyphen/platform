@@ -239,6 +239,9 @@ export const verifyNoAuthExchangeAccessCode = (exchangeId: string, otp: string) 
 export const requestExchangeRecipientOtp = (exchangeId: string) =>
     executeRequest(() => apiClient.post(`/exchanges/${exchangeId}/recipient-otp`));
 
+export const resendNoAuthExchangeInvitation = (exchangeId: string): Promise<void> =>
+    executeRequest(() => apiClient.post(`/exchanges/${exchangeId}/recipient-invitations/primary/resend`));
+
 export const searchExchanges = (
     query?: string,
     status?: string,

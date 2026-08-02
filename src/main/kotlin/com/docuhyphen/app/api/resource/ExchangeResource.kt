@@ -317,6 +317,23 @@ class ExchangeResource @Inject constructor(
         }
     }
 
+    @POST
+    @Path("/{exchangeId}/recipient-invitations/primary/resend")
+    fun resendPrimaryRecipientInvitation(
+        @PathParam("exchangeId") exchangeId: String,
+    ): Response
+    {
+        return try
+        {
+            sessionAccessManagementService.resendNoAuthPrimaryRecipientInvitation(UUID.fromString(exchangeId))
+            Response.status(Response.Status.NO_CONTENT).build()
+        }
+        catch (exception: Exception)
+        {
+            mapAccessMutationError(exception, "resending the primary recipient invitation")
+        }
+    }
+
     @PATCH
     @Path("/{exchangeId}/access/{shareId}")
     fun updateExchangeAccessRole(
@@ -580,8 +597,8 @@ class ExchangeResource @Inject constructor(
                 is ForbiddenException ->
                 {
                     Response
-                        .status(Response.Status.BAD_REQUEST)
-                        .entity(ResponseError("Disable \"Require recipient sign in\" and save changes before sending an access code."))
+                        .status(Response.Status.FORBIDDEN)
+                        .entity(ResponseError(exception.message))
                         .build()
                 }
 
