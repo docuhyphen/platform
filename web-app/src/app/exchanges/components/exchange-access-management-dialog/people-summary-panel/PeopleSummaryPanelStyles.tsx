@@ -35,4 +35,13 @@ export const usePeopleSummaryPanelStyles = makeStyles({
         alignItems: "flex-start",
         gap: tokens.spacingVerticalXS,
     },
+    replacementActionRow: {
+        display: "flex",
+        alignItems: "center",
+        gap: tokens.spacingHorizontalXS,
+        flexWrap: "wrap",
+    },
+    replacementInfoPopover: {
+        maxWidth: "18rem",
+    },
 });

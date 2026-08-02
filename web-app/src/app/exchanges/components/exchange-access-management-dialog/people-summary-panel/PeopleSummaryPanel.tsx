@@ -1,7 +1,17 @@
-import {Badge, Button, Divider, Text, Tooltip} from "@fluentui/react-components";
+import {
+    Badge,
+    Button,
+    Divider,
+    Popover,
+    PopoverSurface,
+    PopoverTrigger,
+    Text,
+    Tooltip,
+} from "@fluentui/react-components";
 import {ExchangeDetailedDto, ExchangeStatus} from "../../../../models/models.tsx";
 import {usePeopleSummaryPanelStyles} from "./PeopleSummaryPanelStyles.tsx";
 import {useParticipantSummary} from "./useParticipantSummary.ts";
+import {InfoIcon} from "../../../../components/IconBundles.tsx";
 
 interface PeopleSummaryPanelProps
 {
@@ -88,21 +98,45 @@ const PeopleSummaryPanel = ({exchange, onReplacePrimary}: PeopleSummaryPanelProp
             </div>
             {exchange.status === ExchangeStatus.INITIATED && (
                 <div className={styles.replacementActions}>
-                    <Button
-                        id={"access-mgmt-replace-primary-btn"}
-                        appearance={"secondary"}
-                        shape={"circular"}
-                        size={"small"}
-                        onClick={onReplacePrimary}
+                    <div
+                        id={"access-mgmt-replace-primary-action-row"}
+                        className={styles.replacementActionRow}
                     >
-                        Replace recipient
-                    </Button>
-                    <Text
-                        size={200}
-                        className={styles.secondaryText}
-                    >
-                        Recover an invitation whose trusted verification is no longer valid.
-                    </Text>
+                        <Button
+                            id={"access-mgmt-replace-primary-btn"}
+                            appearance={"secondary"}
+                            shape={"circular"}
+                            size={"small"}
+                            onClick={onReplacePrimary}
+                        >
+                            Replace recipient
+                        </Button>
+                        <Popover positioning={"below-start"}>
+                            <PopoverTrigger disableButtonEnhancement>
+                                <Tooltip
+                                    content={"Why replace a recipient"}
+                                    relationship={"description"}
+                                >
+                                    <Button
+                                        id={"access-mgmt-replace-primary-info-btn"}
+                                        appearance={"subtle"}
+                                        aria-label={"Why replace a recipient"}
+                                        icon={<InfoIcon/>}
+                                        shape={"circular"}
+                                        size={"small"}
+                                    />
+                                </Tooltip>
+                            </PopoverTrigger>
+                            <PopoverSurface
+                                id={"access-mgmt-replace-primary-info-popover"}
+                                className={styles.replacementInfoPopover}
+                            >
+                                <Text size={200}>
+                                    Recover an invitation whose trusted verification is no longer valid.
+                                </Text>
+                            </PopoverSurface>
+                        </Popover>
+                    </div>
                 </div>
             )}
             {participants.map(participant => (
