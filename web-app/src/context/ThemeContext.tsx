@@ -34,7 +34,7 @@ interface ThemeProviderProps
 export const ThemeProvider = ({children}: ThemeProviderProps) =>
 {
     // Bootstrap from local storage to keep the theme stable across refresh/sign-in boundaries.
-    const [mode, setModeState] = useState<ThemeMode>(() => getStoredMode() ?? "system");
+    const [mode, setModeState] = useState<ThemeMode>(() => getStoredMode() ?? "light");
     const [systemPrefersDark, setSystemPrefersDark] = useState<boolean>(() => getSystemPrefersDark());
 
     useEffect(() =>

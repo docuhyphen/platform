@@ -36,7 +36,7 @@ interface ExchangeDialogsGroupProps
     setIsExchangeDetailedViewDialogOpen: React.Dispatch<React.SetStateAction<boolean>>;
     exchangeDetails: ExchangeDetailedDto | null;
     selectedExchangeId: string | null;
-    selectedExchangeDocument: DocumentDetailedDto | undefined;
+    selectedUploadExchangeDocument: DocumentDetailedDto | undefined;
     selectedUpdateExchangeDocument: DocumentDetailedDto | undefined;
     setSelectedUpdateExchangeDocument: React.Dispatch<React.SetStateAction<DocumentDetailedDto | undefined>>;
     onNewDocumentAdded: (newExchangeDocument: DocumentDetailedDto) => void;
@@ -73,7 +73,7 @@ const ExchangeDialogsGroup: React.FC<ExchangeDialogsGroupProps> = (
         setIsExchangeDetailedViewDialogOpen,
         exchangeDetails,
         selectedExchangeId,
-        selectedExchangeDocument,
+        selectedUploadExchangeDocument,
         selectedUpdateExchangeDocument,
         setSelectedUpdateExchangeDocument,
         onNewDocumentAdded,
@@ -127,7 +127,7 @@ const ExchangeDialogsGroup: React.FC<ExchangeDialogsGroupProps> = (
             <ExchangeDocumentUploadDialog isOpen={isUploadDocumentDialogOpen}
                                          onDismiss={() => setIsUploadDocumentDialogOpen(false)}
                                          exchangeId={selectedExchangeId}
-                                         exchangeDocument={selectedExchangeDocument}
+                                         exchangeDocument={selectedUploadExchangeDocument}
                                          onDocumentUploaded={onDocumentUploaded}/>
 
             <ExchangeDocumentUpdateDialog isOpen={isUpdateDocumentDialogOpen}

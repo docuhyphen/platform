@@ -23,7 +23,19 @@ export const exchangeDocumentCardsArticle = (
             The count on each filter reflects all documents in the current Exchange.
         </p>
 
-        <h3>Sorting the card strip</h3>
+        <h3>Choosing a document view</h3>
+        <p>
+            When <b>Automatically preview documents</b> is turned off in App Settings,
+            the Documents page opens as a responsive grid. Uploaded documents show a thumbnail
+            of their first page. Select a document to open it. The documents then move into the
+            horizontal strip above the preview.
+        </p>
+        <p>
+            When automatic preview is turned on, the first document opens immediately and
+            the horizontal strip remains visible. Selecting a card in the strip changes the preview.
+        </p>
+
+        <h3>Sorting documents</h3>
         <p>
             Use the Sort menu to preserve the Exchange's default document order, place
             documents without uploads first, show the most recently uploaded documents first,
@@ -39,7 +51,8 @@ export const exchangeDocumentCardsArticle = (
 
         <h3>Opening and uploading documents</h3>
         <ul>
-            <li>Select the card body to open that document in the preview panel.</li>
+            <li>In the horizontal strip, select the card body to open that document in the preview panel.</li>
+            <li>In the grid, select a document to open the standard preview layout.</li>
             <li>Select <b>Upload</b> to add the first file to a document slot.</li>
             <li>Select <b>Re-upload</b> to upload another file version.</li>
             <li>Upload controls are disabled when your permissions or the Exchange status prevent uploads.</li>

@@ -54,6 +54,7 @@ import ExchangeFieldsTab from "./components/exchange-fields-tab/ExchangeFieldsTa
 import ExchangeTabsHeader from "./components/exchange-tabs-header/ExchangeTabsHeader.tsx";
 import {useExchangeRouteState} from './useExchangeRouteState';
 import {hasExchangeWorkspaceContent} from "./exchangeWorkspaceAvailability.ts";
+import {resolvePreviewDocumentSelection} from "./exchangeDocumentSelection.ts";
 
 type ExchangePaneNavigationDirection = "forward" | "back" | null;
 
@@ -96,6 +97,8 @@ const Exchanges: React.FC = () =>
     const [isExchangeEndDialogOpen, setIsExchangeEndDialogOpen] = React.useState(false);
     const [isExchangeRescindDialogOpen, setIsExchangeRescindDialogOpen] = React.useState(false);
     const [selectedExchangeDocument, setSelectedExchangeDocument] = React.useState<DocumentDetailedDto | undefined>(undefined);
+    const [selectedUploadExchangeDocument, setSelectedUploadExchangeDocument] = React.useState<DocumentDetailedDto | undefined>(undefined);
+    const [selectedSidebarExchangeDocument, setSelectedSidebarExchangeDocument] = React.useState<DocumentDetailedDto | undefined>(undefined);
     const [selectedUpdateExchangeDocument, setSelectedUpdateExchangeDocument] = React.useState<DocumentDetailedDto>(undefined);
     const [exchangeDetails, setExchangeDetails] = useState<ExchangeDetailedDto | null>(null);
     const [fetchingDetails, setFetchingDetails] = useState<boolean>(true);
@@ -110,6 +113,7 @@ const Exchanges: React.FC = () =>
         () => getPermissions(exchangeDetails, appUser),
         [exchangeDetails, appUser],
     );
+    const autoPreviewDocuments = appUser?.settings?.autoPreviewDocuments !== false;
 
     const tokenRef = useRef(token);
     tokenRef.current = token;
@@ -170,29 +174,6 @@ const Exchanges: React.FC = () =>
         setExchangeDetails(null);
         setDocumentSearchQuery("");
         setFilteredDocuments([]);
-    };
-
-    const resolvePreviewDocumentSelection = (
-        documents: DocumentDetailedDto[] = [],
-        currentSelectionId?: string
-    ): DocumentDetailedDto | undefined =>
-    {
-        if (documents.length === 0)
-        {
-            return undefined;
-        }
-
-        if (currentSelectionId)
-        {
-            const currentSelection = documents.find(document => document.id === currentSelectionId);
-            if (currentSelection)
-            {
-                return currentSelection;
-            }
-        }
-
-        // Default to the first item in the already-sorted list.
-        return documents[0];
     };
 
     const checkAppUserExchanges = React.useCallback(async () =>
@@ -366,7 +347,8 @@ const Exchanges: React.FC = () =>
 
                     const nextPreviewDocument = resolvePreviewDocumentSelection(
                         details.documents || [],
-                        deepLinkedDocument?.id || selectedExchangeDocument?.id
+                        deepLinkedDocument?.id || selectedExchangeDocument?.id,
+                        autoPreviewDocuments || !!deepLinkedDocument
                     );
                     setSelectedExchangeDocument(nextPreviewDocument);
 
@@ -416,6 +398,8 @@ const Exchanges: React.FC = () =>
     {
         setIsDocumentSidebarOpen(false);
         setSelectedExchangeDocument(undefined);
+        setSelectedUploadExchangeDocument(undefined);
+        setSelectedSidebarExchangeDocument(undefined);
         setDetailsActiveTab('documents');
         setIsDocumentToolbarVisible(false);
     }, [selectedExchangeId]);
@@ -474,7 +458,11 @@ const Exchanges: React.FC = () =>
                 setExchangeDetails(details);
                 setFilteredDocuments(details.documents || []);
                 setSelectedExchangeDocument((currentSelection) =>
-                    resolvePreviewDocumentSelection(details.documents || [], currentSelection?.id)
+                    resolvePreviewDocumentSelection(
+                        details.documents || [],
+                        currentSelection?.id,
+                        autoPreviewDocuments
+                    )
                 );
             }
             catch (error)
@@ -579,7 +567,11 @@ const Exchanges: React.FC = () =>
             setExchangeDetails({...exchangeDetails, documents: updatedDocuments});
             setFilteredDocuments(updatedDocuments || []);
             setSelectedExchangeDocument((currentSelection) =>
-                resolvePreviewDocumentSelection(updatedDocuments || [], currentSelection?.id)
+                resolvePreviewDocumentSelection(
+                    updatedDocuments || [],
+                    currentSelection?.id,
+                    autoPreviewDocuments
+                )
             );
         }
     };
@@ -593,7 +585,7 @@ const Exchanges: React.FC = () =>
             setExchangeDetails({...exchangeDetails, documents: updatedDocuments});
             setFilteredDocuments(updatedDocuments);
             setSelectedExchangeDocument((currentSelection) =>
-                resolvePreviewDocumentSelection(updatedDocuments, currentSelection?.id)
+                resolvePreviewDocumentSelection(updatedDocuments, currentSelection?.id, autoPreviewDocuments)
             );
         }
     };
@@ -622,14 +614,12 @@ const Exchanges: React.FC = () =>
             setFilteredDocuments(updatedDocuments || []);
 
             setSelectedExchangeDocument((currentSelection) =>
-            {
-                if (updatedDocument.uploadDate)
-                {
-                    return resolvePreviewDocumentSelection(updatedDocuments || [], updatedDocument.id);
-                }
-
-                return resolvePreviewDocumentSelection(updatedDocuments || [], currentSelection?.id);
-            });
+                resolvePreviewDocumentSelection(
+                    updatedDocuments || [],
+                    currentSelection?.id,
+                    autoPreviewDocuments
+                )
+            );
         }
     };
 
@@ -697,7 +687,7 @@ const Exchanges: React.FC = () =>
                 setIsExchangeAccessManagementDialogOpen={setIsExchangeAccessManagementDialogOpen}
                 exchangeDetails={exchangeDetails}
                 selectedExchangeId={selectedExchangeId}
-                selectedExchangeDocument={selectedExchangeDocument}
+                selectedUploadExchangeDocument={selectedUploadExchangeDocument}
                 selectedUpdateExchangeDocument={selectedUpdateExchangeDocument}
                 setSelectedUpdateExchangeDocument={setSelectedUpdateExchangeDocument}
                 onNewDocumentAdded={onNewDocumentAdded}
@@ -923,11 +913,14 @@ const Exchanges: React.FC = () =>
                                         filteredDocuments={filteredDocuments}
                                         selectedExchangeDocument={selectedExchangeDocument}
                                         setSelectedExchangeDocument={setSelectedExchangeDocument}
+                                        setSelectedUploadExchangeDocument={setSelectedUploadExchangeDocument}
+                                        setSelectedSidebarExchangeDocument={setSelectedSidebarExchangeDocument}
                                         setSelectedUpdateExchangeDocument={setSelectedUpdateExchangeDocument}
                                         setIsUploadDocumentDialogOpen={setIsUploadDocumentDialogOpen}
                                         setIsDocumentUpdateDialogOpen={setIsUpdateDocumentDialogOpen}
                                         onDocumentDeleted={onDocumentDeleted}
                                         setIsDocumentSidebarOpen={setIsDocumentSidebarOpen}
+                                        isPreviewMode={!!selectedExchangeDocument}
                                     />
                                 )}
 
@@ -935,28 +928,24 @@ const Exchanges: React.FC = () =>
                                     exchangeDetails.documents?.length === 0 &&
                                     <NoExchangeDocuments setIsDocumentAddDialogOpen={setIsDocumentAddDialogOpen}/>
                                 }
-                                {(selectedExchangeDocument && exchangeDetails.documents?.length === 0) &&
-                                    <ExchangeDocumentPreviewer document={selectedExchangeDocument}
-                                                              exchange={exchangeDetails}
-                                                              canUploadDocument={!!permissions?.canUploadDocument}
-                                                              onUploadDocument={() => setIsUploadDocumentDialogOpen(true)}/>
-                                }
-
                                 {selectedExchangeDocument &&
                                     <ExchangeDocumentPreviewer document={selectedExchangeDocument}
                                                               exchange={exchangeDetails}
                                                               canUploadDocument={!!permissions?.canUploadDocument}
-                                                              onUploadDocument={() => setIsUploadDocumentDialogOpen(true)}/>
+                                                              onUploadDocument={() => {
+                                                                  setSelectedUploadExchangeDocument(selectedExchangeDocument);
+                                                                  setIsUploadDocumentDialogOpen(true);
+                                                              }}/>
                                 }
 
                             </div>
-                            {selectedExchangeDocument && isDocumentSidebarOpen &&
+                            {selectedSidebarExchangeDocument && isDocumentSidebarOpen &&
 
                                 <ExchangeDocumentSidebar
                                     isOpen={isDocumentSidebarOpen}
                                     onOpen={setIsDocumentSidebarOpen}
                                     exchange={exchangeDetails}
-                                    exchangeDocument={selectedExchangeDocument}/>
+                                    exchangeDocument={selectedSidebarExchangeDocument}/>
                             }
                         </div>
                         )}

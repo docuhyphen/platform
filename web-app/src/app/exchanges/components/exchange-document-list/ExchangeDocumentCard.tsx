@@ -7,6 +7,7 @@ import ExchangeDocumentActionsMenu from "../exchange-document-actions-menu/Excha
 import {formatDateTimeWithOrdinal} from "../../../helpers.ts";
 import {useExchangeDocumentsListStyles} from "./ExchangeDocumentsListStyles.tsx";
 import TruncatedDocumentTitle from "./TruncatedDocumentTitle.tsx";
+import ExchangeDocumentThumbnail from "./ExchangeDocumentThumbnail.tsx";
 
 interface ExchangeDocumentCardProps {
     document: DocumentDetailedDto;
@@ -19,6 +20,7 @@ interface ExchangeDocumentCardProps {
     onUpdate: () => void;
     onOpenDetails: () => void;
     onDelete: (documentId: string) => void;
+    showThumbnail: boolean;
 }
 
 const relativeUploadDate = (value: string) => {
@@ -45,11 +47,14 @@ const ExchangeDocumentCard: React.FC<ExchangeDocumentCardProps> = (props) => {
         event.stopPropagation();
         props.onUpload();
     };
-
     return (
         <Card id={`exchange-document-card-${props.document.id}`}
               data-document-id={props.document.id}
-              className={mergeClasses(styles.documentsCard, props.selected && styles.documentsCardSelected)}
+              className={mergeClasses(
+                  styles.documentsCard,
+                  props.showThumbnail && styles.documentsCardBrowse,
+                  props.selected && styles.documentsCardSelected
+              )}
               appearance="outline"
               role="button"
               tabIndex={0}
@@ -57,6 +62,10 @@ const ExchangeDocumentCard: React.FC<ExchangeDocumentCardProps> = (props) => {
               aria-label={`Open ${props.document.title}`}
               onClick={props.onSelect}
               onKeyDown={selectWithKeyboard}>
+            {props.showThumbnail && props.exchange && (
+                <ExchangeDocumentThumbnail document={props.document}
+                                           exchangeId={props.exchange.id}/>
+            )}
             <TruncatedDocumentTitle documentId={props.document.id} title={props.document.title}/>
             <div id={`exchange-document-card-footer-${props.document.id}`} className={styles.cardFooter}>
                 <div id={`exchange-document-status-${props.document.id}`} className={styles.statusGroup}>

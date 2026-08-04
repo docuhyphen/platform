@@ -90,6 +90,27 @@ export const useExchangeDocumentsListStyles = makeStyles({
     cardListSectionFullWidth: {
         gridColumn: "1 / -1",
     },
+    browseLayout: {
+        display: "flex",
+        flexDirection: "column",
+        minHeight: 0,
+        flex: 1,
+    },
+    browseCardGrid: {
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 280px), 1fr))",
+        gridAutoRows: "max-content",
+        alignItems: "start",
+        alignContent: "start",
+        overflowY: "auto",
+        overflowX: "hidden",
+        gap: tokens.spacingHorizontalM,
+        ...shorthands.padding(tokens.spacingVerticalXS, tokens.spacingHorizontalXS),
+        "@media (max-width: 768px)": {
+            gridTemplateColumns: "1fr",
+            gap: tokens.spacingHorizontalS,
+        },
+    },
     scrollButton: {
         flexShrink: 0,
     },
@@ -112,6 +133,42 @@ export const useExchangeDocumentsListStyles = makeStyles({
             outlineOffset: "-2px",
         },
     },
+    documentsCardBrowse: {
+        width: "100%",
+        minWidth: 0,
+        maxWidth: "none",
+        flex: "none",
+        height: "auto",
+    },
+    thumbnailFrame: {
+        height: "260px",
+        width: "100%",
+        display: "flex",
+        alignItems: "flex-start",
+        justifyContent: "center",
+        overflow: "hidden",
+        boxSizing: "border-box",
+        backgroundColor: tokens.colorNeutralBackground3,
+        ...shorthands.border("1px", "solid", tokens.colorNeutralStroke2),
+        borderRadius: tokens.borderRadiusMedium,
+        flexShrink: 0,
+    },
+    thumbnailSkeleton: {
+        width: "100%",
+        height: "260px",
+    },
+    thumbnailPlaceholderIcon: {
+        fontSize: "48px",
+        color: tokens.colorNeutralForeground4,
+        marginTop: tokens.spacingVerticalXXXL,
+    },
+    thumbnailPage: {
+        boxShadow: tokens.shadow2,
+        "& canvas": {
+            maxWidth: "100%",
+            height: "auto !important",
+        },
+    },
     documentsCardSelected: {
         borderLeftColor: tokens.colorBrandForeground1,
         backgroundColor: tokens.colorNeutralBackground1Selected,
@@ -125,6 +182,7 @@ export const useExchangeDocumentsListStyles = makeStyles({
         textOverflow: "ellipsis",
         whiteSpace: "nowrap",
         lineHeight: tokens.lineHeightBase300,
+        flexShrink: 0,
     },
     cardFooter: {
         display: "flex",
@@ -132,6 +190,7 @@ export const useExchangeDocumentsListStyles = makeStyles({
         justifyContent: "space-between",
         gap: tokens.spacingHorizontalS,
         minWidth: 0,
+        flexShrink: 0,
     },
     statusGroup: {
         display: "flex",
