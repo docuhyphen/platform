@@ -4,13 +4,19 @@ set -euo pipefail
 
 APP_NAME="${APP_NAME:-docuhyphen}"
 STACK_NAME="${STACK_NAME:-${APP_NAME}-prod}"
-REGION="${AWS_REGION:-us-east-1}"
+REGION="${AWS_REGION:-af-south-1}"
 WEBSITE_DOMAIN="${WEBSITE_DOMAIN:-www.docuhyphen.com}"
+WEB_APP_DOMAIN="${WEB_APP_DOMAIN:-app.docuhyphen.com}"
 API_DOMAIN="${API_DOMAIN:-api.docuhyphen.com}"
 SES_REGION="${SES_REGION:-us-east-1}"
 WEBSITE_BUCKET="${WEBSITE_BUCKET:-docuhyphen-website}"
+WEBSITE_REGION="${WEBSITE_AWS_REGION:-us-east-1}"
+WEB_APP_BUCKET="${WEB_APP_BUCKET:-docuhyphen-app}"
+WEB_APP_REGION="${WEB_APP_AWS_REGION:-us-east-1}"
+WEB_APP_CLOUDFRONT_DISTRIBUTION_ID="${WEB_APP_CLOUDFRONT_DISTRIBUTION_ID:-EQY58A3IHZ9UQ}"
 CLOUDFRONT_DISTRIBUTION_ID="${CLOUDFRONT_DISTRIBUTION_ID:-E3NCVYE325OBGH}"
 FRONTEND_INSTALL_DEPS="${FRONTEND_INSTALL_DEPS:-false}"
+DEPLOY_PAUSE_ON_ERROR="${DEPLOY_PAUSE_ON_ERROR:-true}"
 TEMPLATE_FILE="$(dirname "$0")/cloudformation.yml"
 PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 LOGO_FILE="${PROJECT_ROOT}/src/main/resources/logo.txt"
@@ -20,12 +26,38 @@ fail() { printf 'Error: %s\n' "$*" >&2; exit 1; }
 log_section() { printf '\n[%s] %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*"; }
 
 TEMP_DIR=""
+DOCKER_CONFIG_DIR=""
+DOCKER_CONFIG_PATH=""
 cleanup() {
   if [[ -n "${TEMP_DIR:-}" && -d "$TEMP_DIR" ]]; then
     rm -rf -- "$TEMP_DIR"
   fi
+  if [[ -n "${DOCKER_CONFIG_DIR:-}" && -d "$DOCKER_CONFIG_DIR" ]]; then
+    rm -rf -- "$DOCKER_CONFIG_DIR"
+  fi
 }
-trap cleanup EXIT
+
+should_pause_on_error() {
+  if [[ "$DEPLOY_PAUSE_ON_ERROR" == "true" ]]; then
+    return 0
+  fi
+
+  [[ "$DEPLOY_PAUSE_ON_ERROR" == "auto" && -t 0 && -t 2 ]]
+}
+
+finish() {
+  local status="$?"
+  cleanup
+
+  if [[ "$status" -ne 0 ]] && should_pause_on_error; then
+    print_completion_logo
+    printf '\nDeployment failed with exit code %s.\n' "$status" >&2
+    read -r -p "Press Enter to close this window..." _
+  fi
+
+  exit "$status"
+}
+trap finish EXIT
 
 require_command() {
   command -v "$1" >/dev/null 2>&1 || fail "Required command not found: $1"
@@ -75,6 +107,7 @@ deploy_stack() {
       CertificateArn="${CERTIFICATE_ARN:-}" \
       CloudFrontCertificateArn="${CLOUDFRONT_CERTIFICATE_ARN:-}" \
       WebsiteDomainName="$WEBSITE_DOMAIN" \
+      WebAppDomainName="$WEB_APP_DOMAIN" \
       ApiDomainName="$API_DOMAIN" \
       SesRegion="$SES_REGION" \
       AppAdminBootstrapEmail="${APP_ADMIN_BOOTSTRAP_EMAIL:-}" \
@@ -131,9 +164,12 @@ populate_audit_signing_secret() {
     }));
   ' "$TEMP_DIR/private.pem" "$TEMP_DIR/public.pem" "$TEMP_DIR/signing-secret.json"
 
+  local signing_secret
+  signing_secret="$(cat "$TEMP_DIR/signing-secret.json")"
+
   aws secretsmanager put-secret-value \
     --secret-id "$secret_id" \
-    --secret-string "file://$TEMP_DIR/signing-secret.json" \
+    --secret-string "$signing_secret" \
     --region "$REGION" \
     >/dev/null
 
@@ -148,13 +184,27 @@ push_image() {
   log "Building the Quarkus application"
   (cd "$PROJECT_ROOT" && ./mvnw package -DskipTests)
 
-  log "Logging in to ECR"
-  aws ecr get-login-password --region "$REGION" \
-    | docker login --username AWS --password-stdin "${AWS_ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com"
+  log "Preparing ECR credentials"
+  require_command base64
+  DOCKER_CONFIG_DIR="$(mktemp -d)"
+  DOCKER_CONFIG_PATH="$DOCKER_CONFIG_DIR"
+  if command -v cygpath >/dev/null 2>&1; then
+    DOCKER_CONFIG_PATH="$(cygpath -w "$DOCKER_CONFIG_DIR")"
+  fi
+
+  local registry
+  local ecr_password
+  local ecr_auth
+  registry="${AWS_ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com"
+  ecr_password="$(aws ecr get-login-password --region "$REGION")"
+  ecr_auth="$(printf 'AWS:%s' "$ecr_password" | base64 | tr -d '\r\n')"
+  printf '{"auths":{"%s":{"auth":"%s"}}}\n' "$registry" "$ecr_auth" > "${DOCKER_CONFIG_DIR}/config.json"
+
+  log "Using temporary Docker config: ${DOCKER_CONFIG_DIR}"
 
   log "Building and pushing ${IMAGE_TAG}"
-  docker build -t "$IMAGE_TAG" "$PROJECT_ROOT"
-  docker push "$IMAGE_TAG"
+  docker --config "$DOCKER_CONFIG_PATH" build -t "$IMAGE_TAG" "$PROJECT_ROOT"
+  docker --config "$DOCKER_CONFIG_PATH" push "$IMAGE_TAG"
 }
 
 restart_ecs() {
@@ -176,7 +226,7 @@ stack_output() {
     --output text
 }
 
-deploy_frontend() {
+deploy_website() {
   local bucket
   local distribution_id
   local invalidation_id
@@ -195,10 +245,11 @@ deploy_frontend() {
     distribution_id="$(stack_output CloudFrontDistributionId)"
   fi
 
-  log_section "Starting frontend deployment"
+  log_section "Starting website deployment"
   log "AWS account: ${AWS_ACCOUNT_ID}"
   log "AWS caller: ${AWS_CALLER_ARN}"
-  log "AWS region: ${REGION}"
+  log "Infrastructure region: ${REGION}"
+  log "Website region: ${WEBSITE_REGION}"
   log "Website bucket: ${bucket}"
   log "CloudFront distribution: ${distribution_id}"
   log "Project root: ${PROJECT_ROOT}"
@@ -226,7 +277,7 @@ deploy_frontend() {
   log_section "Syncing static files to S3"
   aws s3 sync "${website_dir}/dist" "s3://${bucket}" \
     --delete \
-    --region "$REGION"
+    --region "$WEBSITE_REGION"
 
   log_section "Creating CloudFront invalidation"
   invalidation_id="$(aws cloudfront create-invalidation \
@@ -236,12 +287,75 @@ deploy_frontend() {
     --output text)"
 
   log "CloudFront invalidation created: ${invalidation_id}"
-  log_section "Frontend deployment completed"
+  log_section "Website deployment completed"
   log "Website bucket: s3://${bucket}"
   log "CloudFront distribution: ${distribution_id}"
   log "CloudFront invalidation: ${invalidation_id}"
   log "Website URL: https://${WEBSITE_DOMAIN}"
   log "If direct route refreshes fail, verify the live CloudFront distribution still has clean-path rewriting enabled."
+  print_completion_logo
+}
+
+deploy_web_app() {
+  local bucket
+  local distribution_id
+  local invalidation_id
+  local file_count
+  local web_app_dir
+  web_app_dir="${PROJECT_ROOT}/web-app"
+
+  [[ -n "${WEB_APP_BUCKET:-}" ]] || fail "WEB_APP_BUCKET is required for web app deployment"
+  [[ -n "${WEB_APP_CLOUDFRONT_DISTRIBUTION_ID:-}" ]] || fail "WEB_APP_CLOUDFRONT_DISTRIBUTION_ID is required for web app deployment"
+  bucket="$WEB_APP_BUCKET"
+  distribution_id="$WEB_APP_CLOUDFRONT_DISTRIBUTION_ID"
+
+  log_section "Starting web app deployment"
+  log "AWS account: ${AWS_ACCOUNT_ID}"
+  log "AWS caller: ${AWS_CALLER_ARN}"
+  log "Infrastructure region: ${REGION}"
+  log "Web app region: ${WEB_APP_REGION}"
+  log "Web app bucket: ${bucket}"
+  log "CloudFront distribution: ${distribution_id}"
+  log "Project root: ${PROJECT_ROOT}"
+  log "Install frontend dependencies: ${FRONTEND_INSTALL_DEPS}"
+
+  log_section "Building the web app"
+  if [[ "$FRONTEND_INSTALL_DEPS" == "true" ]]; then
+    log "Running npm ci in ${web_app_dir}"
+    (cd "$web_app_dir" && npm ci)
+  elif [[ ! -d "${web_app_dir}/node_modules" ]]; then
+    log "node_modules not found, running npm ci in ${web_app_dir}"
+    (cd "$web_app_dir" && npm ci)
+  elif ! website_dependencies_ready "$web_app_dir"; then
+    log "Existing web app dependencies are incomplete, repairing them with npm install"
+    (cd "$web_app_dir" && npm install)
+  else
+    log "Reusing existing web app dependencies in ${web_app_dir}/node_modules"
+  fi
+
+  (cd "$web_app_dir" && npm run build)
+  file_count="$(find "${web_app_dir}/dist" -type f | wc -l | tr -d '[:space:]')"
+  log "Built web app output in ${web_app_dir}/dist"
+  log "Files ready for upload: ${file_count}"
+
+  log_section "Syncing web app static files to S3"
+  aws s3 sync "${web_app_dir}/dist" "s3://${bucket}" \
+    --delete \
+    --region "$WEB_APP_REGION"
+
+  log_section "Creating web app CloudFront invalidation"
+  invalidation_id="$(aws cloudfront create-invalidation \
+    --distribution-id "$distribution_id" \
+    --paths "/*" \
+    --query 'Invalidation.Id' \
+    --output text)"
+
+  log "CloudFront invalidation created: ${invalidation_id}"
+  log_section "Web app deployment completed"
+  log "Web app bucket: s3://${bucket}"
+  log "CloudFront distribution: ${distribution_id}"
+  log "CloudFront invalidation: ${invalidation_id}"
+  log "Web app URL: https://${WEB_APP_DOMAIN}"
   print_completion_logo
 }
 
@@ -253,27 +367,39 @@ print_outputs() {
     --output table
 }
 
+deploy_backend() {
+  bootstrap_stack
+  populate_audit_signing_secret
+  push_image
+  deploy_stack true
+  restart_ecs
+}
+
 case "${1:-}" in
   --image)
     stack_exists || fail "Create the stack first with --full"
     push_image
     restart_ecs
     ;;
-  --frontend)
+  --backend)
+    deploy_backend
+    print_outputs
+    ;;
+  --website)
     if stack_exists; then
       deploy_stack true
     else
-      log "CloudFormation stack ${STACK_NAME} not found in ${REGION}; using direct frontend deployment settings"
+      log "CloudFormation stack ${STACK_NAME} not found in ${REGION}; using direct website deployment settings"
     fi
-    deploy_frontend
+    deploy_website
+    ;;
+  --web-app)
+    deploy_web_app
     ;;
   --full)
-    bootstrap_stack
-    populate_audit_signing_secret
-    push_image
-    deploy_stack true
-    restart_ecs
-    deploy_frontend
+    deploy_backend
+    deploy_website
+    deploy_web_app
     print_outputs
     ;;
   "")
@@ -283,6 +409,6 @@ case "${1:-}" in
     print_outputs
     ;;
   *)
-    fail "Usage: $0 [--image | --frontend | --full]"
+    fail "Usage: $0 [--image | --backend | --website | --web-app | --full]"
     ;;
 esac

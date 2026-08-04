@@ -28,6 +28,10 @@ Parameters:
     Type: String
     Default: www.docuhyphen.com
 
+  WebAppDomainName:
+    Type: String
+    Default: app.docuhyphen.com
+
   ApiDomainName:
     Type: String
     Default: api.docuhyphen.com
@@ -65,6 +69,9 @@ Conditions:
   HasCertificate: !Not [!Equals [!Ref CertificateArn, ""]]
   HasCloudFrontCertificate: !Not [!Equals [!Ref CloudFrontCertificateArn, ""]]
   DeployApplication: !Equals [!Ref ApplicationEnabled, "true"]
+  DeployApplicationWithCertificate: !And
+    - !Condition DeployApplication
+    - !Condition HasCertificate
 
 Resources:
 
@@ -264,7 +271,7 @@ Resources:
     UpdateReplacePolicy: Snapshot
     Properties:
       DBInstanceIdentifier: !Sub ${AppName}-postgres
-      DBInstanceClass: db.t3.micro
+      DBInstanceClass: db.t3.small
       Engine: postgres
       MasterUsername: !Ref DBUsername
       ManageMasterUserPassword: true
@@ -436,8 +443,8 @@ Resources:
     Type: AWS::ECS::TaskDefinition
     Properties:
       Family: !Sub ${AppName}-task
-      Cpu: "512"
-      Memory: "1024"
+      Cpu: "1024"
+      Memory: "2048"
       NetworkMode: awsvpc
       RequiresCompatibilities:
         - FARGATE
@@ -448,9 +455,9 @@ Resources:
         - Name: app
           Image: !Ref ECRImageURI
           Essential: true
-          Cpu: 384
-          Memory: 768
-          MemoryReservation: 640
+          Cpu: 896
+          Memory: 1536
+          MemoryReservation: 1280
           DependsOn:
             - ContainerName: redis
               Condition: HEALTHY
@@ -481,9 +488,9 @@ Resources:
             - Name: APP_SECRETS_ORG_IDP_REGION
               Value: !Ref AWS::Region
             - Name: APP_BASE_URL
-              Value: !Sub https://${WebsiteDomainName}
+              Value: !Sub https://${WebAppDomainName}
             - Name: CORS_ORIGINS
-              Value: !Sub https://${WebsiteDomainName}
+              Value: !Sub https://${WebsiteDomainName},https://${WebAppDomainName}
             - Name: MICROSOFT_REDIRECT_URI
               Value: !Sub https://${ApiDomainName}/auth/oauth/MICROSOFT/callback
             - Name: GOOGLE_REDIRECT_URI
@@ -541,15 +548,15 @@ Resources:
           Image: redis:7-alpine
           Essential: true
           Cpu: 128
-          Memory: 256
-          MemoryReservation: 128
+          Memory: 512
+          MemoryReservation: 256
           PortMappings:
             - ContainerPort: 6379
               Protocol: tcp
           Command:
             - redis-server
             - --maxmemory
-            - 256mb
+            - 384mb
             - --maxmemory-policy
             - allkeys-lru
             - --appendonly
@@ -573,6 +580,7 @@ Resources:
 
   ALB:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Condition: DeployApplication
     Properties:
       Name: !Sub ${AppName}-alb
       Scheme: internet-facing
@@ -585,6 +593,7 @@ Resources:
 
   ALBTargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Condition: DeployApplication
     Properties:
       Name: !Sub ${AppName}-tg
       Port: !Ref AppPort
@@ -598,6 +607,7 @@ Resources:
 
   ALBListenerHTTP:
     Type: AWS::ElasticLoadBalancingV2::Listener
+    Condition: DeployApplication
     Properties:
       LoadBalancerArn: !Ref ALB
       Port: 80
@@ -615,7 +625,7 @@ Resources:
 
   ALBListenerHTTPS:
     Type: AWS::ElasticLoadBalancingV2::Listener
-    Condition: HasCertificate
+    Condition: DeployApplicationWithCertificate
     Properties:
       LoadBalancerArn: !Ref ALB
       Port: 443
@@ -661,113 +671,7 @@ Resources:
 
   # ─── S3 WEBSITE ─────────────────────────────────────────────────────────────
 
-  WebsiteBucket:
-    Type: AWS::S3::Bucket
-    DeletionPolicy: Retain
-    UpdateReplacePolicy: Retain
-    Properties:
-      BucketName: !Sub ${AppName}-${AWS::AccountId}-${AWS::Region}-website-prod
-      PublicAccessBlockConfiguration:
-        BlockPublicAcls: true
-        BlockPublicPolicy: true
-        IgnorePublicAcls: true
-        RestrictPublicBuckets: true
-      BucketEncryption:
-        ServerSideEncryptionConfiguration:
-          - ServerSideEncryptionByDefault:
-              SSEAlgorithm: AES256
-      VersioningConfiguration:
-        Status: Enabled
-
-  WebsiteBucketPolicy:
-    Type: AWS::S3::BucketPolicy
-    Properties:
-      Bucket: !Ref WebsiteBucket
-      PolicyDocument:
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: cloudfront.amazonaws.com
-            Action: s3:GetObject
-            Resource: !Sub ${WebsiteBucket.Arn}/*
-            Condition:
-              StringEquals:
-                AWS:SourceArn: !Sub arn:aws:cloudfront::${AWS::AccountId}:distribution/${CloudFrontDistribution}
-
   # ─── CLOUDFRONT ─────────────────────────────────────────────────────────────
-
-  CloudFrontOAC:
-    Type: AWS::CloudFront::OriginAccessControl
-    Properties:
-      OriginAccessControlConfig:
-        Name: !Sub ${AppName}-oac
-        OriginAccessControlOriginType: s3
-        SigningBehavior: always
-        SigningProtocol: sigv4
-
-  WebsiteCleanPathFunction:
-    Type: AWS::CloudFront::Function
-    Properties:
-      Name: !Sub ${AppName}-website-clean-paths
-      AutoPublish: true
-      FunctionConfig:
-        Comment: Resolve clean marketing routes to pre-rendered HTML files
-        Runtime: cloudfront-js-2.0
-      FunctionCode: |
-        function handler(event) {
-          var request = event.request;
-          var uri = request.uri;
-          if (uri.endsWith('/')) {
-            request.uri = uri + 'index.html';
-          } else {
-            var segment = uri.substring(uri.lastIndexOf('/') + 1);
-            if (segment.indexOf('.') === -1) {
-              request.uri = uri + '/index.html';
-            }
-          }
-          return request;
-        }
-
-  CloudFrontDistribution:
-    Type: AWS::CloudFront::Distribution
-    Properties:
-      DistributionConfig:
-        Enabled: true
-        Aliases: !If
-          - HasCloudFrontCertificate
-          - - !Ref WebsiteDomainName
-          - !Ref AWS::NoValue
-        ViewerCertificate: !If
-          - HasCloudFrontCertificate
-          - AcmCertificateArn: !Ref CloudFrontCertificateArn
-            SslSupportMethod: sni-only
-            MinimumProtocolVersion: TLSv1.2_2021
-          - CloudFrontDefaultCertificate: true
-        DefaultRootObject: index.html
-        HttpVersion: http2
-        PriceClass: PriceClass_100
-        Origins:
-          # S3 website origin
-          - Id: S3Origin
-            DomainName: !GetAtt WebsiteBucket.RegionalDomainName
-            S3OriginConfig:
-              OriginAccessIdentity: ""
-            OriginAccessControlId: !GetAtt CloudFrontOAC.Id
-        DefaultCacheBehavior:
-          TargetOriginId: S3Origin
-          ViewerProtocolPolicy: redirect-to-https
-          CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6  # CachingOptimized
-          Compress: true
-          FunctionAssociations:
-            - EventType: viewer-request
-              FunctionARN: !GetAtt WebsiteCleanPathFunction.FunctionARN
-        CustomErrorResponses:
-          - ErrorCode: 403
-            ResponseCode: 404
-            ResponsePagePath: /404/index.html
-          - ErrorCode: 404
-            ResponseCode: 404
-            ResponsePagePath: /404/index.html
 
   # ─── DOCUMENT STORAGE BUCKET ────────────────────────────────────────────────
 
@@ -923,18 +827,8 @@ Resources:
 # ─── OUTPUTS ──────────────────────────────────────────────────────────────────
 
 Outputs:
-  CloudFrontURL:
-    Description: Website URL (point your domain CNAME here)
-    Value: !If
-      - HasCloudFrontCertificate
-      - !Sub https://${WebsiteDomainName}
-      - !Sub https://${CloudFrontDistribution.DomainName}
-
-  CloudFrontDistributionId:
-    Description: CloudFront distribution ID used for cache invalidation
-    Value: !Ref CloudFrontDistribution
-
   ALBDNSName:
+    Condition: DeployApplication
     Description: ALB DNS (for Route53 alias or debugging)
     Value: !GetAtt ALB.DNSName
 
@@ -954,10 +848,6 @@ Outputs:
     Condition: DeployApplication
     Description: ECS service name
     Value: !GetAtt ECSService.Name
-
-  WebsiteBucketName:
-    Description: S3 bucket for website (deploy your frontend build here)
-    Value: !Ref WebsiteBucket
 
   DocumentsBucketName:
     Description: S3 bucket for uploaded documents

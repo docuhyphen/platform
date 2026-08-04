@@ -4,6 +4,32 @@ DocuHyphen is a Quarkus and Kotlin backend with a React and Vite frontend. Local
 
 This guide uses PowerShell on Windows. Run commands from the repository root unless a step says otherwise.
 
+## Production deploy commands
+
+Deploy everything:
+
+```powershell
+& "C:\Program Files\Git\bin\bash.exe" ./infra/deploy.sh --full
+```
+
+Deploy only the backend:
+
+```powershell
+& "C:\Program Files\Git\bin\bash.exe" ./infra/deploy.sh --backend
+```
+
+Deploy only the marketing website:
+
+```powershell
+& "C:\Program Files\Git\bin\bash.exe" ./infra/deploy.sh --website
+```
+
+Deploy only the product web app:
+
+```powershell
+& "C:\Program Files\Git\bin\bash.exe" ./infra/deploy.sh --web-app
+```
+
 ## Production marketing website deploy
 
 The public marketing website is deployed from `website/` to the production S3 bucket `docuhyphen-website` in `us-east-1`, then invalidated through CloudFront distribution `E3NCVYE325OBGH`.
@@ -13,30 +39,33 @@ The public marketing website is deployed from `website/` to the production S3 bu
 From the repository root:
 
 ```powershell
-bash ./infra/deploy.sh --frontend
+bash ./infra/deploy.sh --website
 ```
 
 If `bash` is not available on your PowerShell `PATH`, use Git Bash directly:
 
 ```powershell
-& "C:\Program Files\Git\bin\bash.exe" ./infra/deploy.sh --frontend
+& "C:\Program Files\Git\bin\bash.exe" ./infra/deploy.sh --website
 ```
 
 The deploy script now defaults to:
 
 | Setting | Default value |
 |---|---|
-| AWS Region | `us-east-1` |
+| Backend infrastructure Region | `af-south-1` |
+| Website bucket Region | `us-east-1` |
 | Website bucket | `docuhyphen-website` |
 | CloudFront distribution | `E3NCVYE325OBGH` |
 
-For the marketing website, `--frontend`:
+For the marketing website, `--website`:
 
 - Runs `npm ci` and `npm run build` inside `website/`
 - Syncs `website/dist` to `s3://docuhyphen-website`
 - Invalidates `E3NCVYE325OBGH`
 
-If a matching CloudFormation stack exists, the script still supports stack-managed environments. If not, it falls back to the manual production bucket and CloudFront defaults above.
+If a matching CloudFormation stack exists in `af-south-1`, the script still supports stack-managed environments. If not, it falls back to the manual production bucket and CloudFront defaults above.
+
+The backend platform services default to `af-south-1` for the South African market. The marketing website can stay in `us-east-1` because it is static S3 plus CloudFront.
 
 ### Manual production deploy commands
 
@@ -75,6 +104,31 @@ The current infrastructure template includes a CloudFront Function for this beha
 - These commands deploy the public marketing site from `website/`, not the authenticated product frontend from `web-app/`.
 - Pricing stays deployable but is intentionally marked `noindex,follow` in the built marketing site.
 - Run production deploys from a clean or at least understood working tree so you do not ship unintended frontend changes.
+
+## Product web app deploy
+
+The authenticated product web app is deployed from `web-app/` to the existing S3 bucket `docuhyphen-app` in `us-east-1`, then invalidated through CloudFront distribution `EQY58A3IHZ9UQ`.
+
+After the stack exists, deploy only the product app with:
+
+```powershell
+& "C:\Program Files\Git\bin\bash.exe" ./infra/deploy.sh --web-app
+```
+
+The first full deployment also deploys the product app:
+
+```powershell
+& "C:\Program Files\Git\bin\bash.exe" ./infra/deploy.sh --full
+```
+
+The web app defaults can be overridden when needed:
+
+```powershell
+$env:WEB_APP_BUCKET = "docuhyphen-app"
+$env:WEB_APP_AWS_REGION = "us-east-1"
+$env:WEB_APP_CLOUDFRONT_DISTRIBUTION_ID = "EQY58A3IHZ9UQ"
+& "C:\Program Files\Git\bin\bash.exe" ./infra/deploy.sh --web-app
+```
 
 ## Local services and ports
 

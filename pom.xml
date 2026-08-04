@@ -251,8 +251,6 @@
                     <execution>
                         <goals>
                             <goal>build</goal>
-                            <goal>native-image-agent</goal>
-                            <goal>remote-dev</goal>
                         </goals>
                     </execution>
                 </executions>
