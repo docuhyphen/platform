@@ -79,7 +79,8 @@ export const notificationPreferencesArticle = (
 
         <p>
             Changes save immediately. Available events still respect your Exchange access
-            and organization permissions.
+            and organization permissions. You can manage your personal notification preferences
+            whether or not your account belongs to an organization.
         </p>
     </>
 );

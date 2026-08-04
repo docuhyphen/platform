@@ -35,7 +35,7 @@ class ServiceActionAuthorizationService @Inject constructor(
 
     fun validateUpdateNotifyLoginSettings(appUser: AppUser, targetUser: AppUser)
     {
-        if (appUser.id == targetUser.id && userRoleService.isOrgMember(appUser.id)) return
+        if (appUser.id == targetUser.id) return
         if (userRoleService.isOrgAdmin(appUser.id)) return
         throw UnauthorizedException("User cannot update login notification settings")
     }
@@ -47,7 +47,7 @@ class ServiceActionAuthorizationService @Inject constructor(
 
     fun validateUpdateNotificationSettings(appUser: AppUser, targetUser: AppUser)
     {
-        if (appUser.id == targetUser.id && userRoleService.isOrgMember(appUser.id)) return
+        if (appUser.id == targetUser.id) return
         if (userRoleService.isOrgAdmin(appUser.id)) return
         throw UnauthorizedException("User cannot update notification settings")
     }

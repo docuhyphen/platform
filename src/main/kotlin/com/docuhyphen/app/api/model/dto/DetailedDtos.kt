@@ -160,7 +160,7 @@ data class DocumentAuditDetailedDto(
 data class AppUserSettingsDto(
     @Serializable(with = UUIDSerializer::class)
     val id: UUID? = null,
-    val notifyLogin: Boolean = true,
+    val notifyLogin: Boolean = false,
     val autoPreviewDocuments: Boolean = true,
     val notifyShareStart: Boolean = true,
     val notifyShareAccept: Boolean = true,

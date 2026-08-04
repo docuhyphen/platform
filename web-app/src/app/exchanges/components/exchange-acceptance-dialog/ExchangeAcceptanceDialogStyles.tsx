@@ -120,6 +120,7 @@ export const useExchangeAcceptanceDialogStyles = makeStyles({
         alignItems: "center",
         gap: tokens.spacingHorizontalS,
         flexWrap: "wrap",
+        marginTop: tokens.spacingVerticalL
     },
 
     primaryActions: {

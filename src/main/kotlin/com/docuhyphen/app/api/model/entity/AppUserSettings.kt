@@ -27,7 +27,7 @@ class AppUserSettings
     var updatedDate: Timestamp = Timestamp.from(Instant.now())
 
     @Column(name = "notify_login", nullable = false)
-    var notifyLogin: Boolean = true
+    var notifyLogin: Boolean = false
 
     @Column(name = "auto_preview_documents", nullable = false)
     var autoPreviewDocuments: Boolean = true

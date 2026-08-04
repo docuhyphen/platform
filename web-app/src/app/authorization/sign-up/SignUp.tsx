@@ -23,9 +23,9 @@ import SignUpCarousel from "../carousel/SignUpCarousel.tsx";
 import {useSignUpStyles} from "./SignUpStyles.tsx";
 import {useAuthorizationStyles} from "../AuthorizationStyles.tsx";
 import {useGlobalStyles} from "../../../GlobalStyles.tsx";
-import {ResponseError} from "../../models/models.tsx";
 import validator from 'validator';
 import {getApiBaseUrl} from "../../../services/apiBaseUrl.ts";
+import {getOtpFriendlyMessage, normalizeApiError} from "../../../utils/apiErrorUtils.ts";
 
 interface SignUpFormData
 {
@@ -95,7 +95,7 @@ const SignUp: React.FC = () =>
         catch (error)
         {
             setInitiationSuccessful(false);
-            setFormErrorMessage((error as ResponseError)?.errorMessage);
+            setFormErrorMessage(getOtpFriendlyMessage(normalizeApiError(error, "Could not start account creation. Please try again.")));
         }
         finally
         {
@@ -154,7 +154,7 @@ const SignUp: React.FC = () =>
         }
         catch (error)
         {
-            setFormErrorMessage((error as ResponseError)?.errorMessage);
+            setFormErrorMessage(getOtpFriendlyMessage(normalizeApiError(error, "Could not complete account creation. Please try again.")));
         }
         finally
         {
@@ -179,7 +179,7 @@ const SignUp: React.FC = () =>
         }
         catch (error)
         {
-            setOtpRegenerationFailedMsg((error as ResponseError)?.errorMessage);
+            setOtpRegenerationFailedMsg(getOtpFriendlyMessage(normalizeApiError(error, "Could not resend the verification code. Please try again.")));
         }
         finally
         {
