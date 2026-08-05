@@ -11,6 +11,7 @@ interface ExchangeDocumentCommentComposerProps
     onValueChange: (value: string) => void;
     onInternalChange: (isInternal: boolean) => void;
     onSubmit: () => void;
+    idPrefix?: string;
 }
 
 const ExchangeDocumentCommentComposer: React.FC<ExchangeDocumentCommentComposerProps> = (
@@ -21,6 +22,7 @@ const ExchangeDocumentCommentComposer: React.FC<ExchangeDocumentCommentComposerP
         onValueChange,
         onInternalChange,
         onSubmit,
+        idPrefix,
     }) =>
 {
     const styles = useExchangeDocumentCommentComposerStyles();
@@ -36,15 +38,15 @@ const ExchangeDocumentCommentComposer: React.FC<ExchangeDocumentCommentComposerP
 
     return (
         <div
-            id={"exchange-document-comment-composer"}
+            id={idPrefix ? `${idPrefix}-comment-composer` : "exchange-document-comment-composer"}
             className={styles.container}
         >
             <Field
-                id={"exchange-document-comment-field"}
+                id={idPrefix ? `${idPrefix}-comment-field` : "exchange-document-comment-field"}
                 className={styles.field}
             >
                 <Textarea
-                    id={"textarea-exchange-document-comment"}
+                    id={idPrefix ? `${idPrefix}-comment-textarea` : "textarea-exchange-document-comment"}
                     className={mergeClasses(styles.input, value.trim() ? styles.inputActive : undefined)}
                     placeholder={"Add note or comment"}
                     maxLength={255}
@@ -55,21 +57,21 @@ const ExchangeDocumentCommentComposer: React.FC<ExchangeDocumentCommentComposerP
                 />
             </Field>
             <Checkbox
-                id={"exchange-document-comment-internal-checkbox"}
+                id={idPrefix ? `${idPrefix}-comment-internal-checkbox` : "exchange-document-comment-internal-checkbox"}
                 label={"Internal"}
                 checked={isInternal}
                 onChange={(_event, data) => onInternalChange(data.checked === true)}
                 disabled={isSubmitting}
             />
             <div
-                id={"exchange-document-comment-actions"}
+                id={idPrefix ? `${idPrefix}-comment-actions` : "exchange-document-comment-actions"}
                 className={styles.actions}
             >
-                <Text id={"exchange-document-comment-character-count"}>
+                <Text id={idPrefix ? `${idPrefix}-comment-character-count` : "exchange-document-comment-character-count"}>
                     {value.length}/255
                 </Text>
                 <Button
-                    id={"exchange-document-comment-send-btn"}
+                    id={idPrefix ? `${idPrefix}-comment-send-btn` : "exchange-document-comment-send-btn"}
                     icon={isSubmitting ? <Spinner size={"extra-small"}/> : <SendCommentIcon/>}
                     appearance={"transparent"}
                     shape={"circular"}

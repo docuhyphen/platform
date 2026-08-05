@@ -12,11 +12,13 @@ interface ExchangeDocumentCommentsProps
 {
     exchangeId: string;
     exchangeDocument: DocumentDetailedDto;
+    idPrefix?: string;
 }
 const ExchangeDocumentComments: React.FC<ExchangeDocumentCommentsProps> = (
     {
         exchangeId,
-        exchangeDocument
+        exchangeDocument,
+        idPrefix,
     }) =>
 {
     const [loading, setLoading] = useState<boolean>(true);
@@ -104,17 +106,17 @@ const ExchangeDocumentComments: React.FC<ExchangeDocumentCommentsProps> = (
 
     return (
         <div
-            id={"exchange-document-comments"}
+            id={idPrefix ? `${idPrefix}-comments` : "exchange-document-comments"}
             className={styles.container}
         >
             <div
-                id={"exchange-document-comments-list"}
+                id={idPrefix ? `${idPrefix}-comments-list` : "exchange-document-comments-list"}
                 className={styles.list}
                 ref={commentsListRef}
             >
                 {loading ? (
                     <Spinner
-                        id={"exchange-document-comments-spinner"}
+                        id={idPrefix ? `${idPrefix}-comments-spinner` : "exchange-document-comments-spinner"}
                         size={"small"}
                     />
                 ) : comments.length > 0 ? (
@@ -122,11 +124,12 @@ const ExchangeDocumentComments: React.FC<ExchangeDocumentCommentsProps> = (
                         <ExchangeDocumentComment
                             key={comment.id}
                             comment={comment}
+                            idPrefix={idPrefix}
                         />
                     ))
                 ) : (
                     <div
-                        id={"exchange-document-comments-empty"}
+                        id={idPrefix ? `${idPrefix}-comments-empty` : "exchange-document-comments-empty"}
                         className={styles.noComments}
                     >
                         No notes or comments have been added yet.
@@ -141,6 +144,7 @@ const ExchangeDocumentComments: React.FC<ExchangeDocumentCommentsProps> = (
                 onValueChange={setNewComment}
                 onInternalChange={setIsInternal}
                 onSubmit={onAddComment}
+                idPrefix={idPrefix}
             />
         </div>
     );

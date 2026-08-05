@@ -93,6 +93,7 @@ export const useExchangeDocumentPreviewerStyles = makeStyles({
         flex: "1",
         background: tokens.colorNeutralBackground1,
         border: `1px solid ${tokens.colorNeutralStroke2}`,
+        borderRadius: tokens.borderRadiusMedium,
         // overflow: auto so a wider-than-viewport PDF page can scroll
         // horizontally inside the container rather than pushing the
         // sidebar/page out of view.
@@ -336,11 +337,15 @@ export const useExchangeDocumentPreviewerStyles = makeStyles({
         display: "flex",
         flexDirection: "row",
         alignItems: "stretch",
+        gap: tokens.spacingHorizontalS,
         height: "100%",
         width: "100%",
         minHeight: 0,
         minWidth: 0,
         overflow: "hidden",
+        "@media (max-width: 768px)": {
+            flexDirection: "column",
+        },
     },
 
     thumbnailSidebar: {
@@ -411,6 +416,8 @@ export const useExchangeDocumentPreviewerStyles = makeStyles({
         overflow: "auto",
         padding: tokens.spacingHorizontalL,
         boxSizing: "border-box",
+        border: `1px solid ${tokens.colorNeutralStroke2}`,
+        borderRadius: tokens.borderRadiusMedium,
         // Phones (enlarged reader): zero out the padding so the page
         // renders at the FULL viewport width, and allow native
         // single-finger pan + pinch-zoom (parity with the inline

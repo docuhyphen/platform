@@ -9,6 +9,7 @@ import {
 } from "../../../../services/exchangeApi";
 import {
     CollapseIcon,
+    CommentIcon,
     ExpandIcon,
     FirstPageIcon,
     FullScreenEnterIcon,
@@ -24,6 +25,7 @@ import {DocumentDetailedDto, ExchangeDetailedDto, ExchangeStatus} from "../../..
 import {useExchangeDocumentPreviewerStyles} from "./ExchangeDocumentPreviewerStyles";
 import {useIsMobile} from "../../../../utils/useMediaQuery.ts";
 import {useAuth} from "../../../../context/AuthContext.tsx";
+import ExchangeDocumentNotesPanel from "./exchange-document-notes-panel/ExchangeDocumentNotesPanel.tsx";
 
 pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.mjs`;
 
@@ -123,6 +125,7 @@ const ExchangeDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
     const [isEnlarged, setIsEnlarged] = useState<boolean>(false);
     const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
     const [isClosingEnlarged, setIsClosingEnlarged] = useState<boolean>(false);
+    const [isNotesPanelOpen, setIsNotesPanelOpen] = useState<boolean>(false);
     const [inlineZoomLevel, setInlineZoomLevel] = useState<number>(() => readZoomPreference(INLINE_ZOOM_STORAGE_KEY));
     const [enlargedZoomLevel, setEnlargedZoomLevel] = useState<number>(() => readZoomPreference(ENLARGED_ZOOM_STORAGE_KEY));
     const [previewError, setPreviewError] = useState<string | null>(null);
@@ -295,6 +298,7 @@ const ExchangeDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
             {
                 fullscreenStartedInlineRef.current = false;
                 setIsEnlarged(false);
+                setIsNotesPanelOpen(false);
             }
         };
         window.document.addEventListener('fullscreenchange', handleFullscreenChange);
@@ -625,6 +629,7 @@ const ExchangeDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
             {
                 setIsEnlarged(false);
                 setIsClosingEnlarged(false);
+                setIsNotesPanelOpen(false);
                 // Re-anchor scroll to the current page in the new layout on the next frame.
                 window.requestAnimationFrame(() =>
                 {
@@ -1197,6 +1202,25 @@ const ExchangeDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
                             </>
                         )}
 
+                        <Divider vertical className={styles.dividerFullHeight}/>
+
+                        <Tooltip
+                            content={isNotesPanelOpen ? "Hide notes and comments" : "Show notes and comments"}
+                            relationship="description"
+                        >
+                            <Button
+                                onClick={() => setIsNotesPanelOpen(currentValue => !currentValue)}
+                                id="exchange-document-preview-notes-toggle"
+                                aria-label={isNotesPanelOpen ? "Hide notes and comments" : "Show notes and comments"}
+                                aria-pressed={isNotesPanelOpen}
+                                appearance={isNotesPanelOpen ? "primary" : "transparent"}
+                                shape={"circular"}
+                                icon={<CommentIcon/>}
+                            />
+                        </Tooltip>
+
+                        <Divider vertical className={styles.dividerFullHeight}/>
+
                         <Tooltip content="Exit" relationship="description">
                             <Button
                                 onClick={toggleEnlarge}
@@ -1222,6 +1246,13 @@ const ExchangeDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
                     <div className={styles.enlargedReaderLayout}
                          id="exchange-document-preview-reader-layout">
                         {scrollPane}
+                        {isNotesPanelOpen && (
+                            <ExchangeDocumentNotesPanel
+                                exchangeId={exchange.id}
+                                exchangeDocument={exchangeDocument}
+                                onClose={() => setIsNotesPanelOpen(false)}
+                            />
+                        )}
                     </div>
                 </div>
             ) : (

@@ -71,5 +71,13 @@ export const exchangeDocumentCardsArticle = (
             the available width, use the scroll controls, a trackpad, touch scrolling, or
             Shift plus the mouse wheel. You can also use Tab to reach cards and their actions.
         </p>
+
+        <h3>Taking notes while reading</h3>
+        <p>
+            Enlarge a document or open it in full screen, then select the comments button in the
+            reader controls. A notes and comments panel opens beside the preview so you can read
+            existing document comments or add one without leaving the document. Select the button
+            again, or use the close button in the panel, to return to the full-width preview.
+        </p>
     </>
 );

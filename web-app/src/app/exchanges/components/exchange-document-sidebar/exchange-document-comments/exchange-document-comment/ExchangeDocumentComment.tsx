@@ -7,16 +7,21 @@ import {formatDateTimeWithOrdinal} from "../../../../../helpers.ts";
 interface ExchangeDocumentCommentProps
 {
     comment: DocumentCommentDetailedDto;
+    idPrefix?: string;
 }
 
-const ExchangeDocumentComment: React.FC<ExchangeDocumentCommentProps> = ({comment}) =>
+const ExchangeDocumentComment: React.FC<ExchangeDocumentCommentProps> = (
+    {
+        comment,
+        idPrefix = "document",
+    }) =>
 {
     const styles = useExchangeDocumentCommentStyles();
 
     return (
         <div
             className={styles.container}
-            id={`document-comment-${comment.id}`}
+            id={`${idPrefix}-comment-${comment.id}`}
         >
             <Popover withArrow openOnHover>
                 <PopoverTrigger disableButtonEnhancement>
@@ -33,12 +38,12 @@ const ExchangeDocumentComment: React.FC<ExchangeDocumentCommentProps> = ({commen
             </Popover>
             <div className={styles.commentTextContainer}>
                 <div
-                    id={`document-comment-${comment.id}-metadata`}
+                    id={`${idPrefix}-comment-${comment.id}-metadata`}
                     className={styles.commentMetadata}
                 >
                     {comment.isInternal && (
                         <Badge
-                            id={`document-comment-${comment.id}-internal-badge`}
+                            id={`${idPrefix}-comment-${comment.id}-internal-badge`}
                             appearance={"tint"}
                             color={"brand"}
                             size={"small"}
@@ -47,7 +52,7 @@ const ExchangeDocumentComment: React.FC<ExchangeDocumentCommentProps> = ({commen
                         </Badge>
                     )}
                     <Text
-                        id={`document-comment-${comment.id}-date`}
+                        id={`${idPrefix}-comment-${comment.id}-date`}
                         className={styles.commentDate}
                         size={100}
                         weight={"semibold"}
