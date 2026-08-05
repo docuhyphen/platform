@@ -109,11 +109,13 @@ const Exchanges: React.FC = () =>
     const [detailsActiveTab, setDetailsActiveTab] = useState<TabValue>('documents');
     const [isDocumentToolbarVisible, setIsDocumentToolbarVisible] = useState<boolean>(false);
     const [routeSelectionVersion, setRouteSelectionVersion] = useState(0);
+    const [resolvedDocumentLayoutKey, setResolvedDocumentLayoutKey] = useState<string | null>(null);
     const permissions = useMemo<ExchangePermissions>(
         () => getPermissions(exchangeDetails, appUser),
         [exchangeDetails, appUser],
     );
-    const autoPreviewDocuments = appUser?.settings?.autoPreviewDocuments !== false;
+    const autoPreviewDocuments = appUser?.settings?.autoPreviewDocuments ?? false;
+    const userPreferencesLoaded = appUser?.settings !== undefined;
 
     const tokenRef = useRef(token);
     tokenRef.current = token;
@@ -160,6 +162,7 @@ const Exchanges: React.FC = () =>
         }
 
         setPaneNavigationDirection(exchangeId ? "forward" : "back");
+        setResolvedDocumentLayoutKey(null);
         setSelectedExchangeId(exchangeId);
     };
 
@@ -348,7 +351,7 @@ const Exchanges: React.FC = () =>
                     const nextPreviewDocument = resolvePreviewDocumentSelection(
                         details.documents || [],
                         deepLinkedDocument?.id || selectedExchangeDocument?.id,
-                        autoPreviewDocuments || !!deepLinkedDocument
+                        !!deepLinkedDocument
                     );
                     setSelectedExchangeDocument(nextPreviewDocument);
 
@@ -393,6 +396,36 @@ const Exchanges: React.FC = () =>
         // Document selection and error helpers do not trigger Exchange refetches.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedExchangeId, routeSelectionVersion]);
+
+    useEffect(() =>
+    {
+        if (!userPreferencesLoaded || !selectedExchangeId || exchangeDetails?.id !== selectedExchangeId)
+        {
+            return;
+        }
+
+        const layoutKey = `${selectedExchangeId}:${autoPreviewDocuments}`;
+        if (resolvedDocumentLayoutKey === layoutKey)
+        {
+            return;
+        }
+
+        setSelectedExchangeDocument(currentSelection =>
+            resolvePreviewDocumentSelection(
+                exchangeDetails.documents || [],
+                currentSelection?.id,
+                autoPreviewDocuments
+            )
+        );
+        setResolvedDocumentLayoutKey(layoutKey);
+    }, [
+        autoPreviewDocuments,
+        exchangeDetails?.documents,
+        exchangeDetails?.id,
+        resolvedDocumentLayoutKey,
+        selectedExchangeId,
+        userPreferencesLoaded,
+    ]);
 
     useEffect(() =>
     {
@@ -758,7 +791,10 @@ const Exchanges: React.FC = () =>
 
     const renderExchangesSection = () =>
     {
-        const hasSelectedDetails = !!selectedExchangeId && !!exchangeDetails;
+        const hasSelectedDetails = !!selectedExchangeId &&
+            userPreferencesLoaded &&
+            exchangeDetails?.id === selectedExchangeId &&
+            resolvedDocumentLayoutKey === `${selectedExchangeId}:${autoPreviewDocuments}`;
         const isInboxTab = activeListTab === 'inbox';
         const isActiveTab = activeListTab === 'active';
         const isArchiveTab = activeListTab === 'archive';
@@ -852,9 +888,9 @@ const Exchanges: React.FC = () =>
                             shouldAnimateDetailsTransition && styles.detailsSlideInFromRight
                         )}
                     >
-                        {fetchingDetails && !exchangeDetails && <ExchangeDetailsLoading/>}
+                        {!hasSelectedDetails && <ExchangeDetailsLoading/>}
 
-                        {exchangeDetails &&
+                        {hasSelectedDetails && exchangeDetails &&
                             <div className={detailsPaneClassName}>
 
                                 <div className={`${styles.detailsContent} ${fetchingDetails ? styles.detailsContentLoading : ''}`}>
