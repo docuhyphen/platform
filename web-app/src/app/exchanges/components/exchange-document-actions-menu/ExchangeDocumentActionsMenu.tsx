@@ -61,7 +61,7 @@ const ExchangeDocumentActionsMenu: React.FC<DocumentActionsMenuProps> = (
                 <MenuTrigger disableButtonEnhancement>
                     <Button id={`exchange-document-actions-trigger-${exchangeDocument.id}`}
                             icon={<MoreVerticalRegular/>}
-                            appearance="subtle"
+                            appearance="transparent"
                             shape={"circular"}
                             onClick={stopCardClickPropagation}/>
                 </MenuTrigger>

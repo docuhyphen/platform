@@ -174,4 +174,9 @@ class AwsS3FileStorageService @Inject constructor(
 
         return s3Client.headObject(headObjectRequest).contentLength()
     }
+
+    override fun releaseDownloadedDocument(file: File)
+    {
+        file.delete()
+    }
 }

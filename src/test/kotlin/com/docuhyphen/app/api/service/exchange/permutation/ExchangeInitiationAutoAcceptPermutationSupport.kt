@@ -29,6 +29,8 @@ import com.docuhyphen.app.api.service.communication.OtpService
 import com.docuhyphen.app.api.service.config.ConfigurationService
 import com.docuhyphen.app.api.service.documentlibrary.DocumentLibraryService
 import com.docuhyphen.app.api.service.exchange.ExchangeInitiationService
+import com.docuhyphen.app.api.service.exchange.DocumentContentHashService
+import com.docuhyphen.app.api.service.exchange.DocumentThumbnailService
 import com.docuhyphen.app.api.service.exchange.ExchangeNotificationDeliveryService
 import com.docuhyphen.app.api.service.exchange.ExchangeRecipientAttestationService
 import com.docuhyphen.app.api.service.exchange.ExchangeRecipientSelectionResolver
@@ -175,6 +177,8 @@ internal class ExchangeInitiationAutoAcceptFixture
             templateVariableInterpolator = templateInterpolator,
             documentLibraryService = mock<DocumentLibraryService>(),
             fileStorageService = mock<FileStorageService>(),
+            documentContentHashService = mock<DocumentContentHashService>(),
+            documentThumbnailService = mock<DocumentThumbnailService>(),
             schemaAssignmentService = mock<SchemaAssignmentService>(),
             noAuthExchangeAccessTokenService = mock<NoAuthExchangeAccessTokenService>(),
             exchangeNotificationDeliveryService = exchangeNotificationDeliveryService,

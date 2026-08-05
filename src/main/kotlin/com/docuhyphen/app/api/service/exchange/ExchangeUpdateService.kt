@@ -84,6 +84,7 @@ class ExchangeUpdateService @Inject constructor(
     private val auditRecorder: AuditRecorder,
     private val noAuthExchangeAccessTokenService: NoAuthExchangeAccessTokenService,
     private val lifecycleNotificationService: ExchangeLifecycleNotificationService,
+    private val documentThumbnailService: DocumentThumbnailService,
 )
 {
     @PersistenceContext
@@ -561,6 +562,9 @@ class ExchangeUpdateService @Inject constructor(
         } ?: throw ExchangeNotFoundException("Exchange not found")
 
         exchangeRepository.update(session)
+        session.documents.forEach { document ->
+            documentThumbnailService.scheduleDeletion(document.id.toString())
+        }
 
         workflowInstanceRepository.findAllActiveForSubject(ResourceType.EXCHANGE.name, sessionUUID)
             .forEach { instance ->

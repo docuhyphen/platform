@@ -65,6 +65,20 @@ export const useExchangeDocumentsListStyles = makeStyles({
         minWidth: 0,
         width: "100%",
     },
+    leftControls: {
+        alignSelf: "stretch",
+        display: "grid",
+        gridTemplateRows: "minmax(0, 1fr) auto minmax(0, 1fr)",
+        alignItems: "start",
+        justifyItems: "center",
+    },
+    leftNavigationButton: {
+        gridRow: "2",
+    },
+    gridViewButton: {
+        gridRow: "3",
+        marginTop: tokens.spacingVerticalXS,
+    },
     cardListSection: {
         display: "flex",
         overflowX: "auto",
@@ -87,9 +101,6 @@ export const useExchangeDocumentsListStyles = makeStyles({
             backgroundColor: "transparent",
         },
     },
-    cardListSectionFullWidth: {
-        gridColumn: "1 / -1",
-    },
     browseLayout: {
         display: "flex",
         flexDirection: "column",
@@ -98,16 +109,18 @@ export const useExchangeDocumentsListStyles = makeStyles({
     },
     browseCardGrid: {
         display: "grid",
-        gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 280px), 1fr))",
+        gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 168px), 192px))",
         gridAutoRows: "max-content",
         alignItems: "start",
         alignContent: "start",
+        justifyContent: "start",
         overflowY: "auto",
         overflowX: "hidden",
         gap: tokens.spacingHorizontalM,
         ...shorthands.padding(tokens.spacingVerticalXS, tokens.spacingHorizontalXS),
         "@media (max-width: 768px)": {
-            gridTemplateColumns: "1fr",
+            gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 168px), 192px))",
+            justifyContent: "center",
             gap: tokens.spacingHorizontalS,
         },
     },
@@ -141,10 +154,10 @@ export const useExchangeDocumentsListStyles = makeStyles({
         height: "auto",
     },
     thumbnailFrame: {
-        height: "260px",
         width: "100%",
+        aspectRatio: "210 / 297",
         display: "flex",
-        alignItems: "flex-start",
+        alignItems: "center",
         justifyContent: "center",
         overflow: "hidden",
         boxSizing: "border-box",
@@ -155,19 +168,18 @@ export const useExchangeDocumentsListStyles = makeStyles({
     },
     thumbnailSkeleton: {
         width: "100%",
-        height: "260px",
+        height: "100%",
     },
     thumbnailPlaceholderIcon: {
         fontSize: "48px",
         color: tokens.colorNeutralForeground4,
-        marginTop: tokens.spacingVerticalXXXL,
     },
-    thumbnailPage: {
+    thumbnailImage: {
+        display: "block",
+        width: "100%",
+        height: "100%",
+        objectFit: "contain",
         boxShadow: tokens.shadow2,
-        "& canvas": {
-            maxWidth: "100%",
-            height: "auto !important",
-        },
     },
     documentsCardSelected: {
         borderLeftColor: tokens.colorBrandForeground1,

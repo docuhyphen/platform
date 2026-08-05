@@ -4,6 +4,7 @@ import com.docuhyphen.app.api.exception.ExchangeDocumentNotFoundException
 import com.docuhyphen.app.api.exception.ExchangeNotFoundException
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.dto.DocumentThumbnailResult
 import com.docuhyphen.app.api.realtime.RealtimeEventService
 import com.docuhyphen.app.api.realtime.RealtimeMessage
 import com.docuhyphen.app.api.realtime.RealtimeMessageType
@@ -51,6 +52,9 @@ class ExchangeDocumentService @Inject constructor(
     private val emailTemplateService: EmailTemplateService,
     private val configurationService: ConfigurationService,
     private val fileStorageService: FileStorageService,
+    private val documentContentHashService: DocumentContentHashService,
+    private val documentThumbnailService: DocumentThumbnailService,
+    private val documentPdfConversionService: DocumentPdfConversionService,
     private val inAppNotificationService: InAppNotificationService,
     private val realtimeEventService: RealtimeEventService,
     private val shareService: ShareService,
@@ -130,6 +134,7 @@ class ExchangeDocumentService @Inject constructor(
         document.isDeleted = true
         document.updateDate = Timestamp.from(Instant.now())
         sessionRepo.update(exchange)
+        documentThumbnailService.scheduleDeletion(document.id.toString())
 
         authTokenContext.authToken.appUser
             ?.let { auditService.logAction(document, DocumentAuditAction.DELETE, it) }
@@ -230,14 +235,15 @@ class ExchangeDocumentService @Inject constructor(
         validateUserPermissions(exchange, DocumentAction.UPLOAD)
         val appUser = authTokenContext.authToken.appUser
 
-        document.hash = "hash"
+        document.hash = documentContentHashService.sha256(file!!)
         document.type = DocumentType.fromFileExtension(extension!!)
         document.uploadDate = Timestamp.from(Instant.now())
         document.lastUpdatedBy = appUser
         sessionRepo.update(exchange)
 
-        fileStorageService.uploadDocument(file!!, "${document.id}$extension")
+        fileStorageService.uploadDocument(file, "${document.id}$extension")
         updateDocument(exchangeId, document)
+        documentThumbnailService.scheduleGeneration(document)
 
         appUser
             ?.let { auditService.logAction(document, DocumentAuditAction.UPLOAD, it) }
@@ -311,13 +317,14 @@ class ExchangeDocumentService @Inject constructor(
         validateFileAndExtension(file, extension, document.restrictedType)
 
 
-        document.hash = "hash"
+        document.hash = documentContentHashService.sha256(file!!)
         document.type = DocumentType.fromFileExtension(extension!!)
         document.uploadDate = Timestamp.from(Instant.now())
         document.lastUpdatedBy = null
         sessionRepo.update(exchange)
 
-        fileStorageService.uploadDocument(file!!, "${document.id}$extension")
+        fileStorageService.uploadDocument(file, "${document.id}$extension")
+        documentThumbnailService.scheduleGeneration(document)
         resolveRecipientEmail(exchange.id)?.let { auditService.logAction(document, DocumentAuditAction.UPLOAD, it) }
 //        sendUploadNotification(exchange, appUser, document.title)
 
@@ -821,49 +828,15 @@ class ExchangeDocumentService @Inject constructor(
             actorId = actorId,
         )
 
-        if (fileKey.endsWith(".pdf"))
-        {
-            return originalFile
-        }
-
-        val pdfFile = convertToPdf(originalFile)
-
-        return pdfFile
+        return documentPdfConversionService.convert(originalFile)
     }
 
-    private fun convertToPdf(originalFile: File): File
+    fun getDocumentThumbnail(exchangeId: String, documentId: String): DocumentThumbnailResult
     {
-        logger.info("CONVERTING....")
-
-        val pdfFile = File(originalFile.parent, originalFile.nameWithoutExtension + ".pdf")
-        val command = listOf(
-            "soffice",
-            "--headless",
-            "--convert-to",
-            "pdf",
-            originalFile.absolutePath,
-            "--outdir",
-            originalFile.parent
-        )
-
-        val process = try
-        {
-            ProcessBuilder(command).start()
-        }
-        catch (e: java.io.IOException)
-        {
-            throw DocumentPreviewConversionException(
-                "LibreOffice (soffice) is not available on this server. Original file can still be downloaded."
-            )
-        }
-        val exitCode = process.waitFor()
-
-        if (exitCode != 0 || !pdfFile.exists())
-        {
-            throw DocumentPreviewConversionException("PDF conversion failed for file: ${originalFile.name}")
-        }
-
-        return pdfFile
+        val exchange = getExchange(exchangeId)
+        validateViewPermission(exchange)
+        val document = getDocument(exchange, documentId)
+        return documentThumbnailService.getOrGenerate(document)
     }
 
     private fun broadcastDocumentEvent(exchangeId: UUID, type: String, documentId: UUID)

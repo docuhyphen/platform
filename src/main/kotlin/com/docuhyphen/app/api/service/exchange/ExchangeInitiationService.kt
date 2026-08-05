@@ -73,6 +73,8 @@ class ExchangeInitiationService @Inject constructor(
     private val templateVariableInterpolator: TemplateVariableInterpolator,
     private val documentLibraryService: DocumentLibraryService,
     private val fileStorageService: FileStorageService,
+    private val documentContentHashService: DocumentContentHashService,
+    private val documentThumbnailService: DocumentThumbnailService,
     private val schemaAssignmentService: com.docuhyphen.app.api.service.fields.SchemaAssignmentService,
     private val noAuthExchangeAccessTokenService: NoAuthExchangeAccessTokenService,
     private val exchangeNotificationDeliveryService: ExchangeNotificationDeliveryService,
@@ -229,8 +231,9 @@ class ExchangeInitiationService @Inject constructor(
                     fileStorageService.uploadDocument(libFile, storageKey)
                     document.type = DocumentType.fromFileExtension(".$ext")
                     document.uploadDate = Timestamp.from(Instant.now())
-                    document.hash = "hash"
+                    document.hash = documentContentHashService.sha256(libFile)
                     exchangeRepository.update(savedExchange)
+                    documentThumbnailService.scheduleGeneration(document)
                 }
             }
             catch (e: Exception)

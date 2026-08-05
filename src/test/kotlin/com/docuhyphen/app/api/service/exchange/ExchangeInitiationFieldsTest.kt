@@ -67,6 +67,8 @@ class ExchangeInitiationFieldsTest
             templateVariableInterpolator = mock(),
             documentLibraryService = mock(),
             fileStorageService = mock(),
+            documentContentHashService = mock(),
+            documentThumbnailService = mock(),
             schemaAssignmentService = schemaAssignmentService,
             noAuthExchangeAccessTokenService = mock(),
             exchangeNotificationDeliveryService = mock(),

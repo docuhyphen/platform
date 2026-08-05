@@ -1,13 +1,9 @@
 import React from "react";
 import {Skeleton, SkeletonItem} from "@fluentui/react-components";
 import {DocumentRegular} from "@fluentui/react-icons";
-import {Document, Page, pdfjs} from "react-pdf";
-import {downloadPreviewPDFExchangeDocument} from "../../../../services/exchangeApi.ts";
+import {downloadExchangeDocumentThumbnail} from "../../../../services/exchangeApi.ts";
 import {DocumentDetailedDto} from "../../../models/models.tsx";
 import {useExchangeDocumentsListStyles} from "./ExchangeDocumentsListStyles.tsx";
-
-pdfjs.GlobalWorkerOptions.workerSrc =
-    `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.mjs`;
 
 interface ExchangeDocumentThumbnailProps
 {
@@ -18,11 +14,11 @@ interface ExchangeDocumentThumbnailProps
 const ExchangeDocumentThumbnail: React.FC<ExchangeDocumentThumbnailProps> = (props) =>
 {
     const styles = useExchangeDocumentsListStyles();
-    const [pdfUrl, setPdfUrl] = React.useState<string | null>(null);
+    const [thumbnailUrl, setThumbnailUrl] = React.useState<string | null>(null);
     const [previewUnavailable, setPreviewUnavailable] = React.useState(false);
     const handlePreviewError = () =>
     {
-        setPdfUrl(null);
+        setThumbnailUrl(null);
         setPreviewUnavailable(true);
     };
 
@@ -30,22 +26,22 @@ const ExchangeDocumentThumbnail: React.FC<ExchangeDocumentThumbnailProps> = (pro
     {
         if (!props.exchangeId || !props.document.id || !props.document.uploadDate)
         {
-            setPdfUrl(null);
+            setThumbnailUrl(null);
             setPreviewUnavailable(true);
             return;
         }
 
         let disposed = false;
         let objectUrl: string | null = null;
-        setPdfUrl(null);
+        setThumbnailUrl(null);
         setPreviewUnavailable(false);
 
-        downloadPreviewPDFExchangeDocument(props.exchangeId, props.document.id)
+        downloadExchangeDocumentThumbnail(props.exchangeId, props.document.id, props.document.hash)
             .then(response =>
             {
                 if (disposed) return;
-                objectUrl = URL.createObjectURL(new Blob([response as Blob], {type: "application/pdf"}));
-                setPdfUrl(objectUrl);
+                objectUrl = URL.createObjectURL(new Blob([response as Blob], {type: "image/png"}));
+                setThumbnailUrl(objectUrl);
             })
             .catch(() =>
             {
@@ -57,13 +53,13 @@ const ExchangeDocumentThumbnail: React.FC<ExchangeDocumentThumbnailProps> = (pro
             disposed = true;
             if (objectUrl) URL.revokeObjectURL(objectUrl);
         };
-    }, [props.document.id, props.document.uploadDate, props.exchangeId]);
+    }, [props.document.hash, props.document.id, props.document.uploadDate, props.exchangeId]);
 
     return (
         <div id={`exchange-document-thumbnail-${props.document.id}`}
              className={styles.thumbnailFrame}
              aria-hidden="true">
-            {!pdfUrl && !previewUnavailable && (
+            {!thumbnailUrl && !previewUnavailable && (
                 <Skeleton id={`exchange-document-thumbnail-loading-${props.document.id}`}>
                     <SkeletonItem id={`exchange-document-thumbnail-loading-item-${props.document.id}`}
                                   className={styles.thumbnailSkeleton}/>
@@ -72,17 +68,12 @@ const ExchangeDocumentThumbnail: React.FC<ExchangeDocumentThumbnailProps> = (pro
             {previewUnavailable && (
                 <DocumentRegular className={styles.thumbnailPlaceholderIcon}/>
             )}
-            {pdfUrl && (
-                <Document file={pdfUrl}
-                          loading={null}
-                          onLoadError={handlePreviewError}>
-                    <Page pageNumber={1}
-                          width={200}
-                          renderAnnotationLayer={false}
-                          renderTextLayer={false}
-                          onRenderError={handlePreviewError}
-                          className={styles.thumbnailPage}/>
-                </Document>
+            {thumbnailUrl && (
+                <img id={`exchange-document-thumbnail-image-${props.document.id}`}
+                     src={thumbnailUrl}
+                     alt=""
+                     className={styles.thumbnailImage}
+                     onError={handlePreviewError}/>
             )}
         </div>
     );

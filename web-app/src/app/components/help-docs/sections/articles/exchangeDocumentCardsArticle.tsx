@@ -31,8 +31,14 @@ export const exchangeDocumentCardsArticle = (
             horizontal strip above the preview.
         </p>
         <p>
+            A document icon is shown while a thumbnail is being prepared or when a first-page
+            image cannot be generated. The document can still be opened normally.
+        </p>
+        <p>
             When automatic preview is turned on, the first document opens immediately and
             the horizontal strip remains visible. Selecting a card in the strip changes the preview.
+            Select the grid button beneath the left scroll control to return to the thumbnail grid
+            regardless of the automatic preview setting.
         </p>
 
         <h3>Sorting documents</h3>
@@ -53,8 +59,9 @@ export const exchangeDocumentCardsArticle = (
         <ul>
             <li>In the horizontal strip, select the card body to open that document in the preview panel.</li>
             <li>In the grid, select a document to open the standard preview layout.</li>
-            <li>Select <b>Upload</b> to add the first file to a document slot.</li>
-            <li>Select <b>Re-upload</b> to upload another file version.</li>
+            <li>In the horizontal strip, select <b>Upload</b> to add the first file to a document slot.</li>
+            <li>In the horizontal strip, select <b>Re-upload</b> to upload another file version.</li>
+            <li>In the thumbnail grid, upload actions remain available from the three-dot menu.</li>
             <li>Upload controls are disabled when your permissions or the Exchange status prevent uploads.</li>
         </ul>
 

@@ -226,6 +226,15 @@ export const downloadExchangeDocumentZip = (exchangeId: string, request: Downloa
 export const downloadPreviewPDFExchangeDocument = (exchangeId: string, documentId?: string) =>
     executeRequest(() => apiClient.get(`/exchanges/${exchangeId}/documents/${documentId}/preview`, blobRequest));
 
+export const downloadExchangeDocumentThumbnail = (
+    exchangeId: string,
+    documentId: string,
+    version?: string,
+) => executeRequest(() => apiClient.get(
+    `/exchanges/${exchangeId}/documents/${documentId}/thumbnail`,
+    {...blobRequest, params: version ? {v: version} : undefined},
+));
+
 export const requestNoAuthExchangeOtp = (exchangeId: string) =>
     executeRequest(() => apiClient.post(`no-auth/exchanges/${exchangeId}/otp`, undefined, {
         headers: getNoAuthAccessHeaders(exchangeId),

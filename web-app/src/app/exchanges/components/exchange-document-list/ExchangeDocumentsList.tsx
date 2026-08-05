@@ -1,4 +1,5 @@
 import React from "react";
+import {flushSync} from "react-dom";
 import {InputOnChangeData, SearchBoxChangeEvent} from "@fluentui/react-components";
 import {DocumentDetailedDto, ExchangeDetailedDto, ExchangeStatus} from "../../../models/models.tsx";
 import {useExchangeDocumentsListStyles} from "./ExchangeDocumentsListStyles.tsx";
@@ -8,13 +9,14 @@ import {DocumentSortOption, DocumentStatusFilter} from "./ExchangeDocumentToolba
 import ExchangeDocumentBrowseView from "./ExchangeDocumentBrowseView.tsx";
 import ExchangeDocumentPreviewStrip from "./ExchangeDocumentPreviewStrip.tsx";
 import ExchangeDocumentToolbarPanel from "./ExchangeDocumentToolbarPanel.tsx";
+import {useMediaQuery} from "../../../../utils/useMediaQuery.ts";
 
 interface ExchangeDocumentsListProps {
     exchangeDetails: ExchangeDetailedDto | null;
     filteredDocuments: DocumentDetailedDto[];
     documentSearchQuery: string;
     selectedExchangeDocument?: DocumentDetailedDto;
-    setSelectedExchangeDocument: (document: DocumentDetailedDto) => void;
+    setSelectedExchangeDocument: (document: DocumentDetailedDto | undefined) => void;
     setSelectedUploadExchangeDocument: (document: DocumentDetailedDto) => void;
     setSelectedSidebarExchangeDocument: (document: DocumentDetailedDto) => void;
     setSelectedUpdateExchangeDocument: (document: DocumentDetailedDto) => void;
@@ -47,6 +49,7 @@ const sortDocuments = (documents: DocumentDetailedDto[], sortOption: DocumentSor
 
 const ExchangeDocumentsList: React.FC<ExchangeDocumentsListProps> = (props) => {
     const styles = useExchangeDocumentsListStyles();
+    const prefersReducedMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
     const [statusFilter, setStatusFilter] = React.useState<DocumentStatusFilter>("all");
     const [sortOption, setSortOption] = React.useState<DocumentSortOption>("default");
     const allDocuments = props.exchangeDetails?.documents || [];
@@ -72,6 +75,25 @@ const ExchangeDocumentsList: React.FC<ExchangeDocumentsListProps> = (props) => {
         props.setIsUploadDocumentDialogOpen(true);
     };
 
+    const transitionDocumentLayout = (updateLayout: () => void) => {
+        if (prefersReducedMotion || !globalThis.document.startViewTransition) {
+            updateLayout();
+            return;
+        }
+        globalThis.document.startViewTransition(() => flushSync(updateLayout));
+    };
+
+    const selectDocument = (document: DocumentDetailedDto) => {
+        if (props.isPreviewMode) {
+            props.setSelectedExchangeDocument(document);
+            return;
+        }
+        transitionDocumentLayout(() => props.setSelectedExchangeDocument(document));
+    };
+
+    const showDocumentGrid = () => transitionDocumentLayout(
+        () => props.setSelectedExchangeDocument(undefined));
+
     const renderDocumentCard = (document: DocumentDetailedDto) => (
         <ExchangeDocumentCard key={document.id}
                               document={document}
@@ -80,7 +102,7 @@ const ExchangeDocumentsList: React.FC<ExchangeDocumentsListProps> = (props) => {
                               selected={document.id === props.selectedExchangeDocument?.id}
                               canUpload={canUpload}
                               showThumbnail={!props.isPreviewMode}
-                              onSelect={() => props.setSelectedExchangeDocument(document)}
+                              onSelect={() => selectDocument(document)}
                               onUpload={() => openUpload(document)}
                               onUpdate={() => {
                                   props.setSelectedUpdateExchangeDocument(document);
@@ -113,6 +135,7 @@ const ExchangeDocumentsList: React.FC<ExchangeDocumentsListProps> = (props) => {
             {props.isPreviewMode && (
                 <ExchangeDocumentPreviewStrip documents={visibleDocuments}
                                               selectedDocumentId={props.selectedExchangeDocument?.id}
+                                              onShowGrid={showDocumentGrid}
                                               renderDocument={renderDocumentCard}/>
             )}
         </section>

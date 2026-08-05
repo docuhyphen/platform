@@ -129,6 +129,7 @@ class RescindSideEffectsTest
         auditRecorder = auditRecorder,
         noAuthExchangeAccessTokenService = mock(),
         lifecycleNotificationService = mock(),
+        documentThumbnailService = mock(),
     )
 
     // -------------------------------------------------------------------------
@@ -347,6 +348,9 @@ class RescindSideEffectsTest
             emailTemplateService = mock(),
             configurationService = mock(),
             fileStorageService = mock(),
+            documentContentHashService = mock(),
+            documentThumbnailService = mock(),
+            documentPdfConversionService = mock(),
             inAppNotificationService = mock(),
             realtimeEventService = mock(),
             shareService = mock(),

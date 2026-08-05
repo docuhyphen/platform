@@ -147,6 +147,7 @@ class ExchangeAuthorizationTest
         auditRecorder = mock(),
         noAuthExchangeAccessTokenService = noAuthExchangeAccessTokenService,
         lifecycleNotificationService = mock(),
+        documentThumbnailService = mock(),
     )
 
     // -------------------------------------------------------------------------

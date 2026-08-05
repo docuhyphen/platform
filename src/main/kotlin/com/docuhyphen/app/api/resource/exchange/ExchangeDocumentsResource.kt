@@ -12,6 +12,7 @@ import com.docuhyphen.app.api.resource.model.DownloadDocumentsZipRequest
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.resource.model.UpdateShareSessionDocumentRequest
 import com.docuhyphen.app.api.service.exchange.DocumentPreviewConversionException
+import com.docuhyphen.app.api.service.exchange.DocumentThumbnailUnavailableException
 import com.docuhyphen.app.api.service.exchange.ExchangeDocumentService
 import com.docuhyphen.app.api.service.storage.FileStorageService
 import io.quarkus.security.ForbiddenException
@@ -444,6 +445,73 @@ class ExchangeDocumentsResource @Inject constructor(
                     logger.error("Error generating document preview", exception)
                     val responseError = ResponseError("An error occurred while generating document preview")
                     Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(responseError).build()
+                }
+            }
+        }
+    }
+
+    @Path("{documentId}/thumbnail")
+    @GET
+    @Produces("image/png")
+    fun getDocumentThumbnail(
+        @PathParam("exchangeId") exchangeId: String,
+        @PathParam("documentId") documentId: String,
+        @HeaderParam("If-None-Match") ifNoneMatch: String?,
+    ): Response
+    {
+        return try
+        {
+            val thumbnail = exchangeDocumentService.getDocumentThumbnail(exchangeId, documentId)
+            val etag = "\"${thumbnail.etag}\""
+            if (ifNoneMatch == etag)
+            {
+                return Response.notModified()
+                    .header("ETag", etag)
+                    .header("Cache-Control", "private, max-age=300, must-revalidate")
+                    .build()
+            }
+            Response.ok(thumbnail.content)
+                .header("Content-Type", "image/png")
+                .header("Content-Length", thumbnail.content.size)
+                .header("ETag", etag)
+                .header("Cache-Control", "private, max-age=300, must-revalidate")
+                .build()
+        }
+        catch (exception: Exception)
+        {
+            when (exception)
+            {
+                is ExchangeNotFoundException,
+                is ExchangeDocumentNotFoundException ->
+                {
+                    logger.error("Document thumbnail was not found", exception)
+                    Response.status(Response.Status.NOT_FOUND)
+                        .entity(ResponseError(exception.message))
+                        .build()
+                }
+
+                is ForbiddenException ->
+                {
+                    logger.warn("Document thumbnail access denied: {}", exception.message)
+                    Response.status(Response.Status.FORBIDDEN)
+                        .entity(ResponseError(exception.message))
+                        .build()
+                }
+
+                is DocumentThumbnailUnavailableException ->
+                {
+                    logger.warn("Document thumbnail is unavailable: {}", exception.message)
+                    Response.status(Response.Status.SERVICE_UNAVAILABLE)
+                        .entity(ResponseError(exception.message))
+                        .build()
+                }
+
+                else ->
+                {
+                    logger.error("Error loading document thumbnail", exception)
+                    Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("An error occurred while loading the document thumbnail"))
+                        .build()
                 }
             }
         }

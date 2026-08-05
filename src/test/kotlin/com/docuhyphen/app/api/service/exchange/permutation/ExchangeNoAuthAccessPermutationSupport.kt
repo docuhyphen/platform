@@ -19,6 +19,9 @@ import com.docuhyphen.app.api.service.communication.OtpService
 import com.docuhyphen.app.api.service.config.ConfigurationService
 import com.docuhyphen.app.api.service.exchange.ExchangeDocumentAuditService
 import com.docuhyphen.app.api.service.exchange.ExchangeDocumentService
+import com.docuhyphen.app.api.service.exchange.DocumentContentHashService
+import com.docuhyphen.app.api.service.exchange.DocumentPdfConversionService
+import com.docuhyphen.app.api.service.exchange.DocumentThumbnailService
 import com.docuhyphen.app.api.service.exchange.ExchangeLifecycleNotificationService
 import com.docuhyphen.app.api.service.exchange.ExchangeRecipientService
 import com.docuhyphen.app.api.service.exchange.ExchangeRetrievalService
@@ -117,6 +120,7 @@ internal class NoAuthOtpVerificationFixture(
             auditRecorder = mock<AuditRecorder>(),
             noAuthExchangeAccessTokenService = tokenService,
             lifecycleNotificationService = mock<ExchangeLifecycleNotificationService>(),
+            documentThumbnailService = mock<DocumentThumbnailService>(),
         )
     }
 
@@ -168,6 +172,9 @@ internal class NoAuthDocumentAccessFixture(
             emailTemplateService = mock<EmailTemplateService>(),
             configurationService = mock<ConfigurationService>(),
             fileStorageService = fileStorageService,
+            documentContentHashService = mock<DocumentContentHashService>(),
+            documentThumbnailService = mock<DocumentThumbnailService>(),
+            documentPdfConversionService = mock<DocumentPdfConversionService>(),
             inAppNotificationService = mock<InAppNotificationService>(),
             realtimeEventService = mock<RealtimeEventService>(),
             shareService = shareService,

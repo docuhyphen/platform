@@ -50,6 +50,7 @@ const ExchangeDocumentCard: React.FC<ExchangeDocumentCardProps> = (props) => {
     return (
         <Card id={`exchange-document-card-${props.document.id}`}
               data-document-id={props.document.id}
+              style={{viewTransitionName: `exchange-document-card-${props.document.id}`}}
               className={mergeClasses(
                   styles.documentsCard,
                   props.showThumbnail && styles.documentsCardBrowse,
@@ -79,15 +80,17 @@ const ExchangeDocumentCard: React.FC<ExchangeDocumentCardProps> = (props) => {
                     )}
                 </div>
                 <div id={`exchange-document-actions-${props.document.id}`} className={styles.cardActions}>
-                    <Button id={`exchange-document-upload-${props.document.id}`}
-                            appearance="subtle"
-                            size="small"
-                            shape="circular"
-                            icon={<ArrowUploadRegular/>}
-                            disabled={!props.canUpload}
-                            onClick={stopAndUpload}>
-                        {uploaded ? "Re-upload" : "Upload"}
-                    </Button>
+                    {!props.showThumbnail && (
+                        <Button id={`exchange-document-upload-${props.document.id}`}
+                                appearance="subtle"
+                                size="small"
+                                shape="circular"
+                                icon={<ArrowUploadRegular/>}
+                                disabled={!props.canUpload}
+                                onClick={stopAndUpload}>
+                            {uploaded ? "Re-upload" : "Upload"}
+                        </Button>
+                    )}
                     {props.exchange && (
                         <ExchangeDocumentActionsMenu exchange={props.exchange}
                                                      exchangeDocument={props.document}

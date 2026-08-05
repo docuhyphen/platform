@@ -27,6 +27,7 @@ import com.docuhyphen.app.api.service.communication.EmailService
 import com.docuhyphen.app.api.service.communication.EmailTemplateService
 import com.docuhyphen.app.api.service.communication.OtpService
 import com.docuhyphen.app.api.service.exchange.ExchangeLifecycleNotificationService
+import com.docuhyphen.app.api.service.exchange.DocumentThumbnailService
 import com.docuhyphen.app.api.service.exchange.ExchangeRecipientService
 import com.docuhyphen.app.api.service.exchange.ExchangeUpdateService
 import com.docuhyphen.app.api.service.exchange.NoAuthExchangeAccessTokenService
@@ -127,6 +128,7 @@ internal class ExchangeAcceptanceWorkflowFixture
             auditRecorder = mock<AuditRecorder>(),
             noAuthExchangeAccessTokenService = mock<NoAuthExchangeAccessTokenService>(),
             lifecycleNotificationService = mock<ExchangeLifecycleNotificationService>(),
+            documentThumbnailService = mock<DocumentThumbnailService>(),
         )
     }
 

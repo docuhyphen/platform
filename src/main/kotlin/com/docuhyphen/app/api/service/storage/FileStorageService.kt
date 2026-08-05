@@ -8,4 +8,5 @@ interface FileStorageService
     fun downloadDocument(key: String): File
     fun downloadDocumentsAsZip(keys: List<String>): File
     fun getDocumentSizeBytes(key: String): Long
+    fun releaseDownloadedDocument(file: File) {}
 }
