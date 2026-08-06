@@ -22,6 +22,8 @@ interface Props
     placeholder: string;
     disabled?: boolean;
     noResultsText?: string;
+    requireQuery?: boolean;
+    searchPromptText?: string;
 }
 
 const MultiPersonPicker = ({
@@ -34,11 +36,15 @@ const MultiPersonPicker = ({
     placeholder,
     disabled = false,
     noResultsText = "No matching people found",
+    requireQuery = false,
+    searchPromptText = "Start typing to search",
 }: Props) =>
 {
     const styles = useMultiPersonPickerStyles();
     const selectedIds = selectedPeople.map(person => person.id);
     const availablePeople = people.filter(person => !selectedIds.includes(person.id));
+    const hasQuery = query.trim().length > 0;
+    const showOptions = !requireQuery || hasQuery;
 
     return (
         <TagPicker
@@ -64,8 +70,11 @@ const MultiPersonPicker = ({
                     disabled={disabled}
                 />
             </TagPickerControl>
-            <TagPickerList id={`${id}-list`}>
-                {availablePeople.map(person => (
+            <TagPickerList
+                id={`${id}-list`}
+                className={styles.scrollableList}
+            >
+                {showOptions && availablePeople.map(person => (
                     <TagPickerOption
                         id={`${id}-option-${person.id}`}
                         key={person.id}
@@ -78,13 +87,22 @@ const MultiPersonPicker = ({
                         />
                     </TagPickerOption>
                 ))}
-                {availablePeople.length === 0 && query.trim() && (
+                {showOptions && availablePeople.length === 0 && hasQuery && (
                     <div
                         id={`${id}-empty-option`}
                         className={styles.emptyState}
                         role="status"
                     >
                         {noResultsText}
+                    </div>
+                )}
+                {requireQuery && !hasQuery && (
+                    <div
+                        id={`${id}-search-prompt`}
+                        className={styles.emptyState}
+                        role="status"
+                    >
+                        {searchPromptText}
                     </div>
                 )}
             </TagPickerList>

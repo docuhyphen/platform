@@ -355,21 +355,26 @@ const PeopleRecipients: React.FC<PeopleRecipientsProps> = (
         }
         return (
             <div className={styles.recentContactsRow}>
-                {visibleRecents.map(c => (
-                    <Button
-                        key={c.email}
-                        id={`recent-contact-btn-${c.email}`}
-                        size="small"
-                        shape="circular"
-                        appearance={recipientOrgUser?.email === c.email || newRecipient?.email === c.email ? 'primary' : 'outline'}
-                        onClick={() => selectContact(c)}>
-                        <PersonOption
-                            size={"extra-small"}
-                            id={`recent-contact-persona-${c.email}`}
-                            person={toPersonPickerItem(c)}
-                        />
-                    </Button>
-                ))}
+                {visibleRecents.map(c =>
+                {
+                    const isActive = recipientOrgUser?.email === c.email || newRecipient?.email === c.email;
+                    return (
+                        <Button
+                            key={c.email}
+                            id={`recent-contact-btn-${c.email}`}
+                            size="small"
+                            shape="circular"
+                            className={isActive ? styles.activeRecentContact : undefined}
+                            appearance={isActive ? 'primary' : 'outline'}
+                            onClick={() => selectContact(c)}>
+                            <PersonOption
+                                size={"extra-small"}
+                                id={`recent-contact-persona-${c.email}`}
+                                person={toPersonPickerItem(c)}
+                            />
+                        </Button>
+                    );
+                })}
             </div>
         );
     };

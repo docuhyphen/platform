@@ -18,6 +18,11 @@ export const useExchangeInitiationRecipientsTabStyles = makeStyles({
         flexWrap: "wrap",
         gap: tokens.spacingHorizontalS,
     },
+    activeRecentContact: {
+        "& .fui-Persona__primaryText, & .fui-Persona__secondaryText": {
+            color: tokens.colorNeutralForegroundStaticInverted,
+        },
+    },
     myOrgSelectedList: {
         listStyleType: "none",
         marginBottom: tokens.spacingVerticalXS,

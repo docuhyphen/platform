@@ -84,6 +84,8 @@ const MyOrgRecipients: React.FC<{
                         onQueryChange={setInternalRecipientsInputValue}
                         placeholder="Find additional participants"
                         noResultsText="No matching organization users found"
+                        requireQuery
+                        searchPromptText="Start typing to search your organization"
                     />
                 )}
             </Field>

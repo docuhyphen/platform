@@ -5,4 +5,8 @@ export const useMultiPersonPickerStyles = makeStyles({
         color: tokens.colorNeutralForeground2,
         padding: `${tokens.spacingVerticalS} ${tokens.spacingHorizontalS}`,
     },
+    scrollableList: {
+        maxHeight: "240px",
+        overflowY: "auto",
+    },
 });
