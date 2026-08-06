@@ -37,6 +37,7 @@ interface ExchangeListProps
     onLoadingChange?: (loading: boolean) => void;
     controlledSelectedId?: string | null;
     controlledActiveTab?: ExchangeListTab;
+    controlledInboxRole?: InboxRole;
 }
 
 export type InboxRole = 'incoming' | 'outgoing';
@@ -100,6 +101,7 @@ const ExchangeList: React.FC<ExchangeListProps> = (
         onLoadingChange,
         controlledSelectedId,
         controlledActiveTab,
+        controlledInboxRole,
     }) =>
 {
     const styles = useExchangeStyles();
@@ -382,8 +384,11 @@ const ExchangeList: React.FC<ExchangeListProps> = (
         setSortDirection('DESC');
         if (controlledActiveTab === 'inbox')
         {
-            setInboxRole('incoming');
-            onInboxRoleChange?.('incoming');
+            // Respect the role requested by the parent (e.g. an outgoing draft opened
+            // via deep-link/View Exchange). Fall back to incoming when unspecified.
+            const nextRole = controlledInboxRole ?? 'incoming';
+            setInboxRole(nextRole);
+            onInboxRoleChange?.(nextRole);
         }
         if (controlledSelectedId)
         {
@@ -397,6 +402,18 @@ const ExchangeList: React.FC<ExchangeListProps> = (
         }
         onTabChange?.(controlledActiveTab);
     }, [controlledActiveTab, controlledSelectedId]);
+
+    // Sync the inbox role when the parent changes it while the inbox tab is already active
+    // (e.g. a deep-linked outgoing draft resolves its role after the tab has switched).
+    useEffect(() =>
+    {
+        if (activeTab !== 'inbox') return;
+        if (!controlledInboxRole || controlledInboxRole === inboxRole) return;
+
+        beginListScopeLoading();
+        setInboxRole(controlledInboxRole);
+        setCurrentPage(0);
+    }, [controlledInboxRole, activeTab]);
 
     // Initial mount: fetch + subscriptions
     useEffect(() =>

@@ -888,6 +888,7 @@ const Exchanges: React.FC = () =>
                         onLoadingChange={setIsExchangeListLoading}
                         controlledSelectedId={selectedExchangeId}
                         controlledActiveTab={activeListTab}
+                        controlledInboxRole={inboxRole}
                     />
                 </div>
 
