@@ -52,7 +52,7 @@ const ExchangeDocumentVersions: React.FC<ExchangeDocumentVersionsProps> = (
     const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
     const [actionInProgress, setActionInProgress] = useState<string | null>(null);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-    const [previewTitle, setPreviewTitle] = useState<string>("");
+    const [previewVersionId, setPreviewVersionId] = useState<string | null>(null);
 
     const fetchVersions = useCallback(async () =>
     {
@@ -72,7 +72,7 @@ const ExchangeDocumentVersions: React.FC<ExchangeDocumentVersionsProps> = (
         {
             setLoading(false);
         }
-    }, [exchangeId, exchangeDocument.id, exchangeDocument.uploadDate]);
+    }, [exchangeId, exchangeDocument]);
 
     useEffect(() =>
     {
@@ -86,7 +86,7 @@ const ExchangeDocumentVersions: React.FC<ExchangeDocumentVersionsProps> = (
             window.URL.revokeObjectURL(previewUrl);
         }
         setPreviewUrl(null);
-        setPreviewTitle("");
+        setPreviewVersionId(null);
     };
 
     const openVersionBlob = async (versionId: string, forDownload: boolean) =>
@@ -110,8 +110,7 @@ const ExchangeDocumentVersions: React.FC<ExchangeDocumentVersionsProps> = (
             }
             else
             {
-                const versionLabel = versions.find(v => v.id === versionId)?.version || "";
-                setPreviewTitle(`${exchangeDocument.title} - v${versionLabel}`);
+                setPreviewVersionId(versionId);
                 setPreviewUrl(url);
             }
         }
@@ -248,6 +247,7 @@ const ExchangeDocumentVersions: React.FC<ExchangeDocumentVersionsProps> = (
                                     document={exchangeDocument}
                                     exchange={exchange}
                                     overridePdfUrl={previewUrl}
+                                    documentVersionId={previewVersionId ?? undefined}
                                     hideEnlarge
                                 />
                             )}

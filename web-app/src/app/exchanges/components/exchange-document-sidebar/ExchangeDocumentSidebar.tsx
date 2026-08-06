@@ -28,6 +28,8 @@ interface ExchangeDocumentSidebarProps
     isOpen: boolean;
     exchangeDocument: DocumentDetailedDto;
     exchange: ExchangeDetailedDto;
+    pageNumber?: number;
+    onNavigateToPage?: (pageNumber: number) => void;
 }
 
 const ExchangeDocumentSidebar: React.FC<ExchangeDocumentSidebarProps> = (
@@ -36,6 +38,8 @@ const ExchangeDocumentSidebar: React.FC<ExchangeDocumentSidebarProps> = (
         isOpen,
         exchangeDocument,
         exchange,
+        pageNumber,
+        onNavigateToPage,
     }) =>
 {
     const [selectedValue, setSelectedValue] = React.useState<TabValue>("comments");
@@ -138,6 +142,8 @@ const ExchangeDocumentSidebar: React.FC<ExchangeDocumentSidebarProps> = (
                 canViewAudit={canViewAudit}
                 canUpload={permissions.canUploadDocument}
                 canDownload={permissions.canDownloadDocumentsZip}
+                pageNumber={pageNumber}
+                onNavigateToPage={onNavigateToPage}
             />
         </DrawerComponent>
     );

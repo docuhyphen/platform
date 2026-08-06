@@ -66,7 +66,12 @@ export const useExchangeDocumentVersionsStyles = makeStyles({
         width: "90vw",
         maxWidth: "1100px",
         height: "90vh",
-        position: "relative",
+        position: "fixed",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        margin: "auto",
         ...shorthands.padding(0),
     },
     previewCloseButton: {

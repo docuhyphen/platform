@@ -32,8 +32,10 @@ data class DocumentCommentDetailedDto(
     val text: String?,
     val commentedByFirstName: String?,
     val commentedByLastName: String?,
-    val commentedByEmail: String?,
-    val isInternal: Boolean
+    val isInternal: Boolean,
+    val pageNumber: Int? = null,
+    val documentVersionId: String? = null,
+    val documentVersion: String? = null,
 )
 
 @Serializable

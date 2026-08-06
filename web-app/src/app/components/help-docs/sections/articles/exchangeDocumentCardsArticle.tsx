@@ -74,10 +74,27 @@ export const exchangeDocumentCardsArticle = (
 
         <h3>Taking notes while reading</h3>
         <p>
-            Enlarge a document or open it in full screen, then select the comments button in the
-            reader controls. A notes and comments panel opens beside the preview so you can read
-            existing document comments or add one without leaving the document. Select the button
-            again, or use the close button in the panel, to return to the full-width preview.
+            In the standard preview, open the document sidebar and select the Notes/Comments tab to
+            read existing document comments or add one. You can also enlarge a document or open it in
+            full screen, then select the comments button in the reader controls to open the same notes
+            and comments panel beside the preview. Select the button again, or use the close button in
+            the panel, to return to the full-width preview.
         </p>
+        <ul>
+            <li>
+                Use the <b>Link to page</b> checkbox to attach the note to the page you are reading.
+                It is available in both the standard preview and the reader, is selected by default,
+                and can be cleared to post a note that is not tied to a page.
+            </li>
+            <li>Select a comment's page button to move the preview to that page.</li>
+            <li>New comments appear in real time. A badge on the comments button shows unread activity.</li>
+            <li>Unsent text is kept as a local draft when you close and reopen the panel.</li>
+            <li>
+                When an organization is selected, <b>Internal</b> limits the note to active members
+                of that organization. The option is hidden in personal mode.
+            </li>
+            <li>On desktop, drag the panel's left divider to resize it. The width is remembered.</li>
+            <li>If comments cannot be loaded or posted, use the inline error guidance to retry.</li>
+        </ul>
     </>
 );

@@ -5,12 +5,14 @@ import com.docuhyphen.app.api.model.entity.DocumentType
 import com.docuhyphen.app.api.model.dto.DocumentThumbnailResult
 import com.docuhyphen.app.api.service.storage.DocumentThumbnailStorageService
 import com.docuhyphen.app.api.service.storage.FileStorageService
+import jakarta.annotation.PreDestroy
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import org.apache.pdfbox.Loader
 import org.apache.pdfbox.rendering.ImageType as PdfImageType
 import org.apache.pdfbox.rendering.PDFRenderer
 import org.eclipse.microprofile.context.ManagedExecutor
+import org.eclipse.microprofile.context.ThreadContext
 import org.slf4j.LoggerFactory
 import java.awt.RenderingHints
 import java.awt.image.BufferedImage
@@ -18,6 +20,7 @@ import java.io.File
 import java.nio.file.Files
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Semaphore
+import java.util.concurrent.TimeUnit
 import javax.imageio.ImageIO
 
 @ApplicationScoped
@@ -25,7 +28,6 @@ class DocumentThumbnailService @Inject constructor(
     private val fileStorageService: FileStorageService,
     private val thumbnailStorageService: DocumentThumbnailStorageService,
     private val pdfConversionService: DocumentPdfConversionService,
-    private val managedExecutor: ManagedExecutor,
 )
 {
     companion object
@@ -37,10 +39,36 @@ class DocumentThumbnailService @Inject constructor(
     private val generationLocks = ConcurrentHashMap<String, Any>()
     private val generationSlots = Semaphore(2, true)
 
+    // Dedicated executor for background thumbnail work. The JTA transaction
+    // context is explicitly cleared so this off-request rendering never joins
+    // the caller's transaction or touches its database connection. Sharing the
+    // caller's transaction across threads causes commits to fail with
+    // "Enlisted connection used without active transaction".
+    private val backgroundExecutor: ManagedExecutor = ManagedExecutor.builder()
+        .propagated(ThreadContext.ALL_REMAINING)
+        .cleared(ThreadContext.TRANSACTION)
+        .maxAsync(2)
+        .build()
+
+    @PreDestroy
+    fun shutdown()
+    {
+        backgroundExecutor.shutdown()
+        runCatching {
+            if (!backgroundExecutor.awaitTermination(10, TimeUnit.SECONDS))
+            {
+                backgroundExecutor.shutdownNow()
+            }
+        }.onFailure {
+            Thread.currentThread().interrupt()
+            backgroundExecutor.shutdownNow()
+        }
+    }
+
     fun scheduleGeneration(document: Document)
     {
         val descriptor = descriptor(document) ?: return
-        managedExecutor.runAsync {
+        backgroundExecutor.runAsync {
             runCatching { generateIfMissing(descriptor) }
                 .onFailure { error ->
                     logger.warn("Failed to generate document thumbnail for {}", descriptor.documentId, error)
@@ -59,7 +87,7 @@ class DocumentThumbnailService @Inject constructor(
 
     fun scheduleDeletion(documentId: String)
     {
-        managedExecutor.runAsync {
+        backgroundExecutor.runAsync {
             runCatching { thumbnailStorageService.deleteDocumentThumbnails(documentId) }
                 .onFailure { error -> logger.warn("Failed to delete thumbnails for document {}", documentId, error) }
         }

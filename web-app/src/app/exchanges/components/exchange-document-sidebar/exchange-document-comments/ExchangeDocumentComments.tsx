@@ -1,150 +1,95 @@
-﻿import React, {useEffect, useRef, useState} from "react";
-import {Spinner} from "@fluentui/react-components";
-import ExchangeDocumentComment from "./exchange-document-comment/ExchangeDocumentComment";
+import React from "react";
+import {Button, MessageBar, MessageBarActions, MessageBarBody, Spinner} from "@fluentui/react-components";
+import {DocumentDetailedDto} from "../../../../models/models.tsx";
+import ExchangeDocumentComment from "./exchange-document-comment/ExchangeDocumentComment.tsx";
+import ExchangeDocumentCommentComposer from "./exchange-document-comment-composer/ExchangeDocumentCommentComposer.tsx";
 import {useExchangeDocumentCommentsStyles} from "./ExchangeDocumentCommentsStyles.tsx";
-import {DocumentCommentDetailedDto, DocumentDetailedDto} from "../../../../models/models.tsx";
-import {DocumentCommentService} from "../../../../../services/DocumentCommentService.tsx";
-import ExchangeDocumentCommentComposer from
-    "./exchange-document-comment-composer/ExchangeDocumentCommentComposer.tsx";
-import {useNotifications} from "../../../../../context/NotificationContext.tsx";
+import {useExchangeDocumentComments} from "./useExchangeDocumentComments.ts";
 
 interface ExchangeDocumentCommentsProps
 {
     exchangeId: string;
     exchangeDocument: DocumentDetailedDto;
     idPrefix?: string;
+    pageNumber?: number;
+    documentVersionId?: string;
+    onNavigateToPage?: (pageNumber: number) => void;
 }
-const ExchangeDocumentComments: React.FC<ExchangeDocumentCommentsProps> = (
-    {
-        exchangeId,
-        exchangeDocument,
-        idPrefix,
-    }) =>
+
+const ExchangeDocumentComments: React.FC<ExchangeDocumentCommentsProps> = (props) =>
 {
-    const [loading, setLoading] = useState<boolean>(true);
-    const [comments, setComments] = useState<DocumentCommentDetailedDto[]>([]);
-    const [newComment, setNewComment] = useState<string>("");
-    const [isInternal, setIsInternal] = useState<boolean>(false);
-    const [addingComment, setAddingComment] = useState<boolean>(false);
-    const commentService = new DocumentCommentService();
     const styles = useExchangeDocumentCommentsStyles();
-    const commentsListRef = useRef<HTMLDivElement>(null);
-    const {markMatchingAsRead} = useNotifications();
-    const fetchComments = async () =>
-    {
-        try
-        {
-            setLoading(true);
-            const fetchedComments = await commentService.getComments(exchangeId, exchangeDocument.id);
-            setComments(fetchedComments);
-            markMatchingAsRead({
-                eventTypes: ["document.commented"],
-                data: {
-                    exchangeId,
-                    documentId: exchangeDocument.id,
-                },
-            });
-        }
-        catch (error)
-        {
-            console.error("Failed to fetch comments:", error);
-        }
-        finally
-        {
-            setLoading(false);
-        }
-    };
-    const onAddComment = async () =>
-    {
-        if (addingComment)
-        {
-            return;
-        }
-
-        if (!newComment.trim())
-        {
-            return;
-        }
-
-        setAddingComment(true);
-
-        try
-        {
-            const addedComment = await commentService.addComment(
-                exchangeId,
-                exchangeDocument.id,
-                newComment,
-                isInternal
-            );
-
-            setComments(currentComments => [addedComment, ...currentComments]);
-            setNewComment("");
-            setIsInternal(false);
-
-            if (commentsListRef.current)
-            {
-                commentsListRef.current.scrollTop = 0;
-            }
-        }
-        catch (error)
-        {
-            console.error("Failed to add note:", error);
-        }
-        finally
-        {
-            setAddingComment(false);
-        }
-    };
-
-    useEffect(() =>
-    {
-        if (exchangeDocument?.id)
-        {
-            fetchComments();
-        }
-    }, [exchangeDocument?.id]);
+    const state = useExchangeDocumentComments(props);
+    const prefix = props.idPrefix;
 
     return (
         <div
-            id={idPrefix ? `${idPrefix}-comments` : "exchange-document-comments"}
+            id={prefix ? `${prefix}-comments` : "exchange-document-comments"}
             className={styles.container}
         >
+            {state.loadError && (
+                <MessageBar
+                    id={prefix ? `${prefix}-comments-load-error` : "exchange-document-comments-load-error"}
+                    intent={"error"}
+                >
+                    <MessageBarBody>{state.loadError}</MessageBarBody>
+                    <MessageBarActions
+                        containerAction={
+                            <Button
+                                id={prefix ? `${prefix}-comments-retry` : "exchange-document-comments-retry"}
+                                appearance={"transparent"}
+                                shape={"circular"}
+                                aria-label={"Retry loading notes and comments"}
+                                onClick={() => void state.fetchComments()}
+                            >
+                                Retry
+                            </Button>
+                        }
+                    />
+                </MessageBar>
+            )}
             <div
-                id={idPrefix ? `${idPrefix}-comments-list` : "exchange-document-comments-list"}
+                id={prefix ? `${prefix}-comments-list` : "exchange-document-comments-list"}
                 className={styles.list}
-                ref={commentsListRef}
+                ref={state.commentsListRef}
             >
-                {loading ? (
+                {state.loading ? (
                     <Spinner
-                        id={idPrefix ? `${idPrefix}-comments-spinner` : "exchange-document-comments-spinner"}
+                        id={prefix ? `${prefix}-comments-spinner` : "exchange-document-comments-spinner"}
                         size={"small"}
                     />
-                ) : comments.length > 0 ? (
-                    comments.map(comment => (
+                ) : state.comments.length > 0 ? (
+                    state.comments.map(comment => (
                         <ExchangeDocumentComment
                             key={comment.id}
                             comment={comment}
-                            idPrefix={idPrefix}
+                            idPrefix={prefix}
+                            onNavigateToPage={props.onNavigateToPage}
                         />
                     ))
-                ) : (
+                ) : !state.loadError && (
                     <div
-                        id={idPrefix ? `${idPrefix}-comments-empty` : "exchange-document-comments-empty"}
+                        id={prefix ? `${prefix}-comments-empty` : "exchange-document-comments-empty"}
                         className={styles.noComments}
                     >
                         No notes or comments have been added yet.
                     </div>
                 )}
             </div>
-
             <ExchangeDocumentCommentComposer
-                value={newComment}
-                isInternal={isInternal}
-                isSubmitting={addingComment}
-                onValueChange={setNewComment}
-                onInternalChange={setIsInternal}
-                onSubmit={onAddComment}
-                idPrefix={idPrefix}
+                value={state.newComment}
+                isInternal={state.isInternal}
+                linkToPage={state.linkToPage}
+                isSubmitting={state.addingComment}
+                submitError={state.submitError}
+                canPostInternal={state.canPostInternal}
+                internalOrganizationName={state.internalOrganizationName}
+                pageNumber={props.pageNumber}
+                onValueChange={state.setNewComment}
+                onInternalChange={state.setIsInternal}
+                onLinkToPageChange={state.setLinkToPage}
+                onSubmit={state.addComment}
+                idPrefix={prefix}
             />
         </div>
     );

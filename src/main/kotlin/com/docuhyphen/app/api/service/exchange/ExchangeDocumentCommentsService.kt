@@ -15,7 +15,10 @@ import com.docuhyphen.app.api.service.auth.authz.ResourceRef
 import com.docuhyphen.app.api.service.organization.OrganizationMembershipService
 import com.docuhyphen.app.api.service.notification.InAppNotificationService
 import com.docuhyphen.app.api.service.notification.UserNotificationPreference
+import com.docuhyphen.app.api.realtime.RealtimeMessage
+import com.docuhyphen.app.api.realtime.RealtimeMessageType
 import jakarta.ws.rs.BadRequestException
+import jakarta.ws.rs.ClientErrorException
 import jakarta.ws.rs.ForbiddenException
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
@@ -24,6 +27,7 @@ import org.slf4j.LoggerFactory
 import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
+import java.util.concurrent.ConcurrentHashMap
 
 @ApplicationScoped
 class ExchangeDocumentCommentsService @Inject constructor(
@@ -36,41 +40,93 @@ class ExchangeDocumentCommentsService @Inject constructor(
     private val shareService: ShareService,
     private val authorizationService: AuthorizationService,
     private val authorizationContextFactory: AuthorizationContextFactory,
+    private val exchangeDocumentVersionService: ExchangeDocumentVersionService,
+    private val documentCommentRealtimeService: DocumentCommentRealtimeService,
 )
 {
     companion object
     {
         private val logger = LoggerFactory.getLogger(ExchangeDocumentCommentsService::class.java)
+
+        private const val MAX_COMMENT_LENGTH = 500
+
+        // A page number this large cannot correspond to a real document page and indicates
+        // a malformed or abusive request. The value is a defensive upper bound only; the
+        // frontend always sends the page currently being viewed.
+        private const val MAX_COMMENT_PAGE_NUMBER = 10_000
+
+        // Simple per-user sliding window: no more than this many comments per window.
+        private const val RATE_LIMIT_MAX_COMMENTS = 10
+        private const val RATE_LIMIT_WINDOW_MS = 60_000L
     }
+
+    // Tracks recent comment timestamps per user id to throttle rapid posting.
+    private val recentCommentTimestamps = ConcurrentHashMap<UUID, ArrayDeque<Long>>()
 
     @Transactional
     fun addDocumentComment(
         exchangeId: String,
         documentId: String,
         commentText: String,
-        isInternal: Boolean
+        isInternal: Boolean,
+        pageNumber: Int?,
+        documentVersionId: String?,
     ): ExchangeDocumentComment
     {
-        //ToDo: link comment to document version
         val document = requireDocumentAccess(exchangeId, documentId, Action.DOCUMENT_COMMENT)
+
+        val normalizedComment = commentText.trim()
+        if (normalizedComment.isEmpty())
+        {
+            throw BadRequestException("Document comment cannot be empty")
+        }
+        if (normalizedComment.length > MAX_COMMENT_LENGTH)
+        {
+            throw BadRequestException("Document comment cannot exceed $MAX_COMMENT_LENGTH characters")
+        }
+        if (pageNumber != null && pageNumber < 1)
+        {
+            throw BadRequestException("Document comment page number must be greater than zero")
+        }
+        if (pageNumber != null && pageNumber > MAX_COMMENT_PAGE_NUMBER)
+        {
+            throw BadRequestException("Document comment page number is out of range")
+        }
 
         val user = authTokenContext.authToken.appUser
             ?: throw ForbiddenException("A user account is required to add a document note")
+
+        enforceRateLimit(user.id)
+
         val internalOrganizationId = if (isInternal)
         {
-            authTokenContext.activeOrganizationId
+            val activeOrganizationId = authTokenContext.activeOrganizationId
                 ?: throw BadRequestException("Select an organization before posting an internal note")
+            if (!organizationMembershipService.isMember(user.id, activeOrganizationId))
+            {
+                throw ForbiddenException("You are not a member of the selected organization")
+            }
+            activeOrganizationId
         }
         else
         {
             null
         }
 
+        val exchangeUuid = UUID.fromString(exchangeId)
+        val exchange = exchangeRepository.findById(exchangeUuid)
+            ?: throw ExchangeNotFoundException("Exchange not found")
+
         val comment = ExchangeDocumentComment().apply {
-            this.commentText = commentText
+            this.commentText = normalizedComment
             this.document = document
             this.commentedBy = user
             this.internalOrganizationId = internalOrganizationId
+            this.pageNumber = pageNumber
+            this.documentVersion = exchangeDocumentVersionService.resolveCommentVersion(
+                document.id,
+                documentVersionId,
+            )
             this.createdDate = Timestamp.from(Instant.now())
         }
 
@@ -82,21 +138,87 @@ class ExchangeDocumentCommentsService @Inject constructor(
 
         if (!isInternal)
         {
-            publishCommentNotification(exchangeId, document, comment, user)
+            publishCommentNotification(exchange, document, comment, user)
         }
+
+        broadcastCommentAdded(exchange, comment, user)
 
         return comment
     }
 
+    private fun enforceRateLimit(userId: UUID)
+    {
+        val now = System.currentTimeMillis()
+        val timestamps = recentCommentTimestamps.computeIfAbsent(userId) { ArrayDeque() }
+        synchronized(timestamps)
+        {
+            while (timestamps.isNotEmpty() && now - timestamps.peekFirst() > RATE_LIMIT_WINDOW_MS)
+            {
+                timestamps.pollFirst()
+            }
+            if (timestamps.size >= RATE_LIMIT_MAX_COMMENTS)
+            {
+                throw ClientErrorException(
+                    "You are posting comments too quickly. Please wait a moment and try again.",
+                    429,
+                )
+            }
+            timestamps.addLast(now)
+        }
+    }
+
+    private fun broadcastCommentAdded(
+        exchange: com.docuhyphen.app.api.model.entity.Exchange,
+        comment: ExchangeDocumentComment,
+        user: com.docuhyphen.app.api.model.entity.AppUser,
+    )
+    {
+        val exchangeUuid = exchange.id
+        val message = RealtimeMessage(
+            type = RealtimeMessageType.DOCUMENT_COMMENT_ADDED,
+            exchangeId = exchangeUuid.toString(),
+            documentId = comment.document?.id?.toString(),
+            commentId = comment.id.toString(),
+            userId = user.id.toString(),
+        )
+
+        runCatching {
+            val organizationId = comment.internalOrganizationId
+            if (organizationId == null)
+            {
+                documentCommentRealtimeService.scheduleAfterCommit(exchangeUuid, message, null)
+                return@runCatching
+            }
+
+            val exchangeUserIds = buildSet {
+                add(user.id)
+                exchange.initiator?.id?.let(::add)
+                addAll(shareService.recipientUserIds(exchangeUuid))
+            }
+            val recipientUserIds = organizationMembershipService.membersOf(organizationId)
+                .asSequence()
+                .map { it.id }
+                .filter { it in exchangeUserIds }
+                .toSet()
+            documentCommentRealtimeService.scheduleAfterCommit(exchangeUuid, message, recipientUserIds)
+        }.onFailure { exception ->
+            logger.warn(
+                "Failed to broadcast document comment event for Exchange={} document={}",
+                exchangeUuid,
+                comment.document?.id,
+                exception,
+            )
+        }
+    }
+
     private fun publishCommentNotification(
-        exchangeId: String,
+        exchange: com.docuhyphen.app.api.model.entity.Exchange,
         document: Document,
         comment: ExchangeDocumentComment,
         user: com.docuhyphen.app.api.model.entity.AppUser,
     )
     {
-        val exchangeUuid = UUID.fromString(exchangeId)
-        val exchange = exchangeRepository.findById(exchangeUuid) ?: return
+        val exchangeUuid = exchange.id
         val recipients = buildSet {
             exchange.initiator?.id?.let(::add)
             addAll(shareService.recipientUserIds(exchangeUuid))
@@ -114,7 +236,7 @@ class ExchangeDocumentCommentsService @Inject constructor(
                 title = "Document comment",
                 message = buildDocumentCommentNotificationMessage(author, documentName, exchangeName),
                 data = buildMap {
-                    put("exchangeId", exchangeId)
+                    put("exchangeId", exchangeUuid.toString())
                     put("documentId", document.id.toString())
                     put("commentId", comment.id.toString())
                     put("userId", user.id.toString())

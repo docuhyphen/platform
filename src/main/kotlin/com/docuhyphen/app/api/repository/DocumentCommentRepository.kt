@@ -14,6 +14,7 @@ class DocumentCommentRepository :
             .createQuery(
                 """
                 |SELECT c FROM ExchangeDocumentComment c
+                |LEFT JOIN FETCH c.documentVersion
                 |WHERE c.document.id = :documentId
                 |ORDER BY c.createdDate DESC """.trimMargin(),
                 ExchangeDocumentComment::class.java

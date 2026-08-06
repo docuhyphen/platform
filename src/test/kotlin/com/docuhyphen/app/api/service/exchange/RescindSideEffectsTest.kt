@@ -359,6 +359,7 @@ class RescindSideEffectsTest
             authorizationContextFactory = factory,
             auditRecorder = mock(),
             noAuthExchangeAccessTokenService = mock(),
+            documentVersionService = mock(),
         )
 
         assertThrows<ExchangeDocumentNotFoundException> {

@@ -497,6 +497,19 @@ export const useExchangeDocumentPreviewerStyles = makeStyles({
         height: "100%",
     },
 
+    notesControl: {
+        position: "relative",
+        display: "inline-flex",
+    },
+
+    notesUnreadBadge: {
+        position: "absolute",
+        top: 0,
+        right: 0,
+        transform: "translate(35%, -35%)",
+        pointerEvents: "none",
+    },
+
     watermarkOverlay: {
         position: "absolute",
         inset: 0,

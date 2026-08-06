@@ -14,7 +14,7 @@ export const useExchangeDocumentCommentsStyles = makeStyles({
         display: "flex",
         flexDirection: "column",
         flexGrow: 1,
-        gap: tokens.spacingHorizontalS,
+        gap: tokens.spacingHorizontalL,
         overflowY: "auto",
     },
 

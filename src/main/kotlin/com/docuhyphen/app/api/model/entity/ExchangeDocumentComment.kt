@@ -36,5 +36,13 @@ class ExchangeDocumentComment
     @Serializable(with = UUIDSerializer::class)
     var internalOrganizationId: UUID? = null
 
+    @Column(name = "page_number")
+    var pageNumber: Int? = null
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "document_version_id")
+    @kotlinx.serialization.Transient
+    var documentVersion: DocumentVersion? = null
+
     constructor()
 }

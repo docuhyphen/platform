@@ -211,8 +211,10 @@ class DetailedEntityToDtoTransformer
                         commentText,
                         commentedBy.person?.firstName,
                         commentedBy.person?.lastName,
-                        commentedBy.email,
-                        internalOrganizationId != null
+                        internalOrganizationId != null,
+                        pageNumber,
+                        documentVersion?.id?.toString(),
+                        documentVersion?.version,
                     )
                 }
             }

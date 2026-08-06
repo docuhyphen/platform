@@ -43,6 +43,7 @@ data class UserSessionInfo(
  *     - EXCHANGE_DOCUMENT_ADDED   { exchangeId, documentId }
  *     - EXCHANGE_DOCUMENT_REMOVED { exchangeId, documentId }
  *     - EXCHANGE_DOCUMENT_UPDATED { exchangeId, documentId }
+ *     - DOCUMENT_COMMENT_ADDED     { exchangeId, documentId, commentId }
  *     - EXCHANGE_STATUS_CHANGED   { exchangeId, status }
  *     - EXCHANGE_LIST_CHANGED     { exchangeId, status }
  *     - REALTIME_PROBE                   { message, serverTime }
@@ -64,6 +65,7 @@ data class RealtimeMessage(
     val serverTime: Long? = null,
     val session: UserSessionInfo? = null,
     val documentId: String? = null,
+    val commentId: String? = null,
     val status: String? = null,
 )
 
@@ -87,6 +89,7 @@ object RealtimeMessageType
     const val EXCHANGE_DOCUMENT_ADDED = "EXCHANGE_DOCUMENT_ADDED"
     const val EXCHANGE_DOCUMENT_REMOVED = "EXCHANGE_DOCUMENT_REMOVED"
     const val EXCHANGE_DOCUMENT_UPDATED = "EXCHANGE_DOCUMENT_UPDATED"
+    const val DOCUMENT_COMMENT_ADDED = "DOCUMENT_COMMENT_ADDED"
     const val EXCHANGE_STATUS_CHANGED = "EXCHANGE_STATUS_CHANGED"
     const val EXCHANGE_LIST_CHANGED = "EXCHANGE_LIST_CHANGED"
     const val REALTIME_PROBE = "REALTIME_PROBE"

@@ -421,13 +421,17 @@ const SignIn: React.FC = () =>
 
     return (
         <RedirectIfAuthenticated element={
-            <section className={authorizationStyles.auth}>
-                <section className={authorizationStyles.authSection}>
-                    <section className={authorizationStyles.authSection1}>
-                        <div>
+            <section id={"sign-in-auth"}
+                     className={authorizationStyles.auth}>
+                <section id={"sign-in-auth-section"}
+                         className={authorizationStyles.authSection}>
+                    <section id={"sign-in-auth-section-form"}
+                             className={authorizationStyles.authSection1}>
+                        <div id={"sign-in-auth-logo"}>
                             <AppLogo/>
                         </div>
-                        <div className={authorizationStyles.authorizationFormSection}>
+                        <div id={"sign-in-auth-form"}
+                             className={authorizationStyles.authorizationFormSection}>
 
                             <Subtitle1 align={"center"}>
                                 {step !== 'EMAIL_ENTRY' &&
@@ -566,7 +570,8 @@ const SignIn: React.FC = () =>
                             </div>
                         </div>
                     </section>
-                    <section className={authorizationStyles.authSection2}>
+                    <section id={"sign-in-auth-section-carousel"}
+                             className={authorizationStyles.authSection2}>
                         <SignInCarousel/>
                     </section>
                 </section>

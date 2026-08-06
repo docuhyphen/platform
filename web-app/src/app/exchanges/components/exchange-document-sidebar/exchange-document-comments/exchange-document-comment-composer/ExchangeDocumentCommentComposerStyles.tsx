@@ -12,6 +12,10 @@ export const useExchangeDocumentCommentComposerStyles = makeStyles({
         paddingTop: tokens.spacingVerticalS,
         width: "100%",
     },
+    inputContainer: {
+        position: "relative",
+        width: "100%",
+    },
     input: {
         width: "100%",
         minHeight: "32px",
@@ -43,6 +47,13 @@ export const useExchangeDocumentCommentComposerStyles = makeStyles({
             overflowY: "auto",
         },
     },
+    inputInternal: {
+        "& textarea": {
+            minHeight: "64px",
+            height: "64px",
+            paddingTop: tokens.spacingVerticalXXL,
+        },
+    },
     actions: {
         display: "flex",
         flexDirection: "row",
@@ -50,5 +61,14 @@ export const useExchangeDocumentCommentComposerStyles = makeStyles({
         justifyContent: "space-between",
         gap: tokens.spacingHorizontalS,
         flexWrap: "wrap",
+    },
+    internalOptions: {
+        display: "flex",
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: tokens.spacingHorizontalS,
+        flexWrap: "wrap",
+        width: "100%",
     },
 });

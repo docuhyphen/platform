@@ -35,6 +35,7 @@ export type RealtimeMessageType =
     | 'EXCHANGE_DOCUMENT_ADDED'
     | 'EXCHANGE_DOCUMENT_REMOVED'
     | 'EXCHANGE_DOCUMENT_UPDATED'
+    | 'DOCUMENT_COMMENT_ADDED'
     | 'EXCHANGE_STATUS_CHANGED'
     | 'EXCHANGE_LIST_CHANGED'
     | 'REALTIME_PROBE'
@@ -71,6 +72,7 @@ export interface RealtimeMessage
     serverTime?: number;
     session?: RealtimeSessionInfo;
     documentId?: string;
+    commentId?: string;
     status?: string;
 }
 

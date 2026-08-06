@@ -1,8 +1,8 @@
-﻿import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+﻿import React, {useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState} from 'react';
 import {Document, Page, pdfjs} from 'react-pdf';
 import "react-pdf/dist/esm/Page/AnnotationLayer.css";
 import "react-pdf/dist/esm/Page/TextLayer.css";
-import {Button, Divider, Input, mergeClasses, Spinner, Text, Tooltip} from "@fluentui/react-components";
+import {Button, CounterBadge, Divider, Input, mergeClasses, Spinner, Text, Tooltip} from "@fluentui/react-components";
 import {
     downloadPreviewPDFExchangeDocument,
     downloadExchangeDocument
@@ -26,6 +26,7 @@ import {useExchangeDocumentPreviewerStyles} from "./ExchangeDocumentPreviewerSty
 import {useIsMobile} from "../../../../utils/useMediaQuery.ts";
 import {useAuth} from "../../../../context/AuthContext.tsx";
 import ExchangeDocumentNotesPanel from "./exchange-document-notes-panel/ExchangeDocumentNotesPanel.tsx";
+import {useDocumentCommentUnreadCount} from "./useDocumentCommentUnreadCount.ts";
 
 pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.mjs`;
 
@@ -37,6 +38,20 @@ interface DocumentPreviewerProps
     onUploadDocument?: () => void;
     /** When true the Enlarge button is hidden (e.g. when already rendered inside a large dialog). */
     hideEnlarge?: boolean;
+    overridePdfUrl?: string;
+    documentVersionId?: string;
+    /**
+     * Reports the page currently in view so an external notes/comments composer (e.g. the
+     * sidebar in the default preview) can offer a "Link to page" option. Emits undefined when
+     * there is no paginated preview to link to.
+     */
+    onPageChange?: (pageNumber: number | undefined) => void;
+}
+
+/** Imperative API for driving the previewer from a parent (e.g. scrolling to a page). */
+export interface ExchangeDocumentPreviewerHandle
+{
+    goToPage: (pageNumber: number) => void;
 }
 
 const INLINE_ZOOM_STORAGE_KEY = 'exchanges.preview.zoom.inline';
@@ -92,7 +107,7 @@ const readZoomPreference = (storageKey: string, fallback: number = DEFAULT_ZOOM_
     return clampZoom(parsed);
 };
 
-const ExchangeDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
+const ExchangeDocumentPreviewer = React.forwardRef<ExchangeDocumentPreviewerHandle, DocumentPreviewerProps>((
     {
         document: exchangeDocument,
         exchange,
@@ -100,7 +115,9 @@ const ExchangeDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
         onUploadDocument,
         overridePdfUrl,
         hideEnlarge = false,
-    }) =>
+        documentVersionId,
+        onPageChange,
+    }, ref) =>
 {
     const styles = useExchangeDocumentPreviewerStyles();
     const isMobile = useIsMobile();
@@ -205,6 +222,12 @@ const ExchangeDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
         };
     }, []);
 
+    const unreadCommentCount = useDocumentCommentUnreadCount(
+        exchange.id,
+        exchangeDocument.id,
+        isNotesPanelOpen,
+    );
+
     // Fetch / refresh the PDF blob whenever the underlying document changes.
     useEffect(() =>
     {
@@ -267,7 +290,7 @@ const ExchangeDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
                 URL.revokeObjectURL(revokedUrl);
             }
         };
-    }, [exchangeDocument, exchange.id, overridePdfUrl]);
+    }, [downloadAllowed, exchangeDocument, exchange.id, overridePdfUrl]);
 
     useEffect(() =>
     {
@@ -551,6 +574,16 @@ const ExchangeDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
         }
     }, [numPages]);
 
+    useImperativeHandle(ref, () => ({goToPage}), [goToPage]);
+
+    // Report the in-view page to the parent so an external composer (the default-preview
+    // sidebar) can offer "Link to page". Emit undefined when there is no paginated preview.
+    useEffect(() =>
+    {
+        const hasPaginatedPreview = !!pdfUrl && !previewError && numPages > 0;
+        onPageChange?.(hasPaginatedPreview ? currentPage : undefined);
+    }, [onPageChange, pdfUrl, previewError, numPages, currentPage]);
+
     const handlePageInputChange = (event: React.ChangeEvent<HTMLInputElement>) =>
     {
         const next = event.target.value.replace(/[^0-9]/g, '');
@@ -613,6 +646,10 @@ const ExchangeDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
 
     const handleNextPage = () => goToPage(currentPage + 1);
     const handlePreviousPage = () => goToPage(currentPage - 1);
+    const toggleNotesPanel = () =>
+    {
+        setIsNotesPanelOpen(currentValue => !currentValue);
+    };
 
     const toggleEnlarge = () =>
     {
@@ -1204,20 +1241,32 @@ const ExchangeDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
 
                         <Divider vertical className={styles.dividerFullHeight}/>
 
-                        <Tooltip
-                            content={isNotesPanelOpen ? "Hide notes and comments" : "Show notes and comments"}
-                            relationship="description"
-                        >
-                            <Button
-                                onClick={() => setIsNotesPanelOpen(currentValue => !currentValue)}
-                                id="exchange-document-preview-notes-toggle"
-                                aria-label={isNotesPanelOpen ? "Hide notes and comments" : "Show notes and comments"}
-                                aria-pressed={isNotesPanelOpen}
-                                appearance={isNotesPanelOpen ? "primary" : "transparent"}
-                                shape={"circular"}
-                                icon={<CommentIcon/>}
-                            />
-                        </Tooltip>
+                        <div className={styles.notesControl} id={"exchange-document-preview-notes-control"}>
+                            <Tooltip
+                                content={isNotesPanelOpen ? "Hide notes and comments" : "Show notes and comments"}
+                                relationship="description"
+                            >
+                                <Button
+                                    onClick={toggleNotesPanel}
+                                    id="exchange-document-preview-notes-toggle"
+                                    aria-label={isNotesPanelOpen ? "Hide notes and comments" : "Show notes and comments"}
+                                    aria-pressed={isNotesPanelOpen}
+                                    appearance={isNotesPanelOpen ? "primary" : "transparent"}
+                                    shape={"circular"}
+                                    icon={<CommentIcon/>}
+                                />
+                            </Tooltip>
+                            {unreadCommentCount > 0 && (
+                                <CounterBadge
+                                    id={"exchange-document-preview-notes-unread-count"}
+                                    className={styles.notesUnreadBadge}
+                                    count={unreadCommentCount}
+                                    size={"small"}
+                                    appearance={"filled"}
+                                    color={"danger"}
+                                />
+                            )}
+                        </div>
 
                         <Divider vertical className={styles.dividerFullHeight}/>
 
@@ -1251,6 +1300,9 @@ const ExchangeDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
                                 exchangeId={exchange.id}
                                 exchangeDocument={exchangeDocument}
                                 onClose={() => setIsNotesPanelOpen(false)}
+                                pageNumber={currentPage}
+                                documentVersionId={documentVersionId}
+                                onNavigateToPage={goToPage}
                             />
                         )}
                     </div>
@@ -1263,6 +1315,8 @@ const ExchangeDocumentPreviewer: React.FC<DocumentPreviewerProps> = (
             )}
         </section>
     );
-};
+});
+
+ExchangeDocumentPreviewer.displayName = "ExchangeDocumentPreviewer";
 
 export default ExchangeDocumentPreviewer;

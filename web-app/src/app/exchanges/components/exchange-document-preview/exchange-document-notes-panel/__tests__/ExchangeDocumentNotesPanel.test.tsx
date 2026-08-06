@@ -31,6 +31,9 @@ describe("ExchangeDocumentNotesPanel", () =>
                 exchangeId={"exchange-1"}
                 exchangeDocument={documentFixture}
                 onClose={onClose}
+                pageNumber={3}
+                documentVersionId={"version-1"}
+                onNavigateToPage={vi.fn()}
             />
         );
 
@@ -39,5 +42,25 @@ describe("ExchangeDocumentNotesPanel", () =>
         fireEvent.click(document.getElementById("exchange-document-preview-notes-close") as HTMLElement);
 
         expect(onClose).toHaveBeenCalledOnce();
+    });
+
+    it("resizes with the keyboard and remembers the preferred width", () =>
+    {
+        render(
+            <ExchangeDocumentNotesPanel
+                exchangeId={"exchange-1"}
+                exchangeDocument={documentFixture}
+                onClose={vi.fn()}
+                pageNumber={1}
+                onNavigateToPage={vi.fn()}
+            />
+        );
+
+        fireEvent.keyDown(
+            document.getElementById("exchange-document-preview-notes-resize-handle") as HTMLElement,
+            {key: "ArrowLeft"}
+        );
+
+        expect(window.localStorage.getItem("exchanges.preview.notes.width")).toBe("384");
     });
 });

@@ -12,7 +12,8 @@ export const useAuthorizationStyles = makeStyles({
         background: tokens.colorNeutralBackground2,
 
         "@media (max-width: 768px)": {
-            padding: tokens.spacingHorizontalM,
+            padding: `${tokens.spacingVerticalXL} ${tokens.spacingHorizontalS}`,
+            alignItems: "stretch",
         },
     },
     authSection: {
@@ -29,7 +30,9 @@ export const useAuthorizationStyles = makeStyles({
         background: tokens.colorNeutralBackground1,
 
         "@media (max-width: 768px)": {
+            width: "100%",
             minHeight: "unset",
+            flex: 1,
         },
     },
     authSection1: {
@@ -44,6 +47,7 @@ export const useAuthorizationStyles = makeStyles({
 
         "@media (max-width: 768px)": {
             maxWidth: "100%",
+            padding: tokens.spacingHorizontalXL,
         },
     },
     authSection2: {

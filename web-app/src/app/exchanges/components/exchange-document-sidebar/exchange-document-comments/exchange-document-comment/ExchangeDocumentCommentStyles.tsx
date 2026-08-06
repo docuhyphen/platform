@@ -26,12 +26,13 @@ export const useExchangeDocumentCommentStyles = makeStyles({
     },
     commentDate: {
         display: "inline-block",
-        textAlign: "end"
+        textAlign: "end",
+        marginLeft: "auto",
     },
     commentMetadata: {
         display: "flex",
         flexWrap: "wrap",
-        justifyContent: "space-between",
+        justifyContent: "flex-start",
         alignItems: "center",
         gap: tokens.spacingHorizontalXS
     }

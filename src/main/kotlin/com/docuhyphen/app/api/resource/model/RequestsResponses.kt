@@ -437,7 +437,9 @@ class UpdateShareSessionDocumentRequest
 @Serializable
 data class CommentRequest(
     val commentText: String,
-    val isInternal: Boolean = false
+    val isInternal: Boolean = false,
+    val pageNumber: Int? = null,
+    val documentVersionId: String? = null,
 )
 
 @Serializable

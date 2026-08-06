@@ -1,4 +1,4 @@
-﻿import React, {useEffect, useMemo, useRef, useState} from 'react';
+﻿import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {
     Button, InputOnChangeData, Link, SearchBoxChangeEvent,
     mergeClasses,
@@ -42,7 +42,7 @@ import {
     exchangeDeletionObservable,
     exchangeInitiationObservable
 } from "../observable/exchangeObservables.ts";
-import ExchangeDocumentPreviewer from "./components/exchange-document-preview/ExchangeDocumentPreviewer.tsx";
+import ExchangeDocumentPreviewer, {ExchangeDocumentPreviewerHandle} from "./components/exchange-document-preview/ExchangeDocumentPreviewer.tsx";
 import ExchangeAcceptanceDialog from "./components/exchange-acceptance-dialog/ExchangeAcceptanceDialog.tsx";
 import EmptyStateIllustration from "./components/empty-state-illustration/EmptyStateIllustration.tsx";
 import {ExchangeListTab} from "./components/exchange-list/exchange-list-tabs/ExchangeListTabs.tsx";
@@ -110,6 +110,24 @@ const Exchanges: React.FC = () =>
     const [isDocumentToolbarVisible, setIsDocumentToolbarVisible] = useState<boolean>(false);
     const [routeSelectionVersion, setRouteSelectionVersion] = useState(0);
     const [resolvedDocumentLayoutKey, setResolvedDocumentLayoutKey] = useState<string | null>(null);
+    const documentPreviewerRef = useRef<ExchangeDocumentPreviewerHandle>(null);
+    // The page currently in view within the inline previewer, so the sidebar comment
+    // composer can offer a "Link to page" option in the default (non-enlarged) preview.
+    const [previewerCurrentPage, setPreviewerCurrentPage] = useState<number | undefined>(undefined);
+    // Scroll the inline previewer to a comment's page. Only navigate when the
+    // previewer is showing the same document as the sidebar comments, otherwise
+    // there is nothing meaningful to scroll.
+    const canNavigatePreviewerToPage = Boolean(
+        selectedExchangeDocument &&
+        selectedExchangeDocument.id === selectedSidebarExchangeDocument?.id
+    );
+    // Only surface the previewer's page to the sidebar composer when both panes show the
+    // same document, otherwise a comment could be linked to an unrelated document's page.
+    const sidebarLinkablePageNumber = canNavigatePreviewerToPage ? previewerCurrentPage : undefined;
+    const handleNavigatePreviewerToPage = useCallback((pageNumber: number) =>
+    {
+        documentPreviewerRef.current?.goToPage(pageNumber);
+    }, []);
     const permissions = useMemo<ExchangePermissions>(
         () => getPermissions(exchangeDetails, appUser),
         [exchangeDetails, appUser],
@@ -966,8 +984,10 @@ const Exchanges: React.FC = () =>
                                 }
                                 {selectedExchangeDocument &&
                                     <ExchangeDocumentPreviewer document={selectedExchangeDocument}
+                                                              ref={documentPreviewerRef}
                                                               exchange={exchangeDetails}
                                                               canUploadDocument={!!permissions?.canUploadDocument}
+                                                              onPageChange={setPreviewerCurrentPage}
                                                               onUploadDocument={() => {
                                                                   setSelectedUploadExchangeDocument(selectedExchangeDocument);
                                                                   setIsUploadDocumentDialogOpen(true);
@@ -981,7 +1001,9 @@ const Exchanges: React.FC = () =>
                                     isOpen={isDocumentSidebarOpen}
                                     onOpen={setIsDocumentSidebarOpen}
                                     exchange={exchangeDetails}
-                                    exchangeDocument={selectedSidebarExchangeDocument}/>
+                                    exchangeDocument={selectedSidebarExchangeDocument}
+                                    pageNumber={sidebarLinkablePageNumber}
+                                    onNavigateToPage={canNavigatePreviewerToPage ? handleNavigatePreviewerToPage : undefined}/>
                             }
                         </div>
                         )}

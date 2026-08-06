@@ -370,8 +370,10 @@ export interface DocumentCommentDetailedDto
     text?: string;
     commentedByFirstName?: string,
     commentedByLastName?: string,
-    commentedByEmail?: string;
     isInternal: boolean;
+    pageNumber?: number;
+    documentVersionId?: string;
+    documentVersion?: string;
 }
 
 export interface DocumentDetailedDto

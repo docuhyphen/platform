@@ -63,6 +63,7 @@ class ExchangeDocumentService @Inject constructor(
     private val authorizationContextFactory: AuthorizationContextFactory,
     private val auditRecorder: AuditRecorder,
     private val noAuthExchangeAccessTokenService: NoAuthExchangeAccessTokenService,
+    private val documentVersionService: ExchangeDocumentVersionService,
 )
 {
     private enum class DocumentAction
@@ -245,6 +246,9 @@ class ExchangeDocumentService @Inject constructor(
         updateDocument(exchangeId, document)
         documentThumbnailService.scheduleGeneration(document)
 
+        // Record the uploaded file as a version so it appears in the document's version history.
+        documentVersionService.recordUploadedFileAsVersion(document, file, appUser?.email)
+
         appUser
             ?.let { auditService.logAction(document, DocumentAuditAction.UPLOAD, it) }
             ?: auditService.logAction(document, DocumentAuditAction.UPLOAD, actorEmail())
@@ -327,6 +331,9 @@ class ExchangeDocumentService @Inject constructor(
         documentThumbnailService.scheduleGeneration(document)
         resolveRecipientEmail(exchange.id)?.let { auditService.logAction(document, DocumentAuditAction.UPLOAD, it) }
 //        sendUploadNotification(exchange, appUser, document.title)
+
+        // Record the uploaded file as a version so it appears in the document's version history.
+        documentVersionService.recordUploadedFileAsVersion(document, file, resolveRecipientEmail(exchange.id))
 
         broadcastDocumentEvent(exchange.id, RealtimeMessageType.EXCHANGE_DOCUMENT_UPDATED, document.id)
         publishDocumentNotification(

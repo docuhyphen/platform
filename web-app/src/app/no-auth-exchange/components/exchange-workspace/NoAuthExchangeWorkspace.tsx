@@ -37,7 +37,6 @@ const NoAuthExchangeWorkspace: React.FC<NoAuthExchangeWorkspaceProps> = ({exchan
                             Review available documents or upload a file where one is needed.
                         </Text>
                     </div>
-                    <Text className={styles.privateLabel}>Private exchange</Text>
                 </div>
                 <NoAuthExchangeDocumentList exchange={exchange} onDocumentUploaded={onDocumentUploaded}/>
             </div>

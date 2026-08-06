@@ -13,6 +13,8 @@ interface ExchangeDocumentSidebarBodyProps
     canViewAudit: boolean;
     canUpload: boolean;
     canDownload: boolean;
+    pageNumber?: number;
+    onNavigateToPage?: (pageNumber: number) => void;
 }
 
 const ExchangeDocumentSidebarBody = (props: ExchangeDocumentSidebarBodyProps) =>
@@ -27,6 +29,8 @@ const ExchangeDocumentSidebarBody = (props: ExchangeDocumentSidebarBodyProps) =>
                 <ExchangeDocumentComments
                     exchangeId={props.exchange.id}
                     exchangeDocument={props.exchangeDocument}
+                    pageNumber={props.pageNumber}
+                    onNavigateToPage={props.onNavigateToPage}
                 />
             )}
             {props.selectedValue === "versions" && (

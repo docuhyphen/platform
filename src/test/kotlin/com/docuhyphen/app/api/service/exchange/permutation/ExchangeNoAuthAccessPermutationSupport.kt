@@ -183,6 +183,7 @@ internal class NoAuthDocumentAccessFixture(
             authorizationContextFactory = mock<AuthorizationContextFactory>(),
             auditRecorder = auditRecorder,
             noAuthExchangeAccessTokenService = tokenService,
+            documentVersionService = mock(),
         )
     }
 

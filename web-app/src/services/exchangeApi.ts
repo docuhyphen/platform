@@ -285,11 +285,20 @@ export const getDocumentComments = (exchangeId: string, documentId: string) =>
         apiClient.get(`/exchanges/${exchangeId}/documents/${documentId}/comments`)
     );
 
-export const addDocumentComment = (exchangeId: string, documentId: string, commentText: string, isInternal: boolean) =>
+export const addDocumentComment = (
+    exchangeId: string,
+    documentId: string,
+    commentText: string,
+    isInternal: boolean,
+    pageNumber?: number,
+    documentVersionId?: string,
+) =>
     executeRequest(() =>
         apiClient.post(`/exchanges/${exchangeId}/documents/${documentId}/comments`, {
             commentText,
-            isInternal
+            isInternal,
+            pageNumber,
+            documentVersionId,
         })
     );
 

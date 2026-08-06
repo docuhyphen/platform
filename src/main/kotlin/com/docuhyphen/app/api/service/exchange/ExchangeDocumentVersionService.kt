@@ -6,6 +6,7 @@ import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.model.entity.DocumentAuditAction
 import com.docuhyphen.app.api.model.entity.DocumentType
 import com.docuhyphen.app.api.model.entity.DocumentVersion
+import com.docuhyphen.app.api.model.entity.Document
 import com.docuhyphen.app.api.model.entity.Exchange
 import com.docuhyphen.app.api.model.entity.ResourceType
 import com.docuhyphen.app.api.repository.AppUserRepository
@@ -74,8 +75,27 @@ class ExchangeDocumentVersionService @Inject constructor(
             throw IllegalArgumentException("File is required")
         }
 
+        return persistVersion(document, file, currentUserEmail)
+    }
+
+    /**
+     * Records a stored version snapshot for a document whose file has just been uploaded through
+     * the document upload flow. The upload flow has already validated permissions, so no
+     * additional authorization check is performed here. This keeps every uploaded file (including
+     * the very first one) visible in the document's version history.
+     */
+    @Transactional
+    fun recordUploadedFileAsVersion(document: Document, file: File, currentUserEmail: String?): DocumentVersion
+    {
+        return persistVersion(document, file, currentUserEmail)
+    }
+
+    private fun persistVersion(document: Document, file: File, currentUserEmail: String?): DocumentVersion
+    {
         val versionCount = documentVersionRepository.findByDocumentId(document.id).size
-        val versionNumber = "v${versionCount + 1}"
+        // Stored as a bare ordinal (e.g. "1", "2"). Display layers add their own "v"/"Version"
+        // prefix, so storing the prefix here too would render as "vv1".
+        val versionNumber = "${versionCount + 1}"
 
         // Create directory if it doesn't exist
         val storagePath = "$VERSIONS_STORAGE_PATH/${document.id}"
@@ -83,7 +103,7 @@ class ExchangeDocumentVersionService @Inject constructor(
 
         // Generate version file name and copy to storage
         val extension = document.type?.let { DocumentType.toFileExtension(it) } ?: ""
-        val versionFileName = "${document.title}_$versionNumber$extension"
+        val versionFileName = "${document.title}_v$versionNumber$extension"
         val destinationPath = Paths.get("$storagePath/$versionFileName")
 
         Files.copy(file.toPath(), destinationPath, StandardCopyOption.REPLACE_EXISTING)
@@ -149,6 +169,21 @@ class ExchangeDocumentVersionService @Inject constructor(
             ?: throw ExchangeDocumentNotFoundException("Document not found")
 
         return documentVersionRepository.findLatestByDocumentId(document.id)
+    }
+
+    fun resolveCommentVersion(documentId: UUID, versionId: String?): DocumentVersion?
+    {
+        if (versionId == null)
+        {
+            return documentVersionRepository.findLatestByDocumentId(documentId)
+        }
+
+        val parsedVersionId = runCatching { UUID.fromString(versionId) }
+            .getOrElse { throw IllegalArgumentException("Invalid document version identifier") }
+        val version = documentVersionRepository.findById(parsedVersionId)
+            ?: throw IllegalArgumentException("Document version not found")
+        require(version.document.id == documentId) { "Document version does not belong to this document" }
+        return version
     }
 
     private fun validateUploadPermission(exchange: Exchange)

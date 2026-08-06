@@ -6,7 +6,6 @@ import com.docuhyphen.app.api.service.storage.DocumentThumbnailStorageService
 import com.docuhyphen.app.api.service.storage.FileStorageService
 import org.apache.pdfbox.pdmodel.PDDocument
 import org.apache.pdfbox.pdmodel.PDPage
-import org.eclipse.microprofile.context.ManagedExecutor
 import org.junit.jupiter.api.Assertions.assertArrayEquals
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
@@ -49,7 +48,6 @@ class DocumentThumbnailServiceTest
             fileStorageService = fileStorage,
             thumbnailStorageService = thumbnailStorage,
             pdfConversionService = conversionService,
-            managedExecutor = mock<ManagedExecutor>(),
         )
         val document = Document().apply {
             id = UUID.randomUUID()
