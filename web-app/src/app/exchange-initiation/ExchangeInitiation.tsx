@@ -418,7 +418,10 @@ const ExchangeInitiation: React.FC = () =>
             return;
         }
         setIsDialogOpen(false);
-        navigate(`/exchanges?s=${encodeURIComponent(createdExchangeSummary.id)}`);
+        // A freshly started exchange is INITIATED and owned by the current user, so it
+        // belongs to the outgoing side of the inbox tab. Open that tab explicitly so the
+        // list lands on the correct tab instead of flashing the default active tab first.
+        navigate(`/exchanges?tab=inbox&role=outgoing&s=${encodeURIComponent(createdExchangeSummary.id)}`);
     };
 
     const buildExchangeShareLink = (exchangeId: string, requiresSignIn: boolean): string =>

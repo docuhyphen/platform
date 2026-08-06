@@ -225,6 +225,13 @@ const Exchanges: React.FC = () =>
     {
         setActiveListTab(exchangeRouteState.listTab ?? 'active');
 
+        // Apply the inbox role from the route so a deep-linked outgoing exchange lands on
+        // the correct side of the inbox tab immediately instead of flashing the incoming list.
+        if (exchangeRouteState.inboxRole)
+        {
+            setInboxRole(exchangeRouteState.inboxRole);
+        }
+
         const deepLinkedId = exchangeRouteState.exchangeId;
         const deepLinkedDocumentId = exchangeRouteState.documentId;
         if (deepLinkedId)
@@ -256,6 +263,10 @@ const Exchanges: React.FC = () =>
 
         const params = new URLSearchParams(window.location.search);
         params.set('tab', activeListTab);
+
+        // The inbox role is only a one-time deep-link hint (e.g. from "View Exchange").
+        // Drop it once consumed so it does not linger as a stale query param.
+        params.delete('role');
 
         if (selectedExchangeId)
         {

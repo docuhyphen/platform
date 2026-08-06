@@ -457,8 +457,11 @@ const ExchangeList: React.FC<ExchangeListProps> = (
                     onTabChange?.(targetTab);
                 }
 
-                setSelectedItems([exchange.id]);
-                onSelectionChange(exchange.id);
+                // Do not auto-open the newly created exchange. The user opens it
+                // explicitly via the "View Exchange" action shown after starting it.
+                // Clear any prior selection so no detail pane is left open behind it.
+                setSelectedItems([]);
+                onSelectionChange(null);
             }
         });
 
