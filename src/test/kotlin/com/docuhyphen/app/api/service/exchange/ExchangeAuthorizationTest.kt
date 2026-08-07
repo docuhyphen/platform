@@ -146,6 +146,7 @@ class ExchangeAuthorizationTest
         authorizationContextFactory = factory,
         auditRecorder = mock(),
         noAuthExchangeAccessTokenService = noAuthExchangeAccessTokenService,
+        noAuthExchangeAccessWindowService = mock(),
         lifecycleNotificationService = mock(),
         documentThumbnailService = mock(),
     )

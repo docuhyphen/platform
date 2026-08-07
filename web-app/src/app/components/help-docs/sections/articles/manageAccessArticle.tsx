@@ -115,10 +115,11 @@ export const manageAccessArticle = (
             </li>
             <li>
                 <strong>No-auth access validity</strong> - Sets how many days the one-time access code
-                verification remains valid (1 to 30 days). After expiry, a new code and secure link must
-                be sent.
-            </li>
-        </ul>
+                verification remains valid (1 to 30 days). The countdown starts when the recipient verifies
+                the code, either by accepting the Exchange or by entering a resent code. After expiry the
+                recipient sees an <strong>Access verification required</strong> prompt on the request page,
+                and a newly sent code entered there restores their access.
+            </li>        </ul>
 
         <h3>Summary tab</h3>
         <p>

@@ -45,6 +45,7 @@ class ExchangeRetrievalService @Inject constructor(
     private val shareService: ShareService,
     private val exchangeRecipientService: ExchangeRecipientService,
     private val noAuthExchangeAccessTokenService: NoAuthExchangeAccessTokenService,
+    private val noAuthExchangeAccessWindowService: NoAuthExchangeAccessWindowService,
 )
 {
     @PersistenceContext
@@ -179,6 +180,10 @@ class ExchangeRetrievalService @Inject constructor(
             (constraintsJson?.contains("\"allow_document_download\":true") == true ||
                 constraints?.canDownload == true)
         dto.allowDocumentDownload = downloadAllowed
+        // A draft still awaiting the accept/decline decision is verified by the one-time code on
+        // that decision, so it is not treated as needing a separate access-code prompt here.
+        dto.accessVerificationRequired = session.status == ACCEPTED_STARTED &&
+            !noAuthExchangeAccessWindowService.isActive(session)
 
         return dto
     }

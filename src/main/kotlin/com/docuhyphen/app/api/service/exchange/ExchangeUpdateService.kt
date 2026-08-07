@@ -83,6 +83,7 @@ class ExchangeUpdateService @Inject constructor(
     private val authorizationContextFactory: AuthorizationContextFactory,
     private val auditRecorder: AuditRecorder,
     private val noAuthExchangeAccessTokenService: NoAuthExchangeAccessTokenService,
+    private val noAuthExchangeAccessWindowService: NoAuthExchangeAccessWindowService,
     private val lifecycleNotificationService: ExchangeLifecycleNotificationService,
     private val documentThumbnailService: DocumentThumbnailService,
 )
@@ -418,7 +419,7 @@ class ExchangeUpdateService @Inject constructor(
         if (request?.requireRecipientSignIn == true)
         {
             // Force a fresh verification window if no-auth access is re-enabled later.
-            exchangeRepository.updateNoAuthAccessVerifiedAt(sessionUUID, null)
+            exchangeRepository.findById(sessionUUID)?.let { noAuthExchangeAccessWindowService.clearVerification(it) }
         }
 
         exchangeRepository.updateLastActivity(sessionUUID, Timestamp.from(Instant.now()))
@@ -768,7 +769,7 @@ class ExchangeUpdateService @Inject constructor(
                     }
                     if (requestedStatus == ExchangeStatus.ACCEPTED_STARTED)
                     {
-                        exchangeRepository.updateNoAuthAccessVerifiedAt(sessionUUID, Timestamp.from(Instant.now()))
+                        noAuthExchangeAccessWindowService.markVerified(session)
                     }
                     if (requestedStatus == ExchangeStatus.REJECTED && rejectReason != null)
                     {
@@ -789,7 +790,7 @@ class ExchangeUpdateService @Inject constructor(
 
         if (requestedStatus == ExchangeStatus.ACCEPTED_STARTED)
         {
-            exchangeRepository.updateNoAuthAccessVerifiedAt(sessionUUID, Timestamp.from(Instant.now()))
+            noAuthExchangeAccessWindowService.markVerified(session)
         }
 
         sessionStatus?.let {
@@ -859,7 +860,7 @@ class ExchangeUpdateService @Inject constructor(
         }
 
         verifyRecipientOtp(session, otp)
-        exchangeRepository.updateNoAuthAccessVerifiedAt(sessionUUID, Timestamp.from(Instant.now()))
+        noAuthExchangeAccessWindowService.markVerified(session)
         exchangeRepository.updateLastActivity(sessionUUID, Timestamp.from(Instant.now()))
 
         val refreshed = exchangeRepository.findById(sessionUUID)
@@ -1148,6 +1149,8 @@ class ExchangeUpdateService @Inject constructor(
             (constraintsJson?.contains("\"allow_document_download\":true") == true ||
                 constraints?.canDownload == true)
         dto.allowDocumentDownload = downloadAllowed
+        dto.accessVerificationRequired = exchange.status == ExchangeStatus.ACCEPTED_STARTED &&
+            !noAuthExchangeAccessWindowService.isActive(exchange)
         return dto
     }
 

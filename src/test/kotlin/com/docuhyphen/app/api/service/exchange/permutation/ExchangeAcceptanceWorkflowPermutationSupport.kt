@@ -127,6 +127,7 @@ internal class ExchangeAcceptanceWorkflowFixture
             authorizationContextFactory = authorizationContextFactory,
             auditRecorder = mock<AuditRecorder>(),
             noAuthExchangeAccessTokenService = mock<NoAuthExchangeAccessTokenService>(),
+            noAuthExchangeAccessWindowService = mock(),
             lifecycleNotificationService = mock<ExchangeLifecycleNotificationService>(),
             documentThumbnailService = mock<DocumentThumbnailService>(),
         )

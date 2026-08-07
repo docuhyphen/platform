@@ -41,6 +41,9 @@ data class NoAuthExchangeBasicDto(
     var noAuthAccessValidityDays: Int = 7,
     val documents: List<DocumentBasicDto?>,
     var allowDocumentDownload: Boolean = false,
+    // True when the recipient has no live verified access window, so the UI can ask for a fresh
+    // access code up front rather than letting them discover it only when an upload fails.
+    var accessVerificationRequired: Boolean = false,
 )
 
 @Serializable

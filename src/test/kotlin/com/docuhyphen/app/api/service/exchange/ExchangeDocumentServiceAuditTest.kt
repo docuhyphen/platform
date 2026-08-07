@@ -92,6 +92,7 @@ class ExchangeDocumentServiceAuditTest
             authorizationContextFactory = authorizationContextFactory,
             auditRecorder = auditRecorder,
             noAuthExchangeAccessTokenService = mock(),
+            noAuthExchangeAccessWindowService = mock(),
             documentVersionService = mock(),
         )
     }

@@ -39,6 +39,7 @@ class ExchangeRetrievalServicePendingPrimaryTest
         shareService,
         recipientService,
         noAuthAccessTokenService,
+        mock(),
     )
 
     @Test

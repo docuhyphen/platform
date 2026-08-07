@@ -63,6 +63,7 @@ class ExchangeDocumentService @Inject constructor(
     private val authorizationContextFactory: AuthorizationContextFactory,
     private val auditRecorder: AuditRecorder,
     private val noAuthExchangeAccessTokenService: NoAuthExchangeAccessTokenService,
+    private val noAuthExchangeAccessWindowService: NoAuthExchangeAccessWindowService,
     private val documentVersionService: ExchangeDocumentVersionService,
 )
 {
@@ -351,15 +352,7 @@ class ExchangeDocumentService @Inject constructor(
 
     private fun ensureNoAuthAccessWindowActive(exchange: Exchange)
     {
-        val verifiedAt = exchange.noAuthAccessVerifiedAt
-            ?: throw IllegalArgumentException("Your access verification has expired. Ask the person who requested documents to resend an access code in Manage Access.")
-        val validityDays = exchange.noAuthAccessValidityDays
-            .coerceAtLeast(1)
-        val validUntil = verifiedAt.toInstant().plusSeconds(validityDays.toLong() * 24 * 60 * 60)
-        if (validUntil.isBefore(Instant.now()))
-        {
-            throw IllegalArgumentException("Your access verification has expired. Ask the person who requested documents to resend an access code in Manage Access.")
-        }
+        noAuthExchangeAccessWindowService.ensureActive(exchange)
     }
 
     @Transactional
@@ -843,6 +836,52 @@ class ExchangeDocumentService @Inject constructor(
         val exchange = getExchange(exchangeId)
         validateViewPermission(exchange)
         val document = getDocument(exchange, documentId)
+        return documentThumbnailService.getOrGenerate(document)
+    }
+
+    /**
+     * Serves a document thumbnail for the no-auth (public link / recipient OTP) exchange
+     * view. Access is governed by the no-auth access token rather than an authenticated
+     * principal, mirroring [downloadNoAuthSessionDocument] but without the download
+     * constraint check since a thumbnail is only a low-resolution preview image, not the
+     * original file.
+     */
+    fun getNoAuthDocumentThumbnail(
+        exchangeId: String?,
+        documentId: String?,
+        noAuthAccessToken: String?,
+    ): DocumentThumbnailResult
+    {
+        if (exchangeId == null) throw IllegalArgumentException("Session ID cannot be null")
+        if (documentId == null) throw IllegalArgumentException("Document ID cannot be null")
+
+        val exchange = getExchange(exchangeId)
+        noAuthExchangeAccessTokenService.requireValid(exchange, noAuthAccessToken)
+        val document = getDocument(exchange, documentId)
+
+        if (exchange.requireRecipientSignIn)
+        {
+            logger.warn("Attempted no-auth thumbnail access for session {} after sign-in requirement was enabled", exchange.id)
+            throw IllegalArgumentException("This request now requires sign in. Please sign in to continue.")
+        }
+
+        if (
+            exchange.status == ExchangeStatus.ENDED ||
+            exchange.status == ExchangeStatus.REJECTED ||
+            exchange.status == ExchangeStatus.RESCINDED
+        )
+        {
+            logger.error("Attempted to access thumbnail for a exchange that has ended or rejected: ${exchange.status}")
+            throw ExchangeNotFoundException("Exchange not found")
+        }
+
+        ensureNoAuthAccessWindowActive(exchange)
+
+        if (document.isDeleted)
+        {
+            throw ExchangeDocumentNotFoundException("Document not found")
+        }
+
         return documentThumbnailService.getOrGenerate(document)
     }
 

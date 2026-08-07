@@ -235,6 +235,19 @@ export const downloadExchangeDocumentThumbnail = (
     {...blobRequest, params: version ? {v: version} : undefined},
 ));
 
+export const downloadNoAuthExchangeDocumentThumbnail = (
+    exchangeId: string,
+    documentId: string,
+    version?: string,
+) => executeRequest(() => apiClient.get(
+    `no-auth/exchanges/${exchangeId}/documents/${documentId}/thumbnail`,
+    {
+        ...blobRequest,
+        params: version ? {v: version} : undefined,
+        headers: getNoAuthAccessHeaders(exchangeId),
+    },
+));
+
 export const requestNoAuthExchangeOtp = (exchangeId: string) =>
     executeRequest(() => apiClient.post(`no-auth/exchanges/${exchangeId}/otp`, undefined, {
         headers: getNoAuthAccessHeaders(exchangeId),

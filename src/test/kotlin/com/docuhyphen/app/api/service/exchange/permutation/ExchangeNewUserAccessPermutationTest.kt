@@ -8,6 +8,7 @@ import com.docuhyphen.app.api.model.entity.ExchangeRecipientSelectionType
 import com.docuhyphen.app.api.model.entity.ExchangeStatus
 import com.docuhyphen.app.api.model.entity.ShareStatus
 import com.docuhyphen.app.api.service.exchange.NoAuthExchangeAccessTokenService
+import com.docuhyphen.app.api.service.exchange.NoAuthExchangeAccessExpiredException
 import org.junit.jupiter.api.Assertions.assertDoesNotThrow
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
@@ -161,7 +162,7 @@ class ExchangeNewUserAccessPermutationTest
             validityDays = 7,
         )
 
-        assertThrows(IllegalArgumentException::class.java) {
+        assertThrows(NoAuthExchangeAccessExpiredException::class.java) {
             fixture.download()
         }
     }

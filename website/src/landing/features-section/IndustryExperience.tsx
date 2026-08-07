@@ -69,7 +69,7 @@ export function IndustryExperience({initialIndustrySlug}: IndustryExperienceProp
                     className={styles.description}
                     size={500}
                 >
-                    Explore how the platform supports document-driven processes, controls, and collaboration needs of your industry.
+                    Explore how the platform supports document-driven business processes, controls, and collaboration needs of your industry.
                 </Text>
             </div>
 

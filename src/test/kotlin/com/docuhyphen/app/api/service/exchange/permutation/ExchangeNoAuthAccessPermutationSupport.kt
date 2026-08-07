@@ -27,6 +27,7 @@ import com.docuhyphen.app.api.service.exchange.ExchangeRecipientService
 import com.docuhyphen.app.api.service.exchange.ExchangeRetrievalService
 import com.docuhyphen.app.api.service.exchange.ExchangeUpdateService
 import com.docuhyphen.app.api.service.exchange.NoAuthExchangeAccessTokenService
+import com.docuhyphen.app.api.service.exchange.NoAuthExchangeAccessWindowService
 import com.docuhyphen.app.api.service.exchange.ShareService
 import com.docuhyphen.app.api.service.notification.InAppNotificationService
 import com.docuhyphen.app.api.service.storage.FileStorageService
@@ -61,6 +62,7 @@ internal class NoAuthRetrievalFixture(
         shareService = shareService,
         exchangeRecipientService = mock(),
         noAuthExchangeAccessTokenService = tokenService,
+        noAuthExchangeAccessWindowService = NoAuthExchangeAccessWindowService(repository, mock()),
     )
     val accessToken: String = tokenService.issue(exchange)
 
@@ -119,6 +121,7 @@ internal class NoAuthOtpVerificationFixture(
             authorizationContextFactory = mock<AuthorizationContextFactory>(),
             auditRecorder = mock<AuditRecorder>(),
             noAuthExchangeAccessTokenService = tokenService,
+            noAuthExchangeAccessWindowService = NoAuthExchangeAccessWindowService(repository, mock()),
             lifecycleNotificationService = mock<ExchangeLifecycleNotificationService>(),
             documentThumbnailService = mock<DocumentThumbnailService>(),
         )
@@ -183,6 +186,7 @@ internal class NoAuthDocumentAccessFixture(
             authorizationContextFactory = mock<AuthorizationContextFactory>(),
             auditRecorder = auditRecorder,
             noAuthExchangeAccessTokenService = tokenService,
+            noAuthExchangeAccessWindowService = NoAuthExchangeAccessWindowService(repository, mock()),
             documentVersionService = mock(),
         )
     }

@@ -12,8 +12,10 @@ import com.docuhyphen.app.api.model.entity.DocumentEncryptionMode
 import com.docuhyphen.app.api.model.entity.DocumentType
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.resource.model.UpdateNoAuthExchange
+import com.docuhyphen.app.api.service.exchange.DocumentThumbnailUnavailableException
 import com.docuhyphen.app.api.service.exchange.ExchangeDocumentService
 import com.docuhyphen.app.api.service.exchange.ExchangeRetrievalService
+import com.docuhyphen.app.api.service.exchange.NoAuthExchangeAccessExpiredException
 import com.docuhyphen.app.api.service.exchange.ExchangeUpdateService
 import com.docuhyphen.app.api.service.exchange.ShareLinkValidationService
 import com.docuhyphen.app.api.service.storage.FileStorageService
@@ -44,7 +46,23 @@ class NoAuthExchangeResource @Inject constructor(
     companion object
     {
         private val logger = LoggerFactory.getLogger(NoAuthExchangeResource::class.java)
+
+        /**
+         * Lets the recipient UI recognise a lapsed access window without matching on message
+         * text, so it can prompt for a fresh access code instead of showing a generic failure.
+         */
+        private const val ACCESS_VERIFICATION_REQUIRED_REASON = "NO_AUTH_ACCESS_EXPIRED"
     }
+
+    private fun accessVerificationRequiredResponse(exception: NoAuthExchangeAccessExpiredException): Response =
+        Response.status(Response.Status.FORBIDDEN)
+            .entity(
+                ResponseError(
+                    errorMessage = exception.message,
+                    reasonCode = ACCESS_VERIFICATION_REQUIRED_REASON,
+                )
+            )
+            .build()
 
     /**
      * Returns basic exchange metadata for participant and public-link access.
@@ -435,6 +453,12 @@ class NoAuthExchangeResource @Inject constructor(
                     Response.status(NOT_FOUND).entity(responseError).build()
                 }
 
+                is NoAuthExchangeAccessExpiredException ->
+                {
+                    logger.warn("No-auth upload blocked by a lapsed access window: {}", exception.message)
+                    accessVerificationRequiredResponse(exception)
+                }
+
                 is IllegalArgumentException ->
                 {
                     logger.error("Error uploading exchange document", exception)
@@ -490,6 +514,12 @@ class NoAuthExchangeResource @Inject constructor(
                         .build()
                 }
 
+                is NoAuthExchangeAccessExpiredException ->
+                {
+                    logger.warn("No-auth download blocked by a lapsed access window: {}", exception.message)
+                    accessVerificationRequiredResponse(exception)
+                }
+
                 is IllegalArgumentException ->
                 {
                     logger.error("Error downloading exchange document", exception)
@@ -504,6 +534,88 @@ class NoAuthExchangeResource @Inject constructor(
 
                     val responseError = ResponseError("An error occurred while downloading exchange document")
                     Response.status(INTERNAL_SERVER_ERROR).entity(responseError).build()
+                }
+            }
+        }
+    }
+
+    @GET
+    @Path("{exchangeId}/documents/{documentId}/thumbnail")
+    @Produces("image/png")
+    fun getNoAuthDocumentThumbnail(
+        @PathParam("exchangeId") exchangeId: String,
+        @PathParam("documentId") documentId: String,
+        @HeaderParam("x-no-auth-access-token") noAuthAccessToken: String?,
+        @HeaderParam("If-None-Match") ifNoneMatch: String?,
+    ): Response
+    {
+        return try
+        {
+            val thumbnail = exchangeDocumentService.getNoAuthDocumentThumbnail(exchangeId, documentId, noAuthAccessToken)
+            val etag = "\"${thumbnail.etag}\""
+            if (ifNoneMatch == etag)
+            {
+                return Response.notModified()
+                    .header("ETag", etag)
+                    .header("Cache-Control", "private, max-age=300, must-revalidate")
+                    .build()
+            }
+            Response.ok(thumbnail.content)
+                .header("Content-Type", "image/png")
+                .header("Content-Length", thumbnail.content.size)
+                .header("ETag", etag)
+                .header("Cache-Control", "private, max-age=300, must-revalidate")
+                .build()
+        }
+        catch (exception: Exception)
+        {
+            when (exception)
+            {
+                is ExchangeNotFoundException,
+                is ExchangeDocumentNotFoundException ->
+                {
+                    logger.error("No-auth document thumbnail was not found", exception)
+                    Response.status(NOT_FOUND)
+                        .entity(ResponseError(exception.message))
+                        .build()
+                }
+
+                is ForbiddenException ->
+                {
+                    logger.warn("No-auth document thumbnail access denied: {}", exception.message)
+                    Response.status(Response.Status.FORBIDDEN)
+                        .entity(ResponseError(exception.message))
+                        .build()
+                }
+
+                is DocumentThumbnailUnavailableException ->
+                {
+                    logger.warn("No-auth document thumbnail is unavailable: {}", exception.message)
+                    Response.status(Response.Status.SERVICE_UNAVAILABLE)
+                        .entity(ResponseError(exception.message))
+                        .build()
+                }
+
+                is NoAuthExchangeAccessExpiredException ->
+                {
+                    logger.warn("No-auth thumbnail blocked by a lapsed access window: {}", exception.message)
+                    accessVerificationRequiredResponse(exception)
+                }
+
+                is IllegalArgumentException ->
+                {
+                    logger.warn("No-auth document thumbnail request rejected: {}", exception.message)
+                    Response.status(Response.Status.BAD_REQUEST)
+                        .entity(ResponseError(exception.message))
+                        .build()
+                }
+
+                else ->
+                {
+                    logger.error("Error loading no-auth document thumbnail", exception)
+                    Response.status(INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("An error occurred while loading the document thumbnail"))
+                        .build()
                 }
             }
         }

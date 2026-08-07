@@ -128,6 +128,7 @@ class RescindSideEffectsTest
         authorizationContextFactory = makeFactory(),
         auditRecorder = auditRecorder,
         noAuthExchangeAccessTokenService = mock(),
+        noAuthExchangeAccessWindowService = mock(),
         lifecycleNotificationService = mock(),
         documentThumbnailService = mock(),
     )
@@ -359,6 +360,7 @@ class RescindSideEffectsTest
             authorizationContextFactory = factory,
             auditRecorder = mock(),
             noAuthExchangeAccessTokenService = mock(),
+            noAuthExchangeAccessWindowService = mock(),
             documentVersionService = mock(),
         )
 
