@@ -1,5 +1,5 @@
 import {Avatar, Badge, Button, Text} from "@fluentui/react-components";
-import {PersonCircleRegular} from "@fluentui/react-icons";
+import {CameraRegular, PersonCircleRegular} from "@fluentui/react-icons";
 import {AppUserDetailedDto} from "../../../models/models.tsx";
 import {useProfileOverviewCardStyles} from "./ProfileOverviewCardStyles.tsx";
 import {MailEditIcon, PersonEditIcon, PhoneAddIcon, PhoneEditIcon} from "../../../components/IconBundles.tsx";
@@ -11,6 +11,7 @@ interface ProfileOverviewCardProps
     onEditProfile: () => void;
     onEditPhone: () => void;
     onEditEmail: () => void;
+    onEditAvatar: () => void;
 }
 
 const getDisplayName = (appUser: AppUserDetailedDto | null) =>
@@ -32,23 +33,41 @@ const ProfileOverviewCard = (
         onEditProfile,
         onEditPhone,
         onEditEmail,
+        onEditAvatar,
     }: ProfileOverviewCardProps
 ) =>
 {
     const styles = useProfileOverviewCardStyles();
     const hasPhoneNumber = !!appUser?.person?.contactDetails?.phoneNumber;
     const phoneNumber = appUser?.person?.contactDetails?.phoneNumber;
+    const avatarSrc = appUser?.avatarUrl && appUser.avatarUrl.startsWith("blob:")
+        ? appUser.avatarUrl
+        : undefined;
 
     return <section id={"profile-overview-card"} className={styles.card}>
         <div id={"profile-overview-content"} className={styles.content}>
             <div id={"profile-overview-identity"} className={styles.identityBlock}>
-                <Avatar
-                    id={"profile-overview-avatar"}
-                    name={getAvatarName(appUser)}
-                    size={72}
-                    icon={<PersonCircleRegular/>}
-                    image={{src: appUser?.avatarUrl || undefined}}
-                />
+                <div id={"profile-overview-avatar-wrapper"} className={styles.avatarWrapper}>
+                    <Avatar
+                        id={"profile-overview-avatar"}
+                        name={getAvatarName(appUser)}
+                        size={72}
+                        icon={<PersonCircleRegular/>}
+                        image={{src: avatarSrc}}
+                    />
+                    <Button
+                        id={"button-edit-profile-picture"}
+                        appearance={"primary"}
+                        shape={"circular"}
+                        size={"small"}
+                        icon={<CameraRegular/>}
+                        className={styles.avatarEditButton}
+                        title={"Edit profile picture"}
+                        aria-label={"Edit profile picture"}
+                        onClick={onEditAvatar}
+                    />
+                </div>
+
 
                 <div id={"profile-overview-copy"} className={styles.copyBlock}>
                     <div id={"profile-overview-title-row"} className={styles.inlineDetailRow}>

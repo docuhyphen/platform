@@ -1,5 +1,6 @@
 import React, {createContext, ReactNode, useCallback, useContext, useEffect, useRef, useState} from 'react';
 import {fetchAppUser, fetchAppUserPersonOrganization, fetchCurrentSession} from '../services/appUserApi.ts';
+import {fetchAppUserAvatarObjectUrl} from '../services/appUserAvatarApi.ts';
 import {AppUserDetailedDto, Capability, CurrentSessionDto, OrganizationDetailedDto, SessionOrganizationOptionDto} from "../app/models/models.tsx";
 import {getTokenSecondsToExpiry, isTokenExpired} from "../utils/helpers.ts";
 import {useLocation, useNavigate} from "react-router-dom";
@@ -431,6 +432,51 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({children}) =>
 
         fetchUserData();
     }, [accessToken, appUser, location.pathname]);
+
+
+    useEffect(() =>
+    {
+        if (!appUser?.id || !accessToken)
+        {
+            return;
+        }
+
+        // avatarUrl arrives from the API as a relative marker path when a profile
+        // picture exists. Swap it for an authenticated blob object URL the browser
+        // can render directly.
+        const marker = appUser.avatarUrl;
+        if (!marker || marker.startsWith("blob:"))
+        {
+            return;
+        }
+
+        let cancelled = false;
+        (async () =>
+        {
+            try
+            {
+                const objectUrl = await fetchAppUserAvatarObjectUrl(accessToken);
+                if (cancelled)
+                {
+                    if (objectUrl)
+                    {
+                        URL.revokeObjectURL(objectUrl);
+                    }
+                    return;
+                }
+                setAppUser(prev => (prev ? {...prev, avatarUrl: objectUrl} : prev));
+            }
+            catch
+            {
+                // Non-fatal: the UI falls back to the user's initials.
+            }
+        })();
+
+        return () =>
+        {
+            cancelled = true;
+        };
+    }, [appUser?.id, appUser?.avatarUrl, accessToken]);
 
     const fetchUserData = async () =>
     {

@@ -27,6 +27,21 @@ export const useProfileOverviewCardStyles = makeStyles({
         flexWrap: "wrap",
     },
 
+    avatarWrapper: {
+        position: "relative",
+        display: "inline-flex",
+        flexShrink: 0,
+    },
+
+    avatarEditButton: {
+        position: "absolute",
+        bottom: "-2px",
+        right: "-2px",
+        minWidth: "unset",
+        ...shorthands.padding(tokens.spacingVerticalXXS),
+        ...shorthands.border("2px", "solid", tokens.colorNeutralBackground1),
+    },
+
     copyBlock: {
         display: "flex",
         flexDirection: "column",

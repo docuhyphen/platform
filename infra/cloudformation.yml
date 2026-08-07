@@ -398,6 +398,19 @@ Resources:
                 Resource:
                   - !GetAtt DocumentPreviewsBucket.Arn
                   - !Sub ${DocumentPreviewsBucket.Arn}/*
+        - PolicyName: S3ProfilePictureAccess
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                  - s3:DeleteObject
+                  - s3:ListBucket
+                Resource:
+                  - !GetAtt ProfilePicturesBucket.Arn
+                  - !Sub ${ProfilePicturesBucket.Arn}/*
         # WORM archive access. Deliberately
         # excludes s3:DeleteObject, s3:PutObjectRetention and any legal-hold
         # or retention-bypass actions - the app may only write once and read
@@ -497,6 +510,12 @@ Resources:
             - Name: DOCUMENT_THUMBNAIL_STORAGE_AWS_BUCKET
               Value: !Ref DocumentPreviewsBucket
             - Name: DOCUMENT_THUMBNAIL_STORAGE_AWS_REGION
+              Value: !Ref AWS::Region
+            - Name: PROFILE_PICTURE_STORAGE_SERVICE
+              Value: aws
+            - Name: PROFILE_PICTURE_STORAGE_AWS_BUCKET
+              Value: !Ref ProfilePicturesBucket
+            - Name: PROFILE_PICTURE_STORAGE_AWS_REGION
               Value: !Ref AWS::Region
             - Name: APP_EMAIL_SES_REGION
               Value: !Ref SesRegion
@@ -740,6 +759,31 @@ Resources:
             AbortIncompleteMultipartUpload:
               DaysAfterInitiation: 1
 
+  # ─── PROFILE PICTURE BUCKET ─────────────────────────────────────────────────
+  # Stores user profile pictures (avatars). Kept separate from document and
+  # thumbnail storage so avatar objects are managed and secured independently.
+  ProfilePicturesBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketName: !Sub ${AppName}-${AWS::AccountId}-${AWS::Region}-profile-pictures-prod
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      LifecycleConfiguration:
+        Rules:
+          - Id: DeleteIncompleteMultipartUploads
+            Status: Enabled
+            AbortIncompleteMultipartUpload:
+              DaysAfterInitiation: 1
+
   # ─── AUDIT ARCHIVE BUCKET ──────────────────────────────────────────────────
   # WORM store for signed audit ledger segments. Versioning + Object Lock in
   # Governance mode make objects immutable for AuditArchiveRetentionDays even
@@ -897,6 +941,10 @@ Outputs:
   DocumentPreviewsBucketName:
     Description: S3 bucket for generated document preview thumbnails
     Value: !Ref DocumentPreviewsBucket
+
+  ProfilePicturesBucketName:
+    Description: S3 bucket for user profile pictures (avatars)
+    Value: !Ref ProfilePicturesBucket
 
   AuditArchiveBucketName:
     Description: S3 bucket for signed audit archive segments

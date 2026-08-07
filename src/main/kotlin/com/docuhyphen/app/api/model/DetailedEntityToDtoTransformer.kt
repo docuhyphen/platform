@@ -10,6 +10,10 @@ class DetailedEntityToDtoTransformer
 {
     companion object
     {
+        // Relative API path the frontend uses to load the authenticated user's avatar
+        // binary. Present only when the user has a stored profile picture.
+        private const val AVATAR_ENDPOINT_PATH = "/app-user/avatar"
+
         fun toDto(document: Document?): DocumentDetailedDto?
         {
             return document?.let {
@@ -131,6 +135,7 @@ class DetailedEntityToDtoTransformer
                         toDto(settings),
                         mfaType.name,
                         emailMfaFallbackEnabled,
+                        avatarUrl = if (avatarStorageKey != null) AVATAR_ENDPOINT_PATH else null,
                     )
                 }
             }

@@ -12,6 +12,15 @@ export const profileSettingsArticle = (
             <li>Update your first name and last name, then save.</li>
         </ol>
 
+        <h3>Profile picture</h3>
+        <ol>
+            <li>Open <b>Settings</b> and select <b>Profile</b>.</li>
+            <li>In the profile summary, select the camera button at the bottom of your profile picture.</li>
+            <li>In the dialog, select <b>Choose photo</b> and pick a PNG, JPG, WEBP or GIF image up to 5 MB.</li>
+            <li>Review it in the circular preview, then select <b>Upload</b> to save.</li>
+            <li>Use <b>Remove photo</b> to delete your current picture and fall back to your initials.</li>
+        </ol>
+
         <h3>Managing contact details</h3>
         <ul>
             <li>Use the inline email edit icon beside your email address to update your account email.</li>

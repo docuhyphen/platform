@@ -16,6 +16,7 @@ import com.docuhyphen.app.api.service.organization.OrganizationGroupService
 import com.docuhyphen.app.api.service.organization.OrganizationMembershipService
 import com.docuhyphen.app.api.service.auth.SessionService
 import com.docuhyphen.app.api.service.auth.UserRoleService
+import com.docuhyphen.app.api.service.user.AppUserAvatarService
 import io.quarkus.security.UnauthorizedException
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
@@ -24,7 +25,9 @@ import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
 import jakarta.ws.rs.core.Response.Status.BAD_REQUEST
 import jakarta.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR
+import org.jboss.resteasy.reactive.RestForm
 import org.slf4j.LoggerFactory
+import java.io.File
 import java.util.*
 
 @Path("/app-user")
@@ -37,6 +40,7 @@ class AppUserResource @Inject constructor(
     private val userRoleService: UserRoleService,
     private val appUserService: AppUserService,
     private val sessionService: SessionService,
+    private val appUserAvatarService: AppUserAvatarService,
 )
 {
     companion object
@@ -342,6 +346,125 @@ class AppUserResource @Inject constructor(
                 {
                     logger.error("Error completing email update", exception)
                     val responseError = ResponseError("A server error occurred while completing email update.")
+                    Response.status(INTERNAL_SERVER_ERROR).entity(responseError).build()
+                }
+            }
+        }
+    }
+
+    /**
+     * Upload or replace the currently logged in user's profile picture (avatar).
+     */
+    @POST
+    @Path("/avatar")
+    @Consumes(MediaType.MULTIPART_FORM_DATA)
+    @Transactional
+    fun uploadAvatar(
+        @RestForm("file") file: File?,
+        @RestForm("extension") extension: String?,
+    ): Response
+    {
+        return try
+        {
+            if (file == null)
+            {
+                return Response.status(BAD_REQUEST).entity(ResponseError("Image file is required")).build()
+            }
+
+            appUserAvatarService.uploadAvatar(file, extension)
+            Response.ok().build()
+        }
+        catch (exception: Exception)
+        {
+            when (exception)
+            {
+                is UnauthorizedException ->
+                {
+                    val responseError = ResponseError(exception.message)
+                    Response.status(Response.Status.FORBIDDEN).entity(responseError).build()
+                }
+
+                is IllegalArgumentException ->
+                {
+                    val responseError = ResponseError(exception.message)
+                    Response.status(BAD_REQUEST).entity(responseError).build()
+                }
+
+                else ->
+                {
+                    logger.error("Error uploading user avatar", exception)
+                    val responseError = ResponseError("A server error occurred while uploading the profile picture.")
+                    Response.status(INTERNAL_SERVER_ERROR).entity(responseError).build()
+                }
+            }
+        }
+    }
+
+    /**
+     * Stream the currently logged in user's profile picture (avatar) binary.
+     */
+    @GET
+    @Path("/avatar")
+    @Produces(MediaType.APPLICATION_OCTET_STREAM)
+    fun getAvatar(): Response
+    {
+        return try
+        {
+            val avatar = appUserAvatarService.getAvatar()
+                ?: return Response.status(Response.Status.NOT_FOUND).build()
+
+            Response.ok(avatar.bytes)
+                .header("Content-Type", avatar.contentType)
+                .header("Content-Length", avatar.bytes.size)
+                .build()
+        }
+        catch (exception: Exception)
+        {
+            when (exception)
+            {
+                is UnauthorizedException ->
+                {
+                    val responseError = ResponseError(exception.message)
+                    Response.status(Response.Status.FORBIDDEN).entity(responseError).build()
+                }
+
+                else ->
+                {
+                    logger.error("Error fetching user avatar", exception)
+                    val responseError = ResponseError("A server error occurred while fetching the profile picture.")
+                    Response.status(INTERNAL_SERVER_ERROR).entity(responseError).build()
+                }
+            }
+        }
+    }
+
+    /**
+     * Remove the currently logged in user's profile picture (avatar).
+     */
+    @DELETE
+    @Path("/avatar")
+    @Transactional
+    fun deleteAvatar(): Response
+    {
+        return try
+        {
+            appUserAvatarService.deleteAvatar()
+            Response.noContent().build()
+        }
+        catch (exception: Exception)
+        {
+            when (exception)
+            {
+                is UnauthorizedException ->
+                {
+                    val responseError = ResponseError(exception.message)
+                    Response.status(Response.Status.FORBIDDEN).entity(responseError).build()
+                }
+
+                else ->
+                {
+                    logger.error("Error deleting user avatar", exception)
+                    val responseError = ResponseError("A server error occurred while removing the profile picture.")
                     Response.status(INTERNAL_SERVER_ERROR).entity(responseError).build()
                 }
             }

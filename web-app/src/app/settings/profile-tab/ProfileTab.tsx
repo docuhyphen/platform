@@ -10,6 +10,7 @@ import PhoneManagementDialog, {PhoneManagementMode} from "../../components/phone
 import AppUserEmailUpdateDialog from "../../components/app-user-email-update-dialog/AppUserEmailUpdateDialog.tsx";
 import PasswordResetDialog from "./password-reset-dialog/PasswordResetDialog.tsx";
 import ProfileOverviewCard from "./profile-overview-card/ProfileOverviewCard.tsx";
+import ProfilePictureDialog from "./profile-picture-dialog/ProfilePictureDialog.tsx";
 import ProfileSecurityCard from "./profile-security-card/ProfileSecurityCard.tsx";
 import ProfileNotificationsCard from "./profile-notifications-card/ProfileNotificationsCard.tsx";
 import ProfileSecurityEvents from "./profile-security-events/ProfileSecurityEvents.tsx";
@@ -28,6 +29,7 @@ const ProfileTab = () =>
     const [isContactDetailsEditDialogOpen, setIsContactDetailsEditDialogOpen] = useState(false);
     const [isEmailUpdateDialogOpen, setIsEmailUpdateDialogOpen] = useState(false);
     const [isMfaDialogOpen, setIsMfaDialogOpen] = useState(false);
+    const [isProfilePictureDialogOpen, setIsProfilePictureDialogOpen] = useState(false);
 
     const notifyLoginChange = async (_, data) =>
     {
@@ -67,7 +69,6 @@ const ProfileTab = () =>
     };
 
     const memberSince = appUser?.createdDate ? formatDate(appUser.createdDate) : "Not available";
-    const linkedProvidersCount = appUser?.identityProviders?.length || 0;
 
     const onTabSelect = (_: SelectTabEvent, data: SelectTabData) =>
     {
@@ -101,7 +102,9 @@ const ProfileTab = () =>
                             onEditProfile={() => setIsBasicDetailsDialogOpen(true)}
                             onEditPhone={onAddOrEditPhone}
                             onEditEmail={() => setIsEmailUpdateDialogOpen(true)}
+                            onEditAvatar={() => setIsProfilePictureDialogOpen(true)}
                         />
+
 
                         <div id={"profile-tab-card-grid"} className={styles.cardGrid}>
                             <ProfileSecurityCard
@@ -153,6 +156,11 @@ const ProfileTab = () =>
         <BasicDetailsEditDialog
             isOpen={isBasicDetailsDialogOpen}
             onDismiss={() => setIsBasicDetailsDialogOpen(false)}
+        />
+
+        <ProfilePictureDialog
+            isOpen={isProfilePictureDialogOpen}
+            onDismiss={() => setIsProfilePictureDialogOpen(false)}
         />
 
         <PasswordResetDialog

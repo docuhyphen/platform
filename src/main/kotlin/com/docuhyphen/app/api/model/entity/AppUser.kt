@@ -70,6 +70,9 @@ class AppUser
     @Column(name = "email_mfa_fallback_enabled", nullable = false)
     var emailMfaFallbackEnabled: Boolean = false
 
+    @Column(name = "avatar_storage_key", nullable = true, length = 512)
+    var avatarStorageKey: String? = null
+
     @OneToOne(cascade = [ALL], fetch = LAZY)
     @JoinColumn(name = "person_id")
     var person: Person? = null
