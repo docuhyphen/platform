@@ -322,6 +322,7 @@ export interface NoAuthExchangeBasicDto
     noAuthAccessValidityDays?: number;
     documents?: DocumentBasicDto[];
     allowDocumentDownload?: boolean;
+    accessVerificationRequired?: boolean;
 }
 
 export interface ContactDetailsBasicDto
@@ -374,6 +375,7 @@ export interface DocumentCommentDetailedDto
     pageNumber?: number;
     documentVersionId?: string;
     documentVersion?: string;
+    commentedByAvatarUrl?: string | null;
 }
 
 export interface DocumentDetailedDto

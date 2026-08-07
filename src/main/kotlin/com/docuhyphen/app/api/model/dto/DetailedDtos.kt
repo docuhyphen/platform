@@ -36,6 +36,7 @@ data class DocumentCommentDetailedDto(
     val pageNumber: Int? = null,
     val documentVersionId: String? = null,
     val documentVersion: String? = null,
+    val commentedByAvatarUrl: String? = null,
 )
 
 @Serializable

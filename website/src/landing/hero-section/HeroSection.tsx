@@ -25,7 +25,7 @@ export function HeroSection()
                         as="h1"
                         className={styles.title}
                     >
-                        One Secure Workspace for Every Document-Driven Process
+                        One Secure Workspace for Every Document-Driven Business Process
                     </LargeTitle>
                     <Text
                         id="home-hero-supporting-text"

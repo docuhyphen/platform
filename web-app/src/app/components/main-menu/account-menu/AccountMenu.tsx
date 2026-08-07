@@ -70,7 +70,8 @@ const AccountMenu = ({onToggleHelpSidebar}: AccountMenuProps) =>
                         <Persona
                             id={"account-menu-persona"}
                             name={`${appUser?.person?.firstName} ${appUser?.person?.lastName}`}
-                            secondaryText={formatEmailForDisplay(appUser?.email)}/>
+                            secondaryText={formatEmailForDisplay(appUser?.email)}
+                            avatar={appUser?.avatarUrl ? {image: {src: appUser.avatarUrl}} : undefined}/>
                     </Button>
                 </MenuTrigger>
                 <MenuPopover>

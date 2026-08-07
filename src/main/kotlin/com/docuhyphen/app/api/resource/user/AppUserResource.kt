@@ -439,6 +439,45 @@ class AppUserResource @Inject constructor(
     }
 
     /**
+     * Stream any user's profile picture (avatar) binary by id. Used to render avatars for
+     * other people (org members, group members, comment authors) across the app.
+     */
+    @GET
+    @Path("/{id}/avatar")
+    @Produces(MediaType.APPLICATION_OCTET_STREAM)
+    fun getUserAvatar(@PathParam("id") id: UUID): Response
+    {
+        return try
+        {
+            val avatar = appUserAvatarService.getAvatar(id)
+                ?: return Response.status(Response.Status.NOT_FOUND).build()
+
+            Response.ok(avatar.bytes)
+                .header("Content-Type", avatar.contentType)
+                .header("Content-Length", avatar.bytes.size)
+                .build()
+        }
+        catch (exception: Exception)
+        {
+            when (exception)
+            {
+                is UnauthorizedException ->
+                {
+                    val responseError = ResponseError(exception.message)
+                    Response.status(Response.Status.FORBIDDEN).entity(responseError).build()
+                }
+
+                else ->
+                {
+                    logger.error("Error fetching avatar for user {}", id, exception)
+                    val responseError = ResponseError("A server error occurred while fetching the profile picture.")
+                    Response.status(INTERNAL_SERVER_ERROR).entity(responseError).build()
+                }
+            }
+        }
+    }
+
+    /**
      * Remove the currently logged in user's profile picture (avatar).
      */
     @DELETE

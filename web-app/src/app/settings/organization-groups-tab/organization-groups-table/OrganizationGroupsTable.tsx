@@ -1,6 +1,5 @@
 import {
     AvatarGroup,
-    AvatarGroupItem,
     AvatarGroupPopover,
     Badge,
     Button,
@@ -21,6 +20,7 @@ import {
 } from "@fluentui/react-components";
 import {DeleteRegular, MoreHorizontalRegular, PeopleEditRegular} from "@fluentui/react-icons";
 import {OrganizationGroupDetailedDto} from "../../../models/models.tsx";
+import UserAvatarGroupItem from "../../../components/user-avatar/UserAvatarGroupItem.tsx";
 import {useOrganizationGroupsTableStyles} from "./OrganizationGroupsTableStyles.tsx";
 
 interface OrganizationGroupsTableProps
@@ -54,7 +54,8 @@ const OrganizationGroupsTable = ({groups, onEdit, onDelete}: OrganizationGroupsT
                         name: [member.user?.person?.firstName, member.user?.person?.lastName]
                             .filter(Boolean)
                             .join(" ") || member.user?.email || "Unknown",
-                        key: member.user?.id || member.user?.email || `${group.id}-${index}`
+                        key: member.user?.id || member.user?.email || `${group.id}-${index}`,
+                        avatarUrl: member.user?.avatarUrl
                     }));
                     const partitionedItems = partitionAvatarGroupItems({items, maxInlineItems: 8});
                     const inlineItems = partitionedItems.inlineItems ?? [];
@@ -75,15 +76,19 @@ const OrganizationGroupsTable = ({groups, onEdit, onDelete}: OrganizationGroupsT
                                                 content={item.name}
                                                 relationship="label"
                                             >
-                                                <AvatarGroupItem name={item.name}/>
+                                                <UserAvatarGroupItem
+                                                    name={item.name}
+                                                    avatarUrl={item.avatarUrl}
+                                                />
                                             </Tooltip>
                                         ))}
                                         {overflowItems.length > 0 && (
                                             <AvatarGroupPopover>
                                                 {overflowItems.map(item => (
-                                                    <AvatarGroupItem
+                                                    <UserAvatarGroupItem
                                                         key={item.key}
                                                         name={item.name}
+                                                        avatarUrl={item.avatarUrl}
                                                     />
                                                 ))}
                                             </AvatarGroupPopover>

@@ -7,6 +7,7 @@ import io.quarkus.security.UnauthorizedException
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
 import java.io.File
+import java.util.UUID
 
 /**
  * Handles the storage lifecycle of a user's profile picture (avatar): uploading a new
@@ -87,6 +88,25 @@ class AppUserAvatarService @Inject constructor(
             ?: throw UnauthorizedException("No authenticated user")
 
         val key = appUser.avatarStorageKey ?: return null
+        val bytes = profilePictureStorageService.load(key) ?: return null
+        val extension = key.substringAfterLast('.', "")
+        val contentType = ALLOWED_EXTENSIONS[extension] ?: "application/octet-stream"
+
+        return AvatarContent(bytes, contentType)
+    }
+
+    /**
+     * Streams the profile picture of any user by id. A profile picture is low-sensitivity
+     * presentation data, so any authenticated user may load another user's avatar. Returns
+     * null when the target user does not exist or has no stored picture.
+     */
+    fun getAvatar(userId: UUID): AvatarContent?
+    {
+        authTokenContext.authToken.appUser
+            ?: throw UnauthorizedException("No authenticated user")
+
+        val user = appUserService.getById(userId) ?: return null
+        val key = user.avatarStorageKey ?: return null
         val bytes = profilePictureStorageService.load(key) ?: return null
         val extension = key.substringAfterLast('.', "")
         val contentType = ALLOWED_EXTENSIONS[extension] ?: "application/octet-stream"

@@ -1,5 +1,4 @@
 import {
-    Avatar,
     Badge,
     Button,
     Menu,
@@ -19,6 +18,7 @@ import {MoreHorizontalRegular, PersonEditRegular} from "@fluentui/react-icons";
 import {AppUserPublicDto} from "../../../models/models.tsx";
 import {OrganizationRoleDisplayNames, OrganizationRoleName} from "../../../../services/types/roles.ts";
 import TagList from "../../../components/TagList.tsx";
+import UserAvatar from "../../../components/user-avatar/UserAvatar.tsx";
 import {useOrganizationPeopleTableStyles} from "./OrganizationPeopleTableStyles.tsx";
 
 interface OrganizationPeopleTableProps
@@ -57,10 +57,10 @@ const OrganizationPeopleTable = ({users, currentUserId, onEdit}: OrganizationPeo
                                     id={`organization-person-${user.id}`}
                                     className={styles.personCell}
                                 >
-                                    <Avatar
+                                    <UserAvatar
                                         id={`organization-person-avatar-${user.id}`}
                                         name={name || user.email}
-                                        image={user.avatarUrl ? {src: user.avatarUrl} : undefined}
+                                        avatarUrl={user.avatarUrl}
                                     />
                                     <Text
                                         id={`organization-person-name-${user.id}`}

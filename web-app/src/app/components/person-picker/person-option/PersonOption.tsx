@@ -1,5 +1,6 @@
 import {Persona} from "@fluentui/react-components";
 import {getPersonName, PersonPickerItem} from "../personPickerTypes.ts";
+import {useAvatarUrl} from "../../hooks/useAvatarUrl.ts";
 import {usePersonOptionStyles} from "./PersonOptionStyles.tsx";
 
 interface Props
@@ -13,6 +14,7 @@ const PersonOption = ({id, person, size}: Props) =>
 {
     const styles = usePersonOptionStyles();
     const name = getPersonName(person);
+    const avatarUrl = useAvatarUrl(person.avatarUrl);
 
     return (
         <Persona
@@ -21,7 +23,7 @@ const PersonOption = ({id, person, size}: Props) =>
             name={name}
             secondaryText={person.email}
             size={size || "small"}
-            avatar={person.avatarUrl ? {image: {src: person.avatarUrl}} : undefined}
+            avatar={avatarUrl ? {image: {src: avatarUrl}} : undefined}
         />
     );
 };

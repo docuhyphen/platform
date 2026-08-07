@@ -137,6 +137,15 @@ class UserContactService @Inject constructor(
     }
 
     /**
+     * Of the supplied contact user ids, returns those that currently have a stored profile
+     * picture, so a contact list can be enriched with avatars in a single lookup.
+     */
+    fun findContactIdsWithAvatar(contactAppUserIds: Collection<UUID>): Set<UUID>
+    {
+        return appUserRepository.findIdsWithAvatar(contactAppUserIds)
+    }
+
+    /**
      * Backfills `contactAppUserId` on every row across the platform whose email matches
      * [contactEmail]. Used during the temp-user signup-merge so the picker can join to
      * the real account afterward.

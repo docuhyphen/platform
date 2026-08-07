@@ -19,6 +19,11 @@ export const profileSettingsArticle = (
             <li>In the dialog, select <b>Choose photo</b> and pick a PNG, JPG, WEBP or GIF image up to 5 MB.</li>
             <li>Review it in the circular preview, then select <b>Upload</b> to save.</li>
             <li>Use <b>Remove photo</b> to delete your current picture and fall back to your initials.</li>
+            <li>
+                Once uploaded, your picture appears beside your name across the app, including the
+                account menu, the organization people and groups lists, personal group members, the
+                recipient picker, and document comments. People without a picture show their initials.
+            </li>
         </ol>
 
         <h3>Managing contact details</h3>

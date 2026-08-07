@@ -1,7 +1,6 @@
 import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {
     AvatarGroup,
-    AvatarGroupItem,
     AvatarGroupPopover,
     Badge,
     Button,
@@ -52,6 +51,7 @@ import {PrincipalGroupDto} from '../../../services/types/dtos';
 import {PrincipalGroupRoleDisplayNames, PrincipalGroupRoleName} from '../../../services/types/roles';
 import MultiPersonPicker from '../../components/person-picker/multi-person-picker/MultiPersonPicker.tsx';
 import {PersonPickerItem} from '../../components/person-picker/personPickerTypes.ts';
+import UserAvatarGroupItem from '../../components/user-avatar/UserAvatarGroupItem.tsx';
 
 const toPersonPickerItem = (contact: UserContactDto): PersonPickerItem => ({
     id: contact.contactAppUserId ?? contact.email,
@@ -347,6 +347,7 @@ const MyGroupsTab: React.FC = () =>
                                 const items = nonOwners.map(m => ({
                                     name: [m.user?.person?.firstName, m.user?.person?.lastName].filter(Boolean).join(' ') || m.user?.email || 'Unknown',
                                     key: m.user?.id || m.user?.email || String(Math.random()),
+                                    avatarUrl: m.user?.avatarUrl,
                                 }));
                                 const {inlineItems, overflowItems} = partitionAvatarGroupItems({items, maxInlineItems: 5});
                                 return (
@@ -361,13 +362,13 @@ const MyGroupsTab: React.FC = () =>
                                                 <AvatarGroup size={24} layout="stack">
                                                     {inlineItems?.map(item => (
                                                         <Tooltip key={item.key} content={item.name} relationship="label">
-                                                            <AvatarGroupItem name={item.name}/>
+                                                            <UserAvatarGroupItem name={item.name} avatarUrl={item.avatarUrl}/>
                                                         </Tooltip>
                                                     ))}
                                                     {overflowItems?.length > 0 && (
                                                         <AvatarGroupPopover>
                                                             {overflowItems.map(item => (
-                                                                <AvatarGroupItem key={item.key} name={item.name}/>
+                                                                <UserAvatarGroupItem key={item.key} name={item.name} avatarUrl={item.avatarUrl}/>
                                                             ))}
                                                         </AvatarGroupPopover>
                                                     )}

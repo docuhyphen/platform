@@ -104,4 +104,20 @@ class AppUserRepository : BaseRepository<AppUser>(AppUser::class.java)
     {
         entityManager.detach(user)
     }
+
+    /**
+     * Of the supplied user ids, returns the subset that currently has a stored profile
+     * picture. A single query keeps avatar enrichment of a contact/member list free of
+     * per-row lookups.
+     */
+    fun findIdsWithAvatar(ids: Collection<UUID>): Set<UUID>
+    {
+        if (ids.isEmpty()) return emptySet()
+        val query: TypedQuery<UUID> = entityManager.createQuery(
+            "SELECT a.id FROM AppUser a WHERE a.id IN :ids AND a.avatarStorageKey IS NOT NULL",
+            UUID::class.java,
+        )
+        query.setParameter("ids", ids)
+        return query.resultList.toSet()
+    }
 }

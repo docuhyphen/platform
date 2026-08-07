@@ -163,7 +163,7 @@ class DetailedEntityToDtoTransformer
                     id = it.id,
                     email = it.email,
                     person = it.person?.let { p -> PersonPublicDto(firstName = p.firstName, lastName = p.lastName) },
-                    avatarUrl = null,
+                    avatarUrl = if (it.avatarStorageKey != null) AvatarUrls.forUser(it.id) else null,
                     isActive = it.isActive,
                     appRoles = appRoles.map { r -> r.name }.sorted(),
                     organizationRoles = organizationRoles.map { r -> r.name }.sorted(),
@@ -220,6 +220,7 @@ class DetailedEntityToDtoTransformer
                         pageNumber,
                         documentVersion?.id?.toString(),
                         documentVersion?.version,
+                        commentedByAvatarUrl = if (commentedBy.avatarStorageKey != null) AvatarUrls.forUser(commentedBy.id) else null,
                     )
                 }
             }

@@ -2,6 +2,7 @@
 import {Avatar, Badge, Button, Popover, PopoverSurface, PopoverTrigger, Text, Tooltip} from "@fluentui/react-components";
 import {useExchangeDocumentCommentStyles} from "./ExchangeDocumentCommentStyles.tsx";
 import {DocumentCommentDetailedDto} from "../../../../../models/models.tsx";
+import {useAvatarUrl} from "../../../../../components/hooks/useAvatarUrl.ts";
 import {formatDateTimeWithOrdinal} from "../../../../../helpers.ts";
 
 interface ExchangeDocumentCommentProps
@@ -19,6 +20,7 @@ const ExchangeDocumentComment: React.FC<ExchangeDocumentCommentProps> = (
     }) =>
 {
     const styles = useExchangeDocumentCommentStyles();
+    const authorAvatarUrl = useAvatarUrl(comment.commentedByAvatarUrl);
 
     return (
         <div
@@ -30,6 +32,7 @@ const ExchangeDocumentComment: React.FC<ExchangeDocumentCommentProps> = (
                     <Avatar
                         id={`${idPrefix}-comment-${comment.id}-author-avatar`}
                         name={`${comment.commentedByFirstName} ${comment.commentedByLastName}`}
+                        image={authorAvatarUrl ? {src: authorAvatarUrl} : undefined}
                     />
                 </PopoverTrigger>
 
