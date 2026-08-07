@@ -58,14 +58,7 @@ export function DesktopNavigationLinks({activePath, onNavigate}: DesktopNavigati
             >
                 <Text>Pricing</Text>
             </Link>
-            <Link
-                id="landing-about-link"
-                to="/about"
-                className={getNavLinkClassName("/about")}
-                aria-current={activePath === "/about" ? "page" : undefined}
-            >
-                <Text>About</Text>
-            </Link>
+            {/* About link hidden while the page is pending redesign */}
             <Link
                 id="landing-contact-link"
                 to="/contact"

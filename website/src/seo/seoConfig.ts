@@ -78,15 +78,7 @@ const routeSeoByPath: Readonly<Record<string, RouteSeo>> = {
         pageType: "webpage",
         breadcrumbs: [{name: "Home", path: "/"}, {name: "Security", path: "/security"}],
     }),
-    "/about": defineRoute({
-        path: "/about",
-        title: "About the DocuHyphen Platform | DocuHyphen",
-        description: "See how DocuHyphen brings documents, people, approvals, workflows, and audit history into one controlled workspace.",
-        canonicalPath: "/about",
-        robots: "index,follow",
-        pageType: "webpage",
-        breadcrumbs: [{name: "Home", path: "/"}, {name: "About", path: "/about"}],
-    }),
+    // "/about" route SEO entry intentionally omitted while the page is hidden pending redesign
     "/contact": defineRoute({
         path: "/contact",
         title: "Contact DocuHyphen",

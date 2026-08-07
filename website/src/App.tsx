@@ -14,7 +14,9 @@ import {appStyles} from "./AppStyles.tsx";
 import {PricingPage} from "./pages/PricingPage.tsx";
 import {IndustriesPage} from "./pages/IndustriesPage.tsx";
 import {SecurityPage} from "./pages/security-page/SecurityPage.tsx";
-import {AboutPage} from "./pages/about-page/AboutPage.tsx";
+// About page is temporarily hidden pending redesign. Route intentionally
+// omitted below so "/about" falls through to the catch-all NotFoundPage.
+// import {AboutPage} from "./pages/about-page/AboutPage.tsx";
 import {ContactPage} from "./pages/ContactPage.tsx";
 import {NotFoundPage} from "./pages/NotFoundPage.tsx";
 import {Seo} from "./seo/Seo.tsx";
@@ -91,7 +93,7 @@ export default function App()
             <Route path="/pricing" element={<PricingPage/>}/>
             <Route path="/industries/:industry" element={<IndustriesPage/>}/>
             <Route path="/security" element={<SecurityPage/>}/>
-            <Route path="/about" element={<AboutPage/>}/>
+            {/* "/about" route intentionally omitted while the page is hidden pending redesign */}
             <Route path="/contact" element={<ContactPage/>}/>
             <Route path="*" element={<NotFoundPage/>}/>
             </Routes>
