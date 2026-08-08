@@ -3,7 +3,7 @@ import {BREAKPOINT_MOBILE, CARD_RADIUS, SPACE_LG, SPACE_MD, SPACE_SM} from "../s
 
 export const useGuidedDemoPanelStyles = makeStyles({
     panel: {
-        backgroundColor: "rgba(255, 255, 255, .35)",
+        backgroundColor: tokens.colorNeutralBackground1,
         border: `${tokens.strokeWidthThin} solid ${tokens.colorNeutralStroke2}`,
         borderRadius: CARD_RADIUS,
         padding: SPACE_LG,
@@ -11,6 +11,9 @@ export const useGuidedDemoPanelStyles = makeStyles({
         flexDirection: "column",
         gap: SPACE_SM,
         textAlign: "left",
+        height: "100%",
+        boxSizing: "border-box",
+        justifyContent: "center",
     },
 
     actions: {

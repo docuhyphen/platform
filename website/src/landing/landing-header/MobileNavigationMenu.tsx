@@ -68,9 +68,8 @@ export function MobileNavigationMenu({activePath, onNavigate}: MobileNavigationM
                     {/* About menu item hidden while the page is pending redesign */}
                     <MenuItem
                         id="landing-mobile-contact"
-                        onClick={() => onNavigate("/contact")}
-                        className={getMenuItemClassName("/contact")}
-                        aria-current={activePath === "/contact" ? "page" : undefined}
+                        onClick={() => onNavigate("/#home-contact-info")}
+                        className={styles.mainMobileMenuItem}
                     >
                         Contact
                     </MenuItem>

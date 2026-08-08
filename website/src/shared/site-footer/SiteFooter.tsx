@@ -27,7 +27,7 @@ export function SiteFooter()
                     size={200}
                     className={styles.copyright}
                 >
-                    &copy; {year} DocuHyphen
+                    &copy; {year} DocuHyphen. All rights reserved.
                 </Text>
             </div>
         </footer>

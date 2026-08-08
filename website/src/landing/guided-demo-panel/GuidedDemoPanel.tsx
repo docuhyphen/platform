@@ -30,7 +30,7 @@ export function GuidedDemoPanel({idPrefix}: GuidedDemoPanelProps)
                     trigger={
                         <Button
                             id={`${idPrefix}-guided-demo-speak-to-sales`}
-                            appearance="subtle"
+                            appearance="primary"
                             shape="circular"
                         >
                             Speak to sales
@@ -41,7 +41,7 @@ export function GuidedDemoPanel({idPrefix}: GuidedDemoPanelProps)
                     id={`${idPrefix}-guided-demo-email`}
                     as="a"
                     href={SALES_EMAIL_URL}
-                    appearance="subtle"
+                    appearance="secondary"
                     shape="circular"
                 >
                     Email us directly

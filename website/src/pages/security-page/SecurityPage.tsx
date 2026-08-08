@@ -134,7 +134,7 @@ export function SecurityPage()
             >
                 <LinkButton
                     id="security-contact-button"
-                    to="/contact"
+                    to="/#home-contact-info"
                     appearance="primary"
                     shape="circular"
                 >

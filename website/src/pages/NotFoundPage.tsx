@@ -60,7 +60,7 @@ export function NotFoundPage()
                     <LinkButton to="/" appearance="primary" shape="circular">
                         Back home
                     </LinkButton>
-                    <LinkButton to="/contact" appearance="secondary" shape="circular">
+                    <LinkButton to="/#home-contact-info" appearance="secondary" shape="circular">
                         Contact DocuHyphen
                     </LinkButton>
                 </div>

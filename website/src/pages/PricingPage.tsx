@@ -44,7 +44,7 @@ export function PricingPage()
                         <Button
                             id="pricing-contact-team"
                             as="a"
-                            href="/contact"
+                            href="/#home-contact-info"
                             appearance="secondary"
                             shape="circular"
                         >
@@ -68,7 +68,7 @@ export function PricingPage()
                             <div className={styles.cardIcon} aria-hidden="true"><PersonCall24Regular/></div>
                             <Title3>Talk through your needs</Title3>
                             <Text>Tell us about your process, team, and requirements. We will help you find the right path forward.</Text>
-                            <Link id="pricing-contact-link" to="/contact" className={styles.cardLink}>
+                            <Link id="pricing-contact-link" to="/#home-contact-info" className={styles.cardLink}>
                                 Get in touch <ArrowRight20Regular/>
                             </Link>
                         </article>

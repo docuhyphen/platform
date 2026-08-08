@@ -61,9 +61,8 @@ export function DesktopNavigationLinks({activePath, onNavigate}: DesktopNavigati
             {/* About link hidden while the page is pending redesign */}
             <Link
                 id="landing-contact-link"
-                to="/contact"
-                className={getNavLinkClassName("/contact")}
-                aria-current={activePath === "/contact" ? "page" : undefined}
+                to="/#home-contact-info"
+                className={styles.navLink}
             >
                 <Text>Contact</Text>
             </Link>

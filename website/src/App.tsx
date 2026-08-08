@@ -6,7 +6,7 @@ import {RisksSection} from "./landing/RisksSection.tsx";
 import {HowItWorksSection} from "./landing/how-it-works-section/HowItWorksSection.tsx";
 import {FeaturesSection} from "./landing/features-section/FeaturesSection.tsx";
 import {AudienceSection} from "./landing/AudienceSection.tsx";
-import {FinalCtaSection} from "./landing/final-cta-section/FinalCtaSection.tsx";
+import {ContactInfoSection} from "./landing/contact-info-section/ContactInfoSection.tsx";
 import {IndustryPickerDialog} from "./landing/IndustryPickerDialog.tsx";
 import {getStoredIndustry} from "./landing/industryOptions.ts";
 import type {IndustrySlug} from "./landing/industryOptions.ts";
@@ -17,9 +17,9 @@ import {SecurityPage} from "./pages/security-page/SecurityPage.tsx";
 // About page is temporarily hidden pending redesign. Route intentionally
 // omitted below so "/about" falls through to the catch-all NotFoundPage.
 // import {AboutPage} from "./pages/about-page/AboutPage.tsx";
-import {ContactPage} from "./pages/ContactPage.tsx";
 import {NotFoundPage} from "./pages/NotFoundPage.tsx";
 import {Seo} from "./seo/Seo.tsx";
+import {ScrollToHashHandler} from "./shared/ScrollToHashHandler.tsx";
 import {SiteFooter} from "./shared/site-footer/SiteFooter.tsx";
 
 function LandingPage({industrySlug}: {industrySlug: IndustrySlug | null})
@@ -61,10 +61,10 @@ function LandingPage({industrySlug}: {industrySlug: IndustrySlug | null})
                 {/*<PricingTeaserSection/>*/}
             </main>
             <div
-                id="home-final-call-to-action-surface"
+                id="home-contact-info-surface"
                 className={styles.mobileSectionGap}
             >
-                <FinalCtaSection/>
+                <ContactInfoSection/>
             </div>
             <SiteFooter/>
         </div>
@@ -85,6 +85,7 @@ export default function App()
     return (
         <>
             <Seo/>
+            <ScrollToHashHandler/>
             {showPicker && (
                 <IndustryPickerDialog onSelect={(slug) => setSelectedIndustrySlug(slug)}/>
             )}
@@ -94,7 +95,6 @@ export default function App()
             <Route path="/industries/:industry" element={<IndustriesPage/>}/>
             <Route path="/security" element={<SecurityPage/>}/>
             {/* "/about" route intentionally omitted while the page is hidden pending redesign */}
-            <Route path="/contact" element={<ContactPage/>}/>
             <Route path="*" element={<NotFoundPage/>}/>
             </Routes>
         </>
