@@ -1,7 +1,7 @@
-import {Button, Text, Title1, Title3, makeStyles, tokens} from "@fluentui/react-components";
+import {Text, Title1, Title3, makeStyles, tokens} from "@fluentui/react-components";
 import {Mail24Regular, ChatHelp24Regular, Location24Regular} from "@fluentui/react-icons";
 import {PageShell} from "../shared/PageShell.tsx";
-import {SpeakToSalesDialog} from "../landing/SpeakToSalesDialog.tsx";
+import {GuidedDemoPanel} from "../landing/guided-demo-panel/GuidedDemoPanel.tsx";
 import {
     BREAKPOINT_MOBILE,
     CARD_RADIUS,
@@ -65,20 +65,6 @@ const useStyles = makeStyles({
 
     salesPanel: {
         marginTop: SPACE_LG,
-        backgroundColor: tokens.colorNeutralBackground1,
-        border: `1px solid ${tokens.colorNeutralStroke2}`,
-        borderRadius: CARD_RADIUS,
-        padding: SPACE_LG,
-        display: "flex",
-        flexDirection: "column",
-        gap: SPACE_SM,
-    },
-
-    salesActions: {
-        display: "flex",
-        gap: SPACE_MD,
-        flexWrap: "wrap",
-        marginTop: SPACE_SM,
     },
 });
 
@@ -127,22 +113,7 @@ export function ContactPage()
             </div>
 
             <section className={styles.salesPanel}>
-                <Title3 as="h2">Want a guided demo?</Title3>
-                <Text>
-                    Fill out a short form and our sales team will reach out within one business day to schedule a personalized walkthrough.
-                </Text>
-                <div className={styles.salesActions}>
-                    <SpeakToSalesDialog
-                        trigger={
-                            <Button appearance="primary" shape="circular">
-                                Speak to sales
-                            </Button>
-                        }
-                    />
-                    <Button as="a" href={SALES_EMAIL_URL} appearance="secondary" shape="circular">
-                        Email us directly
-                    </Button>
-                </div>
+                <GuidedDemoPanel idPrefix="contact-page"/>
             </section>
         </PageShell>
     );

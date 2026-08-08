@@ -13,16 +13,16 @@ export const useSiteFooterStyles = makeStyles({
     inner: {
         maxWidth: WIDTH_CONTENT,
         margin: "0 auto",
-        minHeight: "4.5rem",
-        padding: `${tokens.spacingVerticalM} ${tokens.spacingHorizontalXXL}`,
+        minHeight: "9rem",
+        padding: `${tokens.spacingVerticalXXL} 0`,
         boxSizing: "border-box",
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
         gap: tokens.spacingHorizontalL,
         [BREAKPOINT_MOBILE]: {
-            padding: `${tokens.spacingVerticalM} ${tokens.spacingHorizontalM}`,
-            gap: tokens.spacingHorizontalM,
+            padding: `${tokens.spacingVerticalXXL} 0`,
+            gap: tokens.spacingHorizontalL,
         },
     },
     logo: {

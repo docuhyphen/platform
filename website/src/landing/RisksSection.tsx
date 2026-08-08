@@ -97,22 +97,22 @@ const useStyles = makeStyles({
     },
 
     card1: {
-        backgroundColor: "rgba(242 247 251, 0.5)",
+        backgroundImage: "linear-gradient(135deg, rgba(138, 184, 224, 0.15) 0%, rgba(61, 122, 181, 0.15) 100%)",
         borderTop: "0.4rem solid #5B9BD5",
     },
 
     card2: {
-        backgroundColor: "rgba(246 244 250, 0.5)",
+        backgroundImage: "linear-gradient(135deg, rgba(176, 160, 216, 0.15) 0%, rgba(108, 88, 168, 0.15) 100%)",
         borderTop: "0.4rem solid #8E7CC3",
     },
 
     card3: {
-        backgroundColor: "rgb(241 249 247, 0.5)",
+        backgroundImage: "linear-gradient(135deg, rgba(124, 201, 192, 0.15) 0%, rgba(54, 143, 133, 0.15) 100%)",
         borderTop: "0.4rem solid #4FB3A8",
     },
 
     card4: {
-        backgroundColor: "rgba(251 247 241, 0.5)",
+        backgroundImage: "linear-gradient(135deg, rgba(217, 192, 143, 0.15) 0%, rgba(168, 133, 76, 0.15) 100%)",
         borderTop: "0.4rem solid #C7A76C",
     },
 
@@ -236,7 +236,7 @@ export function RisksSection()
                             Did you know?
                         </Title2>
                         <Text size={500} className={styles.subheading}>
-                            The hidden risks of everyday document sharing
+                            The hidden risks of everyday document sharing <strong><i>in business</i></strong>
                         </Text>
                     </div>
                 </div>
