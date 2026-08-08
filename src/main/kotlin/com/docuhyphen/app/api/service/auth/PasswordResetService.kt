@@ -79,7 +79,7 @@ class PasswordResetService @Inject constructor(
         )
         emailService.sendEmail(
             to = email,
-            subject = "${configurationService.emailSubjectTitle} | Account recovery",
+            subject = "Account recovery",
             body = body,
             useHtml = true,
         )
@@ -138,7 +138,7 @@ class PasswordResetService @Inject constructor(
             )
             emailService.sendEmail(
                 to = appUser.email,
-                subject = "${configurationService.emailSubjectTitle} | Password changed",
+                subject = "Password changed",
                 body = body,
                 useHtml = true,
             )

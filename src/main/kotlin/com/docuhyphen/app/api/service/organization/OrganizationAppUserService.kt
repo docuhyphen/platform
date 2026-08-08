@@ -448,7 +448,7 @@ class OrganizationAppUserService @Inject constructor(
             )
             emailService.sendEmail(
                 to = appUser.email,
-                subject = "${configurationService.emailSubjectTitle} | Added to $organizationName",
+                subject = "Added to $organizationName",
                 body = body,
                 useHtml = true,
             )
@@ -511,7 +511,7 @@ class OrganizationAppUserService @Inject constructor(
             )
             emailService.sendEmail(
                 to = appUser.email,
-                subject = "${configurationService.emailSubjectTitle} | Removed from $organizationName",
+                subject = "Removed from $organizationName",
                 body = body,
                 useHtml = true,
             )
@@ -533,7 +533,7 @@ class OrganizationAppUserService @Inject constructor(
             )
             emailService.sendEmail(
                 to = appUser.email,
-                subject = "${configurationService.emailSubjectTitle} | Access deactivated for $organizationName",
+                subject = "Access deactivated for $organizationName",
                 body = body,
                 useHtml = true,
             )
@@ -555,7 +555,7 @@ class OrganizationAppUserService @Inject constructor(
             )
             emailService.sendEmail(
                 to = appUser.email,
-                subject = "${configurationService.emailSubjectTitle} | Access reactivated for $organizationName",
+                subject = "Access reactivated for $organizationName",
                 body = body,
                 useHtml = true,
             )
@@ -584,7 +584,7 @@ class OrganizationAppUserService @Inject constructor(
             )
             emailService.sendEmail(
                 to = appUser.email,
-                subject = "${configurationService.emailSubjectTitle} | Your role was changed",
+                subject = "Your role was changed",
                 body = body,
                 useHtml = true,
             )

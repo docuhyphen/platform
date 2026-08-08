@@ -108,7 +108,7 @@ class SignUpService @Inject constructor(
 
             emailService.sendEmail(
                 to = sanitized,
-                subject = "${configurationService.emailSubjectTitle} | Sign Up Email Verification",
+                subject = "Sign Up Email Verification",
                 body = emailBody,
                 useHtml = true
             )
@@ -224,7 +224,7 @@ class SignUpService @Inject constructor(
 
         emailService.sendEmail(
             to = sanitizedEmail,
-            subject = "${configurationService.emailSubjectTitle} | Sign Up verification code",
+            subject = "Sign Up verification code",
             body = emailBody,
             useHtml = true
         )
@@ -529,7 +529,7 @@ class SignUpService @Inject constructor(
         val emailBody = emailTemplateService.renderSignUpCompletionEmail(email)
         emailService.sendEmail(
             to = email,
-            subject = "${configurationService.emailSubjectTitle} | Account Created Successfully",
+            subject = "Account Created Successfully",
             body = emailBody,
             useHtml = true
         )
@@ -538,7 +538,7 @@ class SignUpService @Inject constructor(
             val notificationBody = emailTemplateService.renderNewUserRegistrationNotificationEmail(email)
             emailService.sendEmail(
                 to = configurationService.getNewUserNotificationEmail(),
-                subject = "${configurationService.emailSubjectTitle} | New User Registration",
+                subject = "New User Registration",
                 body = notificationBody,
                 useHtml = true,
             )

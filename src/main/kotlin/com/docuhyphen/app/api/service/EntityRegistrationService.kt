@@ -187,7 +187,7 @@ class EntityRegistrationService @Inject constructor(
 
         emailService.sendEmail(
             appUser.email,
-            "${configurationService.emailSubjectTitle} | Organization Registration",
+            "Organization Registration",
             emailBody,
             useHtml = true,
         )
@@ -203,7 +203,7 @@ class EntityRegistrationService @Inject constructor(
             )
             emailService.sendEmail(
                 to = configurationService.getNewOrgNotificationEmail(),
-                subject = "${configurationService.emailSubjectTitle} | New Organization Registration",
+                subject = "New Organization Registration",
                 body = notificationBody,
                 useHtml = true,
             )

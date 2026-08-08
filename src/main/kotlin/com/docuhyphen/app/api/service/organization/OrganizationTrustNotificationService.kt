@@ -63,7 +63,7 @@ class OrganizationTrustNotificationService @Inject constructor(
                 runCatching {
                     emailService.sendEmail(
                         appUser.email,
-                        "${configurationService.emailSubjectTitle} | ${notification.title}",
+                        notification.title,
                         "$message Open ${configurationService.baseUrl}/settings to review Trusted Organizations.",
                     )
                 }.onFailure { exception ->

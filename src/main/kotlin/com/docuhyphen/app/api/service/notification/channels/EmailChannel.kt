@@ -52,7 +52,7 @@ class EmailChannel : NotificationChannel
             "workflow.step_assigned" -> renderStepAssigned(task)
             "workflow.notification"  -> renderWorkflowNotification(task)
             else -> Triple(
-                "[${appName}] ${task.event.type}",
+                task.event.type,
                 buildString {
                     appendLine("Event: ${task.event.type}")
                     task.event.subject?.let { appendLine("Subject: ${it.type} ${it.id}") }
@@ -106,7 +106,7 @@ class EmailChannel : NotificationChannel
         }
 
         return Triple(
-            "[${appName}] Workflow Notification",
+            "Workflow Notification",
             "You have a workflow notification in ${appName}. Please sign in to view it.",
             false,
         )
@@ -117,9 +117,9 @@ class EmailChannel : NotificationChannel
         val payload = task.event.payload
         val exchangeName = payload["exchangeName"]?.takeIf { it.isNotBlank() }
         val subject = if (exchangeName != null)
-            "[${appName}] Action required: approval request for \"${exchangeName}\""
+            "Action required: approval request for \"${exchangeName}\""
         else
-            "[${appName}] Action required: you have a pending approval"
+            "Action required: you have a pending approval"
 
         val model = buildMap<String, Any> {
             put("appName", appName)

@@ -183,7 +183,7 @@ class AppUserService @Inject constructor(
             )
             emailService.sendEmail(
                 to = appUser.email,
-                subject = "${configurationService.emailSubjectTitle} | Confirm email change",
+                subject = "Confirm email change",
                 body = body,
                 useHtml = true,
             )
@@ -227,7 +227,7 @@ class AppUserService @Inject constructor(
             )
             emailService.sendEmail(
                 to = appUser.pendingEmail!!,
-                subject = "${configurationService.emailSubjectTitle} | Verify your new email",
+                subject = "Verify your new email",
                 body = body,
                 useHtml = true,
             )
@@ -284,7 +284,7 @@ class AppUserService @Inject constructor(
             )
             emailService.sendEmail(
                 to = previousEmail,
-                subject = "${configurationService.emailSubjectTitle} | Email address changed",
+                subject = "Email address changed",
                 body = body,
                 useHtml = true,
             )
@@ -327,7 +327,7 @@ class AppUserService @Inject constructor(
             )
             emailService.sendEmail(
                 to = deletedEmail,
-                subject = "${configurationService.emailSubjectTitle} | Account deleted",
+                subject = "Account deleted",
                 body = body,
                 useHtml = true,
             )
@@ -345,7 +345,7 @@ class AppUserService @Inject constructor(
             val body = emailTemplateService.renderProfileUpdatedEmail(updatedFields)
             emailService.sendEmail(
                 to = appUser.email,
-                subject = "${configurationService.emailSubjectTitle} | Profile updated",
+                subject = "Profile updated",
                 body = body,
                 useHtml = true,
             )

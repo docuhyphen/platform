@@ -550,8 +550,8 @@ class ExchangeAccessManagementService @Inject constructor(
         )
         val subject = when
         {
-            trustedInvitation -> "${configurationService.emailSubjectTitle} | Trusted Exchange invitation"
-            else -> "${configurationService.emailSubjectTitle} | Document Exchange invitation"
+            trustedInvitation -> "Trusted Exchange invitation"
+            else -> "Document Exchange invitation"
         }
         val emails = appUsers.map { appUser ->
             ExchangeEmailDelivery(

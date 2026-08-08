@@ -144,7 +144,7 @@ class AuthEmailTemplateService @Inject constructor(
         }
 
         return RenderedEmailTemplate(
-            subject = "${configurationService.emailSubjectTitle} | New sign-in to your account",
+            subject = "New sign-in to your account",
             body = renderer.render("new-sign-in-alert.ftl", model),
         )
     }

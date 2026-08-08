@@ -491,7 +491,7 @@ class OrganizationGroupService @Inject constructor(
             )
             emailService.sendEmail(
                 to = appUser.email,
-                subject = "${configurationService.emailSubjectTitle} | Group \"$groupName\" created",
+                subject = "Group \"$groupName\" created",
                 body = body,
                 useHtml = true,
             )
@@ -514,7 +514,7 @@ class OrganizationGroupService @Inject constructor(
             )
             emailService.sendEmail(
                 to = appUser.email,
-                subject = "${configurationService.emailSubjectTitle} | Added to $groupName",
+                subject = "Added to $groupName",
                 body = body,
                 useHtml = true,
             )
@@ -537,7 +537,7 @@ class OrganizationGroupService @Inject constructor(
             )
             emailService.sendEmail(
                 to = appUser.email,
-                subject = "${configurationService.emailSubjectTitle} | Removed from $groupName",
+                subject = "Removed from $groupName",
                 body = body,
                 useHtml = true,
             )
@@ -566,7 +566,7 @@ class OrganizationGroupService @Inject constructor(
             )
             emailService.sendEmail(
                 to = appUser.email,
-                subject = "${configurationService.emailSubjectTitle} | Group updated",
+                subject = "Group updated",
                 body = body,
                 useHtml = true,
             )

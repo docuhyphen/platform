@@ -158,7 +158,7 @@ class OrganizationService @Inject constructor(
             {
                 emailService.sendEmail(
                     to = appUser.email,
-                    subject = "${configurationService.emailSubjectTitle} | Organization Updated",
+                    subject = "Organization Updated",
                     body = emailBody,
                     useHtml = true,
                 )

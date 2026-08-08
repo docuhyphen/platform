@@ -923,7 +923,7 @@ class ExchangeAccessManagementServiceTest
         )
         val email = emailDeliveries.firstValue.single()
         assertEquals(recipientEmail, email.to)
-        assertEquals("DocuHyphen | Document Exchange invitation", email.subject)
+        assertEquals("Document Exchange invitation", email.subject)
         assertEquals(null, email.preferenceAppUserId)
         verify(emailTemplateService).renderExchangeCreatedRecipientEmail(
             exchangeId.toString(),

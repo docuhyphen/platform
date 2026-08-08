@@ -15,6 +15,7 @@ import software.amazon.awssdk.services.ses.model.SendEmailRequest
 class EmailService @Inject constructor(
     @ConfigProperty(name = "app.email.ses.region") private val sesRegion: String,
     @ConfigProperty(name = "quarkus.mailer.from") private val fromAddress: String,
+    @ConfigProperty(name = "app.email.subject-title") private val emailSubjectTitle: String,
 )
 {
     private val sesClient: SesClient = createSesClient()
@@ -26,8 +27,17 @@ class EmailService @Inject constructor(
             .build()
     }
 
+    /**
+     * Every outbound email subject is tagged with the deployment's display name so recipients
+     * can immediately identify which environment/product sent the message, for example
+     * "DocuHyphen: Confirm email change" wrapped in brackets. Callers must pass the bare,
+     * descriptive subject text only; this is the single place that applies the bracketed prefix.
+     */
+    private fun formatSubject(subject: String): String = "[$emailSubjectTitle] $subject"
+
     fun sendEmail(to: String, subject: String, body: String, useHtml: Boolean? = false)
     {
+        val formattedSubject = formatSubject(subject)
         val destination = Destination.builder()
             .toAddresses(to)
             .build()
@@ -46,7 +56,7 @@ class EmailService @Inject constructor(
         }
 
         val message = Message.builder()
-            .subject(Content.builder().data(subject).charset("UTF-8").build())
+            .subject(Content.builder().data(formattedSubject).charset("UTF-8").build())
             .body(messageBody)
             .build()
 

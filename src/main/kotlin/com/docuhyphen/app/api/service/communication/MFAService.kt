@@ -113,7 +113,7 @@ class MfaService(
                 expiryMinutes = expiryMinutes,
                 actionDescription = actionDescription,
             )
-            subject = "${configurationService.emailSubjectTitle} | Verification Required"
+            subject = "Verification Required"
         }
         else
         {
@@ -121,7 +121,7 @@ class MfaService(
                 otp = mfaToken,
                 expiryMinutes = expiryMinutes,
             )
-            subject = "${configurationService.emailSubjectTitle} | Sign In"
+            subject = "Sign In"
         }
 
         emailService.sendEmail(

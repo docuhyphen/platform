@@ -337,7 +337,7 @@ class SignInService @Inject constructor(
 
                 emailService.sendEmail(
                     to = mfaRecord.appUser!!.email,
-                    subject = "${configurationService.emailSubjectTitle} | Sign In Verification",
+                    subject = "Sign In Verification",
                     body = emailBody,
                     useHtml = true,
                 )
