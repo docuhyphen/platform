@@ -14,6 +14,25 @@ data class ResponseError(
     var retryAfterSeconds: Long? = null,
 )
 
+/**
+ * Public "Speak to Sales" enquiry submitted from the marketing site. The [website] field is a
+ * honeypot: it is hidden from real users and must stay empty. Any submission that fills it is
+ * treated as automated spam and silently discarded.
+ */
+@Serializable
+data class SalesEnquiryRequest(
+    val firstName: String? = null,
+    val lastName: String? = null,
+    val workEmail: String? = null,
+    val phone: String? = null,
+    val organizationName: String? = null,
+    val organizationType: String? = null,
+    val companySize: String? = null,
+    val country: String? = null,
+    val message: String? = null,
+    val website: String? = null,
+)
+
 @Serializable
 data class SignInRequest(
     var email: String? = null,

@@ -19,32 +19,7 @@ import {
 import {CheckmarkCircle24Regular, Dismiss24Regular, ErrorCircle24Regular, Send24Regular} from "@fluentui/react-icons";
 import {useState} from "react";
 import {BREAKPOINT_MOBILE, SPACE_MD, SPACE_SM} from "./shared.ts";
-
-type FormState = {
-    firstName: string;
-    lastName: string;
-    workEmail: string;
-    phone: string;
-    organizationName: string;
-    organizationType: string;
-    companySize: string;
-    country: string;
-    message: string;
-};
-
-type SubmitStatus = "idle" | "submitting" | "success" | "error";
-
-const emptyForm: FormState = {
-    firstName: "",
-    lastName: "",
-    workEmail: "",
-    phone: "",
-    organizationName: "",
-    organizationType: "",
-    companySize: "",
-    country: "",
-    message: "",
-};
+import {useSpeakToSalesForm} from "./useSpeakToSalesForm.ts";
 
 const useStyles = makeStyles({
     surface: {
@@ -108,6 +83,17 @@ const useStyles = makeStyles({
         justifyContent: "flex-end",
         gap: SPACE_SM,
     },
+
+    // Honeypot: kept in the DOM and reachable by bots but hidden from real users and assistive
+    // tech. Positioned offscreen instead of display:none so scripted fillers still see it.
+    honeypot: {
+        position: "absolute",
+        width: "1px",
+        height: "1px",
+        overflow: "hidden",
+        left: "-9999px",
+        top: "auto",
+    },
 });
 
 type SpeakToSalesDialogProps = {
@@ -117,64 +103,29 @@ type SpeakToSalesDialogProps = {
 export function SpeakToSalesDialog({trigger}: SpeakToSalesDialogProps)
 {
     const styles = useStyles();
-    const [form, setForm] = useState<FormState>(emptyForm);
-    const [submitStatus, setSubmitStatus] = useState<SubmitStatus>("idle");
-    const [errorMessage, setErrorMessage] = useState<string>("");
     const [open, setOpen] = useState(false);
-
-    const update = (field: keyof FormState) => (
-        e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
-    ) => setForm((prev) => ({...prev, [field]: e.target.value}));
-
-    const isValid =
-        form.firstName.trim() !== "" &&
-        form.lastName.trim() !== "" &&
-        form.workEmail.trim() !== "" &&
-        form.organizationName.trim() !== "" &&
-        form.organizationType !== "" &&
-        form.companySize !== "";
-
-    const handleSubmit = async () => {
-        if (!isValid) return;
-
-        setSubmitStatus("submitting");
-        setErrorMessage("");
-
-        try
-        {
-            const response = await fetch("/api/sales-enquiries", {
-                method: "POST",
-                headers: {"Content-Type": "application/json"},
-                body: JSON.stringify(form),
-            });
-
-            if (response.ok)
-            {
-                setSubmitStatus("success");
-            }
-            else
-            {
-                const text = await response.text();
-                setErrorMessage(text || `Server error (${response.status}). Please try again.`);
-                setSubmitStatus("error");
-            }
-        }
-        catch
-        {
-            setErrorMessage("Unable to reach the server. Please check your connection and try again.");
-            setSubmitStatus("error");
-        }
-    };
+    const {
+        form,
+        errors,
+        submitStatus,
+        errorMessage,
+        isValid,
+        update,
+        handleSubmit,
+        markOpened,
+        reset,
+        retry,
+    } = useSpeakToSalesForm();
 
     const handleOpenChange = (_: unknown, data: {open: boolean}) => {
         setOpen(data.open);
-        if (!data.open)
+        if (data.open)
         {
-            setTimeout(() => {
-                setForm(emptyForm);
-                setSubmitStatus("idle");
-                setErrorMessage("");
-            }, 300);
+            markOpened();
+        }
+        else
+        {
+            setTimeout(reset, 300);
         }
     };
 
@@ -192,7 +143,9 @@ export function SpeakToSalesDialog({trigger}: SpeakToSalesDialogProps)
                         action={
                             <DialogTrigger action="close">
                                 <Button
+                                    id="speak-to-sales-header-close-btn"
                                     appearance="subtle"
+                                    shape="circular"
                                     aria-label="Close"
                                     icon={<Dismiss24Regular/>}
                                 />
@@ -220,9 +173,10 @@ export function SpeakToSalesDialog({trigger}: SpeakToSalesDialogProps)
                                 <Text size={500} weight="semibold">Something went wrong</Text>
                                 <Text>{errorMessage}</Text>
                                 <Button
+                                    id="speak-to-sales-retry-btn"
                                     appearance="secondary"
                                     shape="circular"
-                                    onClick={() => setSubmitStatus("idle")}
+                                    onClick={retry}
                                 >
                                     Try again
                                 </Button>
@@ -234,15 +188,27 @@ export function SpeakToSalesDialog({trigger}: SpeakToSalesDialogProps)
                                 <Text className={styles.sectionLabel}>Your details</Text>
 
                                 <div className={styles.row}>
-                                    <Field label="First name" required>
+                                    <Field
+                                        label="First name"
+                                        required
+                                        validationState={errors.firstName ? "error" : "none"}
+                                        validationMessage={errors.firstName}
+                                    >
                                         <Input
+                                            id="speak-to-sales-first-name"
                                             value={form.firstName}
                                             onChange={update("firstName")}
                                             disabled={isSubmitting}
                                         />
                                     </Field>
-                                    <Field label="Last name" required>
+                                    <Field
+                                        label="Last name"
+                                        required
+                                        validationState={errors.lastName ? "error" : "none"}
+                                        validationMessage={errors.lastName}
+                                    >
                                         <Input
+                                            id="speak-to-sales-last-name"
                                             value={form.lastName}
                                             onChange={update("lastName")}
                                             disabled={isSubmitting}
@@ -251,8 +217,14 @@ export function SpeakToSalesDialog({trigger}: SpeakToSalesDialogProps)
                                 </div>
 
                                 <div className={styles.row}>
-                                    <Field label="Work email" required>
+                                    <Field
+                                        label="Work email"
+                                        required
+                                        validationState={errors.workEmail ? "error" : "none"}
+                                        validationMessage={errors.workEmail}
+                                    >
                                         <Input
+                                            id="speak-to-sales-work-email"
                                             type="email"
                                             value={form.workEmail}
                                             onChange={update("workEmail")}
@@ -261,6 +233,7 @@ export function SpeakToSalesDialog({trigger}: SpeakToSalesDialogProps)
                                     </Field>
                                     <Field label="Phone number">
                                         <Input
+                                            id="speak-to-sales-phone"
                                             type="tel"
                                             value={form.phone}
                                             onChange={update("phone")}
@@ -273,8 +246,14 @@ export function SpeakToSalesDialog({trigger}: SpeakToSalesDialogProps)
                                 <Text className={styles.sectionLabel}>Organization details</Text>
 
                                 <div className={styles.row}>
-                                    <Field label="Organization name" required>
+                                    <Field
+                                        label="Organization name"
+                                        required
+                                        validationState={errors.organizationName ? "error" : "none"}
+                                        validationMessage={errors.organizationName}
+                                    >
                                         <Input
+                                            id="speak-to-sales-organization-name"
                                             value={form.organizationName}
                                             onChange={update("organizationName")}
                                             disabled={isSubmitting}
@@ -282,6 +261,7 @@ export function SpeakToSalesDialog({trigger}: SpeakToSalesDialogProps)
                                     </Field>
                                     <Field label="Country / Region">
                                         <Input
+                                            id="speak-to-sales-country"
                                             value={form.country}
                                             onChange={update("country")}
                                             disabled={isSubmitting}
@@ -290,8 +270,14 @@ export function SpeakToSalesDialog({trigger}: SpeakToSalesDialogProps)
                                 </div>
 
                                 <div className={styles.row}>
-                                    <Field label="Organization type" required>
+                                    <Field
+                                        label="Organization type"
+                                        required
+                                        validationState={errors.organizationType ? "error" : "none"}
+                                        validationMessage={errors.organizationType}
+                                    >
                                         <Select
+                                            id="speak-to-sales-organization-type"
                                             value={form.organizationType}
                                             onChange={update("organizationType")}
                                             disabled={isSubmitting}
@@ -307,17 +293,23 @@ export function SpeakToSalesDialog({trigger}: SpeakToSalesDialogProps)
                                             <option value="Other">Other</option>
                                         </Select>
                                     </Field>
-                                    <Field label="Company size" required>
+                                    <Field
+                                        label="Company size"
+                                        required
+                                        validationState={errors.companySize ? "error" : "none"}
+                                        validationMessage={errors.companySize}
+                                    >
                                         <Select
+                                            id="speak-to-sales-company-size"
                                             value={form.companySize}
                                             onChange={update("companySize")}
                                             disabled={isSubmitting}
                                         >
                                             <option value="" disabled>Select a size</option>
-                                            <option value="1–10 employees">1–10 employees</option>
-                                            <option value="11–50 employees">11–50 employees</option>
-                                            <option value="51–200 employees">51–200 employees</option>
-                                            <option value="201–1,000 employees">201–1,000 employees</option>
+                                            <option value="1-10 employees">1-10 employees</option>
+                                            <option value="11-50 employees">11-50 employees</option>
+                                            <option value="51-200 employees">51-200 employees</option>
+                                            <option value="201-1,000 employees">201-1,000 employees</option>
                                             <option value="1,000+ employees">1,000+ employees</option>
                                         </Select>
                                     </Field>
@@ -326,8 +318,13 @@ export function SpeakToSalesDialog({trigger}: SpeakToSalesDialogProps)
                                 <div className={styles.divider}/>
                                 <Text className={styles.sectionLabel}>How can we help?</Text>
 
-                                <Field label="Message">
+                                <Field
+                                    label="Message"
+                                    validationState={errors.message ? "error" : "none"}
+                                    validationMessage={errors.message}
+                                >
                                     <Textarea
+                                        id="speak-to-sales-message"
                                         value={form.message}
                                         onChange={update("message")}
                                         resize="vertical"
@@ -335,6 +332,20 @@ export function SpeakToSalesDialog({trigger}: SpeakToSalesDialogProps)
                                         disabled={isSubmitting}
                                     />
                                 </Field>
+
+                                <div className={styles.honeypot} aria-hidden="true">
+                                    <label htmlFor="speak-to-sales-website">
+                                        Do not fill this in
+                                        <input
+                                            id="speak-to-sales-website"
+                                            type="text"
+                                            tabIndex={-1}
+                                            autoComplete="off"
+                                            value={form.website}
+                                            onChange={update("website")}
+                                        />
+                                    </label>
+                                </div>
                             </div>
                         )}
                     </DialogContent>

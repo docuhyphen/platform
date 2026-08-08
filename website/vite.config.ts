@@ -7,4 +7,14 @@ export default defineConfig({
   ssr: {
     noExternal: true,
   },
+  server: {
+    proxy: {
+      // Local development: forward public API calls to the Quarkus backend so the
+      // "Speak to Sales" form works without a VITE_API_BASE_URL override.
+      "/no-auth": {
+        target: "http://localhost:8080",
+        changeOrigin: true,
+      },
+    },
+  },
 })

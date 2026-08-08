@@ -137,6 +137,7 @@ class EndpointVerificationFilter @Inject constructor(
         "/auth/oauth/",
         "/auth/application/token",
         "/no-auth/exchanges",
+        "/no-auth/sales-enquiries",
         "/scim/", // SCIM endpoints use their own static bearer token, validated in the resource.
     )
 
