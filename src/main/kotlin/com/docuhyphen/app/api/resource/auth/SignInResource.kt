@@ -9,6 +9,7 @@ import com.docuhyphen.app.api.resource.model.*
 import com.docuhyphen.app.api.service.AppUserService
 import com.docuhyphen.app.api.service.auth.AuthAuditService
 import com.docuhyphen.app.api.service.auth.AuthRateLimitService
+import com.docuhyphen.app.api.service.auth.ClientIpResolver
 import com.docuhyphen.app.api.service.auth.InvalidSignInLookupException
 import com.docuhyphen.app.api.service.auth.RevocationReasonCode
 import com.docuhyphen.app.api.service.auth.SignInLookupRateLimitedException
@@ -49,6 +50,7 @@ class SignInResource @Inject constructor(
     private val authAuditService: AuthAuditService,
     private val authRateLimitService: AuthRateLimitService,
     private val securityIncidentService: SecurityIncidentService,
+    private val clientIpResolver: ClientIpResolver,
 )
 {
     companion object
@@ -70,7 +72,7 @@ class SignInResource @Inject constructor(
                 Response.ok(
                     signInLookupService.lookup(
                         payload = payload,
-                        clientIp = getClientIpAddress(request),
+                        clientIp = clientIpResolver.resolve(request),
                         requestId = requestId,
                     )
                 ).build()
@@ -113,7 +115,7 @@ class SignInResource @Inject constructor(
     {
         return ResourceEndpointDelayHelper.withFixedFloor(2000) { try
         {
-            val clientIp = getClientIpAddress(request)
+            val clientIp = clientIpResolver.resolve(request)
             if (authRateLimitService.isLimited(
                     key = "auth:sign-in:initiate:$clientIp",
                     maxPerMinute = configurationService.getAuthRateLimitSignInInitiatePerMinute(),
@@ -266,7 +268,7 @@ class SignInResource @Inject constructor(
     {
         return ResourceEndpointDelayHelper.withFixedFloor(1200) { try
         {
-            val clientIp = getClientIpAddress(request)
+            val clientIp = clientIpResolver.resolve(request)
             if (authRateLimitService.isLimited(
                     key = "auth:sign-in:completion:$clientIp",
                     maxPerMinute = configurationService.getAuthRateLimitSignInCompletionPerMinute(),
@@ -360,12 +362,28 @@ class SignInResource @Inject constructor(
     @POST
     @Path("/otp-regeneration")
     fun resendOtp(
+        @Context request: io.vertx.core.http.HttpServerRequest,
+        @HeaderParam("X-Request-Id") requestId: String?,
         payload: ResendOtpRequest
     ): Response
     {
-        // ...existing otp-regeneration code unchanged...
         return ResourceEndpointDelayHelper.withFixedFloor(1200) { try
         {
+            val clientIp = clientIpResolver.resolve(request)
+            if (authRateLimitService.isLimited(
+                    key = "auth:sign-in:otp-regeneration:$clientIp",
+                    maxPerMinute = configurationService.getAuthRateLimitOtpRegenerationPerMinute(),
+                ))
+            {
+                securityIncidentService.record(
+                    incidentType = SecurityIncidentType.AUTH_RATE_LIMIT_SIGNIN_COMPLETION,
+                    severity = SecurityIncidentSeverity.MEDIUM,
+                    requestId = requestId,
+                    details = "endpoint=otp-regeneration;ip=$clientIp",
+                )
+                return Response.status(429).entity(ResponseError("Too many requests. Please try again later.")).build()
+            }
+
             val mfaSession = with(payload) {
                 signInService.redoMfa(email, mfaSessionId)
             }
@@ -404,12 +422,29 @@ class SignInResource @Inject constructor(
     @POST
     @Path("/mfa-sessions/{sessionId}/email-challenges")
     fun createEmailFallbackChallenge(
+        @Context request: io.vertx.core.http.HttpServerRequest,
+        @HeaderParam("X-Request-Id") requestId: String?,
         @PathParam("sessionId") sessionId: String,
         payload: EmailFallbackChallengeRequest,
     ): Response
     {
         return ResourceEndpointDelayHelper.withFixedFloor(1200) { try
         {
+            val clientIp = clientIpResolver.resolve(request)
+            if (authRateLimitService.isLimited(
+                    key = "auth:sign-in:email-challenge:$clientIp",
+                    maxPerMinute = configurationService.getAuthRateLimitOtpRegenerationPerMinute(),
+                ))
+            {
+                securityIncidentService.record(
+                    incidentType = SecurityIncidentType.AUTH_RATE_LIMIT_SIGNIN_COMPLETION,
+                    severity = SecurityIncidentSeverity.MEDIUM,
+                    requestId = requestId,
+                    details = "endpoint=email-challenge;ip=$clientIp",
+                )
+                return Response.status(429).entity(ResponseError("Too many requests. Please try again later.")).build()
+            }
+
             val mfaSession = signInService.createEmailFallbackChallenge(payload.email, sessionId)
             Response.status(Response.Status.CREATED)
                 .entity(SignInResponseMapper.toResponse(mfaSession))
@@ -431,32 +466,5 @@ class SignInResource @Inject constructor(
                 }
             }
         } }
-    }
-
-    private fun getClientIpAddress(request: io.vertx.core.http.HttpServerRequest): String
-    {
-        var ipAddress = request.getHeader("X-Forwarded-For")
-
-        if (ipAddress.isNullOrBlank() || "unknown".equals(ipAddress, ignoreCase = true))
-        {
-            ipAddress = request.getHeader("Proxy-Client-IP")
-        }
-
-        if (ipAddress.isNullOrBlank() || "unknown".equals(ipAddress, ignoreCase = true))
-        {
-            ipAddress = request.getHeader("X-Real-IP")
-        }
-
-        if (ipAddress.isNullOrBlank() || "unknown".equals(ipAddress, ignoreCase = true))
-        {
-            ipAddress = request.remoteAddress()?.host() ?: "0.0.0.0"
-        }
-
-        if (!ipAddress.isNullOrBlank() && ipAddress.contains(","))
-        {
-            ipAddress = ipAddress.split(",")[0].trim()
-        }
-
-        return ipAddress
     }
 }

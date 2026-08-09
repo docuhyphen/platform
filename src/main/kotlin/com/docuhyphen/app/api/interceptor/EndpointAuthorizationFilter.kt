@@ -121,6 +121,13 @@ class EndpointVerificationFilter @Inject constructor(
 {
     private val logger = LoggerFactory.getLogger(EndpointVerificationFilter::class.java.name)
 
+    /**
+     * Endpoints that must be reachable without an access token.
+     *
+     * Matched as normalized path prefixes, never as substrings. A substring match would let any
+     * request whose decoded path merely contains one of these values (for example a free-form
+     * path parameter carrying an encoded "/auth/oauth/") skip authentication entirely.
+     */
     private val excludedEndpoints = listOf(
         "/auth/sign-up/initiation",
         "/auth/sign-up/completion",
@@ -144,14 +151,22 @@ class EndpointVerificationFilter @Inject constructor(
     @Inject
     private lateinit var authenticationContext: AuthTokenContext
 
+    @Inject
+    private lateinit var clientIpResolver: com.docuhyphen.app.api.service.auth.ClientIpResolver
+
+    @Inject
+    private lateinit var currentVertxRequest: io.quarkus.vertx.http.runtime.CurrentVertxRequest
+
     override fun filter(requestContext: ContainerRequestContext)
     {
-        val requestUri = requestContext.uriInfo.path
+        val requestUri = normalizePath(requestContext.uriInfo.path)
         logger.info("Intercepted request to URI: $requestUri")
 
-        authenticationContext.clientIp = requestContext.getHeaderString("X-Forwarded-For")
-            ?.split(",")?.firstOrNull()?.trim()
-            ?: requestContext.getHeaderString("X-Real-IP")?.trim()
+        authenticationContext.clientIp = clientIpResolver.resolve(
+            peerAddress = resolvePeerAddress(),
+            forwardedForHeader = requestContext.getHeaderString("X-Forwarded-For"),
+            realIpHeader = requestContext.getHeaderString("X-Real-IP"),
+        )
 
         val rawLinkToken = requestContext.getHeaderString("X-Share-Link-Token")?.trim()
         if (!rawLinkToken.isNullOrBlank())
@@ -159,7 +174,7 @@ class EndpointVerificationFilter @Inject constructor(
             authenticationContext.shareLinkTokenHash = sha256Hex(rawLinkToken)
         }
 
-        if (excludedEndpoints.any { requestUri.contains(it) })
+        if (excludedEndpoints.any { requestUri.startsWith(it) })
         {
             logger.info("Request to $requestUri is excluded from verification.")
             return
@@ -430,6 +445,39 @@ class EndpointVerificationFilter @Inject constructor(
                 .build()
         )
     }
+
+    /**
+     * Produces a canonical, absolute path for prefix matching.
+     *
+     * Traversal segments are collapsed so a decoded path cannot walk out of the segment it was
+     * matched in, and duplicate separators are removed so "//auth//oauth//" is treated the same
+     * as "/auth/oauth/".
+     */
+    private fun normalizePath(rawPath: String): String
+    {
+        val segments = rawPath.replace('\\', '/').split('/')
+        val resolved = ArrayDeque<String>()
+
+        for (segment in segments)
+        {
+            when (segment)
+            {
+                "", "." -> Unit
+                ".." -> resolved.removeLastOrNull()
+                else -> resolved.addLast(segment)
+            }
+        }
+
+        val normalized = "/" + resolved.joinToString("/")
+        return if (rawPath.endsWith("/") && !normalized.endsWith("/")) "$normalized/" else normalized
+    }
+
+    /**
+     * The immediate TCP peer. This is the only address a remote caller cannot forge, so it is
+     * what decides whether the forwarded headers on this request are trustworthy at all.
+     */
+    private fun resolvePeerAddress(): String? =
+        currentVertxRequest.current?.request()?.remoteAddress()?.host()
 
     private fun sha256Hex(raw: String): String
     {

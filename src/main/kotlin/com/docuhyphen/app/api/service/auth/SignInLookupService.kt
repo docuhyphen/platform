@@ -42,6 +42,8 @@ class SignInLookupService @Inject constructor(
     {
         enforceRateLimit(clientIp, requestId)
         val email = requireNormalizedEmail(payload.email, clientIp, requestId)
+        enforceEmailRateLimit(email, requestId)
+        enforceDistinctEmailProbeLimit(clientIp, email, requestId)
         val organizations = activeMembershipOrganizations(email)
         val selectedOrganizationId = parseSelectedOrganizationId(payload.orgId, clientIp, requestId)
 
@@ -91,6 +93,67 @@ class SignInLookupService @Inject constructor(
         )
         recordDenied(requestId)
         throw SignInLookupRateLimitedException("Too many requests. Please try again later.")
+    }
+
+    /**
+     * Caps how often a single address can be probed, independently of where the probe came from.
+     *
+     * A per-IP budget alone is defeated by a distributed prober, and this endpoint reports which
+     * organization and identity provider an address belongs to. The key is a hash so the throttle
+     * store never holds a list of addresses that were looked up.
+     */
+    private fun enforceEmailRateLimit(email: String, requestId: String?)
+    {
+        if (!authRateLimitService.isLimited(
+                key = "auth:lookup:email:${hashForThrottleKey(email)}",
+                maxPerMinute = configurationService.getAuthRateLimitLookupPerMinute(),
+            ))
+        {
+            return
+        }
+
+        securityIncidentService.record(
+            incidentType = SecurityIncidentType.AUTH_RATE_LIMIT_LOOKUP,
+            severity = SecurityIncidentSeverity.MEDIUM,
+            requestId = requestId,
+            details = "reason=per_email_budget_exhausted",
+        )
+        recordDenied(requestId)
+        throw SignInLookupRateLimitedException("Too many requests. Please try again later.")
+    }
+
+    /**
+     * Flags directory harvesting: many different addresses probed from one origin in a short
+     * window looks nothing like a person signing in, even when each individual budget is intact.
+     */
+    private fun enforceDistinctEmailProbeLimit(clientIp: String, email: String, requestId: String?)
+    {
+        val distinctProbes = authRateLimitService.countDistinct(
+            key = "auth:lookup:distinct:$clientIp",
+            member = hashForThrottleKey(email),
+            windowSeconds = DISTINCT_PROBE_WINDOW_SECONDS,
+        )
+
+        if (distinctProbes <= configurationService.getAuthRateLimitLookupPerMinute())
+        {
+            return
+        }
+
+        securityIncidentService.record(
+            incidentType = SecurityIncidentType.AUTH_LOOKUP_SUSPICIOUS_PATTERN,
+            severity = SecurityIncidentSeverity.HIGH,
+            requestId = requestId,
+            details = "ip=$clientIp;reason=distinct_email_enumeration;distinctEmails=$distinctProbes",
+        )
+        recordDenied(requestId, "Directory enumeration pattern")
+        throw SignInLookupRateLimitedException("Too many requests. Please try again later.")
+    }
+
+    private fun hashForThrottleKey(value: String): String
+    {
+        val digest = java.security.MessageDigest.getInstance("SHA-256")
+            .digest(value.toByteArray(StandardCharsets.UTF_8))
+        return digest.joinToString("") { "%02x".format(it) }.take(32)
     }
 
     private fun requireNormalizedEmail(
@@ -267,5 +330,6 @@ class SignInLookupService @Inject constructor(
     private companion object
     {
         val EMAIL_PATTERN = Regex("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$")
+        const val DISTINCT_PROBE_WINDOW_SECONDS = 600L
     }
 }

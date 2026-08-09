@@ -106,6 +106,30 @@ class AuthConfigService @Inject constructor(
 
     @ConfigProperty(name = "app.auth.rate-limit.directory.per-minute", defaultValue = "60")
     private val authRateLimitDirectoryPerMinuteConfig: Long,
+
+    @ConfigProperty(name = "app.auth.rate-limit.otp-regeneration.per-minute", defaultValue = "10")
+    private val authRateLimitOtpRegenerationPerMinuteConfig: Long,
+
+    @ConfigProperty(name = "app.auth.proxy.forwarded-headers-enabled", defaultValue = "true")
+    private val forwardedHeadersEnabledConfig: Boolean,
+
+    @ConfigProperty(
+        name = "app.auth.proxy.trusted-proxies",
+        defaultValue = "127.0.0.1/32,::1/128,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,fc00::/7",
+    )
+    private val trustedProxyCidrsConfig: String,
+
+    @ConfigProperty(name = "app.auth.step-up.max-age-seconds", defaultValue = "300")
+    private val stepUpMaxAgeSecondsConfig: Long,
+
+    @ConfigProperty(name = "app.security.password.min-length", defaultValue = "12")
+    private val passwordMinLengthConfig: Int,
+
+    @ConfigProperty(name = "app.security.password.max-length", defaultValue = "128")
+    private val passwordMaxLengthConfig: Int,
+
+    @ConfigProperty(name = "app.security.password.bcrypt-cost", defaultValue = "12")
+    private val passwordBcryptCostConfig: Int,
 )
 {
     fun getRefreshRotationGraceSeconds(): Long = refreshRotationGraceSecondsConfig
@@ -139,4 +163,14 @@ class AuthConfigService @Inject constructor(
     fun getAuthRateLimitSignInInitiatePerMinute(): Long = authRateLimitSignInInitiatePerMinuteConfig
     fun getAuthRateLimitSignInCompletionPerMinute(): Long = authRateLimitSignInCompletionPerMinuteConfig
     fun getAuthRateLimitDirectoryPerMinute(): Long = authRateLimitDirectoryPerMinuteConfig
+    fun getAuthRateLimitOtpRegenerationPerMinute(): Long = authRateLimitOtpRegenerationPerMinuteConfig
+    fun isForwardedHeadersEnabled(): Boolean = forwardedHeadersEnabledConfig
+    fun getTrustedProxyCidrs(): List<String> = trustedProxyCidrsConfig
+        .split(',')
+        .map { it.trim() }
+        .filter { it.isNotBlank() }
+    fun getStepUpMaxAgeSeconds(): Long = stepUpMaxAgeSecondsConfig
+    fun getPasswordMinLength(): Int = passwordMinLengthConfig
+    fun getPasswordMaxLength(): Int = passwordMaxLengthConfig
+    fun getPasswordBcryptCost(): Int = passwordBcryptCostConfig.coerceIn(10, 16)
 }

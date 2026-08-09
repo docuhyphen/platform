@@ -73,15 +73,21 @@ class OrganizationIdpRuntimeCredentialService @Inject constructor(
             ?.toSet()
             ?: emptySet()
 
+        // `tenantId` on the config row means different things per provider: a directory id for
+        // Microsoft, a Workspace domain for Google. Splitting it here means neither provider can
+        // accidentally interpret the other's value as its own tenancy pin.
+        val configuredTenancy = config.tenantId?.trim()?.takeIf { it.isNotBlank() }
+
         return RuntimeIdpCredentials(
             clientId = clientId,
             clientSecret = clientSecret,
-            tenantId = config.tenantId,
+            tenantId = configuredTenancy.takeIf { provider == IdentityProviderType.MICROSOFT },
             scopes = scopes,
             oidcIssuer = config.oidcIssuer,
             allowedAudiences = allowedAudiences,
             allowedAlgs = allowedAlgs,
             requiredClaims = requiredClaims,
+            workspaceDomain = configuredTenancy.takeIf { provider == IdentityProviderType.GOOGLE },
         )
     }
 

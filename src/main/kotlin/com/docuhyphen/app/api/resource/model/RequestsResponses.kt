@@ -144,6 +144,8 @@ data class ApplicationTokenResponse(
 data class SetupPasswordRequest(
     val password: String? = null,
     val confirmationPassword: String? = null,
+    /** Required only when the account already has a password, so a change proves knowledge of it. */
+    val currentPassword: String? = null,
 )
 
 @Serializable

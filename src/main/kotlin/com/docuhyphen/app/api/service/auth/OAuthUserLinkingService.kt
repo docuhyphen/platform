@@ -107,7 +107,22 @@ class OAuthUserLinkingService @Inject constructor(
             )
         }
 
-        // No user exists,  create new AppUser
+        // No account exists yet. Provisioning one from an address the provider never confirmed
+        // would let anyone who controls their own directory claim someone else's identity here,
+        // so an unverified address cannot create an account at all.
+        if (!userInfo.emailVerified)
+        {
+            logger.warn(
+                "Refusing to provision an account from an unverified {} email={}",
+                provider,
+                userInfo.email.maskEmailForLogs(),
+            )
+            throw UnverifiedExternalEmailException(
+                "Your identity provider did not confirm ownership of this email address. " +
+                    "Sign up with this email first, then link $provider from your profile."
+            )
+        }
+
         logger.info("Creating new AppUser for OAuth email={}", userInfo.email.maskEmailForLogs())
 
         // Enforce platform-managed organization user caps for JIT provisioning.
@@ -117,6 +132,8 @@ class OAuthUserLinkingService @Inject constructor(
             this.email = userInfo.email.lowercase()
             this.password = null
             this.passwordSalt = null
+            // Reached only when the provider asserted domain ownership of this mailbox, which is
+            // the same standard the internal sign-up OTP flow meets.
             this.emailVerificationComplete = true
             // Org membership for JIT/IDP-provisioned users is recorded against the IDP's
             // organization in the identity-provider linking flow (organization_membership),
@@ -278,3 +295,10 @@ class OAuthUserLinkingService @Inject constructor(
 }
 
 class ExternalProviderAlreadyLinkedException(message: String) : RuntimeException(message)
+
+/**
+ * Raised when an external provider returns an email address it has not confirmed the user owns,
+ * and no local account exists to fall back on.
+ */
+class UnverifiedExternalEmailException(message: String) : RuntimeException(message)
+

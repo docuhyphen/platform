@@ -7,22 +7,24 @@ import com.docuhyphen.app.api.service.config.ConfigurationService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import org.slf4j.LoggerFactory
-import java.net.URI
 import java.net.URLEncoder
-import java.net.http.HttpClient
-import java.net.http.HttpRequest
-import java.net.http.HttpResponse
 import java.nio.charset.StandardCharsets
 
 @ApplicationScoped
 class GoogleIdentityProvider @Inject constructor(
     private val configurationService: ConfigurationService,
     private val oidcJwksService: OidcJwksService,
+    private val oidcTokenValidator: OidcTokenValidator,
+    private val oidcHttpClient: OidcHttpClient,
 ) : IdentityProviderStrategy
 {
     companion object
     {
         private val logger = LoggerFactory.getLogger(GoogleIdentityProvider::class.java)
+        private const val PROVIDER_LABEL = "Google"
+        private const val JWKS_URL = "https://www.googleapis.com/oauth2/v3/certs"
+        private const val TOKEN_URL = "https://oauth2.googleapis.com/token"
+        private val ACCEPTED_ISSUERS = setOf("accounts.google.com", "https://accounts.google.com")
     }
 
     override fun getProviderType(): IdentityProviderType = IdentityProviderType.GOOGLE
@@ -44,20 +46,31 @@ class GoogleIdentityProvider @Inject constructor(
         val pkcePart = codeChallenge?.takeIf { it.isNotBlank() }
             ?.let { "&code_challenge=${URLEncoder.encode(it, StandardCharsets.UTF_8)}&code_challenge_method=S256" }
             .orEmpty()
-        val effectivePrompt = prompt?.takeIf { it.isNotBlank() } ?: "consent"
+
+        // select_account lets the user pick an identity without re-granting scopes on every
+        // sign-in. Callers that genuinely need consent (first-time authorization, scope change)
+        // pass their own prompt value.
+        val effectivePrompt = prompt?.takeIf { it.isNotBlank() } ?: "select_account"
 
         return "https://accounts.google.com/o/oauth2/v2/auth" +
-                "?client_id=$clientId" +
+                "?client_id=${URLEncoder.encode(clientId, StandardCharsets.UTF_8)}" +
                 "&response_type=code" +
                 "&redirect_uri=$encodedRedirectUri" +
                 "&scope=${URLEncoder.encode(scopes, StandardCharsets.UTF_8)}" +
                 "&state=$encodedState" +
                 "&nonce=$encodedNonce" +
-                "&access_type=offline" +
                 "&prompt=${URLEncoder.encode(effectivePrompt, StandardCharsets.UTF_8)}" +
                 pkcePart
     }
 
+    /**
+     * Exchanges the authorization code for tokens.
+     *
+     * The ID token is deliberately not inspected here. Validation needs the request nonce and
+     * the organization's runtime credentials, neither of which belongs to a transport-level
+     * exchange, so the caller validates the returned token through [validateIdToken] and uses
+     * only that result to make an identity decision.
+     */
     override fun exchangeCodeForTokens(
         code: String,
         redirectUri: String,
@@ -67,8 +80,6 @@ class GoogleIdentityProvider @Inject constructor(
     {
         val clientId = runtimeCredentials?.clientId?.takeIf { it.isNotBlank() } ?: configurationService.googleOAuthClientId
         val clientSecret = runtimeCredentials?.clientSecret?.takeIf { it.isNotBlank() } ?: configurationService.googleOAuthClientSecret
-
-        val tokenUrl = "https://oauth2.googleapis.com/token"
 
         val verifierPart = codeVerifier?.takeIf { it.isNotBlank() }
             ?.let { "&code_verifier=${URLEncoder.encode(it, StandardCharsets.UTF_8)}" }
@@ -81,180 +92,105 @@ class GoogleIdentityProvider @Inject constructor(
                 "&redirect_uri=${URLEncoder.encode(redirectUri, StandardCharsets.UTF_8)}" +
                 verifierPart
 
-        val httpClient = HttpClient.newHttpClient()
-
-        val request = HttpRequest.newBuilder()
-            .uri(URI.create(tokenUrl))
-            .header("Content-Type", "application/x-www-form-urlencoded")
-            .POST(HttpRequest.BodyPublishers.ofString(body))
-            .build()
-
-        val response = httpClient.send(request, HttpResponse.BodyHandlers.ofString())
+        val response = oidcHttpClient.postForm(TOKEN_URL, body)
 
         if (response.statusCode() != 200)
         {
             logger.error("Google token exchange failed with status={}", response.statusCode())
-            throw RuntimeException("Failed to exchange code with Google")
+            throw OidcValidationException("Failed to exchange code with Google")
         }
 
         val json = OAuthJsonParser.parseJsonToMap(response.body())
         val idTokenRaw = json[ID_TOKEN.fieldName] as? String
-        val accessTokenRaw = json[ACCESS_TOKEN.fieldName] as? String
-
-        val userInfo = idTokenRaw?.let { parseIdTokenPayload(it) }
+            ?: throw OidcValidationException("Google token response did not contain an ID token")
 
         return OAuthTokenResponse(
             idToken = idTokenRaw,
-            accessToken = accessTokenRaw,
-            email = userInfo?.email ?: throw RuntimeException("No email in Google ID token"),
-            subjectId = userInfo.subjectId,
-            name = "${userInfo.firstName ?: ""} ${userInfo.lastName ?: ""}".trim(),
+            accessToken = json[ACCESS_TOKEN.fieldName] as? String,
+            email = "",
+            subjectId = "",
+            name = null,
         )
     }
 
-    override fun validateIdToken(idToken: String, expectedNonce: String, runtimeCredentials: RuntimeIdpCredentials?): OAuthUserInfo =
-        parseIdTokenPayload(idToken, expectedNonce, runtimeCredentials)
-
-    private fun parseIdTokenPayload(
-        idToken: String,
-        expectedNonce: String? = null,
-        runtimeCredentials: RuntimeIdpCredentials? = null,
-    ): OAuthUserInfo
+    override fun validateIdToken(idToken: String, expectedNonce: String, runtimeCredentials: RuntimeIdpCredentials?): OAuthUserInfo
     {
-        val parts = idToken.split(".")
-        if (parts.size != 3) throw RuntimeException("Invalid Google ID token format")
-
-        val headerJson = String(java.util.Base64.getUrlDecoder().decode(parts[0]))
-        val header = OAuthJsonParser.parseJsonToMap(headerJson)
-        val alg = header["alg"] as? String ?: throw RuntimeException("Missing alg in Google ID token")
-        val kid = header["kid"] as? String ?: throw RuntimeException("Missing kid in Google ID token")
-        val allowedAlgs = runtimeCredentials?.allowedAlgs?.ifEmpty { setOf("RS256") } ?: setOf("RS256")
-        if (!allowedAlgs.contains(alg) || kid.isBlank())
-        {
-            throw RuntimeException("Unsupported Google ID token header")
-        }
-
-        oidcJwksService.verifySignature(
-            jwt = idToken,
-            jwksUrl = "https://www.googleapis.com/oauth2/v3/certs",
-            expectedKid = kid,
+        val decoded = oidcTokenValidator.decode(idToken, PROVIDER_LABEL)
+        val kid = oidcTokenValidator.requireSupportedHeader(
+            header = decoded.header,
+            allowedAlgs = runtimeCredentials?.allowedAlgs.orEmpty(),
+            provider = PROVIDER_LABEL,
         )
 
-        val payloadJson = String(java.util.Base64.getUrlDecoder().decode(parts[1]))
-        val claims = OAuthJsonParser.parseJsonToMap(payloadJson)
+        oidcJwksService.verifySignature(jwt = idToken, jwksUrl = JWKS_URL, expectedKid = kid)
 
-        validateRequiredClaims(claims, runtimeCredentials)
+        val claims = decoded.claims
 
-        val issuer = claims["iss"] as? String ?: throw RuntimeException("Missing iss in Google ID token")
-        val expectedIssuer = runtimeCredentials?.oidcIssuer?.takeIf { it.isNotBlank() }
-        if (expectedIssuer != null)
+        oidcTokenValidator.requireClaims(
+            claims = claims,
+            requiredClaims = runtimeCredentials?.requiredClaims?.ifEmpty { null }
+                ?: configurationService.getOidcRequiredClaimsGoogle(),
+            provider = PROVIDER_LABEL,
+        )
+
+        oidcTokenValidator.requireIssuer(
+            claims = claims,
+            acceptedIssuers = runtimeCredentials?.oidcIssuer?.takeIf { it.isNotBlank() }?.let { setOf(it) } ?: ACCEPTED_ISSUERS,
+            provider = PROVIDER_LABEL,
+        )
+
+        oidcTokenValidator.requireAudience(
+            claims = claims,
+            acceptedAudiences = resolveAcceptedAudiences(runtimeCredentials),
+            provider = PROVIDER_LABEL,
+        )
+
+        oidcTokenValidator.requireNonce(claims, expectedNonce, PROVIDER_LABEL)
+        oidcTokenValidator.requireValidTemporalClaims(claims, PROVIDER_LABEL)
+
+        requireHostedDomain(claims, runtimeCredentials)
+
+        if (claims["email_verified"] as? Boolean != true)
         {
-            if (issuer != expectedIssuer)
-            {
-                throw RuntimeException("Invalid Google issuer")
-            }
-        }
-        else if (issuer != "accounts.google.com" && issuer != "https://accounts.google.com")
-        {
-            throw RuntimeException("Invalid Google issuer")
-        }
-
-        val acceptedAudiences = (runtimeCredentials?.allowedAudiences ?: emptySet()).ifEmpty {
-            setOf(runtimeCredentials?.clientId?.takeIf { it.isNotBlank() } ?: configurationService.googleOAuthClientId)
-        }
-        val audience = claims["aud"] as? String ?: throw RuntimeException("Missing aud in Google ID token")
-        if (!acceptedAudiences.contains(audience))
-        {
-            throw RuntimeException("Invalid Google audience")
-        }
-
-        val azp = claims["azp"] as? String
-        if (configurationService.isOidcRequireAzpWhenMultiAudEnabled())
-        {
-            val audList = claims["aud"] as? List<*>
-            if (audList != null && audList.size > 1)
-            {
-                if (azp.isNullOrBlank() || !acceptedAudiences.contains(azp))
-                {
-                    throw RuntimeException("Invalid Google azp for multi-audience token")
-                }
-            }
-        }
-
-        expectedNonce?.let { nonce ->
-            val tokenNonce = claims["nonce"] as? String ?: throw RuntimeException("Missing nonce in Google ID token")
-            if (tokenNonce != nonce)
-            {
-                throw RuntimeException("Google nonce mismatch")
-            }
-        }
-
-        validateTemporalClaims(claims)
-
-        // Optional hosted-domain check for Google Workspace tenancy. When the org config sets
-        // a non-blank tenantId (interpreted as the Google Workspace domain), the token's `hd`
-        // claim must match. Personal Google accounts never have `hd`, so they fail closed.
-        val expectedHostedDomain = runtimeCredentials?.tenantId?.takeIf { it.isNotBlank() }
-        if (expectedHostedDomain != null)
-        {
-            val hd = claims["hd"] as? String
-            if (hd.isNullOrBlank() || !hd.equals(expectedHostedDomain, ignoreCase = true))
-            {
-                throw RuntimeException("Google hd claim does not match configured workspace domain")
-            }
-        }
-
-        val emailVerified = claims["email_verified"] as? Boolean
-        if (emailVerified != true)
-        {
-            throw RuntimeException("Google email is not verified")
+            throw OidcValidationException("Google email is not verified")
         }
 
         return OAuthUserInfo(
             email = claims[EMAIL.claimName] as? String
-                ?: throw RuntimeException("No email claim in Google ID token"),
+                ?: throw OidcValidationException("No email claim in Google ID token"),
             subjectId = claims[SUB.claimName] as? String
-                ?: throw RuntimeException("No sub claim in Google ID token"),
+                ?: throw OidcValidationException("No sub claim in Google ID token"),
             firstName = claims[GIVEN_NAME.claimName] as? String,
             lastName = claims[FAMILY_NAME.claimName] as? String,
+            emailVerified = true,
         )
     }
 
-    private fun validateTemporalClaims(claims: Map<String, Any?>)
+    private fun resolveAcceptedAudiences(runtimeCredentials: RuntimeIdpCredentials?): Set<String>
     {
-        val nowEpochSeconds = System.currentTimeMillis() / 1000
-        val skew = configurationService.getOidcAllowedClockSkewSeconds()
-
-        val exp = (claims["exp"] as? Number)?.toLong() ?: throw RuntimeException("Missing exp in Google ID token")
-        val iat = (claims["iat"] as? Number)?.toLong() ?: throw RuntimeException("Missing iat in Google ID token")
-        val nbf = (claims["nbf"] as? Number)?.toLong()
-
-        if (exp + skew < nowEpochSeconds)
+        val configured = runtimeCredentials?.allowedAudiences.orEmpty()
+        if (configured.isNotEmpty())
         {
-            throw RuntimeException("Google ID token expired")
+            return configured
         }
 
-        if (iat - skew > nowEpochSeconds)
-        {
-            throw RuntimeException("Google ID token issued in the future")
-        }
-
-        if (nbf != null && nbf - skew > nowEpochSeconds)
-        {
-            throw RuntimeException("Google ID token not valid yet")
-        }
+        val clientId = runtimeCredentials?.clientId?.takeIf { it.isNotBlank() } ?: configurationService.googleOAuthClientId
+        return setOf(clientId).filter { it.isNotBlank() }.toSet()
     }
 
-    private fun validateRequiredClaims(claims: Map<String, Any?>, runtimeCredentials: RuntimeIdpCredentials?)
+    /**
+     * Optional Google Workspace tenancy pin. When the organization config supplies a workspace
+     * domain, the token's `hd` claim must match it. Personal Google accounts never carry `hd`,
+     * so they fail closed against a workspace-scoped configuration.
+     */
+    private fun requireHostedDomain(claims: Map<String, Any?>, runtimeCredentials: RuntimeIdpCredentials?)
     {
-        val requiredClaims = runtimeCredentials?.requiredClaims?.ifEmpty { configurationService.getOidcRequiredClaimsGoogle() }
-            ?: configurationService.getOidcRequiredClaimsGoogle()
-        requiredClaims.forEach { claimName ->
-            val value = claims[claimName]
-            if (value == null || (value is String && value.isBlank()))
-            {
-                throw RuntimeException("Missing required Google claim: $claimName")
-            }
+        val expectedHostedDomain = runtimeCredentials?.workspaceDomain?.takeIf { it.isNotBlank() } ?: return
+        val hd = claims[HD.claimName] as? String
+
+        if (hd.isNullOrBlank() || !hd.equals(expectedHostedDomain, ignoreCase = true))
+        {
+            throw OidcValidationException("Google hd claim does not match the configured workspace domain")
         }
     }
 }

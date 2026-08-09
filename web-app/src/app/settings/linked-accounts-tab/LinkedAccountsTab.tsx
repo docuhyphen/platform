@@ -73,7 +73,17 @@ const LinkedAccountsTab: React.FC = () =>
         }
         catch (e)
         {
-            setError((e as ResponseError)?.errorMessage || "Failed to unlink provider.");
+            const responseError = e as ResponseError;
+
+            // Removing a sign-in method now needs a recent authentication challenge, so the
+            // server can reject an otherwise valid session that has gone stale.
+            if (responseError?.reasonCode === "STEP_UP_REQUIRED")
+            {
+                setError("For your security, please sign in again before changing your sign-in methods.");
+                return;
+            }
+
+            setError(responseError?.errorMessage || "Failed to unlink provider.");
         }
         finally
         {

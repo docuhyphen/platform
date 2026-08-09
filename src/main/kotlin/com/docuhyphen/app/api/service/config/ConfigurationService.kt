@@ -80,6 +80,20 @@ class ConfigurationService @Inject constructor(
     @Volatile
     private var cachedJwtSecret: String? = null
 
+    companion object
+    {
+        /**
+         * The checked-in placeholder used by `application.properties` and the local profile.
+         * Any deployment that resolves this value is signing tokens with a publicly known key,
+         * so [AuthSecurityStartupValidator] refuses to boot outside development.
+         */
+        const val DEVELOPMENT_JWT_SECRET =
+            "myverysecurekeythatis32byteslong*)&GAS&G_A(&F9*FDA(&_FD_A(&F+(D&FA"
+
+        /** Minimum key length for HS256/HS512 signing material. */
+        const val MIN_JWT_SECRET_LENGTH = 32
+    }
+
     // -------------------------------------------------------------------------
     // Core / general
     // -------------------------------------------------------------------------
@@ -157,9 +171,20 @@ class ConfigurationService @Inject constructor(
             throw IllegalStateException("JWT secret cannot be blank")
         }
 
+        if (resolvedSecret.length < MIN_JWT_SECRET_LENGTH)
+        {
+            throw IllegalStateException(
+                "JWT secret must be at least $MIN_JWT_SECRET_LENGTH characters"
+            )
+        }
+
         cachedJwtSecret = resolvedSecret
         return resolvedSecret
     }
+
+    /** True when the resolved signing key is the checked-in development placeholder. */
+    fun isUsingDevelopmentJwtSecret(): Boolean =
+        runCatching { getJwtSecret() == DEVELOPMENT_JWT_SECRET }.getOrDefault(false)
 
     // -------------------------------------------------------------------------
     // Auth token / session,  delegated to AuthConfigService
@@ -200,6 +225,13 @@ class ConfigurationService @Inject constructor(
     fun getAuthRateLimitSignInInitiatePerMinute(): Long = authConfig.getAuthRateLimitSignInInitiatePerMinute()
     fun getAuthRateLimitSignInCompletionPerMinute(): Long = authConfig.getAuthRateLimitSignInCompletionPerMinute()
     fun getAuthRateLimitDirectoryPerMinute(): Long = authConfig.getAuthRateLimitDirectoryPerMinute()
+    fun getAuthRateLimitOtpRegenerationPerMinute(): Long = authConfig.getAuthRateLimitOtpRegenerationPerMinute()
+    fun isForwardedHeadersEnabled(): Boolean = authConfig.isForwardedHeadersEnabled()
+    fun getTrustedProxyCidrs(): List<String> = authConfig.getTrustedProxyCidrs()
+    fun getStepUpMaxAgeSeconds(): Long = authConfig.getStepUpMaxAgeSeconds()
+    fun getPasswordMinLength(): Int = authConfig.getPasswordMinLength()
+    fun getPasswordMaxLength(): Int = authConfig.getPasswordMaxLength()
+    fun getPasswordBcryptCost(): Int = authConfig.getPasswordBcryptCost()
 
     // -------------------------------------------------------------------------
     // OAuth providers / OIDC / application tokens / audit / SCIM,  delegated to OAuthConfigService
@@ -217,6 +249,15 @@ class ConfigurationService @Inject constructor(
     fun isOidcRequireAzpWhenMultiAudEnabled(): Boolean = oauthConfig.isOidcRequireAzpWhenMultiAudEnabled()
     fun getOidcRequiredClaimsGoogle(): Set<String> = oauthConfig.getOidcRequiredClaimsGoogle()
     fun getOidcRequiredClaimsMicrosoft(): Set<String> = oauthConfig.getOidcRequiredClaimsMicrosoft()
+
+    fun isMicrosoftMultiTenantAllowed(): Boolean = oauthConfig.isMicrosoftMultiTenantAllowed()
+    fun isMicrosoftEmailDomainOwnerVerifiedRequired(): Boolean = oauthConfig.isMicrosoftEmailDomainOwnerVerifiedRequired()
+    fun isMicrosoftPreferredUsernameAsEmailAllowed(): Boolean = oauthConfig.isMicrosoftPreferredUsernameAsEmailAllowed()
+
+    fun getOidcHttpConnectTimeoutSeconds(): Long = oauthConfig.getOidcHttpConnectTimeoutSeconds()
+    fun getOidcHttpRequestTimeoutSeconds(): Long = oauthConfig.getOidcHttpRequestTimeoutSeconds()
+    fun getOidcJwksMinRefreshIntervalSeconds(): Long = oauthConfig.getOidcJwksMinRefreshIntervalSeconds()
+    fun getOidcJwksUnknownKidNegativeCacheSeconds(): Long = oauthConfig.getOidcJwksUnknownKidNegativeCacheSeconds()
 
     fun getApplicationTokenDefaultScopes(): Set<String> = oauthConfig.getApplicationTokenDefaultScopes()
     fun getApplicationTokenRequiredScope(): String = oauthConfig.getApplicationTokenRequiredScope()

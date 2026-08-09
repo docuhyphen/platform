@@ -2,9 +2,15 @@
 
 import java.util.UUID
 
+/**
+ * Server-side record of an issued refresh token.
+ *
+ * Only the SHA-256 hash of the bearer secret is ever retained. The raw token exists solely in
+ * the response cookie, so read access to the token store cannot be turned into session takeover.
+ */
 data class StoredRefreshToken(
     val userId: UUID,
-    val token: String,
+    val tokenHash: String,
     val jti: String,
     val familyId: String,
     val status: String,
@@ -36,18 +42,22 @@ interface RefreshTokenStore
         userId: UUID,
         jti: String,
         familyId: String,
-        refreshToken: String,
         refreshTokenHash: String,
         expirySeconds: Long,
         sessionId: UUID? = null,
     )
 
+    /**
+     * Atomically consumes [currentJti] and installs [newJti] in the same family.
+     *
+     * The new token's raw value is never passed in or stored: the caller already holds it, and
+     * the store only needs its hash to verify the next presentation.
+     */
     fun rotate(
         userId: UUID,
         currentJti: String,
         currentTokenHash: String,
         newJti: String,
-        newToken: String,
         newTokenHash: String,
         familyId: String,
         graceSeconds: Long,
@@ -63,4 +73,3 @@ interface RefreshTokenStore
 
     fun revokeFamily(familyId: String, reasonCode: RevocationReasonCode)
 }
-

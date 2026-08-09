@@ -32,12 +32,12 @@ class RedisRefreshTokenStore @Inject constructor(
             local expectedUserId = ARGV[1]
             local expectedTokenHash = ARGV[2]
             local newJti = ARGV[3]
-            local newToken = ARGV[4]
-            local newTokenHash = ARGV[5]
-            local familyId = ARGV[6]
-            local nowMillis = tonumber(ARGV[7])
-            local graceSeconds = tonumber(ARGV[8])
-            local expirySeconds = tonumber(ARGV[9])
+            local newTokenHash = ARGV[4]
+            local familyId = ARGV[5]
+            local nowMillis = tonumber(ARGV[6])
+            local graceSeconds = tonumber(ARGV[7])
+            local expirySeconds = tonumber(ARGV[8])
+            local strictReuse = ARGV[9]
 
             if redis.call('EXISTS', currentKey) == 0 then
               return {'NOT_FOUND'}
@@ -47,6 +47,7 @@ class RedisRefreshTokenStore @Inject constructor(
             local tokenHash = redis.call('HGET', currentKey, 'tokenHash')
             local status = redis.call('HGET', currentKey, 'status')
             local currentFamilyId = redis.call('HGET', currentKey, 'familyId')
+            local sessionId = redis.call('HGET', currentKey, 'sessionId')
 
             if userId ~= expectedUserId or tokenHash ~= expectedTokenHash or currentFamilyId ~= familyId then
               return {'INVALID'}
@@ -56,22 +57,40 @@ class RedisRefreshTokenStore @Inject constructor(
               return {'REVOKED', familyId}
             end
 
+            local function install()
+              redis.call('HSET', newKey,
+                  'userId', expectedUserId,
+                  'tokenHash', newTokenHash,
+                  'jti', newJti,
+                  'familyId', familyId,
+                  'status', 'ACTIVE')
+              if sessionId and sessionId ~= '' then
+                redis.call('HSET', newKey, 'sessionId', sessionId)
+              end
+              redis.call('EXPIRE', newKey, expirySeconds)
+              redis.call('SADD', userSetKey, newJti)
+              redis.call('EXPIRE', userSetKey, expirySeconds)
+              redis.call('SADD', familySetKey, newJti)
+              redis.call('EXPIRE', familySetKey, expirySeconds)
+            end
+
             if status == 'CONSUMED' then
-              local strictReuse = ARGV[10]
               local graceUntil = tonumber(redis.call('HGET', currentKey, 'graceUntil') or '0')
-              local successorJti = redis.call('HGET', currentKey, 'successorJti')
               local replayCount = tonumber(redis.call('HGET', currentKey, 'replayCount') or '0')
 
-              -- Strict mode: any consumed-token presentation = reuse.
-              -- Lenient mode: tolerate exactly one grace replay; second replay = reuse.
+              -- Strict mode: any consumed-token presentation is reuse.
+              -- Lenient mode: tolerate exactly one grace replay (parallel tabs racing a refresh);
+              -- a second replay is reuse. The replay is answered with a freshly minted token in
+              -- the same family rather than a copy of the first successor, because the successor's
+              -- raw value is deliberately not retained anywhere on the server.
               if strictReuse == 'true' then
                 return {'REUSE_DETECTED', familyId}
               end
 
-              if graceUntil >= nowMillis and successorJti and replayCount < 1 then
+              if graceUntil >= nowMillis and replayCount < 1 then
                 redis.call('HSET', currentKey, 'replayCount', tostring(replayCount + 1))
-                local successorToken = redis.call('HGET', 'refresh_token:' .. successorJti, 'token')
-                return {'GRACE_REPLAY', familyId, successorJti or '', successorToken or ''}
+                install()
+                return {'GRACE_REPLAY', familyId, newJti}
               end
               return {'REUSE_DETECTED', familyId}
             end
@@ -80,8 +99,6 @@ class RedisRefreshTokenStore @Inject constructor(
               return {'INVALID'}
             end
 
-            local sessionId = redis.call('HGET', currentKey, 'sessionId')
-
             local graceUntil = nowMillis + (graceSeconds * 1000)
             redis.call('HSET', currentKey,
                 'status', 'CONSUMED',
@@ -89,24 +106,9 @@ class RedisRefreshTokenStore @Inject constructor(
                 'graceUntil', tostring(graceUntil),
                 'successorJti', newJti)
 
-            redis.call('HSET', newKey,
-                'userId', expectedUserId,
-                'token', newToken,
-                'tokenHash', newTokenHash,
-                'jti', newJti,
-                'familyId', familyId,
-                'status', 'ACTIVE')
-            if sessionId and sessionId ~= '' then
-              redis.call('HSET', newKey, 'sessionId', sessionId)
-            end
+            install()
 
-            redis.call('EXPIRE', newKey, expirySeconds)
-            redis.call('SADD', userSetKey, newJti)
-            redis.call('EXPIRE', userSetKey, expirySeconds)
-            redis.call('SADD', familySetKey, newJti)
-            redis.call('EXPIRE', familySetKey, expirySeconds)
-
-            return {'ROTATED', familyId, newJti, newToken}
+            return {'ROTATED', familyId, newJti}
         """
 
         private const val LUA_REVOKE_FAMILY = """
@@ -129,7 +131,6 @@ class RedisRefreshTokenStore @Inject constructor(
         userId: UUID,
         jti: String,
         familyId: String,
-        refreshToken: String,
         refreshTokenHash: String,
         expirySeconds: Long,
         sessionId: UUID?,
@@ -139,10 +140,10 @@ class RedisRefreshTokenStore @Inject constructor(
         val userTokensKey = "$USER_TOKENS_KEY_PREFIX$userId"
         val familyTokensKey = "$FAMILY_TOKENS_KEY_PREFIX$familyId"
 
+        // Only the hash is written. The raw token never leaves the response cookie.
         val req = Request.cmd(Command.HSET)
             .arg(tokenKey)
             .arg("userId").arg(userId.toString())
-            .arg("token").arg(refreshToken)
             .arg("tokenHash").arg(refreshTokenHash)
             .arg("jti").arg(jti)
             .arg("familyId").arg(familyId)
@@ -188,7 +189,6 @@ class RedisRefreshTokenStore @Inject constructor(
         currentJti: String,
         currentTokenHash: String,
         newJti: String,
-        newToken: String,
         newTokenHash: String,
         familyId: String,
         graceSeconds: Long,
@@ -208,7 +208,6 @@ class RedisRefreshTokenStore @Inject constructor(
                 .arg(userId.toString())
                 .arg(currentTokenHash)
                 .arg(newJti)
-                .arg(newToken)
                 .arg(newTokenHash)
                 .arg(familyId)
                 .arg(nowEpochMillis.toString())
@@ -224,15 +223,13 @@ class RedisRefreshTokenStore @Inject constructor(
 
         val statusRaw = response.get(0)?.toString() ?: return RefreshRotationResult(RefreshRotationStatus.INVALID)
         val status = runCatching { RefreshRotationStatus.valueOf(statusRaw) }.getOrDefault(RefreshRotationStatus.INVALID)
-        val resolvedFamilyId = response.get(1)?.toString()
-        val successorJti = response.get(2)?.toString()?.ifBlank { null }
-        val successorToken = response.get(3)?.toString()?.ifBlank { null }
+        val resolvedFamilyId = if (response.size() > 1) response.get(1)?.toString() else null
+        val successorJti = if (response.size() > 2) response.get(2)?.toString()?.ifBlank { null } else null
 
         return RefreshRotationResult(
             status = status,
             familyId = resolvedFamilyId,
             successorJti = successorJti,
-            successorToken = successorToken,
         )
     }
 
@@ -258,7 +255,7 @@ class RedisRefreshTokenStore @Inject constructor(
 
         return StoredRefreshToken(
             userId = UUID.fromString(data["userId"]),
-            token = data["token"] ?: return null,
+            tokenHash = data["tokenHash"] ?: return null,
             jti = data["jti"] ?: return null,
             familyId = data["familyId"] ?: return null,
             status = data["status"] ?: return null,

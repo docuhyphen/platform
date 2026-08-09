@@ -3,6 +3,7 @@ package com.docuhyphen.app.api.resource.auth
 import com.docuhyphen.app.api.model.entity.IdentityProviderType
 import com.docuhyphen.app.api.resource.model.OAuthTokenExchangeRequest
 import com.docuhyphen.app.api.resource.model.OAuthTokenExchangeResponse
+import com.docuhyphen.app.api.service.auth.ClientIpResolver
 import com.docuhyphen.app.api.service.auth.OAuthStateService
 import com.docuhyphen.app.api.service.auth.OAuthTokenHandoff
 import com.docuhyphen.app.api.service.auth.OAuthTokenHandoffService
@@ -27,6 +28,7 @@ class OAuthResourceSecurityTest
     private val oauthStateService = mock<OAuthStateService>()
     private val runtimeCredentialService = mock<OrganizationIdpRuntimeCredentialService>()
     private val handoffService = mock<OAuthTokenHandoffService>()
+    private val clientIpResolver = mock<ClientIpResolver>()
     private val resource = OAuthResource(
         identityProviderRegistry = identityProviderRegistry,
         oauthUserLinkingService = mock(),
@@ -42,6 +44,7 @@ class OAuthResourceSecurityTest
         organizationIdpRuntimeCredentialService = runtimeCredentialService,
         stepUpAuthService = mock(),
         oauthTokenHandoffService = handoffService,
+        clientIpResolver = clientIpResolver,
     )
 
     @Test

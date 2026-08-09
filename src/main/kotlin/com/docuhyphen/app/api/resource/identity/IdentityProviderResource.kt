@@ -1,14 +1,15 @@
 package com.docuhyphen.app.api.resource.identity
-
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.model.entity.IdentityProviderType
 import com.docuhyphen.app.api.resource.model.*
+import com.docuhyphen.app.api.service.auth.AppUserCredentialService
 import com.docuhyphen.app.api.service.auth.AuthenticationService
 import com.docuhyphen.app.api.service.auth.ExternalProviderAlreadyLinkedException
 import com.docuhyphen.app.api.service.auth.OAuthStateService
 import com.docuhyphen.app.api.service.auth.OAuthUserLinkingService
 import com.docuhyphen.app.api.service.auth.OrganizationIdentityPolicyService
 import com.docuhyphen.app.api.service.auth.OrganizationIdpRuntimeCredentialService
+import com.docuhyphen.app.api.service.auth.StepUpAuthService
 import com.docuhyphen.app.api.service.auth.idp.IdentityProviderRegistry
 import com.docuhyphen.app.api.service.config.ConfigurationService
 import jakarta.inject.Inject
@@ -30,6 +31,8 @@ class IdentityProviderResource @Inject constructor(
     private val oauthStateService: OAuthStateService,
     private val organizationIdentityPolicyService: OrganizationIdentityPolicyService,
     private val organizationIdpRuntimeCredentialService: OrganizationIdpRuntimeCredentialService,
+    private val stepUpAuthService: StepUpAuthService,
+    private val appUserCredentialService: AppUserCredentialService,
 )
 {
     companion object
@@ -158,6 +161,16 @@ class IdentityProviderResource @Inject constructor(
             val providerType = IdentityProviderType.valueOf(providerName.uppercase())
             val appUser = authTokenContext.authToken.appUser!!
 
+            // Removing a sign-in method is an account-takeover primitive on a stolen token:
+            // it can strip the victim's external provider, or clear their password entirely.
+            // Require proof of a recent real authentication challenge first.
+            if (!stepUpAuthService.isFresh(configurationService.getStepUpMaxAgeSeconds()))
+            {
+                return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(ResponseError("Re-authentication required", reasonCode = "STEP_UP_REQUIRED"))
+                    .build()
+            }
+
             oauthUserLinkingService.unlinkProvider(appUser.id, providerType, appUser)
 
             Response.ok().build()
@@ -208,14 +221,30 @@ class IdentityProviderResource @Inject constructor(
 
             val appUser = authTokenContext.authToken.appUser!!
 
-            val salt = authenticationService.generatePasswordSalt()
-            appUser.password = authenticationService.hashPassword(payload.password!!, salt)
-            appUser.passwordSalt = salt
+            // Setting a password creates a durable credential the account owner may not know
+            // about, so a stolen access token alone must not be enough to do it.
+            if (!stepUpAuthService.isFresh(configurationService.getStepUpMaxAgeSeconds()))
+            {
+                return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(ResponseError("Re-authentication required", reasonCode = "STEP_UP_REQUIRED"))
+                    .build()
+            }
 
-            // Create INTERNAL link if not exists
-            oauthUserLinkingService.createLink(
-                appUser, IdentityProviderType.INTERNAL, appUser.id.toString(), appUser.email
-            )
+            // An account that already has a password is changing it, which requires proving
+            // knowledge of the current one rather than merely holding a session.
+            if (!appUser.password.isNullOrBlank())
+            {
+                val currentPassword = payload.currentPassword
+                if (currentPassword.isNullOrBlank() ||
+                    !authenticationService.validatePassword(currentPassword, appUser.password!!))
+                {
+                    return Response.status(Response.Status.UNAUTHORIZED)
+                        .entity(ResponseError("Current password is incorrect"))
+                        .build()
+                }
+            }
+
+            appUserCredentialService.setPassword(appUser.id, payload.password!!)
 
             Response.ok().build()
         }

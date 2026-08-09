@@ -1,5 +1,4 @@
 package com.docuhyphen.app.api.resource.auth
-
 import com.docuhyphen.app.api.model.entity.IdentityProviderType
 import com.docuhyphen.app.api.resource.model.*
 import com.docuhyphen.app.api.model.entity.SecurityIncidentSeverity
@@ -8,6 +7,7 @@ import com.docuhyphen.app.api.service.AppUserService
 import com.docuhyphen.app.api.service.auth.AuthAuditService
 import com.docuhyphen.app.api.service.auth.AuthRateLimitService
 import com.docuhyphen.app.api.service.auth.AuthenticationService
+import com.docuhyphen.app.api.service.auth.ClientIpResolver
 import com.docuhyphen.app.api.service.auth.ExternalProviderAlreadyLinkedException
 import com.docuhyphen.app.api.service.auth.OAuthStateService
 import com.docuhyphen.app.api.service.auth.OAuthUserLinkingService
@@ -17,6 +17,7 @@ import com.docuhyphen.app.api.service.auth.OrganizationIdpRuntimeCredentialServi
 import com.docuhyphen.app.api.service.auth.RevocationReasonCode
 import com.docuhyphen.app.api.service.auth.SecurityIncidentService
 import com.docuhyphen.app.api.service.auth.TokenIssuanceService
+import com.docuhyphen.app.api.service.auth.UnverifiedExternalEmailException
 import com.docuhyphen.app.api.service.auth.idp.IdentityProviderRegistry
 import com.docuhyphen.app.api.service.config.ConfigurationService
 import jakarta.inject.Inject
@@ -47,11 +48,27 @@ class OAuthResource @Inject constructor(
     private val organizationIdpRuntimeCredentialService: OrganizationIdpRuntimeCredentialService,
     private val stepUpAuthService: com.docuhyphen.app.api.service.auth.StepUpAuthService,
     private val oauthTokenHandoffService: OAuthTokenHandoffService,
+    private val clientIpResolver: ClientIpResolver,
 )
 {
     companion object
     {
         private val logger = LoggerFactory.getLogger(OAuthResource::class.java)
+
+        /**
+         * Stable, non-descriptive codes handed to the sign-in page. Provider-specific or
+         * account-specific detail is deliberately withheld from the redirect URL so the flow
+         * cannot be used to probe which accounts exist or which provider they use.
+         */
+        private const val ERROR_INVALID_REQUEST = "OAUTH_INVALID_REQUEST"
+        private const val ERROR_INVALID_STATE = "OAUTH_INVALID_STATE"
+        private const val ERROR_RATE_LIMITED = "OAUTH_RATE_LIMITED"
+        private const val ERROR_PROVIDER_CONFLICT = "OAUTH_PROVIDER_CONFLICT"
+        private const val ERROR_EMAIL_NOT_VERIFIED = "OAUTH_EMAIL_NOT_VERIFIED"
+        private const val ERROR_LINK_CONTEXT_MISSING = "OAUTH_LINK_CONTEXT_MISSING"
+        private const val ERROR_ACCOUNT_NOT_ELIGIBLE = "OAUTH_ACCOUNT_NOT_ELIGIBLE"
+        private const val ERROR_STEP_UP_MISMATCH = "OAUTH_STEP_UP_MISMATCH"
+        private const val ERROR_FAILED = "OAUTH_FAILED"
     }
 
     @GET
@@ -66,7 +83,7 @@ class OAuthResource @Inject constructor(
     {
         return try
         {
-            val clientIp = getClientIpAddress(request)
+            val clientIp = clientIpResolver.resolve(request)
             if (authRateLimitService.isLimited(
                     key = "auth:oauth:authorize:$clientIp",
                     maxPerMinute = configurationService.getAuthRateLimitAuthorizePerMinute(),
@@ -142,7 +159,7 @@ class OAuthResource @Inject constructor(
     {
         return try
         {
-            val clientIp = getClientIpAddress(request)
+            val clientIp = clientIpResolver.resolve(request)
             if (authRateLimitService.isLimited(
                     key = "auth:oauth:callback:$clientIp",
                     maxPerMinute = configurationService.getAuthRateLimitCallbackPerMinute(),
@@ -160,7 +177,7 @@ class OAuthResource @Inject constructor(
                     reasonCode = RevocationReasonCode.SECURITY_POLICY,
                     requestId = requestId,
                 )
-                return redirectToFrontendError("Too many requests. Please try again later.")
+                return redirectToFrontendError(ERROR_RATE_LIMITED)
             }
 
             if (code.isNullOrBlank())
@@ -177,7 +194,7 @@ class OAuthResource @Inject constructor(
                     reasonCode = RevocationReasonCode.SECURITY_POLICY,
                     requestId = requestId,
                 )
-                return redirectToFrontendError("Authorization code is missing")
+                return redirectToFrontendError(ERROR_INVALID_REQUEST)
             }
 
             if (state.isNullOrBlank())
@@ -194,7 +211,7 @@ class OAuthResource @Inject constructor(
                     reasonCode = RevocationReasonCode.SECURITY_POLICY,
                     requestId = requestId,
                 )
-                return redirectToFrontendError("Invalid OAuth state")
+                return redirectToFrontendError(ERROR_INVALID_STATE)
             }
 
             val providerType = IdentityProviderType.valueOf(providerName.uppercase())
@@ -215,7 +232,7 @@ class OAuthResource @Inject constructor(
                         reasonCode = RevocationReasonCode.SECURITY_POLICY,
                         requestId = requestId,
                     )
-                    return redirectToFrontendError("Invalid OAuth state")
+                    return redirectToFrontendError(ERROR_INVALID_STATE)
                 }
 
             val runtimeCredentials = organizationIdpRuntimeCredentialService.resolve(providerType, verifiedState.orgIdpConfigId)
@@ -232,12 +249,12 @@ class OAuthResource @Inject constructor(
             if (verifiedState.flow.equals("link", ignoreCase = true))
             {
                 val linkingUserId = verifiedState.linkAppUserId
-                    ?: return redirectToFrontendError("Account linking context is missing")
+                    ?: return redirectToFrontendError(ERROR_LINK_CONTEXT_MISSING)
                 val linkingUser = appUserService.getById(linkingUserId)
-                    ?: return redirectToFrontendError("Account linking user was not found")
+                    ?: return redirectToFrontendError(ERROR_LINK_CONTEXT_MISSING)
                 if (!linkingUser.isActive || linkingUser.deprovisionedAt != null || linkingUser.isTemporary)
                 {
-                    return redirectToFrontendError("Account is not eligible for linking")
+                    return redirectToFrontendError(ERROR_ACCOUNT_NOT_ELIGIBLE)
                 }
 
                 oauthUserLinkingService.createLink(
@@ -273,11 +290,11 @@ class OAuthResource @Inject constructor(
             if (verifiedState.flow.equals("stepup", ignoreCase = true))
             {
                 val sessionId = verifiedState.stepUpSessionId
-                    ?: return redirectToFrontendError("Step-up session context is missing")
+                    ?: return redirectToFrontendError(ERROR_STEP_UP_MISMATCH)
                 val actorId = verifiedState.stepUpAppUserId
-                    ?: return redirectToFrontendError("Step-up user context is missing")
+                    ?: return redirectToFrontendError(ERROR_STEP_UP_MISMATCH)
                 val expectedSubject = verifiedState.stepUpExpectedSubjectId
-                    ?: return redirectToFrontendError("Step-up subject context is missing")
+                    ?: return redirectToFrontendError(ERROR_STEP_UP_MISMATCH)
 
                 if (userInfo.subjectId != expectedSubject && userInfo.legacySubjectId != expectedSubject)
                 {
@@ -289,7 +306,7 @@ class OAuthResource @Inject constructor(
                         requestId = requestId,
                         reason = "Step-up external subject mismatch",
                     )
-                    return redirectToFrontendError("Re-authentication did not match your account")
+                    return redirectToFrontendError(ERROR_STEP_UP_MISMATCH)
                 }
 
                 stepUpAuthService.markFresh(sessionId)
@@ -369,7 +386,24 @@ class OAuthResource @Inject constructor(
                 reasonCode = RevocationReasonCode.SECURITY_POLICY,
                 requestId = requestId,
             )
-            redirectToFrontendError(e.message ?: "Provider conflict")
+            redirectToFrontendError(ERROR_PROVIDER_CONFLICT)
+        }
+        catch (e: UnverifiedExternalEmailException)
+        {
+            logger.warn("Unverified external email during OAuth callback for {}", providerName)
+            securityIncidentService.record(
+                incidentType = SecurityIncidentType.OAUTH_CALLBACK_INVALID_REQUEST,
+                severity = SecurityIncidentSeverity.HIGH,
+                requestId = requestId,
+                details = "unverified_external_email;provider=$providerName",
+            )
+            authAuditService.emit(
+                action = "OAUTH_CALLBACK",
+                outcome = "DENY",
+                reasonCode = RevocationReasonCode.OIDC_VALIDATION_FAILED,
+                requestId = requestId,
+            )
+            redirectToFrontendError(ERROR_EMAIL_NOT_VERIFIED)
         }
         catch (e: Exception)
         {
@@ -380,7 +414,7 @@ class OAuthResource @Inject constructor(
                 reasonCode = RevocationReasonCode.OIDC_VALIDATION_FAILED,
                 requestId = requestId,
             )
-            redirectToFrontendError("OAuth authentication failed")
+            redirectToFrontendError(ERROR_FAILED)
         }
     }
 
@@ -427,7 +461,7 @@ class OAuthResource @Inject constructor(
                     .build()
             }
 
-            val claims = authenticationService.parseTokenClaims(payload.linkToken!!)
+            val claims = authenticationService.parseLinkTokenClaims(payload.linkToken!!)
                 ?: return Response.status(Response.Status.UNAUTHORIZED)
                     .entity(ResponseError("Invalid or expired link token"))
                     .build()
@@ -473,7 +507,7 @@ class OAuthResource @Inject constructor(
             // Issue token triple
             val tokenTriple = tokenIssuanceService.issueTokenTriple(appUser,
                 userAgent = request.getHeader("User-Agent"),
-                ipAddress = getClientIpAddress(request),
+                ipAddress = clientIpResolver.resolve(request),
             )
             val refreshCookie = tokenIssuanceService.buildRefreshTokenCookieWithPolicy(tokenTriple.refreshToken, appUser)
             val csrfToken = tokenIssuanceService.generateCsrfToken()
@@ -516,47 +550,27 @@ class OAuthResource @Inject constructor(
         }
     }
 
-    private fun redirectToFrontendError(message: String): Response
+    /**
+     * Sends the browser back to the sign-in page with a stable error code.
+     *
+     * Only codes from the companion object are ever emitted. Exception text is kept server side
+     * because it can name the provider another account is linked to, which would turn a failed
+     * sign-in into an account and provider oracle.
+     */
+    private fun redirectToFrontendError(errorCode: String): Response
     {
         val baseUrl = configurationService.baseUrl
-        val encodedMsg = URLEncoder.encode(message, StandardCharsets.UTF_8)
+        val encodedCode = URLEncoder.encode(errorCode, StandardCharsets.UTF_8)
         return Response.temporaryRedirect(
-            URI.create("$baseUrl/sign-in?error=$encodedMsg")
+            URI.create("$baseUrl/sign-in?errorCode=$encodedCode")
         ).build()
     }
 
     private fun redirectToStepUpReturn(returnTo: String?): Response
     {
-        val safePath = returnTo?.takeIf { it.startsWith("/") && !it.startsWith("//") } ?: "/exchanges"
+        val safePath = returnTo?.takeIf { it.startsWith("/") && !it.startsWith("//") && !it.startsWith("/\\") } ?: "/exchanges"
         val separator = if (safePath.contains("?")) "&" else "?"
         val destination = "${configurationService.baseUrl.trimEnd('/')}$safePath${separator}stepUp=success"
         return Response.temporaryRedirect(URI.create(destination)).build()
-    }
-
-    private fun getClientIpAddress(request: io.vertx.core.http.HttpServerRequest): String
-    {
-        var ipAddress = request.getHeader("X-Forwarded-For")
-
-        if (ipAddress.isNullOrBlank() || "unknown".equals(ipAddress, ignoreCase = true))
-        {
-            ipAddress = request.getHeader("Proxy-Client-IP")
-        }
-
-        if (ipAddress.isNullOrBlank() || "unknown".equals(ipAddress, ignoreCase = true))
-        {
-            ipAddress = request.getHeader("X-Real-IP")
-        }
-
-        if (ipAddress.isNullOrBlank() || "unknown".equals(ipAddress, ignoreCase = true))
-        {
-            ipAddress = request.remoteAddress()?.host() ?: "0.0.0.0"
-        }
-
-        if (ipAddress.contains(","))
-        {
-            ipAddress = ipAddress.split(",")[0].trim()
-        }
-
-        return ipAddress
     }
 }

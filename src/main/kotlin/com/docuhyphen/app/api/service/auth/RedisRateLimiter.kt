@@ -19,6 +19,35 @@ class RedisRateLimiter @Inject constructor(
         private const val RATE_LIMIT_PREFIX = "rate_limit:"
         private const val BLOCK_PREFIX = "rate_limit_block:"
         private const val VIOLATION_PREFIX = "rate_limit_violation:"
+        private const val DISTINCT_PREFIX = "rate_limit_distinct:"
+    }
+
+    /**
+     * Records [member] against [key] and returns how many distinct members have been seen in the
+     * current window. Used to spot enumeration, where each individual request is within budget
+     * but the spread of subjects being probed is not something a real user produces.
+     */
+    fun countDistinctMembers(key: String, member: String, windowSeconds: Long): Long
+    {
+        val redisKey = "$DISTINCT_PREFIX$key"
+
+        val added = redis.send(
+            Request.cmd(Command.SADD).arg(redisKey).arg(member)
+        ).await().indefinitely()?.toLong() ?: 0L
+
+        if (added == 1L)
+        {
+            redis.send(
+                Request.cmd(Command.EXPIRE)
+                    .arg(redisKey)
+                    .arg(windowSeconds.toString())
+                    .arg("NX")
+            ).await().indefinitely()
+        }
+
+        return redis.send(
+            Request.cmd(Command.SCARD).arg(redisKey)
+        ).await().indefinitely()?.toLong() ?: 0L
     }
 
     fun isRateLimited(key: String, maxRequests: Long, windowSeconds: Long): Boolean

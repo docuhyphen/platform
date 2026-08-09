@@ -2,6 +2,7 @@
 import {attachDpopToAxiosConfig} from './dpop';
 import {requestStepUp} from './stepUpBroker';
 import {getApiBaseUrl} from './apiBaseUrl.ts';
+import {csrfHeaderName, readCsrfToken, requiresCsrfHeader} from './csrfToken.ts';
 
 const API_BASE_URL = getApiBaseUrl();
 
@@ -43,6 +44,17 @@ apiClient.interceptors.request.use(async (config) =>
         if (activeOrganizationId)
         {
             config.headers['X-Active-Organization-Id'] = activeOrganizationId;
+        }
+
+        // Echo the readable CSRF cookie back on every state-changing request. Cookie-authenticated
+        // endpoints such as token refresh and sign-out reject requests without the matching header.
+        if (requiresCsrfHeader(config.method))
+        {
+            const csrfToken = readCsrfToken();
+            if (csrfToken)
+            {
+                config.headers[csrfHeaderName] = csrfToken;
+            }
         }
 
         // DPoP: attach a fresh per-request proof when enabled. No-op when disabled.

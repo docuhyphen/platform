@@ -25,20 +25,22 @@ class AuthenticationService @Inject constructor(
     private val refreshTokenStore: RefreshTokenStore,
     private val refreshTokenRecordService: RefreshTokenRecordService,
     private val userRoleService: UserRoleService,
+    private val tokenSigningKeyProvider: TokenSigningKeyProvider,
 )
 {
-    val jwtSecretKey: SecretKey = Keys.hmacShaKeyFor(configurationService.getJwtSecret().toByteArray())
+    val jwtSecretKey: SecretKey get() = tokenSigningKeyProvider.keyFor(TokenPurpose.USER_TOKEN)
 
     companion object
     {
         val logger = LoggerFactory.getLogger(AuthenticationService::class.java.name)
     }
 
-    fun generatePasswordSalt(): String = BCrypt.gensalt()
+    fun generatePasswordSalt(): String = BCrypt.gensalt(configurationService.getPasswordBcryptCost())
 
     fun hashPassword(password: String, salt: String): String = BCrypt.hashpw(password, salt)
 
-    fun validatePassword(inputPassword: String, storedHash: String): Boolean = BCrypt.checkpw(inputPassword, storedHash)
+    fun validatePassword(inputPassword: String, storedHash: String): Boolean =
+        runCatching { BCrypt.checkpw(inputPassword, storedHash) }.getOrDefault(false)
 
     fun isValidEmail(email: String): Boolean
     {
@@ -48,21 +50,28 @@ class AuthenticationService @Inject constructor(
 
     fun isEmailInvalid(email: String): Boolean = !isValidEmail(email)
 
+    /**
+     * Composition rules for the internal identity provider.
+     *
+     * The upper bound only exists to keep unbounded input away from the hash function; it is
+     * deliberately high enough that passphrases are practical, since length is the single
+     * biggest contributor to resistance against offline cracking.
+     */
     fun isPasswordStrong(password: String): Boolean
     {
-        val MIN_LENGTH = 8
-        val MAX_LENGTH = 30
-        val UPPERCASE_REGEX = Regex(".*[A-Z].*")
-        val LOWERCASE_REGEX = Regex(".*[a-z].*")
-        val DIGIT_REGEX = Regex(".*\\d.*")
-        val SPECIAL_CHAR_REGEX = Regex(""".*[!@#\$%^&*()_+\-=\[\]{};':"\\|,.<>/?].*""")
+        val minLength = configurationService.getPasswordMinLength()
+        val maxLength = configurationService.getPasswordMaxLength()
+        val uppercase = Regex(".*[A-Z].*")
+        val lowercase = Regex(".*[a-z].*")
+        val digit = Regex(".*\\d.*")
+        val specialCharacter = Regex(""".*[!@#${'$'}%^&*()_+\-=\[\]{};':"\\|,.<>/?].*""")
 
         if (password.isEmpty()) return false
-        if (password.length < MIN_LENGTH || password.length > MAX_LENGTH) return false
-        if (!password.contains(UPPERCASE_REGEX)) return false
-        if (!password.contains(LOWERCASE_REGEX)) return false
-        if (!password.contains(DIGIT_REGEX)) return false
-        if (!password.contains(SPECIAL_CHAR_REGEX)) return false
+        if (password.length < minLength || password.length > maxLength) return false
+        if (!password.contains(uppercase)) return false
+        if (!password.contains(lowercase)) return false
+        if (!password.contains(digit)) return false
+        if (!password.contains(specialCharacter)) return false
 
         return true
     }
@@ -77,6 +86,7 @@ class AuthenticationService @Inject constructor(
         val expiryMinutes = expiryMinutesOverride ?: configurationService.getAccessTokenExpiryMinutes()
         val expiration = Date(System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(expiryMinutes))
         val authTime = authTimeEpochSeconds ?: (System.currentTimeMillis() / 1000)
+        val issuer = configurationService.getJwtIssuer()
 
         val roleClaims = buildSet {
             if (userRoleService.isAppAdmin(appUser.id)) add("APP_ADMIN")
@@ -86,6 +96,9 @@ class AuthenticationService @Inject constructor(
 
         val builder = Jwts.builder()
             .subject(appUser.id.toString())
+            .issuer(issuer)
+            .audience().add(issuer).and()
+            .id(UUID.randomUUID().toString())
             .claim("email", appUser.email)
             .claim("roles", roleClaims.toList())
             .claim("exchange_version", appUser.sessionVersion)
@@ -97,7 +110,7 @@ class AuthenticationService @Inject constructor(
         return builder
             .issuedAt(Date())
             .expiration(expiration)
-            .signWith(jwtSecretKey)
+            .signWith(tokenSigningKeyProvider.keyFor(TokenPurpose.USER_TOKEN))
             .compact()
     }
 
@@ -115,13 +128,14 @@ class AuthenticationService @Inject constructor(
             .subject(applicationId.toString())
             .issuer(issuer)
             .audience().add(issuer).and()
+            .id(UUID.randomUUID().toString())
             .claim("token_type", ACCESS.name)
             .claim("principal_type", "APPLICATION")
             .claim("type", "APPLICATION")
             .claim("scopes", normalizedScopes.joinToString(","))
             .issuedAt(Date())
             .expiration(expiration)
-            .signWith(jwtSecretKey)
+            .signWith(tokenSigningKeyProvider.keyFor(TokenPurpose.USER_TOKEN))
             .compact()
     }
 
@@ -129,9 +143,12 @@ class AuthenticationService @Inject constructor(
     {
         val expiryMinutes = expiryMinutesOverride ?: configurationService.getIdTokenExpiryMinutes()
         val expiration = Date(System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(expiryMinutes))
+        val issuer = configurationService.getJwtIssuer()
 
         val builder = Jwts.builder()
             .subject(appUser.id.toString())
+            .issuer(issuer)
+            .audience().add(issuer).and()
             .claim("email", appUser.email)
             .claim("exchange_version", appUser.sessionVersion)
             .claim("token_type", ID.name)
@@ -146,7 +163,7 @@ class AuthenticationService @Inject constructor(
         return builder
             .issuedAt(Date())
             .expiration(expiration)
-            .signWith(jwtSecretKey)
+            .signWith(tokenSigningKeyProvider.keyFor(TokenPurpose.USER_TOKEN))
             .compact()
     }
 
@@ -180,12 +197,13 @@ class AuthenticationService @Inject constructor(
 
         return Jwts.builder()
             .subject(email)
+            .issuer(configurationService.getJwtIssuer())
             .claim("provider", provider)
             .claim("externalSubjectId", externalSubjectId)
             .claim("token_type", "LINK")
             .issuedAt(Date())
             .expiration(expiration)
-            .signWith(jwtSecretKey)
+            .signWith(tokenSigningKeyProvider.keyFor(TokenPurpose.LINK_TOKEN))
             .compact()
     }
 
@@ -199,34 +217,28 @@ class AuthenticationService @Inject constructor(
             return null
         }
 
-        return try
-        {
-            Jwts.parser()
-                .verifyWith(jwtSecretKey)
-                .build()
-                .parseSignedClaims(token)
-                .payload
-        }
-        catch (e: Exception)
-        {
-            logger.warn("Invalid access token")
-            null
-        }
+        return parseWithPurpose(token, TokenPurpose.USER_TOKEN)
     }
 
-    fun parseTokenClaims(token: String): Claims?
+    fun parseTokenClaims(token: String): Claims? = parseWithPurpose(token, TokenPurpose.USER_TOKEN)
+
+    /** Parses a token that was signed with the account-linking key, never the session key. */
+    fun parseLinkTokenClaims(token: String): Claims? = parseWithPurpose(token, TokenPurpose.LINK_TOKEN)
+
+    private fun parseWithPurpose(token: String, purpose: TokenPurpose): Claims?
     {
         return try
         {
             Jwts.parser()
-                .verifyWith(jwtSecretKey)
+                .verifyWith(tokenSigningKeyProvider.keyFor(purpose))
+                .requireIssuer(configurationService.getJwtIssuer())
                 .build()
                 .parseSignedClaims(token)
                 .payload
         }
         catch (e: Exception)
         {
-            logger.warn("Invalid token")
+            logger.warn("Invalid token presented for purpose={}", purpose)
             null
         }
     }
@@ -249,7 +261,6 @@ class AuthenticationService @Inject constructor(
             userId = appUser.id,
             jti = jti,
             familyId = familyId,
-            refreshToken = refreshToken,
             refreshTokenHash = tokenHash,
             expirySeconds = expirySeconds,
             sessionId = sessionId,
@@ -271,18 +282,17 @@ class AuthenticationService @Inject constructor(
     }
 
     /**
-     * Constant-time check that a presented refresh token matches the stored hash.
-     * Defends against timing-side-channel comparisons of the opaque secret.
+     * Constant-time comparison of the presented token's hash against the stored hash.
+     *
+     * The store never holds the raw token, so this is the only way to authenticate a
+     * presentation, and [MessageDigest.isEqual] keeps the comparison free of a timing
+     * side channel on the secret.
      */
     fun verifyRefreshTokenSecret(presentedToken: String, stored: StoredRefreshToken): Boolean
     {
-        val expectedHash = hashToken(presentedToken).toByteArray(Charsets.UTF_8)
-        val storedHashBytes = (stored.token).toByteArray(Charsets.UTF_8).let { existing ->
-            // `stored.token` is the original (raw) token; we store its hash but also retain
-            // the raw form keyed by JTI so legacy callers keep working. Compare hashes:
-            hashToken(stored.token).toByteArray(Charsets.UTF_8)
-        }
-        return java.security.MessageDigest.isEqual(expectedHash, storedHashBytes)
+        val presentedHash = hashToken(presentedToken).toByteArray(Charsets.UTF_8)
+        val storedHash = stored.tokenHash.toByteArray(Charsets.UTF_8)
+        return MessageDigest.isEqual(presentedHash, storedHash)
     }
 
     fun deleteRefreshTokenByJti(jti: String, reasonCode: RevocationReasonCode = RevocationReasonCode.SECURITY_POLICY)
@@ -321,7 +331,6 @@ class AuthenticationService @Inject constructor(
             currentJti = currentJti,
             currentTokenHash = hashToken(currentRefreshToken),
             newJti = newJti,
-            newToken = newToken,
             newTokenHash = newTokenHash,
             familyId = resolvedFamilyId,
             graceSeconds = configurationService.getRefreshRotationGraceSeconds(),
@@ -329,7 +338,7 @@ class AuthenticationService @Inject constructor(
             nowEpochMillis = System.currentTimeMillis(),
         )
 
-        if (result.status == RefreshRotationStatus.ROTATED)
+        if (result.status == RefreshRotationStatus.ROTATED || result.status == RefreshRotationStatus.GRACE_REPLAY)
         {
             refreshTokenRecordService.recordIssued(
                 userId = appUser.id,
@@ -339,6 +348,10 @@ class AuthenticationService @Inject constructor(
                 tokenHash = newTokenHash,
                 expiresAt = Instant.now().plusSeconds(expirySeconds),
             )
+        }
+
+        if (result.status == RefreshRotationStatus.ROTATED)
+        {
             refreshTokenRecordService.recordRotation(
                 currentJti = currentJti,
                 successorJti = newJti,
@@ -346,7 +359,15 @@ class AuthenticationService @Inject constructor(
             )
         }
 
-        return result
+        // The successor's raw value only exists here, in memory, for the life of this request.
+        return if (result.status == RefreshRotationStatus.ROTATED || result.status == RefreshRotationStatus.GRACE_REPLAY)
+        {
+            result.copy(successorToken = newToken)
+        }
+        else
+        {
+            result
+        }
     }
 
     fun revokeRefreshFamily(familyId: String, reasonCode: RevocationReasonCode)

@@ -6,6 +6,7 @@ import {fetchAppUser, fetchAppUserPersonOrganization} from '../../../services/ap
 import {Button, MessageBar, MessageBarBody, Spinner, Text} from "@fluentui/react-components";
 import {useOAuthStyles} from "./OAuthStyles.tsx";
 import {exchangeOAuthTokenHandoff} from "../../../services/authApi.ts";
+import {resolveOAuthErrorMessage} from "../../../utils/oauthErrorUtils.ts";
 
 const ERROR_MESSAGES: Record<string, string> = {
     ACCOUNT_DEPROVISIONED: "Your account has been deprovisioned. Please contact your administrator.",
@@ -29,14 +30,12 @@ const OAuthCallback: React.FC = () =>
     {
         const processCallback = async () =>
         {
-            const error = searchParams.get('error');
             const errorCode = searchParams.get('errorCode');
 
-            if (error || errorCode)
+            if (errorCode)
             {
-                const code = errorCode || error || '';
-                const message = ERROR_MESSAGES[code.toUpperCase()] ?? `Sign-in failed: ${error ?? 'Unknown error'}. Please try again.`;
-                setErrorMessage(message);
+                const knownMessage = ERROR_MESSAGES[errorCode.toUpperCase()];
+                setErrorMessage(knownMessage ?? resolveOAuthErrorMessage(errorCode));
                 return;
             }
 

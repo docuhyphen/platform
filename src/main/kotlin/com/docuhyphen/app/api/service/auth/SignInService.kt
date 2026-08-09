@@ -98,7 +98,11 @@ class SignInService @Inject constructor(
             throw InactiveAccountException()
         }
 
-        if (!authenticationService.validatePassword(password, appUser.password!!))
+        // An account provisioned through an external identity provider has no password. Treating
+        // that as a plain credential failure keeps the response identical to an unknown email, so
+        // the endpoint cannot be used to discover which addresses exist as external-only accounts.
+        val storedPasswordHash = appUser.password
+        if (storedPasswordHash.isNullOrBlank() || !authenticationService.validatePassword(password, storedPasswordHash))
         {
             logger.warn("Sign in failed: Invalid password for {}", sanitizedEmail.maskEmailForLogs())
             throw InvalidSignInCredentialsException()
@@ -241,8 +245,24 @@ class SignInService @Inject constructor(
         mfaRecord.status = MultifactorAuthenticationStatus.COMPLETED
         mfaService.updateRecord(mfaRecord)
 
-        // Issue token triple via shared service
         val signedInUser = mfaRecord.appUser!!
+
+        // Re-check eligibility at the moment tokens are minted. An administrator may have
+        // deactivated or deprovisioned the account between the password step and this one, and
+        // that decision must take effect immediately rather than at the next request.
+        if (signedInUser.isTemporary && signedInUser.deprovisionedAt == null)
+        {
+            logger.warn("Sign in completion blocked: temporary account for {}", sanitizedEmail.maskEmailForLogs())
+            throw SignUpRequiredException()
+        }
+
+        if (!signedInUser.isActive || signedInUser.deprovisionedAt != null)
+        {
+            logger.warn("Sign in completion blocked: inactive account for {}", sanitizedEmail.maskEmailForLogs())
+            throw InactiveAccountException()
+        }
+
+        // Issue token triple via shared service
         val tokenTriple = tokenIssuanceService.issueTokenTriple(signedInUser, userAgent, ipAddress)
 
         mfaService.removeMfaRecord(mfaRecord)

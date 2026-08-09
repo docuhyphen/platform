@@ -4,6 +4,7 @@ import com.docuhyphen.app.api.resource.model.LogoutPropagationInfoResponse
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.service.auth.AuthAuditService
 import com.docuhyphen.app.api.service.auth.AuthRateLimitService
+import com.docuhyphen.app.api.service.auth.ClientIpResolver
 import com.docuhyphen.app.api.service.auth.CsrfProtectionService
 import com.docuhyphen.app.api.service.auth.RevocationReasonCode
 import com.docuhyphen.app.api.service.auth.SignOutService
@@ -28,6 +29,7 @@ class SignOutResource @Inject constructor(
     private val authRateLimitService: AuthRateLimitService,
     private val configurationService: ConfigurationService,
     private val authAuditService: AuthAuditService,
+    private val clientIpResolver: ClientIpResolver,
 )
 {
     companion object
@@ -102,30 +104,6 @@ class SignOutResource @Inject constructor(
         ).build()
     }
 
-    private fun getClientIpAddress(request: io.vertx.core.http.HttpServerRequest): String
-    {
-        var ipAddress = request.getHeader("X-Forwarded-For")
-
-        if (ipAddress.isNullOrBlank() || "unknown".equals(ipAddress, ignoreCase = true))
-        {
-            ipAddress = request.getHeader("Proxy-Client-IP")
-        }
-
-        if (ipAddress.isNullOrBlank() || "unknown".equals(ipAddress, ignoreCase = true))
-        {
-            ipAddress = request.getHeader("X-Real-IP")
-        }
-
-        if (ipAddress.isNullOrBlank() || "unknown".equals(ipAddress, ignoreCase = true))
-        {
-            ipAddress = request.remoteAddress()?.host() ?: "0.0.0.0"
-        }
-
-        if (ipAddress.contains(","))
-        {
-            ipAddress = ipAddress.split(",")[0].trim()
-        }
-
-        return ipAddress
-    }
+    private fun getClientIpAddress(request: io.vertx.core.http.HttpServerRequest): String =
+        clientIpResolver.resolve(request)
 }

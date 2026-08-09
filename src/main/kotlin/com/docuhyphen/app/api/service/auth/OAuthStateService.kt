@@ -2,7 +2,6 @@ package com.docuhyphen.app.api.service.auth
 import com.docuhyphen.app.api.model.entity.IdentityProviderType
 import com.docuhyphen.app.api.service.config.ConfigurationService
 import io.jsonwebtoken.Jwts
-import io.jsonwebtoken.security.Keys
 import io.vertx.mutiny.redis.client.Command
 import io.vertx.mutiny.redis.client.Redis
 import io.vertx.mutiny.redis.client.Request
@@ -38,6 +37,7 @@ data class SignedOAuthState(
 @RequestScoped
 class OAuthStateService @Inject constructor(
     private val configurationService: ConfigurationService,
+    private val tokenSigningKeyProvider: TokenSigningKeyProvider,
     private val redis: Redis,
 )
 {
@@ -48,7 +48,9 @@ class OAuthStateService @Inject constructor(
         private val secureRandom = SecureRandom()
     }
 
-    private val stateSigningKey: SecretKey = Keys.hmacShaKeyFor(configurationService.getJwtSecret().toByteArray())
+    // Derived per purpose so an OAuth state token can never be presented as a session token,
+    // and vice versa, regardless of what its claims say.
+    private val stateSigningKey: SecretKey = tokenSigningKeyProvider.keyFor(TokenPurpose.OAUTH_STATE)
 
     fun createSignedState(
         flow: String,

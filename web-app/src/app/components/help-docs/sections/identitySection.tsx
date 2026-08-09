@@ -56,7 +56,16 @@ export const identitySection: HelpDocSectionInput = {
                             Include claims for email, given name, family name, and subject
                             or object ID.
                         </li>
+                        <li>
+                            Enable the optional email claim with the domain ownership setting so the
+                            token carries a verified address. Sign-ins without it are rejected.
+                        </li>
                         <li>Grant scopes: openid, profile, and email.</li>
+                        <li>
+                            Set a specific directory ID as the tenant. The shared values common,
+                            organizations, and consumers accept tokens from any Microsoft directory
+                            and are refused unless multi-tenant sign-in is deliberately enabled.
+                        </li>
                         <li>Save values in DocuHyphen settings and run a sign-in test.</li>
                     </ol>
 
@@ -103,8 +112,15 @@ export const identitySection: HelpDocSectionInput = {
                         </li>
                         <li>
                             Microsoft membership is bound to the configured Entra tenant and immutable
-                            object ID. Google Workspace membership requires a verified email and matching
-                            hosted domain.
+                            object ID. The address in the token is only trusted when Microsoft confirms
+                            the tenant owns that email domain, so a display name such as the sign-in
+                            username is never accepted as an identity. Google Workspace membership
+                            requires a verified email and matching hosted domain.
+                        </li>
+                        <li>
+                            A provider sign-in can only create a new DocuHyphen account when the
+                            provider confirms the email address. Otherwise the person must sign up
+                            first and link the provider afterwards.
                         </li>
                         <li>
                             Deactivate the INTERNAL configuration when members must use organization SSO.
@@ -117,6 +133,8 @@ export const identitySection: HelpDocSectionInput = {
                         <li>Redirect URI mismatch between provider and DocuHyphen.</li>
                         <li>Missing consent for required scopes.</li>
                         <li>Invalid tenant or project configuration.</li>
+                        <li>Tenant left as a shared multi-directory value instead of your directory ID.</li>
+                        <li>Missing verified email claim from Entra ID.</li>
                         <li>User email domain blocked by policy.</li>
                     </ul>
                 </>

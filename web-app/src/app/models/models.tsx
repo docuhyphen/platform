@@ -764,6 +764,8 @@ export interface SetupPasswordRequest
 {
     password: string;
     confirmationPassword: string;
+    /** Required only when the account already has a password, so a change proves knowledge of it. */
+    currentPassword?: string;
 }
 
 export interface DocumentAuditDetailedDto

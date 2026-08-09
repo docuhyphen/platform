@@ -3,14 +3,26 @@ package com.docuhyphen.app.api.service.auth
 import com.docuhyphen.app.api.service.config.ConfigurationService
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
-import java.util.UUID
+import java.security.MessageDigest
+import java.security.SecureRandom
+import java.util.Base64
 
 @RequestScoped
 class CsrfProtectionService @Inject constructor(
     private val configurationService: ConfigurationService,
 )
 {
-    fun generateCsrfToken(): String = UUID.randomUUID().toString()
+    companion object
+    {
+        private val secureRandom = SecureRandom()
+        private const val TOKEN_BYTES = 32
+    }
+
+    fun generateCsrfToken(): String
+    {
+        val bytes = ByteArray(TOKEN_BYTES).also(secureRandom::nextBytes)
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes)
+    }
 
     fun verify(
         csrfCookie: String?,
@@ -29,7 +41,8 @@ class CsrfProtectionService @Inject constructor(
             return false
         }
 
-        if (csrfCookie != csrfHeader)
+        // Constant-time so the double-submit value cannot be recovered byte by byte.
+        if (!MessageDigest.isEqual(csrfCookie.toByteArray(Charsets.UTF_8), csrfHeader.toByteArray(Charsets.UTF_8)))
         {
             return false
         }
@@ -55,4 +68,3 @@ class CsrfProtectionService @Inject constructor(
         return false
     }
 }
-

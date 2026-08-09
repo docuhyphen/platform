@@ -45,6 +45,7 @@ class TokenRefreshResource @Inject constructor(
     private val userSessionService: UserSessionService,
     private val securityIncidentService: SecurityIncidentService,
     private val riskSignalService: RiskSignalService,
+    private val clientIpResolver: com.docuhyphen.app.api.service.auth.ClientIpResolver,
 )
 {
     companion object
@@ -389,30 +390,6 @@ class TokenRefreshResource @Inject constructor(
         }
     }
 
-    private fun getClientIpAddress(request: io.vertx.core.http.HttpServerRequest): String
-    {
-        var ipAddress = request.getHeader("X-Forwarded-For")
-
-        if (ipAddress.isNullOrBlank() || "unknown".equals(ipAddress, ignoreCase = true))
-        {
-            ipAddress = request.getHeader("Proxy-Client-IP")
-        }
-
-        if (ipAddress.isNullOrBlank() || "unknown".equals(ipAddress, ignoreCase = true))
-        {
-            ipAddress = request.getHeader("X-Real-IP")
-        }
-
-        if (ipAddress.isNullOrBlank() || "unknown".equals(ipAddress, ignoreCase = true))
-        {
-            ipAddress = request.remoteAddress()?.host() ?: "0.0.0.0"
-        }
-
-        if (ipAddress.contains(","))
-        {
-            ipAddress = ipAddress.split(",")[0].trim()
-        }
-
-        return ipAddress
-    }
+    private fun getClientIpAddress(request: io.vertx.core.http.HttpServerRequest): String =
+        clientIpResolver.resolve(request)
 }

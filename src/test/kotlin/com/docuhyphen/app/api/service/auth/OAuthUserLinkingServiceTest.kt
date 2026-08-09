@@ -11,6 +11,7 @@ import com.docuhyphen.app.api.service.AppUserService
 import com.docuhyphen.app.api.service.auth.idp.OAuthUserInfo
 import com.docuhyphen.app.api.service.organization.OrganizationMembershipService
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.mockito.kotlin.any
@@ -96,16 +97,48 @@ class OAuthUserLinkingServiceTest
         verify(membershipService, never()).assignOrgRole(any(), any(), any(), any(), anyOrNull())
     }
 
+    @Test
+    fun `an unverified provider email cannot provision a new account`()
+    {
+        whenever(linkRepository.findByProviderAndExternalSubjectId(any(), any())).thenReturn(null)
+        whenever(appUserService.findByEmail("user@example.com")).thenReturn(null)
+
+        assertThrows<UnverifiedExternalEmailException> {
+            service.linkOrCreateUser(IdentityProviderType.GOOGLE, userInfo(emailVerified = false))
+        }
+
+        verify(appUserService, never()).create(any())
+    }
+
+    @Test
+    fun `an unverified provider email still reaches password confirmation for an existing account`()
+    {
+        val existingUser = user(active = true)
+        whenever(linkRepository.findByProviderAndExternalSubjectId(any(), any())).thenReturn(null)
+        whenever(linkRepository.findAllByAppUserId(existingUser.id)).thenReturn(emptyList())
+        whenever(appUserService.findByEmail("user@example.com")).thenReturn(existingUser)
+        whenever(authenticationService.generateLinkToken(any(), any(), any())).thenReturn("link-token")
+
+        val result = service.linkOrCreateUser(
+            IdentityProviderType.GOOGLE,
+            userInfo(emailVerified = false),
+        )
+
+        assertTrue(result.requiresLinkConfirmation)
+        verify(appUserService, never()).create(any())
+    }
+
     private fun user(active: Boolean): AppUser = AppUser().apply {
         id = UUID.randomUUID()
         email = "user@example.com"
         isActive = active
     }
 
-    private fun userInfo(): OAuthUserInfo = OAuthUserInfo(
+    private fun userInfo(emailVerified: Boolean = true): OAuthUserInfo = OAuthUserInfo(
         email = "user@example.com",
         subjectId = "subject-1",
         firstName = null,
         lastName = null,
+        emailVerified = emailVerified,
     )
 }

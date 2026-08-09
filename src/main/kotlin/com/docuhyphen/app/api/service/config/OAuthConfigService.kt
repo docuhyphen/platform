@@ -54,6 +54,32 @@ class OAuthConfigService @Inject constructor(
     @ConfigProperty(name = "app.oidc.validation.required-claims.microsoft", defaultValue = "sub,oid,tid,iss,aud,exp,iat,nonce")
     private val oidcRequiredClaimsMicrosoftConfig: String,
 
+    // --- Microsoft email trust ---
+    // Microsoft never asserts that `email`/`preferred_username` is owned by the signing tenant
+    // unless `xms_edov` is present and true. Multi-tenant placeholders therefore cannot be
+    // allowed to mint platform identities from an arbitrary attacker-controlled tenant.
+    @ConfigProperty(name = "app.oidc.microsoft.allow-multi-tenant", defaultValue = "false")
+    private val microsoftAllowMultiTenantConfig: Boolean,
+
+    @ConfigProperty(name = "app.oidc.microsoft.require-email-domain-owner-verified", defaultValue = "true")
+    private val microsoftRequireEmailDomainOwnerVerifiedConfig: Boolean,
+
+    @ConfigProperty(name = "app.oidc.microsoft.allow-preferred-username-as-email", defaultValue = "false")
+    private val microsoftAllowPreferredUsernameAsEmailConfig: Boolean,
+
+    // --- Provider HTTP client ---
+    @ConfigProperty(name = "app.oidc.http.connect-timeout-seconds", defaultValue = "5")
+    private val oidcHttpConnectTimeoutSecondsConfig: Long,
+
+    @ConfigProperty(name = "app.oidc.http.request-timeout-seconds", defaultValue = "10")
+    private val oidcHttpRequestTimeoutSecondsConfig: Long,
+
+    @ConfigProperty(name = "app.oidc.jwks.min-refresh-interval-seconds", defaultValue = "300")
+    private val oidcJwksMinRefreshIntervalSecondsConfig: Long,
+
+    @ConfigProperty(name = "app.oidc.jwks.unknown-kid-negative-cache-seconds", defaultValue = "300")
+    private val oidcJwksUnknownKidNegativeCacheSecondsConfig: Long,
+
     // --- Application tokens ---
     @ConfigProperty(name = "app.auth.application.default-scopes", defaultValue = "application:api")
     private val applicationTokenDefaultScopesConfig: String,
@@ -95,6 +121,15 @@ class OAuthConfigService @Inject constructor(
         oidcRequiredClaimsGoogleConfig.split(',').map { it.trim() }.filter { it.isNotBlank() }.toSet()
     fun getOidcRequiredClaimsMicrosoft(): Set<String> =
         oidcRequiredClaimsMicrosoftConfig.split(',').map { it.trim() }.filter { it.isNotBlank() }.toSet()
+
+    fun isMicrosoftMultiTenantAllowed(): Boolean = microsoftAllowMultiTenantConfig
+    fun isMicrosoftEmailDomainOwnerVerifiedRequired(): Boolean = microsoftRequireEmailDomainOwnerVerifiedConfig
+    fun isMicrosoftPreferredUsernameAsEmailAllowed(): Boolean = microsoftAllowPreferredUsernameAsEmailConfig
+
+    fun getOidcHttpConnectTimeoutSeconds(): Long = oidcHttpConnectTimeoutSecondsConfig
+    fun getOidcHttpRequestTimeoutSeconds(): Long = oidcHttpRequestTimeoutSecondsConfig
+    fun getOidcJwksMinRefreshIntervalSeconds(): Long = oidcJwksMinRefreshIntervalSecondsConfig
+    fun getOidcJwksUnknownKidNegativeCacheSeconds(): Long = oidcJwksUnknownKidNegativeCacheSecondsConfig
 
     fun getApplicationTokenDefaultScopes(): Set<String> =
         applicationTokenDefaultScopesConfig.split(',').map { it.trim() }.filter { it.isNotBlank() }.toSet()

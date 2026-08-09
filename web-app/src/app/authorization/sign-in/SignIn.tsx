@@ -8,7 +8,7 @@ import {
 } from '../../../services/authApi.ts';
 import {fetchAppUser, fetchAppUserPersonOrganization,} from '../../../services/appUserApi.ts';
 import {useAuth} from '../../../context/AuthContext.tsx';
-import {useNavigate} from 'react-router-dom';
+import {useNavigate, useSearchParams} from 'react-router-dom';
 import RedirectIfAuthenticated from '../../components/RedirectIfAuthenticated.tsx';
 import useToken from "../../../context/useToken.tsx";
 import {
@@ -36,6 +36,7 @@ import {useAuthorizationStyles} from "../AuthorizationStyles.tsx";
 import {useGlobalStyles} from "../../../GlobalStyles.tsx";
 import validator from 'validator';
 import {getOtpFriendlyMessage, normalizeApiError} from "../../../utils/apiErrorUtils.ts";
+import {resolveOAuthErrorMessage} from "../../../utils/oauthErrorUtils.ts";
 import SignInMfaStep from "./mfa-step/SignInMfaStep.tsx";
 
 const SIGN_IN_EXCHANGE_DURATION_MS = 30 * 60 * 1000; // 30 minutes
@@ -66,6 +67,7 @@ const SignIn: React.FC = () =>
     const cooldownTimerRef = useRef<number | null>(null);
     const {setToken, setAccessToken, setIdToken, setAppUser, setAppUserPersonOrganization} = useAuth();
     const navigate = useNavigate();
+    const [searchParams, setSearchParams] = useSearchParams();
     const signInStyles = useSignInStyles();
     const authorizationStyles = useAuthorizationStyles();
     const globalStyles = useGlobalStyles();
@@ -333,6 +335,23 @@ const SignIn: React.FC = () =>
         if (sessionTimerRef.current) clearTimeout(sessionTimerRef.current);
         if (cooldownTimerRef.current) clearInterval(cooldownTimerRef.current);
     }, []);
+
+    // A failed external sign-in redirects back here with a stable code. Show the matching copy
+    // once, then strip the parameter so a refresh does not resurrect a stale error.
+    useEffect(() =>
+    {
+        const oauthErrorMessage = resolveOAuthErrorMessage(searchParams.get('errorCode'));
+
+        if (!oauthErrorMessage)
+        {
+            return;
+        }
+
+        setResponseErrorMessage(oauthErrorMessage);
+        const nextParams = new URLSearchParams(searchParams);
+        nextParams.delete('errorCode');
+        setSearchParams(nextParams, {replace: true});
+    }, [searchParams, setSearchParams]);
 
     const onSelectOrg = async (orgId: string) =>
     {

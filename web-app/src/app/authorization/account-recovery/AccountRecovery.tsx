@@ -254,8 +254,8 @@ const AccountRecovery: React.FC = () =>
                            <InfoLabel info={<>
                                <strong>Password requirements</strong>
                                <ul>
-                                   <li>Must be at least 8 characters long</li>
-                                   <li>Must not exceed 30 characters</li>
+                                   <li>Must be at least 12 characters long</li>
+                                   <li>Must not exceed 128 characters</li>
                                    <li>Must contain at least one uppercase letter</li>
                                    <li>Must contain at least one lowercase letter</li>
                                    <li>Must contain at least one digit</li>
