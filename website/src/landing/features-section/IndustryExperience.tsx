@@ -62,7 +62,7 @@ export function IndustryExperience({initialIndustrySlug}: IndustryExperienceProp
                     id="industry-product-experience-heading"
                     className={styles.heading}
                 >
-                    Documents are only the beginning..
+                    Documents are only the beginning.
                 </Title2>
                 <Text
                     id="industry-product-experience-description"
