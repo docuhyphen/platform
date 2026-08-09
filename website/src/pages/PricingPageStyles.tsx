@@ -1,127 +1,208 @@
 import {makeStyles, tokens} from "@fluentui/react-components";
-import {BREAKPOINT_MOBILE, CARD_RADIUS, SPACE_LG, SPACE_MD, SPACE_SM, SPACE_XS} from "../landing/shared.ts";
+import {BREAKPOINT_MOBILE, SPACE_LG, SPACE_MD, SPACE_SM, SPACE_XL, WIDTH_SUBTITLE} from "../landing/shared.ts";
 
 export const usePricingPageStyles = makeStyles({
     page: {
         display: "flex",
         flexDirection: "column",
-        alignItems: "center",
-        gap: SPACE_LG,
-    },
-
-    hero: {
+        alignItems: "stretch",
+        gap: SPACE_XL,
         width: "100%",
-        maxWidth: "52rem",
-        boxSizing: "border-box",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        textAlign: "center",
-        gap: SPACE_SM,
-        padding: "4rem 2rem",
-        backgroundColor: tokens.colorNeutralBackground2,
-        border: `1px solid ${tokens.colorNeutralStroke2}`,
-        borderRadius: CARD_RADIUS,
-
-        [BREAKPOINT_MOBILE]: {
-            padding: `${SPACE_LG} ${SPACE_MD}`,
-        },
     },
 
-    heroIcon: {
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        width: "3rem",
-        height: "3rem",
-        color: tokens.colorBrandForeground1,
-        backgroundColor: tokens.colorBrandBackground2,
-        borderRadius: "50%",
-    },
-
-    eyebrow: {
-        color: tokens.colorBrandForeground1,
-        fontSize: tokens.fontSizeBase300,
-        fontWeight: tokens.fontWeightSemibold,
-        letterSpacing: "0.04em",
-        textTransform: "uppercase",
-    },
-
-    title: {
-        color: tokens.colorNeutralForeground1,
-        fontWeight: tokens.fontWeightSemibold,
-        maxWidth: "42rem",
-    },
-
-    description: {
-        color: tokens.colorNeutralForeground2,
-        maxWidth: "40rem",
-    },
-
-    actions: {
-        display: "flex",
-        flexWrap: "wrap",
-        justifyContent: "center",
-        gap: SPACE_SM,
-        marginTop: SPACE_XS,
-    },
-
-    nextSteps: {
-        width: "100%",
-        maxWidth: "52rem",
-        display: "flex",
-        flexDirection: "column",
-        gap: SPACE_SM,
-    },
-
-    nextStepsLabel: {
-        color: tokens.colorNeutralForeground2,
-        fontSize: tokens.fontSizeBase300,
-        fontWeight: tokens.fontWeightSemibold,
-    },
-
-    cardGrid: {
-        display: "grid",
-        gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-        gap: SPACE_MD,
-
-        [BREAKPOINT_MOBILE]: {
-            gridTemplateColumns: "1fr",
-        },
-    },
-
-    card: {
+    introduction: {
         display: "flex",
         flexDirection: "column",
         alignItems: "flex-start",
         gap: SPACE_SM,
-        padding: SPACE_LG,
-        backgroundColor: tokens.colorNeutralBackground1,
-        border: `1px solid ${tokens.colorNeutralStroke2}`,
-        borderRadius: CARD_RADIUS,
+        width: "100%",
+        textAlign: "left",
     },
 
-    cardIcon: {
+    heading: {
+        color: tokens.colorBrandForeground1,
+        fontSize: tokens.fontSizeHero800,
+        lineHeight: tokens.lineHeightHero800,
+        fontWeight: tokens.fontWeightSemibold,
+
+        [BREAKPOINT_MOBILE]: {
+            fontSize: tokens.fontSizeHero700,
+            lineHeight: tokens.lineHeightHero700,
+        },
+    },
+
+    description: {
+        maxWidth: WIDTH_SUBTITLE,
+        color: tokens.colorNeutralForeground2,
+        fontSize: tokens.fontSizeBase500,
+        lineHeight: tokens.lineHeightBase500,
+    },
+
+    billingOptions: {
         display: "flex",
+        flexWrap: "wrap",
+        alignItems: "center",
+        justifyContent: "flex-start",
+        gap: SPACE_SM,
+        marginTop: SPACE_MD,
+    },
+
+    comparison: {
+        overflow: "hidden",
+        border: `${tokens.strokeWidthThin} solid ${tokens.colorNeutralStroke2}`,
+        borderRadius: tokens.borderRadiusXLarge,
+        backgroundColor: tokens.colorNeutralBackground1,
+        boxShadow: tokens.shadow16,
+    },
+
+    tableViewport: {
+        width: "100%",
+        overflowX: "auto",
+    },
+
+    table: {
+        minWidth: "64rem",
+        tableLayout: "fixed",
+
+        "& th, & td": {
+            padding: `${tokens.spacingVerticalL} ${tokens.spacingHorizontalL}`,
+            borderBottom: `${tokens.strokeWidthThin} solid ${tokens.colorNeutralStroke2}`,
+            verticalAlign: "middle",
+        },
+
+        "& th:not(:first-child), & td:not(:first-child)": {
+            borderLeft: `${tokens.strokeWidthThin} solid ${tokens.colorNeutralStroke2}`,
+            textAlign: "center",
+        },
+
+        "& tbody tr:nth-child(even)": {
+            backgroundColor: tokens.colorNeutralBackground2,
+        },
+
+        "& tbody tr:last-child th, & tbody tr:last-child td": {
+            borderBottom: 0,
+        },
+
+        [BREAKPOINT_MOBILE]: {
+            minWidth: "46rem",
+        },
+    },
+
+    featureHeader: {
+        width: "25%",
+        color: tokens.colorNeutralForeground2,
+        fontSize: tokens.fontSizeBase200,
+        fontWeight: tokens.fontWeightSemibold,
+        letterSpacing: "0.06em",
+        textTransform: "uppercase",
+
+        [BREAKPOINT_MOBILE]: {
+            width: "22%",
+        },
+    },
+
+    featureHeaderContent: {
+        textAlign: "center",
+        width: "100%",
+        gap: tokens.spacingVerticalL,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "space-between",
+    },
+
+    featureAction: {
+        width: "100%",
+    },
+
+    planHeader: {
+        verticalAlign: "top",
+        backgroundImage: `linear-gradient(180deg, ${tokens.colorBrandBackground2} 0%, ${tokens.colorNeutralBackground1} 100%)`,
+    },
+
+    planHeading: {
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "stretch",
+        gap: SPACE_SM,
+        minHeight: "17rem",
+    },
+
+    planNameRow: {
+        display: "flex",
+        flexWrap: "wrap",
         alignItems: "center",
         justifyContent: "center",
-        width: "2.5rem",
-        height: "2.5rem",
-        color: tokens.colorBrandForeground1,
-        backgroundColor: tokens.colorBrandBackground2,
-        borderRadius: "50%",
+        gap: tokens.spacingHorizontalS,
     },
 
-    cardLink: {
-        display: "inline-flex",
-        alignItems: "center",
-        gap: SPACE_XS,
+    planName: {
         color: tokens.colorBrandForeground1,
+        fontSize: tokens.fontSizeBase600,
+        lineHeight: tokens.lineHeightBase600,
         fontWeight: tokens.fontWeightSemibold,
-        textDecorationLine: "none",
+    },
 
-        ":hover": {
-            textDecorationLine: "underline",
+    planDescription: {
+        minHeight: "3.9rem",
+        color: tokens.colorNeutralForeground2,
+        fontSize: tokens.fontSizeBase300,
+        lineHeight: tokens.lineHeightBase400,
+    },
+
+    priceRow: {
+        display: "flex",
+        flexWrap: "wrap",
+        alignItems: "baseline",
+        justifyContent: "center",
+        gap: tokens.spacingHorizontalXS,
+    },
+
+    price: {
+        color: tokens.colorNeutralForeground1,
+        fontSize: tokens.fontSizeHero800,
+        lineHeight: tokens.lineHeightHero800,
+        fontWeight: tokens.fontWeightSemibold,
+    },
+
+    cadence: {
+        color: tokens.colorNeutralForeground3,
+        fontSize: tokens.fontSizeBase200,
+    },
+
+    billingDetail: {
+        minHeight: "2.5rem",
+        color: tokens.colorNeutralForeground2,
+        fontSize: tokens.fontSizeBase200,
+        lineHeight: tokens.lineHeightBase300,
+    },
+
+    featureCell: {
+        position: "sticky",
+        left: 0,
+        zIndex: 1,
+        width: "25%",
+        backgroundColor: tokens.colorNeutralBackground1,
+        color: tokens.colorNeutralForeground1,
+        fontWeight: tokens.fontWeightSemibold,
+        textAlign: "left",
+
+        [BREAKPOINT_MOBILE]: {
+            width: "22%",
+        },
+    },
+
+    notes: {
+        display: "grid",
+        gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+        gap: SPACE_LG,
+        padding: SPACE_LG,
+        color: tokens.colorNeutralForeground2,
+        backgroundColor: tokens.colorNeutralBackground2,
+
+        [BREAKPOINT_MOBILE]: {
+            gridTemplateColumns: "minmax(0, 1fr)",
+            gap: SPACE_MD,
         },
     },
 });

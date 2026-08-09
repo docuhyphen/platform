@@ -2,8 +2,8 @@ import {useEffect} from "react";
 import {useLocation} from "react-router-dom";
 
 /**
- * Scrolls the page to the element matching the current URL hash whenever the
- * location changes. This lets header/navigation links such as
+ * Scrolls to the top for ordinary route changes or to the element matching the
+ * current URL hash. This lets header/navigation links such as
  * "/#home-contact-info" jump straight to a section on the homepage even when
  * the click originates from a different route, since react-router client-side
  * transitions do not scroll to a hash target on their own.
@@ -16,6 +16,11 @@ export function ScrollToHashHandler()
     {
         if (!location.hash)
         {
+            window.scrollTo({
+                top: 0,
+                left: 0,
+                behavior: "auto",
+            });
             return;
         }
 

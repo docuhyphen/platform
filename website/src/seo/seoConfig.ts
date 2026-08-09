@@ -90,11 +90,12 @@ const routeSeoByPath: Readonly<Record<string, RouteSeo>> = {
     }),
     "/pricing": defineRoute({
         path: "/pricing",
-        title: "DocuHyphen Pricing",
-        description: "DocuHyphen pricing is in progress. Explore the platform or contact the team while launch plans are being prepared.",
+        title: "DocuHyphen Pricing | Free, Personal and Business Plans",
+        description: "Compare DocuHyphen Free, Personal and Business plans with simple South African rand pricing and unlimited external recipients.",
         canonicalPath: "/pricing",
-        robots: "noindex,follow",
+        robots: "index,follow",
         pageType: "pricing",
+        breadcrumbs: [{name: "Home", path: "/"}, {name: "Pricing", path: "/pricing"}],
     }),
     "/industries/real-estate": defineRoute({
         path: "/industries/real-estate",
@@ -167,4 +168,3 @@ export function absoluteUrl(path: string): string
 {
     return new URL(path, SITE_URL).toString();
 }
-
