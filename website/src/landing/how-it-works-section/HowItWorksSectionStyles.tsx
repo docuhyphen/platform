@@ -44,7 +44,7 @@ export const useHowItWorksSectionStyles = makeStyles({
     section: {
         padding: SECTION_PADDING_DESKTOP,
         boxSizing: "border-box",
-        backgroundColor: tokens.colorNeutralBackground1,
+        backgroundColor: "#e8ebef",
 
         "@media (prefers-reduced-motion: reduce)": {
             "& *": {

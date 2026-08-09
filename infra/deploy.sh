@@ -20,6 +20,7 @@ DEPLOY_PAUSE_ON_ERROR="${DEPLOY_PAUSE_ON_ERROR:-true}"
 TEMPLATE_FILE="$(dirname "$0")/cloudformation.yml"
 PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 LOGO_FILE="${PROJECT_ROOT}/src/main/resources/logo.txt"
+SPA_FALLBACK_SCRIPT="${PROJECT_ROOT}/infra/configure-cloudfront-spa-fallback.mjs"
 
 log() { printf '%s\n' "$*"; }
 fail() { printf 'Error: %s\n' "$*" >&2; exit 1; }
@@ -226,6 +227,53 @@ stack_output() {
     --output text
 }
 
+configure_spa_fallback() {
+  local distribution_id="$1"
+  local response_file
+  local config_file
+  local config_cli_path
+  local etag_file
+  local etag
+  local changed
+
+  require_command node
+
+  if [[ -z "${TEMP_DIR:-}" ]]; then
+    TEMP_DIR="$(mktemp -d)"
+  fi
+
+  response_file="${TEMP_DIR}/${distribution_id}-response.json"
+  config_file="${TEMP_DIR}/${distribution_id}-config.json"
+  etag_file="${TEMP_DIR}/${distribution_id}-etag.txt"
+
+  aws cloudfront get-distribution-config \
+    --id "$distribution_id" \
+    --output json \
+    > "$response_file"
+
+  changed="$(node "$SPA_FALLBACK_SCRIPT" "$response_file" "$config_file" "$etag_file")"
+  if [[ "$changed" != "true" ]]; then
+    log "CloudFront SPA fallback is already configured"
+    return
+  fi
+
+  etag="$(<"$etag_file")"
+  config_cli_path="$config_file"
+  if command -v cygpath >/dev/null 2>&1; then
+    config_cli_path="$(cygpath -m "$config_file")"
+  fi
+
+  aws cloudfront update-distribution \
+    --id "$distribution_id" \
+    --if-match "$etag" \
+    --distribution-config "file://${config_cli_path}" \
+    --query 'Distribution.Id' \
+    --output text \
+    >/dev/null
+
+  log "Configured CloudFront 403 and 404 responses to serve /index.html"
+}
+
 deploy_website() {
   local bucket
   local distribution_id
@@ -279,6 +327,9 @@ deploy_website() {
     --delete \
     --region "$WEBSITE_REGION"
 
+  log_section "Configuring website SPA route fallback"
+  configure_spa_fallback "$distribution_id"
+
   log_section "Creating CloudFront invalidation"
   invalidation_id="$(aws cloudfront create-invalidation \
     --distribution-id "$distribution_id" \
@@ -292,7 +343,6 @@ deploy_website() {
   log "CloudFront distribution: ${distribution_id}"
   log "CloudFront invalidation: ${invalidation_id}"
   log "Website URL: https://${WEBSITE_DOMAIN}"
-  log "If direct route refreshes fail, verify the live CloudFront distribution still has clean-path rewriting enabled."
   print_completion_logo
 }
 
@@ -342,6 +392,9 @@ deploy_web_app() {
   aws s3 sync "${web_app_dir}/dist" "s3://${bucket}" \
     --delete \
     --region "$WEB_APP_REGION"
+
+  log_section "Configuring web app SPA route fallback"
+  configure_spa_fallback "$distribution_id"
 
   log_section "Creating web app CloudFront invalidation"
   invalidation_id="$(aws cloudfront create-invalidation \

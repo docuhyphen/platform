@@ -95,9 +95,9 @@ aws s3api head-bucket --bucket docuhyphen-website --region us-east-1
 
 ### Production route handling
 
-The marketing site uses pre-rendered route files such as `/security/index.html` and `/about/index.html`. Directly opening clean paths like `/security` or refreshing a route only works when CloudFront rewrites extensionless paths to the matching `index.html`.
+The marketing site and product web app both use browser-based routing. S3 returns `403 AccessDenied` or `404 NotFound` when a clean application route does not match a stored object.
 
-The current infrastructure template includes a CloudFront Function for this behavior. If production CloudFront was created manually, make sure the live distribution is configured with equivalent clean-path rewriting before relying on direct route refreshes.
+The deployment script configures both CloudFront distributions to respond to those origin errors with `/index.html` and HTTP 200. This lets React Router handle direct links and refreshed routes. The setting is applied automatically by `--website`, `--web-app`, and `--full` deployments before the cache invalidation is created.
 
 ### Notes
 
