@@ -40,6 +40,8 @@ const useStyles = makeStyles({
         background: LAW_SECTION_GRADIENT,
         padding: SECTION_PADDING_DESKTOP,
         boxSizing: "border-box",
+        borderTopLeftRadius: "36px",
+        borderTopRightRadius: "36px",
 
         [BREAKPOINT_MOBILE]: {
             padding: SECTION_PADDING_MOBILE,
