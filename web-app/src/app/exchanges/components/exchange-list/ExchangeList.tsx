@@ -17,6 +17,7 @@ import ExchangeListPagination from "./exchange-list-pagination/ExchangeListPagin
 import ExchangeListTabs, {ExchangeListTab} from "./exchange-list-tabs/ExchangeListTabs.tsx";
 import {useIsMobile} from "../../../../utils/useMediaQuery.ts";
 import {realtimeService} from '../../../../services/NotificationService';
+import {useDelayedLoading} from "../../../../hooks/useDelayedLoading.ts";
 
 const SIDEBAR_COLLAPSED_STORAGE_KEY = 'exchanges.sidebar.isCollapsed';
 
@@ -108,7 +109,6 @@ const ExchangeList: React.FC<ExchangeListProps> = (
     const isMobile = useIsMobile();
     const [exchanges, setExchanges] = useState<ExchangeBasicDto[]>([]);
     const [loadingExchanges, setLoadingExchanges] = useState(true);
-    const [showLoadingState, setShowLoadingState] = useState(false);
     const [hasListScrolled, setHasListScrolled] = useState(false);
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() =>
     {
@@ -147,6 +147,7 @@ const ExchangeList: React.FC<ExchangeListProps> = (
     const isFirstSearchEffectRef = useRef(true);
     const searchEffectTabRef = useRef(activeTab);
     const searchEffectRoleRef = useRef(inboxRole);
+    const showLoadingState = useDelayedLoading(loadingExchanges && exchanges.length === 0);
 
     useEffect(() =>
     {
@@ -168,22 +169,6 @@ const ExchangeList: React.FC<ExchangeListProps> = (
         if (typeof window === 'undefined') return;
         window.localStorage.setItem(SIDEBAR_COLLAPSED_STORAGE_KEY, String(isSidebarCollapsed));
     }, [isSidebarCollapsed]);
-
-    useEffect(() =>
-    {
-        if (!loadingExchanges)
-        {
-            setShowLoadingState(false);
-            return;
-        }
-
-        const timer = setTimeout(() =>
-        {
-            setShowLoadingState(true);
-        }, 180);
-
-        return () => clearTimeout(timer);
-    }, [loadingExchanges]);
 
     useEffect(() =>
     {
@@ -220,11 +205,7 @@ const ExchangeList: React.FC<ExchangeListProps> = (
     {
         latestFetchRequestIdRef.current += 1;
         setLoadingExchanges(true);
-        setShowLoadingState(true);
         setHasListScrolled(false);
-        setExchanges([]);
-        setTotalPages(0);
-        setTotalElements(0);
     };
 
     const fetchExchanges = async () =>

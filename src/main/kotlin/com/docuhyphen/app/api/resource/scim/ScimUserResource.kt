@@ -1,5 +1,6 @@
 package com.docuhyphen.app.api.resource.scim
 
+import com.docuhyphen.app.api.exception.SubscriptionDenialException
 import com.docuhyphen.app.api.model.entity.AppUser
 import com.docuhyphen.app.api.model.entity.Person
 import com.docuhyphen.app.api.model.entity.OrganizationRoleName
@@ -12,6 +13,7 @@ import com.docuhyphen.app.api.service.auth.RevocationReasonCode
 import com.docuhyphen.app.api.service.auth.UserSessionService
 import com.docuhyphen.app.api.service.config.ConfigurationService
 import jakarta.inject.Inject
+import jakarta.transaction.Transactional
 import jakarta.ws.rs.*
 import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
@@ -94,6 +96,7 @@ class ScimUserResource @Inject constructor(
     }
 
     @POST
+    @Transactional
     fun create(
         @HeaderParam("Authorization") authorization: String?,
         payload: ScimUser,
@@ -123,12 +126,20 @@ class ScimUserResource @Inject constructor(
         // so the provisioning org is resolved from the email domain and recorded in
         // organization_membership.
         organizationIdentityPolicyService.resolveOrganizationForEmail(email)?.let { organization ->
-            organizationMembershipService.assignOrgRole(
-                appUserId = saved.id,
-                organizationId = organization.id,
-                role = OrganizationRoleName.ORG_MEMBER,
-                isPrimary = true,
-            )
+            try
+            {
+                organizationMembershipService.assignOrgRole(
+                    appUserId = saved.id,
+                    organizationId = organization.id,
+                    role = OrganizationRoleName.ORG_MEMBER,
+                    isPrimary = true,
+                )
+            }
+            catch (exception: SubscriptionDenialException)
+            {
+                logger.error("Subscription denied while SCIM created an organization membership", exception)
+                throw exception
+            }
         }
 
         authAuditService.emit(
@@ -143,6 +154,7 @@ class ScimUserResource @Inject constructor(
 
     @PUT
     @Path("/{id}")
+    @Transactional
     fun replace(
         @HeaderParam("Authorization") authorization: String?,
         @PathParam("id") id: String,
@@ -157,8 +169,16 @@ class ScimUserResource @Inject constructor(
             ?: return error(Response.Status.NOT_FOUND, "User not found")
 
         val email = (payload.emails.firstOrNull { it.primary }?.value ?: payload.userName).lowercase()
+        if (payload.active && (!user.isActive || user.deprovisionedAt != null))
+        {
+            enforceSeatsForAccountActivation(user.id)
+        }
         user.email = email
         user.isActive = payload.active
+        if (payload.active)
+        {
+            user.deprovisionedAt = null
+        }
         user.person?.let { p ->
             p.firstName = payload.name?.givenName ?: p.firstName
             p.lastName = payload.name?.familyName ?: p.lastName
@@ -181,6 +201,7 @@ class ScimUserResource @Inject constructor(
 
     @PATCH
     @Path("/{id}")
+    @Transactional
     fun patch(
         @HeaderParam("Authorization") authorization: String?,
         @PathParam("id") id: String,
@@ -208,8 +229,9 @@ class ScimUserResource @Inject constructor(
                     user.deprovisionedAt = Timestamp.from(Instant.now())
                     userSessionService.revokeAllUserSessions(user.id, RevocationReasonCode.DEPROVISIONED)
                 }
-                else if (newActive && !user.isActive)
+                else if (newActive && (!user.isActive || user.deprovisionedAt != null))
                 {
+                    enforceSeatsForAccountActivation(user.id)
                     user.isActive = true
                     user.deprovisionedAt = null
                 }
@@ -233,6 +255,7 @@ class ScimUserResource @Inject constructor(
 
     @DELETE
     @Path("/{id}")
+    @Transactional
     fun delete(
         @HeaderParam("Authorization") authorization: String?,
         @PathParam("id") id: String,
@@ -287,6 +310,19 @@ class ScimUserResource @Inject constructor(
     private fun constantTimeEquals(a: String, b: String): Boolean
     {
         return java.security.MessageDigest.isEqual(a.toByteArray(Charsets.UTF_8), b.toByteArray(Charsets.UTF_8))
+    }
+
+    private fun enforceSeatsForAccountActivation(appUserId: UUID)
+    {
+        try
+        {
+            organizationMembershipService.enforceSeatsForAccountActivation(appUserId)
+        }
+        catch (exception: SubscriptionDenialException)
+        {
+            logger.error("Subscription denied while SCIM reactivated an organization member", exception)
+            throw exception
+        }
     }
 
     private fun applyFilter(users: List<AppUser>, filter: String?): List<AppUser>

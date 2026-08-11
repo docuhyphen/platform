@@ -5,9 +5,16 @@ import com.docuhyphen.app.api.interceptor.EnforceAdminAction
 import com.docuhyphen.app.api.model.entity.AppUser
 import com.docuhyphen.app.api.model.entity.Organization
 import com.docuhyphen.app.api.model.entity.OrganizationSubscriptionPolicy
-import com.docuhyphen.app.api.repository.OrganizationRepository
-import com.docuhyphen.app.api.repository.OrganizationSubscriptionPolicyRepository
 import com.docuhyphen.app.api.resource.model.PlatformOrganizationSubscriptionPolicyRequest
+import com.docuhyphen.app.api.service.subscription.PlanCatalog
+import com.docuhyphen.app.api.service.subscription.PlanCode
+import com.docuhyphen.app.api.service.subscription.BillingFrequency
+import com.docuhyphen.app.api.service.subscription.SubscriptionLifecycleUpdate
+import com.docuhyphen.app.api.service.subscription.SubscriptionLifecycleValidator
+import com.docuhyphen.app.api.service.subscription.SubscriptionOwnerType
+import com.docuhyphen.app.api.service.subscription.SubscriptionStatus
+import com.docuhyphen.app.api.service.subscription.SubscriptionPolicyService
+import com.docuhyphen.app.api.service.organization.OrganizationService
 import io.quarkus.security.UnauthorizedException
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
@@ -21,6 +28,11 @@ data class PolicyResult(
     val tierCode: String,
     val maxUsers: Long?,
     val currentActiveUsers: Long,
+    val subscriptionStatus: String,
+    val billingFrequency: String?,
+    val currentPeriodStart: Timestamp?,
+    val currentPeriodEnd: Timestamp?,
+    val gracePeriodEnd: Timestamp?,
     val changeReason: String?,
     val persisted: Boolean,
     val createdDate: Timestamp?,
@@ -37,17 +49,28 @@ data class PolicyListResult(
 @RequestScoped
 class PlatformOrganizationSubscriptionPolicyService @Inject constructor(
     private val authTokenContext: AuthTokenContext,
-    private val organizationRepository: OrganizationRepository,
-    private val organizationSubscriptionPolicyRepository: OrganizationSubscriptionPolicyRepository,
+    private val organizationService: OrganizationService,
+    private val subscriptionPolicyService: SubscriptionPolicyService,
     private val authAuditService: AuthAuditService,
     private val userRoleService: UserRoleService,
     private val organizationMembershipService: com.docuhyphen.app.api.service.organization.OrganizationMembershipService,
+    private val subscriptionLifecycleValidator: SubscriptionLifecycleValidator,
 )
 {
     companion object
     {
-        const val FREE_TIER_CODE = "FREE"
-        const val FREE_TIER_MAX_USERS: Long = 3
+        /**
+         * Business is the only plan an organization can hold. Individual plans belong to a
+         * registered user, so they are never valid on an organization policy row.
+         */
+        val ORGANIZATION_TIER_CODE: String = PlanCatalog.DEFAULT_ORGANIZATION_PLAN.name
+
+        /**
+         * Seat capacity an organization has when a platform administrator has not yet assigned
+         * purchased seats. Null means uncapped rather than a silent low cap that would lock
+         * existing members out.
+         */
+        val UNASSIGNED_SEAT_CAPACITY: Long? = null
     }
 
 
@@ -55,16 +78,21 @@ class PlatformOrganizationSubscriptionPolicyService @Inject constructor(
     {
         val actor = requirePlatformAdmin("PLATFORM_ORG_SUBSCRIPTION_POLICY_VIEW")
         val organization = requireOrganization(organizationId)
-        val existing = organizationSubscriptionPolicyRepository.findByOrganizationId(organization.id)
+        val existing = subscriptionPolicyService.findOrganizationPolicy(organization.id)
 
         val result = if (existing == null)
         {
             PolicyResult(
                 organizationId = organization.id,
-                tierCode = FREE_TIER_CODE,
-                maxUsers = FREE_TIER_MAX_USERS,
+                tierCode = ORGANIZATION_TIER_CODE,
+                maxUsers = UNASSIGNED_SEAT_CAPACITY,
                 currentActiveUsers = activeUserCount(organization),
-                changeReason = "Implicit default free-tier policy",
+                subscriptionStatus = SubscriptionStatus.ACTIVE.name,
+                billingFrequency = null,
+                currentPeriodStart = null,
+                currentPeriodEnd = null,
+                gracePeriodEnd = null,
+                changeReason = "No persisted policy; organization Business defaults apply",
                 persisted = false,
                 createdDate = null,
                 updatedDate = null,
@@ -77,6 +105,11 @@ class PlatformOrganizationSubscriptionPolicyService @Inject constructor(
                 tierCode = existing.tierCode,
                 maxUsers = existing.maxUsers,
                 currentActiveUsers = activeUserCount(organization),
+                subscriptionStatus = existing.subscriptionStatus,
+                billingFrequency = existing.billingFrequency,
+                currentPeriodStart = existing.currentPeriodStart,
+                currentPeriodEnd = existing.currentPeriodEnd,
+                gracePeriodEnd = existing.gracePeriodEnd,
                 changeReason = existing.changeReason,
                 persisted = true,
                 createdDate = existing.createdDate,
@@ -156,9 +189,10 @@ class PlatformOrganizationSubscriptionPolicyService @Inject constructor(
         val actor = requirePlatformAdmin("PLATFORM_ORG_SUBSCRIPTION_POLICY_UPSERT")
         val organization = requireOrganization(organizationId)
         val normalizedTierCode = normalizeTierCode(request.tierCode)
-        validateRequest(request, normalizedTierCode)
+        val lifecycle = lifecycleUpdate(request, normalizedTierCode)
+        validateRequest(request, lifecycle)
 
-        val existing = organizationSubscriptionPolicyRepository.findByOrganizationId(organization.id)
+        val existing = subscriptionPolicyService.findOrganizationPolicy(organization.id)
 
         val beforeSnapshot = existing?.let { snapshot(it, organization) }
 
@@ -170,16 +204,21 @@ class PlatformOrganizationSubscriptionPolicyService @Inject constructor(
 
         policy.tierCode = normalizedTierCode
         policy.maxUsers = request.maxUsers
-        policy.changeReason = request.changeReason?.trim()?.takeIf { it.isNotBlank() }
+        policy.subscriptionStatus = lifecycle.status.name
+        policy.billingFrequency = lifecycle.billingFrequency?.name
+        policy.currentPeriodStart = lifecycle.currentPeriodStart?.let(Timestamp::from)
+        policy.currentPeriodEnd = lifecycle.currentPeriodEnd?.let(Timestamp::from)
+        policy.gracePeriodEnd = lifecycle.gracePeriodEnd?.let(Timestamp::from)
+        policy.changeReason = lifecycle.changeReason
         policy.updatedDate = now
 
         if (existing == null)
         {
-            organizationSubscriptionPolicyRepository.save(policy)
+            subscriptionPolicyService.saveOrganizationPolicy(policy)
         }
         else
         {
-            organizationSubscriptionPolicyRepository.update(policy)
+            subscriptionPolicyService.updateOrganizationPolicy(policy)
         }
 
         val result = PolicyResult(
@@ -187,6 +226,11 @@ class PlatformOrganizationSubscriptionPolicyService @Inject constructor(
             tierCode = policy.tierCode,
             maxUsers = policy.maxUsers,
             currentActiveUsers = activeUserCount(organization),
+            subscriptionStatus = policy.subscriptionStatus,
+            billingFrequency = policy.billingFrequency,
+            currentPeriodStart = policy.currentPeriodStart,
+            currentPeriodEnd = policy.currentPeriodEnd,
+            gracePeriodEnd = policy.gracePeriodEnd,
             changeReason = policy.changeReason,
             persisted = true,
             createdDate = policy.createdDate,
@@ -219,18 +263,23 @@ class PlatformOrganizationSubscriptionPolicyService @Inject constructor(
     {
         val actor = requirePlatformAdmin("PLATFORM_ORG_SUBSCRIPTION_POLICY_DELETE")
         val organization = requireOrganization(organizationId)
-        val existing = organizationSubscriptionPolicyRepository.findByOrganizationId(organization.id)
+        val existing = subscriptionPolicyService.findOrganizationPolicy(organization.id)
             ?: throw IllegalArgumentException("Organization subscription policy not found")
 
         val beforeSnapshot = snapshot(existing, organization)
-        organizationSubscriptionPolicyRepository.delete(existing)
+        subscriptionPolicyService.deleteOrganizationPolicy(existing)
 
         val result = PolicyResult(
             organizationId = organization.id,
-            tierCode = FREE_TIER_CODE,
-            maxUsers = FREE_TIER_MAX_USERS,
+            tierCode = ORGANIZATION_TIER_CODE,
+            maxUsers = UNASSIGNED_SEAT_CAPACITY,
             currentActiveUsers = activeUserCount(organization),
-            changeReason = "Policy reset to platform default",
+            subscriptionStatus = SubscriptionStatus.ACTIVE.name,
+            billingFrequency = null,
+            currentPeriodStart = null,
+            currentPeriodEnd = null,
+            gracePeriodEnd = null,
+            changeReason = "Policy reset to organization Business defaults",
             persisted = false,
             createdDate = null,
             updatedDate = null,
@@ -279,8 +328,8 @@ class PlatformOrganizationSubscriptionPolicyService @Inject constructor(
     private fun requireOrganization(organizationId: String): Organization
     {
         val orgId = requireUuid(organizationId, "organization ID")
-        return organizationRepository.findById(orgId)
-            ?: throw IllegalArgumentException("Organization not found")
+        return runCatching { organizationService.getOrganizationById(orgId) }
+            .getOrElse { throw IllegalArgumentException("Organization not found") }
     }
 
     private fun requireUuid(value: String, label: String): UUID
@@ -289,22 +338,50 @@ class PlatformOrganizationSubscriptionPolicyService @Inject constructor(
             .getOrElse { throw IllegalArgumentException("Invalid $label format") }
     }
 
-    private fun validateRequest(request: PlatformOrganizationSubscriptionPolicyRequest, normalizedTierCode: String)
+    private fun validateRequest(
+        request: PlatformOrganizationSubscriptionPolicyRequest,
+        lifecycle: SubscriptionLifecycleUpdate,
+    )
     {
-        if (normalizedTierCode.isBlank())
-        {
-            throw IllegalArgumentException("Tier code is required")
-        }
+        subscriptionLifecycleValidator.validate(SubscriptionOwnerType.ORGANIZATION, lifecycle)
 
         if (request.maxUsers != null && request.maxUsers <= 0)
         {
             throw IllegalArgumentException("Max users must be greater than 0 when provided")
         }
 
-        if (request.changeReason != null && request.changeReason.length > 1024)
-        {
-            throw IllegalArgumentException("Change reason must be at most 1024 characters")
-        }
+    }
+
+    private fun lifecycleUpdate(
+        request: PlatformOrganizationSubscriptionPolicyRequest,
+        normalizedTierCode: String,
+    ): SubscriptionLifecycleUpdate
+    {
+        val planCode = PlanCode.fromCodeOrNull(normalizedTierCode)
+            ?: throw IllegalArgumentException("Unknown subscription tier code: $normalizedTierCode")
+        return SubscriptionLifecycleUpdate(
+            planCode = planCode,
+            status = SubscriptionStatus.fromCode(request.subscriptionStatus),
+            billingFrequency = parseBillingFrequency(request.billingFrequency),
+            currentPeriodStart = parseInstant(request.currentPeriodStart, "current period start"),
+            currentPeriodEnd = parseInstant(request.currentPeriodEnd, "current period end"),
+            gracePeriodEnd = parseInstant(request.gracePeriodEnd, "grace period end"),
+            changeReason = request.changeReason.trim(),
+        )
+    }
+
+    private fun parseBillingFrequency(value: String?): BillingFrequency?
+    {
+        if (value.isNullOrBlank()) return null
+        return BillingFrequency.fromCodeOrNull(value)
+            ?: throw IllegalArgumentException("Unknown billing frequency: $value")
+    }
+
+    private fun parseInstant(value: String?, label: String): Instant?
+    {
+        if (value.isNullOrBlank()) return null
+        return runCatching { Instant.parse(value.trim()) }
+            .getOrElse { throw IllegalArgumentException("Invalid $label; use an ISO-8601 UTC timestamp") }
     }
 
     private fun normalizeTierCode(tierCode: String): String
@@ -334,7 +411,7 @@ class PlatformOrganizationSubscriptionPolicyService @Inject constructor(
 
     private fun buildGlobalList(includeDefaults: Boolean): List<PolicyResult>
     {
-        val persisted = organizationSubscriptionPolicyRepository.findAll()
+        val persisted = subscriptionPolicyService.findAllOrganizationPolicies()
             .sortedByDescending { it.updatedDate.time }
             .map { policy ->
                 val organization = policy.organization ?: throw IllegalStateException("Organization reference is missing for subscription policy")
@@ -347,7 +424,7 @@ class PlatformOrganizationSubscriptionPolicyService @Inject constructor(
         }
 
         val persistedOrgIds = persisted.map { it.organizationId }.toSet()
-        val defaults = organizationRepository.findAll()
+        val defaults = organizationService.findAllOrganizations()
             .filter { it.id !in persistedOrgIds }
             .map { defaultPolicyResult(it) }
 
@@ -357,7 +434,7 @@ class PlatformOrganizationSubscriptionPolicyService @Inject constructor(
     private fun buildOrganizationScopedList(organizationId: String, includeDefaults: Boolean): List<PolicyResult>
     {
         val organization = requireOrganization(organizationId)
-        val persisted = organizationSubscriptionPolicyRepository.findByOrganizationId(organization.id)
+        val persisted = subscriptionPolicyService.findOrganizationPolicy(organization.id)
         if (persisted != null)
         {
             return listOf(persistedPolicyResult(persisted, organization))
@@ -378,8 +455,13 @@ class PlatformOrganizationSubscriptionPolicyService @Inject constructor(
         return PolicyResult(
             organizationId = organization.id,
             tierCode = policy.tierCode,
-            maxUsers = resolveEffectiveMaxUsers(policy.tierCode, policy.maxUsers),
+            maxUsers = resolveEffectiveMaxUsers(policy.maxUsers),
             currentActiveUsers = activeUserCount(organization),
+            subscriptionStatus = policy.subscriptionStatus,
+            billingFrequency = policy.billingFrequency,
+            currentPeriodStart = policy.currentPeriodStart,
+            currentPeriodEnd = policy.currentPeriodEnd,
+            gracePeriodEnd = policy.gracePeriodEnd,
             changeReason = policy.changeReason,
             persisted = true,
             createdDate = policy.createdDate,
@@ -391,34 +473,39 @@ class PlatformOrganizationSubscriptionPolicyService @Inject constructor(
     {
         return PolicyResult(
             organizationId = organization.id,
-            tierCode = FREE_TIER_CODE,
-            maxUsers = FREE_TIER_MAX_USERS,
+            tierCode = ORGANIZATION_TIER_CODE,
+            maxUsers = UNASSIGNED_SEAT_CAPACITY,
             currentActiveUsers = activeUserCount(organization),
-            changeReason = "Implicit default free-tier policy",
+            subscriptionStatus = SubscriptionStatus.ACTIVE.name,
+            billingFrequency = null,
+            currentPeriodStart = null,
+            currentPeriodEnd = null,
+            gracePeriodEnd = null,
+            changeReason = "No persisted policy; organization Business defaults apply",
             persisted = false,
             createdDate = null,
             updatedDate = null,
         )
     }
 
-    private fun resolveEffectiveMaxUsers(tierCode: String, configuredMaxUsers: Long?): Long?
+    /**
+     * Seat capacity comes only from the purchased quantity recorded on the policy. No plan
+     * grants an implicit member cap, so an unset value means the organization is uncapped.
+     */
+    private fun resolveEffectiveMaxUsers(configuredMaxUsers: Long?): Long?
     {
-        if (configuredMaxUsers != null)
-        {
-            return configuredMaxUsers
-        }
-
-        return if (tierCode.equals(FREE_TIER_CODE, ignoreCase = true)) FREE_TIER_MAX_USERS else null
+        return configuredMaxUsers
     }
+
 
     private fun snapshot(policy: OrganizationSubscriptionPolicy, organization: Organization): String
     {
-        return "organizationId=${organization.id};tierCode=${policy.tierCode};maxUsers=${policy.maxUsers};changeReason=${policy.changeReason};createdDate=${policy.createdDate};updatedDate=${policy.updatedDate}"
+        return "organizationId=${organization.id};tierCode=${policy.tierCode};maxUsers=${policy.maxUsers};subscriptionStatus=${policy.subscriptionStatus};billingFrequency=${policy.billingFrequency};currentPeriodStart=${policy.currentPeriodStart};currentPeriodEnd=${policy.currentPeriodEnd};gracePeriodEnd=${policy.gracePeriodEnd};changeReason=${policy.changeReason};createdDate=${policy.createdDate};updatedDate=${policy.updatedDate}"
     }
 
     private fun snapshot(result: PolicyResult): String
     {
-        return "organizationId=${result.organizationId};tierCode=${result.tierCode};maxUsers=${result.maxUsers};currentActiveUsers=${result.currentActiveUsers};persisted=${result.persisted};changeReason=${result.changeReason};createdDate=${result.createdDate};updatedDate=${result.updatedDate}"
+        return "organizationId=${result.organizationId};tierCode=${result.tierCode};maxUsers=${result.maxUsers};currentActiveUsers=${result.currentActiveUsers};subscriptionStatus=${result.subscriptionStatus};billingFrequency=${result.billingFrequency};currentPeriodStart=${result.currentPeriodStart};currentPeriodEnd=${result.currentPeriodEnd};gracePeriodEnd=${result.gracePeriodEnd};persisted=${result.persisted};changeReason=${result.changeReason};createdDate=${result.createdDate};updatedDate=${result.updatedDate}"
     }
 }
 

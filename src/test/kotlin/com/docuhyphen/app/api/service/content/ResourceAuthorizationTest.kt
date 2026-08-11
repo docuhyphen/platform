@@ -28,8 +28,10 @@ import com.docuhyphen.app.api.service.auth.authz.Decision
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.blueprint.BlueprintDefinitionService
 import com.docuhyphen.app.api.service.communication.CommunicationService
+import com.docuhyphen.app.api.service.subscription.OrganizationFeatureSubscriptionGuard
 import com.docuhyphen.app.api.service.variable.SequenceDefinitionService
 import com.docuhyphen.app.api.service.variable.VariableDefinitionService
+import com.docuhyphen.app.api.service.variable.VariableSubscriptionGuard
 import io.quarkus.security.ForbiddenException
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
@@ -120,6 +122,7 @@ class ResourceAuthorizationTest
         authorizationService = authSvc,
         authorizationContextFactory = factory,
         userRoleService = roleService,
+        subscriptionGuard = mock<OrganizationFeatureSubscriptionGuard>(),
     )
 
     @Test
@@ -262,6 +265,7 @@ class ResourceAuthorizationTest
         authorizationService = authSvc,
         authorizationContextFactory = factory,
         userRoleService = roleService,
+        variableSubscriptionGuard = mock<VariableSubscriptionGuard>(),
     )
 
     @Test
@@ -347,6 +351,7 @@ class ResourceAuthorizationTest
         authorizationService = authSvc,
         authorizationContextFactory = factory,
         userRoleService = roleService,
+        variableSubscriptionGuard = mock<VariableSubscriptionGuard>(),
     )
 
     @Test
@@ -440,6 +445,7 @@ class ResourceAuthorizationTest
         authorizationService = authSvc,
         authorizationContextFactory = factory,
         userRoleService = roleService,
+        blueprintSubscriptionGuard = mock(),
     )
 
     @Test

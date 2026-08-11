@@ -13,6 +13,8 @@ import com.docuhyphen.app.api.service.auth.AdminApprovalContext
 import com.docuhyphen.app.api.service.auth.ServiceActionAuthorizationService
 import com.docuhyphen.app.api.service.auth.UserRoleService
 import com.docuhyphen.app.api.service.organization.OrganizationService
+import com.docuhyphen.app.api.service.subscription.OrganizationFeatureSubscriptionGuard
+import com.docuhyphen.app.api.service.subscription.PlanFeature
 import io.quarkus.security.UnauthorizedException
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
@@ -28,6 +30,7 @@ class SettingsService @Inject constructor(
     var appUserService: AppUserService,
     var organizationService: OrganizationService,
     var userRoleService: UserRoleService,
+    private val subscriptionGuard: OrganizationFeatureSubscriptionGuard,
 )
 {
     @Transactional
@@ -165,6 +168,7 @@ class SettingsService @Inject constructor(
 
         // Get the organization
         val organization = organizationService.getOrganizationById(orgUuid)
+        subscriptionGuard.requireMutation(organization.id, PlanFeature.ORGANIZATION_ADMINISTRATION)
 
         // Get existing settings or create new ones if null
         val settings = organization.settings ?: OrganizationSettings().also {

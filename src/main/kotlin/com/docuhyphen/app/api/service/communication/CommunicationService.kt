@@ -19,6 +19,8 @@ import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
 import com.docuhyphen.app.api.service.auth.authz.Decision
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.auth.authz.ResourceRef
+import com.docuhyphen.app.api.service.subscription.OrganizationFeatureSubscriptionGuard
+import com.docuhyphen.app.api.service.subscription.PlanFeature
 import com.docuhyphen.app.api.service.variable.TemplateVariableInterpolator
 import com.docuhyphen.app.api.service.variable.VariableResolutionContext
 import io.quarkus.security.ForbiddenException
@@ -42,6 +44,7 @@ class CommunicationService @Inject constructor(
     private val authorizationService: AuthorizationService,
     private val authorizationContextFactory: AuthorizationContextFactory,
     private val userRoleService: UserRoleService,
+    private val subscriptionGuard: OrganizationFeatureSubscriptionGuard,
 )
 {
     private val logger = LoggerFactory.getLogger(CommunicationService::class.java)
@@ -90,6 +93,7 @@ class CommunicationService @Inject constructor(
         val isAppAdmin = userRoleService.isAppAdmin(principal.id)
 
         val resolvedScope = resolveScope(request.scope, activeOrgId, isOrgAdmin, isAppAdmin)
+        requireOrganizationWorkflowAllowance(resolvedScope, activeOrgId)
         val communication = Communication().apply {
             name = request.name.trim()
             subject = request.subject.trim()
@@ -114,6 +118,7 @@ class CommunicationService @Inject constructor(
         val communication = repository.findById(id)
             ?: throw IllegalArgumentException("Communication not found: $id")
         checkWriteAccess(communication, principal, context)
+        requireOrganizationWorkflowAllowance(communication.scope, communication.organizationId)
 
         request.name?.trim()?.let { if (it.isNotBlank()) communication.name = it }
         request.subject?.trim()?.let { if (it.isNotBlank()) communication.subject = it }
@@ -134,6 +139,7 @@ class CommunicationService @Inject constructor(
         val communication = repository.findById(id)
             ?: throw IllegalArgumentException("Communication not found: $id")
         checkWriteAccess(communication, principal, context)
+        requireOrganizationWorkflowAllowance(communication.scope, communication.organizationId)
         if (communication.scope == CommunicationScope.PERSONAL)
         {
             throw ForbiddenException("Personal communications cannot be published")
@@ -151,6 +157,7 @@ class CommunicationService @Inject constructor(
         val communication = repository.findById(id)
             ?: throw IllegalArgumentException("Communication not found: $id")
         checkWriteAccess(communication, principal, context)
+        requireOrganizationWorkflowAllowance(communication.scope, communication.organizationId)
         communication.isActive = request.isActive
         communication.updatedAt = Timestamp.from(Instant.now())
         return repository.update(communication).toDto()
@@ -164,6 +171,7 @@ class CommunicationService @Inject constructor(
         val communication = repository.findById(id)
             ?: throw IllegalArgumentException("Communication not found: $id")
         checkWriteAccess(communication, principal, context)
+        requireOrganizationWorkflowAllowance(communication.scope, communication.organizationId)
         communication.isDeleted = true
         communication.isActive = false
         communication.updatedAt = Timestamp.from(Instant.now())
@@ -286,6 +294,14 @@ class CommunicationService @Inject constructor(
 
     private fun currentContext(): AuthorizationContext =
         authorizationContextFactory.currentContext()
+
+    private fun requireOrganizationWorkflowAllowance(scope: CommunicationScope, organizationId: UUID?)
+    {
+        if (scope == CommunicationScope.ORG)
+        {
+            subscriptionGuard.requireMutation(organizationId, PlanFeature.WORKFLOW_AUTOMATION)
+        }
+    }
 
     private fun resolveScope(
         requestedScope: String?,

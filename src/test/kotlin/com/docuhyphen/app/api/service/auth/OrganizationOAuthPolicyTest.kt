@@ -5,8 +5,7 @@ import com.docuhyphen.app.api.model.entity.Organization
 import com.docuhyphen.app.api.model.entity.OrganizationIdentityProviderConfig
 import com.docuhyphen.app.api.repository.OrganizationIdentityProviderConfigRepository
 import com.docuhyphen.app.api.repository.OrganizationRepository
-import com.docuhyphen.app.api.repository.OrganizationSubscriptionPolicyRepository
-import com.docuhyphen.app.api.service.organization.OrganizationMembershipService
+import com.docuhyphen.app.api.service.organization.OrganizationSeatGuard
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -17,14 +16,12 @@ import java.util.UUID
 class OrganizationOAuthPolicyTest
 {
     private val organizationRepository = mock<OrganizationRepository>()
-    private val subscriptionRepository = mock<OrganizationSubscriptionPolicyRepository>()
+    private val organizationSeatGuard = mock<OrganizationSeatGuard>()
     private val idpConfigRepository = mock<OrganizationIdentityProviderConfigRepository>()
-    private val membershipService = mock<OrganizationMembershipService>()
     private val service = OrganizationIdentityPolicyService(
         organizationRepository,
-        subscriptionRepository,
+        organizationSeatGuard,
         idpConfigRepository,
-        membershipService,
     )
 
     @Test

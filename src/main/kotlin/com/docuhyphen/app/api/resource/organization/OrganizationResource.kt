@@ -2,6 +2,7 @@ package com.docuhyphen.app.api.resource.organization
 
 import com.docuhyphen.app.api.exception.DataIntegrityException
 import com.docuhyphen.app.api.exception.OrganizationNotFoundException
+import com.docuhyphen.app.api.exception.SubscriptionDenialException
 import com.docuhyphen.app.api.model.dto.OrganizationSettingsDto
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.resource.model.UpdateOrganizationRequest
@@ -56,6 +57,11 @@ class OrganizationResource @Inject constructor(
             }
 
             Response.ok().build()
+        }
+        catch (exception: SubscriptionDenialException)
+        {
+            logger.warn("Updating organization {} was refused by the subscription plan check: plan={}", organizationId, exception.denial.planCode)
+            throw exception
         }
         catch (exception: Exception)
         {
@@ -112,6 +118,11 @@ class OrganizationResource @Inject constructor(
 
             settingsService.updateOrganizationSettings(organizationId, settingsDto, adminApprovalContext)
             Response.ok(settingsDto).build()
+        }
+        catch (exception: SubscriptionDenialException)
+        {
+            logger.warn("Updating settings for organization {} was refused by the subscription plan check: plan={}", organizationId, exception.denial.planCode)
+            throw exception
         }
         catch (exception: Exception)
         {

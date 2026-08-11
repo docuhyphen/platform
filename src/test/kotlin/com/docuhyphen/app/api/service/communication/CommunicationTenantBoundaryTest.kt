@@ -17,6 +17,8 @@ import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
 import com.docuhyphen.app.api.service.auth.authz.Decision
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.service.subscription.OrganizationFeatureSubscriptionGuard
+import com.docuhyphen.app.api.service.subscription.PlanFeature
 import com.docuhyphen.app.api.service.variable.TemplateVariableInterpolator
 import io.quarkus.security.ForbiddenException
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -68,6 +70,7 @@ class CommunicationTenantBoundaryTest
     private data class ServiceFixture(
         val service: CommunicationService,
         val repository: CommunicationRepository,
+        val subscriptionGuard: OrganizationFeatureSubscriptionGuard,
     )
 
     private fun fixture(
@@ -78,6 +81,7 @@ class CommunicationTenantBoundaryTest
     ): ServiceFixture
     {
         val repository = mock<CommunicationRepository>()
+        val subscriptionGuard = mock<OrganizationFeatureSubscriptionGuard>()
         return ServiceFixture(
             service = CommunicationService(
                 repository = repository,
@@ -87,8 +91,10 @@ class CommunicationTenantBoundaryTest
                 authorizationService = authorizationService(*allowedActions),
                 authorizationContextFactory = contextFactory(context),
                 userRoleService = roleService(appAdmin, orgAdmin),
+                subscriptionGuard = subscriptionGuard,
             ),
             repository = repository,
+            subscriptionGuard = subscriptionGuard,
         )
     }
 
@@ -324,5 +330,29 @@ class CommunicationTenantBoundaryTest
 
         assertEquals(CommunicationScope.ORG.name, result.scope)
         assertEquals(organizationId, result.organizationId)
+        verify(fixture.subscriptionGuard).requireMutation(organizationId, PlanFeature.WORKFLOW_AUTOMATION)
+    }
+
+    @Test
+    fun `organization update checks the persisted owner subscription`()
+    {
+        val persistedOwnerId = UUID.randomUUID()
+        val fixture = fixture(
+            appAdmin = true,
+            orgAdmin = true,
+            allowedActions = arrayOf(Action.COMMUNICATION_EDIT),
+        )
+        val communication = communication(CommunicationScope.ORG).apply {
+            organizationId = persistedOwnerId
+        }
+        whenever(fixture.repository.findById(communication.id)).thenReturn(communication)
+        whenever(fixture.repository.update(any())).thenAnswer { it.getArgument(0) }
+
+        fixture.service.updateTemplate(communication.id, UpdateCommunicationRequest(name = "Changed"))
+
+        verify(fixture.subscriptionGuard).requireMutation(
+            persistedOwnerId,
+            PlanFeature.WORKFLOW_AUTOMATION,
+        )
     }
 }

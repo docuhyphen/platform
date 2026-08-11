@@ -112,6 +112,7 @@ class ExchangeAccessManagementServiceTest
         configurationService,
         auditRecorder,
         notificationDeliveryService,
+        mock<ExchangeFeatureSubscriptionGuard>(),
     )
 
     private fun grantOwnerAuthorization(activeOrgId: UUID? = activeOrganizationId)

@@ -78,6 +78,7 @@ class ExchangeInitiationService @Inject constructor(
     private val schemaAssignmentService: com.docuhyphen.app.api.service.fields.SchemaAssignmentService,
     private val noAuthExchangeAccessTokenService: NoAuthExchangeAccessTokenService,
     private val exchangeNotificationDeliveryService: ExchangeNotificationDeliveryService,
+    private val exchangeInitiationSubscriptionGuard: ExchangeInitiationSubscriptionGuard,
 )
 {
     @PersistenceContext
@@ -100,6 +101,17 @@ class ExchangeInitiationService @Inject constructor(
         authorizeActiveOrganizationInitiation()
         val primarySelectionRequest = sessionInitiationDto.primaryRecipient
             ?: throw IllegalArgumentException("Primary recipient is required")
+
+        // The caller is authorized by this point. What remains is whether the paying subject has
+        // the allowance: the plan that covers Exchange creation, the number created this month,
+        // the number still open, and any participants beyond the primary recipient. Running this
+        // inside the initiation transaction keeps the check and the insert inseparable.
+        exchangeInitiationSubscriptionGuard.enforceInitiation(
+            initiatorId = initiator.id,
+            activeOrganizationId = authTokenContext.activeOrganizationId,
+            additionalParticipants = sessionInitiationDto.participants.size,
+            recipientConstraintsJson = sessionInitiationDto.recipientConstraintsJson,
+        )
 
         if (primarySelectionRequest is ExternalEmailRecipientSelectionRequest)
         {

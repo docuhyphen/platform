@@ -72,6 +72,7 @@ class ExchangeInitiationFieldsTest
             schemaAssignmentService = schemaAssignmentService,
             noAuthExchangeAccessTokenService = mock(),
             exchangeNotificationDeliveryService = mock(),
+            exchangeInitiationSubscriptionGuard = mock(),
         )
 
     private fun entry(): FieldValueEntry =

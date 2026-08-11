@@ -25,6 +25,8 @@ import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
 import com.docuhyphen.app.api.service.auth.authz.Decision
 import com.docuhyphen.app.api.service.auth.authz.ResourceRef
 import com.docuhyphen.app.api.service.exchange.TrustedGroupAccessReconciliationService
+import com.docuhyphen.app.api.service.subscription.OrganizationFeatureSubscriptionGuard
+import com.docuhyphen.app.api.service.subscription.PlanFeature
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.inject.Provider
@@ -47,6 +49,7 @@ class OrganizationTrustRelationshipService @Inject constructor(
     private val trustConfig: OrganizationTrustConfigService,
     private val auditRecorder: AuditRecorder,
     private val trustedGroupAccessReconciliationService: Provider<TrustedGroupAccessReconciliationService>,
+    private val subscriptionGuard: OrganizationFeatureSubscriptionGuard,
 )
 {
     data class RequestOutcome(
@@ -65,6 +68,7 @@ class OrganizationTrustRelationshipService @Inject constructor(
     ): RequestOutcome
     {
         val caller = requireCaller(Action.ORG_TRUST_REQUEST)
+        subscriptionGuard.requireMutation(caller.organizationId, PlanFeature.IDENTITY_AND_INTEGRATIONS)
         if (caller.organizationId == targetOrganizationId)
         {
             throw OrganizationTrustValidationException("An organization cannot trust itself")
@@ -147,6 +151,7 @@ class OrganizationTrustRelationshipService @Inject constructor(
     ): OrganizationTrustRelationship
     {
         val caller = requireCaller(Action.ORG_TRUST_DECIDE)
+        subscriptionGuard.requireMutation(caller.organizationId, PlanFeature.IDENTITY_AND_INTEGRATIONS)
         val relationship = requireRelationship(relationshipId)
         requireParty(relationship, caller.organizationId)
         requireExpectedVersion(relationship, expectedVersion)
@@ -200,6 +205,7 @@ class OrganizationTrustRelationshipService @Inject constructor(
     ): OrganizationTrustRelationship
     {
         val caller = requireCaller(Action.ORG_TRUST_REQUEST)
+        subscriptionGuard.requireMutation(caller.organizationId, PlanFeature.IDENTITY_AND_INTEGRATIONS)
         val relationship = requireRelationship(relationshipId)
         requireParty(relationship, caller.organizationId)
         requireExpectedVersion(relationship, expectedVersion)
@@ -242,6 +248,7 @@ class OrganizationTrustRelationshipService @Inject constructor(
     ): OrganizationTrustRelationship
     {
         val caller = requireCaller(Action.ORG_TRUST_SUSPEND)
+        subscriptionGuard.requireMutation(caller.organizationId, PlanFeature.IDENTITY_AND_INTEGRATIONS)
         val relationship = requireRelationship(relationshipId)
         requireParty(relationship, caller.organizationId)
         requireExpectedVersion(relationship, expectedVersion)
@@ -274,6 +281,7 @@ class OrganizationTrustRelationshipService @Inject constructor(
     ): OrganizationTrustSuspension
     {
         val caller = requireCaller(Action.ORG_TRUST_SUSPEND)
+        subscriptionGuard.requireMutation(caller.organizationId, PlanFeature.IDENTITY_AND_INTEGRATIONS)
         val relationship = requireRelationship(relationshipId)
         requireParty(relationship, caller.organizationId)
         if (relationship.status != OrganizationTrustRelationshipStatus.ACTIVE)
@@ -319,6 +327,7 @@ class OrganizationTrustRelationshipService @Inject constructor(
     ): OrganizationTrustSuspension
     {
         val caller = requireCaller(Action.ORG_TRUST_SUSPEND)
+        subscriptionGuard.requireMutation(caller.organizationId, PlanFeature.IDENTITY_AND_INTEGRATIONS)
         val relationship = requireRelationship(relationshipId)
         requireParty(relationship, caller.organizationId)
         if (relationship.status != OrganizationTrustRelationshipStatus.ACTIVE)

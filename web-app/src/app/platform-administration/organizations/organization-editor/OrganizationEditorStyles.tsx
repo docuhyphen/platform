@@ -25,6 +25,11 @@ export const useOrganizationEditorStyles = makeStyles({
         flexWrap: "wrap",
         ...shorthands.gap(tokens.spacingHorizontalL),
     },
+    seatUsage: {
+        display: "flex",
+        flexWrap: "wrap",
+        ...shorthands.gap(tokens.spacingHorizontalL),
+    },
     entitlements: {
         display: "flex",
         flexDirection: "column",

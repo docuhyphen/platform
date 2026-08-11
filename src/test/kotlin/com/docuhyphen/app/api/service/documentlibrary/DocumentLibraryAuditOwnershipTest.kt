@@ -78,6 +78,7 @@ class DocumentLibraryAuditOwnershipTest
             contextFactory,
             userRoleService,
             recorder,
+            mock<DocumentLibrarySubscriptionGuard>(),
         )
 
         service.downloadFile(entry.id)

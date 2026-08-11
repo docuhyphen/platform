@@ -1,5 +1,6 @@
 package com.docuhyphen.app.api.resource.variable
 
+import com.docuhyphen.app.api.exception.SubscriptionDenialException
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.model.dto.CreateSequenceRequest
 import com.docuhyphen.app.api.model.dto.UpdateSequenceRequest
@@ -62,6 +63,11 @@ class SequenceDefinitionResource @Inject constructor(
         {
             val dto = sequenceService.createSequence(request, AdminApprovalContext(requestId = requestId))
             Response.status(CREATED).entity(dto).build()
+        }
+        catch (e: SubscriptionDenialException)
+        {
+            logger.warn("Creating a sequence was refused by the subscription plan check: plan={}", e.denial.planCode)
+            throw e
         }
         catch (e: IllegalArgumentException)
         {
@@ -130,6 +136,11 @@ class SequenceDefinitionResource @Inject constructor(
             val dto = sequenceService.updateSequence(seqId, request, AdminApprovalContext(requestId = requestId))
             Response.ok(dto).build()
         }
+        catch (e: SubscriptionDenialException)
+        {
+            logger.warn("Updating a sequence was refused by the subscription plan check: plan={}", e.denial.planCode)
+            throw e
+        }
         catch (e: IllegalArgumentException)
         {
             Response.status(BAD_REQUEST).entity(ResponseError(e.message)).build()
@@ -165,6 +176,11 @@ class SequenceDefinitionResource @Inject constructor(
             sequenceService.deleteSequence(seqId, AdminApprovalContext(requestId = requestId))
             Response.noContent().build()
         }
+        catch (e: SubscriptionDenialException)
+        {
+            logger.warn("Deleting a sequence was refused by the subscription plan check: plan={}", e.denial.planCode)
+            throw e
+        }
         catch (e: IllegalArgumentException)
         {
             Response.status(NOT_FOUND).entity(ResponseError(e.message)).build()
@@ -199,6 +215,14 @@ class SequenceDefinitionResource @Inject constructor(
         {
             val dto = sequenceService.resetCounter(seqId, AdminApprovalContext(requestId = requestId))
             Response.ok(dto).build()
+        }
+        catch (e: SubscriptionDenialException)
+        {
+            logger.warn(
+                "Resetting a sequence counter was refused by the subscription plan check: plan={}",
+                e.denial.planCode,
+            )
+            throw e
         }
         catch (e: IllegalArgumentException)
         {

@@ -67,6 +67,7 @@ class WorkflowInstanceGraphRecordingTest
         inject(engine, "assigneeResolver", assigneeResolver)
         inject(engine, "eventPublisher", eventPublisher)
         inject(engine, "applicabilityEvaluator", applicabilityEvaluator)
+        inject(engine, "subscriptionGuard", mock<WorkflowSubscriptionGuard>())
         return engine
     }
 

@@ -2,6 +2,7 @@ package com.docuhyphen.app.api.resource.exchange
 
 import com.docuhyphen.app.api.exception.ExchangeDocumentNotFoundException
 import com.docuhyphen.app.api.exception.ExchangeNotFoundException
+import com.docuhyphen.app.api.exception.SubscriptionDenialException
 import com.docuhyphen.app.api.model.DetailedEntityToDtoTransformer
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.service.exchange.ExchangeDocumentVersionService
@@ -89,6 +90,14 @@ class ExchangeDocumentVersionResource @Inject constructor(
             )
 
             status(CREATED).entity(DetailedEntityToDtoTransformer.toDto(version)).build()
+        }
+        catch (exception: SubscriptionDenialException)
+        {
+            logger.warn(
+                "Creating a document version was refused by the subscription plan check: plan={}",
+                exception.denial.planCode,
+            )
+            throw exception
         }
         catch (exception: Exception)
         {

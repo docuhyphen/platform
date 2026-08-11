@@ -650,33 +650,6 @@ data class OrganizationIdpSecretRotationStatusResponse(
 )
 
 @Serializable
-data class PlatformOrganizationSubscriptionPolicyRequest(
-    val tierCode: String,
-    val maxUsers: Long? = null,
-    val changeReason: String? = null,
-)
-
-@Serializable
-data class PlatformOrganizationSubscriptionPolicyResponse(
-    val organizationId: String,
-    val tierCode: String,
-    val maxUsers: Long? = null,
-    val currentActiveUsers: Long,
-    val changeReason: String? = null,
-    val persisted: Boolean,
-    val createdDate: String? = null,
-    val updatedDate: String? = null,
-)
-
-@Serializable
-data class PlatformOrganizationSubscriptionPolicyListResponse(
-    val total: Int,
-    val limit: Int,
-    val offset: Int,
-    val items: List<PlatformOrganizationSubscriptionPolicyResponse>,
-)
-
-@Serializable
 data class SecurityIncidentResponse(
     val id: String,
     val incidentType: String,

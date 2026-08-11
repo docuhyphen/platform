@@ -5,7 +5,7 @@ import com.docuhyphen.app.api.model.entity.Organization
 import com.docuhyphen.app.api.model.entity.OrganizationIdentityProviderConfig
 import com.docuhyphen.app.api.repository.OrganizationIdentityProviderConfigRepository
 import com.docuhyphen.app.api.repository.OrganizationRepository
-import com.docuhyphen.app.api.repository.OrganizationSubscriptionPolicyRepository
+import com.docuhyphen.app.api.service.organization.OrganizationSeatGuard
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
 import java.util.UUID
@@ -15,9 +15,8 @@ class IdentityProviderNotAllowedException(message: String) : RuntimeException(me
 @RequestScoped
 class OrganizationIdentityPolicyService @Inject constructor(
     private val organizationRepository: OrganizationRepository,
-    private val organizationSubscriptionPolicyRepository: OrganizationSubscriptionPolicyRepository,
+    private val organizationSeatGuard: OrganizationSeatGuard,
     private val organizationIdentityProviderConfigRepository: OrganizationIdentityProviderConfigRepository,
-    private val organizationMembershipService: com.docuhyphen.app.api.service.organization.OrganizationMembershipService,
 )
 {
     fun resolveOrganizationForEmail(email: String): Organization?
@@ -45,22 +44,7 @@ class OrganizationIdentityPolicyService @Inject constructor(
     fun enforceUserCapForEmail(email: String)
     {
         val organization = resolveOrganizationForEmail(email) ?: return
-        val policy = organizationSubscriptionPolicyRepository.findByOrganizationId(organization.id)
-        val tierCode = policy?.tierCode ?: PlatformOrganizationSubscriptionPolicyService.FREE_TIER_CODE
-        val maxUsers = policy?.maxUsers
-            ?: if (tierCode.equals(PlatformOrganizationSubscriptionPolicyService.FREE_TIER_CODE, ignoreCase = true))
-                PlatformOrganizationSubscriptionPolicyService.FREE_TIER_MAX_USERS
-            else null
-        if (maxUsers == null)
-        {
-            return
-        }
-
-        val activeUsers = organizationMembershipService.membersOf(organization.id).count { it.isActive }.toLong()
-        if (activeUsers >= maxUsers)
-        {
-            throw IllegalArgumentException("Organization user limit reached")
-        }
+        enforceUserCapForOrganization(organization)
     }
 
     fun assertProviderAllowedForEmail(email: String, provider: IdentityProviderType)
@@ -112,19 +96,7 @@ class OrganizationIdentityPolicyService @Inject constructor(
 
     fun enforceUserCapForOrganization(organization: Organization)
     {
-        val policy = organizationSubscriptionPolicyRepository.findByOrganizationId(organization.id)
-        val tierCode = policy?.tierCode ?: PlatformOrganizationSubscriptionPolicyService.FREE_TIER_CODE
-        val maxUsers = policy?.maxUsers
-            ?: if (tierCode.equals(PlatformOrganizationSubscriptionPolicyService.FREE_TIER_CODE, ignoreCase = true))
-                PlatformOrganizationSubscriptionPolicyService.FREE_TIER_MAX_USERS
-            else null
-        if (maxUsers == null) return
-
-        val activeUsers = organizationMembershipService.membersOf(organization.id).count { it.isActive }.toLong()
-        if (activeUsers >= maxUsers)
-        {
-            throw IllegalArgumentException("Organization user limit reached")
-        }
+        organizationSeatGuard.enforceAvailableSeat(organization.id)
     }
 
     fun findActiveProviderConfigIdForEmail(email: String, provider: IdentityProviderType): UUID?

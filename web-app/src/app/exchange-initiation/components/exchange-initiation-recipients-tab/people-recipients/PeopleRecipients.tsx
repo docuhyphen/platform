@@ -28,6 +28,7 @@ interface PeopleRecipientsProps
     setNewRecipient: (recipient: ExchangeNewMainRecipient) => void;
     internalParticipants: AppUserPublicDto[] | undefined;
     setInternalParticipants?: (users: AppUserPublicDto[]) => void;
+    allowAdditionalParticipants: boolean;
 }
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -74,6 +75,7 @@ const PeopleRecipients: React.FC<PeopleRecipientsProps> = (
         setNewRecipient,
         internalParticipants,
         setInternalParticipants,
+        allowAdditionalParticipants,
     }) =>
 {
     const {appUser, appUserPersonOrganization} = useAuth();
@@ -423,10 +425,11 @@ const PeopleRecipients: React.FC<PeopleRecipientsProps> = (
                     newRecipient={newRecipient}
                     internalParticipants={internalParticipants}
                     setInternalParticipants={setInternalParticipants}
+                    allowAdditionalParticipants={allowAdditionalParticipants}
                 />
             )}
 
-            {recipientOrgUser && appUserPersonOrganization && (
+            {allowAdditionalParticipants && recipientOrgUser && appUserPersonOrganization && (
                 <MyOrgRecipients
                     id={"people-recipients-internal-participants"}
                     orgUsers={orgUsers.filter(u => u.id !== appUser?.id && u.id !== recipientOrgUser.id)}

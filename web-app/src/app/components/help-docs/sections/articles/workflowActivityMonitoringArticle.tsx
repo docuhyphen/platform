@@ -117,9 +117,9 @@ export const workflowActivityMonitoringArticle = (
 
         <h3>Monitoring workflows on an Exchange</h3>
         <p>
-            Participants also monitor an Exchange's own workflows from the{" "}
-            <b>Workflow</b> tab on that Exchange. A circular menu control at the top
-            right chooses <b>Timeline</b>, <b>Diagram</b>, or <b>Both</b> for the
+            Participants with workflow automation in their current plan also monitor an
+            Exchange's own workflows from the <b>Workflow</b> tab on that Exchange.
+            A circular menu control at the top right chooses <b>Timeline</b>, <b>Diagram</b>, or <b>Both</b> for the
             whole tab; Timeline is the default and the control changes every
             workflow shown in the tab at once. <b>Both</b> splits the tab into a
             detail column (summary, action required, and Timeline) on the left and

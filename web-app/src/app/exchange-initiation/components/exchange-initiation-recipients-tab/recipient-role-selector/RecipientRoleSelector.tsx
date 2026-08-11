@@ -16,6 +16,7 @@ interface RecipientRoleSelectorProps
     setRecipientRole: (role: ExchangeShareRoleName | undefined) => void;
     recipientConstraints: ShareConstraints;
     setRecipientConstraints: (c: ShareConstraints) => void;
+    allowAdvancedAccessControls: boolean;
 }
 
 const roleDescriptions: { role: string; description: string }[] = [
@@ -31,6 +32,13 @@ const roleDescriptions: { role: string; description: string }[] = [
 const RecipientRoleSelector: React.FC<RecipientRoleSelectorProps> = (props) =>
 {
     const styles = useRecipientRoleSelectorStyles();
+    React.useEffect(() =>
+    {
+        if (!props.allowAdvancedAccessControls && Object.keys(props.recipientConstraints).length > 0)
+        {
+            props.setRecipientConstraints({});
+        }
+    }, [props.allowAdvancedAccessControls, props.recipientConstraints, props.setRecipientConstraints]);
 
     return (
         <div className={styles.roleSection}>
@@ -86,13 +94,28 @@ const RecipientRoleSelector: React.FC<RecipientRoleSelectorProps> = (props) =>
                 </Dropdown>
             </Field>
 
-            {props.recipientRole && CONSTRAINED_ROLES.has(props.recipientRole) && (
-                <div className={styles.constraintsRow}>
+            {props.recipientRole &&
+                CONSTRAINED_ROLES.has(props.recipientRole) &&
+                props.allowAdvancedAccessControls && (
+                <div
+                    id={"exchange-recipient-constraints"}
+                    className={styles.constraintsRow}
+                >
                     <ShareConstraintToggles
                         constraints={props.recipientConstraints}
                         onChange={props.setRecipientConstraints}
                     />
                 </div>
+            )}
+            {props.recipientRole &&
+                CONSTRAINED_ROLES.has(props.recipientRole) &&
+                !props.allowAdvancedAccessControls && (
+                <Text
+                    id={"exchange-recipient-constraints-plan-message"}
+                    size={200}
+                >
+                    Advanced recipient constraints require Personal or Business.
+                </Text>
             )}
         </div>
     );

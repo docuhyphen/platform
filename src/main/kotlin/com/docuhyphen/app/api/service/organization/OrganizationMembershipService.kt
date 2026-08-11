@@ -6,8 +6,11 @@ import com.docuhyphen.app.api.model.entity.OrganizationMembershipStatus
 import com.docuhyphen.app.api.model.entity.OrganizationRoleName
 import com.docuhyphen.app.api.repository.AppUserRepository
 import com.docuhyphen.app.api.repository.OrganizationMembershipRepository
+import com.docuhyphen.app.api.service.subscription.OrganizationFeatureSubscriptionGuard
+import com.docuhyphen.app.api.service.subscription.PlanFeature
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
+import jakarta.transaction.Transactional
 import java.util.UUID
 
 /**
@@ -22,6 +25,8 @@ import java.util.UUID
 class OrganizationMembershipService @Inject constructor(
     private val membershipRepository: OrganizationMembershipRepository,
     private val appUserRepository: AppUserRepository,
+    private val organizationSeatGuard: OrganizationSeatGuard,
+    private val subscriptionGuard: OrganizationFeatureSubscriptionGuard,
 )
 {
     /**
@@ -48,6 +53,22 @@ class OrganizationMembershipService @Inject constructor(
             .map { it.organizationId }
             .toSet()
 
+    /**
+     * Reserves a seat in every organization an inactive account will rejoin when enabled.
+     * Organization IDs are ordered consistently so concurrent multi-organization activations
+     * cannot acquire subscription locks in opposite orders.
+     */
+    @Transactional
+    fun enforceSeatsForAccountActivation(appUserId: UUID)
+    {
+        activeOrganizationIds(appUserId)
+            .sortedBy(UUID::toString)
+            .forEach { organizationId ->
+                subscriptionGuard.requireMutation(organizationId, PlanFeature.ORGANIZATION_ADMINISTRATION)
+                organizationSeatGuard.enforceAvailableSeat(organizationId)
+            }
+    }
+
     /** Count of ACTIVE memberships of the organization. */
     fun activeMemberCount(organizationId: UUID): Long =
         membershipRepository.countActiveMembersOfOrg(organizationId)
@@ -71,7 +92,7 @@ class OrganizationMembershipService @Inject constructor(
             ?: membershipRepository.findActiveByUser(appUserId).firstOrNull())?.organizationId
 
     /**
-     * Map of appUserId → role name for every ACTIVE member of the org, in one query.
+     * Map of appUserId to role name for every ACTIVE member of the org, in one query.
      * Used to decorate member-listing DTOs without an N+1 per-user lookup.
      */
     fun rolesOf(organizationId: UUID): Map<UUID, Set<OrganizationRoleName>> =
@@ -79,8 +100,11 @@ class OrganizationMembershipService @Inject constructor(
             .associate { it.appUserId to it.roles.toSet() }
 
     /** Removes the user's membership of an org (used when an org admin hard-deletes the user). */
-    fun removeMember(appUserId: UUID, organizationId: UUID) =
-        membershipRepository.deleteByUserAndOrg(appUserId, organizationId).let { }
+    fun removeMember(appUserId: UUID, organizationId: UUID)
+    {
+        subscriptionGuard.requireMutation(organizationId, PlanFeature.ORGANIZATION_ADMINISTRATION)
+        membershipRepository.deleteByUserAndOrg(appUserId, organizationId)
+    }
 
     /**
      * Enabled administrators (ORG_ADMIN / ORG_OWNER) of the org: ACTIVE members whose own
@@ -109,6 +133,7 @@ class OrganizationMembershipService @Inject constructor(
         return admins.size == 1 && admins.first().id == appUserId
     }
 
+    @Transactional
     fun assignOrgRole(
         appUserId: UUID,
         organizationId: UUID,
@@ -117,7 +142,16 @@ class OrganizationMembershipService @Inject constructor(
         invitedByAppUserId: UUID? = null,
     ): OrganizationMembership
     {
-        val existing = membershipRepository.findActiveByUserAndOrg(appUserId, organizationId)
+        subscriptionGuard.requireMutation(organizationId, PlanFeature.ORGANIZATION_ADMINISTRATION)
+        val existing = membershipRepository.findByUserAndOrg(appUserId, organizationId)
+        val appUser = appUserRepository.findById(appUserId)
+            ?: throw IllegalArgumentException("App user not found")
+        val consumesNewSeat = existing?.status != OrganizationMembershipStatus.ACTIVE &&
+            appUser.isActive && appUser.deprovisionedAt == null && !appUser.isTemporary
+        if (consumesNewSeat)
+        {
+            organizationSeatGuard.enforceAvailableSeat(organizationId)
+        }
         val membership = (existing ?: OrganizationMembership().apply {
             this.appUserId = appUserId
             this.organizationId = organizationId
@@ -137,6 +171,7 @@ class OrganizationMembershipService @Inject constructor(
         role: OrganizationRoleName,
     ): OrganizationMembership
     {
+        subscriptionGuard.requireMutation(organizationId, PlanFeature.ORGANIZATION_ADMINISTRATION)
         val membership = membershipRepository.findActiveByUserAndOrg(appUserId, organizationId)
             ?: throw IllegalArgumentException("Active organization membership not found")
         require(role in membership.roles) { "Role $role is not assigned to this membership" }

@@ -67,6 +67,8 @@ interface AuthContextType
      * Returns false when no session has been loaded yet.
      */
     hasCapability: (cap: Capability) => boolean;
+    /** Re-fetches capabilities, subscription, and usage without replacing identity tokens. */
+    refreshCurrentSession: () => Promise<CurrentSessionDto | null>;
     /**
      * Switch the active organization. Stores the selection, updates the API client header,
      * and re-fetches the current session so capabilities reflect the new context immediately.
@@ -544,6 +546,22 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({children}) =>
         return currentSession?.capabilities?.includes(cap) === true;
     }, [currentSession]);
 
+    const refreshCurrentSession = useCallback(async (): Promise<CurrentSessionDto | null> =>
+    {
+        try
+        {
+            const session = await fetchCurrentSession();
+            setCurrentSession(session);
+            applyOrgResolution(session);
+            return session;
+        }
+        catch (error: unknown)
+        {
+            console.error("Failed to refresh current session:", error);
+            return null;
+        }
+    }, [applyOrgResolution]);
+
     const switchOrganization = useCallback(async (orgId: string | null) =>
     {
         if (orgId)
@@ -557,17 +575,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({children}) =>
         setApiClientActiveOrganizationId(orgId);
         setCurrentSession(null);
 
-        try
-        {
-            const session = await fetchCurrentSession();
-            setCurrentSession(session);
-            applyOrgResolution(session);
-        }
-        catch (error: unknown)
-        {
-            console.error("Failed to refresh session after org switch:", error);
-        }
-    }, [applyOrgResolution]);
+        await refreshCurrentSession();
+    }, [refreshCurrentSession]);
 
     useEffect(() =>
     {
@@ -613,6 +622,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({children}) =>
                 setAppUserPersonOrganization,
                 currentSession,
                 hasCapability,
+                refreshCurrentSession,
                 switchOrganization,
                 refreshTokens,
                 isBootstrapping,

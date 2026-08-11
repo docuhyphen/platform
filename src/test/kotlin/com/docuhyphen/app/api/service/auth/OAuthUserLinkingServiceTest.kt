@@ -27,13 +27,11 @@ class OAuthUserLinkingServiceTest
     private val appUserService = mock<AppUserService>()
     private val linkRepository = mock<IdentityProviderLinkRepository>()
     private val authenticationService = mock<AuthenticationService>()
-    private val identityPolicyService = mock<OrganizationIdentityPolicyService>()
     private val membershipService = mock<OrganizationMembershipService>()
     private val service = OAuthUserLinkingService(
         appUserService,
         linkRepository,
         authenticationService,
-        identityPolicyService,
         membershipService,
     )
 
@@ -75,7 +73,6 @@ class OAuthUserLinkingServiceTest
         )
 
         assertEquals(savedUser.id, result.appUser.id)
-        verify(identityPolicyService).enforceUserCapForOrganization(organization)
         verify(membershipService).assignOrgRole(
             appUserId = savedUser.id,
             organizationId = organization.id,

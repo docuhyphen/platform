@@ -9,6 +9,7 @@ import com.docuhyphen.app.api.repository.OrganizationRepository
 import com.docuhyphen.app.api.service.auth.AdminApprovalContext
 import com.docuhyphen.app.api.service.auth.AuthAuditService
 import com.docuhyphen.app.api.service.auth.UserRoleService
+import com.docuhyphen.app.api.service.subscription.SubscriptionPolicyService
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -31,11 +32,13 @@ class PlatformOrganizationStatusServiceTest
     private val userRoleService = mock<UserRoleService>()
     private val organizationRepository = mock<OrganizationRepository>()
     private val auditService = mock<AuthAuditService>()
+    private val subscriptionPolicyService = mock<SubscriptionPolicyService>()
     private val service = PlatformOrganizationStatusService(
         authTokenContext,
         userRoleService,
         organizationRepository,
         auditService,
+        subscriptionPolicyService,
     )
 
     @Test

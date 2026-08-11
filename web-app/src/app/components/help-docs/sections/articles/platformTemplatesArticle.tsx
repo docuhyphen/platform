@@ -4,8 +4,8 @@ export const platformTemplatesArticle = (
     <>
         <p>
             Platform templates are workflow definitions provided by DocuHyphen that
-            cover common use cases across industries. They are available to all
-            organizations and can be cloned and customized to fit your specific
+            cover common use cases across industries. They are available to Business
+            organizations with workflow automation and can be cloned and customized to fit their
             processes.
         </p>
 

@@ -11,6 +11,7 @@ interface ExchangeDocumentSidebarBodyProps
     exchangeDocument: DocumentDetailedDto;
     exchange: ExchangeDetailedDto;
     canViewAudit: boolean;
+    canViewVersions: boolean;
     canUpload: boolean;
     canDownload: boolean;
     pageNumber?: number;
@@ -33,7 +34,7 @@ const ExchangeDocumentSidebarBody = (props: ExchangeDocumentSidebarBodyProps) =>
                     onNavigateToPage={props.onNavigateToPage}
                 />
             )}
-            {props.selectedValue === "versions" && (
+            {props.selectedValue === "versions" && props.canViewVersions && (
                 <ExchangeDocumentVersions
                     exchangeId={props.exchange.id}
                     exchangeDocument={props.exchangeDocument}

@@ -171,6 +171,7 @@ class OrganizationTrustPolicyServiceTest
             authTokenContext,
             auditRecorder,
             relationshipServiceProvider,
+            mock(),
         )
     }
 

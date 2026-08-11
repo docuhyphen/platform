@@ -1,5 +1,6 @@
 package com.docuhyphen.app.api.resource.organization
 
+import com.docuhyphen.app.api.exception.SubscriptionDenialException
 import com.docuhyphen.app.api.resource.model.OrganizationIdpConfigRequest
 import com.docuhyphen.app.api.resource.model.OrganizationIdpConfigResponse
 import com.docuhyphen.app.api.resource.model.ResponseError
@@ -127,6 +128,11 @@ class OrganizationIdentityProviderConfigResource @Inject constructor(
 
     private fun handleException(message: String, exception: Exception): Response
     {
+        if (exception is SubscriptionDenialException)
+        {
+            logger.warn("Organization identity-provider configuration refused by subscription policy: {}", message, exception)
+            throw exception
+        }
         logger.error(message, exception)
 
         return when (exception)

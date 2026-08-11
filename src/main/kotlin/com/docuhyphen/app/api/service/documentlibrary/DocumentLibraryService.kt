@@ -49,6 +49,7 @@ class DocumentLibraryService @Inject constructor(
     private val authorizationContextFactory: AuthorizationContextFactory,
     private val userRoleService: UserRoleService,
     private val auditRecorder: AuditRecorder,
+    private val documentLibrarySubscriptionGuard: DocumentLibrarySubscriptionGuard,
 )
 {
     private val logger = LoggerFactory.getLogger(DocumentLibraryService::class.java)
@@ -60,6 +61,7 @@ class DocumentLibraryService @Inject constructor(
     {
         val principal = currentPrincipal()
         val activeOrgId = currentContext().activeOrgId
+        documentLibrarySubscriptionGuard.requireLibraryUse(principal.id, activeOrgId)
         val isOrgAdmin = activeOrgId != null && userRoleService.isOrgAdminIn(principal.id, activeOrgId)
 
         return repository.findAllAccessibleForCaller(principal.id, activeOrgId, isOrgAdmin)
@@ -77,6 +79,7 @@ class DocumentLibraryService @Inject constructor(
         val entry = repository.findById(id)
             ?: throw IllegalArgumentException("Document library entry not found: $id")
         checkReadAccess(entry, principal, context)
+        documentLibrarySubscriptionGuard.requireEntryUse(principal.id, entry.scope, entry.organizationId)
         return entry.toDto()
     }
 
@@ -91,6 +94,7 @@ class DocumentLibraryService @Inject constructor(
         val isAppAdmin = userRoleService.isAppAdmin(principal.id)
 
         val resolvedScope = resolveScope(request.scope, activeOrgId, isOrgAdmin, isAppAdmin)
+        documentLibrarySubscriptionGuard.requireEntryManagement(principal.id, resolvedScope, activeOrgId)
         val entry = DocumentLibraryEntry().apply {
             title = request.title.trim()
             description = request.description?.trim()
@@ -113,6 +117,7 @@ class DocumentLibraryService @Inject constructor(
         val entry = repository.findById(id)
             ?: throw IllegalArgumentException("Document library entry not found: $id")
         checkWriteAccess(entry, principal, context)
+        documentLibrarySubscriptionGuard.requireEntryManagement(principal.id, entry.scope, entry.organizationId)
 
         request.title?.trim()?.let { if (it.isNotBlank()) entry.title = it }
         request.description?.let { entry.description = it.trim().ifBlank { null } }
@@ -133,6 +138,7 @@ class DocumentLibraryService @Inject constructor(
         val entry = repository.findById(id)
             ?: throw IllegalArgumentException("Document library entry not found: $id")
         checkWriteAccess(entry, principal, context)
+        documentLibrarySubscriptionGuard.requireEntryManagement(principal.id, entry.scope, entry.organizationId)
 
         val ext = extension.lowercase().trimStart('.')
         val storageKey = "lib/${entry.id}.$ext"
@@ -155,6 +161,7 @@ class DocumentLibraryService @Inject constructor(
         val entry = repository.findById(id)
             ?: throw IllegalArgumentException("Document library entry not found: $id")
         checkReadAccess(entry, principal, context)
+        documentLibrarySubscriptionGuard.requireEntryUse(principal.id, entry.scope, entry.organizationId)
 
         val path = entry.storagePath
             ?: throw IllegalArgumentException("No file uploaded for document library entry $id")
@@ -172,6 +179,7 @@ class DocumentLibraryService @Inject constructor(
         val entry = repository.findById(id)
             ?: throw IllegalArgumentException("Document library entry not found: $id")
         checkWriteAccess(entry, principal, context)
+        documentLibrarySubscriptionGuard.requireEntryManagement(principal.id, entry.scope, entry.organizationId)
         entry.isActive = request.isActive
         entry.updatedAt = Timestamp.from(Instant.now())
         return repository.update(entry).toDto()
@@ -189,6 +197,7 @@ class DocumentLibraryService @Inject constructor(
         {
             throw ForbiddenException("Personal library entries cannot be published")
         }
+        documentLibrarySubscriptionGuard.requireEntryManagement(principal.id, entry.scope, entry.organizationId)
         entry.isPublished = request.isPublished
         entry.updatedAt = Timestamp.from(Instant.now())
         return repository.update(entry).toDto()
@@ -202,6 +211,7 @@ class DocumentLibraryService @Inject constructor(
         val entry = repository.findById(id)
             ?: throw IllegalArgumentException("Document library entry not found: $id")
         checkWriteAccess(entry, principal, context)
+        documentLibrarySubscriptionGuard.requireEntryManagement(principal.id, entry.scope, entry.organizationId)
         entry.isDeleted = true
         entry.isActive = false
         entry.updatedAt = Timestamp.from(Instant.now())
@@ -222,6 +232,7 @@ class DocumentLibraryService @Inject constructor(
         checkReadAccess(source, principal, context)
 
         val targetScope = resolveCloneTargetScope(request.targetScope, activeOrgId, isOrgAdmin)
+        documentLibrarySubscriptionGuard.requireEntryManagement(principal.id, targetScope, activeOrgId)
         val clone = DocumentLibraryEntry().apply {
             title = request.newName?.trim()?.ifBlank { null } ?: "${source.title} (copy)"
             description = source.description
@@ -241,6 +252,7 @@ class DocumentLibraryService @Inject constructor(
         val context = currentContext()
         val entry = repository.findById(libraryDocumentId) ?: return null
         checkReadAccess(entry, principal, context)
+        documentLibrarySubscriptionGuard.requireEntryUse(principal.id, entry.scope, entry.organizationId)
         val path = entry.storagePath ?: return null
         return runCatching { fileStorageService.downloadDocument(path) }.getOrNull()
     }

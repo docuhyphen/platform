@@ -32,6 +32,7 @@ class SequenceDefinitionService @Inject constructor(
     private val authorizationService: AuthorizationService,
     private val authorizationContextFactory: AuthorizationContextFactory,
     private val userRoleService: UserRoleService,
+    private val variableSubscriptionGuard: VariableSubscriptionGuard,
 )
 {
     companion object
@@ -70,6 +71,8 @@ class SequenceDefinitionService @Inject constructor(
         if (!isOrgAdmin)
             throw ForbiddenException("Org admin role required to manage sequences")
 
+        variableSubscriptionGuard.requireOrganizationManagement(activeOrgId)
+
         val normalizedKey = request.key.trim().uppercase()
         if (!KEY_REGEX.matches(normalizedKey))
             throw IllegalArgumentException("Sequence key must be 1–64 uppercase alphanumeric characters or underscores")
@@ -101,6 +104,7 @@ class SequenceDefinitionService @Inject constructor(
         val authContext = currentContext()
         val seq = repository.findById(id) ?: throw IllegalArgumentException("Sequence not found")
         checkWriteAccess(seq, principal, authContext)
+        variableSubscriptionGuard.requireOrganizationManagement(seq.organizationId)
 
         request.name?.trim()?.let { if (it.isNotBlank()) seq.name = it }
         request.padWidth?.let { seq.padWidth = it.coerceAtLeast(0) }
@@ -123,6 +127,7 @@ class SequenceDefinitionService @Inject constructor(
         val authContext = currentContext()
         val seq = repository.findById(id) ?: throw IllegalArgumentException("Sequence not found")
         checkWriteAccess(seq, principal, authContext)
+        variableSubscriptionGuard.requireOrganizationManagement(seq.organizationId)
         seq.isDeleted = true
         seq.isActive = false
         repository.update(seq)
@@ -137,6 +142,7 @@ class SequenceDefinitionService @Inject constructor(
         val authContext = currentContext()
         val seq = repository.findById(id) ?: throw IllegalArgumentException("Sequence not found")
         checkWriteAccess(seq, principal, authContext)
+        variableSubscriptionGuard.requireOrganizationManagement(seq.organizationId)
         seq.currentValue = 0L
         seq.lastResetAt = Timestamp.from(Instant.now())
         return repository.update(seq).toDto()

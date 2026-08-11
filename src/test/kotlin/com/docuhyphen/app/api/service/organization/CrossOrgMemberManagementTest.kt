@@ -5,7 +5,6 @@ import com.docuhyphen.app.api.model.entity.AppUser
 import com.docuhyphen.app.api.model.entity.AuthToken
 import com.docuhyphen.app.api.model.entity.Organization
 import com.docuhyphen.app.api.model.entity.OrganizationRoleName
-import com.docuhyphen.app.api.repository.OrganizationSubscriptionPolicyRepository
 import com.docuhyphen.app.api.service.AppUserService
 import com.docuhyphen.app.api.service.auth.AdminApprovalContext
 import com.docuhyphen.app.api.service.auth.AuthAuditService
@@ -38,7 +37,6 @@ class CrossOrgMemberManagementTest
     @Mock private lateinit var organizationGroupService: OrganizationGroupService
     @Mock private lateinit var authenticationService: AuthenticationService
     @Mock private lateinit var appUserService: AppUserService
-    @Mock private lateinit var subscriptionPolicyRepository: OrganizationSubscriptionPolicyRepository
     @Mock private lateinit var authAuditService: AuthAuditService
     @Mock private lateinit var emailService: EmailService
     @Mock private lateinit var emailTemplateService: EmailTemplateService
@@ -66,7 +64,6 @@ class CrossOrgMemberManagementTest
             authenticationService = authenticationService,
             appUserService = appUserService,
             authTokenContext = authTokenContext,
-            organizationSubscriptionPolicyRepository = subscriptionPolicyRepository,
             authAuditService = authAuditService,
             emailService = emailService,
             emailTemplateService = emailTemplateService,
@@ -124,7 +121,6 @@ class CrossOrgMemberManagementTest
         val org = Organization().apply { id = orgAId }
         `when`(organizationGroupService.getOrganizationById(orgAId)).thenReturn(org)
         `when`(organizationMembershipService.membersOf(orgAId)).thenReturn(emptyList())
-        `when`(subscriptionPolicyRepository.findByOrganizationId(orgAId)).thenReturn(null)
 
         // Auth passes; empty roles triggers the next validation, not an auth error.
         val ex = assertThrows<IllegalArgumentException> {
@@ -150,7 +146,6 @@ class CrossOrgMemberManagementTest
         }
         whenever(organizationGroupService.getOrganizationById(orgAId)).thenReturn(org)
         whenever(organizationMembershipService.membersOf(orgAId)).thenReturn(emptyList())
-        whenever(subscriptionPolicyRepository.findByOrganizationId(orgAId)).thenReturn(null)
         whenever(appUserService.findRegisteredByEmail(registered.email)).thenReturn(registered)
 
         val result = service.addAppUser(
@@ -188,7 +183,6 @@ class CrossOrgMemberManagementTest
         }
         whenever(organizationGroupService.getOrganizationById(orgAId)).thenReturn(org)
         whenever(organizationMembershipService.membersOf(orgAId)).thenReturn(emptyList())
-        whenever(subscriptionPolicyRepository.findByOrganizationId(orgAId)).thenReturn(null)
         whenever(appUserService.findRegisteredByEmail(inactive.email)).thenReturn(inactive)
 
         assertThrows<IllegalArgumentException> {

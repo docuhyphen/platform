@@ -16,7 +16,8 @@ export const platformAdministrationOverviewArticle = (
         <p>
             The workspace uses a navigation menu on the left and displays the
             selected section on the right. Choose <b>Organizations</b>,
-            <b> Platform Content</b>, or <b>App Administrators</b>. On smaller
+            <b>User Subscriptions</b>, <b>Platform Content</b>, or
+            <b> App Administrators</b>. On smaller
             screens, open the navigation menu from the button above the selected
             section.
         </p>
@@ -33,17 +34,44 @@ export const platformAdministrationOverviewArticle = (
         <h3>Organizations</h3>
         <p>
             Use the <b>Organizations</b> section to search platform organization
-            accounts and review account status, tier, licensed capacity, aggregate
-            active-user usage, and feature entitlements. Select <b>Edit account</b>
+            accounts and review account status, tier, purchased seats, aggregate
+            active-seat usage, and feature entitlements. Select <b>Edit account</b>
             to activate or deactivate the account, update its verification status,
-            tier, capacity, or feature entitlements. These controls
-            do not open organization Settings or expose member identities. Tier,
-            capacity, and entitlement changes record safe before-and-after state
-            in Platform Audit.
+            subscription status, billing frequency, billing period, grace period,
+            purchased seats, or feature entitlements. The editor shows
+            purchased, active, and remaining seats. These controls do not open
+            organization Settings or expose member identities. Changes record safe
+            before-and-after state in Platform Audit and require a change reason.
+        </p>
+        <p>
+            Organization accounts are on the Business plan, which is the only plan
+            an organization can hold. Free and Personal are individual plans and
+            cannot be assigned to an organization. Purchased seats set the maximum
+            active, provisioned organization memberships. When no capacity is set,
+            the organization is uncapped until you assign purchased seats.
         </p>
         <p>
             Filters stay at the top and pagination stays at the bottom while the
             organization rows scroll within the available table area.
+        </p>
+
+        <h3>User Subscriptions</h3>
+        <p>
+            Use the <b>User Subscriptions</b> section to search registered users by
+            name or email and correct their Free or Personal subscription. Select
+            <b>Edit</b> to change the individual plan, lifecycle status, billing
+            frequency, current period, or past-due grace period. Business cannot be
+            assigned to an individual account. Temporary recipient accounts and
+            registered applications are not shown because they are not subscribers.
+        </p>
+        <p>
+            Every change requires a reason and records the previous and updated state
+            in Platform Audit. Trialing access permits changes until the trial period
+            ends. Past-due access permits changes through its grace period. Suspended
+            access is read-only. A canceled subscription remains writable until its
+            paid-through period ends, then becomes read-only. Existing data remains
+            visible in every status, and existing recipient access continues to use
+            the Exchange access rules rather than the recipient&apos;s plan.
         </p>
 
         <h3>Platform Content</h3>

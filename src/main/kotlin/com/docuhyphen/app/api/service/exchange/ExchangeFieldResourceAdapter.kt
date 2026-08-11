@@ -12,6 +12,7 @@ import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.auth.authz.ResourceRef
 import com.docuhyphen.app.api.service.auth.authz.ScopeReference
 import com.docuhyphen.app.api.service.fields.FieldResourceAdapter
+import com.docuhyphen.app.api.service.subscription.SubscriptionContext
 import io.quarkus.security.ForbiddenException
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
@@ -41,6 +42,12 @@ class ExchangeFieldResourceAdapter @Inject constructor(
         // Organization-owned exchanges resolve to their org configuration scope. Personal-owned
         // exchanges have no organization scope; only platform schemas could apply to them.
         return exchange.ownerOrganizationId?.let { ScopeReference.Organization(it) }
+    }
+
+    override fun subscriptionContext(resourceId: UUID): SubscriptionContext?
+    {
+        val exchange = exchangeRepository.findById(resourceId) ?: return null
+        return SubscriptionContext.forOwner(exchange.ownerUserId, exchange.ownerOrganizationId)
     }
 
     override fun authorizeViewFields(

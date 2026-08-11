@@ -16,6 +16,7 @@ import AppAdministrators from "./app-administrators/AppAdministrators.tsx";
 import Organizations from "./organizations/Organizations.tsx";
 import PlatformContent from "./platform-content/PlatformContent.tsx";
 import PlatformAdministrationMenu from "./platform-administration-menu/PlatformAdministrationMenu.tsx";
+import UserSubscriptions from "./user-subscriptions/UserSubscriptions.tsx";
 import {
     platformAdministrationTabIds,
     platformAdministrationTabLabels,
@@ -102,6 +103,7 @@ const PlatformAdministration = () =>
                             ? styles.managedContent
                             : styles.contentScroller}>
                         {selectedValue === platformAdministrationTabIds.organizations && <Organizations/>}
+                        {selectedValue === platformAdministrationTabIds.userSubscriptions && <UserSubscriptions/>}
                         {selectedValue === platformAdministrationTabIds.platformContent && <PlatformContent/>}
                         {selectedValue === platformAdministrationTabIds.appAdministrators && <AppAdministrators/>}
                     </div>

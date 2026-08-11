@@ -1,5 +1,6 @@
 package com.docuhyphen.app.api.resource.variable
 
+import com.docuhyphen.app.api.exception.SubscriptionDenialException
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.model.dto.CreateVariableRequest
 import com.docuhyphen.app.api.model.dto.UpdateVariableRequest
@@ -91,6 +92,11 @@ class VariableDefinitionResource @Inject constructor(
             val dto = variableService.createVariable(request, AdminApprovalContext(requestId = requestId))
             Response.status(CREATED).entity(dto).build()
         }
+        catch (e: SubscriptionDenialException)
+        {
+            logger.warn("Creating a variable was refused by the subscription plan check: plan={}", e.denial.planCode)
+            throw e
+        }
         catch (e: IllegalArgumentException)
         {
             Response.status(BAD_REQUEST).entity(ResponseError(e.message)).build()
@@ -127,6 +133,11 @@ class VariableDefinitionResource @Inject constructor(
             val dto = variableService.updateVariable(varId, request, AdminApprovalContext(requestId = requestId))
             Response.ok(dto).build()
         }
+        catch (e: SubscriptionDenialException)
+        {
+            logger.warn("Updating a variable was refused by the subscription plan check: plan={}", e.denial.planCode)
+            throw e
+        }
         catch (e: IllegalArgumentException)
         {
             Response.status(BAD_REQUEST).entity(ResponseError(e.message)).build()
@@ -161,6 +172,11 @@ class VariableDefinitionResource @Inject constructor(
         {
             variableService.deleteVariable(varId, AdminApprovalContext(requestId = requestId))
             Response.noContent().build()
+        }
+        catch (e: SubscriptionDenialException)
+        {
+            logger.warn("Deleting a variable was refused by the subscription plan check: plan={}", e.denial.planCode)
+            throw e
         }
         catch (e: IllegalArgumentException)
         {

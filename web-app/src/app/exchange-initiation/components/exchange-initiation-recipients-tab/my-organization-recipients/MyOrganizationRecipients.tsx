@@ -43,6 +43,7 @@ interface MyOrganizationRecipientsProps
     recipientOrgGroup?: OrganizationGroupBasicDto;
     internalParticipants?: AppUserPublicDto[];
     setInternalParticipants?: (users: AppUserPublicDto[]) => void;
+    allowAdditionalParticipants: boolean;
 }
 
 enum ShareWithMode
@@ -66,7 +67,8 @@ const MyOrganizationRecipients: React.FC<MyOrganizationRecipientsProps> = (
         recipientOrgGroup,
         setRecipientOrgGroup,
         internalParticipants,
-        setInternalParticipants
+        setInternalParticipants,
+        allowAdditionalParticipants,
     }) =>
 {
     const styles = useMyOrganizationRecipientsStyles();
@@ -401,7 +403,7 @@ const MyOrganizationRecipients: React.FC<MyOrganizationRecipientsProps> = (
                 </Field>
             )}
 
-            {(selectedOrgUser || selectedOrgGroup) && (
+            {allowAdditionalParticipants && (selectedOrgUser || selectedOrgGroup) && (
                 <MyOrgRecipients
                     id={"my-organization-recipients-internal-participants"}
                     orgUsers={getFilteredInternalUsers()}

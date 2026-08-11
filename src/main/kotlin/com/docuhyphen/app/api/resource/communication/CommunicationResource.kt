@@ -1,5 +1,6 @@
 package com.docuhyphen.app.api.resource.communication
 
+import com.docuhyphen.app.api.exception.SubscriptionDenialException
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.model.dto.CloneCommunicationRequest
 import com.docuhyphen.app.api.model.dto.CreateCommunicationRequest
@@ -96,6 +97,11 @@ class CommunicationResource @Inject constructor(
             val dto = communicationService.createTemplate(request)
             Response.status(CREATED).entity(dto).build()
         }
+        catch (e: SubscriptionDenialException)
+        {
+            logger.warn("Creating a communication was refused by the subscription plan check: plan={}", e.denial.planCode)
+            throw e
+        }
         catch (e: IllegalArgumentException)
         {
             Response.status(BAD_REQUEST).entity(ResponseError(e.message)).build()
@@ -158,6 +164,11 @@ class CommunicationResource @Inject constructor(
             val dto = communicationService.updateTemplate(communicationId, request)
             Response.ok(dto).build()
         }
+        catch (e: SubscriptionDenialException)
+        {
+            logger.warn("Updating communication {} was refused by the subscription plan check: plan={}", id, e.denial.planCode)
+            throw e
+        }
         catch (e: IllegalArgumentException)
         {
             Response.status(BAD_REQUEST).entity(ResponseError(e.message)).build()
@@ -188,6 +199,11 @@ class CommunicationResource @Inject constructor(
         {
             val dto = communicationService.patchStatus(communicationId, request)
             Response.ok(dto).build()
+        }
+        catch (e: SubscriptionDenialException)
+        {
+            logger.warn("Changing communication status {} was refused by the subscription plan check: plan={}", id, e.denial.planCode)
+            throw e
         }
         catch (e: IllegalArgumentException)
         {
@@ -220,6 +236,11 @@ class CommunicationResource @Inject constructor(
             val dto = communicationService.patchPublished(communicationId, request)
             Response.ok(dto).build()
         }
+        catch (e: SubscriptionDenialException)
+        {
+            logger.warn("Publishing communication {} was refused by the subscription plan check: plan={}", id, e.denial.planCode)
+            throw e
+        }
         catch (e: IllegalArgumentException)
         {
             Response.status(NOT_FOUND).entity(ResponseError(e.message)).build()
@@ -250,6 +271,11 @@ class CommunicationResource @Inject constructor(
         {
             communicationService.deleteTemplate(communicationId)
             Response.noContent().build()
+        }
+        catch (e: SubscriptionDenialException)
+        {
+            logger.warn("Deleting communication {} was refused by the subscription plan check: plan={}", id, e.denial.planCode)
+            throw e
         }
         catch (e: IllegalArgumentException)
         {

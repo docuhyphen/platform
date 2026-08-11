@@ -40,6 +40,7 @@ export const identitySection: HelpDocSectionInput = {
 
                     <h3>Before you begin</h3>
                     <ul>
+                        <li>Confirm the organization has the Business identity and integrations entitlement.</li>
                         <li>Confirm you have admin access to your identity provider.</li>
                         <li>Collect redirect URIs for each deployment environment.</li>
                         <li>Decide which email domains are allowed for your organization.</li>
@@ -85,6 +86,8 @@ export const identitySection: HelpDocSectionInput = {
                         Open <b>Settings</b>, select <b>Administration</b> under
                         <b> Organization</b>, then open <b>Security</b> to review the effective session policy.
                         The strictest value from the active Identity Provider configurations applies.
+                        Existing configuration remains visible after a subscription change, but changes
+                        to providers, session policy, or secret lifecycle require mutation access.
                     </p>
                     <ul>
                         <li><b>Access token lifetime</b> controls short-lived API access.</li>

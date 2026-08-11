@@ -1,5 +1,6 @@
 package com.docuhyphen.app.api.resource.workflow
 
+import com.docuhyphen.app.api.exception.SubscriptionDenialException
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.service.application.RegisterWebhookRequest
 import com.docuhyphen.app.api.service.application.WorkflowWebhookEndpointManagementService
@@ -154,6 +155,11 @@ class WorkflowWebhookEndpointResource @Inject constructor(
         }
         catch (e: Exception)
         {
+            if (e is SubscriptionDenialException)
+            {
+                logger.warn("Workflow webhook management request refused by subscription policy", e)
+                throw e
+            }
             logger.error("Error in webhook endpoint management", e)
             when (e)
             {

@@ -13,12 +13,24 @@ import {
 const validate = (
     tierCode: string,
     maxUsers: string,
+    subscriptionStatus: string,
+    currentPeriodStart: string,
+    currentPeriodEnd: string,
+    gracePeriodEnd: string,
+    changeReason: string,
     entitlements: PlatformOrganizationFeatureEntitlement[],
 ): string | null =>
 {
     if (!tierCode.trim()) return "Tier code is required.";
+    if (!changeReason.trim()) return "Change reason is required for audited subscription updates.";
     if (maxUsers && (!Number.isInteger(Number(maxUsers)) || Number(maxUsers) <= 0))
-        return "Licensed capacity must be a whole number greater than zero.";
+        return "Purchased seats must be a whole number greater than zero.";
+    if ((currentPeriodStart && !currentPeriodEnd) || (!currentPeriodStart && currentPeriodEnd))
+        return "Current period start and end must be provided together.";
+    if ((subscriptionStatus === "TRIALING" || subscriptionStatus === "CANCELED") && !currentPeriodEnd)
+        return `${subscriptionStatus === "TRIALING" ? "Trialing" : "Canceled"} subscriptions require a period end.`;
+    if (subscriptionStatus === "PAST_DUE" && !gracePeriodEnd)
+        return "Past-due subscriptions require a grace period end.";
     const codes = entitlements.map((item) => item.featureCode.trim().toUpperCase());
     if (codes.some((code) => !/^[A-Z][A-Z0-9_]{0,63}$/.test(code)))
         return "Feature codes must use uppercase letters, numbers, and underscores.";
@@ -26,13 +38,22 @@ const validate = (
     return null;
 };
 
+const toDateTimeInput = (value: string | null): string => value ? value.slice(0, 16) : "";
+const toIsoInstant = (value: string): string | null => value ? new Date(value).toISOString() : null;
+
 export const useOrganizationEditor = (
     organization: PlatformOrganizationSummary | null,
     onSaved: () => void,
+    refreshCurrentSession: () => Promise<unknown>,
 ) =>
 {
     const [tierCode, setTierCode] = useState("");
     const [maxUsers, setMaxUsers] = useState("");
+    const [subscriptionStatus, setSubscriptionStatus] = useState("ACTIVE");
+    const [billingFrequency, setBillingFrequency] = useState("");
+    const [currentPeriodStart, setCurrentPeriodStart] = useState("");
+    const [currentPeriodEnd, setCurrentPeriodEnd] = useState("");
+    const [gracePeriodEnd, setGracePeriodEnd] = useState("");
     const [active, setActive] = useState(false);
     const [verificationComplete, setVerificationComplete] = useState(false);
     const [changeReason, setChangeReason] = useState("");
@@ -45,6 +66,11 @@ export const useOrganizationEditor = (
         if (!organization) return;
         setTierCode(organization.tierCode);
         setMaxUsers(organization.maxUsers?.toString() ?? "");
+        setSubscriptionStatus(organization.subscriptionStatus);
+        setBillingFrequency(organization.billingFrequency ?? "");
+        setCurrentPeriodStart(toDateTimeInput(organization.currentPeriodStart));
+        setCurrentPeriodEnd(toDateTimeInput(organization.currentPeriodEnd));
+        setGracePeriodEnd(toDateTimeInput(organization.gracePeriodEnd));
         setActive(organization.active);
         setVerificationComplete(organization.verificationComplete);
         setChangeReason("");
@@ -64,7 +90,16 @@ export const useOrganizationEditor = (
     const save = async () =>
     {
         if (!organization) return;
-        const validationError = validate(tierCode, maxUsers, entitlements);
+        const validationError = validate(
+            tierCode,
+            maxUsers,
+            subscriptionStatus,
+            currentPeriodStart,
+            currentPeriodEnd,
+            gracePeriodEnd,
+            changeReason,
+            entitlements,
+        );
         if (validationError)
         {
             setError(validationError);
@@ -74,10 +109,15 @@ export const useOrganizationEditor = (
         setError(null);
         try
         {
-            const reason = changeReason.trim() || undefined;
+            const reason = changeReason.trim();
             await updatePlatformOrganizationSubscriptionPolicy(organization.organizationId, {
                 tierCode: tierCode.trim().toUpperCase(),
                 maxUsers: maxUsers ? Number(maxUsers) : null,
+                subscriptionStatus,
+                billingFrequency: billingFrequency || null,
+                currentPeriodStart: toIsoInstant(currentPeriodStart),
+                currentPeriodEnd: toIsoInstant(currentPeriodEnd),
+                gracePeriodEnd: subscriptionStatus === "PAST_DUE" ? toIsoInstant(gracePeriodEnd) : null,
                 changeReason: reason,
             });
             await updatePlatformOrganizationFeatureEntitlements(organization.organizationId, {
@@ -98,6 +138,7 @@ export const useOrganizationEditor = (
                     changeReason: reason,
                 });
             }
+            await refreshCurrentSession();
             onSaved();
         }
         catch (saveError: unknown)
@@ -110,17 +151,33 @@ export const useOrganizationEditor = (
         }
     };
 
+    const activeSeats = organization?.activeUsers ?? 0;
+    const purchasedSeats = maxUsers && Number.isInteger(Number(maxUsers)) ? Number(maxUsers) : null;
+    const remainingSeats = purchasedSeats == null ? null : Math.max(purchasedSeats - activeSeats, 0);
+
     return {
         tierCode,
         maxUsers,
+        subscriptionStatus,
+        billingFrequency,
+        currentPeriodStart,
+        currentPeriodEnd,
+        gracePeriodEnd,
         active,
         verificationComplete,
         changeReason,
         entitlements,
         saving,
         error,
+        activeSeats,
+        remainingSeats,
         setTierCode,
         setMaxUsers,
+        setSubscriptionStatus,
+        setBillingFrequency,
+        setCurrentPeriodStart,
+        setCurrentPeriodEnd,
+        setGracePeriodEnd,
         setActive,
         setVerificationComplete,
         setChangeReason,

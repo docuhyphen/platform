@@ -83,6 +83,7 @@ class WorkflowDefinitionService @Inject constructor(
     private val applicabilityEvaluator: WorkflowApplicabilityEvaluator,
     private val workflowSpecValidator: WorkflowSpecValidator,
     private val auditRecorder: AuditRecorder,
+    private val subscriptionGuard: WorkflowSubscriptionGuard,
 )
 {
     private val logger = LoggerFactory.getLogger(WorkflowDefinitionService::class.java)
@@ -144,6 +145,11 @@ class WorkflowDefinitionService @Inject constructor(
         val isAppAdmin = userRoleService.isAppAdmin(principal.id)
 
         val resolvedScope = resolveScope(request.scope, activeOrgId, isOrgAdmin, isAppAdmin)
+        subscriptionGuard.requireDefinitionMutation(
+            resolvedScope,
+            if (resolvedScope == WorkflowScope.ORG) activeOrgId else null,
+            principal.id,
+        )
         validateStepsJson(
             request.stepsJson,
             request.triggerEvent,
@@ -178,6 +184,7 @@ class WorkflowDefinitionService @Inject constructor(
         val def = definitionRepository.findById(id)
             ?: throw IllegalArgumentException("Workflow definition not found: $id")
         checkWriteAccess(def, principal, context)
+        subscriptionGuard.requireDefinitionMutation(def.scope, def.organizationId, def.createdByAppUserId)
 
         val running = findBlockingInstances(id)
         if (running.isNotEmpty())
@@ -215,6 +222,7 @@ class WorkflowDefinitionService @Inject constructor(
         val def = definitionRepository.findById(id)
             ?: throw IllegalArgumentException("Workflow definition not found: $id")
         checkWriteAccess(def, principal, context)
+        subscriptionGuard.requireDefinitionMutation(def.scope, def.organizationId, def.createdByAppUserId)
         def.isPublished = isPublished
         val updated = definitionRepository.update(def)
         if (isPublished)
@@ -232,6 +240,7 @@ class WorkflowDefinitionService @Inject constructor(
         val def = definitionRepository.findById(id)
             ?: throw IllegalArgumentException("Workflow definition not found: $id")
         checkWriteAccess(def, principal, context)
+        subscriptionGuard.requireDefinitionMutation(def.scope, def.organizationId, def.createdByAppUserId)
         def.isActive = isActive
         return definitionRepository.update(def).toDto()
     }
@@ -245,6 +254,7 @@ class WorkflowDefinitionService @Inject constructor(
         val def = definitionRepository.findById(id)
             ?: throw IllegalArgumentException("Workflow definition not found: $id")
         checkWriteAccess(def, principal, authContext)
+        subscriptionGuard.requireDefinitionMutation(def.scope, def.organizationId, def.createdByAppUserId)
 
         val running = findBlockingInstances(id)
         if (running.isNotEmpty())
@@ -280,6 +290,7 @@ class WorkflowDefinitionService @Inject constructor(
         {
             throw ForbiddenException("Cannot clone a definition that belongs to another user or organization")
         }
+        subscriptionGuard.requireDefinitionMutation(WorkflowScope.PERSONAL, null, principal.id)
 
         val scrubbedStepsJson = scrubPrincipalUuids(source.stepsJson)
         // A clone lands in the caller's PERSONAL space; referenced communications keep their own

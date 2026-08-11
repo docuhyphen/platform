@@ -14,6 +14,11 @@ export interface PlatformOrganizationSummary
     createdDate: string;
     tierCode: string;
     maxUsers: number | null;
+    subscriptionStatus: string;
+    billingFrequency: string | null;
+    currentPeriodStart: string | null;
+    currentPeriodEnd: string | null;
+    gracePeriodEnd: string | null;
     activeUsers: number;
     featureEntitlements: PlatformOrganizationFeatureEntitlement[];
 }
@@ -55,7 +60,12 @@ export interface PlatformOrganizationSubscriptionPolicyRequest
 {
     tierCode: string;
     maxUsers: number | null;
-    changeReason?: string;
+    subscriptionStatus: string;
+    billingFrequency: string | null;
+    currentPeriodStart: string | null;
+    currentPeriodEnd: string | null;
+    gracePeriodEnd: string | null;
+    changeReason: string;
 }
 
 export interface PlatformOrganizationSubscriptionPolicy
@@ -64,6 +74,11 @@ export interface PlatformOrganizationSubscriptionPolicy
     tierCode: string;
     maxUsers: number | null;
     currentActiveUsers: number;
+    subscriptionStatus: string;
+    billingFrequency: string | null;
+    currentPeriodStart: string | null;
+    currentPeriodEnd: string | null;
+    gracePeriodEnd: string | null;
     changeReason: string | null;
     persisted: boolean;
     createdDate: string | null;

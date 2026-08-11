@@ -40,7 +40,7 @@ const useExchangeInitiatingState = () =>
     const [recipientOrgUser, setRecipientOrgUser] = useState<AppUserPublicDto>();
     const [recipientOrgGroup, setRecipientOrgGroup] = useState<OrganizationGroupBasicDto>();
     const [recipientResolution, setRecipientResolution] = useState<ExternalIdentityResolution>();
-    const [internalParticipants, setInternalParticipants] = useState<AppUserPublicDto[]>();
+    const [internalParticipants, setInternalParticipants] = useState<AppUserPublicDto[]>([]);
     const [newRecipient, setNewRecipient] = useState<ExchangeNewMainRecipient | undefined>({
         email: '',
         firstName: '',

@@ -13,6 +13,7 @@ import com.docuhyphen.app.api.service.organization.OrganizationGroupService
 import com.docuhyphen.app.api.service.organization.OrganizationMembershipService
 import com.docuhyphen.app.api.service.organization.OrganizationService
 import com.docuhyphen.app.api.service.organization.PrincipalGroupService
+import com.docuhyphen.app.api.service.subscription.OrganizationFeatureSubscriptionGuard
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -67,6 +68,7 @@ class AuditEngagementServiceTest
             principalGroupService,
             mock<StepUpAuthService>(),
             mock<AuditRecorder>(),
+            mock<OrganizationFeatureSubscriptionGuard>(),
         )
         val before = Instant.now()
 
@@ -121,6 +123,7 @@ class AuditEngagementServiceTest
             principalGroupService,
             mock<StepUpAuthService>(),
             mock<AuditRecorder>(),
+            mock<OrganizationFeatureSubscriptionGuard>(),
         )
 
         val access = service.resolveAccess(
@@ -157,6 +160,7 @@ class AuditEngagementServiceTest
             principalGroupService,
             mock<StepUpAuthService>(),
             mock<AuditRecorder>(),
+            mock<OrganizationFeatureSubscriptionGuard>(),
         )
 
         val access = service.resolveAccess(
@@ -195,6 +199,7 @@ class AuditEngagementServiceTest
             principalGroupService,
             mock<StepUpAuthService>(),
             mock<AuditRecorder>(),
+            mock<OrganizationFeatureSubscriptionGuard>(),
         )
 
         val access = service.resolveAccess(
@@ -232,6 +237,7 @@ class AuditEngagementServiceTest
             principalGroupService,
             mock<StepUpAuthService>(),
             mock<AuditRecorder>(),
+            mock<OrganizationFeatureSubscriptionGuard>(),
         )
 
         val access = service.resolveAccess(
@@ -266,6 +272,7 @@ class AuditEngagementServiceTest
             principalGroupService,
             mock<StepUpAuthService>(),
             mock<AuditRecorder>(),
+            mock<OrganizationFeatureSubscriptionGuard>(),
         )
 
         val access = service.resolveAccess(
@@ -318,6 +325,7 @@ class AuditEngagementServiceTest
             mock<PrincipalGroupService>(),
             mock<StepUpAuthService>(),
             mock<AuditRecorder>(),
+            mock<OrganizationFeatureSubscriptionGuard>(),
         )
 
         assertThrows(IllegalArgumentException::class.java) {
@@ -353,6 +361,7 @@ class AuditEngagementServiceTest
             mock<PrincipalGroupService>(),
             mock<StepUpAuthService>(),
             mock<AuditRecorder>(),
+            mock<OrganizationFeatureSubscriptionGuard>(),
         )
 
         assertThrows(IllegalArgumentException::class.java) {
@@ -390,6 +399,7 @@ class AuditEngagementServiceTest
             mock<PrincipalGroupService>(),
             mock<StepUpAuthService>(),
             mock<AuditRecorder>(),
+            mock<OrganizationFeatureSubscriptionGuard>(),
         )
 
         assertThrows(AuditEngagementNotFoundException::class.java) {
@@ -427,6 +437,7 @@ class AuditEngagementServiceTest
             mock<PrincipalGroupService>(),
             mock<StepUpAuthService>(),
             mock<AuditRecorder>(),
+            mock<OrganizationFeatureSubscriptionGuard>(),
         )
 
         assertThrows(AuditEngagementNotFoundException::class.java) {
@@ -464,6 +475,7 @@ class AuditEngagementServiceTest
             mock<PrincipalGroupService>(),
             mock<StepUpAuthService>(),
             mock<AuditRecorder>(),
+            mock<OrganizationFeatureSubscriptionGuard>(),
         )
 
         assertThrows(AuditEngagementNotFoundException::class.java) {
@@ -493,6 +505,7 @@ class AuditEngagementServiceTest
             mock<PrincipalGroupService>(),
             mock<StepUpAuthService>(),
             mock<AuditRecorder>(),
+            mock<OrganizationFeatureSubscriptionGuard>(),
         )
 
         val result = service.listForOrganization(organizationId)
@@ -518,6 +531,7 @@ class AuditEngagementServiceTest
             mock<PrincipalGroupService>(),
             mock<StepUpAuthService>(),
             recorder,
+            mock<OrganizationFeatureSubscriptionGuard>(),
         )
 
         val expired = service.expireDue(now)

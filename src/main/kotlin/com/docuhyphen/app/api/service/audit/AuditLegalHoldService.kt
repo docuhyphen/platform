@@ -6,6 +6,8 @@ import com.docuhyphen.app.api.repository.AuditLegalHoldRepository
 import com.docuhyphen.app.api.service.audit.catalog.AuditActorKind
 import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
 import com.docuhyphen.app.api.service.audit.catalog.AuditOutcome
+import com.docuhyphen.app.api.service.subscription.OrganizationFeatureSubscriptionGuard
+import com.docuhyphen.app.api.service.subscription.PlanFeature
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
@@ -25,6 +27,7 @@ class AuditLegalHoldService @Inject constructor(
     private val auditLegalHoldRepository: AuditLegalHoldRepository,
     private val auditRecorder: AuditRecorder,
     private val auditDeniedAttemptService: AuditDeniedAttemptService,
+    private val subscriptionGuard: OrganizationFeatureSubscriptionGuard,
 )
 {
     companion object
@@ -42,6 +45,7 @@ class AuditLegalHoldService @Inject constructor(
         placedByUserId: UUID,
     ): AuditLegalHold
     {
+        subscriptionGuard.requireMutation(organizationId, PlanFeature.AUDIT_GOVERNANCE)
         require(resourceType.isNotBlank()) { "resourceType is required" }
         require(resourceId.isNotBlank()) { "resourceId is required" }
         require(reason.isNotBlank()) { "reason is required" }
@@ -72,6 +76,7 @@ class AuditLegalHoldService @Inject constructor(
         {
             throw AuditLegalHoldNotFoundException()
         }
+        subscriptionGuard.requireMutation(hold.organizationId, PlanFeature.AUDIT_GOVERNANCE)
         require(hold.status == AuditLegalHoldStatus.ACTIVE) { "Only an ACTIVE legal hold can be released" }
 
         val now = Timestamp.from(Instant.now())

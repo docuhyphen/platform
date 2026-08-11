@@ -102,6 +102,7 @@ class BlueprintTenantBoundaryTest
                 authorizationService = authorizationService(*allowedActions),
                 authorizationContextFactory = contextFactory(context),
                 userRoleService = roleService(appAdmin, orgAdmin),
+                blueprintSubscriptionGuard = mock<BlueprintSubscriptionGuard>(),
             ),
             repository = repository,
         )

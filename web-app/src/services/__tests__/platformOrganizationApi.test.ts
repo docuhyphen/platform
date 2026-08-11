@@ -44,8 +44,13 @@ describe("platformOrganizationApi", () =>
         } = await import("../platformOrganizationApi.ts");
 
         await updatePlatformOrganizationSubscriptionPolicy("organization-1", {
-            tierCode: "PRO",
+            tierCode: "BUSINESS",
             maxUsers: 50,
+            subscriptionStatus: "ACTIVE",
+            billingFrequency: "ANNUAL",
+            currentPeriodStart: "2026-01-01T00:00:00Z",
+            currentPeriodEnd: "2027-01-01T00:00:00Z",
+            gracePeriodEnd: null,
             changeReason: "Annual renewal",
         });
         await updatePlatformOrganizationFeatureEntitlements("organization-1", {
@@ -56,7 +61,16 @@ describe("platformOrganizationApi", () =>
         expect(put).toHaveBeenNthCalledWith(
             1,
             "/platform/organizations/organization-1/subscription-policy",
-            {tierCode: "PRO", maxUsers: 50, changeReason: "Annual renewal"},
+            {
+                tierCode: "BUSINESS",
+                maxUsers: 50,
+                subscriptionStatus: "ACTIVE",
+                billingFrequency: "ANNUAL",
+                currentPeriodStart: "2026-01-01T00:00:00Z",
+                currentPeriodEnd: "2027-01-01T00:00:00Z",
+                gracePeriodEnd: null,
+                changeReason: "Annual renewal",
+            },
         );
         expect(put).toHaveBeenNthCalledWith(
             2,

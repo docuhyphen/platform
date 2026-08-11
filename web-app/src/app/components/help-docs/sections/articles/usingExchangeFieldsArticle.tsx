@@ -4,7 +4,9 @@ export const usingExchangeFieldsArticle = (
     <>
         <p>
             Once your organization has published at least one schema, Exchange creators can
-            attach it to an Exchange and record typed business values against it.
+            attach it to an Exchange and record typed business values against it. Business Fields
+            assignment, value changes, and the Exchange <b>Details</b> tab require Business Fields
+            in the current plan.
         </p>
 
         <h3>Assigning a schema</h3>
@@ -36,6 +38,10 @@ export const usingExchangeFieldsArticle = (
             Once the Exchange becomes <b>Active</b> or is ended, the Details tab shows the
             recorded values as read-only. This keeps the business data consistent with the
             point at which the Exchange started.
+        </p>
+        <p>
+            A plan or subscription-status change never removes recorded field data. Existing
+            assignments and values remain visible even when new assignments or edits are refused.
         </p>
 
         <h3>Visibility</h3>

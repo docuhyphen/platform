@@ -1,8 +1,8 @@
 export const trustedOrganizationsAdministrationArticle = (
     <>
         <p>
-            Trusted Organizations lets two active, verified organizations jointly approve a collaboration
-            relationship. Each organization controls its policy and can suspend or end trust independently.
+            Trusted Organizations is a Business identity and integration capability that lets two active,
+            verified organizations jointly approve a collaboration relationship. Each organization controls its policy and can suspend or end trust independently.
         </p>
         <h3>Who can manage trust</h3>
         <p>

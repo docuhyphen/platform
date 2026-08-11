@@ -14,6 +14,7 @@ import jakarta.ws.rs.PUT
 import jakarta.ws.rs.Path
 import jakarta.ws.rs.PathParam
 import jakarta.ws.rs.Produces
+import jakarta.ws.rs.WebApplicationException
 import jakarta.ws.rs.core.MediaType.APPLICATION_JSON
 import jakarta.ws.rs.core.Response
 import org.slf4j.LoggerFactory
@@ -44,6 +45,7 @@ class PlatformOrganizationFeatureEntitlementResource @Inject constructor(
         }
         catch (exception: Exception)
         {
+            if (exception is WebApplicationException) throw exception
             handleException("Error fetching platform organization feature entitlements", exception)
         }
     }
@@ -67,6 +69,7 @@ class PlatformOrganizationFeatureEntitlementResource @Inject constructor(
         }
         catch (exception: Exception)
         {
+            if (exception is WebApplicationException) throw exception
             handleException("Error replacing platform organization feature entitlements", exception)
         }
     }

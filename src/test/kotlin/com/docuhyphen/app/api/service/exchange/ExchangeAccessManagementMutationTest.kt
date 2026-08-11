@@ -289,6 +289,7 @@ class ExchangeAccessManagementMutationTest
                 configurationService = mock<ConfigurationService>(),
                 auditRecorder = mock<AuditRecorder>(),
                 exchangeNotificationDeliveryService = mock<ExchangeNotificationDeliveryService>(),
+                exchangeFeatureSubscriptionGuard = mock<ExchangeFeatureSubscriptionGuard>(),
             )
         }
     }

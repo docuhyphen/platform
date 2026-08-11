@@ -44,6 +44,7 @@ export const tabLabels: Record<string, string> = {
     [tabIds.linkedAccounts]: "Linked Accounts",
     [tabIds.sessions]: "Device Sessions",
     [tabIds.organization]: "Organization",
+    [tabIds.organizationBilling]: "Billing",
     [tabIds.appSettings]: "App Preferences",
     [tabIds.myGroups]: "My Groups",
     [tabIds.blueprints]: "Blueprints",

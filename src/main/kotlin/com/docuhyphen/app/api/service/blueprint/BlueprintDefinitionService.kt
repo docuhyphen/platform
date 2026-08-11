@@ -58,6 +58,7 @@ class BlueprintDefinitionService @Inject constructor(
     private val authorizationService: AuthorizationService,
     private val authorizationContextFactory: AuthorizationContextFactory,
     private val userRoleService: UserRoleService,
+    private val blueprintSubscriptionGuard: BlueprintSubscriptionGuard,
 )
 {
     private val logger = LoggerFactory.getLogger(BlueprintDefinitionService::class.java)
@@ -70,6 +71,7 @@ class BlueprintDefinitionService @Inject constructor(
     {
         val principal = currentPrincipal()
         val activeOrgId = currentContext().activeOrgId
+        blueprintSubscriptionGuard.requireBlueprintUse(principal.id, activeOrgId)
         val isOrgAdmin = activeOrgId != null && userRoleService.isOrgAdminIn(principal.id, activeOrgId)
 
         return repository.findAllAccessibleForCaller(principal.id, activeOrgId, isOrgAdmin)
@@ -85,6 +87,7 @@ class BlueprintDefinitionService @Inject constructor(
     {
         val principal = currentPrincipal()
         val context = currentContext()
+        blueprintSubscriptionGuard.requireBlueprintUse(principal.id, context.activeOrgId)
         val bp = repository.findById(id)
             ?: throw IllegalArgumentException("Blueprint not found: $id")
         checkReadAccess(bp, principal, context)
@@ -103,6 +106,7 @@ class BlueprintDefinitionService @Inject constructor(
         val isAppAdmin = userRoleService.isAppAdmin(principal.id)
 
         val resolvedScope = resolveScope(request.scope, activeOrgId, isOrgAdmin, isAppAdmin)
+        blueprintSubscriptionGuard.requireBlueprintManagement(principal.id, resolvedScope, activeOrgId)
         adminActionGuardService.enforce(
             action = actionFor(resolvedScope, "CREATE"),
             actorId = principal.id,
@@ -136,6 +140,7 @@ class BlueprintDefinitionService @Inject constructor(
         val bp = repository.findById(id)
             ?: throw IllegalArgumentException("Blueprint not found: $id")
         checkWriteAccess(bp, principal, authContext)
+        blueprintSubscriptionGuard.requireBlueprintManagement(principal.id, bp.scope, bp.organizationId)
         adminActionGuardService.enforce(
             action = actionFor(bp.scope, "UPDATE"),
             actorId = principal.id,
@@ -170,6 +175,7 @@ class BlueprintDefinitionService @Inject constructor(
         {
             throw ForbiddenException("Personal blueprints cannot be published")
         }
+        blueprintSubscriptionGuard.requireBlueprintManagement(principal.id, bp.scope, bp.organizationId)
         adminActionGuardService.enforce(
             action = actionFor(bp.scope, "PUBLISH_UPDATE"),
             actorId = principal.id,
@@ -188,6 +194,7 @@ class BlueprintDefinitionService @Inject constructor(
         val bp = repository.findById(id)
             ?: throw IllegalArgumentException("Blueprint not found: $id")
         checkWriteAccess(bp, principal, authContext)
+        blueprintSubscriptionGuard.requireBlueprintManagement(principal.id, bp.scope, bp.organizationId)
         adminActionGuardService.enforce(
             action = actionFor(bp.scope, "STATUS_UPDATE"),
             actorId = principal.id,
@@ -206,6 +213,7 @@ class BlueprintDefinitionService @Inject constructor(
         val bp = repository.findById(id)
             ?: throw IllegalArgumentException("Blueprint not found: $id")
         checkWriteAccess(bp, principal, authContext)
+        blueprintSubscriptionGuard.requireBlueprintManagement(principal.id, bp.scope, bp.organizationId)
         adminActionGuardService.enforce(
             action = actionFor(bp.scope, "DELETE"),
             actorId = principal.id,
@@ -231,6 +239,7 @@ class BlueprintDefinitionService @Inject constructor(
         checkReadAccess(source, principal, authContext)
 
         val targetScope = resolveCloneTargetScope(request.targetScope, activeOrgId, isOrgAdmin)
+        blueprintSubscriptionGuard.requireBlueprintManagement(principal.id, targetScope, activeOrgId)
         adminActionGuardService.enforce(
             action = actionFor(targetScope, "CLONE"),
             actorId = principal.id,

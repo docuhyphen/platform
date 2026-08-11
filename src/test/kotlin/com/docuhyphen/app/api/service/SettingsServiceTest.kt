@@ -8,6 +8,7 @@ import com.docuhyphen.app.api.model.entity.NotificationChannelType
 import com.docuhyphen.app.api.service.auth.ServiceActionAuthorizationService
 import com.docuhyphen.app.api.service.auth.UserRoleService
 import com.docuhyphen.app.api.service.organization.OrganizationService
+import com.docuhyphen.app.api.service.subscription.OrganizationFeatureSubscriptionGuard
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Test
@@ -25,6 +26,7 @@ class SettingsServiceTest
         appUserService,
         mock<OrganizationService>(),
         userRoleService,
+        mock<OrganizationFeatureSubscriptionGuard>(),
     )
 
     @Test

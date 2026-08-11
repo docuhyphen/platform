@@ -20,7 +20,8 @@ import {Capability,
     ExchangeBasicDto,
     ExchangeDetailedDto,
     ExchangeStatus,
-    ImageType
+    ImageType,
+    PlanFeature,
 } from "../models/models.tsx";
 import {useExchangesStyles} from "./ExchangesStyles.tsx";
 import ExchangeDocumentSidebar from "./components/exchange-document-sidebar/ExchangeDocumentSidebar.tsx";
@@ -55,6 +56,8 @@ import ExchangeTabsHeader from "./components/exchange-tabs-header/ExchangeTabsHe
 import {useExchangeRouteState} from './useExchangeRouteState';
 import {hasExchangeWorkspaceContent} from "./exchangeWorkspaceAvailability.ts";
 import {resolvePreviewDocumentSelection} from "./exchangeDocumentSelection.ts";
+import {usePlanFeature} from "../../hooks/subscription/usePlanFeature.ts";
+import {useDelayedLoading} from "../../hooks/useDelayedLoading.ts";
 
 type ExchangePaneNavigationDirection = "forward" | "back" | null;
 
@@ -85,6 +88,8 @@ const Exchanges: React.FC = () =>
     const token = useToken();
     const {appUser, hasCapability} = useAuth();
     const canViewExchangeAudit = hasCapability(Capability.ORG_AUDIT_READ);
+    const canViewBusinessFields = usePlanFeature(PlanFeature.BUSINESS_FIELDS_AND_SCHEMAS).isDiscoverable;
+    const canViewWorkflows = usePlanFeature(PlanFeature.WORKFLOW_AUTOMATION).isDiscoverable;
     const [isDocumentSidebarOpen, setIsDocumentSidebarOpen] = React.useState(false);
     const [isDocumentAddDialogOpen, setIsDocumentAddDialogOpen] = React.useState(false);
     const [isUploadDocumentDialogOpen, setIsUploadDocumentDialogOpen] = React.useState(false);
@@ -134,6 +139,16 @@ const Exchanges: React.FC = () =>
     );
     const autoPreviewDocuments = appUser?.settings?.autoPreviewDocuments ?? false;
     const userPreferencesLoaded = appUser?.settings !== undefined;
+    const hasSelectedDetails = !!selectedExchangeId &&
+        userPreferencesLoaded &&
+        exchangeDetails?.id === selectedExchangeId &&
+        resolvedDocumentLayoutKey === `${selectedExchangeId}:${autoPreviewDocuments}`;
+    const showInitialDetailsSkeleton = useDelayedLoading(
+        !isMobile && isExchangeListLoading && !selectedExchangeId,
+    );
+    const showSelectedDetailsSkeleton = useDelayedLoading(
+        !!selectedExchangeId && !hasSelectedDetails,
+    );
 
     const tokenRef = useRef(token);
     tokenRef.current = token;
@@ -196,6 +211,18 @@ const Exchanges: React.FC = () =>
         setDocumentSearchQuery("");
         setFilteredDocuments([]);
     };
+
+    useEffect(() =>
+    {
+        if (
+            (detailsActiveTab === "details" && !canViewBusinessFields)
+            || (detailsActiveTab === "workflow" && !canViewWorkflows)
+            || (detailsActiveTab === "audit" && !canViewExchangeAudit)
+        )
+        {
+            setDetailsActiveTab("documents");
+        }
+    }, [canViewBusinessFields, canViewExchangeAudit, canViewWorkflows, detailsActiveTab]);
 
     const checkAppUserExchanges = React.useCallback(async () =>
     {
@@ -820,10 +847,6 @@ const Exchanges: React.FC = () =>
 
     const renderExchangesSection = () =>
     {
-        const hasSelectedDetails = !!selectedExchangeId &&
-            userPreferencesLoaded &&
-            exchangeDetails?.id === selectedExchangeId &&
-            resolvedDocumentLayoutKey === `${selectedExchangeId}:${autoPreviewDocuments}`;
         const isInboxTab = activeListTab === 'inbox';
         const isActiveTab = activeListTab === 'active';
         const isArchiveTab = activeListTab === 'archive';
@@ -903,7 +926,7 @@ const Exchanges: React.FC = () =>
                     />
                 </div>
 
-                {showDetailsColumnFallbacks && isExchangeListLoading && !selectedExchangeId && (
+                {showDetailsColumnFallbacks && showInitialDetailsSkeleton && (
                     <div className={styles.detailsTransitionFrame}>
                         <ExchangeDetailsLoading/>
                     </div>
@@ -918,7 +941,7 @@ const Exchanges: React.FC = () =>
                             shouldAnimateDetailsTransition && styles.detailsSlideInFromRight
                         )}
                     >
-                        {!hasSelectedDetails && <ExchangeDetailsLoading/>}
+                        {showSelectedDetailsSkeleton && <ExchangeDetailsLoading/>}
 
                         {hasSelectedDetails && exchangeDetails &&
                             <div className={detailsPaneClassName}>
@@ -961,6 +984,8 @@ const Exchanges: React.FC = () =>
                                             documents={exchangeDetails?.documents || []}
                                             canDownloadZip={!!permissions?.canDownloadDocumentsZip}
                                             canViewAudit={canViewExchangeAudit}
+                                            canViewDetails={canViewBusinessFields}
+                                            canViewWorkflow={canViewWorkflows}
                                             isDocumentToolbarVisible={isDocumentToolbarVisible}
                                             onTabChange={setDetailsActiveTab}
                                             onDownloadZip={() => setIsDocumentZipDialogOpen(true)}
@@ -1020,7 +1045,7 @@ const Exchanges: React.FC = () =>
                         </div>
                         )}
 
-                        {detailsActiveTab === 'details' && (
+                        {detailsActiveTab === 'details' && canViewBusinessFields && (
                             <div className={styles.documentsSectionContainer}>
                                 <div className={`${styles.documentsSection} ${styles.scrollableTabContent}`}>
                                     <ExchangeFieldsTab exchange={exchangeDetails}/>
@@ -1028,7 +1053,7 @@ const Exchanges: React.FC = () =>
                             </div>
                         )}
 
-                        {detailsActiveTab === 'workflow' && (
+                        {detailsActiveTab === 'workflow' && canViewWorkflows && (
                             <div className={styles.documentsSectionContainer}>
                                 <div className={`${styles.documentsSection} ${styles.scrollableTabContent}`}>
                                     <ExchangeWorkflowTab exchange={exchangeDetails}/>

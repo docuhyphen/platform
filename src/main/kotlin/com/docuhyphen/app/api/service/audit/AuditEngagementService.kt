@@ -15,6 +15,8 @@ import com.docuhyphen.app.api.service.organization.OrganizationGroupService
 import com.docuhyphen.app.api.service.organization.OrganizationMembershipService
 import com.docuhyphen.app.api.service.organization.OrganizationService
 import com.docuhyphen.app.api.service.organization.PrincipalGroupService
+import com.docuhyphen.app.api.service.subscription.OrganizationFeatureSubscriptionGuard
+import com.docuhyphen.app.api.service.subscription.PlanFeature
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
@@ -34,6 +36,7 @@ class AuditEngagementService @Inject constructor(
     private val principalGroupService: PrincipalGroupService,
     private val stepUpAuthService: StepUpAuthService,
     private val auditRecorder: AuditRecorder,
+    private val subscriptionGuard: OrganizationFeatureSubscriptionGuard,
 )
 {
     data class AuditEngagementRequest(
@@ -77,7 +80,10 @@ class AuditEngagementService @Inject constructor(
         validateRequest(request)
         requireRecentStepUpIfSensitive(request.sensitivityLevel, request.exportPermitted, recentStepUpSatisfied)
         appUserService.getById(requestedByUserId) ?: throw IllegalArgumentException("Requester not found")
-        request.organizationId?.let { organizationService.getOrganizationById(it) }
+        request.organizationId?.let { organizationId ->
+            organizationService.getOrganizationById(organizationId)
+            subscriptionGuard.requireMutation(organizationId, PlanFeature.AUDIT_GOVERNANCE)
+        }
         request.auditorUserId?.let { auditorUserId ->
             appUserService.getById(auditorUserId) ?: throw IllegalArgumentException("Auditor user not found")
             request.organizationId?.let { organizationId ->
@@ -138,6 +144,7 @@ class AuditEngagementService @Inject constructor(
     ): AuditEngagement
     {
         val engagement = requireEngagement(engagementId, expectedOrganizationId)
+        subscriptionGuard.requireMutation(engagement.organizationId, PlanFeature.AUDIT_GOVERNANCE)
         appUserService.getById(approvedByUserId) ?: throw IllegalArgumentException("Approver not found")
         require(engagement.status == AuditEngagementStatus.REQUESTED) {
             "Only REQUESTED engagements can be approved"

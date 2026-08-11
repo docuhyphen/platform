@@ -90,6 +90,7 @@ class AuditExportServiceTest
             engagementService,
             auditRecorder,
             mock(),
+            mock(),
         )
     }
 

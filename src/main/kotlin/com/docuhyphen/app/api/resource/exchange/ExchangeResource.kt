@@ -6,6 +6,7 @@ import com.docuhyphen.app.api.exception.ExchangeNotFoundException
 import com.docuhyphen.app.api.exception.AppUserNotFoundException
 import com.docuhyphen.app.api.exception.WorkflowConflictException
 import com.docuhyphen.app.api.exception.OrganizationTrustException
+import com.docuhyphen.app.api.exception.SubscriptionDenialException
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.model.BasicEntityToDtoTransformer.Companion.toDto
 import com.docuhyphen.app.api.model.DetailedEntityToDtoTransformer
@@ -92,6 +93,19 @@ class ExchangeResource @Inject constructor(
                     Response.status(Response.Status.FORBIDDEN)
                         .entity(ResponseError(exception.message))
                         .build()
+
+                // A plan refusal carries the allowance and the plan that lifts it, so it is
+                // rethrown for the dedicated mapper rather than flattened into a generic error.
+                is SubscriptionDenialException ->
+                {
+                    logger.warn(
+                        "Exchange initiation refused by the subscription plan check: reason={} plan={}",
+                        exception.denial.reason,
+                        exception.denial.planCode,
+                    )
+
+                    throw exception
+                }
 
                 else ->
                 {
@@ -406,6 +420,19 @@ class ExchangeResource @Inject constructor(
     private fun mapAccessMutationError(exception: Exception, context: String): Response =
         when (exception)
         {
+            // A plan refusal carries the allowance and the plan that lifts it, so it is
+            // rethrown for the dedicated mapper rather than flattened into a generic error.
+            is SubscriptionDenialException ->
+            {
+                logger.warn(
+                    "Refused by the subscription plan check while $context: reason={} plan={}",
+                    exception.denial.reason,
+                    exception.denial.planCode,
+                )
+
+                throw exception
+            }
+
             is ForbiddenException ->
                 Response.status(Response.Status.FORBIDDEN).entity(ResponseError(exception.message)).build()
 

@@ -14,6 +14,7 @@ import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
 import com.docuhyphen.app.api.service.auth.authz.Decision
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.auth.authz.ResourceRef
+import com.docuhyphen.app.api.service.subscription.OrganizationFeatureSubscriptionGuard
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotEquals
@@ -51,6 +52,7 @@ class ApplicationManagementTest
     @Mock private lateinit var applicationRepository: ApplicationRepository
     @Mock private lateinit var authorizationService: AuthorizationService
     @Mock private lateinit var authAuditService: AuthAuditService
+    @Mock private lateinit var subscriptionGuard: OrganizationFeatureSubscriptionGuard
 
     private lateinit var managementService: ApplicationManagementService
 
@@ -66,6 +68,7 @@ class ApplicationManagementTest
             applicationRepository = applicationRepository,
             authorizationService = authorizationService,
             authAuditService = authAuditService,
+            subscriptionGuard = subscriptionGuard,
         )
     }
 

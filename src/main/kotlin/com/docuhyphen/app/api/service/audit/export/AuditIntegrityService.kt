@@ -12,6 +12,8 @@ import com.docuhyphen.app.api.service.audit.archive.StreamCoverageReport
 import com.docuhyphen.app.api.service.audit.catalog.AuditActorKind
 import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
 import com.docuhyphen.app.api.service.audit.catalog.AuditOutcome
+import com.docuhyphen.app.api.service.subscription.OrganizationFeatureSubscriptionGuard
+import com.docuhyphen.app.api.service.subscription.PlanFeature
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import org.slf4j.LoggerFactory
@@ -50,6 +52,7 @@ class AuditIntegrityService @Inject constructor(
     private val auditArchiveSegmentRepository: AuditArchiveSegmentRepository,
     private val auditArchiveVerifier: AuditArchiveVerifier,
     private val auditRecorder: AuditRecorder,
+    private val subscriptionGuard: OrganizationFeatureSubscriptionGuard,
 )
 {
     companion object
@@ -63,6 +66,7 @@ class AuditIntegrityService @Inject constructor(
         requestedByUserId: UUID?,
     ): OrganizationIntegrityReport
     {
+        subscriptionGuard.requireMutation(organizationId, PlanFeature.AUDIT_GOVERNANCE)
         val streamIds = auditLedgerEventRepository.findDistinctStreamIdsByOrganization(organizationId, platformOnly)
         val reports = streamIds.map { streamId -> checkStream(streamId) }
 

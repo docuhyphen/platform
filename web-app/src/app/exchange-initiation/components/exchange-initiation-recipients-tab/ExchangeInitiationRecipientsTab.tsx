@@ -1,5 +1,5 @@
 import React, {useEffect} from 'react';
-import {Field, Radio, RadioGroup} from "@fluentui/react-components";
+import {Field, Radio, RadioGroup, Text} from "@fluentui/react-components";
 import {useExchangeInitiationRecipientsTabStyles} from "./ExchangeInitiationRecipientsTabStyles.tsx";
 import {Capability} from "../../../models/models.tsx";
 import MyOrganizationRecipients from "./my-organization-recipients/MyOrganizationRecipients";
@@ -85,6 +85,7 @@ const ExchangeInitiationRecipientsTab: React.FC<ExchangeRecipientsTabProps> = (p
                     setRecipientOrgUser={props.setRecipientOrgUser}
                     setRecipientOrgGroup={props.setRecipientOrgGroup}
                     setInternalParticipants={props.setInternalParticipants}
+                    allowAdditionalParticipants={props.allowAdditionalParticipants}
                 />
             )}
 
@@ -108,6 +109,7 @@ const ExchangeInitiationRecipientsTab: React.FC<ExchangeRecipientsTabProps> = (p
                     setNewRecipient={props.setNewRecipient}
                     internalParticipants={props.internalParticipants}
                     setInternalParticipants={props.setInternalParticipants}
+                    allowAdditionalParticipants={props.allowAdditionalParticipants}
                 />
             )}
 
@@ -117,11 +119,21 @@ const ExchangeInitiationRecipientsTab: React.FC<ExchangeRecipientsTabProps> = (p
                 newRecipientEmail={props.newRecipient?.email}
             />
 
+            {!props.allowAdditionalParticipants && (
+                <Text
+                    id={"exchange-additional-participants-plan-message"}
+                    size={200}
+                >
+                    Your current plan supports one primary recipient. Personal or Business adds participants.
+                </Text>
+            )}
+
             <RecipientRoleSelector
                 recipientRole={props.recipientRole}
                 setRecipientRole={props.setRecipientRole}
                 recipientConstraints={props.recipientConstraints}
                 setRecipientConstraints={props.setRecipientConstraints}
+                allowAdvancedAccessControls={props.allowAdvancedAccessControls}
             />
         </div>
     );

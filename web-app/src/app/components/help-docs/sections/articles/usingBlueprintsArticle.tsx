@@ -3,7 +3,8 @@ export const usingBlueprintsArticle = (
         <p>
             The blueprint picker pre-fills a new Exchange with a saved configuration
             so you can go straight to choosing a recipient rather than rebuilding
-            the Exchange from scratch.
+            the Exchange from scratch. It is available on Personal and Business plans.
+            Free users start the Exchange directly because <b>From Blueprint</b> is hidden.
         </p>
 
         <h3>Opening the picker</h3>
@@ -60,8 +61,8 @@ export const usingBlueprintsArticle = (
             have reviewed the pre-filled details. Search for a recipient by name or email,
             select a personal or organization group, or use an eligible <b>Trusted Organization</b> to verify a known
             member by exact email or choose a published group. You can enter a complete email address for
-            a new recipient who is not in your contacts. Add any internal participants with
-            the multi-person picker, then initiate the Exchange when ready.
+            a new recipient who is not in your contacts. Plans that include additional participants
+            show the multi-person picker; Free keeps one primary recipient.
         </p>
 
         <h3>Saving the current form as a blueprint</h3>

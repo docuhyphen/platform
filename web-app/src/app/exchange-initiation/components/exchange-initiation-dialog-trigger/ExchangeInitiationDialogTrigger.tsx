@@ -9,12 +9,14 @@ interface ExchangeDialogTriggerProps
 {
     onRequestingDocumentsChange: (isRequesting: boolean) => void;
     onChooseBlueprint: () => void;
+    canUseBlueprints: boolean;
 }
 
 const ExchangeInitiationDialogTrigger = React.forwardRef<HTMLButtonElement, ExchangeDialogTriggerProps>((
     {
         onRequestingDocumentsChange,
         onChooseBlueprint,
+        canUseBlueprints,
         ...props
     }, ref) =>
 {
@@ -47,6 +49,7 @@ const ExchangeInitiationDialogTrigger = React.forwardRef<HTMLButtonElement, Exch
                   expands into Request / Send Documents.
                 */}
                 <SplitButton
+                    id={"exchange-initiation-trigger"}
                     shape="circular"
                     appearance="primary"
                     icon={<ShareAndroidRegular/>}
@@ -57,24 +60,35 @@ const ExchangeInitiationDialogTrigger = React.forwardRef<HTMLButtonElement, Exch
             </MenuTrigger>
             <MenuPopover>
                 <MenuList>
-                    <MenuItem {...triggerProps}
-                              onClick={handleMenuItemClick(() => onRequestingDocumentsChange(true))}
-                              className={styles.sharingDetailsInput}
-                              icon={<ReceiveDocumentsIcon/>}>
-                            Request Documents
+                    <MenuItem
+                        id={"exchange-initiation-request-documents"}
+                        {...triggerProps}
+                        onClick={handleMenuItemClick(() => onRequestingDocumentsChange(true))}
+                        className={styles.sharingDetailsInput}
+                        icon={<ReceiveDocumentsIcon/>}
+                    >
+                        Request Documents
                     </MenuItem>
-                    <MenuItem {...triggerProps}
-                              onClick={handleMenuItemClick(() => onRequestingDocumentsChange(false))}
-                              className={styles.sharingDetailsInput}
-                              icon={<SendDocumentsIcon/>}>
+                    <MenuItem
+                        id={"exchange-initiation-send-documents"}
+                        {...triggerProps}
+                        onClick={handleMenuItemClick(() => onRequestingDocumentsChange(false))}
+                        className={styles.sharingDetailsInput}
+                        icon={<SendDocumentsIcon/>}
+                    >
                         Send Documents
                     </MenuItem>
-                    <MenuItem {...triggerProps}
-                              onClick={handleMenuItemClick(() => onChooseBlueprint())}
-                              icon={<InitiateFromBlueprintIcon/>}
-                              className={styles.sharingDetailsInput}>
-                        From Blueprint
-                    </MenuItem>
+                    {canUseBlueprints && (
+                        <MenuItem
+                            id={"exchange-initiation-from-blueprint"}
+                            {...triggerProps}
+                            onClick={handleMenuItemClick(() => onChooseBlueprint())}
+                            icon={<InitiateFromBlueprintIcon/>}
+                            className={styles.sharingDetailsInput}
+                        >
+                            From Blueprint
+                        </MenuItem>
+                    )}
                 </MenuList>
             </MenuPopover>
         </Menu>

@@ -23,7 +23,7 @@ import java.util.UUID
 class AuditRetentionPolicyServiceTest
 {
     private fun service(repo: AuditRetentionPolicyRepository = mock()): AuditRetentionPolicyService =
-        AuditRetentionPolicyService(repo, AuditRetentionCatalogService(), mock())
+        AuditRetentionPolicyService(repo, AuditRetentionCatalogService(), mock(), mock())
 
     @Test
     fun `no override returns the platform default`()

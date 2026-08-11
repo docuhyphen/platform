@@ -54,6 +54,7 @@ import {
     SchemaAssignmentSource,
     SchemaDefinitionDto
 } from "../models/models.tsx";
+import {PlanFeature} from "../models/models.tsx";
 import {getAvailableVariables} from "../../services/variableService.ts";
 import {getResolvedSchema, listSchemas} from "../../services/fieldsService.ts";
 import {
@@ -68,6 +69,8 @@ import {recreateRejectedExchangeObservable} from "../observable/exchangeObservab
 import {useNavigate} from "react-router-dom";
 import {buildRecipientSelection} from "./exchangeInitiationRecipientSelection.ts";
 import {ExchangeShareRoleName} from "../../services/types/roles.ts";
+import {usePlanFeature} from "../../hooks/subscription/usePlanFeature.ts";
+import {getSubscriptionDenialMessage} from "../../utils/subscriptionDenialUtils.ts";
 
 type CreatedExchangeSummary = {
     id?: string;
@@ -82,7 +85,13 @@ type ExchangeInitiationTransitionDirection = "forward" | "back" | null;
 const ExchangeInitiation: React.FC = () =>
 {
     const styles = useExchangeInitiationStyles();
-    const {appUser} = useAuth();
+    const {appUser, refreshCurrentSession} = useAuth();
+    const blueprintAvailability = usePlanFeature(PlanFeature.BLUEPRINT_USE);
+    const blueprintManagementAvailability = usePlanFeature(PlanFeature.BLUEPRINT_MANAGE);
+    const documentLibraryAvailability = usePlanFeature(PlanFeature.DOCUMENT_LIBRARY_USE);
+    const participantAvailability = usePlanFeature(PlanFeature.MULTIPLE_PARTICIPANTS);
+    const businessFieldsAvailability = usePlanFeature(PlanFeature.BUSINESS_FIELDS_AND_SCHEMAS);
+    const advancedAccessAvailability = usePlanFeature(PlanFeature.ADVANCED_ACCESS_CONTROLS);
     const navigate = useNavigate();
     const {
         choosingBlueprint, setChoosingBlueprint,
@@ -133,8 +142,17 @@ const ExchangeInitiation: React.FC = () =>
 
     const {dispatchToast} = useToastController(toasterId);
 
+    React.useEffect(() =>
+    {
+        if (!participantAvailability.isAvailable && internalParticipants.length > 0)
+        {
+            setInternalParticipants([]);
+        }
+    }, [internalParticipants.length, participantAvailability.isAvailable, setInternalParticipants]);
+
     const openBlueprintPicker = () =>
     {
+        if (!blueprintAvailability.isAvailable) return;
         setContentTransitionDirection("forward");
         setChoosingBlueprint(true);
     };
@@ -628,16 +646,15 @@ const ExchangeInitiation: React.FC = () =>
             publishNewExchangeAddition(createdExchange);
 
             setExchangeInitiatedSuccessfully(true);
+            await refreshCurrentSession();
         }
-        catch (error)
+        catch (error: unknown)
         {
-            let errorMessage = error.response?.data?.errorMessage || error.message;
-
-            if (!errorMessage)
-            {
-                errorMessage = "An error unknown occurred while initiating exchange";
-            }
-
+            const genericError = error as {response?: {data?: {errorMessage?: string}}, message?: string};
+            const errorMessage = getSubscriptionDenialMessage(error)
+                || genericError.response?.data?.errorMessage
+                || genericError.message
+                || "An unknown error occurred while starting the Exchange";
             showServerErrorToast(errorMessage);
 
         }
@@ -681,7 +698,7 @@ const ExchangeInitiation: React.FC = () =>
         setRecipientOrgUser(null)
         setRecipientOrgGroup(null)
         setRecipientMode(ExchangeInitiationRecipientMode.PEOPLE);
-        setInternalParticipants(undefined);
+        setInternalParticipants([]);
         setNewRecipient({
             email: '',
             firstName: '',
@@ -837,6 +854,8 @@ const ExchangeInitiation: React.FC = () =>
                 setRecipientRole={setRecipientRole}
                 recipientConstraints={recipientConstraints}
                 setRecipientConstraints={setRecipientConstraints}
+                allowAdditionalParticipants={participantAvailability.isAvailable}
+                allowAdvancedAccessControls={advancedAccessAvailability.isAvailable}
             />
         )
     }
@@ -904,6 +923,7 @@ const ExchangeInitiation: React.FC = () =>
                 addLibraryDocument={addLibraryDocument}
                 availableVariables={availableVariables ?? undefined}
                 locked={blueprintLocked}
+                canUseDocumentLibrary={documentLibraryAvailability.isAvailable}
             />
         )
     }
@@ -1099,6 +1119,7 @@ const ExchangeInitiation: React.FC = () =>
                 <ExchangeInitiationDialogTrigger
                     onRequestingDocumentsChange={handleRequestingDocumentsChange}
                     onChooseBlueprint={openBlueprintPicker}
+                    canUseBlueprints={blueprintAvailability.isAvailable}
                 />
             </DialogTrigger>
             <DialogSurface className={styles.dialog}>
@@ -1125,13 +1146,15 @@ const ExchangeInitiation: React.FC = () =>
                                     choosingBlueprint={choosingBlueprint}
                                     selectedBlueprintName={selectedBlueprintName}
                                     selectedTab={selectedTab}
-                                    showFieldsTab={eligibleSchemas.length > 0}
+                                    showFieldsTab={businessFieldsAvailability.isAvailable && eligibleSchemas.length > 0}
                                     onTabSelect={(value) =>
                                     {
                                         setMessageGroupMessages([]);
                                         setSelectedTab(value);
                                     }}
-                                    onSaveAsBlueprint={openSaveBlueprintPanel}
+                                    onSaveAsBlueprint={blueprintManagementAvailability.isAvailable
+                                        ? openSaveBlueprintPanel
+                                        : undefined}
                                 />
                                 {renderErrorMessageBar()}
                             </>

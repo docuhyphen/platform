@@ -24,6 +24,8 @@ import com.docuhyphen.app.api.service.audit.requiresEngagementAccess
 import com.docuhyphen.app.api.service.auth.authz.Capability
 import com.docuhyphen.app.api.service.config.AuditExportConfigService
 import com.docuhyphen.app.api.service.organization.OrganizationService
+import com.docuhyphen.app.api.service.subscription.OrganizationFeatureSubscriptionGuard
+import com.docuhyphen.app.api.service.subscription.PlanFeature
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
@@ -56,6 +58,7 @@ class AuditExportService @Inject constructor(
     private val auditEngagementService: AuditEngagementService,
     private val auditRecorder: AuditRecorder,
     private val auditDeniedAttemptService: AuditDeniedAttemptService,
+    private val subscriptionGuard: OrganizationFeatureSubscriptionGuard,
 )
 {
     data class ExportRequest(
@@ -77,6 +80,7 @@ class AuditExportService @Inject constructor(
     @Transactional
     fun requestExport(request: ExportRequest, actor: AuditAccessActor): AuditExport
     {
+        subscriptionGuard.requireMutation(request.organizationId, PlanFeature.AUDIT_GOVERNANCE)
         validateRequest(request)
         val requestedByUserId = actor.principal.id
         appUserService.getById(requestedByUserId) ?: throw IllegalArgumentException("Requester not found")
@@ -117,6 +121,7 @@ class AuditExportService @Inject constructor(
     fun approveExport(exportId: UUID, approvedByUserId: UUID, note: String? = null): AuditExport
     {
         val export = requireExportForUpdate(exportId)
+        subscriptionGuard.requireMutation(export.organizationId, PlanFeature.AUDIT_GOVERNANCE)
         if (export.status != AuditExportStatus.APPROVAL_PENDING)
         {
             deny(approvedByUserId, export, "EXPORT_NOT_APPROVAL_PENDING")

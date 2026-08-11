@@ -11,6 +11,7 @@ import {PlatformOrganizationSummary} from "../../../../services/types/platformOr
 import OrganizationEditorForm, {OrganizationEditorSaveContent} from "./OrganizationEditorForm.tsx";
 import {useOrganizationEditorStyles} from "./OrganizationEditorStyles.tsx";
 import {useOrganizationEditor} from "./useOrganizationEditor.ts";
+import {useAuth} from "../../../../context/AuthContext.tsx";
 
 interface OrganizationEditorDialogProps
 {
@@ -22,7 +23,8 @@ interface OrganizationEditorDialogProps
 const OrganizationEditorDialog = ({organization, onDismiss, onSaved}: OrganizationEditorDialogProps) =>
 {
     const styles = useOrganizationEditorStyles();
-    const editor = useOrganizationEditor(organization, onSaved);
+    const {refreshCurrentSession} = useAuth();
+    const editor = useOrganizationEditor(organization, onSaved, refreshCurrentSession);
 
     return (
         <Dialog

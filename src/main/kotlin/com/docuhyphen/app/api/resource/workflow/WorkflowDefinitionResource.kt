@@ -1,6 +1,7 @@
 package com.docuhyphen.app.api.resource.workflow
 
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
+import com.docuhyphen.app.api.exception.SubscriptionDenialException
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.service.auth.AdminApprovalContext
 import com.docuhyphen.app.api.service.workflow.CloneWorkflowRequest
@@ -121,6 +122,11 @@ class WorkflowDefinitionResource @Inject constructor(
         {
             Response.status(FORBIDDEN).entity(ResponseError(e.message)).build()
         }
+        catch (e: SubscriptionDenialException)
+        {
+            logger.warn("Workflow definition creation refused by subscription policy", e)
+            throw e
+        }
         catch (e: Exception)
         {
             logger.error("Failed to create workflow definition", e)
@@ -190,6 +196,11 @@ class WorkflowDefinitionResource @Inject constructor(
         {
             Response.status(FORBIDDEN).entity(ResponseError(e.message)).build()
         }
+        catch (e: SubscriptionDenialException)
+        {
+            logger.warn("Workflow definition update refused by subscription policy for {}", id, e)
+            throw e
+        }
         catch (e: Exception)
         {
             logger.error("Failed to update workflow definition {}", id, e)
@@ -223,6 +234,11 @@ class WorkflowDefinitionResource @Inject constructor(
         catch (e: ForbiddenException)
         {
             Response.status(FORBIDDEN).entity(ResponseError(e.message)).build()
+        }
+        catch (e: SubscriptionDenialException)
+        {
+            logger.warn("Workflow definition status change refused by subscription policy for {}", id, e)
+            throw e
         }
         catch (e: Exception)
         {
@@ -258,6 +274,11 @@ class WorkflowDefinitionResource @Inject constructor(
         {
             Response.status(FORBIDDEN).entity(ResponseError(e.message)).build()
         }
+        catch (e: SubscriptionDenialException)
+        {
+            logger.warn("Workflow definition publication change refused by subscription policy for {}", id, e)
+            throw e
+        }
         catch (e: Exception)
         {
             logger.error("Failed to patch published for workflow definition {}", id, e)
@@ -283,6 +304,11 @@ class WorkflowDefinitionResource @Inject constructor(
         {
             workflowDefinitionService.deleteDefinition(definitionId, AdminApprovalContext(requestId = requestId))
             Response.noContent().build()
+        }
+        catch (e: SubscriptionDenialException)
+        {
+            logger.warn("Workflow definition deletion refused by subscription policy for {}", id, e)
+            throw e
         }
         catch (e: Exception)
         {
@@ -324,6 +350,11 @@ class WorkflowDefinitionResource @Inject constructor(
         catch (e: ForbiddenException)
         {
             Response.status(FORBIDDEN).entity(ResponseError(e.message)).build()
+        }
+        catch (e: SubscriptionDenialException)
+        {
+            logger.warn("Workflow definition clone refused by subscription policy for {}", id, e)
+            throw e
         }
         catch (e: Exception)
         {

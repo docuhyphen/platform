@@ -7,20 +7,19 @@ import {
     OverlayDrawer,
     SelectTabData,
     SelectTabEvent,
-    Tab,
-    TabList,
     TabValue,
     mergeClasses,
 } from "@fluentui/react-components";
 import {DismissRegular} from "@fluentui/react-icons";
 import {useExchangeDocumentSidebarStyles} from "./ExchangeDocumentSidebarStyles.tsx";
-import {Capability, DocumentDetailedDto, ExchangeDetailedDto} from "../../../models/models.tsx";
-import {AuditIcon, CommentIcon, DocumentVersionsIcon} from "../../../components/IconBundles.tsx";
+import {Capability, DocumentDetailedDto, ExchangeDetailedDto, PlanFeature} from "../../../models/models.tsx";
 import {useAuth} from "../../../../context/AuthContext.tsx";
 import {getPermissions} from "../../ExchangePermissions.ts";
 import {useIsMobile} from "../../../../utils/useMediaQuery.ts";
 import ExchangeDocumentMetadata from "./document-metadata/ExchangeDocumentMetadata.tsx";
 import ExchangeDocumentSidebarBody from "./sidebar-body/ExchangeDocumentSidebarBody.tsx";
+import {usePlanFeature} from "../../../../hooks/subscription/usePlanFeature.ts";
+import ExchangeDocumentSidebarTabs from "./sidebar-tabs/ExchangeDocumentSidebarTabs.tsx";
 
 interface ExchangeDocumentSidebarProps
 {
@@ -46,6 +45,7 @@ const ExchangeDocumentSidebar: React.FC<ExchangeDocumentSidebarProps> = (
     const {appUser, hasCapability} = useAuth();
     const permissions = getPermissions(exchange, appUser);
     const canViewAudit = hasCapability(Capability.ORG_AUDIT_READ);
+    const canViewVersions = usePlanFeature(PlanFeature.DOCUMENT_VERSION_HISTORY).isDiscoverable;
     const styles = useExchangeDocumentSidebarStyles();
     const isMobile = useIsMobile();
 
@@ -54,6 +54,13 @@ const ExchangeDocumentSidebar: React.FC<ExchangeDocumentSidebarProps> = (
         setSelectedValue(data.value);
     };
 
+    React.useEffect(() =>
+    {
+        if ((selectedValue === "versions" && !canViewVersions) || (selectedValue === "audit" && !canViewAudit))
+        {
+            setSelectedValue("comments");
+        }
+    }, [canViewAudit, canViewVersions, selectedValue]);
 
     // On phones we don't have room for an inline 400px-wide aside next to
     // the document previewer, so we promote the sidebar to a modal-style
@@ -103,35 +110,12 @@ const ExchangeDocumentSidebar: React.FC<ExchangeDocumentSidebarProps> = (
                     >
                         <ExchangeDocumentMetadata document={exchangeDocument}/>
 
-                        <TabList
-                            id={"exchange-document-sidebar-tabs"}
+                        <ExchangeDocumentSidebarTabs
                             selectedValue={selectedValue}
+                            canViewAudit={canViewAudit}
+                            canViewVersions={canViewVersions}
                             onTabSelect={onTabSelect}
-                        >
-                            <Tab
-                                id={"comments"}
-                                icon={<CommentIcon/>}
-                                value={"comments"}
-                            >
-                                Notes/Comments
-                            </Tab>
-                            <Tab
-                                id={"versions"}
-                                icon={<DocumentVersionsIcon/>}
-                                value={"versions"}
-                            >
-                                Versions
-                            </Tab>
-                            {canViewAudit && (
-                                <Tab
-                                    id={"audit"}
-                                    icon={<AuditIcon/>}
-                                    value={"audit"}
-                                >
-                                    Audit
-                                </Tab>
-                            )}
-                        </TabList>
+                        />
                     </div>
                 </DrawerHeaderTitle>
             </DrawerHeader>
@@ -140,6 +124,7 @@ const ExchangeDocumentSidebar: React.FC<ExchangeDocumentSidebarProps> = (
                 exchangeDocument={exchangeDocument}
                 exchange={exchange}
                 canViewAudit={canViewAudit}
+                canViewVersions={canViewVersions}
                 canUpload={permissions.canUploadDocument}
                 canDownload={permissions.canDownloadDocumentsZip}
                 pageNumber={pageNumber}

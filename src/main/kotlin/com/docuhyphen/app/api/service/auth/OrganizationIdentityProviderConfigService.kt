@@ -9,6 +9,8 @@ import com.docuhyphen.app.api.repository.OrganizationRepository
 import com.docuhyphen.app.api.resource.model.OrganizationAuthSessionPolicyUpdateRequest
 import com.docuhyphen.app.api.resource.model.OrganizationIdpConfigRequest
 import com.docuhyphen.app.api.service.config.ConfigurationService
+import com.docuhyphen.app.api.service.subscription.OrganizationFeatureSubscriptionGuard
+import com.docuhyphen.app.api.service.subscription.PlanFeature
 import io.quarkus.security.UnauthorizedException
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
@@ -25,6 +27,7 @@ class OrganizationIdentityProviderConfigService @Inject constructor(
     private val authAuditService: AuthAuditService,
     private val configurationService: ConfigurationService,
     private val userRoleService: UserRoleService,
+    private val subscriptionGuard: OrganizationFeatureSubscriptionGuard,
 )
 {
     companion object
@@ -60,6 +63,7 @@ class OrganizationIdentityProviderConfigService @Inject constructor(
     {
         val actor = requireOrgAdminForOrganization(organizationId)
         val organization = requireOrganization(organizationId)
+        subscriptionGuard.requireMutation(organization.id, PlanFeature.IDENTITY_AND_INTEGRATIONS)
 
         validateRequest(request)
         ensureProviderUniqueWithinOrganization(organization.id, request.provider, null)
@@ -100,6 +104,7 @@ class OrganizationIdentityProviderConfigService @Inject constructor(
     {
         val actor = requireOrgAdminForOrganization(organizationId)
         val orgId = requireUuid(organizationId, "organization ID")
+        subscriptionGuard.requireMutation(orgId, PlanFeature.IDENTITY_AND_INTEGRATIONS)
 
         validateRequest(request)
 
@@ -138,6 +143,7 @@ class OrganizationIdentityProviderConfigService @Inject constructor(
     {
         val actor = requireOrgAdminForOrganization(organizationId)
         val orgId = requireUuid(organizationId, "organization ID")
+        subscriptionGuard.requireMutation(orgId, PlanFeature.IDENTITY_AND_INTEGRATIONS)
 
         val config = requireConfigBelongsToOrg(orgId, configId)
         val beforeSnapshot = snapshot(config)
@@ -186,6 +192,7 @@ class OrganizationIdentityProviderConfigService @Inject constructor(
     {
         val actor = requireOrgAdminForOrganization(organizationId)
         val orgId = requireUuid(organizationId, "organization ID")
+        subscriptionGuard.requireMutation(orgId, PlanFeature.IDENTITY_AND_INTEGRATIONS)
 
         validateSessionPolicyRequest(request)
 

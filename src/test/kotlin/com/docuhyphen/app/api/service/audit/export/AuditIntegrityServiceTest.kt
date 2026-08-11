@@ -60,7 +60,7 @@ class AuditIntegrityServiceTest
         ledgerRepository: AuditLedgerEventRepository,
         segmentRepository: AuditArchiveSegmentRepository,
         verifier: AuditArchiveVerifier,
-    ) = AuditIntegrityService(ledgerRepository, segmentRepository, verifier, mock<AuditRecorder>())
+    ) = AuditIntegrityService(ledgerRepository, segmentRepository, verifier, mock<AuditRecorder>(), mock())
 
     private fun ledgerEvent(sequence: Long) = AuditLedgerEvent().apply {
         streamId = "stream-1"

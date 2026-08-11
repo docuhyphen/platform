@@ -2,6 +2,7 @@ package com.docuhyphen.app.api.messaging
 
 import com.docuhyphen.app.api.model.entity.Organization
 import com.docuhyphen.app.api.repository.OrganizationRepository
+import com.docuhyphen.app.api.service.subscription.SubscriptionPolicyService
 import jakarta.enterprise.context.ApplicationScoped
 import org.slf4j.LoggerFactory
 
@@ -18,10 +19,10 @@ class OrganizationVerificationProducer(
 //        emitter.send(KafkaRecord.of(organization.registrationNumber, organization))
     }
 }
-
 @ApplicationScoped
 class OrganizationVerificationConsumer(
-    private val organizationRepository: OrganizationRepository
+    private val organizationRepository: OrganizationRepository,
+    private val subscriptionPolicyService: SubscriptionPolicyService,
 )
 {
     private val logger = LoggerFactory.getLogger(OrganizationVerificationConsumer::class.java)
@@ -36,6 +37,10 @@ class OrganizationVerificationConsumer(
         organization.isActive = true
         organization.verificationComplete = true
         organizationRepository.save(organization)
+
+        // An organization that becomes active owns a Business subscription from that moment on.
+        runCatching { subscriptionPolicyService.ensureOrganizationPolicy(organization) }
+            .onFailure { logger.warn("Failed to create subscription record for organization {}", organization.id, it) }
 
         logger.info("Organization verification complete: ${organization.registrationNumber}")
     }

@@ -4,7 +4,6 @@ export const manageAccessArticle = (
             This guide explains how Exchange access works, including roles, constraints,
             document permissions, and Exchange settings.
         </p>
-
         <h3>Roles</h3>
         <p>
             Each person in an Exchange is assigned a role that determines what they can do.
@@ -41,18 +40,17 @@ export const manageAccessArticle = (
                 constraints applied. The most flexible role for external collaborators.
             </li>
         </ul>
-
         <h3>Internal document notes</h3>
         <p>
             When adding a note from a document's comments area or enlarged reader, select <strong>Internal</strong> to
             make it visible only to active members of your selected organization who can access the Exchange. The option
             is hidden when no organization is selected. Other Exchange participants cannot see internal notes.
         </p>
-
         <h3>Constraints</h3>
         <p>
             Constraints are additional restrictions applicable to <strong>Viewer</strong> and{' '}
-            <strong>Participant</strong> roles to control how they interact with documents.
+            <strong>Participant</strong> roles to control how they interact with documents. They require
+            advanced access controls in the Exchange owner's Personal or Business plan.
         </p>
         <ul>
             <li>
@@ -72,7 +70,6 @@ export const manageAccessArticle = (
                 authentication before accessing Exchange documents.
             </li>
         </ul>
-
         <h3>Adding a person</h3>
         <p>
             In <strong>Manage access</strong>, open <strong>Access &amp; permissions</strong> and choose
@@ -126,7 +123,8 @@ export const manageAccessArticle = (
             The Summary tab shows all people involved in the Exchange: the <strong>Requester</strong> (who
             initiated the Exchange), the <strong>Primary recipient</strong> (the main person the Exchange
             was shared with), and any additional <strong>Participants</strong> (users or groups added
-            through the Access &amp; permissions tab).
+            through the Access &amp; permissions tab). Free supports one primary recipient; Personal and
+            Business add participants. External and no-account primary recipients remain available on every plan.
         </p>
 
         <h3>Replacing a pending primary recipient</h3>

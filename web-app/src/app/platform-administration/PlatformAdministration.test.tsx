@@ -19,6 +19,10 @@ vi.mock("./app-administrators/AppAdministrators.tsx", () => ({
     default: () => <div id={"test-app-administrators"}>App Administrators content</div>,
 }));
 
+vi.mock("./user-subscriptions/UserSubscriptions.tsx", () => ({
+    default: () => <div id={"test-user-subscriptions"}>User Subscriptions content</div>,
+}));
+
 afterEach(cleanup);
 
 describe("PlatformAdministration", () =>

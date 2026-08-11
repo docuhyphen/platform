@@ -29,6 +29,7 @@ import com.docuhyphen.app.api.service.communication.OtpService
 import com.docuhyphen.app.api.service.config.ConfigurationService
 import com.docuhyphen.app.api.service.documentlibrary.DocumentLibraryService
 import com.docuhyphen.app.api.service.exchange.ExchangeInitiationService
+import com.docuhyphen.app.api.service.exchange.ExchangeInitiationSubscriptionGuard
 import com.docuhyphen.app.api.service.exchange.DocumentContentHashService
 import com.docuhyphen.app.api.service.exchange.DocumentThumbnailService
 import com.docuhyphen.app.api.service.exchange.ExchangeNotificationDeliveryService
@@ -182,6 +183,7 @@ internal class ExchangeInitiationAutoAcceptFixture
             schemaAssignmentService = mock<SchemaAssignmentService>(),
             noAuthExchangeAccessTokenService = mock<NoAuthExchangeAccessTokenService>(),
             exchangeNotificationDeliveryService = exchangeNotificationDeliveryService,
+            exchangeInitiationSubscriptionGuard = mock<ExchangeInitiationSubscriptionGuard>(),
         )
         ExchangeInitiationService::class.java.getDeclaredField("entityManager").apply {
             isAccessible = true

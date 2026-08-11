@@ -17,6 +17,11 @@ import java.util.UUID
  *
  * Capabilities are computed server-side at request time from live role assignments so stale role
  * changes are reflected within the next session fetch.
+ *
+ * [subscription] describes the commercial position of the paying subject for this context: the
+ * authenticated user when acting personally, or the selected organization when one is active. It
+ * is recomputed on every call, so switching organization changes it without reissuing a token.
+ * It is null only when the subscription could not be resolved, which must never widen access.
  */
 @Serializable
 data class CurrentSessionDto(
@@ -30,6 +35,7 @@ data class CurrentSessionDto(
     val capabilities: List<String>,
     val availableOrganizations: List<SessionOrganizationOptionDto>,
     val idleTimeoutMinutes: Long,
+    val subscription: EffectiveSubscriptionDto? = null,
 )
 
 /**

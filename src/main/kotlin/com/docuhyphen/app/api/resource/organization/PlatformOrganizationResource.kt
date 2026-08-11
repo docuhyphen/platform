@@ -16,6 +16,7 @@ import jakarta.ws.rs.Path
 import jakarta.ws.rs.PathParam
 import jakarta.ws.rs.Produces
 import jakarta.ws.rs.QueryParam
+import jakarta.ws.rs.WebApplicationException
 import jakarta.ws.rs.core.MediaType.APPLICATION_JSON
 import jakarta.ws.rs.core.Response
 import org.slf4j.LoggerFactory
@@ -62,6 +63,7 @@ class PlatformOrganizationResource @Inject constructor(
         }
         catch (exception: Exception)
         {
+            if (exception is WebApplicationException) throw exception
             handleException("Error listing restricted platform organization summaries", exception)
         }
     }
@@ -79,6 +81,7 @@ class PlatformOrganizationResource @Inject constructor(
         }
         catch (exception: Exception)
         {
+            if (exception is WebApplicationException) throw exception
             handleException("Error fetching restricted platform organization summary", exception)
         }
     }
@@ -103,6 +106,7 @@ class PlatformOrganizationResource @Inject constructor(
         }
         catch (exception: Exception)
         {
+            if (exception is WebApplicationException) throw exception
             handleException("Error updating platform organization status", exception)
         }
     }

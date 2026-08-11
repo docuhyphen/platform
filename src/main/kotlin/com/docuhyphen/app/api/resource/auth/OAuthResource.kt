@@ -1,4 +1,6 @@
 package com.docuhyphen.app.api.resource.auth
+
+import com.docuhyphen.app.api.exception.SubscriptionDenialException
 import com.docuhyphen.app.api.model.entity.IdentityProviderType
 import com.docuhyphen.app.api.resource.model.*
 import com.docuhyphen.app.api.model.entity.SecurityIncidentSeverity
@@ -404,6 +406,11 @@ class OAuthResource @Inject constructor(
                 requestId = requestId,
             )
             redirectToFrontendError(ERROR_EMAIL_NOT_VERIFIED)
+        }
+        catch (e: SubscriptionDenialException)
+        {
+            logger.error("Subscription denied during OAuth organization provisioning for $providerName", e)
+            throw e
         }
         catch (e: Exception)
         {

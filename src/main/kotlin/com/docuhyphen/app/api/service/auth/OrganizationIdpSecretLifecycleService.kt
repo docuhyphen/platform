@@ -7,6 +7,8 @@ import com.docuhyphen.app.api.service.config.AwsSecretsManagerService
 import com.docuhyphen.app.api.service.config.SecretLifecycleStatus
 import com.docuhyphen.app.api.service.config.SecretRotationResult
 import com.docuhyphen.app.api.service.config.ConfigurationService
+import com.docuhyphen.app.api.service.subscription.OrganizationFeatureSubscriptionGuard
+import com.docuhyphen.app.api.service.subscription.PlanFeature
 import io.quarkus.security.UnauthorizedException
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
@@ -47,6 +49,7 @@ class OrganizationIdpSecretLifecycleService @Inject constructor(
     private val awsSecretsManagerService: AwsSecretsManagerService,
     private val configurationService: ConfigurationService,
     private val userRoleService: UserRoleService,
+    private val subscriptionGuard: OrganizationFeatureSubscriptionGuard,
 )
 {
     @EnforceAdminAction("ORG_IDP_SECRET_ROTATE")
@@ -59,6 +62,7 @@ class OrganizationIdpSecretLifecycleService @Inject constructor(
     ): OrganizationIdpSecretRotationOutcome
     {
         val actor = requireOrgAdminForOrganization(organizationId)
+        requireSubscription(organizationId)
         val config = requireConfig(organizationId, configId)
 
         if (newSecret.isBlank())
@@ -136,6 +140,7 @@ class OrganizationIdpSecretLifecycleService @Inject constructor(
         }
 
         val actor = requireOrgAdminForOrganization(organizationId)
+        requireSubscription(organizationId)
         val config = requireConfig(organizationId, configId)
         val secretRef = requireClientSecretRef(config)
 
@@ -199,6 +204,7 @@ class OrganizationIdpSecretLifecycleService @Inject constructor(
     )
     {
         val actor = requireOrgAdminForOrganization(organizationId)
+        requireSubscription(organizationId)
         val config = requireConfig(organizationId, configId)
         val secretRef = requireClientSecretRef(config)
 
@@ -234,6 +240,7 @@ class OrganizationIdpSecretLifecycleService @Inject constructor(
     )
     {
         val actor = requireOrgAdminForOrganization(organizationId)
+        requireSubscription(organizationId)
         val config = requireConfig(organizationId, configId)
         val secretRef = requireClientSecretRef(config)
 
@@ -259,6 +266,7 @@ class OrganizationIdpSecretLifecycleService @Inject constructor(
     )
     {
         val actor = requireOrgAdminForOrganization(organizationId)
+        requireSubscription(organizationId)
         val config = requireConfig(organizationId, configId)
         val secretRef = requireClientSecretRef(config)
 
@@ -285,6 +293,7 @@ class OrganizationIdpSecretLifecycleService @Inject constructor(
     )
     {
         val actor = requireOrgAdminForOrganization(organizationId)
+        requireSubscription(organizationId)
         val config = requireConfig(organizationId, configId)
         val secretRef = requireClientSecretRef(config)
 
@@ -306,6 +315,13 @@ class OrganizationIdpSecretLifecycleService @Inject constructor(
             beforeSnapshot = "configId=${config.id};secretRef=$secretRef;status=ACTIVE",
             afterSnapshot = "configId=${config.id};secretRef=$secretRef;status=RETIRING;recoveryWindowDays=${recoveryWindowDays};rotationPhase=RETIRE",
         )
+    }
+
+    private fun requireSubscription(organizationId: String)
+    {
+        val ownerOrganizationId = runCatching { UUID.fromString(organizationId) }.getOrNull()
+            ?: throw IllegalArgumentException("Invalid organization ID")
+        subscriptionGuard.requireMutation(ownerOrganizationId, PlanFeature.IDENTITY_AND_INTEGRATIONS)
     }
 
     private fun requireClientSecretRef(config: com.docuhyphen.app.api.model.entity.OrganizationIdentityProviderConfig): String

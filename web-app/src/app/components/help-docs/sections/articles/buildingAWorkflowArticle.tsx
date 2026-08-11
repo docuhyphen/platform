@@ -7,7 +7,7 @@ export const buildingAWorkflowArticle = (
         </p>
         <h3>Before you begin</h3>
         <ul>
-            <li>You must be an Organization Admin.</li>
+            <li>You must be an Organization Admin in a Business context that includes workflow automation.</li>
             <li>
                 Decide which lifecycle stage you want to gate and choose the
                 corresponding{" "}

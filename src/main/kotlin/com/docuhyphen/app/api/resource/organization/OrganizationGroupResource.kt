@@ -1,5 +1,6 @@
 package com.docuhyphen.app.api.resource.organization
 
+import com.docuhyphen.app.api.exception.SubscriptionDenialException
 import com.docuhyphen.app.api.exception.OrganizationGroupNotFoundException
 import com.docuhyphen.app.api.exception.OrganizationNotFoundException
 import com.docuhyphen.app.api.model.DetailedEntityToDtoTransformer
@@ -74,6 +75,11 @@ class OrganizationGroupResource @Inject constructor(
 
             return Response.status(CREATED).build()
         }
+        catch (exception: SubscriptionDenialException)
+        {
+            logger.warn("Organization group creation refused by subscription policy", exception)
+            throw exception
+        }
         catch (exception: Exception)
         {
             if (exception is jakarta.ws.rs.WebApplicationException) throw exception
@@ -143,6 +149,11 @@ class OrganizationGroupResource @Inject constructor(
             }
 
             Response.ok().build()
+        }
+        catch (exception: SubscriptionDenialException)
+        {
+            logger.warn("Organization group update refused by subscription policy", exception)
+            throw exception
         }
         catch (exception: Exception)
         {
@@ -253,6 +264,11 @@ class OrganizationGroupResource @Inject constructor(
             organizationGroupService.deleteOrganizationGroup(organizationId, groupId, adminApprovalContext)
 
             Response.status(NO_CONTENT).build()
+        }
+        catch (exception: SubscriptionDenialException)
+        {
+            logger.warn("Organization group deletion refused by subscription policy", exception)
+            throw exception
         }
         catch (exception: Exception)
         {

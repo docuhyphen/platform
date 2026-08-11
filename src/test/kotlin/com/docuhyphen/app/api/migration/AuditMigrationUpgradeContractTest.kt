@@ -136,7 +136,7 @@ class AuditMigrationUpgradeContractTest
                 verifyExchangeRecipientShareBinding(connection)
             }
 
-            assertEquals("67", currentFlyway.info().current().version.toString())
+            assertEquals("72", currentFlyway.info().current().version.toString())
         }
         finally
         {

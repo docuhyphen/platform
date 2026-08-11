@@ -22,6 +22,8 @@ import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
 import com.docuhyphen.app.api.service.auth.authz.Decision
 import com.docuhyphen.app.api.service.auth.authz.ResourceRef
+import com.docuhyphen.app.api.service.subscription.OrganizationFeatureSubscriptionGuard
+import com.docuhyphen.app.api.service.subscription.PlanFeature
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.inject.Provider
@@ -50,6 +52,7 @@ class OrganizationTrustPolicyService @Inject constructor(
     private val authTokenContext: AuthTokenContext,
     private val auditRecorder: AuditRecorder,
     private val relationshipServiceProvider: Provider<OrganizationTrustRelationshipService>,
+    private val subscriptionGuard: OrganizationFeatureSubscriptionGuard,
 )
 {
     @Transactional
@@ -124,6 +127,7 @@ class OrganizationTrustPolicyService @Inject constructor(
         {
             throw OrganizationTrustNotFoundException()
         }
+        subscriptionGuard.requireMutation(activeOrganizationId, PlanFeature.IDENTITY_AND_INTEGRATIONS)
         if (relationship.status != OrganizationTrustRelationshipStatus.PENDING &&
             relationship.status != OrganizationTrustRelationshipStatus.ACTIVE)
         {

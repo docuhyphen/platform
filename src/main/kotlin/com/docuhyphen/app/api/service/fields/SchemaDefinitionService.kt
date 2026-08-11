@@ -63,6 +63,7 @@ class SchemaDefinitionService @Inject constructor(
     private val authorizationContextFactory: AuthorizationContextFactory,
     private val userRoleService: UserRoleService,
     private val auditRecorder: AuditRecorder,
+    private val subscriptionGuard: BusinessFieldsSubscriptionGuard,
 )
 {
     private val logger = org.slf4j.LoggerFactory.getLogger(SchemaDefinitionService::class.java)
@@ -155,6 +156,7 @@ class SchemaDefinitionService @Inject constructor(
             requireActiveOrganizationAccess(principal, Action.FIELD_CONFIG_EDIT)
         else
             null
+        subscriptionGuard.requireConfigurationMutation(scopeKind, scopeOrgId)
 
         val namespace = request.namespace.trim().lowercase()
         val schemaKey = request.schemaKey.trim().lowercase()
@@ -197,6 +199,7 @@ class SchemaDefinitionService @Inject constructor(
         val def = schemaDefinitionRepository.findById(schemaDefinitionId)
             ?: throw IllegalArgumentException("Schema not found: $schemaDefinitionId")
         requireScopeAccess(def, Action.FIELD_CONFIG_EDIT)
+        subscriptionGuard.requireConfigurationMutation(def.scopeKind, def.scopeOrgId)
         val draft = schemaVersionRepository.findDraft(schemaDefinitionId)
             ?: throw IllegalStateException("Schema has no editable draft version")
         bindingRepository.deleteByVersion(draft.id)
@@ -213,6 +216,7 @@ class SchemaDefinitionService @Inject constructor(
         val def = schemaDefinitionRepository.findById(schemaDefinitionId)
             ?: throw IllegalArgumentException("Schema not found: $schemaDefinitionId")
         requireScopeAccess(def, Action.FIELD_CONFIG_EDIT)
+        subscriptionGuard.requireConfigurationMutation(def.scopeKind, def.scopeOrgId)
         if (schemaVersionRepository.findDraft(schemaDefinitionId) != null)
             throw IllegalStateException("Schema already has an open draft version")
 
@@ -249,6 +253,7 @@ class SchemaDefinitionService @Inject constructor(
         val def = schemaDefinitionRepository.findById(schemaDefinitionId)
             ?: throw IllegalArgumentException("Schema not found: $schemaDefinitionId")
         requireScopeAccess(def, Action.FIELD_CONFIG_PUBLISH)
+        subscriptionGuard.requireConfigurationMutation(def.scopeKind, def.scopeOrgId)
         val draft = schemaVersionRepository.findDraft(schemaDefinitionId)
             ?: throw IllegalStateException("Schema has no draft version to publish")
         val bindings = bindingRepository.findByVersion(draft.id)
@@ -275,6 +280,7 @@ class SchemaDefinitionService @Inject constructor(
         val def = schemaDefinitionRepository.findById(schemaDefinitionId)
             ?: throw IllegalArgumentException("Schema not found: $schemaDefinitionId")
         requireScopeAccess(def, Action.FIELD_CONFIG_PUBLISH)
+        subscriptionGuard.requireConfigurationMutation(def.scopeKind, def.scopeOrgId)
         def.status = FieldLifecycleStatus.RETIRED
         def.updatedAt = Timestamp.from(Instant.now())
         val updated = schemaDefinitionRepository.update(def)

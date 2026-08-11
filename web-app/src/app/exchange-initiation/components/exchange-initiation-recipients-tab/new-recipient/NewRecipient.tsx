@@ -19,6 +19,7 @@ interface NewRecipientProps
     newRecipient?: ExchangeNewMainRecipient;
     internalParticipants?: AppUserPublicDto[];
     setInternalParticipants?: (users: AppUserPublicDto[]) => void;
+    allowAdditionalParticipants: boolean;
 }
 
 const NewRecipient: React.FC<NewRecipientProps> = props =>
@@ -61,7 +62,7 @@ const NewRecipient: React.FC<NewRecipientProps> = props =>
                     />
                 </Field>
             </div>
-            {state.appUserPersonOrganization && state.isRecipientDataValid && (
+            {props.allowAdditionalParticipants && state.appUserPersonOrganization && state.isRecipientDataValid && (
                 <MyOrgRecipients
                     id={"new-recipient-internal-participants"}
                     orgUsers={state.orgUsers.filter(user => user.id !== state.appUser?.id)}

@@ -53,6 +53,7 @@ class WorkflowDefinitionServiceActiveBlockingTest
         applicabilityEvaluator = mock(),
         workflowSpecValidator = mock(),
         auditRecorder = mock(),
+        subscriptionGuard = mock(),
     )
 
     @Test

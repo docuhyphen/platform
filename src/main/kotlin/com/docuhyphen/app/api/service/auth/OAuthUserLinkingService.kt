@@ -32,7 +32,6 @@ class OAuthUserLinkingService @Inject constructor(
     private val appUserService: AppUserService,
     private val identityProviderLinkRepository: IdentityProviderLinkRepository,
     private val authenticationService: AuthenticationService,
-    private val organizationIdentityPolicyService: OrganizationIdentityPolicyService,
     private val organizationMembershipService: OrganizationMembershipService,
 )
 {
@@ -124,9 +123,6 @@ class OAuthUserLinkingService @Inject constructor(
         }
 
         logger.info("Creating new AppUser for OAuth email={}", userInfo.email.maskEmailForLogs())
-
-        // Enforce platform-managed organization user caps for JIT provisioning.
-        trustedOrganization?.let(organizationIdentityPolicyService::enforceUserCapForOrganization)
 
         val newUser = AppUser().apply {
             this.email = userInfo.email.lowercase()

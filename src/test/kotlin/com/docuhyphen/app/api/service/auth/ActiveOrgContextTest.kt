@@ -11,6 +11,7 @@ import com.docuhyphen.app.api.model.entity.OrganizationRoleName
 import com.docuhyphen.app.api.repository.OrganizationMembershipRepository
 import com.docuhyphen.app.api.repository.OrganizationRepository
 import com.docuhyphen.app.api.service.auth.authz.Capability
+import com.docuhyphen.app.api.service.subscription.SessionSubscriptionService
 import io.quarkus.security.UnauthorizedException
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -129,7 +130,14 @@ class ActiveOrgContextTest
             }
             whenever(orgRepo.findById(m.organizationId)).thenReturn(org)
         }
-        return SessionService(ctx, userRoleService, makeAuthSessionPolicyService(), membershipRepo, orgRepo)
+        return SessionService(
+            ctx,
+            userRoleService,
+            makeAuthSessionPolicyService(),
+            membershipRepo,
+            orgRepo,
+            mock<SessionSubscriptionService>(),
+        )
     }
 
     // -----------------------------------------------------------------------
@@ -526,6 +534,7 @@ class ActiveOrgContextTest
             makeAuthSessionPolicyService(),
             membershipRepo,
             orgRepo,
+            mock<SessionSubscriptionService>(),
         )
 
         assertEquals("Unknown organization", svc.currentSession().availableOrganizations[0].name)

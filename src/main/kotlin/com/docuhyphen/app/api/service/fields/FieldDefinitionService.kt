@@ -52,6 +52,7 @@ class FieldDefinitionService @Inject constructor(
     private val authorizationContextFactory: AuthorizationContextFactory,
     private val userRoleService: UserRoleService,
     private val auditRecorder: AuditRecorder,
+    private val subscriptionGuard: BusinessFieldsSubscriptionGuard,
 )
 {
     private val logger = org.slf4j.LoggerFactory.getLogger(FieldDefinitionService::class.java)
@@ -115,6 +116,7 @@ class FieldDefinitionService @Inject constructor(
             requireActiveOrganizationAccess(principal, Action.FIELD_CONFIG_EDIT)
         else
             null
+        subscriptionGuard.requireConfigurationMutation(scopeKind, scopeOrgId)
 
         val namespace = request.namespace.trim().lowercase()
         val fieldKey = request.fieldKey.trim().lowercase()
@@ -146,6 +148,7 @@ class FieldDefinitionService @Inject constructor(
         val definition = fieldDefinitionRepository.findById(definitionId)
             ?: throw IllegalArgumentException("Field definition not found: $definitionId")
         requireScopeAccess(definition, Action.FIELD_CONFIG_EDIT)
+        subscriptionGuard.requireConfigurationMutation(definition.scopeKind, definition.scopeOrgId)
 
         val existing = fieldContractRepository.findByDefinition(definitionId)
         val firstType = existing.minByOrNull { it.contractVersion }?.valueType
@@ -166,6 +169,7 @@ class FieldDefinitionService @Inject constructor(
         val def = fieldDefinitionRepository.findById(id)
             ?: throw IllegalArgumentException("Field definition not found: $id")
         requireScopeAccess(def, Action.FIELD_CONFIG_EDIT)
+        subscriptionGuard.requireConfigurationMutation(def.scopeKind, def.scopeOrgId)
         def.status = FieldLifecycleStatus.RETIRED
         def.updatedAt = Timestamp.from(Instant.now())
         val updated = fieldDefinitionRepository.update(def)

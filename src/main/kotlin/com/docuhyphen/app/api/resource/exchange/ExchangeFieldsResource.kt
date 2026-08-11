@@ -1,6 +1,7 @@
 package com.docuhyphen.app.api.resource.exchange
 
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
+import com.docuhyphen.app.api.exception.SubscriptionDenialException
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.service.fields.AssignSchemaRequest
 import com.docuhyphen.app.api.service.fields.FieldValidationException
@@ -112,6 +113,11 @@ class ExchangeFieldsResource @Inject constructor(
         catch (e: ForbiddenException)
         {
             Response.status(FORBIDDEN).entity(ResponseError(e.message)).build()
+        }
+        catch (e: SubscriptionDenialException)
+        {
+            logger.warn("Exchange Fields request refused by subscription policy", e)
+            throw e
         }
         catch (e: Exception)
         {

@@ -18,6 +18,11 @@ data class PlatformOrganizationSummaryDto(
     val createdDate: String,
     val tierCode: String,
     val maxUsers: Long? = null,
+    val subscriptionStatus: String,
+    val billingFrequency: String? = null,
+    val currentPeriodStart: String? = null,
+    val currentPeriodEnd: String? = null,
+    val gracePeriodEnd: String? = null,
     val activeUsers: Long,
     val featureEntitlements: List<PlatformOrganizationFeatureEntitlementDto>,
 )

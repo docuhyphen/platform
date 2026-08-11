@@ -192,9 +192,18 @@ export const usePricingPageStyles = makeStyles({
         },
     },
 
+    /**
+     * A capability that is planned but not sold yet. Deliberately quieter than an included
+     * feature so it can never be mistaken for something the plan entitles you to today.
+     */
+    pendingValue: {
+        color: tokens.colorNeutralForeground3,
+        fontStyle: "italic",
+    },
+
     notes: {
         display: "grid",
-        gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+        gridTemplateColumns: "repeat(auto-fit, minmax(16rem, 1fr))",
         gap: SPACE_LG,
         padding: SPACE_LG,
         color: tokens.colorNeutralForeground2,

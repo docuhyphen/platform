@@ -25,7 +25,7 @@ export interface UseRecipientModeSnapshotsParams
     recipientOrgGroup: OrganizationGroupBasicDto | undefined;
     setRecipientOrgGroup: (group: OrganizationGroupBasicDto | undefined) => void;
     internalParticipants: AppUserPublicDto[];
-    setInternalParticipants: (appUser: AppUserPublicDto[] | undefined) => void;
+    setInternalParticipants: (appUser: AppUserPublicDto[]) => void;
     newRecipient: ExchangeNewMainRecipient | undefined;
     setNewRecipient: (recipient: ExchangeNewMainRecipient | undefined) => void;
 }
@@ -83,7 +83,7 @@ export function useRecipientModeSnapshots(params: UseRecipientModeSnapshotsParam
         params.setRecipientOrg(snapshot.recipientOrg);
         params.setRecipientOrgUser(snapshot.recipientOrgUser);
         params.setRecipientOrgGroup(snapshot.recipientOrgGroup);
-        params.setInternalParticipants(snapshot.internalParticipants);
+        params.setInternalParticipants(snapshot.internalParticipants ?? []);
         if (snapshot.newRecipient)
         {
             params.setNewRecipient(snapshot.newRecipient);

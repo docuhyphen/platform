@@ -68,7 +68,8 @@ export const variablesOverviewArticle = (
         <h3>Where to find this feature</h3>
         <p>
             Open <b>Settings</b> and look for the <b>Variables</b> tab and the{" "}
-            <b>Sequences</b> tab.
+            <b>Sequences</b> tab. These entries appear when the current Personal or
+            Business context includes variables and sequences; they are hidden on Free.
         </p>
         <ul>
             <li>

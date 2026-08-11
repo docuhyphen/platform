@@ -113,8 +113,7 @@ class ExchangeDocumentCommentsService @Inject constructor(
             null
         }
 
-        val exchangeUuid = UUID.fromString(exchangeId)
-        val exchange = exchangeRepository.findById(exchangeUuid)
+        val exchange = exchangeRepository.findById(UUID.fromString(exchangeId))
             ?: throw ExchangeNotFoundException("Exchange not found")
 
         val comment = ExchangeDocumentComment().apply {

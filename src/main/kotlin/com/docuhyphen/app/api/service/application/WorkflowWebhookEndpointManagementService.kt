@@ -9,6 +9,8 @@ import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.auth.authz.ResourceRef
+import com.docuhyphen.app.api.service.subscription.OrganizationFeatureSubscriptionGuard
+import com.docuhyphen.app.api.service.subscription.PlanFeature
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
@@ -34,6 +36,7 @@ class WorkflowWebhookEndpointManagementService @Inject constructor(
     private val authorizationService: AuthorizationService,
     private val destinationPolicy: WebhookDestinationPolicy,
     private val authAuditService: AuthAuditService,
+    private val subscriptionGuard: OrganizationFeatureSubscriptionGuard,
 )
 {
     companion object
@@ -46,6 +49,7 @@ class WorkflowWebhookEndpointManagementService @Inject constructor(
     fun listByOrganization(orgId: UUID, principal: PrincipalRef, context: AuthorizationContext): List<WorkflowWebhookEndpoint>
     {
         requireWebhookAdmin(orgId, principal, context)
+        subscriptionGuard.requireMutation(orgId, PlanFeature.IDENTITY_AND_INTEGRATIONS)
         return webhookEndpointRepository.findByOrganization(orgId)
     }
 
@@ -87,6 +91,7 @@ class WorkflowWebhookEndpointManagementService @Inject constructor(
         val endpoint = webhookEndpointRepository.findById(id)
             ?: throw NoSuchElementException("Webhook endpoint not found")
         requireWebhookAdmin(endpoint.ownerOrganizationId, principal, context)
+        subscriptionGuard.requireMutation(endpoint.ownerOrganizationId, PlanFeature.IDENTITY_AND_INTEGRATIONS)
         endpoint.isEnabled = true
         endpoint.updatedDate = Timestamp.from(Instant.now())
         webhookEndpointRepository.update(endpoint)
@@ -99,6 +104,7 @@ class WorkflowWebhookEndpointManagementService @Inject constructor(
         val endpoint = webhookEndpointRepository.findById(id)
             ?: throw NoSuchElementException("Webhook endpoint not found")
         requireWebhookAdmin(endpoint.ownerOrganizationId, principal, context)
+        subscriptionGuard.requireMutation(endpoint.ownerOrganizationId, PlanFeature.IDENTITY_AND_INTEGRATIONS)
         endpoint.isEnabled = false
         endpoint.updatedDate = Timestamp.from(Instant.now())
         webhookEndpointRepository.update(endpoint)
@@ -111,6 +117,7 @@ class WorkflowWebhookEndpointManagementService @Inject constructor(
         val endpoint = webhookEndpointRepository.findById(id)
             ?: throw NoSuchElementException("Webhook endpoint not found")
         requireWebhookAdmin(endpoint.ownerOrganizationId, principal, context)
+        subscriptionGuard.requireMutation(endpoint.ownerOrganizationId, PlanFeature.IDENTITY_AND_INTEGRATIONS)
 
         val rawSecret = generateSecret()
         endpoint.signingSecretToken = rawSecret

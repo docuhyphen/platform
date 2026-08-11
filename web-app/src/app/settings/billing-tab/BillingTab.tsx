@@ -1,3 +1,4 @@
+import type {ReactNode} from 'react';
 import {Badge, Text} from '@fluentui/react-components';
 import {
     BuildingFilled,
@@ -7,32 +8,39 @@ import {
     ReceiptFilled,
     ShieldLockFilled,
 } from '@fluentui/react-icons';
+import BillingPlanSummary from "./billing-plan-summary/BillingPlanSummary.tsx";
 import {useBillingTabStyles} from './BillingTabStyles.tsx';
 
-interface Feature {
-    icon: React.ReactNode;
+interface Feature
+{
+    id: string;
+    icon: ReactNode;
     title: string;
     description: string;
 }
 
 const FEATURES: Feature[] = [
     {
-        icon: <BuildingFilled/>,
+        id: "subscription-plans",
+        icon: <BuildingFilled id={"settings-billing-subscription-plans-source-icon"}/>,
         title: 'Subscription Plans',
-        description: 'View and manage your organisation\'s current plan and available tiers.',
+        description: 'View your current plan while billing management is prepared.',
     },
     {
-        icon: <DocumentBulletListFilled/>,
+        id: "invoice-history",
+        icon: <DocumentBulletListFilled id={"settings-billing-invoice-history-source-icon"}/>,
         title: 'Invoice History',
         description: 'Download and review itemised invoices for all billing periods.',
     },
     {
-        icon: <CreditCardPersonFilled/>,
+        id: "payment-methods",
+        icon: <CreditCardPersonFilled id={"settings-billing-payment-methods-source-icon"}/>,
         title: 'Payment Methods',
         description: 'Securely manage cards and bank accounts on file.',
     },
     {
-        icon: <ShieldLockFilled/>,
+        id: "compliance-audit",
+        icon: <ShieldLockFilled id={"settings-billing-compliance-audit-source-icon"}/>,
         title: 'Compliance & Audit',
         description: 'Maintain a complete, auditable record of all billing activity.',
     },
@@ -43,39 +51,93 @@ const BillingTab = () =>
     const styles = useBillingTabStyles();
 
     return (
-        <div className={styles.container}>
-            <div className={styles.heroIcon}>
-                <ReceiptFilled/>
+        <div
+            id={"settings-billing-tab"}
+            className={styles.container}
+        >
+            <div
+                id={"settings-billing-hero-icon"}
+                className={styles.heroIcon}
+            >
+                <ReceiptFilled id={"settings-billing-receipt-icon"}/>
             </div>
 
-            <div className={styles.headingGroup}>
-                <Badge appearance="tint" color="brand" size="large">
+            <div
+                id={"settings-billing-heading-group"}
+                className={styles.headingGroup}
+            >
+                <Badge
+                    id={"settings-billing-coming-soon-badge"}
+                    appearance="tint"
+                    color="brand"
+                    size="large"
+                >
                     Coming Soon
                 </Badge>
-                <Text as="h2" size={700} weight="semibold">
+                <Text
+                    id={"settings-billing-heading"}
+                    as="h2"
+                    size={700}
+                    weight="semibold"
+                >
                     Billing &amp; Subscription
                 </Text>
-                <Text size={300} className={styles.tagline} align={"center"}>
-                    Comprehensive financial visibility and control for your organisation
-                    is on the horizon.
+                <Text
+                    id={"settings-billing-tagline"}
+                    size={300}
+                    className={styles.tagline}
+                    align={"center"}
+                >
+                    Billing management is coming. For now, your current plan details are shown here.
                 </Text>
             </div>
 
-            <div className={styles.featureGrid}>
+            <BillingPlanSummary/>
+
+            <div
+                id={"settings-billing-feature-grid"}
+                className={styles.featureGrid}
+            >
                 {FEATURES.map(feature => (
-                    <div key={feature.title} className={styles.featureCard}>
-                        <div className={styles.featureCardHeader}>
-                            <span className={styles.featureIcon}>{feature.icon}</span>
-                            <Text weight="semibold" size={300}>{feature.title}</Text>
+                    <div
+                        id={`settings-billing-${feature.id}-card`}
+                        key={feature.title}
+                        className={styles.featureCard}
+                    >
+                        <div
+                            id={`settings-billing-${feature.id}-header`}
+                            className={styles.featureCardHeader}
+                        >
+                            <span
+                                id={`settings-billing-${feature.id}-icon`}
+                                className={styles.featureIcon}
+                            >
+                                {feature.icon}
+                            </span>
+                            <Text
+                                id={`settings-billing-${feature.id}-title`}
+                                weight="semibold"
+                                size={300}
+                            >
+                                {feature.title}
+                            </Text>
                         </div>
-                        <Text size={200} className={styles.featureDescription}>
+                        <Text
+                            id={`settings-billing-${feature.id}-description`}
+                            size={200}
+                            className={styles.featureDescription}
+                        >
                             {feature.description}
                         </Text>
                     </div>
                 ))}
             </div>
 
-            <Text size={200} className={styles.footer}>
+            <Text
+                id={"settings-billing-footer"}
+                size={200}
+                className={styles.footer}
+            >
                 For early access or enterprise pricing, contact your account manager.
             </Text>
         </div>

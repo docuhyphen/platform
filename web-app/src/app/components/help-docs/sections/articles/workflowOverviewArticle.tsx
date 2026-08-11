@@ -63,7 +63,14 @@ export const workflowOverviewArticle = (
             Organization Admins can create, edit, activate, deactivate, publish,
             clone, or delete workflow definitions for their active organization.
             The Organization sub-tab exposes management actions only when the active
-            organization grants the required administration capability.
+            organization grants the required administration capability and has workflow
+            automation in its Business subscription.
+        </p>
+        <p>
+            If workflow automation becomes unavailable, existing definitions and history stay
+            readable. New definitions, definition changes, and new workflow instances are refused.
+            Instances that already started continue through their saved steps, decisions,
+            reminders, actions, conditions, and escalations until they finish.
         </p>
         <p>
             App Admins manage platform-scoped workflow definitions and templates.

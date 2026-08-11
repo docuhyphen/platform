@@ -77,6 +77,7 @@ class SequenceTenantBoundaryTest
                 authorizationService = authorizationService(*allowedActions),
                 authorizationContextFactory = contextFactory(context),
                 userRoleService = roleService(appAdmin, orgAdmin),
+                variableSubscriptionGuard = mock<VariableSubscriptionGuard>(),
             ),
             repository = repository,
         )

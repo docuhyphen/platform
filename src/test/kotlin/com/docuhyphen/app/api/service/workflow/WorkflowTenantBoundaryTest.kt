@@ -96,6 +96,7 @@ class WorkflowTenantBoundaryTest
                 applicabilityEvaluator = mock(),
                 workflowSpecValidator = mock(),
                 auditRecorder = mock(),
+                subscriptionGuard = mock(),
             ),
             definitionRepository = definitionRepository,
             instanceRepository = instanceRepository,

@@ -4,14 +4,21 @@ import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.model.entity.AppUser
 import com.docuhyphen.app.api.model.entity.AuthToken
 import com.docuhyphen.app.api.model.entity.Organization
-import com.docuhyphen.app.api.model.entity.OrganizationSubscriptionPolicy
-import com.docuhyphen.app.api.repository.OrganizationSubscriptionPolicyRepository
 import com.docuhyphen.app.api.service.auth.UserRoleService
+import com.docuhyphen.app.api.service.subscription.EffectiveSubscription
+import com.docuhyphen.app.api.service.subscription.PlanCode
+import com.docuhyphen.app.api.service.subscription.PlanCatalog
+import com.docuhyphen.app.api.service.subscription.SubscriptionAccessService
+import com.docuhyphen.app.api.service.subscription.SubscriptionOwnerType
+import com.docuhyphen.app.api.service.subscription.SubscriptionStatus
+import com.docuhyphen.app.api.service.subscription.SubscriptionUsage
 import io.quarkus.security.UnauthorizedException
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.mock
+import org.mockito.kotlin.any
+import org.mockito.kotlin.eq
 import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
@@ -26,9 +33,8 @@ class OrganizationMemberCapacityServiceTest
     }
     private val organizationId = UUID.randomUUID()
     private val organizationService = mock<OrganizationService>()
-    private val policyRepository = mock<OrganizationSubscriptionPolicyRepository>()
+    private val subscriptionAccessService = mock<SubscriptionAccessService>()
     private val userRoleService = mock<UserRoleService>()
-    private val membershipService = mock<OrganizationMembershipService>()
 
     @Test
     fun `global APP_ADMIN alone cannot use the tenant member capacity service`()
@@ -42,7 +48,7 @@ class OrganizationMemberCapacityServiceTest
         }
 
         verify(organizationService, never()).getOrganizationById(organizationId)
-        verify(policyRepository, never()).findByOrganizationId(organizationId)
+        verify(subscriptionAccessService, never()).resolve(org.mockito.kotlin.any())
     }
 
     @Test
@@ -54,15 +60,26 @@ class OrganizationMemberCapacityServiceTest
             name = "Acme"
             registrationNumber = "REG-1"
         }
-        val policy = OrganizationSubscriptionPolicy().apply {
-            this.organization = organization
-            tierCode = "BUSINESS"
-            maxUsers = 20
-        }
+        val subscription = EffectiveSubscription(
+            ownerType = SubscriptionOwnerType.ORGANIZATION,
+            ownerId = organizationId,
+            planCode = PlanCode.BUSINESS,
+            status = SubscriptionStatus.ACTIVE,
+            features = emptySet(),
+            limits = PlanCatalog.definitionOf(PlanCode.BUSINESS).limits,
+            billingFrequency = null,
+            currentPeriodStart = null,
+            currentPeriodEnd = null,
+            gracePeriodEnd = null,
+            purchasedSeats = 20,
+            upgradePlanCode = null,
+        )
         whenever(userRoleService.isOrgAdminIn(user.id, organizationId)).thenReturn(true)
         whenever(organizationService.getOrganizationById(organizationId)).thenReturn(organization)
-        whenever(policyRepository.findByOrganizationId(organizationId)).thenReturn(policy)
-        whenever(membershipService.activeProvisionedMemberCount(organizationId)).thenReturn(8)
+        whenever(subscriptionAccessService.resolve(org.mockito.kotlin.any())).thenReturn(subscription)
+        whenever(subscriptionAccessService.measureUsage(eq(subscription), any())).thenReturn(
+            SubscriptionUsage(activeSeats = 8),
+        )
 
         val result = service(context).getForOrganization(organizationId)
 
@@ -81,8 +98,7 @@ class OrganizationMemberCapacityServiceTest
         OrganizationMemberCapacityService(
             authTokenContext = context,
             organizationService = organizationService,
-            organizationSubscriptionPolicyRepository = policyRepository,
+            subscriptionAccessService = subscriptionAccessService,
             userRoleService = userRoleService,
-            organizationMembershipService = membershipService,
         )
 }

@@ -40,6 +40,12 @@ const PlatformAdministrationMenu = ({
                 Organizations
             </Tab>
             <Tab
+                id={`${idPrefix}-user-subscriptions-tab`}
+                icon={<SettingsAppAdminsIcon/>}
+                value={platformAdministrationTabIds.userSubscriptions}>
+                User Subscriptions
+            </Tab>
+            <Tab
                 id={`${idPrefix}-content-tab`}
                 icon={<SettingsBlueprintsTabIcon/>}
                 value={platformAdministrationTabIds.platformContent}>

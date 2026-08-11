@@ -12,8 +12,8 @@ export const documentLibraryOverviewArticle = (
         <h3>Three library scopes</h3>
         <ul>
             <li>
-                <b>My Documents (Personal)</b> - private to you. Any user can create and
-                manage personal library documents.
+                <b>My Documents (Personal)</b> - private to you. Personal and Business
+                plans can create and manage personal library documents.
             </li>
             <li>
                 <b>Organization</b> - shared across your organization. Organization Admins
@@ -21,12 +21,12 @@ export const documentLibraryOverviewArticle = (
                 other members can see or pick it.
             </li>
             <li>
-                <b>Platform</b> - curated by DocuHyphen and available to all users. Only
+                <b>Platform</b> - curated by DocuHyphen and available with Document Library access. Only
                 App Admins can create and manage platform documents from
                 <b> Platform Administration - Platform Content - Documents</b>. The
                 Document Library in Settings keeps platform documents available for
                 browsing and cloning but does not expose platform management actions.
-                Any user can clone a platform document into their personal library.
+                An entitled user can clone a platform document into their personal library.
                 App Admin access alone does not allow management of Organization
                 documents; that requires a separate Organization Admin role in the
                 active organization.
@@ -58,7 +58,7 @@ export const documentLibraryOverviewArticle = (
             On the Documents tab of the Exchange initiation dialog, click
             <b> Pick from Library</b> to open a three-tab picker. Selecting a library
             document adds it as a pre-titled slot; the file is copied into the Exchange
-            on submission.
+            on submission. Free does not show this action; adding a new document slot remains available.
         </p>
 
         <h3>Cloning platform documents</h3>

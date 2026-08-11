@@ -31,6 +31,7 @@ class VariableDefinitionService @Inject constructor(
     private val authorizationService: AuthorizationService,
     private val authorizationContextFactory: AuthorizationContextFactory,
     private val userRoleService: UserRoleService,
+    private val variableSubscriptionGuard: VariableSubscriptionGuard,
 )
 {
     companion object
@@ -94,6 +95,7 @@ class VariableDefinitionService @Inject constructor(
             actorId = principal.id,
             context = context,
         )
+        requirePlanAllowance(scope, principal.id, activeOrgId)
 
         val variable = VariableDefinition().apply {
             this.key = normalizedKey
@@ -117,6 +119,7 @@ class VariableDefinitionService @Inject constructor(
             actorId = principal.id,
             context = context,
         )
+        requirePlanAllowance(variable.scope, variable.createdByAppUserId, variable.organizationId)
         request.defaultValue?.let { variable.defaultValue = it.takeIf { v -> v.isNotBlank() } }
         request.isActive?.let { variable.isActive = it }
         return repository.update(variable).toDto()
@@ -134,6 +137,7 @@ class VariableDefinitionService @Inject constructor(
             actorId = principal.id,
             context = context,
         )
+        requirePlanAllowance(variable.scope, variable.createdByAppUserId, variable.organizationId)
         variable.isDeleted = true
         variable.isActive = false
         repository.update(variable)
@@ -161,6 +165,19 @@ class VariableDefinitionService @Inject constructor(
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
+
+    /**
+     * Charges the change to whoever owns the variable, so an organization variable is always paid
+     * for by that organization and a personal one by the person who created it.
+     */
+    private fun requirePlanAllowance(scope: VariableScope, ownerUserId: UUID?, organizationId: UUID?)
+    {
+        when (scope)
+        {
+            VariableScope.ORG -> organizationId?.let(variableSubscriptionGuard::requireOrganizationManagement)
+            VariableScope.PERSONAL -> ownerUserId?.let(variableSubscriptionGuard::requirePersonalManagement)
+        }
+    }
 
     private fun currentPrincipal(): PrincipalRef =
         authorizationContextFactory.currentPrincipal()

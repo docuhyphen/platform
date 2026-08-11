@@ -12,6 +12,8 @@ import com.docuhyphen.app.api.service.auth.AuthAuditService
 import com.docuhyphen.app.api.service.communication.EmailService
 import com.docuhyphen.app.api.service.communication.EmailTemplateService
 import com.docuhyphen.app.api.service.config.ConfigurationService
+import com.docuhyphen.app.api.service.subscription.OrganizationFeatureSubscriptionGuard
+import com.docuhyphen.app.api.service.subscription.PlanFeature
 import io.quarkus.security.UnauthorizedException
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
@@ -30,6 +32,7 @@ class OrganizationService @Inject constructor(
     private val configurationService: ConfigurationService,
     private val userRoleService: UserRoleService,
     private val organizationMembershipService: OrganizationMembershipService,
+    private val subscriptionGuard: OrganizationFeatureSubscriptionGuard,
 )
 {
     companion object
@@ -59,6 +62,7 @@ class OrganizationService @Inject constructor(
 
         val organization = organizationGroupService.getOrganizationById(UUID.fromString(organizationId))
             ?: throw OrganizationNotFoundException("Organization not found for id: $organizationId")
+        subscriptionGuard.requireMutation(organization.id, PlanFeature.ORGANIZATION_ADMINISTRATION)
         val beforeSnapshot = organizationSnapshot(organization)
 
         val updatedFields = mutableListOf<String>()
@@ -112,6 +116,11 @@ class OrganizationService @Inject constructor(
     {
         return organizationRepository.findById(organizationId)
             ?: throw OrganizationNotFoundException("Organization not found for id: $organizationId")
+    }
+
+    fun findAllOrganizations(): List<Organization>
+    {
+        return organizationRepository.findAll()
     }
 
     fun getAppUsers(organizationId: String?): List<AppUser>

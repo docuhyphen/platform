@@ -498,4 +498,113 @@ class ExchangeRepository : BaseRepository<Exchange>(Exchange::class.java)
             .resultList
             .firstOrNull()
     }
+
+    /**
+     * Exchanges owned personally by a user and created inside the given half-open window.
+     * Organization-owned Exchanges are excluded because the organization pays for those.
+     */
+    fun countCreatedByOwnerUserBetween(
+        ownerUserId: UUID,
+        fromInclusive: Timestamp,
+        toExclusive: Timestamp,
+    ): Long
+    {
+        return entityManager.createQuery(
+            """
+                SELECT COUNT(s)
+                FROM Exchange s
+                WHERE s.ownerUserId = :ownerUserId
+                  AND s.ownerOrganizationId IS NULL
+                  AND s.isDeleted = false
+                  AND s.createdDate >= :fromInclusive
+                  AND s.createdDate < :toExclusive
+            """.trimIndent(),
+            java.lang.Long::class.java,
+        )
+            .setParameter("ownerUserId", ownerUserId)
+            .setParameter("fromInclusive", fromInclusive)
+            .setParameter("toExclusive", toExclusive)
+            .singleResult
+            .toLong()
+    }
+
+    /** Exchanges owned by an organization and created inside the given half-open window. */
+    fun countCreatedByOwnerOrganizationBetween(
+        ownerOrganizationId: UUID,
+        fromInclusive: Timestamp,
+        toExclusive: Timestamp,
+    ): Long
+    {
+        return entityManager.createQuery(
+            """
+                SELECT COUNT(s)
+                FROM Exchange s
+                WHERE s.ownerOrganizationId = :ownerOrganizationId
+                  AND s.isDeleted = false
+                  AND s.createdDate >= :fromInclusive
+                  AND s.createdDate < :toExclusive
+            """.trimIndent(),
+            java.lang.Long::class.java,
+        )
+            .setParameter("ownerOrganizationId", ownerOrganizationId)
+            .setParameter("fromInclusive", fromInclusive)
+            .setParameter("toExclusive", toExclusive)
+            .singleResult
+            .toLong()
+    }
+
+    /** Exchanges owned personally by a user that currently hold one of the given statuses. */
+    fun countByOwnerUserAndStatuses(
+        ownerUserId: UUID,
+        statuses: Collection<ExchangeStatus>,
+    ): Long
+    {
+        if (statuses.isEmpty())
+        {
+            return 0
+        }
+
+        return entityManager.createQuery(
+            """
+                SELECT COUNT(s)
+                FROM Exchange s
+                WHERE s.ownerUserId = :ownerUserId
+                  AND s.ownerOrganizationId IS NULL
+                  AND s.isDeleted = false
+                  AND s.status IN :statuses
+            """.trimIndent(),
+            java.lang.Long::class.java,
+        )
+            .setParameter("ownerUserId", ownerUserId)
+            .setParameter("statuses", statuses)
+            .singleResult
+            .toLong()
+    }
+
+    /** Exchanges owned by an organization that currently hold one of the given statuses. */
+    fun countByOwnerOrganizationAndStatuses(
+        ownerOrganizationId: UUID,
+        statuses: Collection<ExchangeStatus>,
+    ): Long
+    {
+        if (statuses.isEmpty())
+        {
+            return 0
+        }
+
+        return entityManager.createQuery(
+            """
+                SELECT COUNT(s)
+                FROM Exchange s
+                WHERE s.ownerOrganizationId = :ownerOrganizationId
+                  AND s.isDeleted = false
+                  AND s.status IN :statuses
+            """.trimIndent(),
+            java.lang.Long::class.java,
+        )
+            .setParameter("ownerOrganizationId", ownerOrganizationId)
+            .setParameter("statuses", statuses)
+            .singleResult
+            .toLong()
+    }
 }

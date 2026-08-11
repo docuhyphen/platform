@@ -54,6 +54,7 @@ class SchemaAssignmentService @Inject constructor(
     private val selectionRepository: FieldValueSelectionRepository,
     private val validator: FieldValueValidator,
     private val authorizationContextFactory: AuthorizationContextFactory,
+    private val subscriptionGuard: BusinessFieldsSubscriptionGuard,
 )
 {
     // ── Reads ─────────────────────────────────────────────────────────────────
@@ -90,6 +91,7 @@ class SchemaAssignmentService @Inject constructor(
         adapter.authorizeManageFields(resourceId, principal, context)
         if (!adapter.valuesEditable(resourceId))
             throw IllegalStateException("This resource can no longer have its schema changed")
+        subscriptionGuard.requireResourceMutation(adapter.subscriptionContext(resourceId))
         if (assignmentRepository.findByResource(resourceType, resourceId) != null)
             throw IllegalStateException("A schema is already assigned; remove it before assigning another")
 
@@ -126,6 +128,7 @@ class SchemaAssignmentService @Inject constructor(
         adapter.authorizeManageFields(resourceId, principal, context)
         if (!adapter.valuesEditable(resourceId))
             throw IllegalStateException("This resource can no longer have its schema removed")
+        subscriptionGuard.requireResourceMutation(adapter.subscriptionContext(resourceId))
 
         val assignment = assignmentRepository.findByResource(resourceType, resourceId)
             ?: throw IllegalArgumentException("No schema is assigned")
@@ -146,6 +149,7 @@ class SchemaAssignmentService @Inject constructor(
         adapter.authorizeManageFields(resourceId, principal, context)
         if (!adapter.valuesEditable(resourceId))
             throw IllegalStateException("Field values can no longer be edited for this resource")
+        subscriptionGuard.requireResourceMutation(adapter.subscriptionContext(resourceId))
 
         val assignment = assignmentRepository.findByResource(resourceType, resourceId)
             ?: throw IllegalArgumentException("No schema is assigned")

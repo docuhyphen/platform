@@ -48,7 +48,7 @@ export const fieldsOverviewArticle = (
         <h3>Organization fields and schemas</h3>
         <p>
             Open <b>Settings</b> and select the <b>Fields</b> tab. It is available to
-            organization administrators. An App Administrator needs a separate Organization
+            organization administrators on the organization&apos;s Business plan. An App Administrator needs a separate Organization
             Admin role in the active organization to manage that organization's fields and
             schemas. Platform fields and schemas can be viewed here when available, but their
             management actions are not shown. The tab has two sub-tabs:
@@ -57,6 +57,10 @@ export const fieldsOverviewArticle = (
             <li><b>Fields</b> - create and retire reusable field definitions.</li>
             <li><b>Schemas</b> - compose fields into schemas, publish, and version them.</li>
         </ul>
+        <p>
+            If the Business entitlement or mutation access is unavailable, existing definitions,
+            schemas, assignments, and values stay readable, but configuration changes are refused.
+        </p>
 
         <h3>Platform fields and schemas</h3>
         <p>

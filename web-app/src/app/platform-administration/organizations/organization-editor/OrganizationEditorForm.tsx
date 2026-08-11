@@ -1,8 +1,8 @@
 import {
     Button,
+    Caption1,
     Checkbox,
     Field,
-    Input,
     MessageBar,
     MessageBarBody,
     Spinner,
@@ -10,6 +10,7 @@ import {
 } from "@fluentui/react-components";
 import {AddRegular} from "@fluentui/react-icons";
 import OrganizationEntitlementRow from "./OrganizationEntitlementRow.tsx";
+import OrganizationSubscriptionFields from "./OrganizationSubscriptionFields.tsx";
 import {useOrganizationEditorStyles} from "./OrganizationEditorStyles.tsx";
 import {useOrganizationEditor} from "./useOrganizationEditor.ts";
 
@@ -33,31 +34,19 @@ const OrganizationEditorForm = ({editor}: OrganizationEditorFormProps) =>
                     </MessageBarBody>
                 </MessageBar>
             )}
+            <OrganizationSubscriptionFields editor={editor}/>
             <div
-                id={"platform-organization-policy-fields"}
-                className={styles.policyGrid}>
-                <Field
-                    id={"platform-organization-tier-code-field"}
-                    label={"Tier code"}
-                    required>
-                    <Input
-                        id={"platform-organization-tier-code-input"}
-                        value={editor.tierCode}
-                        disabled={editor.saving}
-                        onChange={(_, data) => editor.setTierCode(data.value.toUpperCase())}/>
-                </Field>
-                <Field
-                    id={"platform-organization-max-users-field"}
-                    label={"Licensed capacity"}
-                    hint={"Leave blank for unlimited"}>
-                    <Input
-                        id={"platform-organization-max-users-input"}
-                        type={"number"}
-                        min={1}
-                        value={editor.maxUsers}
-                        disabled={editor.saving}
-                        onChange={(_, data) => editor.setMaxUsers(data.value)}/>
-                </Field>
+                id={"platform-organization-seat-usage"}
+                className={styles.seatUsage}>
+                <Caption1 id={"platform-organization-purchased-seats"}>
+                    Purchased seats: {editor.maxUsers || "Unassigned"}
+                </Caption1>
+                <Caption1 id={"platform-organization-active-seats"}>
+                    Active seats: {editor.activeSeats}
+                </Caption1>
+                <Caption1 id={"platform-organization-remaining-seats"}>
+                    Remaining seats: {editor.remainingSeats ?? "Uncapped"}
+                </Caption1>
             </div>
             <div
                 id={"platform-organization-status-fields"}
@@ -77,7 +66,8 @@ const OrganizationEditorForm = ({editor}: OrganizationEditorFormProps) =>
             </div>
             <Field
                 id={"platform-organization-change-reason-field"}
-                label={"Change reason"}>
+                label={"Change reason"}
+                required>
                 <Textarea
                     id={"platform-organization-change-reason-input"}
                     value={editor.changeReason}

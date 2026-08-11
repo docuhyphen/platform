@@ -1,5 +1,6 @@
 package com.docuhyphen.app.api.resource.audit
 
+import com.docuhyphen.app.api.exception.SubscriptionDenialException
 import com.docuhyphen.app.api.model.dto.AuditExportApprovalRequestDto
 import com.docuhyphen.app.api.model.dto.AuditExportCreateRequestDto
 import com.docuhyphen.app.api.model.dto.AuditExportDtoMapper
@@ -25,6 +26,7 @@ import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
 import java.time.Instant
 import java.util.UUID
+import org.slf4j.LoggerFactory
 
 /** Given its own class-level path; see AuditOrganizationEventsResource for why this class is not merged with others. */
 @Path("/organizations/{organizationId}/audit-exports")
@@ -36,6 +38,10 @@ class AuditOrganizationExportsResource @Inject constructor(
     private val auditExportService: AuditExportService,
 )
 {
+    companion object
+    {
+        private val logger = LoggerFactory.getLogger(AuditOrganizationExportsResource::class.java)
+    }
     @POST
     fun requestOrganizationExport(
         @PathParam("organizationId") organizationId: String,
@@ -150,6 +156,11 @@ class AuditOrganizationExportsResource @Inject constructor(
         return try
         {
             block()
+        }
+        catch (e: SubscriptionDenialException)
+        {
+            logger.warn("Organization audit-export request refused by subscription policy", e)
+            throw e
         }
         catch (e: IllegalArgumentException)
         {

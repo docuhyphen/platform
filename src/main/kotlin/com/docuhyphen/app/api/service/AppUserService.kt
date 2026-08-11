@@ -15,6 +15,7 @@ import com.docuhyphen.app.api.service.communication.EmailTemplateService
 import com.docuhyphen.app.api.service.communication.OtpService
 import com.docuhyphen.app.api.service.config.ConfigurationService
 import com.docuhyphen.app.api.service.exchange.ExchangeRetrievalService
+import com.docuhyphen.app.api.service.subscription.SubscriptionPolicyService
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
 import org.slf4j.LoggerFactory
@@ -35,7 +36,8 @@ class AppUserService @Inject constructor(
     val configurationService: ConfigurationService,
     val signOutService: SignOutService,
     val exchangeService: ExchangeRetrievalService,
-    val serviceActionAuthorizationService: ServiceActionAuthorizationService
+    val serviceActionAuthorizationService: ServiceActionAuthorizationService,
+    val subscriptionPolicyService: SubscriptionPolicyService
 )
 {
     companion object
@@ -47,6 +49,11 @@ class AppUserService @Inject constructor(
     fun getById(id: UUID): AppUser?
     {
         return appUserRepository.findById(id)
+    }
+
+    fun getByIdWithPerson(id: UUID): AppUser?
+    {
+        return appUserRepository.findByIdWithPerson(id)
     }
 
     fun findByEmail(email: String): AppUser?
@@ -64,9 +71,37 @@ class AppUserService @Inject constructor(
         return appUserRepository.searchActiveUsers(query, limit)
     }
 
+    fun findForSubscriptionAdministration(query: String?, limit: Int, offset: Int): List<AppUser>
+    {
+        return appUserRepository.findForSubscriptionAdministration(query, limit, offset)
+    }
+
+    fun countForSubscriptionAdministration(query: String?): Long
+    {
+        return appUserRepository.countForSubscriptionAdministration(query)
+    }
+
     fun create(user: AppUser): AppUser
     {
-        return appUserRepository.save(user)
+        val saved = appUserRepository.save(user)
+        provisionSubscriptionIfRegistered(saved)
+        return saved
+    }
+
+    /**
+     * Gives a registered account its individual subscription record. Temporary recipient
+     * placeholders and machine accounts are skipped: neither is a subscriber and neither
+     * consumes a paid seat.
+     */
+    fun provisionSubscriptionIfRegistered(user: AppUser)
+    {
+        if (user.isTemporary || user.application != null)
+        {
+            return
+        }
+
+        runCatching { subscriptionPolicyService.ensureUserPolicy(user.id) }
+            .onFailure { logger.warn("Failed to create subscription record for app user {}", user.id, it) }
     }
 
     fun update(user: AppUser)

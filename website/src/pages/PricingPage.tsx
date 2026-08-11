@@ -15,6 +15,7 @@ import {PageShell} from "../shared/PageShell.tsx";
 import {SIGN_UP_URL} from "../landing/shared.ts";
 import {featureRows, pricingPlans} from "./PricingPageData.ts";
 import type {BillingFrequency} from "./PricingPageData.ts";
+import {PricingFeatureValue} from "./PricingFeatureValue.tsx";
 import {usePricingPageStyles} from "./PricingPageStyles.tsx";
 
 export function PricingPage()
@@ -131,9 +132,10 @@ export function PricingPage()
                                         <TableHeaderCell className={styles.featureCell}>{feature}</TableHeaderCell>
                                         {[free, personal, business].map((value, index) => (
                                             <TableCell key={`${feature}-${index}`}>
-                                                {value === "Included" || value === "Not included"
-                                                    ? <strong>{value}</strong>
-                                                    : value}
+                                                <PricingFeatureValue
+                                                    id={`pricing-value-${feature}-${index}`}
+                                                    value={value}
+                                                />
                                             </TableCell>
                                         ))}
                                     </TableRow>
@@ -146,6 +148,9 @@ export function PricingPage()
                             joining your organization or purchasing an account.</Text>
                         <Text><strong>Business billing stays simple.</strong> Every active organization member is one
                             paid seat.</Text>
+                        <Text><strong>Reminders run inside a workflow.</strong> Workflow automation, including
+                            reminders, is a Business capability today. It is not part of the Free or Personal plans,
+                            and we will only publish a Personal option once it exists.</Text>
                         <Text><strong>Prices are in rand.</strong> Published prices include 15% VAT where DocuHyphen is
                             required to charge VAT.</Text>
                     </div>

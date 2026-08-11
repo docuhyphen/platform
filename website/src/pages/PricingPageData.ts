@@ -55,7 +55,7 @@ export const featureRows = [
     ["Advanced access controls", "Basic permissions", "Roles, restrictions, watermarking and MFA", "Roles, restrictions, policies and internal notes"],
     ["Variables and sequences", "Not included", "Personal", "Personal and organization"],
     ["Business Fields and schemas", "Not included", "Not included", "Included"],
-    ["Workflow automation", "Not included", "Simple reminders", "Approvals, conditions, actions and escalations"],
+    ["Workflow automation", "Not included", "Coming soon", "Approvals, conditions, actions and escalations"],
     ["Organization administration", "Not included", "Not included", "Roles, groups, member policies and shared content"],
     ["Audit and governance", "Basic Exchange activity", "Extended Exchange activity", "Audit workspace, exports, retention and integrity"],
     ["Identity and integrations", "Not included", "Not included", "SSO, SCIM, registered applications and webhooks"],

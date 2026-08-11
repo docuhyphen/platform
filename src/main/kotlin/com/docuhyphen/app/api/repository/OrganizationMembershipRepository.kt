@@ -35,6 +35,7 @@ class OrganizationMembershipRepository :
                WHERE m.organizationId IN :organizationIds
                  AND m.status = :status
                  AND u.isActive = true
+                 AND u.isTemporary = false
                  AND u.deprovisionedAt IS NULL
                GROUP BY m.organizationId""",
             Array<Any>::class.java,
@@ -75,6 +76,17 @@ class OrganizationMembershipRepository :
             .setParameter("uid", appUserId)
             .setParameter("oid", organizationId)
             .setParameter("status", OrganizationMembershipStatus.ACTIVE)
+            .resultList
+            .firstOrNull()
+
+    fun findByUserAndOrg(appUserId: UUID, organizationId: UUID): OrganizationMembership? =
+        entityManager.createQuery(
+            """SELECT m FROM OrganizationMembership m
+               WHERE m.appUserId = :uid AND m.organizationId = :oid""",
+            OrganizationMembership::class.java,
+        )
+            .setParameter("uid", appUserId)
+            .setParameter("oid", organizationId)
             .resultList
             .firstOrNull()
 

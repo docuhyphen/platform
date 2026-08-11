@@ -2,6 +2,7 @@ package com.docuhyphen.app.api.resource.organization
 
 import com.docuhyphen.app.api.exception.AppUserNotFoundException
 import com.docuhyphen.app.api.exception.OrganizationNotFoundException
+import com.docuhyphen.app.api.exception.SubscriptionDenialException
 import com.docuhyphen.app.api.model.DetailedEntityToDtoTransformer
 import com.docuhyphen.app.api.resource.model.AddOrganizationAppUserRequest
 import com.docuhyphen.app.api.resource.model.ResponseError
@@ -68,6 +69,11 @@ class OrganizationAppUserResource @Inject constructor(
                 .entity(DetailedEntityToDtoTransformer.toPublicDto(appUser))
                 .build()
         }
+        catch (exception: SubscriptionDenialException)
+        {
+            logger.error("Subscription denied while adding an organization app user", exception)
+            throw exception
+        }
         catch (exception: Exception)
         {
             if (exception is jakarta.ws.rs.WebApplicationException) throw exception
@@ -124,6 +130,11 @@ class OrganizationAppUserResource @Inject constructor(
             Response
                 .ok(appUsers)
                 .build()
+        }
+        catch (exception: SubscriptionDenialException)
+        {
+            logger.error("Subscription denied while updating an organization app user", exception)
+            throw exception
         }
         catch (exception: Exception)
         {
@@ -197,6 +208,11 @@ class OrganizationAppUserResource @Inject constructor(
 
             Response.status(NO_CONTENT).build()
         }
+        catch (exception: SubscriptionDenialException)
+        {
+            logger.warn("Subscription denied while changing an organization app user", exception)
+            throw exception
+        }
         catch (exception: Exception)
         {
             if (exception is jakarta.ws.rs.WebApplicationException) throw exception
@@ -256,6 +272,11 @@ class OrganizationAppUserResource @Inject constructor(
             Response
                 .status(NO_CONTENT)
                 .build()
+        }
+        catch (exception: SubscriptionDenialException)
+        {
+            logger.warn("Subscription denied while removing an organization app user", exception)
+            throw exception
         }
         catch (exception: Exception)
         {

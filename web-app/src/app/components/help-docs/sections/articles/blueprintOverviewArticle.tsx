@@ -35,8 +35,8 @@ export const blueprintOverviewArticle = (
         <h3>Three blueprint scopes</h3>
         <ul>
             <li>
-                <b>My Blueprints (Personal)</b> - visible only to you. Any user can
-                create personal blueprints. Use these for your own recurring workflows.
+                <b>My Blueprints (Personal)</b> - visible only to you. Personal and
+                Business plans can create them for recurring Exchange configurations.
             </li>
             <li>
                 <b>Organization</b> - shared across your organization. Only
@@ -45,14 +45,18 @@ export const blueprintOverviewArticle = (
                 members.
             </li>
             <li>
-                <b>Platform</b> - provided by DocuHyphen. Available to all users
-                across all organizations. Only App Admins can create platform
-                blueprints. Any user can clone a platform blueprint into their own
+                <b>Platform</b> - provided by DocuHyphen. Available when the current
+                Personal or Business plan includes Blueprints. Only App Admins can create platform
+                blueprints. An entitled user can clone a platform blueprint into their own
                 personal blueprints.
             </li>
         </ul>
 
         <h3>Where blueprints appear</h3>
+        <p>
+            Free includes the basic Exchange flow without Blueprints, so <b>From Blueprint</b>
+            and the Blueprint settings entry are not shown while Free enforcement is active.
+        </p>
         <ul>
             <li>
                 <b>Exchange initiation picker</b> - when starting a new Exchange,

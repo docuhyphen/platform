@@ -38,6 +38,18 @@ class AppUserRepository : BaseRepository<AppUser>(AppUser::class.java)
         return query.resultList.firstOrNull()
     }
 
+    fun findByIdWithPerson(id: UUID): AppUser?
+    {
+        val query: TypedQuery<AppUser> = entityManager.createQuery(
+            """SELECT a FROM AppUser a
+               LEFT JOIN FETCH a.person
+               WHERE a.id = :id""",
+            AppUser::class.java,
+        )
+        query.setParameter("id", id)
+        return query.resultList.firstOrNull()
+    }
+
     /**
      * Variant that excludes temporary placeholder rows (created by the no-auth recipient
      * flow when an initiator shares with an email that doesn't yet have an account). Used
@@ -98,6 +110,41 @@ class AppUserRepository : BaseRepository<AppUser>(AppUser::class.java)
         typed.setParameter("pattern", pattern)
         typed.maxResults = limit.coerceIn(1, 50)
         return typed.resultList
+    }
+
+    fun findForSubscriptionAdministration(query: String?, limit: Int, offset: Int): List<AppUser>
+    {
+        val normalized = query?.trim()?.lowercase()?.takeIf { it.isNotBlank() }
+        val jpql = buildString {
+            append("SELECT a FROM AppUser a LEFT JOIN FETCH a.person p ")
+            append("WHERE a.isTemporary = false AND a.application IS NULL ")
+            if (normalized != null)
+            {
+                append("AND (LOWER(a.email) LIKE :query OR LOWER(p.firstName) LIKE :query OR LOWER(p.lastName) LIKE :query) ")
+            }
+            append("ORDER BY LOWER(a.email)")
+        }
+        val typed = entityManager.createQuery(jpql, AppUser::class.java)
+        normalized?.let { typed.setParameter("query", "%$it%") }
+        typed.firstResult = offset
+        typed.maxResults = limit
+        return typed.resultList
+    }
+
+    fun countForSubscriptionAdministration(query: String?): Long
+    {
+        val normalized = query?.trim()?.lowercase()?.takeIf { it.isNotBlank() }
+        val jpql = buildString {
+            append("SELECT COUNT(a) FROM AppUser a LEFT JOIN a.person p ")
+            append("WHERE a.isTemporary = false AND a.application IS NULL ")
+            if (normalized != null)
+            {
+                append("AND (LOWER(a.email) LIKE :query OR LOWER(p.firstName) LIKE :query OR LOWER(p.lastName) LIKE :query)")
+            }
+        }
+        val typed = entityManager.createQuery(jpql, java.lang.Long::class.java)
+        normalized?.let { typed.setParameter("query", "%$it%") }
+        return typed.singleResult.toLong()
     }
 
     fun detach(user: AppUser)

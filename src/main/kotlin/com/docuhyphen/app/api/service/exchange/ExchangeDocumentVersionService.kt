@@ -51,6 +51,7 @@ class ExchangeDocumentVersionService @Inject constructor(
     private val authorizationService: AuthorizationService,
     private val authorizationContextFactory: AuthorizationContextFactory,
     private val auditRecorder: AuditRecorder,
+    private val exchangeFeatureSubscriptionGuard: ExchangeFeatureSubscriptionGuard,
 )
 {
     companion object
@@ -66,6 +67,7 @@ class ExchangeDocumentVersionService @Inject constructor(
             ?: throw ExchangeNotFoundException("Exchange not found")
 
         validateUploadPermission(exchange)
+        exchangeFeatureSubscriptionGuard.requireDocumentVersionHistory(exchange)
 
         val document = exchangeDocumentRepository.findByDocumentId(UUID.fromString(documentId))
             ?: throw ExchangeDocumentNotFoundException("Document not found")
@@ -83,6 +85,10 @@ class ExchangeDocumentVersionService @Inject constructor(
      * the document upload flow. The upload flow has already validated permissions, so no
      * additional authorization check is performed here. This keeps every uploaded file (including
      * the very first one) visible in the document's version history.
+     *
+     * No commercial check runs here either. The snapshot belongs to the upload the caller has
+     * already been allowed to make, and dropping it would silently discard the only stored copy
+     * of that file.
      */
     @Transactional
     fun recordUploadedFileAsVersion(document: Document, file: File, currentUserEmail: String?): DocumentVersion

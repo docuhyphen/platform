@@ -15,6 +15,7 @@ import com.docuhyphen.app.api.service.communication.EmailService
 import com.docuhyphen.app.api.service.communication.EmailTemplateService
 import com.docuhyphen.app.api.service.communication.OtpService
 import com.docuhyphen.app.api.service.config.ConfigurationService
+import com.docuhyphen.app.api.service.subscription.SubscriptionPolicyService
 import org.mindrot.jbcrypt.BCrypt
 import org.mockito.kotlin.any
 import org.mockito.kotlin.mock
@@ -55,6 +56,8 @@ internal class SignUpPermutationFixture(
         userContactService,
         exchangeRepository,
         mock<DisposableEmailDomainService>(),
+        mock<SubscriptionPolicyService>(),
+        mock<com.docuhyphen.app.api.service.organization.OrganizationMembershipService>(),
     )
 
     init

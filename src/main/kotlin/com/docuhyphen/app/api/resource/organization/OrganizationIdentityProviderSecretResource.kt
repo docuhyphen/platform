@@ -1,5 +1,6 @@
 package com.docuhyphen.app.api.resource.organization
 
+import com.docuhyphen.app.api.exception.SubscriptionDenialException
 import com.docuhyphen.app.api.resource.model.OrganizationIdpSecretActivateRequest
 import com.docuhyphen.app.api.resource.model.OrganizationIdpSecretRetireRequest
 import com.docuhyphen.app.api.resource.model.OrganizationIdpSecretRollbackResponse
@@ -239,6 +240,11 @@ class OrganizationIdentityProviderSecretResource @Inject constructor(
 
     private fun handleException(message: String, exception: Exception): Response
     {
+        if (exception is SubscriptionDenialException)
+        {
+            logger.warn("Organization identity-provider secret operation refused by subscription policy: {}", message, exception)
+            throw exception
+        }
         logger.error(message, exception)
 
         return when (exception)

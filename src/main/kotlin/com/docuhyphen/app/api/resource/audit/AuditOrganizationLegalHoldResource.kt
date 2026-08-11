@@ -1,5 +1,6 @@
 package com.docuhyphen.app.api.resource.audit
 
+import com.docuhyphen.app.api.exception.SubscriptionDenialException
 import com.docuhyphen.app.api.model.dto.AuditGovernanceDtoMapper
 import com.docuhyphen.app.api.model.dto.AuditLegalHoldCreateRequestDto
 import com.docuhyphen.app.api.resource.model.ResponseError
@@ -20,6 +21,7 @@ import jakarta.ws.rs.Produces
 import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
 import java.util.UUID
+import org.slf4j.LoggerFactory
 
 /** Given its own class-level path; see AuditOrganizationEventsResource for why this class is not merged with others. */
 @Path("/organizations/{organizationId}/audit-legal-holds")
@@ -31,6 +33,10 @@ class AuditOrganizationLegalHoldResource @Inject constructor(
     private val auditLegalHoldService: AuditLegalHoldService,
 )
 {
+    companion object
+    {
+        private val logger = LoggerFactory.getLogger(AuditOrganizationLegalHoldResource::class.java)
+    }
     @POST
     fun placeOrganizationLegalHold(
         @PathParam("organizationId") organizationId: String,
@@ -80,6 +86,11 @@ class AuditOrganizationLegalHoldResource @Inject constructor(
         return try
         {
             block()
+        }
+        catch (e: SubscriptionDenialException)
+        {
+            logger.warn("Organization audit legal-hold change refused by subscription policy", e)
+            throw e
         }
         catch (e: IllegalArgumentException)
         {

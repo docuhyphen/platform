@@ -22,16 +22,8 @@ class PlatformOrganizationDtoMapper
         entitlements: List<OrganizationFeatureEntitlement>,
     ): PlatformOrganizationSummaryDto
     {
-        val tierCode = policy?.tierCode ?: PlatformOrganizationSubscriptionPolicyService.FREE_TIER_CODE
-        val maxUsers = policy?.maxUsers
-            ?: if (tierCode == PlatformOrganizationSubscriptionPolicyService.FREE_TIER_CODE)
-            {
-                PlatformOrganizationSubscriptionPolicyService.FREE_TIER_MAX_USERS
-            }
-            else
-            {
-                null
-            }
+        val tierCode = policy?.tierCode ?: PlatformOrganizationSubscriptionPolicyService.ORGANIZATION_TIER_CODE
+        val maxUsers = policy?.maxUsers ?: PlatformOrganizationSubscriptionPolicyService.UNASSIGNED_SEAT_CAPACITY
 
         return PlatformOrganizationSummaryDto(
             organizationId = organization.id.toString(),
@@ -42,6 +34,11 @@ class PlatformOrganizationDtoMapper
             createdDate = organization.createdDate.toInstant().toString(),
             tierCode = tierCode,
             maxUsers = maxUsers,
+            subscriptionStatus = policy?.subscriptionStatus ?: "ACTIVE",
+            billingFrequency = policy?.billingFrequency,
+            currentPeriodStart = policy?.currentPeriodStart?.toInstant()?.toString(),
+            currentPeriodEnd = policy?.currentPeriodEnd?.toInstant()?.toString(),
+            gracePeriodEnd = policy?.gracePeriodEnd?.toInstant()?.toString(),
             activeUsers = activeUsers,
             featureEntitlements = entitlements.map(::toEntitlement),
         )
@@ -64,6 +61,11 @@ class PlatformOrganizationDtoMapper
             tierCode = result.tierCode,
             maxUsers = result.maxUsers,
             currentActiveUsers = result.currentActiveUsers,
+            subscriptionStatus = result.subscriptionStatus,
+            billingFrequency = result.billingFrequency,
+            currentPeriodStart = result.currentPeriodStart?.toInstant()?.toString(),
+            currentPeriodEnd = result.currentPeriodEnd?.toInstant()?.toString(),
+            gracePeriodEnd = result.gracePeriodEnd?.toInstant()?.toString(),
             changeReason = result.changeReason,
             persisted = result.persisted,
             createdDate = result.createdDate?.toString(),

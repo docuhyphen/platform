@@ -22,7 +22,7 @@ import java.util.UUID
 class AuditLegalHoldServiceTest
 {
     private fun service(repo: AuditLegalHoldRepository = mock()): AuditLegalHoldService =
-        AuditLegalHoldService(repo, mock(), mock())
+        AuditLegalHoldService(repo, mock(), mock(), mock())
 
     @Test
     fun `placing a hold marks the resource as under hold`()

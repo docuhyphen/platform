@@ -86,6 +86,7 @@ class ExchangeAccessManagementService @Inject constructor(
     private val configurationService: ConfigurationService,
     private val auditRecorder: AuditRecorder,
     private val exchangeNotificationDeliveryService: ExchangeNotificationDeliveryService,
+    private val exchangeFeatureSubscriptionGuard: ExchangeFeatureSubscriptionGuard,
 )
 {
     companion object
@@ -105,6 +106,11 @@ class ExchangeAccessManagementService @Inject constructor(
     {
         val session = requireSessionOwnerAndReturn(exchangeId)
         val senderOrganizationId = manageAccessSenderOrganization(session, requireOrganization = false)
+        exchangeFeatureSubscriptionGuard.requireAdvancedAccessControls(
+            session,
+            constraintsJson,
+            expiresAtEpochMillis,
+        )
 
         val requestedKind = parsePrincipalKind(principalKind)
         requireAssignableRole(roleName)
@@ -180,6 +186,11 @@ class ExchangeAccessManagementService @Inject constructor(
         val session = requireSessionOwnerAndReturn(exchangeId)
         val senderOrganizationId = requireNotNull(
             manageAccessSenderOrganization(session, requireOrganization = true),
+        )
+        exchangeFeatureSubscriptionGuard.requireAdvancedAccessControls(
+            session,
+            constraintsJson,
+            expiresAtEpochMillis,
         )
         requireAssignableRole(roleName)
         val caller = authTokenContext.authToken.appUser
@@ -259,6 +270,7 @@ class ExchangeAccessManagementService @Inject constructor(
     fun changeRole(exchangeId: UUID, shareId: UUID, roleName: ExchangeShareRoleName, constraintsJson: String? = null)
     {
         val session = requireSessionOwnerAndReturn(exchangeId)
+        exchangeFeatureSubscriptionGuard.requireAdvancedAccessControls(session, constraintsJson, null)
         requireAssignableRole(roleName)
         requireMutableAccessShare(exchangeId, shareId)
         val hasConstraintsPayload = constraintsJson != null

@@ -18,7 +18,7 @@ export interface ExchangeRecipientsTabProps
     setRecipientOrgGroup: (group: OrganizationGroupBasicDto | undefined) => void;
     setRecipientResolution: (resolution?: ExternalIdentityResolution) => void;
     internalParticipants: AppUserPublicDto[];
-    setInternalParticipants: (appUser: AppUserPublicDto[] | undefined) => void;
+    setInternalParticipants: (appUser: AppUserPublicDto[]) => void;
     newRecipient: ExchangeNewMainRecipient | undefined;
     setNewRecipient: (recipient: ExchangeNewMainRecipient | undefined) => void;
     isRequestingDocuments: boolean | null | undefined;
@@ -26,4 +26,6 @@ export interface ExchangeRecipientsTabProps
     setRecipientRole: (role: ExchangeShareRoleName | undefined) => void;
     recipientConstraints: ShareConstraints;
     setRecipientConstraints: (constraints: ShareConstraints) => void;
+    allowAdditionalParticipants: boolean;
+    allowAdvancedAccessControls: boolean;
 }

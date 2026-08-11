@@ -1,5 +1,6 @@
 package com.docuhyphen.app.api.resource.audit
 
+import com.docuhyphen.app.api.exception.SubscriptionDenialException
 import com.docuhyphen.app.api.model.dto.AuditEngagementCreateRequestDto
 import com.docuhyphen.app.api.model.dto.AuditEngagementDtoMapper
 import com.docuhyphen.app.api.resource.model.ResponseError
@@ -19,6 +20,7 @@ import jakarta.ws.rs.PathParam
 import jakarta.ws.rs.Produces
 import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
+import org.slf4j.LoggerFactory
 import java.util.UUID
 
 /** Given its own class-level path; see AuditOrganizationEventsResource for why this class is not merged with others. */
@@ -31,6 +33,11 @@ class AuditOrganizationEngagementResource @Inject constructor(
     private val auditEngagementService: AuditEngagementService,
 )
 {
+    companion object
+    {
+        private val logger = LoggerFactory.getLogger(AuditOrganizationEngagementResource::class.java)
+    }
+
     @POST
     fun requestOrganizationEngagement(
         @PathParam("organizationId") organizationId: String,
@@ -92,6 +99,11 @@ class AuditOrganizationEngagementResource @Inject constructor(
         return try
         {
             block()
+        }
+        catch (e: SubscriptionDenialException)
+        {
+            logger.warn("An organization audit engagement mutation was refused by the subscription plan check: plan={}", e.denial.planCode)
+            throw e
         }
         catch (e: IllegalArgumentException)
         {

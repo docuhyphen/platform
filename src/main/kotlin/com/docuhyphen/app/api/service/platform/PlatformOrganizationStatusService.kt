@@ -10,10 +10,12 @@ import com.docuhyphen.app.api.repository.OrganizationRepository
 import com.docuhyphen.app.api.service.auth.AdminApprovalContext
 import com.docuhyphen.app.api.service.auth.AuthAuditService
 import com.docuhyphen.app.api.service.auth.UserRoleService
+import com.docuhyphen.app.api.service.subscription.SubscriptionPolicyService
 import io.quarkus.security.UnauthorizedException
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
+import org.slf4j.LoggerFactory
 import java.util.UUID
 
 @RequestScoped
@@ -22,8 +24,13 @@ class PlatformOrganizationStatusService @Inject constructor(
     private val userRoleService: UserRoleService,
     private val organizationRepository: OrganizationRepository,
     private val authAuditService: AuthAuditService,
+    private val subscriptionPolicyService: SubscriptionPolicyService,
 )
 {
+    companion object
+    {
+        private val logger = LoggerFactory.getLogger(PlatformOrganizationStatusService::class.java)
+    }
     @EnforceAdminAction("PLATFORM_ORGANIZATION_STATUS_UPDATE")
     @Transactional
     fun update(
@@ -42,6 +49,20 @@ class PlatformOrganizationStatusService @Inject constructor(
         organization.verificationComplete = request.verificationComplete
         organizationRepository.update(organization)
         val afterSnapshot = statusSnapshot(organization)
+
+        // An organization that is now active and verified is a Business subscriber, so make sure
+        // it owns a subscription record instead of relying on an implicit default.
+        if (organization.isActive && organization.verificationComplete)
+        {
+            runCatching { subscriptionPolicyService.ensureOrganizationPolicy(organization) }
+                .onFailure {
+                    logger.warn(
+                        "Failed to create subscription record for activated organization {}",
+                        organization.id,
+                        it,
+                    )
+                }
+        }
 
         authAuditService.emitRequired(
             action = "PLATFORM_ORGANIZATION_STATUS_UPDATE",

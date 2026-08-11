@@ -19,6 +19,7 @@ interface ExchangeDocumentsTabProps
     addLibraryDocument: (entry: DocumentLibraryEntrySummaryDto) => void;
     availableVariables?: AvailableVariablesDto;
     locked?: boolean;
+    canUseDocumentLibrary: boolean;
 }
 
 const ExchangeInitiationDocumentsTab: React.FC<ExchangeDocumentsTabProps> = (
@@ -34,6 +35,7 @@ const ExchangeInitiationDocumentsTab: React.FC<ExchangeDocumentsTabProps> = (
         addLibraryDocument,
         availableVariables,
         locked,
+        canUseDocumentLibrary,
     }) =>
 {
     const styles = useExchangeInitiationStyles();
@@ -89,15 +91,17 @@ const ExchangeInitiationDocumentsTab: React.FC<ExchangeDocumentsTabProps> = (
                     >
                         Add Document
                     </Button>
-                    <Button
-                        id="exchange-pick-from-library-btn"
-                        onClick={() => setPickerOpen(true)}
-                        shape="circular"
-                        icon={<PickFromLibraryIcon/>}
-                        appearance="subtle"
-                    >
-                        Pick from Library
-                    </Button>
+                    {canUseDocumentLibrary && (
+                        <Button
+                            id="exchange-pick-from-library-btn"
+                            onClick={() => setPickerOpen(true)}
+                            shape="circular"
+                            icon={<PickFromLibraryIcon/>}
+                            appearance="subtle"
+                        >
+                            Pick from Library
+                        </Button>
+                    )}
                 </div>
             )}
         </div>

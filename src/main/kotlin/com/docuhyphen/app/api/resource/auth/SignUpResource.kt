@@ -1,5 +1,7 @@
 package com.docuhyphen.app.api.resource.auth
 
+import com.docuhyphen.app.api.exception.SubscriptionDenialException
+
 import com.docuhyphen.app.api.resource.ResourceEndpointDelayHelper
 
 import com.docuhyphen.app.api.exception.*
@@ -97,6 +99,12 @@ class SignUpResource @Inject constructor(
         {
             when (exception)
             {
+                is SubscriptionDenialException ->
+                {
+                    logger.error("Subscription denied while completing sign up", exception)
+                    throw exception
+                }
+
                 is EmailRequiredException,
                 is AppUserExistsException,
                 is InvalidEmailException,
@@ -194,6 +202,12 @@ class SignUpResource @Inject constructor(
         {
             when (exception)
             {
+                is SubscriptionDenialException ->
+                {
+                    logger.error("Subscription denied while confirming sign up via token", exception)
+                    throw exception
+                }
+
                 is InvalidSignUpConfirmationTokenException ->
                 {
                     Response.status(NOT_FOUND)

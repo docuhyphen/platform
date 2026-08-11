@@ -91,6 +91,7 @@ class DocumentLibraryTenantBoundaryTest
                 authorizationContextFactory = contextFactory(context),
                 userRoleService = roleService(appAdmin, orgAdmin),
                 auditRecorder = auditRecorder,
+                documentLibrarySubscriptionGuard = mock<DocumentLibrarySubscriptionGuard>(),
             ),
             repository = repository,
             storage = storage,

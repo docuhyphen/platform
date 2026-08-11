@@ -18,8 +18,11 @@ import com.docuhyphen.app.api.service.communication.EmailService
 import com.docuhyphen.app.api.service.communication.EmailTemplateService
 import com.docuhyphen.app.api.service.communication.OtpService
 import com.docuhyphen.app.api.service.config.ConfigurationService
+import com.docuhyphen.app.api.service.subscription.SubscriptionPolicyService
+import com.docuhyphen.app.api.service.organization.OrganizationMembershipService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
+import jakarta.transaction.Transactional
 import org.mindrot.jbcrypt.BCrypt
 import org.slf4j.LoggerFactory
 import java.time.Duration
@@ -39,6 +42,8 @@ class SignUpService @Inject constructor(
     private val userContactService: UserContactService,
     private val exchangeRepository: ExchangeRepository,
     private val disposableEmailDomainService: DisposableEmailDomainService,
+    private val subscriptionPolicyService: SubscriptionPolicyService,
+    private val organizationMembershipService: OrganizationMembershipService,
 )
 {
     companion object
@@ -254,6 +259,7 @@ class SignUpService @Inject constructor(
      *
      * Atomic single-use is enforced by Redis GETDEL inside the token service.
      */
+    @Transactional
     fun completeSignUpViaToken(token: String?, password: String?, passwordConfirmation: String?): AppUser
     {
         if (token.isNullOrBlank())
@@ -333,6 +339,7 @@ class SignUpService @Inject constructor(
         return normalizedEmail
     }
 
+    @Transactional
     fun completeSignUp(email: String?, otp: String?, password: String?, passwordConfirmation: String?): AppUser
     {
         val normalizedEmail = validateInputs(email, otp, password, passwordConfirmation)
@@ -494,6 +501,7 @@ class SignUpService @Inject constructor(
         val existingTemp = appUserRepository.findTemporaryByEmail(email)
         val savedUser = if (existingTemp != null)
         {
+            organizationMembershipService.enforceSeatsForAccountActivation(existingTemp.id)
             existingTemp.apply {
                 this.email = email
                 this.passwordSalt = passwordSalt
@@ -522,6 +530,11 @@ class SignUpService @Inject constructor(
 
         runCatching { seedContactsAfterSignup(savedUser) }
             .onFailure { logger.warn("Failed to seed contacts after sign-up for {}", email.maskEmailForLogs(), it) }
+
+        // A newly registered account starts on the default individual plan. An upgraded temp
+        // placeholder keeps any record it already had rather than being reset.
+        runCatching { subscriptionPolicyService.ensureUserPolicy(savedUser.id) }
+            .onFailure { logger.warn("Failed to create subscription record after sign-up for {}", email.maskEmailForLogs(), it) }
 
         runCatching { createInternalIdpLink(savedUser) }
             .onFailure { logger.warn("Failed to create INTERNAL IDP link after sign-up for {}", email.maskEmailForLogs(), it) }

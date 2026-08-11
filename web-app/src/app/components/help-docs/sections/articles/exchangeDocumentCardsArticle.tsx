@@ -64,6 +64,11 @@ export const exchangeDocumentCardsArticle = (
             <li>In the thumbnail grid, upload actions remain available from the three-dot menu.</li>
             <li>Upload controls are disabled when your permissions or the Exchange status prevent uploads.</li>
         </ul>
+        <p>
+            The document sidebar shows the <b>Versions</b> tab only when your current plan includes
+            document version history. Notes and comments remain available across tiers so every
+            Exchange participant can collaborate.
+        </p>
 
         <h3>More actions and navigation</h3>
         <p>

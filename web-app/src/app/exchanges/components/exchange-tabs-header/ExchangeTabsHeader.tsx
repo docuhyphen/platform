@@ -9,6 +9,8 @@ interface ExchangeTabsHeaderProps {
     documents: DocumentDetailedDto[];
     canDownloadZip: boolean;
     canViewAudit: boolean;
+    canViewDetails: boolean;
+    canViewWorkflow: boolean;
     isDocumentToolbarVisible: boolean;
     onTabChange: (value: TabValue) => void;
     onDownloadZip: () => void;
@@ -35,16 +37,20 @@ const ExchangeTabsHeader: React.FC<ExchangeTabsHeaderProps> = (props) => {
                          icon={<DocumentsIcon/>}>
                         Documents
                     </Tab>
-                    <Tab id="exchange-details-tab"
-                         value="details"
-                         icon={<DetailsIcon/>}>
-                        Details
-                    </Tab>
-                    <Tab id="exchange-workflow-tab"
-                         value="workflow"
-                         icon={<ExchangeWorkflowsTabIcon/>}>
-                        Workflow
-                    </Tab>
+                    {props.canViewDetails && (
+                        <Tab id="exchange-details-tab"
+                             value="details"
+                             icon={<DetailsIcon/>}>
+                            Details
+                        </Tab>
+                    )}
+                    {props.canViewWorkflow && (
+                        <Tab id="exchange-workflow-tab"
+                             value="workflow"
+                             icon={<ExchangeWorkflowsTabIcon/>}>
+                            Workflow
+                        </Tab>
+                    )}
                     {props.canViewAudit && (
                         <Tab id="exchange-audit-tab"
                              value="audit"

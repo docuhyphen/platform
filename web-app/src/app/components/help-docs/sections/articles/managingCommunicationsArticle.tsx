@@ -4,10 +4,18 @@ export const managingCommunicationsArticle = (
     <>
         <p>
             The <b>Settings {">"} Automation {">"} Communications</b> tab is where
-            you manage Personal and Organization communications and browse Platform
-            communications. The tab is split into <b>My Communications</b>,
-            <b>Organization</b>, and <b>Platform</b> scopes. App Admins manage the
-            Platform scope in <b>Platform Administration - Platform Content</b>.
+            workflow-automation users manage reusable communications and browse
+            Platform communications. The tab is split into <b>My Communications</b>,
+            <b>Organization</b>, and <b>Platform</b> scopes when those scopes are
+            available. App Admins manage the Platform scope in
+            <b>Platform Administration - Platform Content</b>.
+        </p>
+        <p>
+            Organization communications are part of Business workflow automation.
+            If the organization loses that entitlement, existing communications remain
+            visible and previewable, but creating, editing, publishing, changing status,
+            and deleting organization communications are unavailable. Personal accounts
+            do not expose workflow automation. Platform communication rules are unchanged.
         </p>
 
         <h3>Finding communications</h3>
@@ -21,7 +29,7 @@ export const managingCommunicationsArticle = (
         <h3>Creating a communication</h3>
         <ol>
             <li>
-                For Personal or Organization communications, open <b>Settings</b>,
+                For authorized workflow communications, open <b>Settings</b>,
                 then <b>Automation - Communications</b>. For Platform communications,
                 open <b>Platform Administration - Platform Content - Communications</b>.
             </li>
@@ -98,7 +106,7 @@ export const managingCommunicationsArticle = (
 
         <h3>Permissions summary</h3>
         <ul>
-            <li><b>Any user</b> - create, edit, and delete Personal communications.</li>
+            <li><b>Workflow automation users</b> - create, edit, and delete their reusable communications.</li>
             <li><b>Organization Admin</b> - create, edit, publish, and delete Org communications.</li>
             <li>
                 <b>App Admin</b> - manage Platform communications only from

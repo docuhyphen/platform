@@ -4,7 +4,8 @@ export const managingBlueprintsArticle = (
     <>
         <p>
             Personal blueprints are blueprints you create and manage yourself. They
-            are visible only to you and can be used any time you start an Exchange.
+            are visible only to you and are available on Personal and Business plans.
+            Free keeps the basic Exchange flow but does not show Blueprint creation controls.
         </p>
 
         <h3>Creating a blueprint from the settings page</h3>

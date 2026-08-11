@@ -53,6 +53,22 @@ export const exchangesSection: HelpDocSectionInput = {
                         <li>Review audit history for compliance and record retention.</li>
                     </ol>
 
+                    <h3>Plan allowances</h3>
+                    <p>
+                        Free can create up to five new Exchanges per calendar month and keep up to
+                        three Exchanges open at once. Draft and Active Exchanges count as open.
+                        Personal and Business have no commercial Exchange count quota, subject to
+                        security, file-size, and reasonable-use controls.
+                    </p>
+                    <p>
+                        Open Settings, then Billing, to see the current plan. Free shows Exchanges
+                        created this month, open Exchanges, and the monthly reset date. Authorized
+                        Business billing users also see active seats and purchased capacity.
+                        Use <b>Compare plans and features</b> in Billing to open the website pricing
+                        comparison. Switching the active organization refreshes this summary without
+                        requiring another sign-in.
+                    </p>
+
                     <h3>Validation checklist</h3>
                     <ul>
                         <li>Correct recipients and permissions before the Exchange goes Active.</li>

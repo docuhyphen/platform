@@ -1,6 +1,7 @@
 package com.docuhyphen.app.api.resource.application
 
 import com.docuhyphen.app.api.exception.ApplicationNotFoundException
+import com.docuhyphen.app.api.exception.SubscriptionDenialException
 import com.docuhyphen.app.api.model.entity.Application
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.service.application.ApplicationManagementService
@@ -115,6 +116,11 @@ class ApplicationManagementResource @Inject constructor(
         }
         catch (e: Exception)
         {
+            if (e is SubscriptionDenialException)
+            {
+                logger.warn("Application management request refused by subscription policy", e)
+                throw e
+            }
             logger.error("Error in application management endpoint", e)
             when (e)
             {

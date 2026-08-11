@@ -80,6 +80,11 @@ export const auditWorkspaceOverviewArticle = (
             error message describing what could not be verified. Use{" "}
             <b>Refresh</b> to re-run the check on demand.
         </p>
+        <p>
+            Organization integrity checks, retention changes, legal-hold changes, and new audit
+            export requests require audit governance in the organization&apos;s Business subscription.
+            Existing events and completed export downloads remain available for review and recovery.
+        </p>
 
         <h3>Exports</h3>
         <p>

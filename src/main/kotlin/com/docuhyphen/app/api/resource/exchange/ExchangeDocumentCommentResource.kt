@@ -1,6 +1,7 @@
 package com.docuhyphen.app.api.resource.exchange
 
 import com.docuhyphen.app.api.model.DetailedEntityToDtoTransformer
+import com.docuhyphen.app.api.exception.SubscriptionDenialException
 import com.docuhyphen.app.api.resource.model.CommentRequest
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.service.exchange.ExchangeDocumentCommentsService
@@ -45,6 +46,14 @@ class ExchangeDocumentCommentResource @Inject constructor(
             Response.status(Response.Status.CREATED)
                 .entity(DetailedEntityToDtoTransformer.toDto(comment))
                 .build()
+        }
+        catch (exception: SubscriptionDenialException)
+        {
+            logger.warn(
+                "Adding a document comment was refused by the subscription plan check: plan={}",
+                exception.denial.planCode,
+            )
+            throw exception
         }
         catch (exception: Exception)
         {

@@ -7,6 +7,8 @@ import com.docuhyphen.app.api.service.audit.catalog.AuditActorKind
 import com.docuhyphen.app.api.service.audit.catalog.AuditCategory
 import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
 import com.docuhyphen.app.api.service.audit.catalog.AuditOutcome
+import com.docuhyphen.app.api.service.subscription.OrganizationFeatureSubscriptionGuard
+import com.docuhyphen.app.api.service.subscription.PlanFeature
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
@@ -26,6 +28,7 @@ class AuditRetentionPolicyService @Inject constructor(
     private val auditRetentionPolicyRepository: AuditRetentionPolicyRepository,
     private val auditRetentionCatalogService: AuditRetentionCatalogService,
     private val auditRecorder: AuditRecorder,
+    private val subscriptionGuard: OrganizationFeatureSubscriptionGuard,
 )
 {
     companion object
@@ -62,6 +65,7 @@ class AuditRetentionPolicyService @Inject constructor(
         updatedByUserId: UUID,
     ): RetentionPolicySpec
     {
+        subscriptionGuard.requireMutation(organizationId, PlanFeature.AUDIT_GOVERNANCE)
         require(ledgerRetentionDays > 0) { "ledgerRetentionDays must be positive" }
         require(archiveRetentionDays > 0) { "archiveRetentionDays must be positive" }
 

@@ -223,7 +223,7 @@ class AuditExportBuilderTest
         val signingProvider = LocalAuditArchiveSigningKeyProvider(config)
         val verifier = AuditArchiveVerifier(segmentRepo, storage, signingProvider)
         val auditRecorder = mock<AuditRecorder>()
-        val integrityService = AuditIntegrityService(ledgerEventRepo, segmentRepo, verifier, auditRecorder)
+        val integrityService = AuditIntegrityService(ledgerEventRepo, segmentRepo, verifier, auditRecorder, mock())
         val auditArchiver = AuditArchiver(ledgerEventRepo, segmentRepo, storage, signingProvider, config)
 
         whenever(exportRepo.update(any())).thenAnswer { it.getArgument(0) }
@@ -506,6 +506,7 @@ class AuditExportBuilderTest
             mock(),
             recorder,
             mock(),
+            mock(),
         )
         val requester = AuditAccessActor(
             principal = PrincipalRef.user(requesterId),
@@ -663,7 +664,7 @@ class AuditExportBuilderTest
         whenever(ledgerEventRepo.findLatestByStream(streamId)).thenReturn(events.last())
         val verifier = AuditArchiveVerifier(segmentRepo, storage, signingProvider)
         val auditRecorder = mock<AuditRecorder>()
-        val integrityService = AuditIntegrityService(ledgerEventRepo, segmentRepo, verifier, auditRecorder)
+        val integrityService = AuditIntegrityService(ledgerEventRepo, segmentRepo, verifier, auditRecorder, mock())
         val auditArchiver = AuditArchiver(ledgerEventRepo, segmentRepo, storage, signingProvider, config)
         whenever(exportRepo.update(any())).thenAnswer { it.getArgument(0) }
         val builder = AuditExportBuilder(ledgerEventRepo, integrityService, storage, signingProvider, auditArchiver)
@@ -814,7 +815,7 @@ class AuditExportBuilderTest
 
         val verifier = AuditArchiveVerifier(segmentRepo, storage, signingProvider)
         val auditRecorder = mock<AuditRecorder>()
-        val integrityService = AuditIntegrityService(exportLedgerRepo, segmentRepo, verifier, auditRecorder)
+        val integrityService = AuditIntegrityService(exportLedgerRepo, segmentRepo, verifier, auditRecorder, mock())
         val auditArchiver = AuditArchiver(exportLedgerRepo, segmentRepo, storage, signingProvider, config)
         val exportRepo = mock<AuditExportRepository>()
         whenever(exportRepo.update(any())).thenAnswer { it.getArgument(0) }
@@ -861,7 +862,7 @@ class AuditExportBuilderTest
 
         val verifier = AuditArchiveVerifier(segmentRepo, storage, signingProvider)
         val auditRecorder = mock<AuditRecorder>()
-        val integrityService = AuditIntegrityService(exportLedgerRepo, segmentRepo, verifier, auditRecorder)
+        val integrityService = AuditIntegrityService(exportLedgerRepo, segmentRepo, verifier, auditRecorder, mock())
         val auditArchiver = AuditArchiver(exportLedgerRepo, segmentRepo, storage, signingProvider, config)
         val exportRepo = mock<AuditExportRepository>()
         whenever(exportRepo.update(any())).thenAnswer { it.getArgument(0) }

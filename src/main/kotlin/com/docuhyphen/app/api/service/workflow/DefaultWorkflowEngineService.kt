@@ -85,6 +85,7 @@ class DefaultWorkflowEngineService : WorkflowEngineService
     @Inject private lateinit var transactionSynchronizationRegistry: TransactionSynchronizationRegistry
     @Inject private lateinit var inAppNotificationService: InAppNotificationService
     @Inject private lateinit var self: DefaultWorkflowEngineService
+    @Inject private lateinit var subscriptionGuard: WorkflowSubscriptionGuard
 
     @ConfigProperty(name = "app.url", defaultValue = "https://app.docuhyphen.com")
     private lateinit var appUrl: String
@@ -125,6 +126,7 @@ class DefaultWorkflowEngineService : WorkflowEngineService
         var firstResult: TriggerResult? = null
         for (definition in definitions)
         {
+            subscriptionGuard.requireInstanceStart(definition, request.organizationId)
             val result = triggerOne(definition, enrichedRequest)
             if (firstResult == null) firstResult = result
         }

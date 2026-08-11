@@ -13,6 +13,8 @@ import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.auth.authz.ResourceRef
+import com.docuhyphen.app.api.service.subscription.OrganizationFeatureSubscriptionGuard
+import com.docuhyphen.app.api.service.subscription.PlanFeature
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
@@ -37,6 +39,7 @@ class ApplicationManagementService @Inject constructor(
     private val applicationRepository: ApplicationRepository,
     private val authorizationService: AuthorizationService,
     private val authAuditService: AuthAuditService,
+    private val subscriptionGuard: OrganizationFeatureSubscriptionGuard,
 )
 {
     companion object
@@ -65,6 +68,7 @@ class ApplicationManagementService @Inject constructor(
     {
         requireCapability(principal, Action.APP_REG_CREATE, platformRef(), context)
         require(request.name.isNotBlank()) { "Application name is required" }
+        subscriptionGuard.requireMutation(request.ownerOrganizationId, PlanFeature.IDENTITY_AND_INTEGRATIONS)
 
         val (rawKey, rawSecret) = generateCredentials()
         val application = Application().apply {
@@ -88,6 +92,7 @@ class ApplicationManagementService @Inject constructor(
     {
         requireCapability(principal, Action.APP_REG_ROTATE_CREDENTIALS, ResourceRef(ResourceType.APPLICATION, id), context)
         val application = applicationRepository.findById(id) ?: throw ApplicationNotFoundException()
+        subscriptionGuard.requireMutation(application.ownerOrganizationId, PlanFeature.IDENTITY_AND_INTEGRATIONS)
 
         val (rawKey, rawSecret) = generateCredentials()
         application.apiKey = rawKey
@@ -102,6 +107,7 @@ class ApplicationManagementService @Inject constructor(
     {
         requireCapability(principal, Action.APP_REG_GRANT_CAPABILITIES, ResourceRef(ResourceType.APPLICATION, id), context)
         val application = applicationRepository.findById(id) ?: throw ApplicationNotFoundException()
+        subscriptionGuard.requireMutation(application.ownerOrganizationId, PlanFeature.IDENTITY_AND_INTEGRATIONS)
         application.grantedCapabilitiesJson = buildCapabilitiesJson(capabilities)
         applicationRepository.update(application)
         emitAudit("APP_REG_UPDATE_CAPABILITIES", principal.id, id, "capabilities updated")
@@ -112,6 +118,7 @@ class ApplicationManagementService @Inject constructor(
     {
         requireCapability(principal, Action.APP_REG_DEACTIVATE, ResourceRef(ResourceType.APPLICATION, id), context)
         val application = applicationRepository.findById(id) ?: throw ApplicationNotFoundException()
+        subscriptionGuard.requireMutation(application.ownerOrganizationId, PlanFeature.IDENTITY_AND_INTEGRATIONS)
         if (!application.isActive) return
         application.isActive = false
         applicationRepository.update(application)

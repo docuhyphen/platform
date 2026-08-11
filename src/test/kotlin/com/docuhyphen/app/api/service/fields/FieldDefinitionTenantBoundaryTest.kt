@@ -77,6 +77,7 @@ class FieldDefinitionTenantBoundaryTest
                 authorizationContextFactory = contextFactory,
                 userRoleService = roles,
                 auditRecorder = mock<AuditRecorder>(),
+                subscriptionGuard = mock<BusinessFieldsSubscriptionGuard>(),
             ),
             definitionRepository,
             contractRepository,

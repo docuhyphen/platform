@@ -1,6 +1,7 @@
 package com.docuhyphen.app.api.resource.documentlibrary
 
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
+import com.docuhyphen.app.api.exception.SubscriptionDenialException
 import com.docuhyphen.app.api.model.dto.CloneDocumentLibraryEntryRequest
 import com.docuhyphen.app.api.model.dto.CreateDocumentLibraryEntryRequest
 import com.docuhyphen.app.api.model.dto.PatchDocumentLibraryPublishedRequest
@@ -74,6 +75,14 @@ class DocumentLibraryResource @Inject constructor(
             val items = documentLibraryService.listEntries(scope, tag)
             Response.ok(items.toTypedArray()).build()
         }
+        catch (e: SubscriptionDenialException)
+        {
+            logger.warn(
+                "Listing document library entries was refused by the subscription plan check: plan={}",
+                e.denial.planCode,
+            )
+            throw e
+        }
         catch (e: Exception)
         {
             logger.error("Failed to list document library entries", e)
@@ -96,6 +105,14 @@ class DocumentLibraryResource @Inject constructor(
         {
             val dto = documentLibraryService.createEntry(request)
             Response.status(CREATED).entity(dto).build()
+        }
+        catch (e: SubscriptionDenialException)
+        {
+            logger.warn(
+                "Creating a document library entry was refused by the subscription plan check: plan={}",
+                e.denial.planCode,
+            )
+            throw e
         }
         catch (e: IllegalArgumentException)
         {
@@ -128,6 +145,14 @@ class DocumentLibraryResource @Inject constructor(
             val dto = documentLibraryService.getEntry(entryId)
             Response.ok(dto).build()
         }
+        catch (e: SubscriptionDenialException)
+        {
+            logger.warn(
+                "Reading a document library entry was refused by the subscription plan check: plan={}",
+                e.denial.planCode,
+            )
+            throw e
+        }
         catch (e: IllegalArgumentException)
         {
             Response.status(NOT_FOUND).entity(ResponseError(e.message)).build()
@@ -158,6 +183,14 @@ class DocumentLibraryResource @Inject constructor(
         {
             val dto = documentLibraryService.updateEntry(entryId, request)
             Response.ok(dto).build()
+        }
+        catch (e: SubscriptionDenialException)
+        {
+            logger.warn(
+                "Updating a document library entry was refused by the subscription plan check: plan={}",
+                e.denial.planCode,
+            )
+            throw e
         }
         catch (e: IllegalArgumentException)
         {
@@ -190,6 +223,14 @@ class DocumentLibraryResource @Inject constructor(
             val dto = documentLibraryService.patchStatus(entryId, request)
             Response.ok(dto).build()
         }
+        catch (e: SubscriptionDenialException)
+        {
+            logger.warn(
+                "Changing a document library entry status was refused by the subscription plan check: plan={}",
+                e.denial.planCode,
+            )
+            throw e
+        }
         catch (e: IllegalArgumentException)
         {
             Response.status(NOT_FOUND).entity(ResponseError(e.message)).build()
@@ -221,6 +262,14 @@ class DocumentLibraryResource @Inject constructor(
             val dto = documentLibraryService.patchPublished(entryId, request)
             Response.ok(dto).build()
         }
+        catch (e: SubscriptionDenialException)
+        {
+            logger.warn(
+                "Publishing a document library entry was refused by the subscription plan check: plan={}",
+                e.denial.planCode,
+            )
+            throw e
+        }
         catch (e: IllegalArgumentException)
         {
             Response.status(NOT_FOUND).entity(ResponseError(e.message)).build()
@@ -251,6 +300,14 @@ class DocumentLibraryResource @Inject constructor(
         {
             documentLibraryService.deleteEntry(entryId)
             Response.noContent().build()
+        }
+        catch (e: SubscriptionDenialException)
+        {
+            logger.warn(
+                "Deleting a document library entry was refused by the subscription plan check: plan={}",
+                e.denial.planCode,
+            )
+            throw e
         }
         catch (e: IllegalArgumentException)
         {
@@ -297,6 +354,14 @@ class DocumentLibraryResource @Inject constructor(
             val dto = documentLibraryService.uploadFile(entryId, file, extension)
             Response.ok(dto).build()
         }
+        catch (e: SubscriptionDenialException)
+        {
+            logger.warn(
+                "Uploading a document library file was refused by the subscription plan check: plan={}",
+                e.denial.planCode,
+            )
+            throw e
+        }
         catch (e: IllegalArgumentException)
         {
             Response.status(NOT_FOUND).entity(ResponseError(e.message)).build()
@@ -332,6 +397,14 @@ class DocumentLibraryResource @Inject constructor(
                 .header("Content-Length", file.length())
                 .build()
         }
+        catch (e: SubscriptionDenialException)
+        {
+            logger.warn(
+                "Downloading a document library file was refused by the subscription plan check: plan={}",
+                e.denial.planCode,
+            )
+            throw e
+        }
         catch (e: IllegalArgumentException)
         {
             Response.status(NOT_FOUND).entity(ResponseError(e.message)).build()
@@ -362,6 +435,14 @@ class DocumentLibraryResource @Inject constructor(
         {
             val dto = documentLibraryService.cloneEntry(entryId, request)
             Response.status(CREATED).entity(dto).build()
+        }
+        catch (e: SubscriptionDenialException)
+        {
+            logger.warn(
+                "Cloning a document library entry was refused by the subscription plan check: plan={}",
+                e.denial.planCode,
+            )
+            throw e
         }
         catch (e: IllegalArgumentException)
         {

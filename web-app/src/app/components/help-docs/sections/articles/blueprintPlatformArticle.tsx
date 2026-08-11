@@ -4,7 +4,7 @@ export const blueprintPlatformArticle = (
     <>
         <p>
             Platform blueprints are ready-made Exchange configurations provided by
-            DocuHyphen. They are available to all users across all organizations
+            DocuHyphen. They are available to Personal and Business subscribers
             and cover common document exchange patterns.
         </p>
 
@@ -37,7 +37,7 @@ export const blueprintPlatformArticle = (
         <p>
             Only App Admins can create, edit, activate, deactivate, publish, and
             delete platform blueprints in <b>Platform Administration - Platform
-            Content - Blueprints</b>. Regular users and Organization Admins can
+            Content - Blueprints</b>. Entitled users and Organization Admins can
             view and clone platform Blueprints from Settings but cannot modify the
             originals.
         </p>

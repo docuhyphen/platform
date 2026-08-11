@@ -34,6 +34,8 @@ import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
 import org.slf4j.LoggerFactory
+import com.docuhyphen.app.api.service.subscription.OrganizationFeatureSubscriptionGuard
+import com.docuhyphen.app.api.service.subscription.PlanFeature
 import java.util.*
 
 /**
@@ -56,6 +58,7 @@ class OrganizationGroupService @Inject constructor(
     private val organizationMembershipService: OrganizationMembershipService,
     private val authorizationService: AuthorizationService,
     private val authorizationContextFactory: AuthorizationContextFactory,
+    private val subscriptionGuard: OrganizationFeatureSubscriptionGuard,
 )
 {
     companion object
@@ -174,6 +177,7 @@ class OrganizationGroupService @Inject constructor(
     {
         val orgId = UUID.fromString(organizationId)
         authorizeOrg(Action.ORG_MANAGE_MEMBERS, orgId)
+        subscriptionGuard.requireMutation(orgId, PlanFeature.ORGANIZATION_ADMINISTRATION)
 
         val organization = organizationRepository.findById(orgId)
             ?: throw OrganizationNotFoundException("Organization not found for id: $organizationId")
@@ -246,6 +250,7 @@ class OrganizationGroupService @Inject constructor(
         // Managing a group's membership/metadata requires GROUP_ADMIN on the group itself,
         // satisfied by an org admin of the group's org or by a group OWNER/MANAGER.
         authorizeGroup(Action.GROUP_MANAGE_MEMBERS, gid)
+        subscriptionGuard.requireMutation(orgId, PlanFeature.ORGANIZATION_ADMINISTRATION)
         val organization = organizationRepository.findById(orgId)
             ?: throw OrganizationNotFoundException("Organization not found for id: $organizationId")
         val group = principalGroupRepository.findById(gid)
@@ -328,7 +333,10 @@ class OrganizationGroupService @Inject constructor(
         // of the group's org or by a group OWNER (group MANAGER cannot delete).
         authorizeGroup(Action.GROUP_DELETE, gid)
 
-        val organization = organizationRepository.findById(UUID.fromString(organizationId))
+        val orgId = UUID.fromString(organizationId)
+        subscriptionGuard.requireMutation(orgId, PlanFeature.ORGANIZATION_ADMINISTRATION)
+
+        val organization = organizationRepository.findById(orgId)
             ?: throw OrganizationNotFoundException("Organization not found for id: $organizationId")
         val group = principalGroupRepository.findById(gid)
             ?: throw OrganizationGroupNotFoundException("Group not found for id: $groupId")

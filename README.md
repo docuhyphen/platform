@@ -421,6 +421,33 @@ Invoke-RestMethod http://localhost:8080/q/health
 
 ## Troubleshooting
 
+### Deployment `docker_engine` connection failure
+
+Backend and full deployments build and push a Docker image before updating ECS. If Docker Desktop is stopped, the deploy can fail during `Building and pushing ...` with an error like:
+
+```text
+ERROR: error during connect: this error may indicate that the docker daemon is not running
+open //./pipe/docker_engine: The system cannot find the file specified.
+```
+
+Start Docker Desktop and wait until it reports that Docker is running. Then confirm the Docker engine is reachable:
+
+```powershell
+docker ps
+```
+
+If Docker Desktop is open but the command still fails, restart Docker Desktop. On WSL-backed Docker installs, this can also help before restarting Docker Desktop:
+
+```powershell
+wsl --shutdown
+```
+
+After Docker is reachable, rerun the deployment command:
+
+```powershell
+& "C:\Program Files\Git\bin\bash.exe" ./infra/deploy.sh --backend
+```
+
 ### AWS `NoCredentials` or `Unable to locate credentials`
 
 ```powershell

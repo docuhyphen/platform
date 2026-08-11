@@ -71,12 +71,12 @@ export const communicationsInWorkflowsArticle = (
         <h3>Which communications are selectable?</h3>
         <p>
             The Communication Picker shows only active communications. The scopes
-            available depend on your role:
+            available depend on your workflow automation access and role:
         </p>
         <ul>
-            <li><b>Any user</b> - their own Personal communications.</li>
-            <li><b>Any user in an org</b> - published Org communications from their org.</li>
-            <li><b>All users</b> - Platform communications.</li>
+            <li><b>Workflow automation users</b> - their own reusable communications.</li>
+            <li><b>Organization workflow users</b> - published Org communications from their org.</li>
+            <li><b>Workflow automation users</b> - Platform communications.</li>
         </ul>
         <p>
             Draft org communications are not shown in the picker until they are

@@ -1,6 +1,7 @@
 package com.docuhyphen.app.api.resource.organization
 
 import com.docuhyphen.app.api.exception.OrganizationTrustValidationException
+import com.docuhyphen.app.api.exception.SubscriptionDenialException
 import com.docuhyphen.app.api.model.dto.OrganizationTrustRelationshipDto
 import com.docuhyphen.app.api.resource.model.OrganizationTrustDecisionRequest
 import com.docuhyphen.app.api.resource.model.OrganizationTrustPolicyUpdateRequest
@@ -23,6 +24,7 @@ import jakarta.ws.rs.core.GenericEntity
 import jakarta.ws.rs.core.MediaType.APPLICATION_JSON
 import jakarta.ws.rs.core.Response
 import java.util.UUID
+import org.slf4j.LoggerFactory
 
 @Path("organization-trust-relationships")
 @Produces(APPLICATION_JSON)
@@ -32,13 +34,20 @@ class OrganizationTrustRelationshipResource @Inject constructor(
     private val queryService: OrganizationTrustQueryService,
 )
 {
+    companion object
+    {
+        private val logger = LoggerFactory.getLogger(OrganizationTrustRelationshipResource::class.java)
+    }
+
     @POST
     fun create(request: OrganizationTrustRelationshipCreateRequest): Response
     {
-        val targetOrganizationId = parseId(request.targetOrganizationId, "Target organization")
-        return Response.status(Response.Status.CREATED)
-            .entity(commandService.requestRelationship(targetOrganizationId, request.requestMessage))
-            .build()
+        return guarded("creation") {
+            val targetOrganizationId = parseId(request.targetOrganizationId, "Target organization")
+            Response.status(Response.Status.CREATED)
+                .entity(commandService.requestRelationship(targetOrganizationId, request.requestMessage))
+                .build()
+        }
     }
 
     @GET
@@ -60,61 +69,71 @@ class OrganizationTrustRelationshipResource @Inject constructor(
     fun decide(
         @PathParam("relationshipId") relationshipId: String,
         request: OrganizationTrustDecisionRequest,
-    ): Response = Response.ok(
-        commandService.decide(
-            parseId(relationshipId, "Relationship"),
-            request.decision,
-            request.reason,
-            request.expectedVersion,
-        ),
-    ).build()
+    ): Response = guarded("decision") {
+        Response.ok(
+            commandService.decide(
+                parseId(relationshipId, "Relationship"),
+                request.decision,
+                request.reason,
+                request.expectedVersion,
+            ),
+        ).build()
+    }
 
     @POST
     @Path("{relationshipId}/withdrawals")
     fun withdraw(
         @PathParam("relationshipId") relationshipId: String,
         request: OrganizationTrustWithdrawalRequest,
-    ): Response = Response.ok(
-        commandService.withdraw(
-            parseId(relationshipId, "Relationship"),
-            request.reason,
-            request.expectedVersion,
-        ),
-    ).build()
+    ): Response = guarded("withdrawal") {
+        Response.ok(
+            commandService.withdraw(
+                parseId(relationshipId, "Relationship"),
+                request.reason,
+                request.expectedVersion,
+            ),
+        ).build()
+    }
 
     @POST
     @Path("{relationshipId}/suspensions")
     fun suspend(
         @PathParam("relationshipId") relationshipId: String,
         request: OrganizationTrustSuspensionRequest,
-    ): Response = Response.status(Response.Status.CREATED).entity(
-        commandService.suspend(parseId(relationshipId, "Relationship"), request.reason),
-    ).build()
+    ): Response = guarded("suspension") {
+        Response.status(Response.Status.CREATED).entity(
+            commandService.suspend(parseId(relationshipId, "Relationship"), request.reason),
+        ).build()
+    }
 
     @DELETE
     @Path("{relationshipId}/suspensions/{suspensionId}")
     fun resume(
         @PathParam("relationshipId") relationshipId: String,
         @PathParam("suspensionId") suspensionId: String,
-    ): Response = Response.ok(
-        commandService.resume(
-            parseId(relationshipId, "Relationship"),
-            parseId(suspensionId, "Suspension"),
-        ),
-    ).build()
+    ): Response = guarded("resumption") {
+        Response.ok(
+            commandService.resume(
+                parseId(relationshipId, "Relationship"),
+                parseId(suspensionId, "Suspension"),
+            ),
+        ).build()
+    }
 
     @POST
     @Path("{relationshipId}/terminations")
     fun terminate(
         @PathParam("relationshipId") relationshipId: String,
         request: OrganizationTrustTerminationRequest,
-    ): Response = Response.ok(
-        commandService.terminate(
-            parseId(relationshipId, "Relationship"),
-            request.reason,
-            request.expectedVersion,
-        ),
-    ).build()
+    ): Response = guarded("termination") {
+        Response.ok(
+            commandService.terminate(
+                parseId(relationshipId, "Relationship"),
+                request.reason,
+                request.expectedVersion,
+            ),
+        ).build()
+    }
 
     @GET
     @Path("{relationshipId}/policies")
@@ -127,13 +146,28 @@ class OrganizationTrustRelationshipResource @Inject constructor(
         @PathParam("relationshipId") relationshipId: String,
         @PathParam("policyId") policyId: String,
         request: OrganizationTrustPolicyUpdateRequest,
-    ): Response = Response.ok(
-        commandService.updatePolicy(
-            parseId(relationshipId, "Relationship"),
-            parseId(policyId, "Policy"),
-            request,
-        ),
-    ).build()
+    ): Response = guarded("policy update") {
+        Response.ok(
+            commandService.updatePolicy(
+                parseId(relationshipId, "Relationship"),
+                parseId(policyId, "Policy"),
+                request,
+            ),
+        ).build()
+    }
+
+    private fun guarded(operation: String, block: () -> Response): Response
+    {
+        return try
+        {
+            block()
+        }
+        catch (e: SubscriptionDenialException)
+        {
+            logger.warn("Organization trust {} refused by subscription policy", operation, e)
+            throw e
+        }
+    }
 
     private fun parseId(value: String?, label: String): UUID = try
     {

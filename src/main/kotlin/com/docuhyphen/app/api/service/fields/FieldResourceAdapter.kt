@@ -3,6 +3,7 @@ package com.docuhyphen.app.api.service.fields
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.auth.authz.ScopeReference
+import com.docuhyphen.app.api.service.subscription.SubscriptionContext
 import java.util.UUID
 
 /**
@@ -21,6 +22,9 @@ interface FieldResourceAdapter
 
     /** The configuration scope that owns the resource (used to validate schema scope match). */
     fun ownerScope(resourceId: UUID): ScopeReference?
+
+    /** Immutable paying subject that owns mutations performed against this resource. */
+    fun subscriptionContext(resourceId: UUID): SubscriptionContext?
 
     /** Throws [io.quarkus.security.ForbiddenException] if the caller may not view field values. */
     fun authorizeViewFields(resourceId: UUID, principal: PrincipalRef, context: AuthorizationContext)

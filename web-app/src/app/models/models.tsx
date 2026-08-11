@@ -621,9 +621,177 @@ export interface SessionOrganizationOptionDto
 }
 
 /**
+ * The commercial plans DocuHyphen sells. FREE and PERSONAL belong to an individual registered
+ * user. BUSINESS belongs to a registered organization and is priced per purchased seat.
+ */
+export enum PlanCode
+{
+    FREE = 'FREE',
+    PERSONAL = 'PERSONAL',
+    BUSINESS = 'BUSINESS',
+}
+
+/**
+ * Which kind of principal owns and pays for a subscription. No-account recipients are
+ * deliberately absent: they never own a subscription and never consume a paid seat.
+ */
+export enum SubscriptionOwnerType
+{
+    USER = 'USER',
+    ORGANIZATION = 'ORGANIZATION',
+}
+
+/**
+ * Lifecycle state of a subscription. Every state keeps existing data readable; only the
+ * ability to create or change resources is clamped.
+ */
+export enum SubscriptionStatus
+{
+    TRIALING = 'TRIALING',
+    ACTIVE = 'ACTIVE',
+    PAST_DUE = 'PAST_DUE',
+    SUSPENDED = 'SUSPENDED',
+    CANCELED = 'CANCELED',
+}
+
+/** How often a paid subscription renews. Absent on plans that have never been billed. */
+export enum BillingFrequency
+{
+    MONTHLY = 'MONTHLY',
+    ANNUAL = 'ANNUAL',
+}
+
+/**
+ * Commercial product features that a plan either includes or excludes. These answer whether the
+ * paying subject owns a feature, which is separate from whether the caller is authorized to act.
+ * Use Capability for authorization and PlanFeature for plan availability.
+ */
+export enum PlanFeature
+{
+    EXCHANGE_CREATE = 'EXCHANGE_CREATE',
+    MULTIPLE_PARTICIPANTS = 'MULTIPLE_PARTICIPANTS',
+    BLUEPRINT_USE = 'BLUEPRINT_USE',
+    BLUEPRINT_MANAGE = 'BLUEPRINT_MANAGE',
+    DOCUMENT_LIBRARY_USE = 'DOCUMENT_LIBRARY_USE',
+    DOCUMENT_LIBRARY_MANAGE = 'DOCUMENT_LIBRARY_MANAGE',
+    DOCUMENT_COMMENTS = 'DOCUMENT_COMMENTS',
+    DOCUMENT_VERSION_HISTORY = 'DOCUMENT_VERSION_HISTORY',
+    ADVANCED_ACCESS_CONTROLS = 'ADVANCED_ACCESS_CONTROLS',
+    VARIABLES_AND_SEQUENCES = 'VARIABLES_AND_SEQUENCES',
+    /**
+     * Reminders exist only as addons on a workflow step, so no individual plan grants this.
+     * Only an organization plan carries it, alongside WORKFLOW_AUTOMATION. Never present it as
+     * an individual capability.
+     */
+    PERSONAL_REMINDERS = 'PERSONAL_REMINDERS',
+    BUSINESS_FIELDS_AND_SCHEMAS = 'BUSINESS_FIELDS_AND_SCHEMAS',
+    WORKFLOW_AUTOMATION = 'WORKFLOW_AUTOMATION',
+    ORGANIZATION_ADMINISTRATION = 'ORGANIZATION_ADMINISTRATION',
+    AUDIT_GOVERNANCE = 'AUDIT_GOVERNANCE',
+    IDENTITY_AND_INTEGRATIONS = 'IDENTITY_AND_INTEGRATIONS',
+}
+
+/**
+ * How strictly the API applies commercial plan decisions. REPORT_ONLY evaluates every decision
+ * and records what would have been refused without changing the outcome, so the app must not
+ * present a plan refusal as final unless the mode is ENFORCE.
+ */
+export enum SubscriptionEnforcementMode
+{
+    OFF = 'OFF',
+    REPORT_ONLY = 'REPORT_ONLY',
+    ENFORCE = 'ENFORCE',
+}
+
+/** Why a commercial plan check refused an operation. Distinct from an authorization failure. */
+export enum SubscriptionDenialReason
+{
+    FEATURE_NOT_INCLUDED = 'FEATURE_NOT_INCLUDED',
+    PLAN_LIMIT_REACHED = 'PLAN_LIMIT_REACHED',
+    SUBSCRIPTION_PAST_DUE = 'SUBSCRIPTION_PAST_DUE',
+    SUBSCRIPTION_SUSPENDED = 'SUBSCRIPTION_SUSPENDED',
+    SUBSCRIPTION_CANCELED = 'SUBSCRIPTION_CANCELED',
+    SEAT_LIMIT_REACHED = 'SEAT_LIMIT_REACHED',
+    ORGANIZATION_SUBSCRIPTION_REQUIRED = 'ORGANIZATION_SUBSCRIPTION_REQUIRED',
+}
+
+/**
+ * Allowances in force for the resolved plan. A null value means the allowance is not capped
+ * commercially; security rate limits and abuse controls still apply independently.
+ */
+export interface SubscriptionLimitsDto
+{
+    maxNewExchangesPerCalendarMonth?: number | null
+    maxOpenExchanges?: number | null
+    maxAdditionalParticipantsPerExchange?: number | null
+    seatCapacity?: number | null
+    seatsArePurchased: boolean
+}
+
+/**
+ * How much of each capped allowance is currently consumed. A field is null when the resolved
+ * plan does not cap that allowance.
+ */
+export interface SubscriptionUsageDto
+{
+    newExchangesThisPeriod?: number | null
+    openExchanges?: number | null
+    activeSeats?: number | null
+    usagePeriodStart?: string | null
+    usagePeriodEnd?: string | null
+}
+
+/**
+ * The commercial position of the paying subject for the current context: the authenticated user
+ * when acting personally, or the selected organization when one is active. Recomputed on every
+ * session fetch, so switching organization changes it without reissuing a token.
+ *
+ * The API remains the authority. This contract exists to stop the app leading a customer into a
+ * flow the API will refuse, not to replace the server-side check.
+ *
+ * Optional fields are omitted from the payload when they carry no value.
+ */
+export interface EffectiveSubscriptionDto
+{
+    planCode: PlanCode
+    ownerType: SubscriptionOwnerType
+    ownerId: string
+    status: SubscriptionStatus
+    features: PlanFeature[]
+    limits: SubscriptionLimitsDto
+    usage: SubscriptionUsageDto
+    allowsMutations: boolean
+    enforcementMode: SubscriptionEnforcementMode
+    billingFrequency?: BillingFrequency | null
+    currentPeriodStart?: string | null
+    currentPeriodEnd?: string | null
+    gracePeriodEnd?: string | null
+    upgradePlanCode?: PlanCode | null
+}
+
+/**
+ * Structured body returned when a commercial plan check refuses an operation. errorMessage keeps
+ * the shape existing error handling already reads, and the remaining fields let the app explain
+ * the allowance and offer the plan that lifts it.
+ */
+export interface SubscriptionDenialDto
+{
+    errorMessage: string
+    reasonCode: SubscriptionDenialReason
+    planCode: PlanCode
+    featureCode?: PlanFeature | null
+    currentValue?: number | null
+    limit?: number | null
+    upgradePlanCode?: PlanCode | null
+}
+
+/**
  * Current-session contract returned by GET /app-user/session.
  * The frontend derives menu visibility, action controls, and settings tab gates from
  * capabilities rather than from raw role strings.
+ *
+ * subscription is absent only when the API could not resolve the commercial position. Treat that
+ * as unknown rather than as an absence of entitlement.
  */
 export interface CurrentSessionDto
 {
@@ -635,6 +803,7 @@ export interface CurrentSessionDto
     capabilities: Capability[]
     availableOrganizations: SessionOrganizationOptionDto[]
     idleTimeoutMinutes: number
+    subscription?: EffectiveSubscriptionDto | null
 }
 
 export type MfaMethod = 'EMAIL' | 'GOOGLE_AUTHENTICATOR' | 'MICROSOFT_AUTHENTICATOR';

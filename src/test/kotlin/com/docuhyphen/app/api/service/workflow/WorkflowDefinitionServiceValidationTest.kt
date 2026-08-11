@@ -67,6 +67,7 @@ class WorkflowDefinitionServiceValidationTest
             communicationRepository,
         ),
         auditRecorder = mock(),
+        subscriptionGuard = mock(),
     )
 
     @Test

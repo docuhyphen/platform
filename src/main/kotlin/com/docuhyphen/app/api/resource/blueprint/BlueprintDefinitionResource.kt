@@ -1,6 +1,7 @@
 package com.docuhyphen.app.api.resource.blueprint
 
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
+import com.docuhyphen.app.api.exception.SubscriptionDenialException
 import com.docuhyphen.app.api.model.dto.CloneBlueprintRequest
 import com.docuhyphen.app.api.model.dto.CreateBlueprintRequest
 import com.docuhyphen.app.api.model.dto.PatchBlueprintPublishedRequest
@@ -73,6 +74,11 @@ class BlueprintDefinitionResource @Inject constructor(
             val items = blueprintService.listBlueprints(scope, tag, isTemplate)
             Response.ok(items.toTypedArray()).build()
         }
+        catch (e: SubscriptionDenialException)
+        {
+            logger.warn("Listing blueprints refused by the subscription plan check: plan={}", e.denial.planCode)
+            throw e
+        }
         catch (e: Exception)
         {
             logger.error("Failed to list blueprints", e)
@@ -98,6 +104,11 @@ class BlueprintDefinitionResource @Inject constructor(
         {
             val dto = blueprintService.createBlueprint(request, AdminApprovalContext(requestId = requestId))
             Response.status(CREATED).entity(dto).build()
+        }
+        catch (e: SubscriptionDenialException)
+        {
+            logger.warn("Creating a blueprint was refused by the subscription plan check: plan={}", e.denial.planCode)
+            throw e
         }
         catch (e: IllegalArgumentException)
         {
@@ -130,6 +141,11 @@ class BlueprintDefinitionResource @Inject constructor(
         {
             val dto = blueprintService.getBlueprint(bpId)
             Response.ok(dto).build()
+        }
+        catch (e: SubscriptionDenialException)
+        {
+            logger.warn("Reading a blueprint was refused by the subscription plan check: plan={}", e.denial.planCode)
+            throw e
         }
         catch (e: IllegalArgumentException)
         {
@@ -165,6 +181,11 @@ class BlueprintDefinitionResource @Inject constructor(
         {
             val dto = blueprintService.updateBlueprint(bpId, request, AdminApprovalContext(requestId = requestId))
             Response.ok(dto).build()
+        }
+        catch (e: SubscriptionDenialException)
+        {
+            logger.warn("Updating a blueprint was refused by the subscription plan check: plan={}", e.denial.planCode)
+            throw e
         }
         catch (e: IllegalArgumentException)
         {
@@ -202,6 +223,14 @@ class BlueprintDefinitionResource @Inject constructor(
             val dto = blueprintService.patchStatus(bpId, request, AdminApprovalContext(requestId = requestId))
             Response.ok(dto).build()
         }
+        catch (e: SubscriptionDenialException)
+        {
+            logger.warn(
+                "Changing a blueprint status was refused by the subscription plan check: plan={}",
+                e.denial.planCode,
+            )
+            throw e
+        }
         catch (e: IllegalArgumentException)
         {
             Response.status(NOT_FOUND).entity(ResponseError(e.message)).build()
@@ -238,6 +267,14 @@ class BlueprintDefinitionResource @Inject constructor(
             val dto = blueprintService.patchPublished(bpId, request, AdminApprovalContext(requestId = requestId))
             Response.ok(dto).build()
         }
+        catch (e: SubscriptionDenialException)
+        {
+            logger.warn(
+                "Publishing a blueprint was refused by the subscription plan check: plan={}",
+                e.denial.planCode,
+            )
+            throw e
+        }
         catch (e: IllegalArgumentException)
         {
             Response.status(NOT_FOUND).entity(ResponseError(e.message)).build()
@@ -272,6 +309,11 @@ class BlueprintDefinitionResource @Inject constructor(
         {
             blueprintService.deleteBlueprint(bpId, AdminApprovalContext(requestId = requestId))
             Response.noContent().build()
+        }
+        catch (e: SubscriptionDenialException)
+        {
+            logger.warn("Deleting a blueprint was refused by the subscription plan check: plan={}", e.denial.planCode)
+            throw e
         }
         catch (e: IllegalArgumentException)
         {
@@ -308,6 +350,11 @@ class BlueprintDefinitionResource @Inject constructor(
         {
             val dto = blueprintService.cloneBlueprint(bpId, request, AdminApprovalContext(requestId = requestId))
             Response.status(CREATED).entity(dto).build()
+        }
+        catch (e: SubscriptionDenialException)
+        {
+            logger.warn("Cloning a blueprint was refused by the subscription plan check: plan={}", e.denial.planCode)
+            throw e
         }
         catch (e: IllegalArgumentException)
         {

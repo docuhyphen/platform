@@ -7,6 +7,7 @@ import com.docuhyphen.app.api.repository.OrganizationMembershipRepository
 import com.docuhyphen.app.api.repository.OrganizationRepository
 import com.docuhyphen.app.api.service.auth.authz.Capability
 import com.docuhyphen.app.api.service.auth.authz.RoleCapabilities
+import com.docuhyphen.app.api.service.subscription.SessionSubscriptionService
 import io.quarkus.security.UnauthorizedException
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
@@ -18,6 +19,10 @@ import jakarta.inject.Inject
  * organization (null for personal-product sessions), all applicable scoped roles, and the union
  * of effective capabilities derived from those roles. Capabilities are recomputed on every call
  * from live role assignments, so role changes are reflected without reissuing tokens.
+ *
+ * The commercial position of the paying subject is resolved alongside, and stays strictly
+ * separate: capabilities decide what the caller is allowed to do, while the subscription
+ * decides what the paying subject has bought.
  */
 @ApplicationScoped
 class SessionService @Inject constructor(
@@ -26,6 +31,7 @@ class SessionService @Inject constructor(
     private val authSessionPolicyService: AuthSessionPolicyService,
     private val organizationMembershipRepository: OrganizationMembershipRepository,
     private val organizationRepository: OrganizationRepository,
+    private val sessionSubscriptionService: SessionSubscriptionService,
 )
 {
     fun currentSession(): CurrentSessionDto
@@ -67,6 +73,7 @@ class SessionService @Inject constructor(
             capabilities = capabilities.map { it.name }.sorted(),
             availableOrganizations = availableOrganizations,
             idleTimeoutMinutes = authSessionPolicyService.resolveForAppUser(user).idleTimeoutMinutes,
+            subscription = sessionSubscriptionService.describe(user.id, activeOrgId),
         )
     }
 }

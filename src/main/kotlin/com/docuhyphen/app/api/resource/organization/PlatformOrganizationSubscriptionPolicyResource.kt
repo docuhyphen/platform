@@ -15,6 +15,7 @@ import jakarta.ws.rs.PUT
 import jakarta.ws.rs.Path
 import jakarta.ws.rs.PathParam
 import jakarta.ws.rs.Produces
+import jakarta.ws.rs.WebApplicationException
 import jakarta.ws.rs.core.MediaType.APPLICATION_JSON
 import jakarta.ws.rs.core.Response
 import jakarta.ws.rs.core.Response.Status.BAD_REQUEST
@@ -48,6 +49,7 @@ class PlatformOrganizationSubscriptionPolicyResource @Inject constructor(
         }
         catch (exception: Exception)
         {
+            if (exception is WebApplicationException) throw exception
             handleException("Error fetching platform organization subscription policy", exception)
         }
     }
@@ -68,6 +70,7 @@ class PlatformOrganizationSubscriptionPolicyResource @Inject constructor(
         }
         catch (exception: Exception)
         {
+            if (exception is WebApplicationException) throw exception
             handleException("Error deleting platform organization subscription policy", exception)
         }
     }
@@ -90,6 +93,7 @@ class PlatformOrganizationSubscriptionPolicyResource @Inject constructor(
         }
         catch (exception: Exception)
         {
+            if (exception is WebApplicationException) throw exception
             handleException("Error upserting platform organization subscription policy", exception)
         }
     }

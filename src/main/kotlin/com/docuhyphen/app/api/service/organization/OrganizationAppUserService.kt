@@ -8,12 +8,10 @@ import com.docuhyphen.app.api.interceptor.EnforceAdminAction
 import com.docuhyphen.app.api.model.entity.AppUser
 import com.docuhyphen.app.api.model.entity.Person
 import com.docuhyphen.app.api.model.entity.OrganizationRoleName
-import com.docuhyphen.app.api.repository.OrganizationSubscriptionPolicyRepository
 import com.docuhyphen.app.api.service.AppUserService
 import com.docuhyphen.app.api.service.auth.AdminApprovalContext
 import com.docuhyphen.app.api.service.auth.AuthAuditService
 import com.docuhyphen.app.api.service.auth.AuthenticationService
-import com.docuhyphen.app.api.service.auth.PlatformOrganizationSubscriptionPolicyService
 import com.docuhyphen.app.api.service.communication.EmailService
 import com.docuhyphen.app.api.service.communication.EmailTemplateService
 import com.docuhyphen.app.api.service.config.ConfigurationService
@@ -33,7 +31,6 @@ class OrganizationAppUserService @Inject constructor(
     private val authenticationService: AuthenticationService,
     private val appUserService: AppUserService,
     private val authTokenContext: AuthTokenContext,
-    private val organizationSubscriptionPolicyRepository: OrganizationSubscriptionPolicyRepository,
     private val authAuditService: AuthAuditService,
     private val emailService: EmailService,
     private val emailTemplateService: EmailTemplateService,
@@ -100,8 +97,6 @@ class OrganizationAppUserService @Inject constructor(
         {
             throw IllegalArgumentException("App user with that email already exists")
         }
-
-        enforceOrganizationUserCap(organization)
 
         val registeredUser = appUserService.findRegisteredByEmail(normalizedEmail)
         if (registeredUser != null && (!registeredUser.isActive || registeredUser.deprovisionedAt != null))
@@ -221,6 +216,11 @@ class OrganizationAppUserService @Inject constructor(
         val resultingRoles = (previousRoles + addedRoles) - rolesToRemove
         require(resultingRoles.isNotEmpty()) { "An active organization membership must retain at least one role" }
         val wasActive = appUser.isActive
+
+        if (!wasActive && isActive == true)
+        {
+            organizationMembershipService.enforceSeatsForAccountActivation(appUser.id)
+        }
 
         isActive?.let {
 
@@ -351,7 +351,7 @@ class OrganizationAppUserService @Inject constructor(
         organizationGroupService.removeUserFromOrganizationGroups(organization.id, appUserUuid)
 
         // Then remove the app user's membership of the organization (replaces the retired
-        // org→users join). The membership row must go before the user is hard-deleted below.
+        // organization-to-users join). The membership row must go before the user is hard-deleted below.
         organizationMembershipService.removeMember(appUserUuid, organization.id)
 
         sendOrganizationMemberRemovedEmail(appUser, organization.name)
@@ -397,27 +397,6 @@ class OrganizationAppUserService @Inject constructor(
     private fun appUserSnapshot(appUser: AppUser): String
     {
         return "id=${appUser.id};email=${appUser.email};isActive=${appUser.isActive};firstName=${appUser.person?.firstName};lastName=${appUser.person?.lastName}"
-    }
-
-    private fun enforceOrganizationUserCap(organization: com.docuhyphen.app.api.model.entity.Organization)
-    {
-        val policy = organizationSubscriptionPolicyRepository.findByOrganizationId(organization.id)
-        val tierCode = policy?.tierCode ?: PlatformOrganizationSubscriptionPolicyService.FREE_TIER_CODE
-        val maxUsers = policy?.maxUsers
-            ?: if (tierCode.equals(PlatformOrganizationSubscriptionPolicyService.FREE_TIER_CODE, ignoreCase = true))
-                PlatformOrganizationSubscriptionPolicyService.FREE_TIER_MAX_USERS
-            else null
-        if (maxUsers == null)
-        {
-            return
-        }
-
-        val activeUsers = organizationMembershipService.membersOf(organization.id)
-            .count { it.isActive && it.deprovisionedAt == null }.toLong()
-        if (activeUsers >= maxUsers)
-        {
-            throw IllegalArgumentException("Organization user limit reached for $tierCode tier. Limit is $maxUsers, current active users are $activeUsers.")
-        }
     }
 
     private fun actorLabel(): String

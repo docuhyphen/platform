@@ -338,6 +338,7 @@ class OrganizationTrustRelationshipServiceTest
             trustConfig,
             auditRecorder,
             trustedGroupAccessReconciliationProvider,
+            mock(),
         )
     }
 

@@ -1,6 +1,7 @@
 package com.docuhyphen.app.api.resource.fields
 
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
+import com.docuhyphen.app.api.exception.SubscriptionDenialException
 import com.docuhyphen.app.api.model.entity.FieldLifecycleStatus
 import com.docuhyphen.app.api.model.entity.FieldScopeKind
 import com.docuhyphen.app.api.resource.model.ResponseError
@@ -129,6 +130,11 @@ class FieldDefinitionResource @Inject constructor(
         catch (e: ForbiddenException)
         {
             Response.status(FORBIDDEN).entity(ResponseError(e.message)).build()
+        }
+        catch (e: SubscriptionDenialException)
+        {
+            logger.warn("Field definition request refused by subscription policy", e)
+            throw e
         }
         catch (e: Exception)
         {

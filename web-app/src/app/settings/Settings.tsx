@@ -1,4 +1,4 @@
-import {useState} from "react";
+import {useEffect, useState} from "react";
 import {
     Button,
     DrawerBody,
@@ -12,23 +12,22 @@ import {
 } from "@fluentui/react-components";
 import {Navigation24Regular} from "@fluentui/react-icons";
 import {useSettingsStyles} from "./SettingsStyles.tsx";
-import {useAuth} from "../../context/AuthContext.tsx";
 import {useIsMobile} from "../../utils/useMediaQuery.ts";
-import {Capability} from '../../app/models/models.tsx';
 import {SettingsPageTransitionDirection} from "./components/settings-page-transition/SettingsPageTransition.tsx";
 import SettingsTabContent from "./components/settings-tab-content/SettingsTabContent.tsx";
 import SettingsMenu from "./components/settings-menu/SettingsMenu.tsx";
 import {settingsTabOrder, tabIds, tabLabels} from "./settingsTabs.ts";
+import {useSettingsPlanAvailability} from "./useSettingsPlanAvailability.ts";
 
 const Settings = () =>
 {
-    const {appUserPersonOrganization, hasCapability} = useAuth();
     const styles = useSettingsStyles();
     const isMobile = useIsMobile();
     const [selectedValue, setSelectedValue] = useState<TabValue>(tabIds.profile);
     const [pageTransitionDirection, setPageTransitionDirection] =
         useState<SettingsPageTransitionDirection>(null);
     const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
+    const planAvailability = useSettingsPlanAvailability();
 
     const onTabSelect = (_event: SelectTabEvent, data: SelectTabData) =>
     {
@@ -44,23 +43,29 @@ const Settings = () =>
     };
 
     const currentTabLabel = tabLabels[selectedValue as string] ?? "Settings";
-    const hasOrg = !!appUserPersonOrganization?.isActive;
-    const canManageOrganization =
-        appUserPersonOrganization?.isActive &&
-        hasCapability(Capability.ORG_POLICY_MANAGE);
-    // Show the Administration tab when the user has no org (to register) or a pending org (to
-    // view status), in addition to the normal case of an active org with management capabilities.
-    const canSeeOrganizationAdminTab = !appUserPersonOrganization?.isActive || canManageOrganization;
-    const canSeeAuditTab = hasCapability(Capability.ORG_AUDIT_READ) || hasCapability(Capability.APP_AUDIT_READ);
+    useEffect(() =>
+    {
+        if (!planAvailability.visibleTabs.has(selectedValue as string))
+        {
+            setSelectedValue(tabIds.profile);
+            setPageTransitionDirection(null);
+        }
+    }, [planAvailability.visibleTabs, selectedValue]);
 
     const settingsMenu = (
         <SettingsMenu
             selectedValue={selectedValue}
             tabIds={tabIds}
-            hasOrg={hasOrg}
-            canManageOrganization={canManageOrganization}
-            canSeeOrganizationAdminTab={canSeeOrganizationAdminTab}
-            canSeeAuditTab={canSeeAuditTab}
+            hasOrg={planAvailability.hasOrg}
+            canManageOrganization={planAvailability.canManageOrganization}
+            canSeeBillingTab={planAvailability.canSeeBillingTab}
+            canSeeOrganizationAdminTab={planAvailability.canSeeOrganizationAdminTab}
+            canSeeAuditTab={planAvailability.canSeeAuditTab}
+            canUseDocumentLibrary={planAvailability.canUseDocumentLibrary}
+            canUseBlueprints={planAvailability.canUseBlueprints}
+            canUseBusinessFields={planAvailability.canUseBusinessFields}
+            canUseWorkflows={planAvailability.canUseWorkflows}
+            canUseVariables={planAvailability.canUseVariables}
             onTabSelect={onTabSelect}
         />
     );

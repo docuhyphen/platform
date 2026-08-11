@@ -327,8 +327,7 @@ deploy_website() {
     --delete \
     --region "$WEBSITE_REGION"
 
-  log_section "Configuring website SPA route fallback"
-  configure_spa_fallback "$distribution_id"
+  log_section "Skipping website SPA route fallback configuration"
 
   log_section "Creating CloudFront invalidation"
   invalidation_id="$(aws cloudfront create-invalidation \
@@ -393,8 +392,7 @@ deploy_web_app() {
     --delete \
     --region "$WEB_APP_REGION"
 
-  log_section "Configuring web app SPA route fallback"
-  configure_spa_fallback "$distribution_id"
+  log_section "Skipping web app SPA route fallback configuration"
 
   log_section "Creating web app CloudFront invalidation"
   invalidation_id="$(aws cloudfront create-invalidation \

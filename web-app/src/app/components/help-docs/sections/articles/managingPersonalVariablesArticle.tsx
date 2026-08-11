@@ -5,7 +5,7 @@ export const managingPersonalVariablesArticle = (
         <p>
             Personal variables are private key/value definitions that only you can see
             and manage. No other user, including Organization Admins, can view or modify
-            your personal variables.
+            your personal variables. They are available on Personal and Business plans.
         </p>
 
         <h3>How to create a personal variable</h3>

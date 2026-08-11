@@ -57,6 +57,7 @@ export const adminOperationsSection: HelpDocSectionInput = {
 
                     <h3>Scope isolation</h3>
                     <ul>
+                        <li>Role capabilities and subscription features are separate. An allowed organization action still requires the owning organization&apos;s applicable Business feature and mutation access.</li>
                         <li>App Admin is a platform role. It does not grant access to organization people, groups, settings, content, or member-capacity details.</li>
                         <li>An App Admin needs a separate organization role and the matching active organization to use organization administration capabilities.</li>
                         <li>An organization role does not grant access to an Exchange by itself.</li>
