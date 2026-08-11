@@ -14,6 +14,10 @@ export const startHereSection: HelpDocSectionInput = {
                         Welcome to DocuHyphen Help. If you are not sure where to begin,
                         use this recommended reading order.
                     </p>
+                    <p>
+                        Press <b>F1</b> to toggle this help panel. On some Mac keyboards,
+                        press <b>Fn</b> + <b>F1</b>.
+                    </p>
 
                     <h3>Recommended reading order</h3>
                     <ol>

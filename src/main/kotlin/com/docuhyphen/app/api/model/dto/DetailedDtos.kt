@@ -164,7 +164,7 @@ data class AppUserSettingsDto(
     @Serializable(with = UUIDSerializer::class)
     val id: UUID? = null,
     val notifyLogin: Boolean = false,
-    val autoPreviewDocuments: Boolean = true,
+    val autoPreviewDocuments: Boolean = false,
     val notifyShareStart: Boolean = true,
     val notifyShareAccept: Boolean = true,
     val notifyShareDecline: Boolean = true,

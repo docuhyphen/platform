@@ -30,7 +30,7 @@ class AppUserSettings
     var notifyLogin: Boolean = false
 
     @Column(name = "auto_preview_documents", nullable = false)
-    var autoPreviewDocuments: Boolean = true
+    var autoPreviewDocuments: Boolean = false
 
     @Column(name = "notify_share_start", nullable = false)
     var notifyShareStart: Boolean = true

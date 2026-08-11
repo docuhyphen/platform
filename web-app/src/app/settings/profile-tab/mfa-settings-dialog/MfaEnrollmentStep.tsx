@@ -10,6 +10,8 @@ interface MfaEnrollmentStepProps
     code: string;
     emailFallbackEnabled: boolean;
     disabled: boolean;
+    showEmailFallbackToggle?: boolean;
+    showManualSetupKey?: boolean;
     onCodeChange: (value: string) => void;
     onFallbackChange: (enabled: boolean) => void;
 }
@@ -19,6 +21,8 @@ const MfaEnrollmentStep = ({
     code,
     emailFallbackEnabled,
     disabled,
+    showEmailFallbackToggle = true,
+    showManualSetupKey = true,
     onCodeChange,
     onFallbackChange,
 }: MfaEnrollmentStepProps) =>
@@ -49,16 +53,19 @@ const MfaEnrollmentStep = ({
             src={qrCodeUrl}
             alt={"Authenticator enrollment QR code"}
         />}
-        <Text
-            id={"mfa-enrollment-manual-label"}
-            size={200}>
-            If scanning does not work, enter this setup key manually:
-        </Text>
-        <Text
-            id={"mfa-enrollment-secret"}
-            className={styles.secret}>
-            {enrollment.secret}
-        </Text>
+        {showManualSetupKey &&
+            <>
+                <Text
+                    id={"mfa-enrollment-manual-label"}
+                    size={200}>
+                    If scanning does not work, enter this setup key manually:
+                </Text>
+                <Text
+                    id={"mfa-enrollment-secret"}
+                    className={styles.secret}>
+                    {enrollment.secret}
+                </Text>
+            </>}
         <Field
             id={"mfa-enrollment-code-field"}
             label={"Authenticator code"}
@@ -73,14 +80,15 @@ const MfaEnrollmentStep = ({
                 onChange={(_, data) => onCodeChange(data.value.replace(/\D/g, ''))}
             />
         </Field>
-        <Switch
-            id={"mfa-email-fallback-enrollment-switch"}
-            className={styles.enrollmentSwitch}
-            checked={emailFallbackEnabled}
-            disabled={disabled}
-            label={"Allow email as a fallback when my authenticator app is unavailable"}
-            onChange={(_, data) => onFallbackChange(data.checked)}
-        />
+        {showEmailFallbackToggle &&
+            <Switch
+                id={"mfa-email-fallback-enrollment-switch"}
+                className={styles.enrollmentSwitch}
+                checked={emailFallbackEnabled}
+                disabled={disabled}
+                label={"Allow email as a fallback when my authenticator app is unavailable"}
+                onChange={(_, data) => onFallbackChange(data.checked)}
+            />}
     </div>;
 };
 

@@ -38,11 +38,16 @@ export const profileSettingsArticle = (
             <li>Open <b>Settings</b>, select <b>Profile</b>, then find <b>Security</b>.</li>
             <li>Select <b>Configure MFA</b>.</li>
             <li>Choose Google Authenticator or Microsoft Authenticator.</li>
+            <li>Use the App Store or Google Play links if you need to install the selected app.</li>
             <li>Scan the QR code with the selected app and enter its current 6-digit code.</li>
             <li>Select <b>Verify and enable</b>.</li>
         </ol>
         <ul>
             <li>Email verification is the default MFA method after sign-up.</li>
+            <li>
+                During first-run onboarding, you can set up Google Authenticator or Microsoft
+                Authenticator after registering your profile, or skip the step and configure it later.
+            </li>
             <li>
                 Email fallback is disabled when you set up an authenticator app unless you explicitly
                 enable <b>Allow email as a fallback</b>.

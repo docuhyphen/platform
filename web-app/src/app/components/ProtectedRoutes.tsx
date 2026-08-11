@@ -13,12 +13,29 @@ const ProtectedRoute: React.FC<{ element: React.ReactElement, path: string }> = 
     const {token, isBootstrapping} = useAuth();
     const [isHelpSidebarOpen, setIsHelpSidebarOpen] = React.useState(false);
     const [requestedArticleId, setRequestedArticleId] = React.useState<string | undefined>();
+    const toggleHelpSidebar = React.useCallback(() =>
+    {
+        setIsHelpSidebarOpen((open) => !open);
+    }, []);
 
     const openHelpArticle = React.useCallback((articleId: string) =>
     {
         setRequestedArticleId(articleId);
         setIsHelpSidebarOpen(true);
     }, []);
+
+    React.useEffect(() =>
+    {
+        if (!token || isBootstrapping) return;
+        const onKeyDown = (event: KeyboardEvent) =>
+        {
+            if (event.key !== "F1" || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+            event.preventDefault();
+            toggleHelpSidebar();
+        };
+        window.addEventListener("keydown", onKeyDown);
+        return () => window.removeEventListener("keydown", onKeyDown);
+    }, [isBootstrapping, token, toggleHelpSidebar]);
 
     // Wait for the cookie-based refresh probe to finish before deciding whether
     // to redirect,  otherwise we flash /sign-in for a frame on cold reopen.
@@ -31,7 +48,7 @@ const ProtectedRoute: React.FC<{ element: React.ReactElement, path: string }> = 
         <HelpSidebarContext.Provider value={{openHelpArticle}}>
             <div className={styles.appLayout}>
                 <div className={styles.appPane}>
-                    <MainMenu onToggleHelpSidebar={() => setIsHelpSidebarOpen((open) => !open)}/>
+                    <MainMenu onToggleHelpSidebar={toggleHelpSidebar}/>
                     {/*<TourCoach/>*/}
                     <div className={styles.pageContent}>{element}</div>
                 </div>

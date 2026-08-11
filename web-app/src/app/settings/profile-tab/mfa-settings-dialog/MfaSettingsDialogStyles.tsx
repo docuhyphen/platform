@@ -12,7 +12,28 @@ export const useMfaSettingsDialogStyles = makeStyles({
     options: {
         display: "flex",
         flexDirection: "column",
-        gap: tokens.spacingVerticalS,
+    },
+    downloadLinks: {
+        display: "flex",
+        alignItems: "center",
+        flexWrap: "wrap",
+        gap: tokens.spacingHorizontalM,
+        paddingTop: tokens.spacingVerticalS,
+        "& a": {
+            height: "32px",
+            display: "inline-flex",
+            alignItems: "center",
+            lineHeight: 0,
+            overflow: "hidden",
+        },
+    },
+    appStoreBadgeImage: {
+        height: "32px",
+        width: "auto",
+    },
+    playStoreBadgeImage: {
+        height: "46px",
+        width: "auto",
     },
     enrollment: {
         display: "flex",

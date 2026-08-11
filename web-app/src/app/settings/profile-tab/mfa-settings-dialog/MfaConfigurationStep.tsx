@@ -1,5 +1,6 @@
 import {Button, Radio, RadioGroup, Switch, Text} from "@fluentui/react-components";
 import {MfaConfiguration, MfaMethod} from "../../../models/models.tsx";
+import MfaAuthenticatorDownloadLinks from "./MfaAuthenticatorDownloadLinks.tsx";
 import {useMfaSettingsDialogStyles} from "./MfaSettingsDialogStyles.tsx";
 
 interface MfaConfigurationStepProps
@@ -8,6 +9,7 @@ interface MfaConfigurationStepProps
     provider: Exclude<MfaMethod, 'EMAIL'>;
     fallbackEnabled: boolean;
     disabled: boolean;
+    showDefaultMethodCopy?: boolean;
     onProviderChange: (provider: Exclude<MfaMethod, 'EMAIL'>) => void;
     onFallbackChange: (enabled: boolean) => void;
     onSwitchToEmail: () => void;
@@ -18,6 +20,7 @@ const MfaConfigurationStep = ({
     provider,
     fallbackEnabled,
     disabled,
+    showDefaultMethodCopy = true,
     onProviderChange,
     onFallbackChange,
     onSwitchToEmail,
@@ -60,9 +63,10 @@ const MfaConfigurationStep = ({
     }
 
     return <>
-        <Text id={"mfa-default-method-copy"}>
-            Email is your current MFA method. Choose an authenticator app to set it up.
-        </Text>
+        {showDefaultMethodCopy &&
+            <Text id={"mfa-default-method-copy"}>
+                Email is your current MFA method. Choose an authenticator app to set it up.
+            </Text>}
         <RadioGroup
             id={"mfa-provider-options"}
             className={styles.options}
@@ -79,6 +83,12 @@ const MfaConfigurationStep = ({
                 label={"Microsoft Authenticator"}
             />
         </RadioGroup>
+        <MfaAuthenticatorDownloadLinks
+            appStoreBadgeClassName={styles.appStoreBadgeImage}
+            linkGroupClassName={styles.downloadLinks}
+            playStoreBadgeClassName={styles.playStoreBadgeImage}
+            provider={provider}
+        />
     </>;
 };
 

@@ -244,7 +244,7 @@ class SettingsService @Inject constructor(
         {
             return AppUserSettingsDto(
                 notifyLogin = false,
-                autoPreviewDocuments = true,
+                autoPreviewDocuments = false,
                 notifyShareStart = true,
                 notifyShareAccept = true,
                 notifyShareDecline = true,

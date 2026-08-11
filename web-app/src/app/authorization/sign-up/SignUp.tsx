@@ -24,8 +24,8 @@ import {useSignUpStyles} from "./SignUpStyles.tsx";
 import {useAuthorizationStyles} from "../AuthorizationStyles.tsx";
 import {useGlobalStyles} from "../../../GlobalStyles.tsx";
 import validator from 'validator';
-import {getApiBaseUrl} from "../../../services/apiBaseUrl.ts";
 import {getOtpFriendlyMessage, normalizeApiError} from "../../../utils/apiErrorUtils.ts";
+import SocialSignUpButtons from "./social-sign-up-buttons/SocialSignUpButtons.tsx";
 
 interface SignUpFormData
 {
@@ -351,28 +351,7 @@ const SignUp: React.FC = () =>
 
                         {!initiationSuccessful && <>
                             <div><Divider>OR</Divider></div>
-
-                            <Button
-                                id={"sign-up-microsoft-btn"}
-                                onClick={() => {
-                                    const apiBaseUrl = getApiBaseUrl();
-                                    window.location.href = `${apiBaseUrl}/auth/oauth/MICROSOFT/authorize?flow=signup`;
-                                }}
-                                appearance={"secondary"}
-                                shape={"circular"}>
-                                Sign up with Microsoft
-                            </Button>
-
-                            <Button
-                                id={"sign-up-google-btn"}
-                                onClick={() => {
-                                    const apiBaseUrl = getApiBaseUrl();
-                                    window.location.href = `${apiBaseUrl}/auth/oauth/GOOGLE/authorize?flow=signup`;
-                                }}
-                                appearance={"secondary"}
-                                shape={"circular"}>
-                                Sign up with Google
-                            </Button>
+                            <SocialSignUpButtons/>
                         </>}
                         <div className={signUpStyles.authHasAccount}>
                             <Caption1> Already have an account? &nbsp;

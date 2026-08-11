@@ -87,6 +87,7 @@ const OrganizationOnboarding: React.FC = () =>
                         <OnboardingBreadcrumbs
                             registerOrganization={true}
                             isIndividualOnboarding={false}
+                            isMfaOnboarding={false}
                             isOnboardingComplete={false}
                             isOrgOnboarding={true}
                         />

@@ -5,7 +5,7 @@ import {useOnboardingBreadcrumbsStyles} from "./OnboardingBreadcrumbsStyles.tsx"
 
 interface BreadcrumbItemProps
 {
-    icon: React.ReactNode;
+    icon?: React.ReactNode;
     text: string;
     weight?: "regular" | "semibold";
     disabled?: boolean;
@@ -54,6 +54,7 @@ export interface OnBoardingBreadcrumbsProps
     registerOrganization: boolean;
     isOrgOnboarding: boolean;
     isIndividualOnboarding: boolean;
+    isMfaOnboarding: boolean;
     isOnboardingComplete: boolean;
 }
 
@@ -62,6 +63,7 @@ const OnBoardingBreadcrumbs: React.FC<OnBoardingBreadcrumbsProps> = (
         registerOrganization,
         isOrgOnboarding,
         isIndividualOnboarding,
+        isMfaOnboarding,
         isOnboardingComplete
     }) =>
 {
@@ -76,11 +78,17 @@ const OnBoardingBreadcrumbs: React.FC<OnBoardingBreadcrumbsProps> = (
                 text="Your Profile"
                 isCurrentStep={isIndividualOnboarding}/>
             <BreadcrumbItem
+                text="MFA Setup"
+                isCurrentStep={isMfaOnboarding}
+                icon={isIndividualOnboarding ?
+                    <LocationRippleRegular className={styles.onBoardingBreadcrumbItemIcon}/> : null}
+            />
+            <BreadcrumbItem
                 text="Your Organization"
                 weight={isOrgOnboarding ? "regular" : "semibold"}
                 disabled={!registerOrganization}
                 isCurrentStep={isOrgOnboarding}
-                icon={isIndividualOnboarding ?
+                icon={isIndividualOnboarding || isMfaOnboarding ?
                     <LocationRippleRegular className={styles.onBoardingBreadcrumbItemIcon}/> : null}
             />
             <BreadcrumbItem

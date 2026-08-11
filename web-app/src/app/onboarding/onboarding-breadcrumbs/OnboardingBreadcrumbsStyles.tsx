@@ -41,7 +41,6 @@ export const useOnboardingBreadcrumbsStyles = makeStyles({
 
     onBoardingBreadcrumbItemText: {
         flex: 1,
-        background: tokens.colorNeutralBackgroundAlpha,
         padding: `${tokens.spacingVerticalS} ${tokens.spacingHorizontalL}`,
         borderRadius: tokens.borderRadiusMedium,
         cursor: "default",

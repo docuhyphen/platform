@@ -53,5 +53,9 @@ class SettingsServiceTest
             SettingsService.getDefaultAppUserSettings().notifyLogin,
             AppUserSettings().notifyLogin,
         )
+        assertEquals(
+            SettingsService.getDefaultAppUserSettings().autoPreviewDocuments,
+            AppUserSettings().autoPreviewDocuments,
+        )
     }
 }
