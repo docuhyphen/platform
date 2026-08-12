@@ -73,7 +73,7 @@ export const useExchangeInitiationStyles = makeStyles({
     },
 
     dialog: {
-      width: "60vw",
+      width: "46vw",
       maxWidth: "100%"
     },
 
