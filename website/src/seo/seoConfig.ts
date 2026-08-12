@@ -6,6 +6,8 @@ export const INDEXABLE_ROUTES = [
     "/security",
     "/about",
     "/contact",
+    "/privacy-policy",
+    "/terms-of-service",
     "/industries/real-estate",
     "/industries/legal",
     "/industries/healthcare",
@@ -13,7 +15,11 @@ export const INDEXABLE_ROUTES = [
     "/industries/banking",
 ] as const;
 
-export const PRERENDERED_ROUTES = [...INDEXABLE_ROUTES, "/pricing", "/404"] as const;
+export const PRERENDERED_ROUTES = [
+    ...INDEXABLE_ROUTES,
+    "/pricing",
+    "/404",
+] as const;
 
 export type SeoRobots = "index,follow" | "noindex,follow" | "noindex,nofollow";
 
@@ -96,6 +102,24 @@ const routeSeoByPath: Readonly<Record<string, RouteSeo>> = {
         robots: "index,follow",
         pageType: "pricing",
         breadcrumbs: [{name: "Home", path: "/"}, {name: "Pricing", path: "/pricing"}],
+    }),
+    "/privacy-policy": defineRoute({
+        path: "/privacy-policy",
+        title: "Privacy Policy | DocuHyphen",
+        description: "Read how DocuHyphen collects, uses, protects, retains, and shares personal information.",
+        canonicalPath: "/privacy-policy",
+        robots: "index,follow",
+        pageType: "webpage",
+        breadcrumbs: [{name: "Home", path: "/"}, {name: "Privacy Policy", path: "/privacy-policy"}],
+    }),
+    "/terms-of-service": defineRoute({
+        path: "/terms-of-service",
+        title: "Terms of Service | DocuHyphen",
+        description: "Read the terms that govern access to and use of the DocuHyphen document Exchange platform.",
+        canonicalPath: "/terms-of-service",
+        robots: "index,follow",
+        pageType: "webpage",
+        breadcrumbs: [{name: "Home", path: "/"}, {name: "Terms of Service", path: "/terms-of-service"}],
     }),
     "/industries/real-estate": defineRoute({
         path: "/industries/real-estate",

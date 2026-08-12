@@ -14,6 +14,11 @@ import {appStyles} from "./AppStyles.tsx";
 import {PricingPage} from "./pages/PricingPage.tsx";
 import {IndustriesPage} from "./pages/IndustriesPage.tsx";
 import {SecurityPage} from "./pages/security-page/SecurityPage.tsx";
+import {LegalDocumentPage} from "./pages/legal-document-page/LegalDocumentPage.tsx";
+import {
+    privacyPolicyDocument,
+    termsOfServiceDocument,
+} from "./pages/legal-document-page/legalDocuments.ts";
 // About page is temporarily hidden pending redesign. Route intentionally
 // omitted below so "/about" falls through to the catch-all NotFoundPage.
 // import {AboutPage} from "./pages/about-page/AboutPage.tsx";
@@ -91,11 +96,19 @@ export default function App()
             )}
             <Routes>
                 <Route path="/" element={<LandingPage industrySlug={industrySlug}/>}/>
-            <Route path="/pricing" element={<PricingPage/>}/>
-            <Route path="/industries/:industry" element={<IndustriesPage/>}/>
-            <Route path="/security" element={<SecurityPage/>}/>
-            {/* "/about" route intentionally omitted while the page is hidden pending redesign */}
-            <Route path="*" element={<NotFoundPage/>}/>
+                <Route path="/pricing" element={<PricingPage/>}/>
+                <Route path="/industries/:industry" element={<IndustriesPage/>}/>
+                <Route path="/security" element={<SecurityPage/>}/>
+                <Route
+                    path="/privacy-policy"
+                    element={<LegalDocumentPage document={privacyPolicyDocument}/>}
+                />
+                <Route
+                    path="/terms-of-service"
+                    element={<LegalDocumentPage document={termsOfServiceDocument}/>}
+                />
+                {/* "/about" route intentionally omitted while the page is hidden pending redesign */}
+                <Route path="*" element={<NotFoundPage/>}/>
             </Routes>
         </>
     );

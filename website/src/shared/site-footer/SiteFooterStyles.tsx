@@ -33,9 +33,43 @@ export const useSiteFooterStyles = makeStyles({
     copyright: {
         color: tokens.colorNeutralForeground3,
         textAlign: "right",
-        whiteSpace: "nowrap",
         [BREAKPOINT_MOBILE]: {
-            whiteSpace: "normal",
+            textAlign: "left",
+        },
+    },
+    meta: {
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "flex-end",
+        gap: tokens.spacingVerticalS,
+        minWidth: 0,
+        [BREAKPOINT_MOBILE]: {
+            alignItems: "flex-start",
+        },
+    },
+    legalLinks: {
+        display: "flex",
+        flexWrap: "wrap",
+        justifyContent: "flex-end",
+        columnGap: tokens.spacingHorizontalM,
+        rowGap: tokens.spacingVerticalXS,
+        [BREAKPOINT_MOBILE]: {
+            justifyContent: "flex-start",
+        },
+    },
+    legalLink: {
+        color: tokens.colorBrandForegroundLink,
+        fontSize: tokens.fontSizeBase200,
+        textDecorationLine: "none",
+        ":hover": {
+            textDecorationLine: "underline",
+        },
+        ":focus-visible": {
+            outlineStyle: "solid",
+            outlineWidth: tokens.strokeWidthThick,
+            outlineColor: tokens.colorStrokeFocus2,
+            outlineOffset: "2px",
+            borderRadius: tokens.borderRadiusMedium,
         },
     },
 });
