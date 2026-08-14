@@ -1,9 +1,9 @@
 package com.docuhyphen.app.api.model.entity
 
-enum class IdentityProviderType
+enum class IdentityProviderType(val displayName: String)
 {
-    INTERNAL,
-    MICROSOFT,
-    GOOGLE
+    INTERNAL("Email & Password"),
+    MICROSOFT("Microsoft"),
+    GOOGLE("Google")
 }
 

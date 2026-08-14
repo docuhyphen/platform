@@ -1,15 +1,14 @@
 import React, {useEffect, useState} from 'react';
-import {
-    MessageBar,
-    MessageBarBody,
-    Spinner,
-} from "@fluentui/react-components";
+import {MessageBar, MessageBarBody, Spinner} from "@fluentui/react-components";
 import {useLinkedAccountsTabStyles} from './LinkedAccountsTabStyles';
 import {IdentityProviderLinkDto, ResponseError} from "../../models/models.tsx";
-import {getIdentityProviders, initiateLinkProvider, unlinkProvider} from "../../../services/authApi.ts";
-import LinkedProviderCard from "./linked-provider-card/LinkedProviderCard.tsx";
+import {getIdentityProviders, initiateLinkProvider} from "../../../services/authApi.ts";
 import LinkedAccountsSummary from "./linked-accounts-summary/LinkedAccountsSummary.tsx";
-import {providerDefinitions} from "./providerDefinitions.ts";
+import LinkedProviderList from "./linked-provider-list/LinkedProviderList.tsx";
+import SetupPasswordDialog from "./setup-password-dialog/SetupPasswordDialog.tsx";
+import {useSetupPasswordLinkFlow} from "./setup-password-navigation/useSetupPasswordLinkFlow.ts";
+import UnlinkProviderDialog from "./unlink-provider-dialog/UnlinkProviderDialog.tsx";
+import {useUnlinkProviderFlow} from "./useUnlinkProviderFlow.ts";
 
 const LinkedAccountsTab: React.FC = () =>
 {
@@ -18,6 +17,7 @@ const LinkedAccountsTab: React.FC = () =>
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | undefined>();
     const [actionLoading, setActionLoading] = useState<string | null>(null);
+    const {passwordDialogOpen, beginPasswordSetup, closePasswordDialog} = useSetupPasswordLinkFlow();
 
     const fetchProviders = async () =>
     {
@@ -44,6 +44,24 @@ const LinkedAccountsTab: React.FC = () =>
 
     const onLinkProvider = async (provider: string) =>
     {
+        if (provider === "INTERNAL")
+        {
+            setActionLoading(provider);
+            try
+            {
+                await beginPasswordSetup();
+            }
+            catch (e)
+            {
+                setError((e as ResponseError)?.errorMessage || "Re-authentication was not completed.");
+            }
+            finally
+            {
+                setActionLoading(null);
+            }
+            return;
+        }
+
         setActionLoading(provider);
         try
         {
@@ -63,35 +81,12 @@ const LinkedAccountsTab: React.FC = () =>
         }
     };
 
-    const onUnlinkProvider = async (provider: string) =>
-    {
-        setActionLoading(provider);
-        try
-        {
-            await unlinkProvider(provider);
-            await fetchProviders();
-        }
-        catch (e)
-        {
-            const responseError = e as ResponseError;
+    const unlinkFlow = useUnlinkProviderFlow({
+        refreshProviders: fetchProviders,
+        setError,
+        setActionLoading,
+    });
 
-            // Removing a sign-in method now needs a recent authentication challenge, so the
-            // server can reject an otherwise valid session that has gone stale.
-            if (responseError?.reasonCode === "STEP_UP_REQUIRED")
-            {
-                setError("For your security, please sign in again before changing your sign-in methods.");
-                return;
-            }
-
-            setError(responseError?.errorMessage || "Failed to unlink provider.");
-        }
-        finally
-        {
-            setActionLoading(null);
-        }
-    };
-
-    const isLinked = (provider: string) => providers.some(p => p.provider === provider);
     const connectedCount = providers.length;
     const canUnlink = connectedCount > 1;
 
@@ -117,27 +112,23 @@ const LinkedAccountsTab: React.FC = () =>
                 </MessageBar>
             )}
 
-            <div
-                id={"linked-accounts-provider-list"}
-                className={styles.providerList}>
-                {providerDefinitions.map((providerCard) =>
-                {
-                    const linked = isLinked(providerCard.provider);
-
-                    return <LinkedProviderCard
-                        id={`linked-provider-card-${providerCard.idPrefix}`}
-                        key={providerCard.provider}
-                        title={providerCard.title}
-                        description={providerCard.description}
-                        providerMark={providerCard.providerMark}
-                        linked={linked}
-                        isActionLoading={actionLoading === providerCard.provider}
-                        canUnlink={canUnlink}
-                        onLink={() => onLinkProvider(providerCard.provider)}
-                        onUnlink={() => onUnlinkProvider(providerCard.provider)}
-                    />;
-                })}
-            </div>
+            <LinkedProviderList
+                linkedProviders={providers.map(provider => provider.provider)}
+                actionLoading={actionLoading}
+                canUnlink={canUnlink}
+                onLink={onLinkProvider}
+                onUnlink={unlinkFlow.requestUnlink}
+            />
+            <SetupPasswordDialog
+                open={passwordDialogOpen}
+                onClose={closePasswordDialog}
+            />
+            <UnlinkProviderDialog
+                provider={unlinkFlow.pendingProvider}
+                unlinking={unlinkFlow.unlinking}
+                onConfirm={unlinkFlow.confirmUnlink}
+                onCancel={unlinkFlow.cancelUnlink}
+            />
         </div>
     );
 };

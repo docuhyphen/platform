@@ -23,7 +23,11 @@ const Settings = () =>
 {
     const styles = useSettingsStyles();
     const isMobile = useIsMobile();
-    const [selectedValue, setSelectedValue] = useState<TabValue>(tabIds.profile);
+    const requestedTab = new URLSearchParams(window.location.search).get("tab");
+    const initialTab = requestedTab && settingsTabOrder.includes(requestedTab)
+        ? requestedTab
+        : tabIds.profile;
+    const [selectedValue, setSelectedValue] = useState<TabValue>(initialTab);
     const [pageTransitionDirection, setPageTransitionDirection] =
         useState<SettingsPageTransitionDirection>(null);
     const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);

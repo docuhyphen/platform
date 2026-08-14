@@ -2,6 +2,7 @@ import React from "react";
 import {Button, Field, Input, Spinner, Text} from "@fluentui/react-components";
 import {RegenerateOTPIcon} from "../IconBundles.tsx";
 import {useStepUpVerificationStyles} from "./StepUpVerificationStyles.tsx";
+import {identityProviderDisplayName} from "../../authorization/identityProviderDisplayName.ts";
 
 export const STEP_UP_DIALOG_TITLE = "Confirm it's you";
 
@@ -65,7 +66,7 @@ const StepUpVerification: React.FC<StepUpVerificationProps> = (
                 id={"step-up-external-verification"}
                 className={styles.container}>
                 <Text id={"step-up-external-instructions"}>
-                    To {actionLabel}, you must re-authenticate with {provider || "your identity provider"}.
+                    To {actionLabel}, you must re-authenticate with {identityProviderDisplayName(provider)}.
                     Silent SSO is disabled for this step.
                 </Text>
                 {error && <Text

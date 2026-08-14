@@ -61,48 +61,83 @@ const resolveAndClose = (ok: boolean) =>
     resolver?.(ok);
 };
 
-export const requestStepUp = (opts: { action?: string | null; message?: string | null }): Promise<boolean> =>
+export const requestStepUp = (opts: {
+    action?: string | null;
+    message?: string | null;
+    returnTo?: string;
+}): Promise<boolean> =>
 {
-    return new Promise<boolean>(async (resolve, reject) =>
+    return new Promise<boolean>((resolve, reject) =>
     {
         currentResolver = resolve;
 
-        try
+        void (async () =>
         {
-            const returnTo = `${window.location.pathname}${window.location.search}`;
-            const initiation: StepUpInitiateResponse = await initiateStepUp(returnTo, opts.action);
-
-            if (initiation.method === 'INTERNAL_EMAIL_OTP')
+            try
             {
-                const mfaSessionId = initiation.mfaSessionId;
-                if (!mfaSessionId)
+                const returnTo = opts.returnTo ?? `${window.location.pathname}${window.location.search}`;
+                const initiation: StepUpInitiateResponse = await initiateStepUp(returnTo, opts.action);
+
+                if (initiation.method === 'INTERNAL_EMAIL_OTP')
                 {
-                    throw new Error('Step-up session is missing');
+                    const mfaSessionId = initiation.mfaSessionId;
+                    if (!mfaSessionId)
+                    {
+                        throw new Error('Step-up session is missing');
+                    }
+
+                    pendingPrompt = {
+                        method: 'INTERNAL_EMAIL_OTP',
+                        action: opts.action ?? null,
+                        message: initiation.message ?? opts.message ?? null,
+                        mfaSessionId,
+                        mfaType: initiation.mfaType,
+                        emailFallbackEnabled: initiation.emailFallbackEnabled,
+                        submitOtp: async (otp: string): Promise<boolean> =>
+                        {
+                            const result = await completeStepUpWithOtp(mfaSessionId, otp);
+                            if (result?.fresh)
+                            {
+                                resolveAndClose(true);
+                                return true;
+                            }
+                            return false;
+                        },
+                        resendOtp: initiation.mfaType === 'EMAIL' || initiation.emailFallbackEnabled
+                            ? async (): Promise<StepUpResult> =>
+                            {
+                                return regenerateStepUpOtp(mfaSessionId);
+                            }
+                            : undefined,
+                        cancel: () =>
+                        {
+                            currentResolver = null;
+                            pendingPrompt = null;
+                            notify();
+                            reject(new Error('Step-up cancelled by user'));
+                        },
+                    };
+                    notify();
+                    return;
+                }
+
+                const authorizeUrl = initiation.authorizeUrl;
+                if (!authorizeUrl)
+                {
+                    throw new Error('Step-up re-login URL is missing');
                 }
 
                 pendingPrompt = {
-                    method: 'INTERNAL_EMAIL_OTP',
+                    method: 'EXTERNAL_RELOGIN',
                     action: opts.action ?? null,
                     message: initiation.message ?? opts.message ?? null,
-                    mfaSessionId,
-                    mfaType: initiation.mfaType,
-                    emailFallbackEnabled: initiation.emailFallbackEnabled,
-                    submitOtp: async (otp: string): Promise<boolean> =>
+                    provider: initiation.provider ?? null,
+                    authorizeUrl,
+                    continueExternal: async (): Promise<void> =>
                     {
-                        const result = await completeStepUpWithOtp(mfaSessionId, otp);
-                        if (result?.fresh)
-                        {
-                            resolveAndClose(true);
-                            return true;
-                        }
-                        return false;
+                        // Full-page redirect is intentional: OAuth provider auth must happen top-level.
+                        window.location.assign(authorizeUrl);
                     },
-                    resendOtp: initiation.mfaType === 'EMAIL' || initiation.emailFallbackEnabled
-                        ? async (): Promise<StepUpResult> =>
-                        {
-                            return regenerateStepUpOtp(mfaSessionId);
-                        }
-                        : undefined,
                     cancel: () =>
                     {
                         currentResolver = null;
@@ -112,42 +147,14 @@ export const requestStepUp = (opts: { action?: string | null; message?: string |
                     },
                 };
                 notify();
-                return;
             }
-
-            const authorizeUrl = initiation.authorizeUrl;
-            if (!authorizeUrl)
+            catch (e)
             {
-                throw new Error('Step-up re-login URL is missing');
+                currentResolver = null;
+                pendingPrompt = null;
+                notify();
+                reject(e);
             }
-
-            pendingPrompt = {
-                method: 'EXTERNAL_RELOGIN',
-                action: opts.action ?? null,
-                message: initiation.message ?? opts.message ?? null,
-                provider: initiation.provider ?? null,
-                authorizeUrl,
-                continueExternal: async (): Promise<void> =>
-                {
-                    // Full-page redirect is intentional: OAuth provider auth must happen top-level.
-                    window.location.assign(authorizeUrl);
-                },
-                cancel: () =>
-                {
-                    currentResolver = null;
-                    pendingPrompt = null;
-                    notify();
-                    reject(new Error('Step-up cancelled by user'));
-                },
-            };
-            notify();
-        }
-        catch (e)
-        {
-            currentResolver = null;
-            pendingPrompt = null;
-            notify();
-            reject(e);
-        }
+        })();
     });
 };

@@ -103,7 +103,9 @@ class IdentityProviderResource @Inject constructor(
             if (existingExternal != null && existingExternal.provider != providerType)
             {
                 return Response.status(Response.Status.CONFLICT)
-                    .entity(ResponseError("Already linked to ${existingExternal.provider}. Unlink it first."))
+                    .entity(ResponseError(
+                        "Already linked to ${existingExternal.provider.displayName}. Unlink it first."
+                    ))
                     .build()
             }
 

@@ -46,6 +46,13 @@ Parameters:
     Default: ""
     Description: Existing user email promoted to the first App Admin when no App Admin exists.
 
+  GoogleOAuthCredentialsSecretArn:
+    Type: String
+    Default: ""
+    Description: >-
+      ARN of the integration-scoped Google OAuth secret containing
+      GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET JSON keys.
+
   ApplicationEnabled:
     Type: String
     AllowedValues:
@@ -68,6 +75,7 @@ Parameters:
 Conditions:
   HasCertificate: !Not [!Equals [!Ref CertificateArn, ""]]
   HasCloudFrontCertificate: !Not [!Equals [!Ref CloudFrontCertificateArn, ""]]
+  HasGoogleOAuthCredentialsSecret: !Not [!Equals [!Ref GoogleOAuthCredentialsSecretArn, ""]]
   DeployApplication: !Equals [!Ref ApplicationEnabled, "true"]
   DeployApplicationWithCertificate: !And
     - !Condition DeployApplication
@@ -358,7 +366,12 @@ Resources:
               - Effect: Allow
                 Action:
                   - secretsmanager:GetSecretValue
-                Resource: !GetAtt RDSInstance.MasterUserSecret.SecretArn
+                Resource:
+                  - !GetAtt RDSInstance.MasterUserSecret.SecretArn
+                  - !If
+                    - HasGoogleOAuthCredentialsSecret
+                    - !Ref GoogleOAuthCredentialsSecretArn
+                    - !Ref AWS::NoValue
 
   ECSTaskRole:
     Type: AWS::IAM::Role
@@ -552,6 +565,26 @@ Resources:
             - Name: APP_AUDIT_IDENTITY_VAULT_REGION
               Value: !Ref AWS::Region
           Secrets:
+            - !If
+              - HasGoogleOAuthCredentialsSecret
+              - Name: GOOGLE_CLIENT_ID
+                ValueFrom: !Join
+                  - ":"
+                  - - !Ref GoogleOAuthCredentialsSecretArn
+                    - GOOGLE_CLIENT_ID
+                    - ""
+                    - ""
+              - !Ref AWS::NoValue
+            - !If
+              - HasGoogleOAuthCredentialsSecret
+              - Name: GOOGLE_CLIENT_SECRET
+                ValueFrom: !Join
+                  - ":"
+                  - - !Ref GoogleOAuthCredentialsSecretArn
+                    - GOOGLE_CLIENT_SECRET
+                    - ""
+                    - ""
+              - !Ref AWS::NoValue
             - Name: DB_USERNAME
               ValueFrom: !Join
                 - ":"

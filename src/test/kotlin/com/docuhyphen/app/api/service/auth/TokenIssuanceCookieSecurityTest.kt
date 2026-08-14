@@ -28,5 +28,6 @@ class TokenIssuanceCookieSecurityTest
         mock(),
         mock(),
         mock(),
+        mock(),
     )
 }

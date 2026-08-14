@@ -43,7 +43,8 @@ export const identitySection: HelpDocSectionInput = {
                         <li>Confirm the organization has the Business identity and integrations entitlement.</li>
                         <li>Confirm you have admin access to your identity provider.</li>
                         <li>Collect redirect URIs for each deployment environment.</li>
-                        <li>Decide which email domains are allowed for your organization.</li>
+                        <li>Decide which organization-owned email domains are allowed.</li>
+                        <li>Confirm you can add a TXT record to each domain&apos;s DNS.</li>
                         <li>Define who owns rollout, testing, and change approval.</li>
                     </ul>
 
@@ -99,14 +100,23 @@ export const identitySection: HelpDocSectionInput = {
                     <h3>Sign-in enforcement</h3>
                     <ul>
                         <li>
+                            On the sign-in page, people can use Google or Microsoft directly,
+                            or enter their email address to continue with email and password.
+                        </li>
+                        <li>
+                            An organization domain must be registered in DocuHyphen and verified
+                            with its DNS TXT challenge before it can route sign-in or enforce an
+                            organization Identity Provider policy.
+                        </li>
+                        <li>
                             Organization choices shown before authentication come only from the exact
                             account&apos;s current active organization memberships. Organizations are not
                             listed merely because their contact addresses use the same email domain.
                         </li>
                         <li>
-                            Consumer email domains never provide an organization directory. A single,
-                            unambiguous configured organization domain may route directly to its active
+                            A verified organization domain may route directly to its active
                             Identity Provider without returning the organization&apos;s name or identifier.
+                            An organization contact email does not establish ownership of its domain.
                         </li>
                         <li>
                             A selected organization is checked against the account&apos;s current active

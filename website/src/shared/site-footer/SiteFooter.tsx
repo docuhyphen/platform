@@ -22,11 +22,6 @@ export function SiteFooter()
                     className={styles.logo}
                 >
                     <AppLogo/>
-                </span>
-                <div
-                    id="site-footer-meta"
-                    className={styles.meta}
-                >
                     <Text
                         id="site-footer-copyright"
                         size={200}
@@ -34,6 +29,11 @@ export function SiteFooter()
                     >
                         &copy; {year} DocuHyphen. All rights reserved.
                     </Text>
+                </span>
+                <div
+                    id="site-footer-meta"
+                    className={styles.meta}
+                >
                     <nav
                         id="site-footer-legal-links"
                         className={styles.legalLinks}

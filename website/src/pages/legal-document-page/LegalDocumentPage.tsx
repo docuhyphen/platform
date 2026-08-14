@@ -1,5 +1,4 @@
 import {Text, Title1, Title3} from "@fluentui/react-components";
-import {Breadcrumbs} from "../../shared/Breadcrumbs.tsx";
 import {LinkButton} from "../../shared/LinkButton.tsx";
 import {PageShell} from "../../shared/PageShell.tsx";
 import {useLegalDocumentPageStyles} from "./LegalDocumentPageStyles.tsx";
@@ -26,7 +25,6 @@ export function LegalDocumentPage({document}: LegalDocumentPageProps)
 
     return (
         <PageShell>
-            <Breadcrumbs trail={[{label: "Home", to: "/"}, {label: document.title}]}/>
             <main
                 id={document.pageId}
                 className={styles.wrapper}
@@ -36,12 +34,6 @@ export function LegalDocumentPage({document}: LegalDocumentPageProps)
                     id={`${document.pageId}-header`}
                     className={styles.header}
                 >
-                    <Text
-                        id={`${document.pageId}-label`}
-                        className={styles.label}
-                    >
-                        Legal
-                    </Text>
                     <Title1
                         id={`${document.pageId}-title`}
                         as="h1"
@@ -49,12 +41,6 @@ export function LegalDocumentPage({document}: LegalDocumentPageProps)
                     >
                         {document.title}
                     </Title1>
-                    <Text
-                        id={`${document.pageId}-effective-date`}
-                        className={styles.effectiveDate}
-                    >
-                        Effective date: 12 August 2026
-                    </Text>
                     <Text
                         id={`${document.pageId}-summary`}
                         size={500}

@@ -18,6 +18,7 @@ import {ResponseError} from "../../models/models.tsx";
 import AppLogo from "../../components/app-logo/AppLogo.tsx";
 import {useAuthorizationStyles} from "../AuthorizationStyles.tsx";
 import {useGlobalStyles} from "../../../GlobalStyles.tsx";
+import {identityProviderDisplayName} from "../identityProviderDisplayName.ts";
 
 const OAuthLinkConfirm: React.FC = () =>
 {
@@ -28,6 +29,7 @@ const OAuthLinkConfirm: React.FC = () =>
     const globalStyles = useGlobalStyles();
 
     const provider = searchParams.get('provider') || '';
+    const providerDisplayName = identityProviderDisplayName(provider);
     const email = searchParams.get('email') || '';
     const linkToken = searchParams.get('linkToken') || '';
 
@@ -88,7 +90,7 @@ const OAuthLinkConfirm: React.FC = () =>
 
                         <Text size={300} align={"center"}>
                             An account with <strong>{email}</strong> already exists.
-                            Enter your password to link your <strong>{provider}</strong> account.
+                            Enter your password to link your <strong>{providerDisplayName}</strong> account.
                         </Text>
 
                         {errorMessage && (

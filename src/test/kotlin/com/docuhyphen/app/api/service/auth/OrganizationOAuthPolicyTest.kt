@@ -3,10 +3,12 @@ package com.docuhyphen.app.api.service.auth
 import com.docuhyphen.app.api.model.entity.IdentityProviderType
 import com.docuhyphen.app.api.model.entity.Organization
 import com.docuhyphen.app.api.model.entity.OrganizationIdentityProviderConfig
+import com.docuhyphen.app.api.repository.OrganizationIdentityDomainRepository
 import com.docuhyphen.app.api.repository.OrganizationIdentityProviderConfigRepository
 import com.docuhyphen.app.api.repository.OrganizationRepository
 import com.docuhyphen.app.api.service.organization.OrganizationSeatGuard
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.mockito.kotlin.mock
@@ -18,10 +20,12 @@ class OrganizationOAuthPolicyTest
     private val organizationRepository = mock<OrganizationRepository>()
     private val organizationSeatGuard = mock<OrganizationSeatGuard>()
     private val idpConfigRepository = mock<OrganizationIdentityProviderConfigRepository>()
+    private val identityDomainRepository = mock<OrganizationIdentityDomainRepository>()
     private val service = OrganizationIdentityPolicyService(
         organizationRepository,
         organizationSeatGuard,
         idpConfigRepository,
+        identityDomainRepository,
     )
 
     @Test
@@ -29,7 +33,7 @@ class OrganizationOAuthPolicyTest
     {
         val organization = organization()
         val config = config(organization, IdentityProviderType.GOOGLE)
-        whenever(organizationRepository.findByVerifiedContactEmailDomain("example.com")).thenReturn(organization)
+        whenever(identityDomainRepository.findVerifiedOrganizationByDomain("example.com")).thenReturn(organization)
         whenever(idpConfigRepository.findActiveByOrganizationId(organization.id)).thenReturn(listOf(config))
 
         assertThrows<IdentityProviderNotAllowedException> {
@@ -46,7 +50,7 @@ class OrganizationOAuthPolicyTest
     {
         val organization = organization()
         val config = config(organization, IdentityProviderType.MICROSOFT)
-        whenever(organizationRepository.findByVerifiedContactEmailDomain("example.com")).thenReturn(organization)
+        whenever(identityDomainRepository.findVerifiedOrganizationByDomain("example.com")).thenReturn(organization)
         whenever(idpConfigRepository.findActiveByOrganizationId(organization.id)).thenReturn(listOf(config))
 
         val result = service.resolveTrustedOrganizationForOAuth(
@@ -56,6 +60,18 @@ class OrganizationOAuthPolicyTest
         )
 
         assertEquals(organization.id, result?.id)
+    }
+
+    @Test
+    fun `contact email domain does not establish organization identity ownership`()
+    {
+        val result = service.resolveTrustedOrganizationForOAuth(
+            "user@gmail.com",
+            IdentityProviderType.GOOGLE,
+            null,
+        )
+
+        assertNull(result)
     }
 
     private fun organization(): Organization = Organization().apply {

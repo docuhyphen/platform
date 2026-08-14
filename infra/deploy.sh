@@ -8,6 +8,7 @@ REGION="${AWS_REGION:-af-south-1}"
 WEBSITE_DOMAIN="${WEBSITE_DOMAIN:-www.docuhyphen.com}"
 WEB_APP_DOMAIN="${WEB_APP_DOMAIN:-app.docuhyphen.com}"
 API_DOMAIN="${API_DOMAIN:-api.docuhyphen.com}"
+GOOGLE_OAUTH_CREDENTIALS_SECRET_ID="${GOOGLE_OAUTH_CREDENTIALS_SECRET_ID:-${APP_NAME}/oauth/google}"
 SES_REGION="${SES_REGION:-us-east-1}"
 WEBSITE_BUCKET="${WEBSITE_BUCKET:-docuhyphen-website}"
 WEBSITE_REGION="${WEBSITE_AWS_REGION:-us-east-1}"
@@ -93,6 +94,20 @@ stack_exists() {
 
 deploy_stack() {
   local application_enabled="$1"
+  local google_oauth_credentials_secret_arn
+
+  google_oauth_credentials_secret_arn="$(aws secretsmanager describe-secret \
+    --secret-id "$GOOGLE_OAUTH_CREDENTIALS_SECRET_ID" \
+    --region "$REGION" \
+    --query ARN \
+    --output text \
+    2>/dev/null || true)"
+
+  if [[ -n "$google_oauth_credentials_secret_arn" ]]; then
+    log "Using Google OAuth credentials secret ${GOOGLE_OAUTH_CREDENTIALS_SECRET_ID}"
+  else
+    log "Google OAuth credentials secret ${GOOGLE_OAUTH_CREDENTIALS_SECRET_ID} was not found; Google OAuth will not be configured"
+  fi
 
   log "Deploying stack ${STACK_NAME} with ApplicationEnabled=${application_enabled}"
   aws cloudformation deploy \
@@ -112,6 +127,7 @@ deploy_stack() {
       ApiDomainName="$API_DOMAIN" \
       SesRegion="$SES_REGION" \
       AppAdminBootstrapEmail="${APP_ADMIN_BOOTSTRAP_EMAIL:-}" \
+      GoogleOAuthCredentialsSecretArn="$google_oauth_credentials_secret_arn" \
       ApplicationEnabled="$application_enabled" \
     --no-fail-on-empty-changeset
 }

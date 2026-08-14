@@ -1,6 +1,7 @@
 package com.docuhyphen.app.api.service.auth
 
 import com.docuhyphen.app.api.model.entity.AppUser
+import com.docuhyphen.app.api.service.AppUserService
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
@@ -22,6 +23,7 @@ class TokenIssuanceService @Inject constructor(
     private val csrfProtectionService: CsrfProtectionService,
     private val userSessionService: UserSessionService,
     private val authSessionPolicyService: AuthSessionPolicyService,
+    private val appUserService: AppUserService,
 )
 {
     companion object
@@ -35,26 +37,32 @@ class TokenIssuanceService @Inject constructor(
     @Transactional
     fun issueTokenTriple(appUser: AppUser, userAgent: String? = null, ipAddress: String? = null): TokenTriple
     {
-        val policy = authSessionPolicyService.resolveForAppUser(appUser)
-        val userSession = userSessionService.createSession(appUser, policy.maxSessionDurationHours, userAgent, ipAddress)
+        val tokenSubject = requireTokenSubject(appUser)
+        val policy = authSessionPolicyService.resolveForAppUser(tokenSubject)
+        val userSession = userSessionService.createSession(
+            tokenSubject,
+            policy.maxSessionDurationHours,
+            userAgent,
+            ipAddress,
+        )
         val accessToken = authenticationService.generateAccessToken(
-            appUser,
+            tokenSubject,
             userSession.sessionId,
             policy.accessTokenExpiryMinutes,
         )
         val idToken = authenticationService.generateIdToken(
-            appUser,
+            tokenSubject,
             userSession.sessionId,
             policy.accessTokenExpiryMinutes,
         )
         val (refreshToken, jti, familyId) = authenticationService.generateRefreshToken(
-            appUser,
+            tokenSubject,
             sessionId = userSession.sessionId,
             expiryMinutesOverride = policy.refreshTokenExpiryMinutes,
         )
 
         authenticationService.saveRefreshToken(
-            appUser,
+            tokenSubject,
             refreshToken,
             jti,
             familyId,
@@ -62,7 +70,7 @@ class TokenIssuanceService @Inject constructor(
             policy.refreshTokenExpiryMinutes,
         )
 
-        logger.info("Issued token triple for user {}", appUser.id)
+        logger.info("Issued token triple for user {}", tokenSubject.id)
         return TokenTriple(accessToken, idToken, refreshToken, jti)
     }
 
@@ -82,13 +90,15 @@ class TokenIssuanceService @Inject constructor(
             .build()
     }
 
+    @Transactional
     fun buildRefreshTokenCookieWithPolicy(
         refreshToken: String,
         appUser: AppUser,
         secure: Boolean = usesSecureCookies(),
     ): NewCookie
     {
-        val policy = authSessionPolicyService.resolveForAppUser(appUser)
+        val tokenSubject = requireTokenSubject(appUser)
+        val policy = authSessionPolicyService.resolveForAppUser(tokenSubject)
         val maxAgeSeconds = TimeUnit.MINUTES.toSeconds(policy.refreshTokenExpiryMinutes).toInt().coerceAtLeast(1)
         return buildRefreshTokenCookie(refreshToken, secure, maxAgeSeconds)
     }
@@ -137,6 +147,12 @@ class TokenIssuanceService @Inject constructor(
             .getOptionalValue("app.base-url", String::class.java)
             .orElse("")
         return shouldUseSecureCookies(baseUrl)
+    }
+
+    private fun requireTokenSubject(appUser: AppUser): AppUser
+    {
+        return appUserService.getByIdWithPerson(appUser.id)
+            ?: throw IllegalStateException("Cannot issue tokens for a user that no longer exists")
     }
 }
 

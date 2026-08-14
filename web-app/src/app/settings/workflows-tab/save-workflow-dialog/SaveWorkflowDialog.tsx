@@ -27,6 +27,7 @@ import {
 import {getOtpFriendlyMessage, normalizeApiError} from "../../../../utils/apiErrorUtils.ts";
 import StepUpVerification, {STEP_UP_DIALOG_TITLE} from "../../../components/step-up/StepUpVerification.tsx";
 import {useResendCooldownError} from "../../../components/step-up/useResendCooldownError.ts";
+import {identityProviderDisplayName} from "../../../authorization/identityProviderDisplayName.ts";
 
 type Phase = 'review' | 'verify-otp' | 'verify-external';
 
@@ -374,7 +375,9 @@ const SaveWorkflowDialog = ({open, onClose, onConfirm, isEdit, state, triggers, 
                                     onClick={handleContinueExternal}
                                     disabled={isBusy}
                                 >
-                                    {submitting ? <><Spinner size="tiny"/> Redirecting…</> : `Continue to ${stepUpSession?.provider || "provider"}`}
+                                    {submitting
+                                        ? <><Spinner size="tiny"/> Redirecting...</>
+                                        : `Continue to ${identityProviderDisplayName(stepUpSession?.provider)}`}
                                 </Button>
                                 <Button
                                     id={"button-workflow-external-back"}

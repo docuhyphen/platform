@@ -79,5 +79,10 @@ export const useAuthorizationStyles = makeStyles({
         justifyContent: "center",
         overflowY: "auto",
         minHeight: 0,
+
+        "@media (max-width: 768px)": {
+            justifyContent: "flex-start",
+            paddingTop: "120px"
+        },
     },
 });

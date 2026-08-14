@@ -26,8 +26,10 @@ export const useSiteFooterStyles = makeStyles({
         },
     },
     logo: {
-        display: "inline-flex",
-        alignItems: "center",
+        display: "flex",
+        alignItems: "start",
+        flexDirection: "column",
+        gap: tokens.spacingVerticalM,
         minWidth: 0,
     },
     copyright: {

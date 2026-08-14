@@ -3,6 +3,7 @@ package com.docuhyphen.app.api.service.auth
 import com.docuhyphen.app.api.model.entity.IdentityProviderType
 import com.docuhyphen.app.api.model.entity.Organization
 import com.docuhyphen.app.api.model.entity.OrganizationIdentityProviderConfig
+import com.docuhyphen.app.api.repository.OrganizationIdentityDomainRepository
 import com.docuhyphen.app.api.repository.OrganizationIdentityProviderConfigRepository
 import com.docuhyphen.app.api.repository.OrganizationRepository
 import com.docuhyphen.app.api.service.organization.OrganizationSeatGuard
@@ -17,6 +18,7 @@ class OrganizationIdentityPolicyService @Inject constructor(
     private val organizationRepository: OrganizationRepository,
     private val organizationSeatGuard: OrganizationSeatGuard,
     private val organizationIdentityProviderConfigRepository: OrganizationIdentityProviderConfigRepository,
+    private val organizationIdentityDomainRepository: OrganizationIdentityDomainRepository,
 )
 {
     fun resolveOrganizationForEmail(email: String): Organization?
@@ -27,7 +29,7 @@ class OrganizationIdentityPolicyService @Inject constructor(
             return null
         }
 
-        return organizationRepository.findByVerifiedContactEmailDomain(domain)
+        return organizationIdentityDomainRepository.findVerifiedOrganizationByDomain(domain)
     }
 
     fun resolveOrganizationsForEmail(email: String): List<Organization>
@@ -38,7 +40,7 @@ class OrganizationIdentityPolicyService @Inject constructor(
             return emptyList()
         }
 
-        return organizationRepository.findAllByVerifiedContactEmailDomain(domain)
+        return organizationIdentityDomainRepository.findAllVerifiedOrganizationsByDomain(domain)
     }
 
     fun enforceUserCapForEmail(email: String)

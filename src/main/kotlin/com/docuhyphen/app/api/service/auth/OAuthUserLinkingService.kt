@@ -85,7 +85,8 @@ class OAuthUserLinkingService @Inject constructor(
             if (existingExternal != null && existingExternal.provider != provider)
             {
                 throw ExternalProviderAlreadyLinkedException(
-                    "User already has ${existingExternal.provider} linked. Unlink it first before linking $provider."
+                    "User already has ${existingExternal.provider.displayName} linked. " +
+                        "Unlink it first before linking ${provider.displayName}."
                 )
             }
 
@@ -118,7 +119,7 @@ class OAuthUserLinkingService @Inject constructor(
             )
             throw UnverifiedExternalEmailException(
                 "Your identity provider did not confirm ownership of this email address. " +
-                    "Sign up with this email first, then link $provider from your profile."
+                    "Sign up with this email first, then link ${provider.displayName} from your profile."
             )
         }
 
@@ -187,7 +188,8 @@ class OAuthUserLinkingService @Inject constructor(
             if (existingExternal != null && existingExternal.provider != provider)
             {
                 throw ExternalProviderAlreadyLinkedException(
-                    "User already has ${existingExternal.provider} linked. Unlink it first before linking $provider."
+                    "User already has ${existingExternal.provider.displayName} linked. " +
+                        "Unlink it first before linking ${provider.displayName}."
                 )
             }
         }

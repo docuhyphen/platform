@@ -271,15 +271,23 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({children}) =>
             navigate(path);
         };
 
+        const handleSignInRequired = () =>
+        {
+            broadcastAuthEvent('logout');
+            clearAuthStateAndRedirect('/sign-in');
+        };
+
         window.addEventListener('tokens-refreshed', handleTokensRefreshed);
         window.addEventListener('auth-session-expired', handleSessionExpired);
+        window.addEventListener('auth-sign-in-required', handleSignInRequired);
 
         return () =>
         {
             window.removeEventListener('tokens-refreshed', handleTokensRefreshed);
             window.removeEventListener('auth-session-expired', handleSessionExpired);
+            window.removeEventListener('auth-sign-in-required', handleSignInRequired);
         };
-    }, [setAccessToken, setIdToken, broadcastAuthEvent]);
+    }, [setAccessToken, setIdToken, broadcastAuthEvent, clearAuthStateAndRedirect]);
 
     useEffect(() =>
     {

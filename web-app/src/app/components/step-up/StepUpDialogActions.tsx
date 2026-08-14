@@ -1,4 +1,5 @@
 import {Button, DialogActions, Spinner} from "@fluentui/react-components";
+import {identityProviderDisplayName} from "../../authorization/identityProviderDisplayName.ts";
 
 interface StepUpDialogActionsProps
 {
@@ -28,7 +29,7 @@ const StepUpDialogActions = ({
             id={"step-up-submit-spinner"}
             size={"tiny"}
         />}
-        {otpFlow ? "Verify and continue" : `Continue to ${provider || "provider"}`}
+        {otpFlow ? "Verify and continue" : `Continue to ${identityProviderDisplayName(provider)}`}
     </Button>
     <Button
         id={"step-up-cancel-btn"}

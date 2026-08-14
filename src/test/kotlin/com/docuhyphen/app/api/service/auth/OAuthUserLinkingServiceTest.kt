@@ -100,11 +100,36 @@ class OAuthUserLinkingServiceTest
         whenever(linkRepository.findByProviderAndExternalSubjectId(any(), any())).thenReturn(null)
         whenever(appUserService.findByEmail("user@example.com")).thenReturn(null)
 
-        assertThrows<UnverifiedExternalEmailException> {
+        val exception = assertThrows<UnverifiedExternalEmailException> {
             service.linkOrCreateUser(IdentityProviderType.GOOGLE, userInfo(emailVerified = false))
         }
 
+        assertTrue(exception.message!!.contains("link Google from your profile"))
         verify(appUserService, never()).create(any())
+    }
+
+    @Test
+    fun `external provider conflict uses display names`()
+    {
+        val existingUser = user(active = true)
+        val microsoftLink = IdentityProviderLink().apply {
+            appUser = existingUser
+            provider = IdentityProviderType.MICROSOFT
+            externalSubjectId = "microsoft-subject"
+            externalEmail = existingUser.email
+        }
+        whenever(linkRepository.findByProviderAndExternalSubjectId(any(), any())).thenReturn(null)
+        whenever(linkRepository.findAllByAppUserId(existingUser.id)).thenReturn(listOf(microsoftLink))
+        whenever(appUserService.findByEmail("user@example.com")).thenReturn(existingUser)
+
+        val exception = assertThrows<ExternalProviderAlreadyLinkedException> {
+            service.linkOrCreateUser(IdentityProviderType.GOOGLE, userInfo())
+        }
+
+        assertEquals(
+            "User already has Microsoft linked. Unlink it first before linking Google.",
+            exception.message,
+        )
     }
 
     @Test

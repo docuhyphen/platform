@@ -62,38 +62,6 @@ class OrganizationRepository : BaseRepository<Organization>(Organization::class.
 //            ?: throw IllegalArgumentException("Organization not found for appUserId: $appUserId and appId: $appId")
     }
 
-    fun findByVerifiedContactEmailDomain(domain: String): Organization?
-    {
-        val query = entityManager.createQuery(
-            """
-                SELECT o FROM Organization o
-                WHERE o.isActive = true
-                  AND o.verificationComplete = true
-                  AND o.contactDetails.email IS NOT NULL
-                  AND LOWER(SUBSTRING(o.contactDetails.email, LOCATE('@', o.contactDetails.email) + 1)) = :domain
-            """.trimIndent(),
-            Organization::class.java,
-        )
-        query.setParameter("domain", domain.lowercase())
-        return query.resultList.firstOrNull()
-    }
-
-    fun findAllByVerifiedContactEmailDomain(domain: String): List<Organization>
-    {
-        val query = entityManager.createQuery(
-            """
-                SELECT o FROM Organization o
-                WHERE o.isActive = true
-                  AND o.verificationComplete = true
-                  AND o.contactDetails.email IS NOT NULL
-                  AND LOWER(SUBSTRING(o.contactDetails.email, LOCATE('@', o.contactDetails.email) + 1)) = :domain
-            """.trimIndent(),
-            Organization::class.java,
-        )
-        query.setParameter("domain", domain.lowercase())
-        return query.resultList
-    }
-
     fun searchDiscoverableForTrustRequests(
         activeOrganizationId: UUID,
         normalizedQuery: String,

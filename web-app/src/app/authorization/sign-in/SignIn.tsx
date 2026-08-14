@@ -38,6 +38,7 @@ import validator from 'validator';
 import {getOtpFriendlyMessage, normalizeApiError} from "../../../utils/apiErrorUtils.ts";
 import {resolveOAuthErrorMessage} from "../../../utils/oauthErrorUtils.ts";
 import SignInMfaStep from "./mfa-step/SignInMfaStep.tsx";
+import SocialSignInButtons from "./social-sign-in-buttons/SocialSignInButtons.tsx";
 
 const SIGN_IN_EXCHANGE_DURATION_MS = 30 * 60 * 1000; // 30 minutes
 const RESEND_COOLDOWN_SECONDS = 30;
@@ -489,6 +490,10 @@ const SignIn: React.FC = () =>
                                         {lookingUp && <><Spinner size={"tiny"}/> Continue...</>}
                                         {!lookingUp && "Continue"}
                                     </Button>
+
+                                    <div> <Divider>OR</Divider> </div>
+
+                                    <SocialSignInButtons/>
                                 </>
                             )}
 

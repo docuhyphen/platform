@@ -10,11 +10,17 @@ export const linkedAccountsArticle = (
             <li>Open <b>Settings</b> and select <b>Linked Accounts</b>.</li>
             <li>Review the provider cards for Email & Password, Microsoft, and Google.</li>
             <li>Select <b>Link</b> on any available provider you want to connect.</li>
+            <li>
+                Linking Email & Password first asks you to confirm your existing sign-in method.
+                After verification, DocuHyphen returns to Linked Accounts and opens the password
+                setup dialog.
+            </li>
         </ol>
 
         <h3>Unlinking a provider</h3>
         <ul>
             <li>Connected providers show an <b>Unlink</b> action on the right side of the card.</li>
+            <li>You must confirm the selected provider before DocuHyphen unlinks it.</li>
             <li>You must keep at least one sign-in method connected to your account.</li>
             <li>When only one provider remains, unlink is disabled and the card explains why.</li>
             <li>
@@ -48,7 +54,10 @@ export const linkedAccountsArticle = (
                 Adding a password to a provider-only account requires a recent sign-in, and
                 changing an existing password requires your current one.
             </li>
-            <li>Setting or changing a password signs you out on every other device.</li>
+            <li>
+                After the password is added, the confirmation dialog explains that all sessions
+                were signed out and lets you continue to the sign-in page.
+            </li>
         </ul>
 
         <h3>What the page shows</h3>

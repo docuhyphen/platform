@@ -46,9 +46,4 @@ export const useLinkedAccountsTabStyles = makeStyles({
         maxWidth: "240px",
     },
 
-    providerList: {
-        display: "flex",
-        flexDirection: "column",
-        ...shorthands.gap(tokens.spacingHorizontalM),
-    },
 });
