@@ -53,6 +53,14 @@ Parameters:
       ARN of the integration-scoped Google OAuth secret containing
       GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET JSON keys.
 
+  MicrosoftOAuthCredentialsSecretArn:
+    Type: String
+    Default: ""
+    Description: >-
+      ARN of the integration-scoped Microsoft OAuth secret containing
+      MICROSOFT_CLIENT_ID, MICROSOFT_CLIENT_SECRET, and
+      MICROSOFT_TENANT_ID JSON keys.
+
   ApplicationEnabled:
     Type: String
     AllowedValues:
@@ -76,6 +84,7 @@ Conditions:
   HasCertificate: !Not [!Equals [!Ref CertificateArn, ""]]
   HasCloudFrontCertificate: !Not [!Equals [!Ref CloudFrontCertificateArn, ""]]
   HasGoogleOAuthCredentialsSecret: !Not [!Equals [!Ref GoogleOAuthCredentialsSecretArn, ""]]
+  HasMicrosoftOAuthCredentialsSecret: !Not [!Equals [!Ref MicrosoftOAuthCredentialsSecretArn, ""]]
   DeployApplication: !Equals [!Ref ApplicationEnabled, "true"]
   DeployApplicationWithCertificate: !And
     - !Condition DeployApplication
@@ -372,6 +381,10 @@ Resources:
                     - HasGoogleOAuthCredentialsSecret
                     - !Ref GoogleOAuthCredentialsSecretArn
                     - !Ref AWS::NoValue
+                  - !If
+                    - HasMicrosoftOAuthCredentialsSecret
+                    - !Ref MicrosoftOAuthCredentialsSecretArn
+                    - !Ref AWS::NoValue
 
   ECSTaskRole:
     Type: AWS::IAM::Role
@@ -544,6 +557,10 @@ Resources:
               Value: !Sub https://${WebsiteDomainName},https://${WebAppDomainName}
             - Name: MICROSOFT_REDIRECT_URI
               Value: !Sub https://${ApiDomainName}/auth/oauth/MICROSOFT/callback
+            - Name: APP_OIDC_MICROSOFT_ALLOW_MULTI_TENANT
+              Value: "true"
+            - Name: APP_OIDC_MICROSOFT_REQUIRE_EDOV
+              Value: "false"
             - Name: GOOGLE_REDIRECT_URI
               Value: !Sub https://${ApiDomainName}/auth/oauth/GOOGLE/callback
             - Name: APP_AUDIT_ARCHIVE_STORAGE_TYPE
@@ -582,6 +599,36 @@ Resources:
                   - ":"
                   - - !Ref GoogleOAuthCredentialsSecretArn
                     - GOOGLE_CLIENT_SECRET
+                    - ""
+                    - ""
+              - !Ref AWS::NoValue
+            - !If
+              - HasMicrosoftOAuthCredentialsSecret
+              - Name: MICROSOFT_CLIENT_ID
+                ValueFrom: !Join
+                  - ":"
+                  - - !Ref MicrosoftOAuthCredentialsSecretArn
+                    - MICROSOFT_CLIENT_ID
+                    - ""
+                    - ""
+              - !Ref AWS::NoValue
+            - !If
+              - HasMicrosoftOAuthCredentialsSecret
+              - Name: MICROSOFT_CLIENT_SECRET
+                ValueFrom: !Join
+                  - ":"
+                  - - !Ref MicrosoftOAuthCredentialsSecretArn
+                    - MICROSOFT_CLIENT_SECRET
+                    - ""
+                    - ""
+              - !Ref AWS::NoValue
+            - !If
+              - HasMicrosoftOAuthCredentialsSecret
+              - Name: MICROSOFT_TENANT_ID
+                ValueFrom: !Join
+                  - ":"
+                  - - !Ref MicrosoftOAuthCredentialsSecretArn
+                    - MICROSOFT_TENANT_ID
                     - ""
                     - ""
               - !Ref AWS::NoValue

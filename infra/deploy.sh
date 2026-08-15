@@ -9,6 +9,7 @@ WEBSITE_DOMAIN="${WEBSITE_DOMAIN:-www.docuhyphen.com}"
 WEB_APP_DOMAIN="${WEB_APP_DOMAIN:-app.docuhyphen.com}"
 API_DOMAIN="${API_DOMAIN:-api.docuhyphen.com}"
 GOOGLE_OAUTH_CREDENTIALS_SECRET_ID="${GOOGLE_OAUTH_CREDENTIALS_SECRET_ID:-${APP_NAME}/oauth/google}"
+MICROSOFT_OAUTH_CREDENTIALS_SECRET_ID="${MICROSOFT_OAUTH_CREDENTIALS_SECRET_ID:-${APP_NAME}/oauth/microsoft}"
 SES_REGION="${SES_REGION:-us-east-1}"
 WEBSITE_BUCKET="${WEBSITE_BUCKET:-docuhyphen-website}"
 WEBSITE_REGION="${WEBSITE_AWS_REGION:-us-east-1}"
@@ -95,9 +96,17 @@ stack_exists() {
 deploy_stack() {
   local application_enabled="$1"
   local google_oauth_credentials_secret_arn
+  local microsoft_oauth_credentials_secret_arn
 
   google_oauth_credentials_secret_arn="$(aws secretsmanager describe-secret \
     --secret-id "$GOOGLE_OAUTH_CREDENTIALS_SECRET_ID" \
+    --region "$REGION" \
+    --query ARN \
+    --output text \
+    2>/dev/null || true)"
+
+  microsoft_oauth_credentials_secret_arn="$(aws secretsmanager describe-secret \
+    --secret-id "$MICROSOFT_OAUTH_CREDENTIALS_SECRET_ID" \
     --region "$REGION" \
     --query ARN \
     --output text \
@@ -107,6 +116,12 @@ deploy_stack() {
     log "Using Google OAuth credentials secret ${GOOGLE_OAUTH_CREDENTIALS_SECRET_ID}"
   else
     log "Google OAuth credentials secret ${GOOGLE_OAUTH_CREDENTIALS_SECRET_ID} was not found; Google OAuth will not be configured"
+  fi
+
+  if [[ -n "$microsoft_oauth_credentials_secret_arn" ]]; then
+    log "Using Microsoft OAuth credentials secret ${MICROSOFT_OAUTH_CREDENTIALS_SECRET_ID}"
+  else
+    log "Microsoft OAuth credentials secret ${MICROSOFT_OAUTH_CREDENTIALS_SECRET_ID} was not found; Microsoft OAuth will not be configured"
   fi
 
   log "Deploying stack ${STACK_NAME} with ApplicationEnabled=${application_enabled}"
@@ -128,6 +143,7 @@ deploy_stack() {
       SesRegion="$SES_REGION" \
       AppAdminBootstrapEmail="${APP_ADMIN_BOOTSTRAP_EMAIL:-}" \
       GoogleOAuthCredentialsSecretArn="$google_oauth_credentials_secret_arn" \
+      MicrosoftOAuthCredentialsSecretArn="$microsoft_oauth_credentials_secret_arn" \
       ApplicationEnabled="$application_enabled" \
     --no-fail-on-empty-changeset
 }
