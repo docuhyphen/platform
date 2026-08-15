@@ -179,18 +179,18 @@ const HelpDocumentationSidebar: React.FC<HelpDocumentationSidebarProps> = ({isOp
                 </div>
 
                 <div className={styles.titleRow}>
+                    <Button
+                        id={"help-nav-toggle-btn"}
+                        appearance="subtle"
+                        shape="circular"
+                        icon={showNav ? <ArrowLeftRegular/> : <Navigation24Regular/>}
+                        aria-label={showNav ? "Back to article" : "Open documentation menu"}
+                        onClick={handleNavToggle}
+                    />
                     <Text className={styles.titleText}>
                         {showNav ? "Contents" : activeArticle.title}
                     </Text>
                     <div className={styles.headerActions}>
-                        <Button
-                            id={"help-nav-toggle-btn"}
-                            appearance="subtle"
-                            shape="circular"
-                            icon={showNav ? <ArrowLeftRegular/> : <Navigation24Regular/>}
-                            aria-label={showNav ? "Back to article" : "Open documentation menu"}
-                            onClick={handleNavToggle}
-                        />
                         <Button
                             id={"help-close-btn"}
                             appearance="subtle"
