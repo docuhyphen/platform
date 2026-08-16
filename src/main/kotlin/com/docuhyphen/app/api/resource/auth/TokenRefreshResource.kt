@@ -3,7 +3,7 @@ package com.docuhyphen.app.api.resource.auth
 import com.docuhyphen.app.api.model.entity.AuthTokenType.REFRESH
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.resource.model.TokenRefreshResponse
-import com.docuhyphen.app.api.service.AppUserService
+import com.docuhyphen.app.api.service.user.AppUserService
 import com.docuhyphen.app.api.service.auth.AuthAuditService
 import com.docuhyphen.app.api.service.auth.AuthRateLimitService
 import com.docuhyphen.app.api.service.auth.AuthenticationService
@@ -16,7 +16,7 @@ import com.docuhyphen.app.api.service.auth.AuthSessionPolicyService
 import com.docuhyphen.app.api.service.auth.OrganizationMembershipValidationService
 import com.docuhyphen.app.api.model.entity.SecurityIncidentSeverity
 import com.docuhyphen.app.api.model.entity.SecurityIncidentType
-import com.docuhyphen.app.api.service.auth.SecurityIncidentService
+import com.docuhyphen.app.api.service.security.SecurityIncidentService
 import com.docuhyphen.app.api.service.auth.TokenIssuanceService
 import com.docuhyphen.app.api.service.auth.UserSessionService
 import com.docuhyphen.app.api.service.config.ConfigurationService

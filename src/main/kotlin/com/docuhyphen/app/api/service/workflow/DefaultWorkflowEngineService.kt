@@ -9,10 +9,10 @@ import com.docuhyphen.app.api.model.entity.WorkflowStepStatus
 import com.docuhyphen.app.api.model.entity.WorkflowStepType
 import com.docuhyphen.app.api.model.entity.WorkflowStepTransition
 import com.docuhyphen.app.api.model.entity.WorkflowTransitionOutcome
-import com.docuhyphen.app.api.repository.WorkflowDefinitionRepository
-import com.docuhyphen.app.api.repository.WorkflowInstanceRepository
-import com.docuhyphen.app.api.repository.WorkflowStepInstanceRepository
-import com.docuhyphen.app.api.repository.WorkflowTriggerEventRepository
+import com.docuhyphen.app.api.repository.workflow.WorkflowDefinitionRepository
+import com.docuhyphen.app.api.repository.workflow.WorkflowInstanceRepository
+import com.docuhyphen.app.api.repository.workflow.WorkflowStepInstanceRepository
+import com.docuhyphen.app.api.repository.workflow.WorkflowTriggerEventRepository
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.communication.AppNotificationService
 import com.docuhyphen.app.api.service.communication.EmailService
@@ -62,21 +62,21 @@ class DefaultWorkflowEngineService : WorkflowEngineService
     @Inject private lateinit var definitionRepository: WorkflowDefinitionRepository
     @Inject private lateinit var instanceRepository: WorkflowInstanceRepository
     @Inject private lateinit var stepRepository: WorkflowStepInstanceRepository
-    @Inject private lateinit var transitionRepository: com.docuhyphen.app.api.repository.WorkflowStepTransitionRepository
-    @Inject private lateinit var assigneeRepository: com.docuhyphen.app.api.repository.WorkflowStepAssigneeRepository
-    @Inject private lateinit var decisionRepository: com.docuhyphen.app.api.repository.WorkflowStepDecisionRepository
+    @Inject private lateinit var transitionRepository: com.docuhyphen.app.api.repository.workflow.WorkflowStepTransitionRepository
+    @Inject private lateinit var assigneeRepository: com.docuhyphen.app.api.repository.workflow.WorkflowStepAssigneeRepository
+    @Inject private lateinit var decisionRepository: com.docuhyphen.app.api.repository.workflow.WorkflowStepDecisionRepository
     @Inject private lateinit var assigneeResolver: WorkflowAssigneeResolver
     @Inject
     @field:com.docuhyphen.app.api.service.notification.WorkflowEventSink
     private lateinit var eventPublisher: DomainEventPublisher
-    @Inject private lateinit var principalGroupMemberRepository: com.docuhyphen.app.api.repository.PrincipalGroupMemberRepository
-    @Inject private lateinit var principalGroupRepository: com.docuhyphen.app.api.repository.PrincipalGroupRepository
-    @Inject private lateinit var exchangeRepository: com.docuhyphen.app.api.repository.ExchangeRepository
-    @Inject private lateinit var appUserRepository: com.docuhyphen.app.api.repository.AppUserRepository
+    @Inject private lateinit var principalGroupMemberRepository: com.docuhyphen.app.api.repository.organization.PrincipalGroupMemberRepository
+    @Inject private lateinit var principalGroupRepository: com.docuhyphen.app.api.repository.organization.PrincipalGroupRepository
+    @Inject private lateinit var exchangeRepository: com.docuhyphen.app.api.repository.exchange.ExchangeRepository
+    @Inject private lateinit var appUserRepository: com.docuhyphen.app.api.repository.user.AppUserRepository
     @Inject private lateinit var appNotificationService: AppNotificationService
     @Inject private lateinit var emailService: EmailService
     @Inject private lateinit var communicationResolver: CommunicationResolver
-    @Inject private lateinit var organizationRepository: com.docuhyphen.app.api.repository.OrganizationRepository
+    @Inject private lateinit var organizationRepository: com.docuhyphen.app.api.repository.organization.OrganizationRepository
     @Inject private lateinit var markdownRenderer: MarkdownRenderer
     @Inject private lateinit var emailTemplateRenderer: EmailTemplateRenderer
     @Inject private lateinit var applicabilityEvaluator: WorkflowApplicabilityEvaluator

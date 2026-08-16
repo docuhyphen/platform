@@ -4,7 +4,7 @@ import com.docuhyphen.app.api.resource.model.PlatformOrganizationSubscriptionPol
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.model.PlatformOrganizationDtoMapper
 import com.docuhyphen.app.api.service.auth.AdminApprovalContext
-import com.docuhyphen.app.api.service.auth.PlatformOrganizationSubscriptionPolicyService
+import com.docuhyphen.app.api.service.subscription.PlatformOrganizationSubscriptionPolicyService
 import io.quarkus.security.ForbiddenException
 import io.quarkus.security.UnauthorizedException
 import jakarta.inject.Inject

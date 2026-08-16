@@ -1,6 +1,6 @@
 package com.docuhyphen.app.api.service.audit.export
 
-import com.docuhyphen.app.api.repository.AuditExportRepository
+import com.docuhyphen.app.api.repository.audit.AuditExportRepository
 import com.docuhyphen.app.api.service.config.AuditExportConfigService
 import io.quarkus.scheduler.Scheduled
 import jakarta.enterprise.context.ApplicationScoped

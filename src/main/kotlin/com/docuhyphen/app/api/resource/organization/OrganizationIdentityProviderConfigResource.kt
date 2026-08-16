@@ -5,7 +5,7 @@ import com.docuhyphen.app.api.resource.model.OrganizationIdpConfigRequest
 import com.docuhyphen.app.api.resource.model.OrganizationIdpConfigResponse
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.service.auth.AdminApprovalContext
-import com.docuhyphen.app.api.service.auth.OrganizationIdentityProviderConfigService
+import com.docuhyphen.app.api.service.identity.OrganizationIdentityProviderConfigService
 import io.quarkus.security.UnauthorizedException
 import jakarta.inject.Inject
 import jakarta.ws.rs.Consumes

@@ -5,8 +5,8 @@ import com.docuhyphen.app.api.model.entity.ResourceType
 import com.docuhyphen.app.api.model.entity.Share
 import com.docuhyphen.app.api.model.entity.ShareLinkStatus
 import com.docuhyphen.app.api.model.entity.ShareStatus
-import com.docuhyphen.app.api.repository.ShareLinkRepository
-import com.docuhyphen.app.api.repository.ShareRepository
+import com.docuhyphen.app.api.repository.exchange.ShareLinkRepository
+import com.docuhyphen.app.api.repository.exchange.ShareRepository
 import io.quarkus.security.ForbiddenException
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject

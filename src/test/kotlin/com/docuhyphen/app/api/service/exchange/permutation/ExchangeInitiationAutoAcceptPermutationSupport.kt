@@ -8,14 +8,14 @@ import com.docuhyphen.app.api.model.entity.ExchangeRecipient
 import com.docuhyphen.app.api.model.entity.Organization
 import com.docuhyphen.app.api.model.entity.OrganizationSettings
 import com.docuhyphen.app.api.model.entity.Share
-import com.docuhyphen.app.api.repository.AppUserRepository
-import com.docuhyphen.app.api.repository.ExchangeRepository
+import com.docuhyphen.app.api.repository.user.AppUserRepository
+import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
 import com.docuhyphen.app.api.resource.model.ExchangeInitiationDto
 import com.docuhyphen.app.api.resource.model.ExchangeRecipientSelectionRequest
 import com.docuhyphen.app.api.resource.model.ExchangeRequestDocumentRequest
 import com.docuhyphen.app.api.resource.model.ExternalEmailRecipientSelectionRequest
 import com.docuhyphen.app.api.resource.model.RegisteredUserRecipientSelectionRequest
-import com.docuhyphen.app.api.service.AppUserService
+import com.docuhyphen.app.api.service.user.AppUserService
 import com.docuhyphen.app.api.service.auth.AuthAuditService
 import com.docuhyphen.app.api.service.auth.AuthRateLimitService
 import com.docuhyphen.app.api.service.auth.AuthenticationService
@@ -40,7 +40,7 @@ import com.docuhyphen.app.api.service.exchange.NoAuthExchangeAccessTokenService
 import com.docuhyphen.app.api.service.exchange.ResolvedExchangeRecipientSelection
 import com.docuhyphen.app.api.service.exchange.ShareService
 import com.docuhyphen.app.api.service.fields.SchemaAssignmentService
-import com.docuhyphen.app.api.service.organization.ExternalIdentityResolutionService
+import com.docuhyphen.app.api.service.identity.ExternalIdentityResolutionService
 import com.docuhyphen.app.api.service.organization.OrganizationGroupService
 import com.docuhyphen.app.api.service.organization.OrganizationService
 import com.docuhyphen.app.api.service.storage.FileStorageService

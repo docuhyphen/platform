@@ -2,8 +2,8 @@ package com.docuhyphen.app.api.service.exchange
 
 import com.docuhyphen.app.api.model.entity.ExchangeStatus
 import com.docuhyphen.app.api.model.entity.PrincipalKind
-import com.docuhyphen.app.api.repository.ExchangeRepository
-import com.docuhyphen.app.api.repository.OrganizationMembershipRepository
+import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
+import com.docuhyphen.app.api.repository.organization.OrganizationMembershipRepository
 import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationService

@@ -5,7 +5,7 @@ import com.docuhyphen.app.api.model.entity.IdentityProviderType
 import com.docuhyphen.app.api.resource.model.*
 import com.docuhyphen.app.api.model.entity.SecurityIncidentSeverity
 import com.docuhyphen.app.api.model.entity.SecurityIncidentType
-import com.docuhyphen.app.api.service.AppUserService
+import com.docuhyphen.app.api.service.user.AppUserService
 import com.docuhyphen.app.api.service.auth.AuthAuditService
 import com.docuhyphen.app.api.service.auth.AuthRateLimitService
 import com.docuhyphen.app.api.service.auth.AuthenticationService
@@ -14,10 +14,10 @@ import com.docuhyphen.app.api.service.auth.ExternalProviderAlreadyLinkedExceptio
 import com.docuhyphen.app.api.service.auth.OAuthStateService
 import com.docuhyphen.app.api.service.auth.OAuthUserLinkingService
 import com.docuhyphen.app.api.service.auth.OAuthTokenHandoffService
-import com.docuhyphen.app.api.service.auth.OrganizationIdentityPolicyService
-import com.docuhyphen.app.api.service.auth.OrganizationIdpRuntimeCredentialService
+import com.docuhyphen.app.api.service.identity.OrganizationIdentityPolicyService
+import com.docuhyphen.app.api.service.identity.OrganizationIdpRuntimeCredentialService
 import com.docuhyphen.app.api.service.auth.RevocationReasonCode
-import com.docuhyphen.app.api.service.auth.SecurityIncidentService
+import com.docuhyphen.app.api.service.security.SecurityIncidentService
 import com.docuhyphen.app.api.service.auth.TokenIssuanceService
 import com.docuhyphen.app.api.service.auth.UnverifiedExternalEmailException
 import com.docuhyphen.app.api.service.auth.idp.IdentityProviderRegistry

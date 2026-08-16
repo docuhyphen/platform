@@ -2,7 +2,7 @@ package com.docuhyphen.app.api.service.audit
 
 import com.docuhyphen.app.api.model.entity.AuditLegalHold
 import com.docuhyphen.app.api.model.entity.AuditLegalHoldStatus
-import com.docuhyphen.app.api.repository.AuditLegalHoldRepository
+import com.docuhyphen.app.api.repository.audit.AuditLegalHoldRepository
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertThrows

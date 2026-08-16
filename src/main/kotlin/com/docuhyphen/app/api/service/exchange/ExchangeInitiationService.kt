@@ -7,8 +7,8 @@ import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.entity.ExchangeRecipientType.APP_USER
 import com.docuhyphen.app.api.model.entity.ExchangeRecipientType.EMAIL
 import com.docuhyphen.app.api.model.entity.ExchangeRecipientType.GROUP
-import com.docuhyphen.app.api.repository.AppUserRepository
-import com.docuhyphen.app.api.repository.ExchangeRepository
+import com.docuhyphen.app.api.repository.user.AppUserRepository
+import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
 import com.docuhyphen.app.api.resource.model.ExchangeInitiationDto
 import com.docuhyphen.app.api.resource.model.ExternalEmailRecipientSelectionRequest
 import com.docuhyphen.app.api.resource.model.InternalGroupRecipientSelectionRequest
@@ -16,8 +16,8 @@ import com.docuhyphen.app.api.resource.model.PersonalGroupRecipientSelectionRequ
 import com.docuhyphen.app.api.resource.model.RegisteredUserRecipientSelectionRequest
 import com.docuhyphen.app.api.resource.model.TrustedGroupRecipientSelectionRequest
 import com.docuhyphen.app.api.resource.model.TrustedPersonRecipientSelectionRequest
-import com.docuhyphen.app.api.service.organization.ExternalIdentityResolutionService
-import com.docuhyphen.app.api.service.AppUserService
+import com.docuhyphen.app.api.service.identity.ExternalIdentityResolutionService
+import com.docuhyphen.app.api.service.user.AppUserService
 import com.docuhyphen.app.api.service.auth.AuthAuditService
 import com.docuhyphen.app.api.service.auth.AuthRateLimitService
 import com.docuhyphen.app.api.service.auth.AuthenticationService

@@ -5,8 +5,8 @@ import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.model.entity.DocumentAuditAction
 import com.docuhyphen.app.api.model.entity.Document
 import com.docuhyphen.app.api.model.entity.ExchangeDocumentComment
-import com.docuhyphen.app.api.repository.DocumentCommentRepository
-import com.docuhyphen.app.api.repository.ExchangeRepository
+import com.docuhyphen.app.api.repository.exchange.DocumentCommentRepository
+import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
 import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationService

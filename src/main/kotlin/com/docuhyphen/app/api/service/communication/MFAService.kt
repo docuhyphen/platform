@@ -6,7 +6,7 @@ import com.docuhyphen.app.api.model.entity.AppUser
 import com.docuhyphen.app.api.model.entity.MfaRecord
 import com.docuhyphen.app.api.model.entity.MultifactorAuthenticationStatus.PENDING
 import com.docuhyphen.app.api.model.entity.MultifactorAuthenticationType
-import com.docuhyphen.app.api.repository.MfaRecordRepository
+import com.docuhyphen.app.api.repository.auth.MfaRecordRepository
 import com.docuhyphen.app.api.service.auth.PasskeyService
 import com.docuhyphen.app.api.service.config.ConfigurationService
 import jakarta.enterprise.context.ApplicationScoped

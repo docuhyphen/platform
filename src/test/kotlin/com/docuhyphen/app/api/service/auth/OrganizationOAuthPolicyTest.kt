@@ -3,9 +3,11 @@ package com.docuhyphen.app.api.service.auth
 import com.docuhyphen.app.api.model.entity.IdentityProviderType
 import com.docuhyphen.app.api.model.entity.Organization
 import com.docuhyphen.app.api.model.entity.OrganizationIdentityProviderConfig
-import com.docuhyphen.app.api.repository.OrganizationIdentityDomainRepository
-import com.docuhyphen.app.api.repository.OrganizationIdentityProviderConfigRepository
-import com.docuhyphen.app.api.repository.OrganizationRepository
+import com.docuhyphen.app.api.repository.identity.OrganizationIdentityDomainRepository
+import com.docuhyphen.app.api.repository.identity.OrganizationIdentityProviderConfigRepository
+import com.docuhyphen.app.api.repository.organization.OrganizationRepository
+import com.docuhyphen.app.api.service.identity.IdentityProviderNotAllowedException
+import com.docuhyphen.app.api.service.identity.OrganizationIdentityPolicyService
 import com.docuhyphen.app.api.service.organization.OrganizationSeatGuard
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull

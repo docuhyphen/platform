@@ -10,7 +10,7 @@ import com.docuhyphen.app.api.model.dto.UpdateDocumentLibraryEntryRequest
 import com.docuhyphen.app.api.model.entity.BlueprintScope
 import com.docuhyphen.app.api.model.entity.DocumentLibraryEntry
 import com.docuhyphen.app.api.model.entity.ResourceType
-import com.docuhyphen.app.api.repository.DocumentLibraryRepository
+import com.docuhyphen.app.api.repository.documentlibrary.DocumentLibraryRepository
 import com.docuhyphen.app.api.service.audit.AuditCaptureFailedException
 import com.docuhyphen.app.api.service.audit.AuditDraftInvalidException
 import com.docuhyphen.app.api.service.audit.AuditEventDraft

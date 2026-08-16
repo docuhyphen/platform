@@ -8,9 +8,9 @@ import com.docuhyphen.app.api.model.dto.PatchCommunicationStatusRequest
 import com.docuhyphen.app.api.model.dto.UpdateCommunicationRequest
 import com.docuhyphen.app.api.model.entity.Communication
 import com.docuhyphen.app.api.model.entity.CommunicationScope
-import com.docuhyphen.app.api.repository.AppUserRepository
-import com.docuhyphen.app.api.repository.CommunicationRepository
-import com.docuhyphen.app.api.repository.OrganizationRepository
+import com.docuhyphen.app.api.repository.user.AppUserRepository
+import com.docuhyphen.app.api.repository.communication.CommunicationRepository
+import com.docuhyphen.app.api.repository.organization.OrganizationRepository
 import com.docuhyphen.app.api.service.auth.UserRoleService
 import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext

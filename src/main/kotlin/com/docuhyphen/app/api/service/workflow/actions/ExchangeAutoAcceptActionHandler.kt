@@ -4,7 +4,7 @@ import com.docuhyphen.app.api.model.entity.ExchangeStatus
 import com.docuhyphen.app.api.model.entity.ResourceType
 import com.docuhyphen.app.api.model.entity.WorkflowInstance
 import com.docuhyphen.app.api.model.entity.WorkflowStepInstance
-import com.docuhyphen.app.api.repository.ExchangeRepository
+import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
 import com.docuhyphen.app.api.service.notification.DomainEvent
 import com.docuhyphen.app.api.service.notification.DomainEventPublisher
 import com.docuhyphen.app.api.service.workflow.ActionResult

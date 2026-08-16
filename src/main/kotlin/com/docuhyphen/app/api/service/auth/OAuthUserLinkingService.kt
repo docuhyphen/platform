@@ -8,8 +8,8 @@ import com.docuhyphen.app.api.model.entity.OrganizationRoleName
 import com.docuhyphen.app.api.model.entity.Organization
 import com.docuhyphen.app.api.exception.InactiveAccountException
 import com.docuhyphen.app.api.exception.SignUpRequiredException
-import com.docuhyphen.app.api.repository.IdentityProviderLinkRepository
-import com.docuhyphen.app.api.service.AppUserService
+import com.docuhyphen.app.api.repository.identity.IdentityProviderLinkRepository
+import com.docuhyphen.app.api.service.user.AppUserService
 import com.docuhyphen.app.api.service.auth.idp.OAuthUserInfo
 import com.docuhyphen.app.api.service.organization.OrganizationMembershipService
 import jakarta.enterprise.context.RequestScoped

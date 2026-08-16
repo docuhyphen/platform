@@ -7,7 +7,7 @@ import com.docuhyphen.app.api.service.auth.ClientIpResolver
 import com.docuhyphen.app.api.service.auth.OAuthStateService
 import com.docuhyphen.app.api.service.auth.OAuthTokenHandoff
 import com.docuhyphen.app.api.service.auth.OAuthTokenHandoffService
-import com.docuhyphen.app.api.service.auth.OrganizationIdpRuntimeCredentialService
+import com.docuhyphen.app.api.service.identity.OrganizationIdpRuntimeCredentialService
 import com.docuhyphen.app.api.service.auth.SignedOAuthState
 import com.docuhyphen.app.api.service.auth.idp.GoogleIdentityProvider
 import com.docuhyphen.app.api.service.auth.idp.IdentityProviderRegistry

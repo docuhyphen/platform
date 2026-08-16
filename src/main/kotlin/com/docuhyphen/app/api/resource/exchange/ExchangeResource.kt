@@ -14,7 +14,7 @@ import com.docuhyphen.app.api.model.dto.DocumentDetailedDto
 import com.docuhyphen.app.api.model.dto.ExchangeBasicDto
 import com.docuhyphen.app.api.model.dto.ExchangeDetailedDto
 import com.docuhyphen.app.api.model.entity.DocumentType
-import com.docuhyphen.app.api.repository.PrincipalGroupRepository
+import com.docuhyphen.app.api.repository.organization.PrincipalGroupRepository
 import com.docuhyphen.app.api.resource.model.GrantSessionShareRequest
 import com.docuhyphen.app.api.resource.model.InviteTrustedParticipantRequest
 import com.docuhyphen.app.api.resource.model.ResponseError
@@ -24,7 +24,7 @@ import com.docuhyphen.app.api.resource.model.ReplacePrimaryRecipientRequest
 import com.docuhyphen.app.api.resource.model.UpdateExchangeRequest
 import com.docuhyphen.app.api.service.exchange.*
 import com.docuhyphen.app.api.service.fields.FieldValidationException
-import com.docuhyphen.app.api.service.AppUserService
+import com.docuhyphen.app.api.service.user.AppUserService
 import com.docuhyphen.app.api.service.workflow.WorkflowDefinitionService
 import com.docuhyphen.app.api.service.storage.FileStorageService
 import com.docuhyphen.app.api.service.auth.authz.ShareConstraints

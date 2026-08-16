@@ -5,7 +5,7 @@ import com.docuhyphen.app.api.model.AvatarUrls
 import com.docuhyphen.app.api.model.dto.UserContactDto
 import com.docuhyphen.app.api.model.entity.UserContact
 import com.docuhyphen.app.api.resource.model.ResponseError
-import com.docuhyphen.app.api.service.UserContactService
+import com.docuhyphen.app.api.service.contactdetails.UserContactService
 import com.docuhyphen.app.api.service.auth.DirectoryLookupGuardService
 import io.quarkus.security.UnauthorizedException
 import jakarta.inject.Inject

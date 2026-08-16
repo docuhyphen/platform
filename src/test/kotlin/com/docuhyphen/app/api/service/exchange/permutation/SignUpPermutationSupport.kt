@@ -2,11 +2,11 @@ package com.docuhyphen.app.api.service.exchange.permutation
 
 import com.docuhyphen.app.api.model.entity.AppUser
 import com.docuhyphen.app.api.model.entity.SignUpEntity
-import com.docuhyphen.app.api.repository.AppUserRepository
-import com.docuhyphen.app.api.repository.ExchangeRepository
-import com.docuhyphen.app.api.repository.IdentityProviderLinkRepository
-import com.docuhyphen.app.api.repository.SignUpRepository
-import com.docuhyphen.app.api.service.UserContactService
+import com.docuhyphen.app.api.repository.user.AppUserRepository
+import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
+import com.docuhyphen.app.api.repository.identity.IdentityProviderLinkRepository
+import com.docuhyphen.app.api.repository.auth.SignUpRepository
+import com.docuhyphen.app.api.service.contactdetails.UserContactService
 import com.docuhyphen.app.api.service.auth.AuthenticationService
 import com.docuhyphen.app.api.service.auth.DisposableEmailDomainService
 import com.docuhyphen.app.api.service.auth.SignUpEmailConfirmationTokenService

@@ -10,7 +10,7 @@ import com.docuhyphen.app.api.model.entity.OrganizationTrustPartyPolicy
 import com.docuhyphen.app.api.model.entity.OrganizationTrustRelationship
 import com.docuhyphen.app.api.model.entity.OrganizationTrustRelationshipStatus
 import com.docuhyphen.app.api.model.entity.PrincipalKind
-import com.docuhyphen.app.api.repository.OrganizationTrustPartyPolicyRepository
+import com.docuhyphen.app.api.repository.organization.OrganizationTrustPartyPolicyRepository
 import com.docuhyphen.app.api.service.audit.AuditEventDraft
 import com.docuhyphen.app.api.service.audit.AuditOwnerScope
 import com.docuhyphen.app.api.service.audit.AuditRecorder

@@ -7,7 +7,7 @@ import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.resource.model.OrganizationIdpSecretRotationStatusItemResponse
 import com.docuhyphen.app.api.resource.model.OrganizationIdpSecretRotationStatusResponse
 import com.docuhyphen.app.api.service.auth.AdminApprovalContext
-import com.docuhyphen.app.api.service.auth.OrganizationIdpSecretRotationRunbookService
+import com.docuhyphen.app.api.service.identity.OrganizationIdpSecretRotationRunbookService
 import io.quarkus.security.UnauthorizedException
 import jakarta.inject.Inject
 import jakarta.ws.rs.Consumes

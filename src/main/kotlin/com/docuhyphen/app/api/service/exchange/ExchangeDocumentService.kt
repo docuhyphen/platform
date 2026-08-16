@@ -8,8 +8,8 @@ import com.docuhyphen.app.api.model.dto.DocumentThumbnailResult
 import com.docuhyphen.app.api.realtime.RealtimeEventService
 import com.docuhyphen.app.api.realtime.RealtimeMessage
 import com.docuhyphen.app.api.realtime.RealtimeMessageType
-import com.docuhyphen.app.api.repository.ExchangeRepository
-import com.docuhyphen.app.api.service.AppUserService
+import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
+import com.docuhyphen.app.api.service.user.AppUserService
 import com.docuhyphen.app.api.service.audit.AuditCaptureFailedException
 import com.docuhyphen.app.api.service.audit.AuditDraftInvalidException
 import com.docuhyphen.app.api.service.audit.AuditEventDraft

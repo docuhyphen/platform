@@ -20,12 +20,12 @@ import com.docuhyphen.app.api.model.entity.Share
 import com.docuhyphen.app.api.model.entity.ShareSource
 import com.docuhyphen.app.api.model.entity.ShareStatus
 import com.docuhyphen.app.api.realtime.RealtimeEventService
-import com.docuhyphen.app.api.repository.ExchangeRepository
-import com.docuhyphen.app.api.repository.ExchangeRepositoryPostgreSQLResource
+import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
+import com.docuhyphen.app.api.repository.exchange.ExchangeRepositoryPostgreSQLResource
 import com.docuhyphen.app.api.resource.model.ExchangeRecipientSelectionRequest
 import com.docuhyphen.app.api.resource.model.TrustedGroupRecipientSelectionRequest
 import com.docuhyphen.app.api.resource.model.TrustedPersonRecipientSelectionRequest
-import com.docuhyphen.app.api.service.AppUserService
+import com.docuhyphen.app.api.service.user.AppUserService
 import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
 import com.docuhyphen.app.api.service.auth.authz.Decision
@@ -37,7 +37,7 @@ import com.docuhyphen.app.api.service.config.ConfigurationService
 import com.docuhyphen.app.api.service.notification.InAppNotificationService
 import com.docuhyphen.app.api.service.notification.UserNotificationPreference
 import com.docuhyphen.app.api.service.notification.UserNotificationPreferenceService
-import com.docuhyphen.app.api.service.organization.ExternalIdentityResolutionService
+import com.docuhyphen.app.api.service.identity.ExternalIdentityResolutionService
 import com.docuhyphen.app.api.service.organization.OrganizationGroupService
 import com.docuhyphen.app.api.service.organization.TrustedGroupValidation
 import io.quarkus.test.common.QuarkusTestResource

@@ -1,7 +1,7 @@
 package com.docuhyphen.app.api.service.audit
 
 import com.docuhyphen.app.api.model.entity.AuditLedgerEvent
-import com.docuhyphen.app.api.repository.AuditLedgerEventRepository
+import com.docuhyphen.app.api.repository.audit.AuditLedgerEventRepository
 import com.docuhyphen.app.api.service.audit.catalog.AuditCategory
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.service.auth.authz.Capability

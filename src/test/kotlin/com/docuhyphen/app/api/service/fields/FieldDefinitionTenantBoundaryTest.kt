@@ -4,8 +4,8 @@ import com.docuhyphen.app.api.model.entity.FieldDefinition
 import com.docuhyphen.app.api.model.entity.FieldScopeKind
 import com.docuhyphen.app.api.model.entity.FieldValueType
 import com.docuhyphen.app.api.model.entity.OrganizationRoleName
-import com.docuhyphen.app.api.repository.FieldContractRepository
-import com.docuhyphen.app.api.repository.FieldDefinitionRepository
+import com.docuhyphen.app.api.repository.fields.FieldContractRepository
+import com.docuhyphen.app.api.repository.fields.FieldDefinitionRepository
 import com.docuhyphen.app.api.service.auth.UserRoleService
 import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext

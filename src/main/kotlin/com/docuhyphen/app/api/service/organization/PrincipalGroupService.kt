@@ -6,9 +6,9 @@ import com.docuhyphen.app.api.model.entity.PrincipalGroup
 import com.docuhyphen.app.api.model.entity.PrincipalGroupMember
 import com.docuhyphen.app.api.model.entity.PrincipalGroupScope
 import com.docuhyphen.app.api.model.entity.PrincipalKind
-import com.docuhyphen.app.api.repository.PrincipalGroupMemberRepository
-import com.docuhyphen.app.api.repository.PrincipalGroupRepository
-import com.docuhyphen.app.api.repository.UserContactRepository
+import com.docuhyphen.app.api.repository.organization.PrincipalGroupMemberRepository
+import com.docuhyphen.app.api.repository.organization.PrincipalGroupRepository
+import com.docuhyphen.app.api.repository.contactdetails.UserContactRepository
 import com.docuhyphen.app.api.service.exchange.ShareService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject

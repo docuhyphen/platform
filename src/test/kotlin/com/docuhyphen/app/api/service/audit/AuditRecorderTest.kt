@@ -4,7 +4,7 @@ import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.model.entity.AppUser
 import com.docuhyphen.app.api.model.entity.AuditOutboxEntry
 import com.docuhyphen.app.api.model.entity.AuthToken
-import com.docuhyphen.app.api.repository.AuditOutboxRepository
+import com.docuhyphen.app.api.repository.audit.AuditOutboxRepository
 import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
 import com.docuhyphen.app.api.service.audit.catalog.AuditOutcome
 import org.junit.jupiter.api.Assertions.assertEquals

@@ -9,10 +9,10 @@ import com.docuhyphen.app.api.model.entity.WorkflowStepDecision
 import com.docuhyphen.app.api.model.entity.WorkflowStepInstance
 import com.docuhyphen.app.api.model.entity.WorkflowStepStatus
 import com.docuhyphen.app.api.model.entity.WorkflowStepType
-import com.docuhyphen.app.api.repository.WorkflowDefinitionRepository
-import com.docuhyphen.app.api.repository.WorkflowInstanceRepository
-import com.docuhyphen.app.api.repository.WorkflowStepDecisionRepository
-import com.docuhyphen.app.api.repository.WorkflowStepInstanceRepository
+import com.docuhyphen.app.api.repository.workflow.WorkflowDefinitionRepository
+import com.docuhyphen.app.api.repository.workflow.WorkflowInstanceRepository
+import com.docuhyphen.app.api.repository.workflow.WorkflowStepDecisionRepository
+import com.docuhyphen.app.api.repository.workflow.WorkflowStepInstanceRepository
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional

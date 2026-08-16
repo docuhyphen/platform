@@ -1,7 +1,7 @@
 package com.docuhyphen.app.api.service.audit.archive
 
 import com.docuhyphen.app.api.model.entity.AuditArchiveSegment
-import com.docuhyphen.app.api.repository.AuditArchiveSegmentRepository
+import com.docuhyphen.app.api.repository.audit.AuditArchiveSegmentRepository
 import com.docuhyphen.app.api.service.audit.LedgerProcessor
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject

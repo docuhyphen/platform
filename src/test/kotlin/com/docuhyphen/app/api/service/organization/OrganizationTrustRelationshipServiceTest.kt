@@ -11,8 +11,8 @@ import com.docuhyphen.app.api.model.entity.OrganizationTrustDecision
 import com.docuhyphen.app.api.model.entity.OrganizationTrustRelationship
 import com.docuhyphen.app.api.model.entity.OrganizationTrustRelationshipStatus
 import com.docuhyphen.app.api.model.entity.OrganizationTrustSuspension
-import com.docuhyphen.app.api.repository.OrganizationTrustRelationshipRepository
-import com.docuhyphen.app.api.repository.OrganizationTrustSuspensionRepository
+import com.docuhyphen.app.api.repository.organization.OrganizationTrustRelationshipRepository
+import com.docuhyphen.app.api.repository.organization.OrganizationTrustSuspensionRepository
 import com.docuhyphen.app.api.service.audit.AuditCaptureResult
 import com.docuhyphen.app.api.service.audit.AuditEventDraft
 import com.docuhyphen.app.api.service.audit.AuditOwnerScope

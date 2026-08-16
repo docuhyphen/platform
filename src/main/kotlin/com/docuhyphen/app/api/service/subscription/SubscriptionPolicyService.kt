@@ -3,9 +3,9 @@ package com.docuhyphen.app.api.service.subscription
 import com.docuhyphen.app.api.model.entity.Organization
 import com.docuhyphen.app.api.model.entity.OrganizationSubscriptionPolicy
 import com.docuhyphen.app.api.model.entity.UserSubscriptionPolicy
-import com.docuhyphen.app.api.repository.OrganizationFeatureEntitlementRepository
-import com.docuhyphen.app.api.repository.OrganizationSubscriptionPolicyRepository
-import com.docuhyphen.app.api.repository.UserSubscriptionPolicyRepository
+import com.docuhyphen.app.api.repository.organization.OrganizationFeatureEntitlementRepository
+import com.docuhyphen.app.api.repository.subscription.OrganizationSubscriptionPolicyRepository
+import com.docuhyphen.app.api.repository.subscription.UserSubscriptionPolicyRepository
 import com.docuhyphen.app.api.service.organization.OrganizationService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject

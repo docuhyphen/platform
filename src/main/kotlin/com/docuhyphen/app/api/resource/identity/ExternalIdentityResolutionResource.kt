@@ -1,7 +1,7 @@
 package com.docuhyphen.app.api.resource.identity
 
 import com.docuhyphen.app.api.resource.model.ExternalIdentityResolutionRequest
-import com.docuhyphen.app.api.service.organization.ExternalIdentityResolutionService
+import com.docuhyphen.app.api.service.identity.ExternalIdentityResolutionService
 import jakarta.inject.Inject
 import jakarta.ws.rs.Consumes
 import jakarta.ws.rs.POST

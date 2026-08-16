@@ -6,8 +6,8 @@ import com.docuhyphen.app.api.model.dto.SystemVariableDto
 import com.docuhyphen.app.api.model.dto.VariableDefinitionDto
 import com.docuhyphen.app.api.model.dto.toDto
 import com.docuhyphen.app.api.model.entity.VariableScope
-import com.docuhyphen.app.api.repository.SequenceDefinitionRepository
-import com.docuhyphen.app.api.repository.VariableDefinitionRepository
+import com.docuhyphen.app.api.repository.variable.SequenceDefinitionRepository
+import com.docuhyphen.app.api.repository.variable.VariableDefinitionRepository
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import java.util.*

@@ -1,12 +1,14 @@
 package com.docuhyphen.app.api.service.auth
 
 import com.docuhyphen.app.api.model.entity.IdentityProviderType
-import com.docuhyphen.app.api.service.AppUserService
+import com.docuhyphen.app.api.service.user.AppUserService
 import com.docuhyphen.app.api.service.communication.EmailService
 import com.docuhyphen.app.api.service.communication.EmailTemplateService
 import com.docuhyphen.app.api.service.communication.MfaService
 import com.docuhyphen.app.api.service.communication.OtpService
 import com.docuhyphen.app.api.service.config.ConfigurationService
+import com.docuhyphen.app.api.service.identity.IdentityProviderNotAllowedException
+import com.docuhyphen.app.api.service.identity.OrganizationIdentityPolicyService
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.mockito.kotlin.mock

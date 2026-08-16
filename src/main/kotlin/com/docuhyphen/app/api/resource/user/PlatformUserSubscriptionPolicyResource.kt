@@ -5,7 +5,7 @@ import com.docuhyphen.app.api.resource.model.PlatformUserSubscriptionPolicyListR
 import com.docuhyphen.app.api.resource.model.PlatformUserSubscriptionPolicyRequest
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.service.auth.AdminApprovalContext
-import com.docuhyphen.app.api.service.auth.PlatformUserSubscriptionPolicyService
+import com.docuhyphen.app.api.service.subscription.PlatformUserSubscriptionPolicyService
 import io.quarkus.security.ForbiddenException
 import io.quarkus.security.UnauthorizedException
 import jakarta.inject.Inject

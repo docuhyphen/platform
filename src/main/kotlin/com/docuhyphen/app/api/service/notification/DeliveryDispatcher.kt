@@ -3,8 +3,8 @@ package com.docuhyphen.app.api.service.notification
 import com.docuhyphen.app.api.model.entity.NotificationChannelType
 import com.docuhyphen.app.api.model.entity.NotificationDeliveryLog
 import com.docuhyphen.app.api.model.entity.NotificationDeliveryOutcome
-import com.docuhyphen.app.api.repository.NotificationDeliveryLogRepository
-import com.docuhyphen.app.api.repository.OrganizationNotificationChannelRepository
+import com.docuhyphen.app.api.repository.notification.NotificationDeliveryLogRepository
+import com.docuhyphen.app.api.repository.notification.OrganizationNotificationChannelRepository
 import com.docuhyphen.app.api.service.notification.channels.NotificationChannel
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.enterprise.inject.Instance

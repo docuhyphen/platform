@@ -2,7 +2,7 @@ package com.docuhyphen.app.api.resource.mapper
 
 import com.docuhyphen.app.api.model.entity.OrganizationIdentityDomain
 import com.docuhyphen.app.api.resource.model.OrganizationIdentityDomainResponse
-import com.docuhyphen.app.api.service.auth.OrganizationIdentityDomainService
+import com.docuhyphen.app.api.service.identity.OrganizationIdentityDomainService
 import jakarta.enterprise.context.ApplicationScoped
 
 @ApplicationScoped

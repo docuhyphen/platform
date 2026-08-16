@@ -6,7 +6,7 @@ import com.docuhyphen.app.api.model.entity.ApplicationRoleName
 import com.docuhyphen.app.api.model.entity.ApplicationType
 import com.docuhyphen.app.api.model.entity.PrincipalKind
 import com.docuhyphen.app.api.model.entity.ResourceType
-import com.docuhyphen.app.api.repository.ApplicationRepository
+import com.docuhyphen.app.api.repository.application.ApplicationRepository
 import com.docuhyphen.app.api.service.auth.AuthAuditService
 import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext

@@ -3,8 +3,8 @@ package com.docuhyphen.app.api.service.organization
 import com.docuhyphen.app.api.model.entity.Organization
 import com.docuhyphen.app.api.model.entity.ResourceType
 import com.docuhyphen.app.api.model.entity.WorkflowInstance
-import com.docuhyphen.app.api.repository.OrganizationRepository
-import com.docuhyphen.app.api.repository.WorkflowWebhookEndpointRepository
+import com.docuhyphen.app.api.repository.organization.OrganizationRepository
+import com.docuhyphen.app.api.repository.workflow.WorkflowWebhookEndpointRepository
 import com.docuhyphen.app.api.service.application.WebhookDeliveryService
 import com.docuhyphen.app.api.service.application.WebhookDeliveryResult
 import com.docuhyphen.app.api.service.auth.AuthAuditService

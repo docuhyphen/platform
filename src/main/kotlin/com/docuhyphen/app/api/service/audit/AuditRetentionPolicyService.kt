@@ -2,7 +2,7 @@ package com.docuhyphen.app.api.service.audit
 
 import com.docuhyphen.app.api.model.entity.AuditIdentityTreatment
 import com.docuhyphen.app.api.model.entity.AuditRetentionPolicy
-import com.docuhyphen.app.api.repository.AuditRetentionPolicyRepository
+import com.docuhyphen.app.api.repository.audit.AuditRetentionPolicyRepository
 import com.docuhyphen.app.api.service.audit.catalog.AuditActorKind
 import com.docuhyphen.app.api.service.audit.catalog.AuditCategory
 import com.docuhyphen.app.api.service.audit.catalog.AuditEventType

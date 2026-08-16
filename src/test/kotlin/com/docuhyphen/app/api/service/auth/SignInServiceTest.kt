@@ -1,12 +1,13 @@
 package com.docuhyphen.app.api.service.auth
 
+import com.docuhyphen.app.api.service.identity.OrganizationIdentityPolicyService
 import com.docuhyphen.app.api.exception.OTPExpiredException
 import com.docuhyphen.app.api.model.entity.AppUser
 import com.docuhyphen.app.api.model.entity.MfaRecord
 import com.docuhyphen.app.api.model.entity.MultifactorAuthenticationStatus.PENDING
 import com.docuhyphen.app.api.model.entity.MultifactorAuthenticationType.EMAIL
 import com.docuhyphen.app.api.model.entity.MultifactorAuthenticationType.GOOGLE_AUTHENTICATOR
-import com.docuhyphen.app.api.service.AppUserService
+import com.docuhyphen.app.api.service.user.AppUserService
 import com.docuhyphen.app.api.service.communication.EmailService
 import com.docuhyphen.app.api.service.communication.EmailTemplateService
 import com.docuhyphen.app.api.service.communication.MfaService

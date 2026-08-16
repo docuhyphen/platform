@@ -1,7 +1,7 @@
 package com.docuhyphen.app.api.service.auth
 
 import com.docuhyphen.app.api.model.entity.AppUser
-import com.docuhyphen.app.api.service.AppUserService
+import com.docuhyphen.app.api.service.user.AppUserService
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional

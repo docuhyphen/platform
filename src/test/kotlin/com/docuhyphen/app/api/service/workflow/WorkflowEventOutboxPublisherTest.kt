@@ -1,7 +1,7 @@
 package com.docuhyphen.app.api.service.workflow
 
 import com.docuhyphen.app.api.model.entity.WorkflowEventOutboxEntry
-import com.docuhyphen.app.api.repository.WorkflowEventOutboxRepository
+import com.docuhyphen.app.api.repository.workflow.WorkflowEventOutboxRepository
 import com.docuhyphen.app.api.service.notification.DomainEvent
 import com.docuhyphen.app.api.service.notification.DomainEventJson
 import org.junit.jupiter.api.Assertions.assertEquals

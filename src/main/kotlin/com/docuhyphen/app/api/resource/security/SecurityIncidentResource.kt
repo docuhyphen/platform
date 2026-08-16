@@ -3,7 +3,7 @@ package com.docuhyphen.app.api.resource.security
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.resource.model.SecurityIncidentResponse
-import com.docuhyphen.app.api.service.auth.SecurityIncidentService
+import com.docuhyphen.app.api.service.security.SecurityIncidentService
 import com.docuhyphen.app.api.service.auth.UserRoleService
 import jakarta.inject.Inject
 import jakarta.ws.rs.Consumes

@@ -2,7 +2,7 @@ package com.docuhyphen.app.api.service.application
 
 import com.docuhyphen.app.api.model.entity.Application
 import com.docuhyphen.app.api.model.entity.ApplicationType
-import com.docuhyphen.app.api.repository.ApplicationRepository
+import com.docuhyphen.app.api.repository.application.ApplicationRepository
 import com.docuhyphen.app.api.service.auth.AuthenticationService
 import com.docuhyphen.app.api.service.config.ConfigurationService
 import jakarta.enterprise.context.ApplicationScoped

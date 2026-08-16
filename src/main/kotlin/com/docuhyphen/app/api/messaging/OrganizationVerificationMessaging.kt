@@ -1,7 +1,7 @@
 package com.docuhyphen.app.api.messaging
 
 import com.docuhyphen.app.api.model.entity.Organization
-import com.docuhyphen.app.api.repository.OrganizationRepository
+import com.docuhyphen.app.api.repository.organization.OrganizationRepository
 import com.docuhyphen.app.api.service.subscription.SubscriptionPolicyService
 import jakarta.enterprise.context.ApplicationScoped
 import org.slf4j.LoggerFactory

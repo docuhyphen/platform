@@ -2,7 +2,7 @@ package com.docuhyphen.app.api.service.workflow.actions
 
 import com.docuhyphen.app.api.model.entity.WorkflowInstance
 import com.docuhyphen.app.api.model.entity.WorkflowStepInstance
-import com.docuhyphen.app.api.repository.AppUserRepository
+import com.docuhyphen.app.api.repository.user.AppUserRepository
 import com.docuhyphen.app.api.service.communication.AppNotificationService
 import com.docuhyphen.app.api.service.communication.EmailService
 import com.docuhyphen.app.api.service.workflow.ActionResult

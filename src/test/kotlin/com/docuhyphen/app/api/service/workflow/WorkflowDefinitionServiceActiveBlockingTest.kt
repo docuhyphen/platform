@@ -5,8 +5,8 @@ import com.docuhyphen.app.api.model.entity.WorkflowDefinition
 import com.docuhyphen.app.api.model.entity.WorkflowInstance
 import com.docuhyphen.app.api.model.entity.WorkflowInstanceStatus
 import com.docuhyphen.app.api.model.entity.WorkflowScope
-import com.docuhyphen.app.api.repository.WorkflowDefinitionRepository
-import com.docuhyphen.app.api.repository.WorkflowInstanceRepository
+import com.docuhyphen.app.api.repository.workflow.WorkflowDefinitionRepository
+import com.docuhyphen.app.api.repository.workflow.WorkflowInstanceRepository
 import com.docuhyphen.app.api.service.auth.AdminApprovalContext
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory

@@ -9,11 +9,11 @@ import com.docuhyphen.app.api.resource.model.OrganizationAuthSessionPolicySettin
 import com.docuhyphen.app.api.resource.model.OrganizationAuthSessionPolicyUpdateRequest
 import com.docuhyphen.app.api.resource.model.OrganizationIdpConfigResponse
 import com.docuhyphen.app.api.resource.model.ResponseError
-import com.docuhyphen.app.api.service.AppUserService
+import com.docuhyphen.app.api.service.user.AppUserService
 import com.docuhyphen.app.api.service.auth.AdminApprovalContext
 import com.docuhyphen.app.api.service.auth.AuthAuditService
 import com.docuhyphen.app.api.service.auth.AuthSessionPolicyService
-import com.docuhyphen.app.api.service.auth.OrganizationIdentityProviderConfigService
+import com.docuhyphen.app.api.service.identity.OrganizationIdentityProviderConfigService
 import com.docuhyphen.app.api.service.auth.RevocationReasonCode
 import com.docuhyphen.app.api.service.config.ConfigurationService
 import io.quarkus.security.UnauthorizedException

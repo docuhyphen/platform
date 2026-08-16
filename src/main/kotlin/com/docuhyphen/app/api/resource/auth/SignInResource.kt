@@ -4,9 +4,9 @@ import com.docuhyphen.app.api.resource.ResourceEndpointDelayHelper
 
 import com.docuhyphen.app.api.exception.*
 import com.docuhyphen.app.api.model.SignInResponseMapper
-import com.docuhyphen.app.api.repository.IdentityProviderLinkRepository
+import com.docuhyphen.app.api.repository.identity.IdentityProviderLinkRepository
 import com.docuhyphen.app.api.resource.model.*
-import com.docuhyphen.app.api.service.AppUserService
+import com.docuhyphen.app.api.service.user.AppUserService
 import com.docuhyphen.app.api.service.auth.AuthAuditService
 import com.docuhyphen.app.api.service.auth.AuthRateLimitService
 import com.docuhyphen.app.api.service.auth.ClientIpResolver
@@ -17,8 +17,8 @@ import com.docuhyphen.app.api.service.auth.SignInLookupService
 import com.docuhyphen.app.api.service.auth.SignInService
 import com.docuhyphen.app.api.service.auth.TokenIssuanceService
 import com.docuhyphen.app.api.service.auth.OAuthStateService
-import com.docuhyphen.app.api.service.auth.IdentityProviderNotAllowedException
-import com.docuhyphen.app.api.service.auth.SecurityIncidentService
+import com.docuhyphen.app.api.service.identity.IdentityProviderNotAllowedException
+import com.docuhyphen.app.api.service.security.SecurityIncidentService
 import com.docuhyphen.app.api.model.entity.SecurityIncidentSeverity
 import com.docuhyphen.app.api.model.entity.SecurityIncidentType
 import com.docuhyphen.app.api.service.config.ConfigurationService

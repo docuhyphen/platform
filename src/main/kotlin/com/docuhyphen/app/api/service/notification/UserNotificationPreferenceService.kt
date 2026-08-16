@@ -2,8 +2,8 @@ package com.docuhyphen.app.api.service.notification
 
 import com.docuhyphen.app.api.model.entity.AppUserSettings
 import com.docuhyphen.app.api.model.entity.NotificationChannelType
-import com.docuhyphen.app.api.service.AppUserService
-import com.docuhyphen.app.api.service.SettingsService
+import com.docuhyphen.app.api.service.user.AppUserService
+import com.docuhyphen.app.api.service.application.SettingsService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import java.util.UUID

@@ -7,8 +7,8 @@ import com.docuhyphen.app.api.model.entity.ResourceType
 import com.docuhyphen.app.api.model.entity.Share
 import com.docuhyphen.app.api.model.entity.ShareSource
 import com.docuhyphen.app.api.model.entity.ShareStatus
-import com.docuhyphen.app.api.repository.PrincipalGroupMemberRepository
-import com.docuhyphen.app.api.repository.ShareRepository
+import com.docuhyphen.app.api.repository.organization.PrincipalGroupMemberRepository
+import com.docuhyphen.app.api.repository.exchange.ShareRepository
 import com.docuhyphen.app.api.service.audit.AuditRecorder
 import com.docuhyphen.app.api.service.organization.TrustedRecipientValidationService
 import jakarta.inject.Provider

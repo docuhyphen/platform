@@ -8,9 +8,9 @@ import com.docuhyphen.app.api.model.entity.WorkflowStepStatus
 import com.docuhyphen.app.api.model.entity.WorkflowStepType
 import com.docuhyphen.app.api.model.entity.WorkflowTransitionOutcome
 import com.docuhyphen.app.api.model.entity.WorkflowTriggerEventRegistry
-import com.docuhyphen.app.api.repository.WorkflowDefinitionRepository
-import com.docuhyphen.app.api.repository.WorkflowStepTransitionRepository
-import com.docuhyphen.app.api.repository.WorkflowTriggerEventRepository
+import com.docuhyphen.app.api.repository.workflow.WorkflowDefinitionRepository
+import com.docuhyphen.app.api.repository.workflow.WorkflowStepTransitionRepository
+import com.docuhyphen.app.api.repository.workflow.WorkflowTriggerEventRepository
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.CsvSource

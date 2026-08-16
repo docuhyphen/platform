@@ -2,7 +2,7 @@ package com.docuhyphen.app.api.service.application
 
 import com.docuhyphen.app.api.model.entity.ResourceType
 import com.docuhyphen.app.api.model.entity.WorkflowWebhookEndpoint
-import com.docuhyphen.app.api.repository.WorkflowWebhookEndpointRepository
+import com.docuhyphen.app.api.repository.workflow.WorkflowWebhookEndpointRepository
 import com.docuhyphen.app.api.service.auth.AuthAuditService
 import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext

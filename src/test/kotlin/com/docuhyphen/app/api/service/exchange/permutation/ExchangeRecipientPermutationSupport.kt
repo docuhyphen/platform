@@ -15,7 +15,7 @@ import com.docuhyphen.app.api.model.entity.ResourceType
 import com.docuhyphen.app.api.model.entity.Share
 import com.docuhyphen.app.api.model.entity.ShareSource
 import com.docuhyphen.app.api.model.entity.ShareStatus
-import com.docuhyphen.app.api.repository.ExchangeRecipientRepository
+import com.docuhyphen.app.api.repository.exchange.ExchangeRecipientRepository
 import com.docuhyphen.app.api.service.exchange.ExchangeRecipientAttestationService
 import com.docuhyphen.app.api.service.exchange.ExchangeRecipientService
 import com.docuhyphen.app.api.service.exchange.ExternalEmailAcceptancePolicyService

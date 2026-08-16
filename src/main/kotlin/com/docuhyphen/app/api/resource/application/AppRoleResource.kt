@@ -8,8 +8,8 @@ import com.docuhyphen.app.api.resource.model.AppAdminDto
 import com.docuhyphen.app.api.resource.model.AppUserSearchResultDto
 import com.docuhyphen.app.api.resource.model.GrantAppAdminRequest
 import com.docuhyphen.app.api.resource.model.ResponseError
-import com.docuhyphen.app.api.service.AppUserService
-import com.docuhyphen.app.api.service.auth.AppRoleAssignmentService
+import com.docuhyphen.app.api.service.user.AppUserService
+import com.docuhyphen.app.api.service.application.AppRoleAssignmentService
 import jakarta.inject.Inject
 import jakarta.ws.rs.*
 import jakarta.ws.rs.core.GenericEntity

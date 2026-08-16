@@ -3,9 +3,9 @@ package com.docuhyphen.app.api.service.communication
 import com.docuhyphen.app.api.exception.SalesEnquiryRateLimitedException
 import com.docuhyphen.app.api.exception.SalesEnquiryRecipientUnavailableException
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
-import com.docuhyphen.app.api.repository.AppRoleAssignmentRepository
+import com.docuhyphen.app.api.repository.application.AppRoleAssignmentRepository
 import com.docuhyphen.app.api.resource.model.SalesEnquiryRequest
-import com.docuhyphen.app.api.service.AppUserService
+import com.docuhyphen.app.api.service.user.AppUserService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import org.slf4j.LoggerFactory

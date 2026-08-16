@@ -1,7 +1,7 @@
 package com.docuhyphen.app.api.service.contactdetails
 
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
-import com.docuhyphen.app.api.repository.ContactDetailsRepository
+import com.docuhyphen.app.api.repository.contactdetails.ContactDetailsRepository
 import com.docuhyphen.app.api.service.auth.ServiceActionAuthorizationService
 import com.docuhyphen.app.api.service.communication.OtpService
 import com.docuhyphen.app.api.service.communication.PhoneService

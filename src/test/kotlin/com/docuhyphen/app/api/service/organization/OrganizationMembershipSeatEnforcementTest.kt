@@ -4,8 +4,8 @@ import com.docuhyphen.app.api.model.entity.AppUser
 import com.docuhyphen.app.api.model.entity.OrganizationMembership
 import com.docuhyphen.app.api.model.entity.OrganizationMembershipStatus
 import com.docuhyphen.app.api.model.entity.OrganizationRoleName
-import com.docuhyphen.app.api.repository.AppUserRepository
-import com.docuhyphen.app.api.repository.OrganizationMembershipRepository
+import com.docuhyphen.app.api.repository.user.AppUserRepository
+import com.docuhyphen.app.api.repository.organization.OrganizationMembershipRepository
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.never

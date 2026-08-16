@@ -2,7 +2,7 @@ package com.docuhyphen.app.api.service.audit
 
 import com.docuhyphen.app.api.model.entity.AuditLegalHold
 import com.docuhyphen.app.api.model.entity.AuditLegalHoldStatus
-import com.docuhyphen.app.api.repository.AuditLegalHoldRepository
+import com.docuhyphen.app.api.repository.audit.AuditLegalHoldRepository
 import com.docuhyphen.app.api.service.audit.catalog.AuditActorKind
 import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
 import com.docuhyphen.app.api.service.audit.catalog.AuditOutcome

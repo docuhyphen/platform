@@ -8,11 +8,11 @@ import com.docuhyphen.app.api.model.entity.WorkflowStepDecision
 import com.docuhyphen.app.api.model.entity.WorkflowStepInstance
 import com.docuhyphen.app.api.model.entity.WorkflowStepStatus
 import com.docuhyphen.app.api.model.entity.WorkflowStepType
-import com.docuhyphen.app.api.repository.WorkflowInstanceRepository
-import com.docuhyphen.app.api.repository.WorkflowStepAssigneeRepository
-import com.docuhyphen.app.api.repository.WorkflowStepDecisionRepository
-import com.docuhyphen.app.api.repository.WorkflowStepInstanceRepository
-import com.docuhyphen.app.api.repository.WorkflowStepTransitionRepository
+import com.docuhyphen.app.api.repository.workflow.WorkflowInstanceRepository
+import com.docuhyphen.app.api.repository.workflow.WorkflowStepAssigneeRepository
+import com.docuhyphen.app.api.repository.workflow.WorkflowStepDecisionRepository
+import com.docuhyphen.app.api.repository.workflow.WorkflowStepInstanceRepository
+import com.docuhyphen.app.api.repository.workflow.WorkflowStepTransitionRepository
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.notification.DomainEvent
 import com.docuhyphen.app.api.service.notification.DomainEventPublisher
@@ -42,7 +42,7 @@ import java.util.UUID
  */
 class WorkflowConcurrencyControlTest
 {
-    private val definitionRepository: com.docuhyphen.app.api.repository.WorkflowDefinitionRepository = mock()
+    private val definitionRepository: com.docuhyphen.app.api.repository.workflow.WorkflowDefinitionRepository = mock()
     private val instanceRepository: WorkflowInstanceRepository = mock()
     private val stepRepository: WorkflowStepInstanceRepository = mock()
     private val transitionRepository: WorkflowStepTransitionRepository = mock()

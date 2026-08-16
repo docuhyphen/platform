@@ -4,8 +4,8 @@ import com.docuhyphen.app.api.model.entity.AppUser
 import com.docuhyphen.app.api.model.entity.OrganizationMembership
 import com.docuhyphen.app.api.model.entity.OrganizationMembershipStatus
 import com.docuhyphen.app.api.model.entity.OrganizationRoleName
-import com.docuhyphen.app.api.repository.AppUserRepository
-import com.docuhyphen.app.api.repository.OrganizationMembershipRepository
+import com.docuhyphen.app.api.repository.user.AppUserRepository
+import com.docuhyphen.app.api.repository.organization.OrganizationMembershipRepository
 import com.docuhyphen.app.api.service.subscription.OrganizationFeatureSubscriptionGuard
 import com.docuhyphen.app.api.service.subscription.PlanFeature
 import jakarta.enterprise.context.ApplicationScoped

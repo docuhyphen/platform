@@ -3,7 +3,7 @@
 import com.docuhyphen.app.api.model.InAppNotificationMapper
 import com.docuhyphen.app.api.model.entity.InAppNotification
 import com.docuhyphen.app.api.model.entity.NotificationChannelType
-import com.docuhyphen.app.api.repository.InAppNotificationRepository
+import com.docuhyphen.app.api.repository.notification.InAppNotificationRepository
 import com.docuhyphen.app.api.realtime.RealtimeEventService
 import com.docuhyphen.app.api.service.notification.ChannelSendResult
 import com.docuhyphen.app.api.service.notification.DeliveryTask
@@ -159,4 +159,3 @@ class InAppChannel : NotificationChannel
             else -> "Open this notification to view more information."
         }
 }
-

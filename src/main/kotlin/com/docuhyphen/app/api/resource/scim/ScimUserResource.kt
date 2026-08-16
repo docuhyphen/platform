@@ -4,10 +4,10 @@ import com.docuhyphen.app.api.exception.SubscriptionDenialException
 import com.docuhyphen.app.api.model.entity.AppUser
 import com.docuhyphen.app.api.model.entity.Person
 import com.docuhyphen.app.api.model.entity.OrganizationRoleName
-import com.docuhyphen.app.api.repository.AppUserRepository
-import com.docuhyphen.app.api.service.AppUserService
+import com.docuhyphen.app.api.repository.user.AppUserRepository
+import com.docuhyphen.app.api.service.user.AppUserService
 import com.docuhyphen.app.api.service.auth.AuthAuditService
-import com.docuhyphen.app.api.service.auth.OrganizationIdentityPolicyService
+import com.docuhyphen.app.api.service.identity.OrganizationIdentityPolicyService
 import com.docuhyphen.app.api.service.organization.OrganizationMembershipService
 import com.docuhyphen.app.api.service.auth.RevocationReasonCode
 import com.docuhyphen.app.api.service.auth.UserSessionService

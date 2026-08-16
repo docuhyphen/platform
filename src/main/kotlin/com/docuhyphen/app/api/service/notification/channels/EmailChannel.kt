@@ -1,7 +1,7 @@
 package com.docuhyphen.app.api.service.notification.channels
 
 import com.docuhyphen.app.api.model.entity.NotificationChannelType
-import com.docuhyphen.app.api.repository.AppUserRepository
+import com.docuhyphen.app.api.repository.user.AppUserRepository
 import com.docuhyphen.app.api.service.communication.EmailService
 import com.docuhyphen.app.api.service.communication.MarkdownRenderer
 import com.docuhyphen.app.api.service.communication.templates.EmailTemplateRenderer

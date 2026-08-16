@@ -15,7 +15,7 @@ import java.time.Instant
  * exact partition policy is a Prerequisite Decision still unanswered by compliance/legal, so this
  * is a documented placeholder, not a final policy).
  *
- * [com.docuhyphen.app.api.repository.StreamHeadRepository.lockOrCreate] takes a
+ * [com.docuhyphen.app.api.repository.audit.StreamHeadRepository.lockOrCreate] takes a
  * `PESSIMISTIC_WRITE` lock on this row before reading [lastSequence]/[lastHash], so two
  * concurrent appenders to the same stream serialize on this row and cannot fork or reorder the
  * chain.

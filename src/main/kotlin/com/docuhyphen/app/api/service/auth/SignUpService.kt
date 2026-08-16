@@ -9,11 +9,11 @@ import com.docuhyphen.app.api.model.entity.IdentityProviderType
 import com.docuhyphen.app.api.model.entity.SignUpEntity
 import com.docuhyphen.app.api.model.entity.SignUpStatus
 import com.docuhyphen.app.api.model.entity.ExchangeStatus
-import com.docuhyphen.app.api.repository.AppUserRepository
-import com.docuhyphen.app.api.repository.IdentityProviderLinkRepository
-import com.docuhyphen.app.api.repository.ExchangeRepository
-import com.docuhyphen.app.api.repository.SignUpRepository
-import com.docuhyphen.app.api.service.UserContactService
+import com.docuhyphen.app.api.repository.user.AppUserRepository
+import com.docuhyphen.app.api.repository.identity.IdentityProviderLinkRepository
+import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
+import com.docuhyphen.app.api.repository.auth.SignUpRepository
+import com.docuhyphen.app.api.service.contactdetails.UserContactService
 import com.docuhyphen.app.api.service.communication.EmailService
 import com.docuhyphen.app.api.service.communication.EmailTemplateService
 import com.docuhyphen.app.api.service.communication.OtpService

@@ -1,5 +1,6 @@
 package com.docuhyphen.app.api.service.auth
 
+import com.docuhyphen.app.api.service.security.SecurityIncidentService
 import com.docuhyphen.app.api.model.entity.SecurityIncidentSeverity
 import com.docuhyphen.app.api.model.entity.SecurityIncidentType
 import com.docuhyphen.app.api.model.entity.UserSession

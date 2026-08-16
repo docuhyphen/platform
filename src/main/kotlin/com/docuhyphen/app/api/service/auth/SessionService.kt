@@ -3,8 +3,8 @@ package com.docuhyphen.app.api.service.auth
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.model.dto.CurrentSessionDto
 import com.docuhyphen.app.api.model.dto.SessionOrganizationOptionDto
-import com.docuhyphen.app.api.repository.OrganizationMembershipRepository
-import com.docuhyphen.app.api.repository.OrganizationRepository
+import com.docuhyphen.app.api.repository.organization.OrganizationMembershipRepository
+import com.docuhyphen.app.api.repository.organization.OrganizationRepository
 import com.docuhyphen.app.api.service.auth.authz.Capability
 import com.docuhyphen.app.api.service.auth.authz.RoleCapabilities
 import com.docuhyphen.app.api.service.subscription.SessionSubscriptionService

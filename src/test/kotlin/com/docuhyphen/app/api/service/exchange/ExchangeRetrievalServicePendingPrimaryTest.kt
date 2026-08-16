@@ -5,7 +5,7 @@ import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.model.entity.Exchange
 import com.docuhyphen.app.api.model.entity.ExchangeStatus
 import com.docuhyphen.app.api.model.entity.PrincipalKind
-import com.docuhyphen.app.api.repository.ExchangeRepository
+import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
 import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory

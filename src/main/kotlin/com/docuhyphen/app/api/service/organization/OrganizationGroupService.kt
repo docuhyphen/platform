@@ -14,11 +14,11 @@ import com.docuhyphen.app.api.model.entity.PrincipalGroupScope
 import com.docuhyphen.app.api.model.entity.PrincipalKind
 import com.docuhyphen.app.api.model.entity.ResourceType
 import com.docuhyphen.app.api.model.resourceservice.OrganizationGroupMemberModel
-import com.docuhyphen.app.api.repository.OrganizationRepository
-import com.docuhyphen.app.api.repository.PrincipalGroupMemberRepository
-import com.docuhyphen.app.api.repository.PrincipalGroupRepository
-import com.docuhyphen.app.api.repository.ShareRepository
-import com.docuhyphen.app.api.service.AppUserService
+import com.docuhyphen.app.api.repository.organization.OrganizationRepository
+import com.docuhyphen.app.api.repository.organization.PrincipalGroupMemberRepository
+import com.docuhyphen.app.api.repository.organization.PrincipalGroupRepository
+import com.docuhyphen.app.api.repository.exchange.ShareRepository
+import com.docuhyphen.app.api.service.user.AppUserService
 import com.docuhyphen.app.api.service.auth.AdminApprovalContext
 import com.docuhyphen.app.api.service.auth.AuthAuditService
 import com.docuhyphen.app.api.interceptor.EnforceAdminAction

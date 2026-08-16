@@ -7,13 +7,13 @@ import com.docuhyphen.app.api.model.entity.AuthToken
 import com.docuhyphen.app.api.model.entity.Exchange
 import com.docuhyphen.app.api.model.entity.ExchangeStatus
 import com.docuhyphen.app.api.model.entity.Person
-import com.docuhyphen.app.api.repository.ExchangeRepository
-import com.docuhyphen.app.api.repository.WorkflowInstanceRepository
+import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
+import com.docuhyphen.app.api.repository.workflow.WorkflowInstanceRepository
 import com.docuhyphen.app.api.model.entity.WorkflowInstance
 import com.docuhyphen.app.api.model.entity.WorkflowInstanceStatus
 import com.docuhyphen.app.api.resource.model.UpdateExchangeRequest
-import com.docuhyphen.app.api.service.AppUserService
-import com.docuhyphen.app.api.service.UserContactService
+import com.docuhyphen.app.api.service.user.AppUserService
+import com.docuhyphen.app.api.service.contactdetails.UserContactService
 import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory

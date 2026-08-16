@@ -1,8 +1,8 @@
 package com.docuhyphen.app.api.service.audit
 
-import com.docuhyphen.app.api.repository.AuditAnalyticsFactRepository
-import com.docuhyphen.app.api.repository.AuditLedgerEventRepository
-import com.docuhyphen.app.api.repository.AuditOutboxRepository
+import com.docuhyphen.app.api.repository.audit.AuditAnalyticsFactRepository
+import com.docuhyphen.app.api.repository.audit.AuditLedgerEventRepository
+import com.docuhyphen.app.api.repository.audit.AuditOutboxRepository
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import java.time.Duration

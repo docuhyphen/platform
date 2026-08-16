@@ -3,7 +3,7 @@ package com.docuhyphen.app.api.service.subscription
 import com.docuhyphen.app.api.model.entity.SubscriptionTrialGrant
 import com.docuhyphen.app.api.model.entity.SubscriptionTrialRequest
 import com.docuhyphen.app.api.model.entity.SubscriptionTrialRequestStatus
-import com.docuhyphen.app.api.repository.SubscriptionTrialRequestRepository
+import com.docuhyphen.app.api.repository.subscription.SubscriptionTrialRequestRepository
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test

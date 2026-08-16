@@ -1,7 +1,7 @@
 package com.docuhyphen.app.api.service.application
 
 import com.docuhyphen.app.api.model.entity.WorkflowInstance
-import com.docuhyphen.app.api.repository.WorkflowWebhookEndpointRepository
+import com.docuhyphen.app.api.repository.workflow.WorkflowWebhookEndpointRepository
 import com.docuhyphen.app.api.service.auth.AuthAuditService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject

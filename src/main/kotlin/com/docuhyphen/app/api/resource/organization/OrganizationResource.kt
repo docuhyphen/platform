@@ -7,7 +7,7 @@ import com.docuhyphen.app.api.model.dto.OrganizationSettingsDto
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.resource.model.UpdateOrganizationRequest
 import com.docuhyphen.app.api.service.auth.AdminApprovalContext
-import com.docuhyphen.app.api.service.SettingsService
+import com.docuhyphen.app.api.service.application.SettingsService
 import com.docuhyphen.app.api.service.organization.OrganizationService
 import io.quarkus.security.UnauthorizedException
 import jakarta.inject.Inject

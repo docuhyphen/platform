@@ -1,6 +1,6 @@
 package com.docuhyphen.app.api.service.organization
 
-import com.docuhyphen.app.api.repository.OrganizationRepository
+import com.docuhyphen.app.api.repository.organization.OrganizationRepository
 import com.docuhyphen.app.api.service.auth.authz.OwnerContext
 import com.docuhyphen.app.api.service.auth.authz.ResourceAuthorizationContext
 import com.docuhyphen.app.api.service.auth.authz.ResourceAuthorizationContextProvider

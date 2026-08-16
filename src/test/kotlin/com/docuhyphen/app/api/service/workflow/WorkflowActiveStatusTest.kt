@@ -4,8 +4,8 @@ import com.docuhyphen.app.api.model.entity.WorkflowInstance
 import com.docuhyphen.app.api.model.entity.WorkflowInstanceStatus
 import com.docuhyphen.app.api.model.entity.WorkflowStepInstance
 import com.docuhyphen.app.api.model.entity.WorkflowStepStatus
-import com.docuhyphen.app.api.repository.WorkflowInstanceRepository
-import com.docuhyphen.app.api.repository.WorkflowStepInstanceRepository
+import com.docuhyphen.app.api.repository.workflow.WorkflowInstanceRepository
+import com.docuhyphen.app.api.repository.workflow.WorkflowStepInstanceRepository
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue

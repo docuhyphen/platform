@@ -1,7 +1,7 @@
 package com.docuhyphen.app.api.service.exchange
 
 import com.docuhyphen.app.api.model.entity.ExchangeStatus
-import com.docuhyphen.app.api.repository.ExchangeRepository
+import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
 import com.docuhyphen.app.api.service.subscription.ExchangeUsageCounter
 import com.docuhyphen.app.api.service.subscription.SubscriptionContext
 import com.docuhyphen.app.api.service.subscription.SubscriptionOwnerType

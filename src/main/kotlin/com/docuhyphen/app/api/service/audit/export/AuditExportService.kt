@@ -3,9 +3,9 @@ package com.docuhyphen.app.api.service.audit.export
 import com.docuhyphen.app.api.model.entity.AuditExport
 import com.docuhyphen.app.api.model.entity.AuditExportApproval
 import com.docuhyphen.app.api.model.entity.AuditExportStatus
-import com.docuhyphen.app.api.repository.AuditExportApprovalRepository
-import com.docuhyphen.app.api.repository.AuditExportRepository
-import com.docuhyphen.app.api.service.AppUserService
+import com.docuhyphen.app.api.repository.audit.AuditExportApprovalRepository
+import com.docuhyphen.app.api.repository.audit.AuditExportRepository
+import com.docuhyphen.app.api.service.user.AppUserService
 import com.docuhyphen.app.api.service.audit.AuditCaptureFailedException
 import com.docuhyphen.app.api.service.audit.AuditDraftInvalidException
 import com.docuhyphen.app.api.service.audit.AuditDeniedAttemptService

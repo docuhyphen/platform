@@ -5,9 +5,9 @@ import com.docuhyphen.app.api.model.entity.WorkflowInstanceStatus
 import com.docuhyphen.app.api.model.entity.WorkflowStepInstance
 import com.docuhyphen.app.api.model.entity.WorkflowStepStatus
 import com.docuhyphen.app.api.model.entity.WorkflowStepType
-import com.docuhyphen.app.api.repository.WorkflowInstanceRepository
-import com.docuhyphen.app.api.repository.WorkflowStepInstanceRepository
-import com.docuhyphen.app.api.repository.WorkflowStepTransitionRepository
+import com.docuhyphen.app.api.repository.workflow.WorkflowInstanceRepository
+import com.docuhyphen.app.api.repository.workflow.WorkflowStepInstanceRepository
+import com.docuhyphen.app.api.repository.workflow.WorkflowStepTransitionRepository
 import com.docuhyphen.app.api.service.notification.DomainEventPublisher
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test

@@ -1,7 +1,7 @@
 package com.docuhyphen.app.api.service.auth
 
 import com.docuhyphen.app.api.model.entity.RefreshTokenRecord
-import com.docuhyphen.app.api.repository.RefreshTokenRecordRepository
+import com.docuhyphen.app.api.repository.auth.RefreshTokenRecordRepository
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
 import java.sql.Timestamp

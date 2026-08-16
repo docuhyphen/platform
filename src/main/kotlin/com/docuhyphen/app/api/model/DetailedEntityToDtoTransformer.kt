@@ -2,7 +2,7 @@
 
 import com.docuhyphen.app.api.model.dto.*
 import com.docuhyphen.app.api.model.entity.*
-import com.docuhyphen.app.api.service.SettingsService
+import com.docuhyphen.app.api.service.application.SettingsService
 import org.hibernate.Hibernate
 import org.hibernate.LazyInitializationException
 

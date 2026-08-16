@@ -5,8 +5,8 @@ import com.docuhyphen.app.api.model.entity.AuditEngagement
 import com.docuhyphen.app.api.model.entity.AuditEngagementSensitivity
 import com.docuhyphen.app.api.model.entity.AuditEngagementStatus
 import com.docuhyphen.app.api.model.entity.PrincipalGroup
-import com.docuhyphen.app.api.repository.AuditEngagementRepository
-import com.docuhyphen.app.api.service.AppUserService
+import com.docuhyphen.app.api.repository.audit.AuditEngagementRepository
+import com.docuhyphen.app.api.service.user.AppUserService
 import com.docuhyphen.app.api.service.audit.catalog.AuditCategory
 import com.docuhyphen.app.api.service.auth.StepUpAuthService
 import com.docuhyphen.app.api.service.organization.OrganizationGroupService

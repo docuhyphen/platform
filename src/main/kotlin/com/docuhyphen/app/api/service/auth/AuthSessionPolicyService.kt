@@ -1,8 +1,8 @@
 package com.docuhyphen.app.api.service.auth
 
 import com.docuhyphen.app.api.model.entity.AppUser
-import com.docuhyphen.app.api.repository.OrganizationIdentityProviderConfigRepository
-import com.docuhyphen.app.api.repository.OrganizationRepository
+import com.docuhyphen.app.api.repository.identity.OrganizationIdentityProviderConfigRepository
+import com.docuhyphen.app.api.repository.organization.OrganizationRepository
 import com.docuhyphen.app.api.service.config.ConfigurationService
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject

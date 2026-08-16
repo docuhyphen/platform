@@ -6,9 +6,9 @@ import com.docuhyphen.app.api.model.entity.AuditExport
 import com.docuhyphen.app.api.model.entity.AuditExportApproval
 import com.docuhyphen.app.api.model.entity.AuditExportStatus
 import com.docuhyphen.app.api.model.entity.Organization
-import com.docuhyphen.app.api.repository.AuditExportApprovalRepository
-import com.docuhyphen.app.api.repository.AuditExportRepository
-import com.docuhyphen.app.api.service.AppUserService
+import com.docuhyphen.app.api.repository.audit.AuditExportApprovalRepository
+import com.docuhyphen.app.api.repository.audit.AuditExportRepository
+import com.docuhyphen.app.api.service.user.AppUserService
 import com.docuhyphen.app.api.service.audit.AuditEngagementService
 import com.docuhyphen.app.api.service.audit.AuditRecorder
 import com.docuhyphen.app.api.service.audit.AuditSearchProjectionService.AuditAccessActor

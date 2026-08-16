@@ -1,7 +1,8 @@
 package com.docuhyphen.app.api.service.auth
 
-import com.docuhyphen.app.api.repository.AppRoleAssignmentRepository
-import com.docuhyphen.app.api.service.AppUserService
+import com.docuhyphen.app.api.repository.application.AppRoleAssignmentRepository
+import com.docuhyphen.app.api.service.application.AppRoleAssignmentService
+import com.docuhyphen.app.api.service.user.AppUserService
 import com.docuhyphen.app.api.service.config.ConfigurationService
 import com.docuhyphen.app.api.model.entity.AppRoleAssignment
 import com.docuhyphen.app.api.model.entity.AppRoleName

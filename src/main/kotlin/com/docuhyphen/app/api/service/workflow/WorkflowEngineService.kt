@@ -15,7 +15,7 @@ import java.util.UUID
  * Lifecycle:
  *   1. `trigger(...)` , invoked by a domain service (e.g. ExchangeInitiationService
  *      in iteration 4) when an event fires. The engine resolves the matching definition
- *      via [com.docuhyphen.app.api.repository.WorkflowDefinitionRepository.findAllActiveForTrigger]
+ *      via [com.docuhyphen.app.api.repository.workflow.WorkflowDefinitionRepository.findAllActiveForTrigger]
  *      and creates a [com.docuhyphen.app.api.model.entity.WorkflowInstance] + first
  *      [com.docuhyphen.app.api.model.entity.WorkflowStepInstance] with resolved assignees.
  *   2. `recordDecision(...)`, invoked by an assignee approving/rejecting. The engine

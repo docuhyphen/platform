@@ -9,7 +9,7 @@ import com.docuhyphen.app.api.model.DetailedEntityToDtoTransformer
 import com.docuhyphen.app.api.resource.model.OrganizationRegistrationRequest
 import com.docuhyphen.app.api.resource.model.PersonRegistrationRequest
 import com.docuhyphen.app.api.resource.model.ResponseError
-import com.docuhyphen.app.api.service.EntityRegistrationService
+import com.docuhyphen.app.api.service.organization.EntityRegistrationService
 import jakarta.inject.Inject
 import jakarta.ws.rs.POST
 import jakarta.ws.rs.Path

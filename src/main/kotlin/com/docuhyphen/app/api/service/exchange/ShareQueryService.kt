@@ -5,10 +5,10 @@ import com.docuhyphen.app.api.model.entity.PrincipalKind
 import com.docuhyphen.app.api.model.entity.ResourceType
 import com.docuhyphen.app.api.model.entity.Share
 import com.docuhyphen.app.api.model.entity.ShareSource
-import com.docuhyphen.app.api.repository.AppUserRepository
-import com.docuhyphen.app.api.repository.ExternalParticipantRepository
-import com.docuhyphen.app.api.repository.PrincipalGroupRepository
-import com.docuhyphen.app.api.repository.ShareRepository
+import com.docuhyphen.app.api.repository.user.AppUserRepository
+import com.docuhyphen.app.api.repository.exchange.ExternalParticipantRepository
+import com.docuhyphen.app.api.repository.organization.PrincipalGroupRepository
+import com.docuhyphen.app.api.repository.exchange.ShareRepository
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.inject.Provider

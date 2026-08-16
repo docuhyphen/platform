@@ -8,8 +8,8 @@ import com.docuhyphen.app.api.model.entity.PrincipalKind
 import com.docuhyphen.app.api.model.entity.WorkflowScope
 import com.docuhyphen.app.api.model.entity.WorkflowStepType
 import com.docuhyphen.app.api.model.entity.WorkflowTriggerEventRegistry
-import com.docuhyphen.app.api.repository.CommunicationRepository
-import com.docuhyphen.app.api.repository.WorkflowTriggerEventRepository
+import com.docuhyphen.app.api.repository.communication.CommunicationRepository
+import com.docuhyphen.app.api.repository.workflow.WorkflowTriggerEventRepository
 import org.junit.jupiter.api.Assertions.assertDoesNotThrow
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows

@@ -6,10 +6,10 @@ import com.docuhyphen.app.api.model.entity.ResourceType
 import com.docuhyphen.app.api.model.entity.SchemaDefinition
 import com.docuhyphen.app.api.model.entity.SchemaFieldBinding
 import com.docuhyphen.app.api.model.entity.SchemaVersion
-import com.docuhyphen.app.api.repository.FieldContractRepository
-import com.docuhyphen.app.api.repository.SchemaDefinitionRepository
-import com.docuhyphen.app.api.repository.SchemaFieldBindingRepository
-import com.docuhyphen.app.api.repository.SchemaVersionRepository
+import com.docuhyphen.app.api.repository.fields.FieldContractRepository
+import com.docuhyphen.app.api.repository.fields.SchemaDefinitionRepository
+import com.docuhyphen.app.api.repository.fields.SchemaFieldBindingRepository
+import com.docuhyphen.app.api.repository.fields.SchemaVersionRepository
 import kotlinx.serialization.json.JsonPrimitive
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows

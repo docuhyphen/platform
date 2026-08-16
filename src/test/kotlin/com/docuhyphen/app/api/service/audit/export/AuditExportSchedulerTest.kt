@@ -2,7 +2,7 @@ package com.docuhyphen.app.api.service.audit.export
 
 import com.docuhyphen.app.api.model.entity.AuditExport
 import com.docuhyphen.app.api.model.entity.AuditExportStatus
-import com.docuhyphen.app.api.repository.AuditExportRepository
+import com.docuhyphen.app.api.repository.audit.AuditExportRepository
 import com.docuhyphen.app.api.service.config.AuditExportConfigService
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test

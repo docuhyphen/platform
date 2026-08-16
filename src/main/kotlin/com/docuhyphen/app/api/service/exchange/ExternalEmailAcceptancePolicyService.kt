@@ -4,7 +4,7 @@ import com.docuhyphen.app.api.exception.ExchangeRecipientEligibilityException
 import com.docuhyphen.app.api.model.entity.Exchange
 import com.docuhyphen.app.api.model.entity.PrincipalKind
 import com.docuhyphen.app.api.model.entity.Share
-import com.docuhyphen.app.api.service.AppUserService
+import com.docuhyphen.app.api.service.user.AppUserService
 import com.docuhyphen.app.api.service.organization.OrganizationExchangePolicyService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject

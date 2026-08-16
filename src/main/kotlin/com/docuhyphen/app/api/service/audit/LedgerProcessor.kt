@@ -2,9 +2,9 @@ package com.docuhyphen.app.api.service.audit
 
 import com.docuhyphen.app.api.model.entity.AuditLedgerEvent
 import com.docuhyphen.app.api.model.entity.AuditOutboxEntry
-import com.docuhyphen.app.api.repository.AuditLedgerEventRepository
-import com.docuhyphen.app.api.repository.AuditOutboxRepository
-import com.docuhyphen.app.api.repository.StreamHeadRepository
+import com.docuhyphen.app.api.repository.audit.AuditLedgerEventRepository
+import com.docuhyphen.app.api.repository.audit.AuditOutboxRepository
+import com.docuhyphen.app.api.repository.audit.StreamHeadRepository
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional

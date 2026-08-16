@@ -5,7 +5,7 @@ import com.docuhyphen.app.api.model.OrganizationTrustDtoTransformer
 import com.docuhyphen.app.api.model.entity.Organization
 import com.docuhyphen.app.api.model.entity.OrganizationTrustRelationship
 import com.docuhyphen.app.api.model.entity.OrganizationTrustRelationshipStatus
-import com.docuhyphen.app.api.repository.OrganizationRepository
+import com.docuhyphen.app.api.repository.organization.OrganizationRepository
 import com.docuhyphen.app.api.service.auth.DirectoryLookupGuardService
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory

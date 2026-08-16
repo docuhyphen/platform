@@ -6,8 +6,8 @@ import com.docuhyphen.app.api.model.entity.AppUser
 import com.docuhyphen.app.api.model.entity.AuditLedgerEvent
 import com.docuhyphen.app.api.model.entity.Document
 import com.docuhyphen.app.api.model.entity.DocumentAuditAction
-import com.docuhyphen.app.api.repository.AuditLedgerEventRepository
-import com.docuhyphen.app.api.repository.ExchangeRepository
+import com.docuhyphen.app.api.repository.audit.AuditLedgerEventRepository
+import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
 import com.docuhyphen.app.api.service.audit.AuditCaptureFailedException
 import com.docuhyphen.app.api.service.audit.AuditDraftInvalidException
 import com.docuhyphen.app.api.service.audit.AuditEventDraft

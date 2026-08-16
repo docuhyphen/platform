@@ -7,10 +7,10 @@ import com.docuhyphen.app.api.model.entity.PrincipalGroup
 import com.docuhyphen.app.api.model.entity.PrincipalGroupScope
 import com.docuhyphen.app.api.model.entity.PrincipalKind
 import com.docuhyphen.app.api.model.entity.PrincipalGroupRoleName
-import com.docuhyphen.app.api.repository.PrincipalGroupMemberRepository
-import com.docuhyphen.app.api.repository.PrincipalGroupRepository
+import com.docuhyphen.app.api.repository.organization.PrincipalGroupMemberRepository
+import com.docuhyphen.app.api.repository.organization.PrincipalGroupRepository
 import com.docuhyphen.app.api.resource.model.ResponseError
-import com.docuhyphen.app.api.service.AppUserService
+import com.docuhyphen.app.api.service.user.AppUserService
 import com.docuhyphen.app.api.service.auth.authz.*
 import com.docuhyphen.app.api.service.organization.PrincipalGroupService
 import io.quarkus.security.ForbiddenException

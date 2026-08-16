@@ -2,8 +2,8 @@ package com.docuhyphen.app.api.service.audit.export
 
 import com.docuhyphen.app.api.model.entity.AuditArchiveSegment
 import com.docuhyphen.app.api.model.entity.AuditLedgerEvent
-import com.docuhyphen.app.api.repository.AuditArchiveSegmentRepository
-import com.docuhyphen.app.api.repository.AuditLedgerEventRepository
+import com.docuhyphen.app.api.repository.audit.AuditArchiveSegmentRepository
+import com.docuhyphen.app.api.repository.audit.AuditLedgerEventRepository
 import com.docuhyphen.app.api.service.audit.AuditRecorder
 import com.docuhyphen.app.api.service.audit.archive.AuditArchiveVerifier
 import com.docuhyphen.app.api.service.audit.archive.SegmentVerificationResult

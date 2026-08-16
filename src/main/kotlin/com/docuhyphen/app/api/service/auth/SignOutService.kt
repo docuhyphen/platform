@@ -2,7 +2,7 @@
 
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.realtime.RealtimeEventService
-import com.docuhyphen.app.api.repository.AppUserRepository
+import com.docuhyphen.app.api.repository.user.AppUserRepository
 import com.docuhyphen.app.api.service.config.ConfigurationService
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject

@@ -2,7 +2,7 @@ package com.docuhyphen.app.api.service.audit
 
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.model.entity.AuditOutboxEntry
-import com.docuhyphen.app.api.repository.AuditOutboxRepository
+import com.docuhyphen.app.api.repository.audit.AuditOutboxRepository
 import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject

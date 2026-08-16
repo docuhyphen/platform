@@ -7,8 +7,8 @@ import com.docuhyphen.app.api.model.entity.NotificationPreference
 import com.docuhyphen.app.api.model.entity.NotificationRule
 import com.docuhyphen.app.api.model.entity.NotificationRuleAction
 import com.docuhyphen.app.api.model.entity.PrincipalKind
-import com.docuhyphen.app.api.repository.NotificationPreferenceRepository
-import com.docuhyphen.app.api.repository.NotificationRuleRepository
+import com.docuhyphen.app.api.repository.notification.NotificationPreferenceRepository
+import com.docuhyphen.app.api.repository.notification.NotificationRuleRepository
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.workflow.AssigneeSpec
 import com.docuhyphen.app.api.service.workflow.WorkflowAssigneeResolver

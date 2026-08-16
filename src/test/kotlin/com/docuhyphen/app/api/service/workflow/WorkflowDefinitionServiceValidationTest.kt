@@ -5,9 +5,9 @@ import com.docuhyphen.app.api.model.entity.WorkflowDefinition
 import com.docuhyphen.app.api.model.entity.WorkflowScope
 import com.docuhyphen.app.api.model.entity.WorkflowStepType
 import com.docuhyphen.app.api.model.entity.WorkflowTriggerEventRegistry
-import com.docuhyphen.app.api.repository.WorkflowDefinitionRepository
-import com.docuhyphen.app.api.repository.WorkflowInstanceRepository
-import com.docuhyphen.app.api.repository.WorkflowTriggerEventRepository
+import com.docuhyphen.app.api.repository.workflow.WorkflowDefinitionRepository
+import com.docuhyphen.app.api.repository.workflow.WorkflowInstanceRepository
+import com.docuhyphen.app.api.repository.workflow.WorkflowTriggerEventRepository
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
@@ -39,7 +39,7 @@ class WorkflowDefinitionServiceValidationTest
     private val userRoleService: UserRoleService = mock()
     private val fieldQueryService: ExchangeFieldQueryService = mock()
     private val actionHandlerCatalog: WorkflowActionHandlerCatalog = mock()
-    private val communicationRepository: com.docuhyphen.app.api.repository.CommunicationRepository = mock()
+    private val communicationRepository: com.docuhyphen.app.api.repository.communication.CommunicationRepository = mock()
 
     private val principalId = UUID.randomUUID()
     private val orgId = UUID.randomUUID()

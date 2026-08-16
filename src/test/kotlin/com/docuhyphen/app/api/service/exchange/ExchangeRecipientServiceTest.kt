@@ -13,7 +13,7 @@ import com.docuhyphen.app.api.model.entity.PrincipalKind
 import com.docuhyphen.app.api.model.entity.ResourceType
 import com.docuhyphen.app.api.model.entity.Share
 import com.docuhyphen.app.api.model.entity.ShareSource
-import com.docuhyphen.app.api.repository.ExchangeRecipientRepository
+import com.docuhyphen.app.api.repository.exchange.ExchangeRecipientRepository
 import com.docuhyphen.app.api.service.organization.OrganizationGroupService
 import com.docuhyphen.app.api.service.organization.TrustedRecipientAuditService
 import com.docuhyphen.app.api.service.organization.TrustedRecipientValidationService

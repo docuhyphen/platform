@@ -3,7 +3,7 @@ package com.docuhyphen.app.api.resource.subscription
 import com.docuhyphen.app.api.model.SubscriptionTrialRequestDtoMapper
 import com.docuhyphen.app.api.model.dto.SubscriptionTrialRequestCreateRequest
 import com.docuhyphen.app.api.resource.model.ResponseError
-import com.docuhyphen.app.api.service.auth.SelfServiceSubscriptionTrialRequestService
+import com.docuhyphen.app.api.service.subscription.SelfServiceSubscriptionTrialRequestService
 import com.docuhyphen.app.api.service.subscription.SubscriptionTrialRequestConflictException
 import io.quarkus.security.ForbiddenException
 import io.quarkus.security.UnauthorizedException

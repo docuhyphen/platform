@@ -5,7 +5,7 @@ import com.docuhyphen.app.api.model.entity.AppUser
 import com.docuhyphen.app.api.model.entity.AuthToken
 import com.docuhyphen.app.api.model.entity.Organization
 import com.docuhyphen.app.api.model.entity.OrganizationRoleName
-import com.docuhyphen.app.api.service.AppUserService
+import com.docuhyphen.app.api.service.user.AppUserService
 import com.docuhyphen.app.api.service.auth.AdminApprovalContext
 import com.docuhyphen.app.api.service.auth.AuthAuditService
 import com.docuhyphen.app.api.service.auth.AuthenticationService

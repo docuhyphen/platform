@@ -9,9 +9,9 @@ import com.docuhyphen.app.api.model.entity.AuthToken
 import com.docuhyphen.app.api.model.entity.Organization
 import com.docuhyphen.app.api.model.entity.OrganizationFeatureEntitlement
 import com.docuhyphen.app.api.model.entity.OrganizationSubscriptionPolicy
-import com.docuhyphen.app.api.repository.OrganizationFeatureEntitlementRepository
-import com.docuhyphen.app.api.repository.OrganizationRepository
-import com.docuhyphen.app.api.repository.OrganizationSubscriptionPolicyRepository
+import com.docuhyphen.app.api.repository.organization.OrganizationFeatureEntitlementRepository
+import com.docuhyphen.app.api.repository.organization.OrganizationRepository
+import com.docuhyphen.app.api.repository.subscription.OrganizationSubscriptionPolicyRepository
 import com.docuhyphen.app.api.service.auth.AdminApprovalContext
 import com.docuhyphen.app.api.service.auth.AuthAuditService
 import com.docuhyphen.app.api.service.auth.UserRoleService

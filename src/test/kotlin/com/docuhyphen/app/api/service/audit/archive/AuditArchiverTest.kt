@@ -1,8 +1,8 @@
 package com.docuhyphen.app.api.service.audit.archive
 
 import com.docuhyphen.app.api.model.entity.AuditLedgerEvent
-import com.docuhyphen.app.api.repository.AuditArchiveSegmentRepository
-import com.docuhyphen.app.api.repository.AuditLedgerEventRepository
+import com.docuhyphen.app.api.repository.audit.AuditArchiveSegmentRepository
+import com.docuhyphen.app.api.repository.audit.AuditLedgerEventRepository
 import com.docuhyphen.app.api.service.audit.LedgerProcessor
 import com.docuhyphen.app.api.service.config.AuditArchiveConfigService
 import org.junit.jupiter.api.Assertions.assertEquals

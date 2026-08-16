@@ -7,7 +7,7 @@ import com.docuhyphen.app.api.model.dto.NotificationPageCursorDto
 import com.docuhyphen.app.api.model.entity.InAppNotification
 import com.docuhyphen.app.api.model.entity.NotificationChannelType
 import com.docuhyphen.app.api.realtime.RealtimeEventService
-import com.docuhyphen.app.api.repository.InAppNotificationRepository
+import com.docuhyphen.app.api.repository.notification.InAppNotificationRepository
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional

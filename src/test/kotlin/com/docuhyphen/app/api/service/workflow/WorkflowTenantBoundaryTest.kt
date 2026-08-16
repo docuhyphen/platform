@@ -3,8 +3,8 @@ package com.docuhyphen.app.api.service.workflow
 import com.docuhyphen.app.api.model.entity.WorkflowDefinition
 import com.docuhyphen.app.api.model.entity.WorkflowInstance
 import com.docuhyphen.app.api.model.entity.WorkflowScope
-import com.docuhyphen.app.api.repository.WorkflowDefinitionRepository
-import com.docuhyphen.app.api.repository.WorkflowInstanceRepository
+import com.docuhyphen.app.api.repository.workflow.WorkflowDefinitionRepository
+import com.docuhyphen.app.api.repository.workflow.WorkflowInstanceRepository
 import com.docuhyphen.app.api.service.auth.AdminApprovalContext
 import com.docuhyphen.app.api.service.auth.UserRoleService
 import com.docuhyphen.app.api.service.auth.authz.Action

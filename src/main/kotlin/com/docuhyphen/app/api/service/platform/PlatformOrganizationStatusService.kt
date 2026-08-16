@@ -6,7 +6,7 @@ import com.docuhyphen.app.api.interceptor.EnforceAdminAction
 import com.docuhyphen.app.api.model.dto.PlatformOrganizationStatusDto
 import com.docuhyphen.app.api.model.dto.PlatformOrganizationStatusUpdateRequest
 import com.docuhyphen.app.api.model.entity.Organization
-import com.docuhyphen.app.api.repository.OrganizationRepository
+import com.docuhyphen.app.api.repository.organization.OrganizationRepository
 import com.docuhyphen.app.api.service.auth.AdminApprovalContext
 import com.docuhyphen.app.api.service.auth.AuthAuditService
 import com.docuhyphen.app.api.service.auth.UserRoleService

@@ -1,7 +1,7 @@
 package com.docuhyphen.app.api.service.audit
 
 import com.docuhyphen.app.api.model.entity.AuditIdentityVaultKey
-import com.docuhyphen.app.api.repository.AuditIdentityVaultKeyRepository
+import com.docuhyphen.app.api.repository.audit.AuditIdentityVaultKeyRepository
 import com.docuhyphen.app.api.service.audit.catalog.AuditActorKind
 import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
 import com.docuhyphen.app.api.service.audit.catalog.AuditOutcome

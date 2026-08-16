@@ -1,7 +1,7 @@
 package com.docuhyphen.app.api.resource.subscription
 
 import com.docuhyphen.app.api.model.SubscriptionTrialRequestDtoMapper
-import com.docuhyphen.app.api.service.auth.PlatformSubscriptionTrialRequestService
+import com.docuhyphen.app.api.service.subscription.PlatformSubscriptionTrialRequestService
 import io.quarkus.security.ForbiddenException
 import io.quarkus.security.UnauthorizedException
 import jakarta.ws.rs.GET

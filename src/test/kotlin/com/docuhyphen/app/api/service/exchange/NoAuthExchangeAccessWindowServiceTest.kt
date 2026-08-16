@@ -4,7 +4,7 @@ import com.docuhyphen.app.api.model.entity.Exchange
 import com.docuhyphen.app.api.model.entity.ExchangeRecipient
 import com.docuhyphen.app.api.model.entity.ExchangeRecipientAcceptanceStatus
 import com.docuhyphen.app.api.model.entity.ExchangeStatus
-import com.docuhyphen.app.api.repository.ExchangeRepository
+import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotNull

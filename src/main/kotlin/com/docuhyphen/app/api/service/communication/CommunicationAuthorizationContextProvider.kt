@@ -1,7 +1,7 @@
 package com.docuhyphen.app.api.service.communication
 
 import com.docuhyphen.app.api.model.entity.CommunicationScope
-import com.docuhyphen.app.api.repository.CommunicationRepository
+import com.docuhyphen.app.api.repository.communication.CommunicationRepository
 import com.docuhyphen.app.api.service.auth.authz.OwnerContext
 import com.docuhyphen.app.api.service.auth.authz.ResourceAuthorizationContext
 import com.docuhyphen.app.api.service.auth.authz.ResourceAuthorizationContextProvider

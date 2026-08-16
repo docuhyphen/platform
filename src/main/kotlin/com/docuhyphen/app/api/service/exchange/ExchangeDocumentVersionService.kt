@@ -9,10 +9,10 @@ import com.docuhyphen.app.api.model.entity.DocumentVersion
 import com.docuhyphen.app.api.model.entity.Document
 import com.docuhyphen.app.api.model.entity.Exchange
 import com.docuhyphen.app.api.model.entity.ResourceType
-import com.docuhyphen.app.api.repository.AppUserRepository
-import com.docuhyphen.app.api.repository.DocumentVersionRepository
-import com.docuhyphen.app.api.repository.ExchangeDocumentRepository
-import com.docuhyphen.app.api.repository.ExchangeRepository
+import com.docuhyphen.app.api.repository.user.AppUserRepository
+import com.docuhyphen.app.api.repository.exchange.DocumentVersionRepository
+import com.docuhyphen.app.api.repository.exchange.ExchangeDocumentRepository
+import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
 import com.docuhyphen.app.api.service.audit.AuditCaptureFailedException
 import com.docuhyphen.app.api.service.audit.AuditDraftInvalidException
 import com.docuhyphen.app.api.service.audit.AuditEventDraft

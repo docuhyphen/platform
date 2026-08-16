@@ -8,10 +8,10 @@ import com.docuhyphen.app.api.model.entity.OrganizationTrustPartyPolicy
 import com.docuhyphen.app.api.model.entity.OrganizationTrustRelationship
 import com.docuhyphen.app.api.model.entity.PrincipalGroup
 import com.docuhyphen.app.api.resource.model.ExchangeRecipientSelectionRequest
-import com.docuhyphen.app.api.service.AppUserService
+import com.docuhyphen.app.api.service.user.AppUserService
 import com.docuhyphen.app.api.service.exchange.ExchangeRecipientSelectionResolver
 import com.docuhyphen.app.api.service.exchange.ResolvedExchangeRecipientSelection
-import com.docuhyphen.app.api.service.organization.ExternalIdentityResolutionService
+import com.docuhyphen.app.api.service.identity.ExternalIdentityResolutionService
 import com.docuhyphen.app.api.service.organization.OrganizationExchangePolicyService
 import com.docuhyphen.app.api.service.organization.OrganizationGroupService
 import com.docuhyphen.app.api.service.organization.TrustedExchangePolicyValidation

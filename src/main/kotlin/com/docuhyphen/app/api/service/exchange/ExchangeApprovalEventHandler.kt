@@ -2,7 +2,7 @@
 
 import com.docuhyphen.app.api.model.entity.ExchangeStatus
 import com.docuhyphen.app.api.model.entity.ResourceType
-import com.docuhyphen.app.api.repository.ExchangeRepository
+import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
 import com.docuhyphen.app.api.service.notification.DomainEvent
 import com.docuhyphen.app.api.service.organization.OrganizationService
 import com.docuhyphen.app.api.service.workflow.TriggerRequest

@@ -27,7 +27,7 @@ class TrustedRecipientValidationServiceTest
     private val organizationService = mock<OrganizationService>()
     private val groupService = mock<OrganizationGroupService>()
     private val membershipService = mock<OrganizationMembershipService>()
-    private val appUserService = mock<com.docuhyphen.app.api.service.AppUserService>()
+    private val appUserService = mock<com.docuhyphen.app.api.service.user.AppUserService>()
     private val service = TrustedRecipientValidationService(
         relationshipService,
         policyService,

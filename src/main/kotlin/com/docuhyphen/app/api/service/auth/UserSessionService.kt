@@ -4,7 +4,7 @@ import com.docuhyphen.app.api.model.entity.AppUser
 import com.docuhyphen.app.api.model.entity.UserSession
 import com.docuhyphen.app.api.realtime.RealtimeEventService
 import com.docuhyphen.app.api.realtime.UserSessionInfo
-import com.docuhyphen.app.api.repository.UserSessionRepository
+import com.docuhyphen.app.api.repository.auth.UserSessionRepository
 import com.docuhyphen.app.api.util.UserAgentParser
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject

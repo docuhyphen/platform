@@ -4,7 +4,7 @@ import com.docuhyphen.app.api.model.dto.CreateVariableRequest
 import com.docuhyphen.app.api.model.dto.UpdateVariableRequest
 import com.docuhyphen.app.api.model.entity.VariableDefinition
 import com.docuhyphen.app.api.model.entity.VariableScope
-import com.docuhyphen.app.api.repository.VariableDefinitionRepository
+import com.docuhyphen.app.api.repository.variable.VariableDefinitionRepository
 import com.docuhyphen.app.api.service.auth.AdminActionGuardService
 import com.docuhyphen.app.api.service.auth.AdminApprovalContext
 import com.docuhyphen.app.api.service.auth.UserRoleService

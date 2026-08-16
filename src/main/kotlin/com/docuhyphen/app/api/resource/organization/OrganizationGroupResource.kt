@@ -5,7 +5,7 @@ import com.docuhyphen.app.api.exception.OrganizationGroupNotFoundException
 import com.docuhyphen.app.api.exception.OrganizationNotFoundException
 import com.docuhyphen.app.api.model.DetailedEntityToDtoTransformer
 import com.docuhyphen.app.api.model.resourceservice.OrganizationGroupMemberModel
-import com.docuhyphen.app.api.repository.PrincipalGroupRepository
+import com.docuhyphen.app.api.repository.organization.PrincipalGroupRepository
 import com.docuhyphen.app.api.resource.model.AddOrganizationGroupRequest
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.resource.model.UpdateOrganizationGroupRequest

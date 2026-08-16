@@ -4,7 +4,7 @@ import com.docuhyphen.app.api.model.SubscriptionTrialRequestDtoMapper
 import com.docuhyphen.app.api.model.dto.SubscriptionTrialRequestDecisionRequest
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.service.auth.AdminApprovalContext
-import com.docuhyphen.app.api.service.auth.PlatformSubscriptionTrialRequestService
+import com.docuhyphen.app.api.service.subscription.PlatformSubscriptionTrialRequestService
 import io.quarkus.security.ForbiddenException
 import io.quarkus.security.UnauthorizedException
 import jakarta.inject.Inject

@@ -6,11 +6,11 @@ import com.docuhyphen.app.api.model.entity.FieldScopeKind
 import com.docuhyphen.app.api.model.entity.OrganizationRoleName
 import com.docuhyphen.app.api.model.entity.SchemaDefinition
 import com.docuhyphen.app.api.model.entity.SchemaVersion
-import com.docuhyphen.app.api.repository.FieldContractRepository
-import com.docuhyphen.app.api.repository.FieldDefinitionRepository
-import com.docuhyphen.app.api.repository.SchemaDefinitionRepository
-import com.docuhyphen.app.api.repository.SchemaFieldBindingRepository
-import com.docuhyphen.app.api.repository.SchemaVersionRepository
+import com.docuhyphen.app.api.repository.fields.FieldContractRepository
+import com.docuhyphen.app.api.repository.fields.FieldDefinitionRepository
+import com.docuhyphen.app.api.repository.fields.SchemaDefinitionRepository
+import com.docuhyphen.app.api.repository.fields.SchemaFieldBindingRepository
+import com.docuhyphen.app.api.repository.fields.SchemaVersionRepository
 import com.docuhyphen.app.api.service.auth.UserRoleService
 import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext

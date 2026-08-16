@@ -8,14 +8,14 @@ import com.docuhyphen.app.api.exception.TooManyRequestsException
 import com.docuhyphen.app.api.model.entity.IdentityProviderType
 import com.docuhyphen.app.api.service.auth.StepUpMfaChallengeService
 import com.docuhyphen.app.api.service.auth.StepUpMfaRateLimitedException
-import com.docuhyphen.app.api.repository.IdentityProviderLinkRepository
+import com.docuhyphen.app.api.repository.identity.IdentityProviderLinkRepository
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.service.auth.AuthAuditService
 import com.docuhyphen.app.api.service.auth.AuthRateLimitService
 import com.docuhyphen.app.api.service.auth.AuthenticationService
 import com.docuhyphen.app.api.service.auth.OAuthStateService
-import com.docuhyphen.app.api.service.auth.OrganizationIdentityPolicyService
-import com.docuhyphen.app.api.service.auth.OrganizationIdpRuntimeCredentialService
+import com.docuhyphen.app.api.service.identity.OrganizationIdentityPolicyService
+import com.docuhyphen.app.api.service.identity.OrganizationIdpRuntimeCredentialService
 import com.docuhyphen.app.api.service.auth.RevocationReasonCode
 import com.docuhyphen.app.api.service.auth.StepUpAuthService
 import com.docuhyphen.app.api.service.auth.idp.IdentityProviderRegistry

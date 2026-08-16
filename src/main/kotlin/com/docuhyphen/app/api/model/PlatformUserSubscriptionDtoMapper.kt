@@ -1,7 +1,7 @@
 package com.docuhyphen.app.api.model
 
 import com.docuhyphen.app.api.resource.model.PlatformUserSubscriptionPolicyResponse
-import com.docuhyphen.app.api.service.auth.UserSubscriptionPolicyResult
+import com.docuhyphen.app.api.service.subscription.UserSubscriptionPolicyResult
 import jakarta.enterprise.context.ApplicationScoped
 
 @ApplicationScoped

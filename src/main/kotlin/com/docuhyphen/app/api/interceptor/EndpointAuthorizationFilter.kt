@@ -2,12 +2,12 @@
 
 import com.docuhyphen.app.api.model.entity.AuthToken
 import com.docuhyphen.app.api.model.entity.AuthTokenType.ACCESS
-import com.docuhyphen.app.api.service.AppUserService
+import com.docuhyphen.app.api.service.user.AppUserService
 import java.security.MessageDigest
 import com.docuhyphen.app.api.service.application.ApplicationService
 import com.docuhyphen.app.api.service.auth.ApplicationTokenBoundaryService
 import com.docuhyphen.app.api.service.auth.AuthenticationService
-import com.docuhyphen.app.api.repository.OrganizationMembershipRepository
+import com.docuhyphen.app.api.repository.organization.OrganizationMembershipRepository
 import com.docuhyphen.app.api.service.auth.OrganizationMembershipValidationService
 import com.docuhyphen.app.api.service.config.ConfigurationService
 import jakarta.enterprise.context.RequestScoped

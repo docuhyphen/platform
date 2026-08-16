@@ -2,10 +2,10 @@ package com.docuhyphen.app.api.service.fields
 
 import com.docuhyphen.app.api.model.entity.FieldValueType
 import com.docuhyphen.app.api.model.entity.ResourceType
-import com.docuhyphen.app.api.repository.FieldContractRepository
-import com.docuhyphen.app.api.repository.FieldValueRepository
-import com.docuhyphen.app.api.repository.FieldValueSelectionRepository
-import com.docuhyphen.app.api.repository.SchemaAssignmentRepository
+import com.docuhyphen.app.api.repository.fields.FieldContractRepository
+import com.docuhyphen.app.api.repository.fields.FieldValueRepository
+import com.docuhyphen.app.api.repository.fields.FieldValueSelectionRepository
+import com.docuhyphen.app.api.repository.fields.SchemaAssignmentRepository
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import java.util.UUID

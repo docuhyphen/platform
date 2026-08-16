@@ -15,7 +15,8 @@ import com.docuhyphen.app.api.model.dto.MfaSessionDto
 import com.docuhyphen.app.api.model.entity.MultifactorAuthenticationStatus
 import com.docuhyphen.app.api.model.entity.MultifactorAuthenticationType
 import com.docuhyphen.app.api.model.entity.MultifactorAuthenticationType.EMAIL
-import com.docuhyphen.app.api.service.AppUserService
+import com.docuhyphen.app.api.service.user.AppUserService
+import com.docuhyphen.app.api.service.identity.OrganizationIdentityPolicyService
 import com.docuhyphen.app.api.service.communication.EmailService
 import com.docuhyphen.app.api.service.communication.EmailTemplateService
 import com.docuhyphen.app.api.service.communication.MfaService

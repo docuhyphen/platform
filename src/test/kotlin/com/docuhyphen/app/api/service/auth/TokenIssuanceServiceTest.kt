@@ -3,7 +3,7 @@ package com.docuhyphen.app.api.service.auth
 import com.docuhyphen.app.api.model.entity.AppUser
 import com.docuhyphen.app.api.model.entity.Person
 import com.docuhyphen.app.api.model.entity.UserSession
-import com.docuhyphen.app.api.service.AppUserService
+import com.docuhyphen.app.api.service.user.AppUserService
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any

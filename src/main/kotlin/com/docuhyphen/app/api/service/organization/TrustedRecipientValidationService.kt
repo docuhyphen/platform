@@ -9,7 +9,7 @@ import com.docuhyphen.app.api.model.entity.OrganizationTrustPartyPolicy
 import com.docuhyphen.app.api.model.entity.OrganizationTrustRelationship
 import com.docuhyphen.app.api.model.entity.OrganizationTrustRelationshipStatus
 import com.docuhyphen.app.api.model.entity.PrincipalGroup
-import com.docuhyphen.app.api.service.AppUserService
+import com.docuhyphen.app.api.service.user.AppUserService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import java.time.Instant

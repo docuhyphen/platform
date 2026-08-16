@@ -7,7 +7,7 @@ import jakarta.enterprise.context.ApplicationScoped
 import jakarta.enterprise.inject.Produces
 import jakarta.inject.Inject
 
-/** Selects the active [AuditArchiveStorage] by `app.audit.archive.storage.type`, mirrors [com.docuhyphen.app.api.service.storage.FileStorageServiceProducer]. */
+/** Selects the active [AuditArchiveStorage] by `app.audit.archive.storage.type`, mirrors [com.docuhyphen.app.api.config.FileStorageServiceProducer]. */
 @ApplicationScoped
 class AuditArchiveStorageProducer @Inject constructor(
     private val configService: AuditArchiveConfigService,

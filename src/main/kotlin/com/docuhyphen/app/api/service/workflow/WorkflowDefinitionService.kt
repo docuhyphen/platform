@@ -21,14 +21,14 @@ import com.docuhyphen.app.api.model.entity.WorkflowInstanceStatus
 import com.docuhyphen.app.api.model.entity.WorkflowScope
 import com.docuhyphen.app.api.model.entity.WorkflowStepInstance
 import com.docuhyphen.app.api.model.entity.OrganizationRoleName
-import com.docuhyphen.app.api.repository.ExchangeRepository
-import com.docuhyphen.app.api.repository.PrincipalGroupRepository
-import com.docuhyphen.app.api.repository.WorkflowDefinitionRepository
-import com.docuhyphen.app.api.repository.WorkflowInstanceRepository
-import com.docuhyphen.app.api.repository.WorkflowStepInstanceRepository
-import com.docuhyphen.app.api.repository.WorkflowTriggerEventRepository
-import com.docuhyphen.app.api.service.AppUserService
-import com.docuhyphen.app.api.service.UserContactService
+import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
+import com.docuhyphen.app.api.repository.organization.PrincipalGroupRepository
+import com.docuhyphen.app.api.repository.workflow.WorkflowDefinitionRepository
+import com.docuhyphen.app.api.repository.workflow.WorkflowInstanceRepository
+import com.docuhyphen.app.api.repository.workflow.WorkflowStepInstanceRepository
+import com.docuhyphen.app.api.repository.workflow.WorkflowTriggerEventRepository
+import com.docuhyphen.app.api.service.user.AppUserService
+import com.docuhyphen.app.api.service.contactdetails.UserContactService
 import com.docuhyphen.app.api.interceptor.EnforceAdminAction
 import com.docuhyphen.app.api.service.auth.AdminApprovalContext
 import com.docuhyphen.app.api.service.auth.UserRoleService
@@ -69,9 +69,9 @@ class WorkflowDefinitionService @Inject constructor(
     private val definitionRepository: WorkflowDefinitionRepository,
     private val instanceRepository: WorkflowInstanceRepository,
     private val stepRepository: WorkflowStepInstanceRepository,
-    private val transitionRepository: com.docuhyphen.app.api.repository.WorkflowStepTransitionRepository,
-    private val assigneeRepository: com.docuhyphen.app.api.repository.WorkflowStepAssigneeRepository,
-    private val decisionRepository: com.docuhyphen.app.api.repository.WorkflowStepDecisionRepository,
+    private val transitionRepository: com.docuhyphen.app.api.repository.workflow.WorkflowStepTransitionRepository,
+    private val assigneeRepository: com.docuhyphen.app.api.repository.workflow.WorkflowStepAssigneeRepository,
+    private val decisionRepository: com.docuhyphen.app.api.repository.workflow.WorkflowStepDecisionRepository,
     private val triggerEventRepository: WorkflowTriggerEventRepository,
     private val userContactService: UserContactService,
     private val principalGroupRepository: PrincipalGroupRepository,

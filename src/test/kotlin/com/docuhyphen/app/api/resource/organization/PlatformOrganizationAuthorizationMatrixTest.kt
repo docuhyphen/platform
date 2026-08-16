@@ -9,11 +9,11 @@ import com.docuhyphen.app.api.model.entity.AuthToken
 import com.docuhyphen.app.api.model.entity.OrganizationMembership
 import com.docuhyphen.app.api.model.entity.OrganizationMembershipStatus
 import com.docuhyphen.app.api.model.entity.OrganizationRoleName
-import com.docuhyphen.app.api.repository.AppRoleAssignmentRepository
-import com.docuhyphen.app.api.repository.OrganizationFeatureEntitlementRepository
-import com.docuhyphen.app.api.repository.OrganizationMembershipRepository
-import com.docuhyphen.app.api.repository.OrganizationRepository
-import com.docuhyphen.app.api.repository.OrganizationSubscriptionPolicyRepository
+import com.docuhyphen.app.api.repository.application.AppRoleAssignmentRepository
+import com.docuhyphen.app.api.repository.organization.OrganizationFeatureEntitlementRepository
+import com.docuhyphen.app.api.repository.organization.OrganizationMembershipRepository
+import com.docuhyphen.app.api.repository.organization.OrganizationRepository
+import com.docuhyphen.app.api.repository.subscription.OrganizationSubscriptionPolicyRepository
 import com.docuhyphen.app.api.service.auth.AuthAuditService
 import com.docuhyphen.app.api.service.auth.UserRoleService
 import com.docuhyphen.app.api.service.organization.OrganizationMembershipService

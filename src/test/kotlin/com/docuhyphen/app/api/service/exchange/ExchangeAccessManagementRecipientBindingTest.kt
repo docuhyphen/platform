@@ -13,10 +13,10 @@ import com.docuhyphen.app.api.model.entity.ResourceType
 import com.docuhyphen.app.api.model.entity.Share
 import com.docuhyphen.app.api.model.entity.ShareSource
 import com.docuhyphen.app.api.model.entity.ShareStatus
-import com.docuhyphen.app.api.repository.ExchangeRepository
-import com.docuhyphen.app.api.repository.ExternalParticipantRepository
-import com.docuhyphen.app.api.repository.ShareRepository
-import com.docuhyphen.app.api.service.AppUserService
+import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
+import com.docuhyphen.app.api.repository.exchange.ExternalParticipantRepository
+import com.docuhyphen.app.api.repository.exchange.ShareRepository
+import com.docuhyphen.app.api.service.user.AppUserService
 import com.docuhyphen.app.api.service.audit.AuditRecorder
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
@@ -117,7 +117,7 @@ class ExchangeAccessManagementRecipientBindingTest
             exchangeRecipientService = exchangeRecipientService,
             exchangeRecipientSelectionResolver = mock<ExchangeRecipientSelectionResolver>(),
             exchangeRecipientAttestationService = mock<ExchangeRecipientAttestationService>(),
-            externalIdentityResolutionService = mock<com.docuhyphen.app.api.service.organization.ExternalIdentityResolutionService>(),
+            externalIdentityResolutionService = mock<com.docuhyphen.app.api.service.identity.ExternalIdentityResolutionService>(),
             authTokenContext = authTokenContext,
             authorizationService = authorizationService,
             authorizationContextFactory = authorizationContextFactory,

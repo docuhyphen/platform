@@ -59,6 +59,10 @@ An "Exchange" is a first class word and should be used as a noun. For example, i
 - Use SOLID software design principles so that classes are not too big
 - Each resource must follow the same structure of "return try {} catch {}", so each resource must log their own 
   unique error messages
+- Services, resources, and repositories must be organized into logical domain subpackages (for
+  example `exchange/`, `workflow/`, or `organization/`). Keep related layers aligned under the
+  same domain when that ownership is clear, and leave only genuinely shared, cross-cutting base
+  abstractions at a layer's root. Do not add new domain classes to flat root directories.
 ---
 
 ---
@@ -143,7 +147,7 @@ src/main/kotlin/com/docuhyphen/app/api/
     auth/                Authentication, authorization, authz helpers
     organization/        Org policy services
     communication/       Email, in-app notifications
-  repository/            JPA repositories
+  repository/<domain>/   JPA repositories grouped by owning domain
   interceptor/           Auth token context
 
 web-app/src/

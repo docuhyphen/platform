@@ -3,8 +3,8 @@ package com.docuhyphen.app.api.service.workflow
 import com.docuhyphen.app.api.model.entity.CommunicationScope
 import com.docuhyphen.app.api.model.entity.WorkflowScope
 import com.docuhyphen.app.api.model.entity.WorkflowStepType
-import com.docuhyphen.app.api.repository.CommunicationRepository
-import com.docuhyphen.app.api.repository.WorkflowTriggerEventRepository
+import com.docuhyphen.app.api.repository.communication.CommunicationRepository
+import com.docuhyphen.app.api.repository.workflow.WorkflowTriggerEventRepository
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import kotlinx.serialization.builtins.ListSerializer

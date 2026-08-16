@@ -1,7 +1,7 @@
 package com.docuhyphen.app.api.service.audit.export
 
-import com.docuhyphen.app.api.repository.AuditArchiveSegmentRepository
-import com.docuhyphen.app.api.repository.AuditLedgerEventRepository
+import com.docuhyphen.app.api.repository.audit.AuditArchiveSegmentRepository
+import com.docuhyphen.app.api.repository.audit.AuditLedgerEventRepository
 import com.docuhyphen.app.api.service.audit.AuditCaptureFailedException
 import com.docuhyphen.app.api.service.audit.AuditDraftInvalidException
 import com.docuhyphen.app.api.service.audit.AuditEventDraft

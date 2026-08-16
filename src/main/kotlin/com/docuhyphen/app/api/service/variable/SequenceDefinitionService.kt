@@ -6,7 +6,7 @@ import com.docuhyphen.app.api.model.dto.UpdateSequenceRequest
 import com.docuhyphen.app.api.model.dto.toDto
 import com.docuhyphen.app.api.model.entity.SequenceDefinition
 import com.docuhyphen.app.api.model.entity.SequenceResetPeriod
-import com.docuhyphen.app.api.repository.SequenceDefinitionRepository
+import com.docuhyphen.app.api.repository.variable.SequenceDefinitionRepository
 import com.docuhyphen.app.api.interceptor.EnforceAdminAction
 import com.docuhyphen.app.api.service.auth.AdminApprovalContext
 import com.docuhyphen.app.api.service.auth.UserRoleService

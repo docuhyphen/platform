@@ -3,7 +3,7 @@ package com.docuhyphen.app.api.service.exchange
 import com.docuhyphen.app.api.model.entity.Exchange
 import com.docuhyphen.app.api.model.entity.ExchangeRecipientAcceptanceStatus
 import com.docuhyphen.app.api.model.entity.ExchangeStatus
-import com.docuhyphen.app.api.repository.ExchangeRepository
+import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional

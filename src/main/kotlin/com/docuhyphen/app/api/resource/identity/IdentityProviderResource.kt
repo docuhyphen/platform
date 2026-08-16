@@ -7,8 +7,8 @@ import com.docuhyphen.app.api.service.auth.AuthenticationService
 import com.docuhyphen.app.api.service.auth.ExternalProviderAlreadyLinkedException
 import com.docuhyphen.app.api.service.auth.OAuthStateService
 import com.docuhyphen.app.api.service.auth.OAuthUserLinkingService
-import com.docuhyphen.app.api.service.auth.OrganizationIdentityPolicyService
-import com.docuhyphen.app.api.service.auth.OrganizationIdpRuntimeCredentialService
+import com.docuhyphen.app.api.service.identity.OrganizationIdentityPolicyService
+import com.docuhyphen.app.api.service.identity.OrganizationIdpRuntimeCredentialService
 import com.docuhyphen.app.api.service.auth.StepUpAuthService
 import com.docuhyphen.app.api.service.auth.idp.IdentityProviderRegistry
 import com.docuhyphen.app.api.service.config.ConfigurationService

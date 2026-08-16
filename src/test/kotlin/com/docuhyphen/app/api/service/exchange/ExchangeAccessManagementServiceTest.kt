@@ -19,9 +19,9 @@ import com.docuhyphen.app.api.model.entity.ResourceType
 import com.docuhyphen.app.api.model.entity.Share
 import com.docuhyphen.app.api.model.entity.ShareSource
 import com.docuhyphen.app.api.model.entity.ShareStatus
-import com.docuhyphen.app.api.repository.ExchangeRepository
-import com.docuhyphen.app.api.repository.ExternalParticipantRepository
-import com.docuhyphen.app.api.repository.ShareRepository
+import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
+import com.docuhyphen.app.api.repository.exchange.ExternalParticipantRepository
+import com.docuhyphen.app.api.repository.exchange.ShareRepository
 import com.docuhyphen.app.api.resource.model.ExchangeRecipientSelectionRequest
 import com.docuhyphen.app.api.resource.model.ExternalEmailRecipientSelectionRequest
 import com.docuhyphen.app.api.resource.model.InternalGroupRecipientSelectionRequest
@@ -29,7 +29,7 @@ import com.docuhyphen.app.api.resource.model.PersonalGroupRecipientSelectionRequ
 import com.docuhyphen.app.api.resource.model.RegisteredUserRecipientSelectionRequest
 import com.docuhyphen.app.api.resource.model.TrustedGroupRecipientSelectionRequest
 import com.docuhyphen.app.api.resource.model.TrustedPersonRecipientSelectionRequest
-import com.docuhyphen.app.api.service.AppUserService
+import com.docuhyphen.app.api.service.user.AppUserService
 import com.docuhyphen.app.api.service.audit.AuditRecorder
 import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
@@ -40,8 +40,8 @@ import com.docuhyphen.app.api.service.communication.EmailTemplateService
 import com.docuhyphen.app.api.service.communication.OtpService
 import com.docuhyphen.app.api.service.communication.templates.RenderedEmailTemplate
 import com.docuhyphen.app.api.service.config.ConfigurationService
-import com.docuhyphen.app.api.service.organization.ExternalIdentityResolutionService
-import com.docuhyphen.app.api.service.organization.ExternalIdentityResolutionService.PreparedPersonResolution
+import com.docuhyphen.app.api.service.identity.ExternalIdentityResolutionService
+import com.docuhyphen.app.api.service.identity.ExternalIdentityResolutionService.PreparedPersonResolution
 import com.docuhyphen.app.api.service.organization.OrganizationExchangePolicyService
 import com.docuhyphen.app.api.service.organization.OrganizationGroupService
 import io.quarkus.security.ForbiddenException

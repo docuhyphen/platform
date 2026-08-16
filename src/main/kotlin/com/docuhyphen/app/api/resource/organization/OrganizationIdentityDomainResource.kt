@@ -4,7 +4,7 @@ import com.docuhyphen.app.api.exception.SubscriptionDenialException
 import com.docuhyphen.app.api.resource.mapper.OrganizationIdentityDomainDtoMapper
 import com.docuhyphen.app.api.resource.model.OrganizationIdentityDomainCreateRequest
 import com.docuhyphen.app.api.resource.model.ResponseError
-import com.docuhyphen.app.api.service.auth.OrganizationIdentityDomainService
+import com.docuhyphen.app.api.service.identity.OrganizationIdentityDomainService
 import io.quarkus.security.UnauthorizedException
 import jakarta.inject.Inject
 import jakarta.ws.rs.Consumes

@@ -4,7 +4,7 @@ import com.docuhyphen.app.api.model.entity.PrincipalKind
 import com.docuhyphen.app.api.model.entity.ResourceType
 import com.docuhyphen.app.api.model.entity.ExchangeShareRoleName
 import com.docuhyphen.app.api.model.entity.ShareSource
-import com.docuhyphen.app.api.repository.ShareRepository
+import com.docuhyphen.app.api.repository.exchange.ShareRepository
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional

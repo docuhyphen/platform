@@ -4,7 +4,7 @@ import com.docuhyphen.app.api.model.InAppNotificationMapper
 import com.docuhyphen.app.api.model.dto.NotificationDto
 import com.docuhyphen.app.api.model.entity.InAppNotification
 import com.docuhyphen.app.api.realtime.RealtimeEventService
-import com.docuhyphen.app.api.repository.InAppNotificationRepository
+import com.docuhyphen.app.api.repository.notification.InAppNotificationRepository
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test

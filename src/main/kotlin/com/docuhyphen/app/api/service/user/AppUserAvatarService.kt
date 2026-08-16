@@ -1,7 +1,7 @@
 package com.docuhyphen.app.api.service.user
 
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
-import com.docuhyphen.app.api.service.AppUserService
+import com.docuhyphen.app.api.service.user.AppUserService
 import com.docuhyphen.app.api.service.storage.ProfilePictureStorageService
 import io.quarkus.security.UnauthorizedException
 import jakarta.enterprise.context.RequestScoped

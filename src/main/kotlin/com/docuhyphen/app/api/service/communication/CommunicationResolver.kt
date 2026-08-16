@@ -1,6 +1,6 @@
 package com.docuhyphen.app.api.service.communication
 
-import com.docuhyphen.app.api.repository.CommunicationRepository
+import com.docuhyphen.app.api.repository.communication.CommunicationRepository
 import com.docuhyphen.app.api.service.variable.TemplateVariableInterpolator
 import com.docuhyphen.app.api.service.variable.VariableResolutionContext
 import jakarta.enterprise.context.ApplicationScoped

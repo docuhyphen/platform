@@ -1,7 +1,7 @@
 package com.docuhyphen.app.api.service.workflow
 
 import com.docuhyphen.app.api.model.entity.WorkflowScope
-import com.docuhyphen.app.api.repository.WorkflowDefinitionRepository
+import com.docuhyphen.app.api.repository.workflow.WorkflowDefinitionRepository
 import com.docuhyphen.app.api.service.auth.authz.OwnerContext
 import com.docuhyphen.app.api.service.auth.authz.ResourceAuthorizationContext
 import com.docuhyphen.app.api.service.auth.authz.ResourceAuthorizationContextProvider

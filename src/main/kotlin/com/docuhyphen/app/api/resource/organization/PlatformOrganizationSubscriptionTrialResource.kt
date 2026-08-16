@@ -7,8 +7,8 @@ import com.docuhyphen.app.api.resource.model.PlatformSubscriptionTrialConversion
 import com.docuhyphen.app.api.resource.model.PlatformSubscriptionTrialStartRequest
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.service.auth.AdminApprovalContext
-import com.docuhyphen.app.api.service.auth.PlatformSubscriptionTrialService
-import com.docuhyphen.app.api.service.auth.PlatformSubscriptionTrialTransitionService
+import com.docuhyphen.app.api.service.subscription.PlatformSubscriptionTrialService
+import com.docuhyphen.app.api.service.subscription.PlatformSubscriptionTrialTransitionService
 import io.quarkus.security.ForbiddenException
 import io.quarkus.security.UnauthorizedException
 import jakarta.inject.Inject

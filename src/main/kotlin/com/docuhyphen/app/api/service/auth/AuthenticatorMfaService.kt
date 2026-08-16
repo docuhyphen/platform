@@ -8,8 +8,8 @@ import com.docuhyphen.app.api.model.entity.AuthenticatorEnrollment
 import com.docuhyphen.app.api.model.entity.MultifactorAuthenticationType
 import com.docuhyphen.app.api.model.entity.MultifactorAuthenticationType.GOOGLE_AUTHENTICATOR
 import com.docuhyphen.app.api.model.entity.MultifactorAuthenticationType.MICROSOFT_AUTHENTICATOR
-import com.docuhyphen.app.api.repository.AuthenticatorEnrollmentRepository
-import com.docuhyphen.app.api.service.AppUserService
+import com.docuhyphen.app.api.repository.auth.AuthenticatorEnrollmentRepository
+import com.docuhyphen.app.api.service.user.AppUserService
 import com.docuhyphen.app.api.service.config.ConfigurationService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.transaction.Transactional

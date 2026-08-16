@@ -1,7 +1,7 @@
 package com.docuhyphen.app.api.service.audit
 
-import com.docuhyphen.app.api.repository.AuditAnalyticsFactRepository
-import com.docuhyphen.app.api.repository.AuditLedgerEventRepository
+import com.docuhyphen.app.api.repository.audit.AuditAnalyticsFactRepository
+import com.docuhyphen.app.api.repository.audit.AuditLedgerEventRepository
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
