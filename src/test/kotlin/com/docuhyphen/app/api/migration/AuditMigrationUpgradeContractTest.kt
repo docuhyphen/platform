@@ -132,11 +132,18 @@ class AuditMigrationUpgradeContractTest
                 assertTrue(tableExists(connection, "organization_feature_entitlement"))
                 assertTrue(columnExists(connection, "organization_feature_entitlement", "feature_code"))
                 assertTrue(columnExists(connection, "organization_feature_entitlement", "is_enabled"))
+                assertTrue(tableExists(connection, "subscription_trial_grant"))
+                assertTrue(columnExists(connection, "subscription_trial_grant", "owner_type"))
+                assertTrue(columnExists(connection, "subscription_trial_grant", "granted_by_app_user_id"))
+                assertTrue(tableExists(connection, "subscription_trial_request"))
+                assertTrue(columnExists(connection, "subscription_trial_request", "requested_by_app_user_id"))
+                assertTrue(columnExists(connection, "subscription_trial_request", "trial_grant_id"))
                 verifyTrustPersistenceConstraints(connection)
                 verifyExchangeRecipientShareBinding(connection)
+                verifySubscriptionTrialRequestConstraints(connection)
             }
 
-            assertEquals("72", currentFlyway.info().current().version.toString())
+            assertEquals("75", currentFlyway.info().current().version.toString())
         }
         finally
         {
@@ -311,6 +318,59 @@ class AuditMigrationUpgradeContractTest
                 organizationBId,
                 actorId,
                 now,
+            )
+        }
+    }
+
+    private fun verifySubscriptionTrialRequestConstraints(connection: Connection)
+    {
+        val requesterId = UUID.fromString("90000000-0000-0000-0000-000000000001")
+        val ownerId = UUID.fromString("90000000-0000-0000-0000-000000000002")
+        val now = Timestamp.from(Instant.parse("2026-08-16T08:00:00Z"))
+        connection.prepareStatement(
+            """INSERT INTO app_user
+               (id, is_active, created_date, email, email_verification_completed, is_temporary,
+                sign_in_attempts, exchange_version, multifactor_authentication_type,
+                is_password_temporary, email_mfa_fallback_enabled)
+               VALUES (?, TRUE, ?, ?, TRUE, FALSE, 0, 0, 'EMAIL', FALSE, FALSE)""",
+        ).use { statement ->
+            statement.setObject(1, requesterId)
+            statement.setTimestamp(2, now)
+            statement.setString(3, "trial-constraint@example.test")
+            statement.executeUpdate()
+        }
+
+        fun insertPending(
+            requestId: UUID,
+            planCode: String = "PERSONAL",
+            requestOwnerId: UUID = ownerId,
+        )
+        {
+            connection.prepareStatement(
+                """INSERT INTO subscription_trial_request
+                   (id, owner_type, owner_id, requested_by_app_user_id, plan_code, status,
+                    requested_at, updated_at)
+                   VALUES (?, 'USER', ?, ?, ?, 'PENDING', ?, ?)""",
+            ).use { statement ->
+                statement.setObject(1, requestId)
+                statement.setObject(2, requestOwnerId)
+                statement.setObject(3, requesterId)
+                statement.setString(4, planCode)
+                statement.setTimestamp(5, now)
+                statement.setTimestamp(6, now)
+                statement.executeUpdate()
+            }
+        }
+
+        insertPending(UUID.fromString("90000000-0000-0000-0000-000000000003"))
+        assertSqlState("23505") {
+            insertPending(UUID.fromString("90000000-0000-0000-0000-000000000004"))
+        }
+        assertSqlState("23514") {
+            insertPending(
+                UUID.fromString("90000000-0000-0000-0000-000000000005"),
+                "BUSINESS",
+                UUID.fromString("90000000-0000-0000-0000-000000000006"),
             )
         }
     }

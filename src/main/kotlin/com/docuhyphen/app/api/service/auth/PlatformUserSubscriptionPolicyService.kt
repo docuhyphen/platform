@@ -13,6 +13,7 @@ import com.docuhyphen.app.api.service.subscription.SubscriptionLifecycleValidato
 import com.docuhyphen.app.api.service.subscription.SubscriptionOwnerType
 import com.docuhyphen.app.api.service.subscription.SubscriptionPolicyService
 import com.docuhyphen.app.api.service.subscription.SubscriptionStatus
+import io.quarkus.security.ForbiddenException
 import io.quarkus.security.UnauthorizedException
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
@@ -170,7 +171,7 @@ class PlatformUserSubscriptionPolicyService @Inject constructor(
                 reason = "Caller lacks effective App Administrator privilege",
                 targetType = "PLATFORM_USER_SUBSCRIPTION",
             )
-            throw UnauthorizedException("User does not have permission to manage user subscription policies")
+            throw ForbiddenException("User does not have permission to manage user subscription policies")
         }
         return actor
     }

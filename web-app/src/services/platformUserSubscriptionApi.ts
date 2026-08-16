@@ -5,6 +5,14 @@ import {
     PlatformUserSubscriptionPolicyList,
     PlatformUserSubscriptionPolicyRequest,
 } from "./types/platformUserSubscriptions.ts";
+import {
+    PlatformSubscriptionTrialExtensionRequest,
+    PlatformSubscriptionTrialEndRequest,
+    PlatformSubscriptionTrialResponse,
+    PlatformSubscriptionTrialTransitionResponse,
+    PlatformUserTrialConversionRequest,
+    PlatformUserTrialStartRequest,
+} from "./types/platformSubscriptionTrials.ts";
 
 const execute = async <T>(request: () => Promise<{data: T}>): Promise<T> =>
 {
@@ -39,3 +47,34 @@ export const updatePlatformUserSubscription = (
     request,
 ));
 
+export const startPlatformUserSubscriptionTrial = (
+    appUserId: string,
+    request: PlatformUserTrialStartRequest,
+): Promise<PlatformSubscriptionTrialResponse> => execute(() => apiClient.post(
+    `/platform/users/${appUserId}/subscription-trials`,
+    request,
+));
+
+export const extendPlatformUserSubscriptionTrial = (
+    appUserId: string,
+    request: PlatformSubscriptionTrialExtensionRequest,
+): Promise<PlatformSubscriptionTrialResponse> => execute(() => apiClient.patch(
+    `/platform/users/${appUserId}/subscription-trials/current`,
+    request,
+));
+
+export const endPlatformUserSubscriptionTrial = (
+    appUserId: string,
+    request: PlatformSubscriptionTrialEndRequest,
+): Promise<PlatformSubscriptionTrialTransitionResponse> => execute(() => apiClient.delete(
+    `/platform/users/${appUserId}/subscription-trials/current`,
+    {data: request},
+));
+
+export const convertPlatformUserSubscriptionTrial = (
+    appUserId: string,
+    request: PlatformUserTrialConversionRequest,
+): Promise<PlatformSubscriptionTrialTransitionResponse> => execute(() => apiClient.post(
+    `/platform/users/${appUserId}/subscription-trials/current/conversions`,
+    request,
+));

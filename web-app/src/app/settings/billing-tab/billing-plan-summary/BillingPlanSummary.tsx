@@ -1,11 +1,13 @@
-import {Caption1, ProgressBar} from "@fluentui/react-components";
+import {Caption1} from "@fluentui/react-components";
 import {
-    PlanCode,
-    SubscriptionOwnerType,
+    SubscriptionStatus,
 } from "../../../models/models.tsx";
 import {useCurrentSubscription} from "../../../../hooks/subscription/useCurrentSubscription.ts";
 import BillingPlanHeader from "./BillingPlanHeader.tsx";
+import BillingTrialDetails from "./BillingTrialDetails.tsx";
+import BillingUsageSummary from "./BillingUsageSummary.tsx";
 import {useBillingPlanSummaryStyles} from "./BillingPlanSummaryStyles.tsx";
+import BillingTrialRequestAction from "../trial-request-action/BillingTrialRequestAction.tsx";
 
 const formatValue = (value?: string | null): string =>
 {
@@ -25,9 +27,6 @@ const formatDate = (value?: string | null): string =>
     return new Intl.DateTimeFormat(undefined, {dateStyle: "medium"}).format(date);
 };
 
-const cappedProgress = (current?: number | null, limit?: number | null): number =>
-    limit && limit > 0 ? Math.min((current ?? 0) / limit, 1) : 0;
-
 const BillingPlanSummary = () =>
 {
     const styles = useBillingPlanSummaryStyles();
@@ -36,8 +35,8 @@ const BillingPlanSummary = () =>
     const usage = subscription?.usage ?? null;
     if (!subscription || !limits || !usage) return null;
 
-    const showFreeUsage = subscription.planCode === PlanCode.FREE;
-    const showSeatUsage = subscription.ownerType === SubscriptionOwnerType.ORGANIZATION;
+    const isTrial = subscription.status === SubscriptionStatus.TRIALING;
+    const planTitle = `${formatValue(subscription.planCode)} ${isTrial ? "trial" : "plan"}`;
 
     return (
         <section
@@ -46,7 +45,7 @@ const BillingPlanSummary = () =>
             aria-label={"Current plan"}
         >
             <BillingPlanHeader
-                planName={formatValue(subscription.planCode)}
+                planTitle={planTitle}
                 status={formatValue(subscription.status)}
                 planHeaderClassName={styles.planHeader}
                 planTitleClassName={styles.planTitle}
@@ -62,78 +61,21 @@ const BillingPlanSummary = () =>
                 <Caption1 id={"settings-billing-current-plan-frequency"}>
                     Billing frequency: {formatValue(subscription.billingFrequency)}
                 </Caption1>
-                <Caption1 id={"settings-billing-current-plan-period"}>
-                    Current period ends: {formatDate(subscription.currentPeriodEnd)}
-                </Caption1>
+                {!isTrial && (
+                    <Caption1 id={"settings-billing-current-plan-period"}>
+                        Current period ends: {formatDate(subscription.currentPeriodEnd)}
+                    </Caption1>
+                )}
+                {isTrial && <BillingTrialDetails currentPeriodEnd={subscription.currentPeriodEnd}/>}
             </div>
-
-            {showFreeUsage && limits.maxNewExchangesPerCalendarMonth != null && (
-                <div
-                    id={"settings-billing-monthly-exchange-usage"}
-                    className={styles.usageRow}
-                >
-                    <div
-                        id={"settings-billing-monthly-exchange-labels"}
-                        className={styles.usageLabels}
-                    >
-                        <Caption1 id={"settings-billing-monthly-exchange-label"}>Exchanges this month</Caption1>
-                        <Caption1 id={"settings-billing-monthly-exchange-value"}>
-                            {usage.newExchangesThisPeriod ?? 0} / {limits.maxNewExchangesPerCalendarMonth}
-                        </Caption1>
-                    </div>
-                    <ProgressBar
-                        id={"settings-billing-monthly-exchange-progress"}
-                        value={cappedProgress(
-                            usage.newExchangesThisPeriod,
-                            limits.maxNewExchangesPerCalendarMonth,
-                        )}
-                    />
-                </div>
-            )}
-
-            {showFreeUsage && limits.maxOpenExchanges != null && (
-                <div
-                    id={"settings-billing-open-exchange-usage"}
-                    className={styles.usageRow}
-                >
-                    <div
-                        id={"settings-billing-open-exchange-labels"}
-                        className={styles.usageLabels}
-                    >
-                        <Caption1 id={"settings-billing-open-exchange-label"}>Open Exchanges</Caption1>
-                        <Caption1 id={"settings-billing-open-exchange-value"}>
-                            {usage.openExchanges ?? 0} / {limits.maxOpenExchanges}
-                        </Caption1>
-                    </div>
-                    <ProgressBar
-                        id={"settings-billing-open-exchange-progress"}
-                        value={cappedProgress(usage.openExchanges, limits.maxOpenExchanges)}
-                    />
-                </div>
-            )}
-
-            {showSeatUsage && (
-                <div
-                    id={"settings-billing-seat-usage"}
-                    className={styles.usageRow}
-                >
-                    <div
-                        id={"settings-billing-seat-labels"}
-                        className={styles.usageLabels}
-                    >
-                        <Caption1 id={"settings-billing-seat-label"}>Active seats</Caption1>
-                        <Caption1 id={"settings-billing-seat-value"}>
-                            {usage.activeSeats ?? 0} / {limits.seatCapacity ?? "Uncapped"}
-                        </Caption1>
-                    </div>
-                    {limits.seatCapacity != null && (
-                        <ProgressBar
-                            id={"settings-billing-seat-progress"}
-                            value={cappedProgress(usage.activeSeats, limits.seatCapacity)}
-                        />
-                    )}
-                </div>
-            )}
+            <BillingUsageSummary
+                planCode={subscription.planCode}
+                ownerType={subscription.ownerType}
+                limits={limits}
+                usage={usage}
+                usageRowClassName={styles.usageRow}
+                usageLabelsClassName={styles.usageLabels}/>
+            {!isTrial && <BillingTrialRequestAction ownerType={subscription.ownerType}/>}
         </section>
     );
 };

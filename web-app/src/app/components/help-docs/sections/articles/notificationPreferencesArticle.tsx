@@ -77,6 +77,15 @@ export const notificationPreferencesArticle = (
             and document event preferences above.
         </p>
 
+        <h3>Trial request administration</h3>
+        <p>
+            Active App Administrators receive an in-app notification when an eligible user or
+            organization billing user requests a trial. The requester receives an in-app notification
+            after approval or rejection. These administrative notifications are not controlled by the
+            Exchange and document event preferences above. Selecting a new-request notification opens
+            Trial Requests; selecting a decision notification opens Billing.
+        </p>
+
         <p>
             Changes save immediately. Available events still respect your Exchange access
             and organization permissions. You can manage your personal notification preferences

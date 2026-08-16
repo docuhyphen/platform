@@ -95,6 +95,17 @@ enum class AuditEventType(val key: String, val category: AuditCategory)
     PLATFORM_USER_SUBSCRIPTION_POLICY_LIST("platform.user_subscription_policy.list", AuditCategory.PLATFORM),
     PLATFORM_USER_SUBSCRIPTION_POLICY_UPDATE("platform.user_subscription_policy.update", AuditCategory.PLATFORM),
     PLATFORM_USER_SUBSCRIPTION_POLICY_VIEW("platform.user_subscription_policy.view", AuditCategory.PLATFORM),
+    PLATFORM_USER_SUBSCRIPTION_TRIAL_START("platform.user_subscription_trial.start", AuditCategory.PLATFORM),
+    PLATFORM_USER_SUBSCRIPTION_TRIAL_EXTEND("platform.user_subscription_trial.extend", AuditCategory.PLATFORM),
+    PLATFORM_USER_SUBSCRIPTION_TRIAL_END("platform.user_subscription_trial.end", AuditCategory.PLATFORM),
+    PLATFORM_USER_SUBSCRIPTION_TRIAL_CONVERT("platform.user_subscription_trial.convert", AuditCategory.PLATFORM),
+    PLATFORM_ORG_SUBSCRIPTION_TRIAL_START("platform.org_subscription_trial.start", AuditCategory.PLATFORM),
+    PLATFORM_ORG_SUBSCRIPTION_TRIAL_EXTEND("platform.org_subscription_trial.extend", AuditCategory.PLATFORM),
+    PLATFORM_ORG_SUBSCRIPTION_TRIAL_END("platform.org_subscription_trial.end", AuditCategory.PLATFORM),
+    PLATFORM_ORG_SUBSCRIPTION_TRIAL_CONVERT("platform.org_subscription_trial.convert", AuditCategory.PLATFORM),
+    SUBSCRIPTION_TRIAL_REQUEST_CREATE("subscription.trial_request.create", AuditCategory.PLATFORM),
+    PLATFORM_SUBSCRIPTION_TRIAL_REQUEST_LIST("platform.subscription_trial_request.list", AuditCategory.PLATFORM),
+    PLATFORM_SUBSCRIPTION_TRIAL_REQUEST_DECIDE("platform.subscription_trial_request.decide", AuditCategory.PLATFORM),
     PLATFORM_ORGANIZATION_LIST("platform.organization.list", AuditCategory.PLATFORM),
     PLATFORM_ORGANIZATION_STATUS_UPDATE("platform.organization_status.update", AuditCategory.PLATFORM),
     PLATFORM_ORGANIZATION_VIEW("platform.organization.view", AuditCategory.PLATFORM),
@@ -198,7 +209,7 @@ enum class AuditEventType(val key: String, val category: AuditCategory)
          * consumers (ledger, exports, projections) can reason about which catalog shape produced
          * a given event.
          */
-        const val CATALOG_VERSION: Int = 13
+        const val CATALOG_VERSION: Int = 14
 
         private val byKey: Map<String, AuditEventType> = entries.associateBy { it.key }
 

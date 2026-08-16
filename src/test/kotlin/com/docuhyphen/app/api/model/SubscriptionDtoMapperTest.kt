@@ -63,7 +63,13 @@ class SubscriptionDtoMapperTest
         assertEquals("USER", dto.ownerType)
         assertEquals(ownerId, dto.ownerId)
         assertEquals("ACTIVE", dto.status)
-        assertEquals(listOf(PlanFeature.EXCHANGE_CREATE.name), dto.features)
+        assertEquals(
+            listOf(
+                PlanFeature.DOCUMENT_COMMENTS.name,
+                PlanFeature.EXCHANGE_CREATE.name,
+            ),
+            dto.features,
+        )
         assertEquals(5L, dto.limits.maxNewExchangesPerCalendarMonth)
         assertEquals(3L, dto.limits.maxOpenExchanges)
         assertEquals(1L, dto.limits.seatCapacity)

@@ -9,6 +9,14 @@ import {
     PlatformOrganizationSubscriptionPolicy,
     PlatformOrganizationSubscriptionPolicyRequest,
 } from "./types/platformOrganizations.ts";
+import {
+    PlatformOrganizationTrialStartRequest,
+    PlatformOrganizationTrialConversionRequest,
+    PlatformSubscriptionTrialExtensionRequest,
+    PlatformSubscriptionTrialEndRequest,
+    PlatformSubscriptionTrialResponse,
+    PlatformSubscriptionTrialTransitionResponse,
+} from "./types/platformSubscriptionTrials.ts";
 
 export interface PlatformApiError
 {
@@ -71,5 +79,41 @@ export const updatePlatformOrganizationFeatureEntitlements = (
 ): Promise<PlatformOrganizationFeatureEntitlements> =>
     executeRequest(() => apiClient.put(
         `/platform/organizations/${organizationId}/feature-entitlements`,
+        request,
+    ));
+
+export const startPlatformOrganizationSubscriptionTrial = (
+    organizationId: string,
+    request: PlatformOrganizationTrialStartRequest,
+): Promise<PlatformSubscriptionTrialResponse> =>
+    executeRequest(() => apiClient.post(
+        `/platform/organizations/${organizationId}/subscription-trials`,
+        request,
+    ));
+
+export const extendPlatformOrganizationSubscriptionTrial = (
+    organizationId: string,
+    request: PlatformSubscriptionTrialExtensionRequest,
+): Promise<PlatformSubscriptionTrialResponse> =>
+    executeRequest(() => apiClient.patch(
+        `/platform/organizations/${organizationId}/subscription-trials/current`,
+        request,
+    ));
+
+export const endPlatformOrganizationSubscriptionTrial = (
+    organizationId: string,
+    request: PlatformSubscriptionTrialEndRequest,
+): Promise<PlatformSubscriptionTrialTransitionResponse> =>
+    executeRequest(() => apiClient.delete(
+        `/platform/organizations/${organizationId}/subscription-trials/current`,
+        {data: request},
+    ));
+
+export const convertPlatformOrganizationSubscriptionTrial = (
+    organizationId: string,
+    request: PlatformOrganizationTrialConversionRequest,
+): Promise<PlatformSubscriptionTrialTransitionResponse> =>
+    executeRequest(() => apiClient.post(
+        `/platform/organizations/${organizationId}/subscription-trials/current/conversions`,
         request,
     ));

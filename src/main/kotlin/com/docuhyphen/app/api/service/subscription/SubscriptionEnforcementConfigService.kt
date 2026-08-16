@@ -8,14 +8,14 @@ import org.slf4j.LoggerFactory
 /**
  * Resolves how commercial plan decisions behave in this environment.
  *
- * The default is deliberately non-blocking so a freshly migrated environment can be observed
- * before any request is refused. An unrecognised configured value falls back to the same
- * non-blocking default rather than failing startup or silently blocking customers.
+ * The default enforces every decision consistently across environments. An observation
+ * deployment must select `REPORT_ONLY` explicitly. An unrecognised value falls back to enforced
+ * decisions rather than silently weakening the configured commercial policy.
  */
 @ApplicationScoped
 class SubscriptionEnforcementConfigService @Inject constructor(
 
-    @ConfigProperty(name = "app.subscription.enforcement.mode", defaultValue = "REPORT_ONLY")
+    @ConfigProperty(name = "app.subscription.enforcement.mode", defaultValue = "ENFORCE")
     private val configuredMode: String,
 )
 {
@@ -23,7 +23,7 @@ class SubscriptionEnforcementConfigService @Inject constructor(
     {
         private val logger = LoggerFactory.getLogger(SubscriptionEnforcementConfigService::class.java)
 
-        val DEFAULT_MODE: SubscriptionEnforcementMode = SubscriptionEnforcementMode.REPORT_ONLY
+        val DEFAULT_MODE: SubscriptionEnforcementMode = SubscriptionEnforcementMode.ENFORCE
     }
 
     private val resolvedMode: SubscriptionEnforcementMode by lazy {

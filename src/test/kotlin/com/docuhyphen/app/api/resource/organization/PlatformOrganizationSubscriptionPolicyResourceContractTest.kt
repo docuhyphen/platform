@@ -1,6 +1,5 @@
 package com.docuhyphen.app.api.resource.organization
 
-import jakarta.ws.rs.DELETE
 import jakarta.ws.rs.GET
 import jakarta.ws.rs.PUT
 import jakarta.ws.rs.Path
@@ -45,7 +44,6 @@ class PlatformOrganizationSubscriptionPolicyResourceContractTest
             .isAnnotationPresent(GET::class.java))
         assertTrue(resourceClass.declaredMethods.single { it.name == "upsertPolicy" }
             .isAnnotationPresent(PUT::class.java))
-        assertTrue(resourceClass.declaredMethods.single { it.name == "deletePolicy" }
-            .isAnnotationPresent(DELETE::class.java))
+        assertFalse(resourceClass.declaredMethods.any { it.name == "deletePolicy" })
     }
 }

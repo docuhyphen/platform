@@ -15,6 +15,7 @@ import com.docuhyphen.app.api.service.subscription.SubscriptionOwnerType
 import com.docuhyphen.app.api.service.subscription.SubscriptionStatus
 import com.docuhyphen.app.api.service.subscription.SubscriptionPolicyService
 import com.docuhyphen.app.api.service.organization.OrganizationService
+import io.quarkus.security.ForbiddenException
 import io.quarkus.security.UnauthorizedException
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
@@ -78,44 +79,8 @@ class PlatformOrganizationSubscriptionPolicyService @Inject constructor(
     {
         val actor = requirePlatformAdmin("PLATFORM_ORG_SUBSCRIPTION_POLICY_VIEW")
         val organization = requireOrganization(organizationId)
-        val existing = subscriptionPolicyService.findOrganizationPolicy(organization.id)
-
-        val result = if (existing == null)
-        {
-            PolicyResult(
-                organizationId = organization.id,
-                tierCode = ORGANIZATION_TIER_CODE,
-                maxUsers = UNASSIGNED_SEAT_CAPACITY,
-                currentActiveUsers = activeUserCount(organization),
-                subscriptionStatus = SubscriptionStatus.ACTIVE.name,
-                billingFrequency = null,
-                currentPeriodStart = null,
-                currentPeriodEnd = null,
-                gracePeriodEnd = null,
-                changeReason = "No persisted policy; organization Business defaults apply",
-                persisted = false,
-                createdDate = null,
-                updatedDate = null,
-            )
-        }
-        else
-        {
-            PolicyResult(
-                organizationId = organization.id,
-                tierCode = existing.tierCode,
-                maxUsers = existing.maxUsers,
-                currentActiveUsers = activeUserCount(organization),
-                subscriptionStatus = existing.subscriptionStatus,
-                billingFrequency = existing.billingFrequency,
-                currentPeriodStart = existing.currentPeriodStart,
-                currentPeriodEnd = existing.currentPeriodEnd,
-                gracePeriodEnd = existing.gracePeriodEnd,
-                changeReason = existing.changeReason,
-                persisted = true,
-                createdDate = existing.createdDate,
-                updatedDate = existing.updatedDate,
-            )
-        }
+        val policy = subscriptionPolicyService.ensureOrganizationPolicy(organization.id)
+        val result = persistedPolicyResult(policy, organization)
 
         authAuditService.emit(
             action = "PLATFORM_ORG_SUBSCRIPTION_POLICY_VIEW",
@@ -143,15 +108,13 @@ class PlatformOrganizationSubscriptionPolicyService @Inject constructor(
         val actor = requirePlatformAdmin("PLATFORM_ORG_SUBSCRIPTION_POLICY_LIST")
         validatePaging(limit, offset)
         val normalizedTierCode = tierCode?.trim()?.uppercase()?.takeIf { it.isNotBlank() }
-        val includeDefaults = persistedOnly != true
-
         val allItems = if (organizationId.equals("all", ignoreCase = true))
         {
-            buildGlobalList(includeDefaults)
+            buildGlobalList()
         }
         else
         {
-            buildOrganizationScopedList(organizationId, includeDefaults)
+            buildOrganizationScopedList(organizationId)
         }
 
         val filtered = allItems
@@ -192,15 +155,14 @@ class PlatformOrganizationSubscriptionPolicyService @Inject constructor(
         val lifecycle = lifecycleUpdate(request, normalizedTierCode)
         validateRequest(request, lifecycle)
 
-        val existing = subscriptionPolicyService.findOrganizationPolicy(organization.id)
+        subscriptionPolicyService.ensureOrganizationPolicy(organization.id)
+        val existing = subscriptionPolicyService.findOrganizationPolicyForUpdate(organization.id)
+            ?: throw IllegalStateException("Organization subscription policy could not be locked")
 
-        val beforeSnapshot = existing?.let { snapshot(it, organization) }
+        val beforeSnapshot = snapshot(existing, organization)
 
         val now = Timestamp.from(Instant.now())
-        val policy = existing ?: OrganizationSubscriptionPolicy().apply {
-            this.organization = organization
-            this.createdDate = now
-        }
+        val policy = existing
 
         policy.tierCode = normalizedTierCode
         policy.maxUsers = request.maxUsers
@@ -212,14 +174,7 @@ class PlatformOrganizationSubscriptionPolicyService @Inject constructor(
         policy.changeReason = lifecycle.changeReason
         policy.updatedDate = now
 
-        if (existing == null)
-        {
-            subscriptionPolicyService.saveOrganizationPolicy(policy)
-        }
-        else
-        {
-            subscriptionPolicyService.updateOrganizationPolicy(policy)
-        }
+        subscriptionPolicyService.updateOrganizationPolicy(policy)
 
         val result = PolicyResult(
             organizationId = organization.id,
@@ -243,55 +198,7 @@ class PlatformOrganizationSubscriptionPolicyService @Inject constructor(
             actorId = actor.id,
             actorRole = "APP_ADMIN",
             requestId = adminApprovalContext.requestId,
-            reason = "Platform admin updated organization subscription policy",
-            beforeSnapshot = beforeSnapshot,
-            afterSnapshot = snapshot(result),
-            targetType = "ORGANIZATION",
-            targetId = organization.id.toString(),
-            structuredDetails = mapOf(
-                "before_state" to (beforeSnapshot ?: "implicit-default"),
-                "after_state" to snapshot(result),
-            ),
-        )
-
-        return result
-    }
-
-    @EnforceAdminAction("PLATFORM_ORG_SUBSCRIPTION_POLICY_DELETE")
-    @Transactional
-    fun deletePolicy(organizationId: String, adminApprovalContext: AdminApprovalContext): PolicyResult
-    {
-        val actor = requirePlatformAdmin("PLATFORM_ORG_SUBSCRIPTION_POLICY_DELETE")
-        val organization = requireOrganization(organizationId)
-        val existing = subscriptionPolicyService.findOrganizationPolicy(organization.id)
-            ?: throw IllegalArgumentException("Organization subscription policy not found")
-
-        val beforeSnapshot = snapshot(existing, organization)
-        subscriptionPolicyService.deleteOrganizationPolicy(existing)
-
-        val result = PolicyResult(
-            organizationId = organization.id,
-            tierCode = ORGANIZATION_TIER_CODE,
-            maxUsers = UNASSIGNED_SEAT_CAPACITY,
-            currentActiveUsers = activeUserCount(organization),
-            subscriptionStatus = SubscriptionStatus.ACTIVE.name,
-            billingFrequency = null,
-            currentPeriodStart = null,
-            currentPeriodEnd = null,
-            gracePeriodEnd = null,
-            changeReason = "Policy reset to organization Business defaults",
-            persisted = false,
-            createdDate = null,
-            updatedDate = null,
-        )
-
-        authAuditService.emitRequired(
-            action = "PLATFORM_ORG_SUBSCRIPTION_POLICY_DELETE",
-            outcome = "SUCCESS",
-            actorId = actor.id,
-            actorRole = "APP_ADMIN",
-            requestId = adminApprovalContext.requestId,
-            reason = "Platform admin deleted organization subscription policy",
+            reason = lifecycle.changeReason,
             beforeSnapshot = beforeSnapshot,
             afterSnapshot = snapshot(result),
             targetType = "ORGANIZATION",
@@ -319,7 +226,7 @@ class PlatformOrganizationSubscriptionPolicyService @Inject constructor(
                 reason = "Caller lacks effective App Administrator privilege",
                 targetType = "PLATFORM_ORGANIZATION",
             )
-            throw UnauthorizedException("User does not have permission to manage organization subscription policies")
+            throw ForbiddenException("User does not have permission to manage organization subscription policies")
         }
 
         return currentUser
@@ -409,45 +316,23 @@ class PlatformOrganizationSubscriptionPolicyService @Inject constructor(
         }
     }
 
-    private fun buildGlobalList(includeDefaults: Boolean): List<PolicyResult>
+    private fun buildGlobalList(): List<PolicyResult>
     {
-        val persisted = subscriptionPolicyService.findAllOrganizationPolicies()
-            .sortedByDescending { it.updatedDate.time }
-            .map { policy ->
-                val organization = policy.organization ?: throw IllegalStateException("Organization reference is missing for subscription policy")
-                persistedPolicyResult(policy, organization)
+        return organizationService.findAllOrganizations()
+            .map { organization ->
+                persistedPolicyResult(
+                    subscriptionPolicyService.ensureOrganizationPolicy(organization.id),
+                    organization,
+                )
             }
-
-        if (!includeDefaults)
-        {
-            return persisted
-        }
-
-        val persistedOrgIds = persisted.map { it.organizationId }.toSet()
-        val defaults = organizationService.findAllOrganizations()
-            .filter { it.id !in persistedOrgIds }
-            .map { defaultPolicyResult(it) }
-
-        return persisted + defaults
+            .sortedByDescending { it.updatedDate?.time ?: 0L }
     }
 
-    private fun buildOrganizationScopedList(organizationId: String, includeDefaults: Boolean): List<PolicyResult>
+    private fun buildOrganizationScopedList(organizationId: String): List<PolicyResult>
     {
         val organization = requireOrganization(organizationId)
-        val persisted = subscriptionPolicyService.findOrganizationPolicy(organization.id)
-        if (persisted != null)
-        {
-            return listOf(persistedPolicyResult(persisted, organization))
-        }
-
-        return if (includeDefaults)
-        {
-            listOf(defaultPolicyResult(organization))
-        }
-        else
-        {
-            emptyList()
-        }
+        val policy = subscriptionPolicyService.ensureOrganizationPolicy(organization.id)
+        return listOf(persistedPolicyResult(policy, organization))
     }
 
     private fun persistedPolicyResult(policy: OrganizationSubscriptionPolicy, organization: Organization): PolicyResult
@@ -466,25 +351,6 @@ class PlatformOrganizationSubscriptionPolicyService @Inject constructor(
             persisted = true,
             createdDate = policy.createdDate,
             updatedDate = policy.updatedDate,
-        )
-    }
-
-    private fun defaultPolicyResult(organization: Organization): PolicyResult
-    {
-        return PolicyResult(
-            organizationId = organization.id,
-            tierCode = ORGANIZATION_TIER_CODE,
-            maxUsers = UNASSIGNED_SEAT_CAPACITY,
-            currentActiveUsers = activeUserCount(organization),
-            subscriptionStatus = SubscriptionStatus.ACTIVE.name,
-            billingFrequency = null,
-            currentPeriodStart = null,
-            currentPeriodEnd = null,
-            gracePeriodEnd = null,
-            changeReason = "No persisted policy; organization Business defaults apply",
-            persisted = false,
-            createdDate = null,
-            updatedDate = null,
         )
     }
 

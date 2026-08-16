@@ -46,6 +46,12 @@ const PlatformAdministrationMenu = ({
                 User Subscriptions
             </Tab>
             <Tab
+                id={`${idPrefix}-trial-requests-tab`}
+                icon={<SettingsAppAdminsIcon id={`${idPrefix}-trial-requests-icon`}/>}
+                value={platformAdministrationTabIds.trialRequests}>
+                Trial Requests
+            </Tab>
+            <Tab
                 id={`${idPrefix}-content-tab`}
                 icon={<SettingsBlueprintsTabIcon/>}
                 value={platformAdministrationTabIds.platformContent}>

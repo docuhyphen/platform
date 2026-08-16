@@ -5,10 +5,10 @@ import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.model.PlatformOrganizationDtoMapper
 import com.docuhyphen.app.api.service.auth.AdminApprovalContext
 import com.docuhyphen.app.api.service.auth.PlatformOrganizationSubscriptionPolicyService
+import io.quarkus.security.ForbiddenException
 import io.quarkus.security.UnauthorizedException
 import jakarta.inject.Inject
 import jakarta.ws.rs.Consumes
-import jakarta.ws.rs.DELETE
 import jakarta.ws.rs.GET
 import jakarta.ws.rs.HeaderParam
 import jakarta.ws.rs.PUT
@@ -21,6 +21,7 @@ import jakarta.ws.rs.core.Response
 import jakarta.ws.rs.core.Response.Status.BAD_REQUEST
 import jakarta.ws.rs.core.Response.Status.FORBIDDEN
 import jakarta.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR
+import jakarta.ws.rs.core.Response.Status.UNAUTHORIZED
 import org.slf4j.LoggerFactory
 
 @Path("/platform/organizations/{organizationId}/subscription-policy")
@@ -54,27 +55,6 @@ class PlatformOrganizationSubscriptionPolicyResource @Inject constructor(
         }
     }
 
-    @DELETE
-    fun deletePolicy(
-        @PathParam("organizationId") organizationId: String,
-        @HeaderParam("X-Request-Id") requestId: String?,
-    ): Response
-    {
-        return try
-        {
-            val policy = platformOrganizationSubscriptionPolicyService.deletePolicy(
-                organizationId = organizationId,
-                adminApprovalContext = AdminApprovalContext(requestId = requestId),
-            )
-            Response.ok(platformOrganizationDtoMapper.toSubscriptionPolicy(policy)).build()
-        }
-        catch (exception: Exception)
-        {
-            if (exception is WebApplicationException) throw exception
-            handleException("Error deleting platform organization subscription policy", exception)
-        }
-    }
-
     @PUT
     fun upsertPolicy(
         @PathParam("organizationId") organizationId: String,
@@ -104,7 +84,8 @@ class PlatformOrganizationSubscriptionPolicyResource @Inject constructor(
 
         return when (exception)
         {
-            is UnauthorizedException -> Response.status(FORBIDDEN).entity(ResponseError(exception.message)).build()
+            is UnauthorizedException -> Response.status(UNAUTHORIZED).entity(ResponseError(exception.message)).build()
+            is ForbiddenException -> Response.status(FORBIDDEN).entity(ResponseError(exception.message)).build()
             is IllegalArgumentException -> Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
             else -> Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("An unexpected error occurred")).build()
         }

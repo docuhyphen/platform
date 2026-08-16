@@ -87,10 +87,16 @@ class BlueprintDefinitionService @Inject constructor(
     {
         val principal = currentPrincipal()
         val context = currentContext()
-        blueprintSubscriptionGuard.requireBlueprintUse(principal.id, context.activeOrgId)
         val bp = repository.findById(id)
             ?: throw IllegalArgumentException("Blueprint not found: $id")
         checkReadAccess(bp, principal, context)
+        blueprintSubscriptionGuard.requireExistingBlueprintUse(
+            appUserId = principal.id,
+            scope = bp.scope,
+            createdByAppUserId = bp.createdByAppUserId,
+            organizationId = bp.organizationId,
+            activeOrganizationId = context.activeOrgId,
+        )
         return bp.toDto()
     }
 

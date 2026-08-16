@@ -17,6 +17,7 @@ import Organizations from "./organizations/Organizations.tsx";
 import PlatformContent from "./platform-content/PlatformContent.tsx";
 import PlatformAdministrationMenu from "./platform-administration-menu/PlatformAdministrationMenu.tsx";
 import UserSubscriptions from "./user-subscriptions/UserSubscriptions.tsx";
+import TrialRequests from "./trial-requests/TrialRequests.tsx";
 import {
     platformAdministrationTabIds,
     platformAdministrationTabLabels,
@@ -27,9 +28,11 @@ const PlatformAdministration = () =>
 {
     const styles = usePlatformAdministrationStyles();
     const isMobile = useIsMobile();
-    const [selectedValue, setSelectedValue] = useState<TabValue>(
-        platformAdministrationTabIds.organizations,
-    );
+    const requestedSection = new URLSearchParams(window.location.search).get("section");
+    const initialSection = Object.values(platformAdministrationTabIds).includes(
+        requestedSection as typeof platformAdministrationTabIds[keyof typeof platformAdministrationTabIds],
+    ) ? requestedSection as TabValue : platformAdministrationTabIds.organizations;
+    const [selectedValue, setSelectedValue] = useState<TabValue>(initialSection);
     const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
     const selectedLabel =
         platformAdministrationTabLabels[selectedValue as string] ?? "Platform Administration";
@@ -104,6 +107,7 @@ const PlatformAdministration = () =>
                             : styles.contentScroller}>
                         {selectedValue === platformAdministrationTabIds.organizations && <Organizations/>}
                         {selectedValue === platformAdministrationTabIds.userSubscriptions && <UserSubscriptions/>}
+                        {selectedValue === platformAdministrationTabIds.trialRequests && <TrialRequests/>}
                         {selectedValue === platformAdministrationTabIds.platformContent && <PlatformContent/>}
                         {selectedValue === platformAdministrationTabIds.appAdministrators && <AppAdministrators/>}
                     </div>

@@ -106,6 +106,43 @@ class BlueprintSubscriptionGuardTest
     }
 
     @Test
+    fun `an existing personal blueprint is charged to its persisted user owner`()
+    {
+        givenUserPlan(PlanCode.FREE)
+        givenOrganizationPlan()
+
+        val denial = assertThrows<SubscriptionDenialException> {
+            guard().requireExistingBlueprintUse(
+                appUserId = appUserId,
+                scope = BlueprintScope.PERSONAL,
+                createdByAppUserId = appUserId,
+                organizationId = null,
+                activeOrganizationId = organizationId,
+            )
+        }.denial
+
+        assertEquals(PlanFeature.BLUEPRINT_USE, denial.feature)
+        assertEquals(PlanCode.FREE, denial.planCode)
+    }
+
+    @Test
+    fun `an existing organization blueprint is charged to its persisted organization owner`()
+    {
+        givenUserPlan(PlanCode.FREE)
+        givenOrganizationPlan()
+
+        assertDoesNotThrow {
+            guard().requireExistingBlueprintUse(
+                appUserId = appUserId,
+                scope = BlueprintScope.ORG,
+                createdByAppUserId = appUserId,
+                organizationId = organizationId,
+                activeOrganizationId = null,
+            )
+        }
+    }
+
+    @Test
     fun `curating the platform catalogue is not charged against a personal plan`()
     {
         givenUserPlan(PlanCode.FREE)
@@ -204,6 +241,13 @@ class BlueprintSubscriptionGuardTest
         val disabled = guard(SubscriptionEnforcementMode.OFF)
 
         disabled.requireBlueprintUse(appUserId, null)
+        disabled.requireExistingBlueprintUse(
+            appUserId,
+            BlueprintScope.PERSONAL,
+            null,
+            null,
+            organizationId,
+        )
         disabled.requireBlueprintManagement(appUserId, BlueprintScope.PERSONAL, null)
 
         verifyNoInteractions(policyService)

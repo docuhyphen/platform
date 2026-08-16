@@ -23,6 +23,10 @@ vi.mock("./user-subscriptions/UserSubscriptions.tsx", () => ({
     default: () => <div id={"test-user-subscriptions"}>User Subscriptions content</div>,
 }));
 
+vi.mock("./trial-requests/TrialRequests.tsx", () => ({
+    default: () => <div id={"test-trial-requests"}>Trial Requests content</div>,
+}));
+
 afterEach(cleanup);
 
 describe("PlatformAdministration", () =>
@@ -35,6 +39,7 @@ describe("PlatformAdministration", () =>
         expect(screen.getByText("Organizations content")).toBeTruthy();
         expect(screen.queryByText("Platform Content content")).toBeNull();
         expect(screen.queryByText("App Administrators content")).toBeNull();
+        expect(screen.queryByText("Trial Requests content")).toBeNull();
     });
 
     it("switches content from the left navigation menu", () =>
@@ -50,5 +55,10 @@ describe("PlatformAdministration", () =>
 
         expect(screen.getByText("App Administrators content")).toBeTruthy();
         expect(screen.queryByText("Platform Content content")).toBeNull();
+
+        fireEvent.click(document.querySelector("#platform-administration-trial-requests-tab") as HTMLElement);
+
+        expect(screen.getByText("Trial Requests content")).toBeTruthy();
+        expect(screen.queryByText("App Administrators content")).toBeNull();
     });
 });

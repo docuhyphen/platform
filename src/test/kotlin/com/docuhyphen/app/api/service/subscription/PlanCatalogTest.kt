@@ -15,7 +15,10 @@ class PlanCatalogTest
         val free = PlanCatalog.definitionOf(PlanCode.FREE)
 
         assertEquals(SubscriptionOwnerType.USER, free.ownerType)
-        assertEquals(setOf(PlanFeature.EXCHANGE_CREATE), free.features)
+        assertEquals(
+            setOf(PlanFeature.EXCHANGE_CREATE, PlanFeature.DOCUMENT_COMMENTS),
+            free.features,
+        )
         assertEquals(5L, free.limits.maxNewExchangesPerCalendarMonth)
         assertEquals(3L, free.limits.maxOpenExchanges)
         assertEquals(0L, free.limits.maxAdditionalParticipantsPerExchange)

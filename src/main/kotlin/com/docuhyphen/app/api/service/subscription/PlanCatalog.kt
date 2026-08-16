@@ -14,6 +14,7 @@ object PlanCatalog
         ownerType = SubscriptionOwnerType.USER,
         features = setOf(
             PlanFeature.EXCHANGE_CREATE,
+            PlanFeature.DOCUMENT_COMMENTS,
         ),
         limits = PlanLimits(
             maxNewExchangesPerCalendarMonth = 5,

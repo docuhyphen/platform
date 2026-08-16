@@ -28,6 +28,9 @@ class UserRoleService @Inject constructor(
     fun isAppAdmin(appUserId: UUID): Boolean =
         AppRoleName.APP_ADMIN in appRoles(appUserId)
 
+    fun activeAppAdminIds(): Set<UUID> =
+        appRoleAssignmentRepository.findActiveAppAdmins().map { it.appUserId }.toSet()
+
     fun appRoles(appUserId: UUID): Set<AppRoleName> =
         appRoleAssignmentRepository.findActiveForUser(appUserId).map { it.roleName }.toSet()
 

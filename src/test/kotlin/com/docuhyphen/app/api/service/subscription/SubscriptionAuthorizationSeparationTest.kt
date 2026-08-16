@@ -50,7 +50,7 @@ class SubscriptionAuthorizationSeparationTest
 
         val subscription = freeIndividual()
         assertFalse(subscription.hasFeature(PlanFeature.WORKFLOW_AUTOMATION))
-        assertFalse(subscription.hasFeature(PlanFeature.DOCUMENT_COMMENTS))
+        assertTrue(subscription.hasFeature(PlanFeature.DOCUMENT_COMMENTS))
         assertFalse(subscription.hasFeature(PlanFeature.BLUEPRINT_USE))
     }
 

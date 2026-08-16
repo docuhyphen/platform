@@ -44,6 +44,40 @@ class BlueprintSubscriptionGuard @Inject constructor(
         subscriptionAccessService.requireFeature(context, PlanFeature.BLUEPRINT_USE)
     }
 
+    fun requireExistingBlueprintUse(
+        appUserId: UUID,
+        scope: BlueprintScope,
+        createdByAppUserId: UUID?,
+        organizationId: UUID?,
+        activeOrganizationId: UUID?,
+    )
+    {
+        if (!subscriptionAccessService.enforcementMode().evaluatesDecisions)
+        {
+            return
+        }
+
+        if (userRoleService.isAppAdmin(appUserId))
+        {
+            return
+        }
+
+        val context = when (scope)
+        {
+            BlueprintScope.PERSONAL -> SubscriptionContext.forUser(
+                createdByAppUserId ?: throw IllegalStateException("Personal Blueprint owner is missing"),
+            )
+            BlueprintScope.ORG -> SubscriptionContext.forOrganization(
+                organizationId ?: throw IllegalStateException("Organization Blueprint owner is missing"),
+            )
+            BlueprintScope.APP -> activeOrganizationId
+                ?.let(SubscriptionContext::forOrganization)
+                ?: SubscriptionContext.forUser(appUserId)
+        }
+
+        subscriptionAccessService.requireFeature(context, PlanFeature.BLUEPRINT_USE)
+    }
+
     /**
      * Refuses authoring a Blueprint when the paying subject has not bought the allowance.
      *

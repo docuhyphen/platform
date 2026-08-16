@@ -3,6 +3,9 @@ import {Button, Field, Input, MessageBar, MessageBarBody, Spinner, Text} from "@
 import {PlatformUserSubscriptionPolicy} from "../../../services/types/platformUserSubscriptions.ts";
 import UserSubscriptionEditorDialog from "./UserSubscriptionEditorDialog.tsx";
 import UserSubscriptionsTable from "./UserSubscriptionsTable.tsx";
+import SubscriptionTrialDialog from "../subscription-trial-dialog/SubscriptionTrialDialog.tsx";
+import SubscriptionTrialTransitionDialog from "../subscription-trial-transition-dialog/SubscriptionTrialTransitionDialog.tsx";
+import {SubscriptionTrialTransitionMode} from "../subscription-trial-transition-dialog/useSubscriptionTrialTransitionDialog.ts";
 import {useUserSubscriptions} from "./useUserSubscriptions.ts";
 import {useUserSubscriptionsStyles} from "./UserSubscriptionsStyles.tsx";
 
@@ -11,6 +14,11 @@ const UserSubscriptions = () =>
     const styles = useUserSubscriptionsStyles();
     const state = useUserSubscriptions();
     const [editing, setEditing] = useState<PlatformUserSubscriptionPolicy | null>(null);
+    const [trialTarget, setTrialTarget] = useState<PlatformUserSubscriptionPolicy | null>(null);
+    const [trialTransition, setTrialTransition] = useState<{
+        target: PlatformUserSubscriptionPolicy;
+        mode: SubscriptionTrialTransitionMode;
+    } | null>(null);
     const lastItem = Math.min(state.offset + state.pageSize, state.total);
 
     return (
@@ -42,7 +50,10 @@ const UserSubscriptions = () =>
                     label={"Loading subscriptions"}/>
                 : <UserSubscriptionsTable
                     items={state.items}
-                    onEdit={setEditing}/>}
+                    onEdit={setEditing}
+                    onTrial={setTrialTarget}
+                    onEndTrial={(target) => setTrialTransition({target, mode: "END"})}
+                    onConvertTrial={(target) => setTrialTransition({target, mode: "CONVERT"})}/>}
             <div
                 id={"platform-user-subscriptions-pagination"}
                 className={styles.pagination}>
@@ -70,6 +81,38 @@ const UserSubscriptions = () =>
                 user={editing}
                 onDismiss={() => setEditing(null)}
                 onSave={state.save}/>
+            <SubscriptionTrialDialog
+                open={trialTarget !== null}
+                ownerName={trialTarget?.email ?? "user"}
+                ownerKind={"user"}
+                isExtension={trialTarget?.subscriptionStatus === "TRIALING"
+                    && trialTarget.currentPeriodEnd !== null
+                    && new Date(trialTarget.currentPeriodEnd).getTime() > Date.now()}
+                currentPeriodEnd={trialTarget?.currentPeriodEnd ?? null}
+                onDismiss={() => setTrialTarget(null)}
+                onSaved={() => undefined}
+                onStart={(durationDays, _seatCapacity, reason) =>
+                    trialTarget
+                        ? state.startTrial(trialTarget, durationDays, reason)
+                        : Promise.resolve()}
+                onExtend={(currentPeriodEnd, reason) =>
+                    trialTarget
+                        ? state.extendTrial(trialTarget, currentPeriodEnd, reason)
+                        : Promise.resolve()}/>
+            <SubscriptionTrialTransitionDialog
+                open={trialTransition !== null}
+                ownerName={trialTransition?.target.email ?? "user"}
+                ownerKind={"user"}
+                mode={trialTransition?.mode ?? "END"}
+                defaultSeatCapacity={null}
+                onDismiss={() => setTrialTransition(null)}
+                onSaved={() => undefined}
+                onEnd={(reason) => trialTransition
+                    ? state.endTrial(trialTransition.target, reason)
+                    : Promise.resolve()}
+                onConvert={(billingFrequency, currentPeriodEnd, _seatCapacity, reason) => trialTransition
+                    ? state.convertTrial(trialTransition.target, billingFrequency, currentPeriodEnd, reason)
+                    : Promise.resolve()}/>
         </section>
     );
 };

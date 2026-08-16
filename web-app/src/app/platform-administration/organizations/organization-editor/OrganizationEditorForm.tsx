@@ -11,18 +11,26 @@ import {
 import {AddRegular} from "@fluentui/react-icons";
 import OrganizationEntitlementRow from "./OrganizationEntitlementRow.tsx";
 import OrganizationSubscriptionFields from "./OrganizationSubscriptionFields.tsx";
+import OrganizationTrialActions from "./organization-trial-actions/OrganizationTrialActions.tsx";
 import {useOrganizationEditorStyles} from "./OrganizationEditorStyles.tsx";
 import {useOrganizationEditor} from "./useOrganizationEditor.ts";
 
 interface OrganizationEditorFormProps
 {
     editor: ReturnType<typeof useOrganizationEditor>;
+    onManageTrial: () => void;
+    onEndTrial: () => void;
+    onConvertTrial: () => void;
 }
 
-const OrganizationEditorForm = ({editor}: OrganizationEditorFormProps) =>
+const OrganizationEditorForm = ({
+    editor,
+    onManageTrial,
+    onEndTrial,
+    onConvertTrial,
+}: OrganizationEditorFormProps) =>
 {
     const styles = useOrganizationEditorStyles();
-
     return (
         <>
             {editor.error && (
@@ -34,6 +42,14 @@ const OrganizationEditorForm = ({editor}: OrganizationEditorFormProps) =>
                     </MessageBarBody>
                 </MessageBar>
             )}
+            <OrganizationTrialActions
+                subscriptionStatus={editor.subscriptionStatus}
+                billingFrequency={editor.billingFrequency}
+                currentPeriodEnd={editor.currentPeriodEnd}
+                disabled={editor.saving}
+                onManageTrial={onManageTrial}
+                onEndTrial={onEndTrial}
+                onConvertTrial={onConvertTrial}/>
             <OrganizationSubscriptionFields editor={editor}/>
             <div
                 id={"platform-organization-seat-usage"}

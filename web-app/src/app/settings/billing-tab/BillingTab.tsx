@@ -24,7 +24,7 @@ const FEATURES: Feature[] = [
         id: "subscription-plans",
         icon: <BuildingFilled id={"settings-billing-subscription-plans-source-icon"}/>,
         title: 'Subscription Plans',
-        description: 'View your current plan while billing management is prepared.',
+        description: 'View your current plan and request an eligible trial.',
     },
     {
         id: "invoice-history",
@@ -88,7 +88,7 @@ const BillingTab = () =>
                     className={styles.tagline}
                     align={"center"}
                 >
-                    Billing management is coming. For now, your current plan details are shown here.
+                    Review your current plan and request a trial. Paid billing management is coming.
                 </Text>
             </div>
 

@@ -16,7 +16,7 @@ export const platformAdministrationOverviewArticle = (
         <p>
             The workspace uses a navigation menu on the left and displays the
             selected section on the right. Choose <b>Organizations</b>,
-            <b>User Subscriptions</b>, <b>Platform Content</b>, or
+            <b>User Subscriptions</b>, <b>Trial Requests</b>, <b>Platform Content</b>, or
             <b> App Administrators</b>. On smaller
             screens, open the navigation menu from the button above the selected
             section.
@@ -72,6 +72,48 @@ export const platformAdministrationOverviewArticle = (
             paid-through period ends, then becomes read-only. Existing data remains
             visible in every status, and existing recipient access continues to use
             the Exchange access rules rather than the recipient&apos;s plan.
+        </p>
+
+        <h3>Trial administration</h3>
+        <p>
+            Eligible users request a Personal trial from Settings, Billing. An authorized
+            organization billing user can request a Business trial while that organization is
+            active. The request immediately appears in <b>Trial Requests</b>, and every active App
+            Administrator receives an in-app notification. Only one request can be pending for an
+            owner at a time.
+        </p>
+        <p>
+            In <b>Trial Requests</b>, filter pending, approved, rejected, or all requests. Approval
+            requires a positive duration and reason, plus positive trial seats for Business. Rejection
+            requires a reason. Decisions require recent step-up authentication, are recorded in
+            Platform Audit, and notify the requester in-app. Approval starts the existing Personal or
+            Business trial lifecycle; a stale request cannot replace an active trial or paid lifecycle.
+        </p>
+        <p>
+            App Administrators can start or extend a Personal trial for an eligible registered
+            user from <b>User Subscriptions</b>. Start is unavailable when paid billing
+            or ineligible subscription state already exists. Use <b>Start trial</b> on an eligible
+            user row, enter a positive duration and audited reason, then confirm. An active trial
+            shows <b>Extend trial</b> instead, where the new end must be after the current end.
+        </p>
+        <p>
+            To manage an eligible organization trial, open the organization editor and select
+            <b>Start Business trial</b> or <b>Extend Business trial</b>. Start is unavailable for a
+            paid or ineligible lifecycle and otherwise requires a positive duration, seat capacity,
+            and audited reason. Defaults are
+            14 days for Personal and 30 days with five seats for Business. Trial actions
+            require recent step-up authentication. After a successful change, the list and
+            current session refresh to show the Trialing status and new period.
+        </p>
+        <p>
+            Use <b>End trial</b> to stop access immediately. Ending a Personal trial moves
+            the user to the active Free plan. Ending a Business trial keeps the Business
+            subscription and existing configuration readable, but expires its period so
+            Business mutations become read-only. Use <b>Convert to paid</b> to select Monthly
+            or Annual billing and a future paid-period end. Business conversion also requires
+            the purchased seat capacity. Conversion keeps the paid target plan and changes its
+            status to Active. Ending and conversion both require an audited reason and recent
+            step-up authentication.
         </p>
 
         <h3>Platform Content</h3>

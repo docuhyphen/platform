@@ -7,9 +7,28 @@ interface UserSubscriptionsTableProps
 {
     items: PlatformUserSubscriptionPolicy[];
     onEdit: (item: PlatformUserSubscriptionPolicy) => void;
+    onTrial: (item: PlatformUserSubscriptionPolicy) => void;
+    onEndTrial: (item: PlatformUserSubscriptionPolicy) => void;
+    onConvertTrial: (item: PlatformUserSubscriptionPolicy) => void;
 }
 
-const UserSubscriptionsTable = ({items, onEdit}: UserSubscriptionsTableProps) =>
+const hasActiveTrial = (item: PlatformUserSubscriptionPolicy): boolean =>
+    item.subscriptionStatus === "TRIALING"
+    && item.currentPeriodEnd !== null
+    && new Date(item.currentPeriodEnd).getTime() > Date.now();
+
+const canStartTrial = (item: PlatformUserSubscriptionPolicy): boolean =>
+    item.billingFrequency === null
+    && (item.subscriptionStatus === "ACTIVE" || item.subscriptionStatus === "TRIALING")
+    && !(item.planCode === "PERSONAL" && item.subscriptionStatus === "ACTIVE");
+
+const UserSubscriptionsTable = ({
+    items,
+    onEdit,
+    onTrial,
+    onEndTrial,
+    onConvertTrial,
+}: UserSubscriptionsTableProps) =>
 {
     const styles = useUserSubscriptionsStyles();
     return (
@@ -41,14 +60,44 @@ const UserSubscriptionsTable = ({items, onEdit}: UserSubscriptionsTableProps) =>
                             <TableCell>{item.subscriptionStatus}</TableCell>
                             <TableCell>{item.currentPeriodEnd ? new Date(item.currentPeriodEnd).toLocaleDateString() : "Not set"}</TableCell>
                             <TableCell className={styles.actions}>
-                                <Button
-                                    id={`platform-user-subscription-edit-${item.appUserId}`}
-                                    appearance={"subtle"}
-                                    shape={"circular"}
-                                    icon={<EditRegular/>}
-                                    onClick={() => onEdit(item)}>
-                                    Edit
-                                </Button>
+                                <div
+                                    id={`platform-user-subscription-actions-${item.appUserId}`}
+                                    className={styles.actionButtons}>
+                                    <Button
+                                        id={`platform-user-subscription-trial-${item.appUserId}`}
+                                        appearance={"subtle"}
+                                        shape={"circular"}
+                                        disabled={!hasActiveTrial(item) && !canStartTrial(item)}
+                                        onClick={() => onTrial(item)}>
+                                        {hasActiveTrial(item) ? "Extend trial" : "Start trial"}
+                                    </Button>
+                                    {item.subscriptionStatus === "TRIALING" && (
+                                        <>
+                                            <Button
+                                                id={`platform-user-subscription-end-trial-${item.appUserId}`}
+                                                appearance={"subtle"}
+                                                shape={"circular"}
+                                                onClick={() => onEndTrial(item)}>
+                                                End trial
+                                            </Button>
+                                            <Button
+                                                id={`platform-user-subscription-convert-trial-${item.appUserId}`}
+                                                appearance={"subtle"}
+                                                shape={"circular"}
+                                                onClick={() => onConvertTrial(item)}>
+                                                Convert to paid
+                                            </Button>
+                                        </>
+                                    )}
+                                    <Button
+                                        id={`platform-user-subscription-edit-${item.appUserId}`}
+                                        appearance={"subtle"}
+                                        shape={"circular"}
+                                        icon={<EditRegular/>}
+                                        onClick={() => onEdit(item)}>
+                                        Edit
+                                    </Button>
+                                </div>
                             </TableCell>
                         </TableRow>
                     ))}
@@ -64,4 +113,3 @@ const UserSubscriptionsTable = ({items, onEdit}: UserSubscriptionsTableProps) =>
 };
 
 export default UserSubscriptionsTable;
-

@@ -85,11 +85,6 @@ class SubscriptionPolicyService @Inject constructor(
         organizationSubscriptionPolicyRepository.save(policy)
     }
 
-    fun deleteOrganizationPolicy(policy: OrganizationSubscriptionPolicy)
-    {
-        organizationSubscriptionPolicyRepository.delete(policy)
-    }
-
     /**
      * Guarantees a registered account owns an individual subscription. New accounts start on the
      * default individual plan. An account that already has a record keeps it untouched so a

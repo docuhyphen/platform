@@ -7,6 +7,21 @@ import java.util.Properties
 class ProductionSubscriptionEnforcementConfigurationTest
 {
     @Test
+    fun `every environment defaults subscription enforcement to enforce`()
+    {
+        val properties = Properties()
+        val resource = requireNotNull(
+            javaClass.classLoader.getResourceAsStream("application.properties"),
+        ) { "application.properties is missing" }
+        resource.use(properties::load)
+
+        assertEquals(
+            "\${APP_SUBSCRIPTION_ENFORCEMENT_MODE:ENFORCE}",
+            properties.getProperty("app.subscription.enforcement.mode"),
+        )
+    }
+
+    @Test
     fun `production defaults subscription enforcement to enforce`()
     {
         val properties = Properties()

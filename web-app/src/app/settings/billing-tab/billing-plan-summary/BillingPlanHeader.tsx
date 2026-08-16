@@ -4,14 +4,14 @@ const PRICING_URL = "https://www.docuhyphen.com/pricing";
 
 interface BillingPlanHeaderProps
 {
-    planName: string;
+    planTitle: string;
     status: string;
     planHeaderClassName: string;
     planTitleClassName: string;
 }
 
 const BillingPlanHeader = ({
-    planName,
+    planTitle,
     status,
     planHeaderClassName,
     planTitleClassName,
@@ -29,7 +29,7 @@ const BillingPlanHeader = ({
                 weight={"semibold"}
                 size={500}
             >
-                {planName} plan
+                {planTitle}
             </Text>
             <Caption1 id={"settings-billing-current-plan-status"}>
                 {status}

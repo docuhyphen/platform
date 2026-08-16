@@ -7,6 +7,15 @@ const firstValue = (...values: unknown[]): string | undefined =>
 export const getNotificationTarget = (notification: NotificationDto): string | null =>
 {
     const data = notification.data ?? {};
+    if (notification.type === "subscription_trial_request.created")
+    {
+        return "/platform/administration?section=trial-requests";
+    }
+    if (notification.type === "subscription_trial_request.approved"
+        || notification.type === "subscription_trial_request.rejected")
+    {
+        return "/settings?tab=OrganizationBillingTab";
+    }
     const subjectExchangeId = data.subjectType === 'EXCHANGE' ? data.subjectId : undefined;
     const exchangeId = firstValue(
         notification.exchangeId,

@@ -1,5 +1,12 @@
 import {useCallback, useEffect, useState} from "react";
-import {fetchPlatformUserSubscriptions, updatePlatformUserSubscription} from "../../../services/platformUserSubscriptionApi.ts";
+import {
+    extendPlatformUserSubscriptionTrial,
+    endPlatformUserSubscriptionTrial,
+    convertPlatformUserSubscriptionTrial,
+    fetchPlatformUserSubscriptions,
+    startPlatformUserSubscriptionTrial,
+    updatePlatformUserSubscription,
+} from "../../../services/platformUserSubscriptionApi.ts";
 import {PlatformApiError} from "../../../services/platformOrganizationApi.ts";
 import {PlatformUserSubscriptionPolicy, PlatformUserSubscriptionPolicyRequest} from "../../../services/types/platformUserSubscriptions.ts";
 
@@ -42,12 +49,60 @@ export const useUserSubscriptions = () =>
         await load();
     };
 
+    const startTrial = async (
+        user: PlatformUserSubscriptionPolicy,
+        durationDays: number,
+        reason: string,
+    ) =>
+    {
+        await startPlatformUserSubscriptionTrial(user.appUserId, {
+            planCode: "PERSONAL",
+            durationDays,
+            reason,
+        });
+        await load();
+    };
+
+    const extendTrial = async (
+        user: PlatformUserSubscriptionPolicy,
+        currentPeriodEnd: string,
+        reason: string,
+    ) =>
+    {
+        await extendPlatformUserSubscriptionTrial(user.appUserId, {currentPeriodEnd, reason});
+        await load();
+    };
+
+    const endTrial = async (user: PlatformUserSubscriptionPolicy, reason: string) =>
+    {
+        await endPlatformUserSubscriptionTrial(user.appUserId, {reason});
+        await load();
+    };
+
+    const convertTrial = async (
+        user: PlatformUserSubscriptionPolicy,
+        billingFrequency: "MONTHLY" | "ANNUAL",
+        currentPeriodEnd: string,
+        reason: string,
+    ) =>
+    {
+        await convertPlatformUserSubscriptionTrial(user.appUserId, {
+            billingFrequency,
+            currentPeriodEnd,
+            reason,
+        });
+        await load();
+    };
+
     return {
         items, query, offset, total, loading, error,
         pageSize: PAGE_SIZE,
         setQuery: (value: string) => { setQuery(value); setOffset(0); },
         setOffset,
         save,
+        startTrial,
+        extendTrial,
+        endTrial,
+        convertTrial,
     };
 };
-

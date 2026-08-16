@@ -73,3 +73,57 @@ data class PlatformUserSubscriptionPolicyListResponse(
     val offset: Int,
     val items: List<PlatformUserSubscriptionPolicyResponse>,
 )
+
+@Serializable
+data class PlatformSubscriptionTrialStartRequest(
+    val planCode: String,
+    val durationDays: Int? = null,
+    val seatCapacity: Long? = null,
+    val reason: String,
+)
+
+@Serializable
+data class PlatformSubscriptionTrialExtensionRequest(
+    val currentPeriodEnd: String,
+    val reason: String,
+)
+
+@Serializable
+data class PlatformSubscriptionTrialEndRequest(
+    val reason: String,
+)
+
+@Serializable
+data class PlatformSubscriptionTrialConversionRequest(
+    val billingFrequency: String,
+    val currentPeriodEnd: String,
+    val seatCapacity: Long? = null,
+    val reason: String,
+)
+
+@Serializable
+data class PlatformSubscriptionTrialResponse(
+    val ownerType: String,
+    val ownerId: String,
+    val planCode: String,
+    val subscriptionStatus: String,
+    val currentPeriodStart: String? = null,
+    val currentPeriodEnd: String? = null,
+    val seatCapacity: Long? = null,
+    val grantId: String,
+    val grantSource: String,
+    val reason: String,
+)
+
+@Serializable
+data class PlatformSubscriptionTrialTransitionResponse(
+    val ownerType: String,
+    val ownerId: String,
+    val planCode: String,
+    val subscriptionStatus: String,
+    val billingFrequency: String? = null,
+    val currentPeriodStart: String? = null,
+    val currentPeriodEnd: String? = null,
+    val seatCapacity: Long? = null,
+    val reason: String,
+)

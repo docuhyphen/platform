@@ -6,6 +6,7 @@ import com.docuhyphen.app.api.resource.model.PlatformUserSubscriptionPolicyReque
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.service.auth.AdminApprovalContext
 import com.docuhyphen.app.api.service.auth.PlatformUserSubscriptionPolicyService
+import io.quarkus.security.ForbiddenException
 import io.quarkus.security.UnauthorizedException
 import jakarta.inject.Inject
 import jakarta.ws.rs.Consumes
@@ -112,7 +113,9 @@ class PlatformUserSubscriptionPolicyResource @Inject constructor(
         logger.error(message, exception)
         return when (exception)
         {
-            is UnauthorizedException -> Response.status(Response.Status.FORBIDDEN)
+            is UnauthorizedException -> Response.status(Response.Status.UNAUTHORIZED)
+                .entity(ResponseError(exception.message)).build()
+            is ForbiddenException -> Response.status(Response.Status.FORBIDDEN)
                 .entity(ResponseError(exception.message)).build()
             is IllegalArgumentException -> Response.status(Response.Status.BAD_REQUEST)
                 .entity(ResponseError(exception.message)).build()

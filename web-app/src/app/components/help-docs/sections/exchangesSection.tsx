@@ -64,6 +64,12 @@ export const exchangesSection: HelpDocSectionInput = {
                         Open Settings, then Billing, to see the current plan. Free shows Exchanges
                         created this month, open Exchanges, and the monthly reset date. Authorized
                         Business billing users also see active seats and purchased capacity.
+                        An active Personal or Business trial is labeled as a trial and shows its
+                        end date and whole days remaining. An expired trial shows zero days remaining.
+                        Ending a Personal trial changes the current plan to Free. Ending a Business
+                        trial preserves readable Business data while its mutation access remains expired.
+                        When eligible, use <b>Request Personal trial</b> or <b>Request Business trial</b>
+                        in Billing. A pending request shows its review status and App Administrators are notified.
                         Use <b>Compare plans and features</b> in Billing to open the website pricing
                         comparison. Switching the active organization refreshes this summary without
                         requiring another sign-in.

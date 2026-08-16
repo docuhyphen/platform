@@ -318,10 +318,10 @@ class SubscriptionAccessServiceTest
     }
 
     @Test
-    fun `an unrecognised configured mode falls back to the non blocking default`()
+    fun `an unrecognised configured mode falls back to enforced decisions`()
     {
         assertEquals(
-            SubscriptionEnforcementConfigService.DEFAULT_MODE,
+            SubscriptionEnforcementMode.ENFORCE,
             SubscriptionEnforcementConfigService("not-a-mode").mode(),
         )
     }
