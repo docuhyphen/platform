@@ -1,4 +1,4 @@
-import {Field, Input, Textarea} from '@fluentui/react-components';
+import {Field, InfoLabel, Input, Textarea} from '@fluentui/react-components';
 import {useFieldsTabStyles} from './FieldsTabStyles';
 
 export interface SchemaIdentity
@@ -22,7 +22,12 @@ const SchemaIdentityFields = ({identity, update}: Props) =>
     return (
         <>
             <div className={styles.twoColumn}>
-                <Field label="Namespace"
+                <Field id="schema-namespace-field"
+                       label={(
+                           <InfoLabel info="Groups related schemas and forms the first part of the stable schema identifier. Use lowercase letters, numbers, and hyphens.">
+                               Namespace
+                           </InfoLabel>
+                       )}
                        required
                        className={styles.grow}>
                     <Input id="schema-namespace"
@@ -30,7 +35,12 @@ const SchemaIdentityFields = ({identity, update}: Props) =>
                            placeholder="e.g. acme"
                            onChange={(_, d) => update({namespace: d.value})}/>
                 </Field>
-                <Field label="Schema key"
+                <Field id="schema-key-field"
+                       label={(
+                           <InfoLabel info="Uniquely identifies this schema within its namespace. Use lowercase letters, numbers, and hyphens because the key remains stable after creation.">
+                               Schema key
+                           </InfoLabel>
+                       )}
                        required
                        className={styles.grow}>
                     <Input id="schema-key"

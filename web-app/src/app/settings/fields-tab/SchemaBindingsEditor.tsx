@@ -1,8 +1,8 @@
-import {Button, Dropdown, Option, Switch, Text} from '@fluentui/react-components';
+import {useState} from 'react';
+import {Button, Combobox, Option, Switch, Text} from '@fluentui/react-components';
 import {ArrowUpRegular, ArrowDownRegular, DeleteRegular} from '@fluentui/react-icons';
 import {FieldDefinitionDto} from '../../models/models';
 import {useFieldsTabStyles} from './FieldsTabStyles';
-
 export interface BindingDraft
 {
     fieldContractId: string;
@@ -11,19 +11,24 @@ export interface BindingDraft
     isRequired: boolean;
     isReadOnly: boolean;
 }
-
 interface Props
 {
     definitions: FieldDefinitionDto[];
     bindings: BindingDraft[];
     onChange: (bindings: BindingDraft[]) => void;
 }
-
 const SchemaBindingsEditor = ({definitions, bindings, onChange}: Props) =>
 {
     const styles = useFieldsTabStyles();
+    const [fieldSearch, setFieldSearch] = useState('');
     const usedIds = new Set(bindings.map(b => b.fieldContractId));
     const available = definitions.filter(d => d.latestContract && !usedIds.has(d.latestContract.id));
+    const normalizedSearch = fieldSearch.trim().toLowerCase();
+    const filteredAvailable = available.filter(definition =>
+    {
+        const searchableText = `${definition.latestContract?.label ?? ''} ${definition.namespace}:${definition.fieldKey}`;
+        return searchableText.toLowerCase().includes(normalizedSearch);
+    });
 
     const move = (index: number, delta: number) =>
     {
@@ -51,6 +56,7 @@ const SchemaBindingsEditor = ({definitions, bindings, onChange}: Props) =>
             isRequired: false,
             isReadOnly: false,
         }]);
+        setFieldSearch('');
     };
 
     return (
@@ -104,19 +110,38 @@ const SchemaBindingsEditor = ({definitions, bindings, onChange}: Props) =>
                     </div>
                 </div>
             ))}
-            <Dropdown id="binding-add-dropdown"
-                      placeholder="Add a field..."
-                      selectedOptions={[]}
-                      value=""
-                      disabled={available.length === 0}
-                      onOptionSelect={(_, d) => add(d.optionValue as string)}>
-                {available.map(definition => (
-                    <Option key={definition.id}
-                            value={definition.id}>
+            <Combobox
+                id="binding-add-combobox"
+                placeholder={available.length === 0 ? 'All fields added' : 'Search fields to add...'}
+                value={fieldSearch}
+                selectedOptions={[]}
+                disabled={available.length === 0}
+                onInput={event => setFieldSearch((event.target as HTMLInputElement).value)}
+                onOptionSelect={(_, data) =>
+                {
+                    if (data.optionValue) add(data.optionValue);
+                }}
+            >
+                {filteredAvailable.map(definition => (
+                    <Option
+                        id={`binding-add-option-${definition.id}`}
+                        key={definition.id}
+                        value={definition.id}
+                        text={`${definition.latestContract?.label} (${definition.namespace}:${definition.fieldKey})`}
+                    >
                         {`${definition.latestContract?.label} (${definition.namespace}:${definition.fieldKey})`}
                     </Option>
                 ))}
-            </Dropdown>
+                {available.length > 0 && filteredAvailable.length === 0 && (
+                    <Option
+                        id="binding-add-no-results"
+                        value=""
+                        disabled
+                    >
+                        No matching fields
+                    </Option>
+                )}
+            </Combobox>
         </div>
     );
 };

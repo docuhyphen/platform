@@ -50,6 +50,8 @@ export const useIndustryExperienceStyles = makeStyles({
         overflowX: "auto",
         paddingBottom: tokens.spacingVerticalXS,
         scrollbarWidth: "none",
+        maxWidth: "73rem",
+        margin: "auto",
 
         "&::-webkit-scrollbar": {
             display: "none",

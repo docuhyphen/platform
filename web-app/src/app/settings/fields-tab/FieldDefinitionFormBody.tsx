@@ -1,4 +1,4 @@
-import {Combobox, Dropdown, Field, Input, Option, Textarea} from '@fluentui/react-components';
+import {Combobox, Dropdown, Field, InfoLabel, Input, Option, Textarea} from '@fluentui/react-components';
 import {FieldDataClassification, FieldOption, FieldValueType} from '../../models/models';
 import {useFieldsTabStyles} from './FieldsTabStyles';
 import {CLASSIFICATION_LABELS, typeSupportsOptions, VALUE_TYPE_LABELS} from './fieldLabels';
@@ -31,7 +31,12 @@ const FieldDefinitionFormBody = ({form, update, error, existingNamespaces = []}:
         <div id="field-definition-dialog-body"
              className={styles.drawerBody}>
             <div className={styles.twoColumn}>
-                <Field label="Namespace"
+                <Field id="field-def-namespace-field"
+                       label={(
+                           <InfoLabel info="Groups related fields and forms the first part of the stable field identifier. Select an existing namespace or enter one using lowercase letters, numbers, and hyphens.">
+                               Namespace
+                           </InfoLabel>
+                       )}
                        required
                        className={styles.grow}>
                     <Combobox id="field-def-namespace"
@@ -48,7 +53,12 @@ const FieldDefinitionFormBody = ({form, update, error, existingNamespaces = []}:
                         ))}
                     </Combobox>
                 </Field>
-                <Field label="Field key"
+                <Field id="field-def-key-field"
+                       label={(
+                           <InfoLabel info="Uniquely identifies this field within its namespace. Use lowercase letters, numbers, and hyphens because the key remains stable after creation.">
+                               Field key
+                           </InfoLabel>
+                       )}
                        required
                        className={styles.grow}>
                     <Input id="field-def-key"
@@ -72,7 +82,12 @@ const FieldDefinitionFormBody = ({form, update, error, existingNamespaces = []}:
                         ))}
                     </Dropdown>
                 </Field>
-                <Field label="Classification"
+                <Field id="field-def-classification-field"
+                       label={(
+                           <InfoLabel info="Sets the field's default sensitivity when it is added to a schema. Classification does not grant access by itself.">
+                               Classification
+                           </InfoLabel>
+                       )}
                        className={styles.grow}>
                     <Dropdown id="field-def-classification"
                               value={CLASSIFICATION_LABELS[form.classification]}
@@ -94,7 +109,12 @@ const FieldDefinitionFormBody = ({form, update, error, existingNamespaces = []}:
                        placeholder="e.g. Customer reference"
                        onChange={(_, d) => update({label: d.value})}/>
             </Field>
-            <Field label="Help text">
+            <Field id="field-def-help-field"
+                   label={(
+                       <InfoLabel info="Optional guidance shown to people completing this field on an Exchange.">
+                           Help text
+                       </InfoLabel>
+                   )}>
                 <Textarea id="field-def-help"
                           value={form.helpText}
                           rows={2}

@@ -47,7 +47,7 @@ export const fieldsOverviewArticle = (
 
         <h3>Organization fields and schemas</h3>
         <p>
-            Open <b>Settings</b> and select the <b>Fields</b> tab. It is available to
+            Open <b>Settings</b>, then select <b>Content - Fields</b>. It is available to
             organization administrators on the organization&apos;s Business plan. An App Administrator needs a separate Organization
             Admin role in the active organization to manage that organization's fields and
             schemas. Platform fields and schemas can be viewed here when available, but their
@@ -57,6 +57,13 @@ export const fieldsOverviewArticle = (
             <li><b>Fields</b> - create and retire reusable field definitions.</li>
             <li><b>Schemas</b> - compose fields into schemas, publish, and version them.</li>
         </ul>
+        <p>
+            When creating a field, use the information icons beside Namespace, Field key,
+            Classification, and Help text for guidance. When creating a schema, the Namespace
+            and Schema key labels provide the same identifier guidance. In the schema&apos;s Fields
+            control, type a field label, namespace, or key to filter the available fields before
+            adding one.
+        </p>
         <p>
             If the Business entitlement or mutation access is unavailable, existing definitions,
             schemas, assignments, and values stay readable, but configuration changes are refused.

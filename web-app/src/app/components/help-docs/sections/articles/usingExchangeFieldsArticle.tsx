@@ -13,9 +13,10 @@ export const usingExchangeFieldsArticle = (
         <p>
             You can classify an Exchange in two places. When you start a new Exchange and your
             organization has at least one eligible published schema, the creation wizard shows a
-            <b> Business Fields</b> step: pick a schema and fill in its values before you select
-            <b> Start Exchange</b>. The values are saved with the Exchange as it is created. You can
-            also do this later: open an Exchange and select the <b>Details</b> tab.
+            <b> Business Fields</b> step. Search by schema name, namespace, or schema key, then pick
+            a schema and fill in its values before you select <b>Start Exchange</b>. The values are
+            saved with the Exchange as it is created. You can also do this later: open an Exchange
+            and select the <b>Details</b> tab.
         </p>
         <p>
             While the Exchange is still a draft (status <b>Pending</b>), choose a published schema
