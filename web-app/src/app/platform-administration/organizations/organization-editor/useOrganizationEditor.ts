@@ -84,8 +84,11 @@ export const useOrganizationEditor = (
     const removeEntitlement = (index: number) =>
         setEntitlements((current) => current.filter((_, itemIndex) => itemIndex !== index));
 
-    const addEntitlement = () =>
-        setEntitlements((current) => [...current, {featureCode: "", enabled: true}]);
+    const setEntitlementFeatureCodes = (featureCodes: string[]) =>
+        setEntitlements((current) => featureCodes.map((featureCode) =>
+            current.find((entitlement) => entitlement.featureCode === featureCode)
+            ?? {featureCode, enabled: true},
+        ));
 
     const save = async () =>
     {
@@ -183,7 +186,7 @@ export const useOrganizationEditor = (
         setChangeReason,
         updateEntitlement,
         removeEntitlement,
-        addEntitlement,
+        setEntitlementFeatureCodes,
         save,
     };
 };

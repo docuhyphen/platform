@@ -46,7 +46,9 @@ const OrganizationEditorDialog = ({organization, onDismiss, onSaved}: Organizati
             <Dialog
                 open={organization !== null && !trialOpen && trialTransitionMode === null}
                 onOpenChange={(_, data) => !data.open && !editor.saving && onDismiss()}>
-                <DialogSurface id={"platform-organization-editor-surface"}>
+                <DialogSurface
+                    id={"platform-organization-editor-surface"}
+                    className={styles.dialogSurface}>
                 <DialogBody
                     id={"platform-organization-editor-body"}
                     className={styles.dialogBody}>

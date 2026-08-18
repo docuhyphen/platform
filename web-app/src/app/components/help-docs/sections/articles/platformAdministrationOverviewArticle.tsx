@@ -28,7 +28,9 @@ export const platformAdministrationOverviewArticle = (
             the global App Admin role. The last effective App Administrator
             cannot be revoked, and you cannot revoke your own assignment.
             Lists, candidate searches, grants, revocations, and denied attempts
-            are recorded in Platform Audit.
+            are recorded in Platform Audit. The earliest effective App Administrator
+            receives operational emails for new registered users, organization members,
+            organization registrations, trial requests, and sales enquiries.
         </p>
 
         <h3>Organizations</h3>
@@ -79,8 +81,8 @@ export const platformAdministrationOverviewArticle = (
             Eligible users request a Personal trial from Settings, Billing. An authorized
             organization billing user can request a Business trial while that organization is
             active. The request immediately appears in <b>Trial Requests</b>, and every active App
-            Administrator receives an in-app notification. Only one request can be pending for an
-            owner at a time.
+            Administrator receives an in-app notification. The earliest effective App Administrator
+            also receives an email. Only one request can be pending for an owner at a time.
         </p>
         <p>
             In <b>Trial Requests</b>, filter pending, approved, rejected, or all requests. Approval

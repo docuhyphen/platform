@@ -169,4 +169,31 @@ describe("useOrganizationEditor", () =>
         expect(refreshCurrentSession).toHaveBeenCalledTimes(1);
         expect(onSaved).toHaveBeenCalledTimes(1);
     });
+
+    it("adds selected feature overrides and preserves their enabled state", async () =>
+    {
+        const organizationWithFeature = {
+            ...organization,
+            featureEntitlements: [{featureCode: "WORKFLOW_AUTOMATION", enabled: false}],
+        };
+        const {result} = renderHook(() => useOrganizationEditor(
+            organizationWithFeature,
+            vi.fn(),
+            vi.fn().mockResolvedValue(null),
+        ));
+        await waitFor(() => expect(result.current.entitlements).toHaveLength(1));
+
+        act(() =>
+        {
+            result.current.setEntitlementFeatureCodes([
+                "WORKFLOW_AUTOMATION",
+                "AUDIT_GOVERNANCE",
+            ]);
+        });
+
+        expect(result.current.entitlements).toEqual([
+            {featureCode: "WORKFLOW_AUTOMATION", enabled: false},
+            {featureCode: "AUDIT_GOVERNANCE", enabled: true},
+        ]);
+    });
 });

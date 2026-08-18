@@ -6,6 +6,7 @@ import com.docuhyphen.app.api.repository.subscription.SubscriptionTrialRequestRe
 import com.docuhyphen.app.api.service.user.AppUserService
 import com.docuhyphen.app.api.service.auth.UserRoleService
 import com.docuhyphen.app.api.service.notification.InAppNotificationService
+import com.docuhyphen.app.api.service.notification.AppAdminNotificationService
 import com.docuhyphen.app.api.service.organization.OrganizationService
 import jakarta.persistence.PersistenceException
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -27,6 +28,7 @@ class SubscriptionTrialRequestServiceTest
     private val notificationService: InAppNotificationService = mock()
     private val appUserService: AppUserService = mock()
     private val organizationService: OrganizationService = mock()
+    private val appAdminNotificationService: AppAdminNotificationService = mock()
     private val service = SubscriptionTrialRequestService(
         repository,
         eligibilityService,
@@ -34,6 +36,7 @@ class SubscriptionTrialRequestServiceTest
         notificationService,
         appUserService,
         organizationService,
+        appAdminNotificationService,
     )
     private val requesterId = UUID.randomUUID()
 
@@ -59,6 +62,13 @@ class SubscriptionTrialRequestServiceTest
         )
         verify(notificationService).publishAdministrative(
             eq(adminTwo), eq("subscription_trial_request.created"), any(), any(), any(),
+        )
+        verify(appAdminNotificationService).notifySubscriptionTrialRequest(
+            requesterName = eq("requester@example.test"),
+            requesterEmail = eq("requester@example.test"),
+            ownerName = eq("requester@example.test"),
+            planCode = eq(PlanCode.PERSONAL.name),
+            requestId = any(),
         )
     }
 

@@ -6,11 +6,13 @@ import com.docuhyphen.app.api.repository.subscription.SubscriptionTrialRequestRe
 import com.docuhyphen.app.api.service.user.AppUserService
 import com.docuhyphen.app.api.service.auth.UserRoleService
 import com.docuhyphen.app.api.service.notification.InAppNotificationService
+import com.docuhyphen.app.api.service.notification.AppAdminNotificationService
 import com.docuhyphen.app.api.service.organization.OrganizationService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.persistence.PersistenceException
 import jakarta.transaction.Transactional
+import org.slf4j.LoggerFactory
 import java.sql.SQLException
 import java.sql.Timestamp
 import java.time.Instant
@@ -24,6 +26,7 @@ class SubscriptionTrialRequestService @Inject constructor(
     private val notificationService: InAppNotificationService,
     private val appUserService: AppUserService,
     private val organizationService: OrganizationService,
+    private val appAdminNotificationService: AppAdminNotificationService,
 )
 {
     @Transactional
@@ -66,6 +69,17 @@ class SubscriptionTrialRequestService @Inject constructor(
         }
         val view = view(request)
         notifyAppAdministrators(view)
+        runCatching {
+            appAdminNotificationService.notifySubscriptionTrialRequest(
+                requesterName = view.requesterName,
+                requesterEmail = view.requesterEmail,
+                ownerName = view.ownerName,
+                planCode = view.request.planCode,
+                requestId = view.request.id.toString(),
+            )
+        }.onFailure {
+            logger.warn("Failed to notify an App Administrator about trial request {}", view.request.id, it)
+        }
         return view
     }
 
@@ -174,6 +188,7 @@ class SubscriptionTrialRequestService @Inject constructor(
 
     companion object
     {
+        private val logger = LoggerFactory.getLogger(SubscriptionTrialRequestService::class.java)
         private const val UNIQUE_VIOLATION_SQL_STATE = "23505"
     }
 }

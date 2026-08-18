@@ -10,6 +10,7 @@ import com.docuhyphen.app.api.repository.identity.IdentityProviderLinkRepository
 import com.docuhyphen.app.api.service.user.AppUserService
 import com.docuhyphen.app.api.service.auth.idp.OAuthUserInfo
 import com.docuhyphen.app.api.service.organization.OrganizationMembershipService
+import com.docuhyphen.app.api.service.notification.AppAdminNotificationService
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -28,11 +29,13 @@ class OAuthUserLinkingServiceTest
     private val linkRepository = mock<IdentityProviderLinkRepository>()
     private val authenticationService = mock<AuthenticationService>()
     private val membershipService = mock<OrganizationMembershipService>()
+    private val appAdminNotificationService = mock<AppAdminNotificationService>()
     private val service = OAuthUserLinkingService(
         appUserService,
         linkRepository,
         authenticationService,
         membershipService,
+        appAdminNotificationService,
     )
 
     @Test
@@ -78,6 +81,10 @@ class OAuthUserLinkingServiceTest
             organizationId = organization.id,
             role = OrganizationRoleName.ORG_MEMBER,
             isPrimary = true,
+        )
+        verify(appAdminNotificationService).notifyNewUserRegistration(
+            savedUser.email,
+            IdentityProviderType.GOOGLE.displayName,
         )
     }
 

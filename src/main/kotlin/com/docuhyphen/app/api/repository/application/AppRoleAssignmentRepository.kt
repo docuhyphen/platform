@@ -52,6 +52,23 @@ class AppRoleAssignmentRepository : BaseRepository<AppRoleAssignment>(AppRoleAss
             .setParameter("role", AppRoleName.APP_ADMIN)
             .resultList
 
+    fun findFirstActiveAppAdmin(): AppRoleAssignment? =
+        entityManager.createQuery(
+            """SELECT r FROM AppRoleAssignment r, AppUser u
+               WHERE r.roleName = :role
+                 AND u.id = r.appUserId
+                 AND r.isActive = true
+                 AND (r.expiresAt IS NULL OR r.expiresAt > CURRENT_TIMESTAMP)
+                 AND u.isActive = true
+                 AND u.deprovisionedAt IS NULL
+               ORDER BY r.grantedAt ASC, r.id ASC""",
+            AppRoleAssignment::class.java,
+        )
+            .setParameter("role", AppRoleName.APP_ADMIN)
+            .setMaxResults(1)
+            .resultList
+            .firstOrNull()
+
     fun isEffective(assignmentId: UUID): Boolean =
         entityManager.createQuery(
             """SELECT COUNT(r) FROM AppRoleAssignment r, AppUser u

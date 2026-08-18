@@ -12,6 +12,7 @@ import com.docuhyphen.app.api.repository.identity.IdentityProviderLinkRepository
 import com.docuhyphen.app.api.service.user.AppUserService
 import com.docuhyphen.app.api.service.auth.idp.OAuthUserInfo
 import com.docuhyphen.app.api.service.organization.OrganizationMembershipService
+import com.docuhyphen.app.api.service.notification.AppAdminNotificationService
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
@@ -33,6 +34,7 @@ class OAuthUserLinkingService @Inject constructor(
     private val identityProviderLinkRepository: IdentityProviderLinkRepository,
     private val authenticationService: AuthenticationService,
     private val organizationMembershipService: OrganizationMembershipService,
+    private val appAdminNotificationService: AppAdminNotificationService,
 )
 {
     companion object
@@ -166,6 +168,19 @@ class OAuthUserLinkingService @Inject constructor(
             this.externalEmail = userInfo.email
         }
         identityProviderLinkRepository.save(link)
+
+        runCatching {
+            appAdminNotificationService.notifyNewUserRegistration(
+                email = savedUser.email,
+                registrationMethod = provider.displayName,
+            )
+        }.onFailure {
+            logger.warn(
+                "Failed to notify an App Administrator about OAuth user {}",
+                savedUser.email.maskEmailForLogs(),
+                it,
+            )
+        }
 
         return LinkOrCreateResult(appUser = savedUser, isNewUser = true)
     }

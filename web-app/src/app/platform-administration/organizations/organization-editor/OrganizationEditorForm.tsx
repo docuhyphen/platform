@@ -1,5 +1,4 @@
 import {
-    Button,
     Caption1,
     Checkbox,
     Field,
@@ -8,8 +7,8 @@ import {
     Spinner,
     Textarea,
 } from "@fluentui/react-components";
-import {AddRegular} from "@fluentui/react-icons";
 import OrganizationEntitlementRow from "./OrganizationEntitlementRow.tsx";
+import OrganizationFeatureSelector from "./OrganizationFeatureSelector.tsx";
 import OrganizationSubscriptionFields from "./OrganizationSubscriptionFields.tsx";
 import OrganizationTrialActions from "./organization-trial-actions/OrganizationTrialActions.tsx";
 import {useOrganizationEditorStyles} from "./OrganizationEditorStyles.tsx";
@@ -95,24 +94,19 @@ const OrganizationEditorForm = ({
             <div
                 id={"platform-organization-entitlements"}
                 className={styles.entitlements}>
+                <OrganizationFeatureSelector
+                    selectedFeatures={editor.entitlements.map((entitlement) => entitlement.featureCode)}
+                    disabled={editor.saving}
+                    onChange={editor.setEntitlementFeatureCodes}/>
                 {editor.entitlements.map((entitlement, index) => (
                     <OrganizationEntitlementRow
-                        key={index}
+                        key={entitlement.featureCode}
                         index={index}
                         entitlement={entitlement}
                         disabled={editor.saving}
                         onChange={editor.updateEntitlement}
                         onRemove={editor.removeEntitlement}/>
                 ))}
-                <Button
-                    id={"platform-organization-add-entitlement"}
-                    appearance={"subtle"}
-                    shape={"circular"}
-                    icon={<AddRegular/>}
-                    disabled={editor.saving || editor.entitlements.length >= 100}
-                    onClick={editor.addEntitlement}>
-                    Add feature
-                </Button>
             </div>
         </>
     );

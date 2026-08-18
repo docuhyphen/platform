@@ -16,6 +16,7 @@ import com.docuhyphen.app.api.service.communication.EmailTemplateService
 import com.docuhyphen.app.api.service.communication.OtpService
 import com.docuhyphen.app.api.service.config.ConfigurationService
 import com.docuhyphen.app.api.service.subscription.SubscriptionPolicyService
+import com.docuhyphen.app.api.service.notification.AppAdminNotificationService
 import org.mindrot.jbcrypt.BCrypt
 import org.mockito.kotlin.any
 import org.mockito.kotlin.mock
@@ -58,6 +59,7 @@ internal class SignUpPermutationFixture(
         mock<DisposableEmailDomainService>(),
         mock<SubscriptionPolicyService>(),
         mock<com.docuhyphen.app.api.service.organization.OrganizationMembershipService>(),
+        mock<AppAdminNotificationService>(),
     )
 
     init
@@ -76,10 +78,7 @@ internal class SignUpPermutationFixture(
         whenever(authenticationService.hashPassword(password, "salt")).thenReturn("hash")
         whenever(configurationService.getMaxSignUpCompletionOtpAttempts()).thenReturn(5)
         whenever(configurationService.emailSubjectTitle).thenReturn("DocuHyphen")
-        whenever(configurationService.getNewUserNotificationEmail()).thenReturn("admin@example.test")
         whenever(emailTemplateService.renderSignUpCompletionEmail(normalizedEmail)).thenReturn("completed")
-        whenever(emailTemplateService.renderNewUserRegistrationNotificationEmail(normalizedEmail))
-            .thenReturn("registered")
         whenever(userContactService.backfillContactAppUserIdForEmail(normalizedEmail, temporaryUser.id))
             .thenReturn(0)
         whenever(exchangeRepository.findByRecipientId(temporaryUser.id)).thenReturn(emptyList())

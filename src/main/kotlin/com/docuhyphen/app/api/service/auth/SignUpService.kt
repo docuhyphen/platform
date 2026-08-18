@@ -18,6 +18,7 @@ import com.docuhyphen.app.api.service.communication.EmailService
 import com.docuhyphen.app.api.service.communication.EmailTemplateService
 import com.docuhyphen.app.api.service.communication.OtpService
 import com.docuhyphen.app.api.service.config.ConfigurationService
+import com.docuhyphen.app.api.service.notification.AppAdminNotificationService
 import com.docuhyphen.app.api.service.subscription.SubscriptionPolicyService
 import com.docuhyphen.app.api.service.organization.OrganizationMembershipService
 import jakarta.enterprise.context.ApplicationScoped
@@ -44,6 +45,7 @@ class SignUpService @Inject constructor(
     private val disposableEmailDomainService: DisposableEmailDomainService,
     private val subscriptionPolicyService: SubscriptionPolicyService,
     private val organizationMembershipService: OrganizationMembershipService,
+    private val appAdminNotificationService: AppAdminNotificationService,
 )
 {
     companion object
@@ -539,6 +541,9 @@ class SignUpService @Inject constructor(
         runCatching { createInternalIdpLink(savedUser) }
             .onFailure { logger.warn("Failed to create INTERNAL IDP link after sign-up for {}", email.maskEmailForLogs(), it) }
 
+        runCatching { appAdminNotificationService.notifyNewUserRegistration(email) }
+            .onFailure { logger.warn("Failed to notify an App Administrator about new user {}", email.maskEmailForLogs(), it) }
+
         val emailBody = emailTemplateService.renderSignUpCompletionEmail(email)
         emailService.sendEmail(
             to = email,
@@ -546,16 +551,6 @@ class SignUpService @Inject constructor(
             body = emailBody,
             useHtml = true
         )
-
-        runCatching {
-            val notificationBody = emailTemplateService.renderNewUserRegistrationNotificationEmail(email)
-            emailService.sendEmail(
-                to = configurationService.getNewUserNotificationEmail(),
-                subject = "New User Registration",
-                body = notificationBody,
-                useHtml = true,
-            )
-        }.onFailure { logger.warn("Failed to send new-user internal notification email for {}", email.maskEmailForLogs(), it) }
 
         return savedUser
     }

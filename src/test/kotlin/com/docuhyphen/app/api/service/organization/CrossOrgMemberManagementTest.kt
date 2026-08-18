@@ -12,7 +12,7 @@ import com.docuhyphen.app.api.service.auth.AuthenticationService
 import com.docuhyphen.app.api.service.auth.UserRoleService
 import com.docuhyphen.app.api.service.communication.EmailService
 import com.docuhyphen.app.api.service.communication.EmailTemplateService
-import com.docuhyphen.app.api.service.config.ConfigurationService
+import com.docuhyphen.app.api.service.notification.AppAdminNotificationService
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertSame
 import org.junit.jupiter.api.BeforeEach
@@ -40,7 +40,7 @@ class CrossOrgMemberManagementTest
     @Mock private lateinit var authAuditService: AuthAuditService
     @Mock private lateinit var emailService: EmailService
     @Mock private lateinit var emailTemplateService: EmailTemplateService
-    @Mock private lateinit var configurationService: ConfigurationService
+    @Mock private lateinit var appAdminNotificationService: AppAdminNotificationService
     @Mock private lateinit var userRoleService: UserRoleService
     @Mock private lateinit var organizationMembershipService: OrganizationMembershipService
 
@@ -67,9 +67,9 @@ class CrossOrgMemberManagementTest
             authAuditService = authAuditService,
             emailService = emailService,
             emailTemplateService = emailTemplateService,
-            configurationService = configurationService,
             userRoleService = userRoleService,
             organizationMembershipService = organizationMembershipService,
+            appAdminNotificationService = appAdminNotificationService,
         )
         `when`(userRoleService.isOrgAdminIn(actorId, orgAId)).thenReturn(true)
         `when`(userRoleService.isOrgAdminIn(actorId, orgBId)).thenReturn(false)
@@ -166,6 +166,12 @@ class CrossOrgMemberManagementTest
             OrganizationRoleName.ORG_MEMBER,
             false,
             actorId,
+        )
+        verify(appAdminNotificationService).notifyOrganizationMemberAdded(
+            memberEmail = registered.email,
+            organizationName = org.name,
+            roles = listOf(OrganizationRoleName.ORG_MEMBER.name),
+            createdPlatformAccount = false,
         )
     }
 

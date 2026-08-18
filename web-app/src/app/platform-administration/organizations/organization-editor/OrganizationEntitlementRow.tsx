@@ -1,4 +1,4 @@
-import {Button, Input, Switch} from "@fluentui/react-components";
+import {Button, Switch, Text} from "@fluentui/react-components";
 import {DeleteRegular} from "@fluentui/react-icons";
 import {PlatformOrganizationFeatureEntitlement} from "../../../../services/types/platformOrganizations.ts";
 import {useOrganizationEditorStyles} from "./OrganizationEditorStyles.tsx";
@@ -26,16 +26,11 @@ const OrganizationEntitlementRow = ({
         <div
             id={`platform-organization-entitlement-${index}`}
             className={styles.entitlementRow}>
-            <Input
+            <Text
                 id={`platform-organization-entitlement-code-${index}`}
-                aria-label={`Feature code ${index + 1}`}
-                value={entitlement.featureCode}
-                disabled={disabled}
-                placeholder={"FEATURE_CODE"}
-                onChange={(_, data) => onChange(index, {
-                    ...entitlement,
-                    featureCode: data.value.toUpperCase(),
-                })}/>
+                className={styles.entitlementName}>
+                {entitlement.featureCode}
+            </Text>
             <Switch
                 id={`platform-organization-entitlement-enabled-${index}`}
                 label={entitlement.enabled ? "Enabled" : "Disabled"}

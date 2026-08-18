@@ -3,9 +3,8 @@ package com.docuhyphen.app.api.service.communication
 import com.docuhyphen.app.api.exception.SalesEnquiryRateLimitedException
 import com.docuhyphen.app.api.exception.SalesEnquiryRecipientUnavailableException
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
-import com.docuhyphen.app.api.repository.application.AppRoleAssignmentRepository
 import com.docuhyphen.app.api.resource.model.SalesEnquiryRequest
-import com.docuhyphen.app.api.service.user.AppUserService
+import com.docuhyphen.app.api.service.notification.AppAdminNotificationService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import org.slf4j.LoggerFactory
@@ -17,9 +16,7 @@ import org.slf4j.LoggerFactory
  */
 @ApplicationScoped
 class SalesEnquiryService @Inject constructor(
-    private val appRoleAssignmentRepository: AppRoleAssignmentRepository,
-    private val appUserService: AppUserService,
-    private val emailService: EmailService,
+    private val appAdminNotificationService: AppAdminNotificationService,
     private val rateLimiter: SalesEnquiryRateLimiter,
     private val authTokenContext: AuthTokenContext,
 )
@@ -49,17 +46,17 @@ class SalesEnquiryService @Inject constructor(
 
         val sanitised = validateAndSanitise(request)
 
-        val recipient = findFirstAppAdminEmail()
-            ?: throw SalesEnquiryRecipientUnavailableException(
-                "No administrator is currently available to receive this enquiry",
-            )
-
-        emailService.sendEmail(
-            to = recipient,
+        val delivered = appAdminNotificationService.send(
             subject = "New sales enquiry from ${sanitised.organizationName}",
             body = buildEmailBody(sanitised),
             useHtml = true,
         )
+        if (!delivered)
+        {
+            throw SalesEnquiryRecipientUnavailableException(
+                "No administrator is currently available to receive this enquiry",
+            )
+        }
 
         logger.info("Routed sales enquiry from {} to a platform administrator", sanitised.workEmail)
     }
@@ -127,16 +124,6 @@ class SalesEnquiryService @Inject constructor(
             throw IllegalArgumentException("$label is too long")
         }
         return trimmed
-    }
-
-    private fun findFirstAppAdminEmail(): String?
-    {
-        return appRoleAssignmentRepository.findActiveAppAdmins()
-            .sortedBy { it.grantedAt }
-            .asSequence()
-            .mapNotNull { appUserService.getById(it.appUserId) }
-            .firstOrNull { it.email.isNotBlank() }
-            ?.email
     }
 
     private fun buildEmailBody(enquiry: SalesEnquiryRequest): String

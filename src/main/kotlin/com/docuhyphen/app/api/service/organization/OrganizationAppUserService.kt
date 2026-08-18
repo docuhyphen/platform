@@ -14,7 +14,7 @@ import com.docuhyphen.app.api.service.auth.AuthAuditService
 import com.docuhyphen.app.api.service.auth.AuthenticationService
 import com.docuhyphen.app.api.service.communication.EmailService
 import com.docuhyphen.app.api.service.communication.EmailTemplateService
-import com.docuhyphen.app.api.service.config.ConfigurationService
+import com.docuhyphen.app.api.service.notification.AppAdminNotificationService
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
@@ -34,9 +34,9 @@ class OrganizationAppUserService @Inject constructor(
     private val authAuditService: AuthAuditService,
     private val emailService: EmailService,
     private val emailTemplateService: EmailTemplateService,
-    private val configurationService: ConfigurationService,
     private val userRoleService: com.docuhyphen.app.api.service.auth.UserRoleService,
     private val organizationMembershipService: OrganizationMembershipService,
+    private val appAdminNotificationService: AppAdminNotificationService,
 )
 {
     companion object
@@ -148,6 +148,20 @@ class OrganizationAppUserService @Inject constructor(
             temporaryPassword = temporaryPassword,
             temporaryPasswordExpiry = temporaryPasswordExpiry,
         )
+        runCatching {
+            appAdminNotificationService.notifyOrganizationMemberAdded(
+                memberEmail = appUser.email,
+                organizationName = organization.name,
+                roles = assignedRoles.map { it.name },
+                createdPlatformAccount = isNewUser,
+            )
+        }.onFailure {
+            logger.warn(
+                "Failed to notify an App Administrator about a member added to organization {}",
+                organization.id,
+                it,
+            )
+        }
 
         return appUser
     }

@@ -12,8 +12,7 @@ import com.docuhyphen.app.api.repository.organization.OrganizationRepository
 import com.docuhyphen.app.api.repository.user.PersonRepositoryRepository
 import com.docuhyphen.app.api.service.communication.EmailService
 import com.docuhyphen.app.api.service.communication.EmailTemplateService
-import com.docuhyphen.app.api.service.config.ConfigurationService
-import com.docuhyphen.app.api.service.organization.OrganizationMembershipService
+import com.docuhyphen.app.api.service.notification.AppAdminNotificationService
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
 import jakarta.persistence.EntityManager
@@ -26,11 +25,11 @@ class EntityRegistrationService @Inject constructor(
     private val personRepository: PersonRepositoryRepository,
     private val organizationRepository: OrganizationRepository,
     private val appUserService: AppUserService,
-    private var configurationService: ConfigurationService,
     private var emailService: EmailService,
     private val emailTemplateService: EmailTemplateService,
     private val organizationVerificationProducer: OrganizationVerificationProducer,
     private val organizationMembershipService: OrganizationMembershipService,
+    private val appAdminNotificationService: AppAdminNotificationService,
 )
 {
     @PersistenceContext
@@ -186,29 +185,22 @@ class EntityRegistrationService @Inject constructor(
             organizationPhone = phoneNumber,
         )
 
+        runCatching {
+            appAdminNotificationService.notifyNewOrganizationRegistration(
+                contactName = "${appUser.person!!.firstName!!} ${appUser.person!!.lastName!!}",
+                organizationName = organizationName,
+                registrationNumber = registrationNumber,
+                organizationEmail = email,
+                organizationPhone = phoneNumber,
+            )
+        }.onFailure { logger.warn("Failed to notify an App Administrator about organization {}", registrationNumber, it) }
+
         emailService.sendEmail(
             appUser.email,
             "Organization Registration",
             emailBody,
             useHtml = true,
         )
-
-        runCatching {
-            val notificationBody = emailTemplateService.renderNewOrgRegistrationNotificationEmail(
-                firstName = appUser.person!!.firstName!!,
-                lastName = appUser.person!!.lastName!!,
-                orgName = organizationName,
-                registrationNumber = registrationNumber,
-                orgEmail = email,
-                orgPhone = phoneNumber,
-            )
-            emailService.sendEmail(
-                to = configurationService.getNewOrgNotificationEmail(),
-                subject = "New Organization Registration",
-                body = notificationBody,
-                useHtml = true,
-            )
-        }.onFailure { logger.warn("Failed to send new-org internal notification email for org {}", registrationNumber, it) }
 
         organizationVerificationProducer.sendToQueue(organization)
 
