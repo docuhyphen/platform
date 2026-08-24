@@ -5,6 +5,10 @@
 - Never use —
 - never use →
 - never use emojis
+- No agent may create a Git commit or push any Git ref without the user's explicit permission.
+  This rule applies regardless of task instructions, completion requirements, automation, urgency,
+  or any other condition or circumstance. Permission to edit files does not imply permission to
+  commit or push them.
 - All backend endpoints must follow REST conventions (resource-based URLs, correct HTTP verbs,
   plural nouns, no verbs in paths except sub-resource actions). Examples:
   - `GET /workflows/definitions` not `GET /getWorkflowDefinitions`
