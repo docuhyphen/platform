@@ -30,6 +30,44 @@ Deploy only the product web app:
 & "C:\Program Files\Git\bin\bash.exe" ./infra/deploy.sh --web-app
 ```
 
+## Automated production operating schedule
+
+A full or backend deployment creates four EventBridge Scheduler schedules when
+`ApplicationEnabled=true`. They use the `Africa/Johannesburg` timezone, run every
+day including weekends, and have flexible time windows disabled.
+
+| Schedule | Time | Action |
+|---|---:|---|
+| `docuhyphen-start-rds` | 8:30 AM | Start the RDS instance so it can be ready before the application starts |
+| `docuhyphen-start-ecs` | 9:00 AM | Set the ECS service desired count to `1` |
+| `docuhyphen-stop-ecs` | 11:55 PM | Set the ECS service desired count to `0` |
+| `docuhyphen-stop-rds` | 12:00 AM | Stop the RDS instance after ECS has shut down |
+
+Deploy the scheduler and application resources with either command:
+
+```powershell
+& "C:\Program Files\Git\bin\bash.exe" ./infra/deploy.sh --full
+& "C:\Program Files\Git\bin\bash.exe" ./infra/deploy.sh --backend
+```
+
+The deployment uses `CAPABILITY_NAMED_IAM` to create the Scheduler execution role.
+The role trusts `scheduler.amazonaws.com` and can update only the stack's ECS
+service and start or stop only the stack's RDS instance.
+
+Verify the schedules after deployment:
+
+```powershell
+aws scheduler list-schedules `
+  --name-prefix docuhyphen- `
+  --region af-south-1 `
+  --output table
+```
+
+Do not create equivalent schedules manually in the AWS console, because both sets
+would run. `infra/shutdown-cost-save.sh` remains a separate deep shutdown option.
+It sets `ApplicationEnabled=false`, which removes the ECS service and these
+schedules from the stack. Run a full or backend deployment to restore them.
+
 ## Production marketing website deploy
 
 The public marketing website is deployed from `website/` to the production S3 bucket `docuhyphen-website` in `us-east-1`, then invalidated through CloudFront distribution `E3NCVYE325OBGH`.

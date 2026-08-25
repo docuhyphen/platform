@@ -787,6 +787,123 @@ Resources:
           Rollback: true
       HealthCheckGracePeriodSeconds: 120
 
+  # DAILY COST SCHEDULES
+
+  CostSchedulerExecutionRole:
+    Type: AWS::IAM::Role
+    Condition: DeployApplication
+    Properties:
+      RoleName: !Sub ${AppName}-scheduler-execution-role
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: scheduler.amazonaws.com
+            Action: sts:AssumeRole
+            Condition:
+              StringEquals:
+                aws:SourceAccount: !Ref AWS::AccountId
+                aws:SourceArn: !Sub arn:${AWS::Partition}:scheduler:${AWS::Region}:${AWS::AccountId}:schedule-group/default
+      Policies:
+        - PolicyName: ManageScheduledApplicationCapacity
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ecs:UpdateService
+                Resource: !Sub arn:${AWS::Partition}:ecs:${AWS::Region}:${AWS::AccountId}:service/${ECSCluster}/${AppName}-service
+              - Effect: Allow
+                Action:
+                  - rds:StartDBInstance
+                  - rds:StopDBInstance
+                Resource: !GetAtt RDSInstance.DBInstanceArn
+
+  StartRDSchedule:
+    Type: AWS::Scheduler::Schedule
+    Condition: DeployApplication
+    Properties:
+      Name: !Sub ${AppName}-start-rds
+      Description: Starts RDS before the daily application operating window.
+      GroupName: default
+      State: ENABLED
+      ScheduleExpression: cron(30 8 * * ? *)
+      ScheduleExpressionTimezone: Africa/Johannesburg
+      FlexibleTimeWindow:
+        Mode: "OFF"
+      Target:
+        Arn: arn:aws:scheduler:::aws-sdk:rds:startDBInstance
+        RoleArn: !GetAtt CostSchedulerExecutionRole.Arn
+        Input: !Sub '{"DbInstanceIdentifier":"${RDSInstance}"}'
+        RetryPolicy:
+          MaximumEventAgeInSeconds: 3600
+          MaximumRetryAttempts: 3
+
+  StartECSSchedule:
+    Type: AWS::Scheduler::Schedule
+    Condition: DeployApplication
+    DependsOn:
+      - ECSService
+    Properties:
+      Name: !Sub ${AppName}-start-ecs
+      Description: Starts the ECS service at the beginning of the daily operating window.
+      GroupName: default
+      State: ENABLED
+      ScheduleExpression: cron(0 9 * * ? *)
+      ScheduleExpressionTimezone: Africa/Johannesburg
+      FlexibleTimeWindow:
+        Mode: "OFF"
+      Target:
+        Arn: arn:aws:scheduler:::aws-sdk:ecs:updateService
+        RoleArn: !GetAtt CostSchedulerExecutionRole.Arn
+        Input: !Sub '{"Cluster":"${ECSCluster}","Service":"${AppName}-service","DesiredCount":1}'
+        RetryPolicy:
+          MaximumEventAgeInSeconds: 3600
+          MaximumRetryAttempts: 3
+
+  StopECSSchedule:
+    Type: AWS::Scheduler::Schedule
+    Condition: DeployApplication
+    DependsOn:
+      - ECSService
+    Properties:
+      Name: !Sub ${AppName}-stop-ecs
+      Description: Stops the ECS service at the end of the daily operating window.
+      GroupName: default
+      State: ENABLED
+      ScheduleExpression: cron(55 23 * * ? *)
+      ScheduleExpressionTimezone: Africa/Johannesburg
+      FlexibleTimeWindow:
+        Mode: "OFF"
+      Target:
+        Arn: arn:aws:scheduler:::aws-sdk:ecs:updateService
+        RoleArn: !GetAtt CostSchedulerExecutionRole.Arn
+        Input: !Sub '{"Cluster":"${ECSCluster}","Service":"${AppName}-service","DesiredCount":0}'
+        RetryPolicy:
+          MaximumEventAgeInSeconds: 3600
+          MaximumRetryAttempts: 3
+
+  StopRDSchedule:
+    Type: AWS::Scheduler::Schedule
+    Condition: DeployApplication
+    Properties:
+      Name: !Sub ${AppName}-stop-rds
+      Description: Stops RDS after the ECS service has shut down.
+      GroupName: default
+      State: ENABLED
+      ScheduleExpression: cron(0 0 * * ? *)
+      ScheduleExpressionTimezone: Africa/Johannesburg
+      FlexibleTimeWindow:
+        Mode: "OFF"
+      Target:
+        Arn: arn:aws:scheduler:::aws-sdk:rds:stopDBInstance
+        RoleArn: !GetAtt CostSchedulerExecutionRole.Arn
+        Input: !Sub '{"DbInstanceIdentifier":"${RDSInstance}"}'
+        RetryPolicy:
+          MaximumEventAgeInSeconds: 3600
+          MaximumRetryAttempts: 3
+
   # ─── S3 WEBSITE ─────────────────────────────────────────────────────────────
 
   # ─── CLOUDFRONT ─────────────────────────────────────────────────────────────
