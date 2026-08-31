@@ -42,10 +42,10 @@
 
 ## Project Overview
 
-**DocuHyphen** is a document-exchange platform. Users (individuals or organization members)
-create **Exchanges** - named collections of documents sent from an initiator to one or more
-recipients. The platform handles the full lifecycle: drafting, recipient acceptance, active
-collaboration on documents, and ending/completion.
+**DocuHyphen** is an industry-neutral Document-Driven process management and execution platform.
+Users (individuals or organization members) create **Exchanges** - named collections of documents
+sent from an initiator to one or more recipients. The platform handles the full lifecycle: drafting,
+recipient acceptance, active collaboration on documents, and ending/completion.
 
 Organizations can configure workflows that gate each lifecycle stage - approvals, notifications,
 conditions, and actions. A visual workflow designer in Settings lets org admins build and manage
@@ -56,6 +56,44 @@ An "Exchange" is a first class word and should be used as a noun. For example, i
 "Open an exchange and select the Fields tab", "exchange" should be "Exchange".
 
 ---
+
+## INDUSTRY-NEUTRAL PLATFORM RULES
+
+- All production capabilities must model reusable document, information, evidence, participant,
+  Workflow, review, deadline, and execution concepts. They must not encode the vocabulary, rules,
+  decisions, or process model of a particular industry or customer domain.
+- Production identifiers must be industry-neutral. This applies to packages, classes, entities,
+  models, DTOs, services, repositories, resources, methods, functions, properties, enums, REST
+  paths, database tables and columns, migrations, events, Workflow primitives, UI components,
+  routes, configuration keys, feature flags, metrics, and log event names.
+- Do not hardcode industry-specific Workflows, decision rules, forms, roles, reason codes, evidence
+  types, deadlines, retention periods, vocabularies, templates, seed data, or branching. Express
+  process variation through generic, versioned configuration, policies, roles, rules, templates,
+  Fields, and extension contracts.
+- Customer-authored configuration and content may use the customer's terminology because it is
+  runtime data. It must not create industry-specific production types, code paths, shipped defaults,
+  or platform behavior.
+- Production logic must not branch on customer vocabulary, Template names or IDs, Requirement keys,
+  subject labels, fixture identifiers, seeded values, or other customer-controlled names.
+- Automated tests, reusable fixtures, seed data, example templates, and acceptance scenarios in the
+  repository must use neutral synthetic process terminology. Industry examples may appear only in
+  explanatory documentation and must not define production identifiers, shipped configuration,
+  implementation branches, or acceptance gates.
+- Marketing copy and explanatory documentation may describe concrete industries as examples, but
+  reusable component, function, route, script, asset, configuration, and product identifiers must
+  remain industry-neutral. Existing legacy marketing identifiers are not naming precedent and must
+  not be renamed as part of an unrelated feature unless that rename is explicitly in scope.
+- When a request appears industry-specific, first identify and implement the underlying reusable
+  process capability with neutral names. Validate the design against at least two materially
+  different neutral process patterns. If the requirement cannot be implemented without
+  industry-specific production naming or behavior, stop and ask the user how to scope it instead of
+  silently adding it to the platform core.
+- Before completing a feature, inspect changed production code, migrations, APIs, events, UI,
+  tests, fixtures, and shipped configuration for industry-specific naming or embedded rules. Remove
+  any leakage and record the check in the implementation plan or handoff notes.
+
+---
+
 ## BACKEND RULES
 - A service should not user another service's repository directly, they should communicate via methods
 - toDto methods must be in their own dedicated class an not in the service or resource class
