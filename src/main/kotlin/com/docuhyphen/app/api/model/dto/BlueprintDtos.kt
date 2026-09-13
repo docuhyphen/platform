@@ -7,7 +7,7 @@ import com.docuhyphen.app.api.serializer.UUIDSerializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
 import java.sql.Timestamp
-import java.util.UUID
+import java.util.*
 
 // ── Blueprint config sub-types ────────────────────────────────────────────────
 
@@ -96,6 +96,8 @@ data class BlueprintDefinitionDto(
     val configJson: String,
     @Serializable(with = UUIDSerializer::class)
     val schemaDefinitionId: UUID?,
+    @Serializable(with = UUIDSerializer::class)
+    val informationRequestTemplateVersionId: UUID?,
     val exchangeDocuments: List<BlueprintDocumentConfig>,
     val participants: List<BlueprintParticipantConfig>,
     val fieldDefaults: List<BlueprintFieldDefaultConfig>,
@@ -115,6 +117,9 @@ data class CreateBlueprintRequest(
     val configJson: String,
     @Serializable(with = UUIDSerializer::class)
     val schemaDefinitionId: UUID? = null,
+    /** The exact published Information Request Template Version future instantiations request against. */
+    @Serializable(with = UUIDSerializer::class)
+    val informationRequestTemplateVersionId: UUID? = null,
     val exchangeDocuments: List<BlueprintDocumentConfig> = emptyList(),
     val participants: List<BlueprintParticipantConfig> = emptyList(),
     val fieldDefaults: List<BlueprintFieldDefaultConfig> = emptyList(),
@@ -138,6 +143,12 @@ data class UpdateBlueprintRequest(
     @Serializable(with = UUIDSerializer::class)
     val schemaDefinitionId: UUID? = null,
     val fieldDefaults: List<BlueprintFieldDefaultConfig>? = null,
+    // An omitted Version reference is left alone, so editing the rest of a blueprint never depends
+    // on the named Version still being publishable. Removing the reference is stated separately
+    // because an omitted value and a cleared one have to be distinguishable.
+    @Serializable(with = UUIDSerializer::class)
+    val informationRequestTemplateVersionId: UUID? = null,
+    val clearInformationRequestTemplateVersion: Boolean = false,
     val generalTags: List<String>? = null,
 )
 

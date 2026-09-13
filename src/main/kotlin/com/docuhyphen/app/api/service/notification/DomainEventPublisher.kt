@@ -1,5 +1,6 @@
 package com.docuhyphen.app.api.service.notification
 
+import com.docuhyphen.app.api.service.audit.AuditOwnerScope
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import org.slf4j.LoggerFactory
@@ -12,16 +13,16 @@ import org.slf4j.LoggerFactory
  * Two implementations exist:
  *   * [InProcessDomainEventPublisher] (the CDI default): routes the event synchronously through
  *     [EventRouter] on the calling thread and swallows router failures so notifications can never
- *     break the calling business transaction. Used by every non-workflow service.
- *   * [com.docuhyphen.app.api.service.workflow.WorkflowEventOutboxPublisher] (selected by the
- *     [WorkflowEventSink] qualifier): enqueues the event into a transactional outbox row that
- *     commits atomically with the workflow state mutation, and a background dispatcher routes it
- *     after commit. Used by the workflow engine so required lifecycle and terminal events are never
- *     lost by a crash between the state commit and routing.
+ *     break the calling business transaction.
+ *   * [DomainEventOutboxPublisher] (selected by the [TransactionalEventSink] qualifier): enqueues
+ *     the event into a transactional outbox row that commits atomically with the state mutation, and
+ *     a background dispatcher routes it after commit. Used when required events must survive a crash
+ *     between the state commit and routing.
  */
 interface DomainEventPublisher
 {
     fun publish(event: DomainEvent)
+    fun publish(event: DomainEvent, owner: AuditOwnerScope) = publish(event)
     fun publishAll(events: Collection<DomainEvent>) = events.forEach(::publish)
 }
 

@@ -28,10 +28,19 @@ class FieldValueValidator @Inject constructor(
         return typeContract.canonicalize(input, constraints, options)
     }
 
-    /** Validates that a contract's own configuration (options for select types) is coherent. */
+    /**
+     * Validates that a contract's own configuration is coherent: options for select types, and a
+     * numeric scale the store can actually hold so an accepted answer is never rounded on the way in.
+     */
     fun validateContractConfiguration(contract: FieldContract)
     {
         typeRegistry.contractFor(contract.valueType) // fail closed on unknown type
+        val isNumeric = contract.valueType == com.docuhyphen.app.api.model.entity.FieldValueType.INTEGER ||
+                contract.valueType == com.docuhyphen.app.api.model.entity.FieldValueType.DECIMAL
+        if (isNumeric)
+        {
+            FieldConstraints.parse(contract.constraintsJson).scale?.let(CanonicalNumber::assertStorableScale)
+        }
         val options = FieldOption.parseList(contract.optionsJson)
         val isSelect = contract.valueType == com.docuhyphen.app.api.model.entity.FieldValueType.SINGLE_SELECT ||
             contract.valueType == com.docuhyphen.app.api.model.entity.FieldValueType.MULTI_SELECT

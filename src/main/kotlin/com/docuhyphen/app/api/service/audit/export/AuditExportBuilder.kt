@@ -16,7 +16,7 @@ import org.slf4j.LoggerFactory
 import java.io.ByteArrayOutputStream
 import java.nio.charset.StandardCharsets
 import java.time.Instant
-import java.util.Base64
+import java.util.*
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 
@@ -41,6 +41,8 @@ data class ExportedLedgerEventRecord(
     val serverTraceId: String?,
     val correlationId: String?,
     val causationId: String?,
+    val ownerType: String,
+    val ownerId: String?,
     val organizationId: String?,
     val organizationLabel: String?,
     val targetType: String?,
@@ -75,6 +77,8 @@ data class ManifestEntryDigest(
 data class AuditExportManifestEnvelope(
     val formatVersion: Int,
     val exportId: String,
+    val ownerType: String,
+    val ownerId: String?,
     val organizationId: String?,
     val platformOnly: Boolean,
     val categories: String,
@@ -177,12 +181,22 @@ class AuditExportBuilder @Inject constructor(
     fun build(export: AuditExport): AuditExportBundleResult
     {
         val organizationId = export.organizationId
-        val platformOnly = organizationId == null
+        val ownerUserId = export.ownerId.takeIf { export.ownerType == "USER" }
+        val platformOnly = export.ownerType == "PLATFORM"
         val categories = export.categoriesCsv.split(",").map { it.trim() }.filter { it.isNotBlank() }.toSet()
 
-        val streamIds = auditLedgerEventRepository.findDistinctStreamIdsForExport(
-            organizationId, platformOnly, export.occurredAfter, export.occurredBefore,
-        )
+        val streamIds = if (ownerUserId != null)
+        {
+            auditLedgerEventRepository.findDistinctStreamIdsForPersonalExport(
+                ownerUserId, export.occurredAfter, export.occurredBefore,
+            )
+        }
+        else
+        {
+            auditLedgerEventRepository.findDistinctStreamIdsForExport(
+                organizationId, platformOnly, export.occurredAfter, export.occurredBefore,
+            )
+        }
 
         // Flush any small trailing range that has not yet reached the segment-size threshold, so
         // a legitimately recent-but-unarchived tail does not by itself block the coverage gate
@@ -206,9 +220,18 @@ class AuditExportBuilder @Inject constructor(
             )
         }
 
-        val events = auditLedgerEventRepository.findForExport(
-            organizationId, platformOnly, categories, export.occurredAfter, export.occurredBefore,
-        )
+        val events = if (ownerUserId != null)
+        {
+            auditLedgerEventRepository.findForPersonalExport(
+                ownerUserId, categories, export.occurredAfter, export.occurredBefore,
+            )
+        }
+        else
+        {
+            auditLedgerEventRepository.findForExport(
+                organizationId, platformOnly, categories, export.occurredAfter, export.occurredBefore,
+            )
+        }
 
         val coverageFailure = events.groupBy { it.streamId }.entries.firstNotNullOfOrNull { (streamId, streamEvents) ->
             val minSequence = streamEvents.minOf { it.streamSequence }
@@ -274,8 +297,10 @@ class AuditExportBuilder @Inject constructor(
         val eventsMerkleRoot = MerkleTree.computeRoot(events.map { it.eventHash })
 
         val manifestEnvelope = AuditExportManifestEnvelope(
-            formatVersion = 2,
+            formatVersion = 3,
             exportId = export.id.toString(),
+            ownerType = export.ownerType,
+            ownerId = export.ownerId?.toString(),
             organizationId = organizationId?.toString(),
             platformOnly = platformOnly,
             categories = export.categoriesCsv,
@@ -348,6 +373,8 @@ class AuditExportBuilder @Inject constructor(
         serverTraceId = event.serverTraceId,
         correlationId = event.correlationId,
         causationId = event.causationId,
+        ownerType = event.ownerType,
+        ownerId = event.ownerId?.toString(),
         organizationId = event.organizationId?.toString(),
         organizationLabel = event.organizationLabel,
         targetType = event.targetType,
@@ -363,7 +390,14 @@ class AuditExportBuilder @Inject constructor(
     {
         val header = listOf(
             "eventId", "eventTypeKey", "category", "outcome", "occurredAt", "streamId",
-            "streamSequence", "actorKind", "actorId", "actorRole", "actorLabel", "organizationId",
+            "streamSequence",
+            "actorKind",
+            "actorId",
+            "actorRole",
+            "actorLabel",
+            "ownerType",
+            "ownerId",
+            "organizationId",
             "organizationLabel", "targetType", "targetId", "targetLabel", "eventHash", "payloadJson",
         )
         val rows = events.map { event ->
@@ -371,7 +405,8 @@ class AuditExportBuilder @Inject constructor(
                 event.eventId.toString(), event.eventTypeKey, event.category, event.outcome,
                 event.occurredAt.toInstant().toString(), event.streamId, event.streamSequence.toString(),
                 event.actorKind, event.actorId?.toString().orEmpty(), event.actorRole.orEmpty(),
-                event.actorLabel.orEmpty(), event.organizationId?.toString().orEmpty(),
+                event.actorLabel.orEmpty(), event.ownerType, event.ownerId?.toString().orEmpty(),
+                event.organizationId?.toString().orEmpty(),
                 event.organizationLabel.orEmpty(), event.targetType.orEmpty(), event.targetId.orEmpty(),
                 event.targetLabel.orEmpty(),
                 event.eventHash, event.payloadJson,

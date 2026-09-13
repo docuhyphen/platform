@@ -3,9 +3,9 @@ export const auditWorkspaceOverviewArticle = (
         <p>
             The Audit workspace gives organization and platform administrators a
             searchable view into the ledger-backed audit trail: every recorded
-            authentication, administration, security, Exchange, document, and
-            workflow event, plus tools to verify ledger integrity and request
-            evidentiary exports.
+            authentication, administration, security, Exchange, document,
+            workflow, and Field / Schema event, plus tools to verify ledger
+            integrity and request evidentiary exports.
         </p>
 
         <h3>Who can see it</h3>
@@ -45,8 +45,9 @@ export const auditWorkspaceOverviewArticle = (
         <ul>
             <li>
                 <b>Categories</b> - a multiselect of audit categories such as
-                Authentication, Security, Exchange, Document, Workflow, and
-                Administration. Leave empty to see every category.
+                Authentication, Security, Exchange, Document, Workflow,
+                Field / Schema, and Administration. Leave empty to see every
+                category.
             </li>
             <li>
                 <b>Occurred after / before</b> - date range filters applied to

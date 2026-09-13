@@ -1,4 +1,6 @@
 import {FieldOption, FieldValueType} from '../../../models/models';
+import {toCanonicalDateTime} from './fieldDateTimeCanonical';
+import {formatExactNumber, toExactNumberText} from './fieldNumberText';
 
 export const isFieldValueEmpty = (value: unknown): boolean =>
 {
@@ -87,7 +89,7 @@ export const formatFieldValue = (
             return value === true ? 'Yes' : 'No';
         case FieldValueType.INTEGER:
         case FieldValueType.DECIMAL:
-            return new Intl.NumberFormat('en-US').format(Number(value));
+            return formatExactNumber(String(value));
         case FieldValueType.DATE:
             return formatDate(String(value));
         case FieldValueType.DATE_TIME:
@@ -109,14 +111,13 @@ export const toCanonicalValue = (valueType: FieldValueType, value: unknown): unk
     switch (valueType)
     {
         case FieldValueType.BOOLEAN:
-            return value === true;
+            // Three readings, not two: an untouched field is unanswered rather than a No.
+            return value === true || value === false ? value : null;
         case FieldValueType.INTEGER:
         case FieldValueType.DECIMAL:
-        {
-            if (value === '' || value === null || value === undefined) return null;
-            const parsed = Number(value);
-            return Number.isNaN(parsed) ? null : parsed;
-        }
+            return toExactNumberText(value);
+        case FieldValueType.DATE_TIME:
+            return toCanonicalDateTime(value);
         case FieldValueType.MULTI_SELECT:
             return Array.isArray(value) ? value : [];
         default:

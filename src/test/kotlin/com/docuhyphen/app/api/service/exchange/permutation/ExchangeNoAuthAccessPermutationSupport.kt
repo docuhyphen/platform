@@ -6,10 +6,11 @@ import com.docuhyphen.app.api.model.entity.Document
 import com.docuhyphen.app.api.model.entity.DocumentType
 import com.docuhyphen.app.api.model.entity.Exchange
 import com.docuhyphen.app.api.model.entity.ExchangeStatus
+import com.docuhyphen.app.api.realtime.RealtimeEventService
 import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
-import com.docuhyphen.app.api.service.user.AppUserService
-import com.docuhyphen.app.api.service.contactdetails.UserContactService
 import com.docuhyphen.app.api.service.audit.AuditCaptureResult
+import com.docuhyphen.app.api.service.audit.AuditOwnerScope
+import com.docuhyphen.app.api.service.audit.AuditOwnerScopeResolver
 import com.docuhyphen.app.api.service.audit.AuditRecorder
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
@@ -17,21 +18,11 @@ import com.docuhyphen.app.api.service.communication.EmailService
 import com.docuhyphen.app.api.service.communication.EmailTemplateService
 import com.docuhyphen.app.api.service.communication.OtpService
 import com.docuhyphen.app.api.service.config.ConfigurationService
-import com.docuhyphen.app.api.service.exchange.ExchangeDocumentAuditService
-import com.docuhyphen.app.api.service.exchange.ExchangeDocumentService
-import com.docuhyphen.app.api.service.exchange.DocumentContentHashService
-import com.docuhyphen.app.api.service.exchange.DocumentPdfConversionService
-import com.docuhyphen.app.api.service.exchange.DocumentThumbnailService
-import com.docuhyphen.app.api.service.exchange.ExchangeLifecycleNotificationService
-import com.docuhyphen.app.api.service.exchange.ExchangeRecipientService
-import com.docuhyphen.app.api.service.exchange.ExchangeRetrievalService
-import com.docuhyphen.app.api.service.exchange.ExchangeUpdateService
-import com.docuhyphen.app.api.service.exchange.NoAuthExchangeAccessTokenService
-import com.docuhyphen.app.api.service.exchange.NoAuthExchangeAccessWindowService
-import com.docuhyphen.app.api.service.exchange.ShareService
+import com.docuhyphen.app.api.service.contactdetails.UserContactService
+import com.docuhyphen.app.api.service.exchange.*
 import com.docuhyphen.app.api.service.notification.InAppNotificationService
 import com.docuhyphen.app.api.service.storage.FileStorageService
-import com.docuhyphen.app.api.realtime.RealtimeEventService
+import com.docuhyphen.app.api.service.user.AppUserService
 import org.mockito.kotlin.any
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.mock
@@ -39,7 +30,7 @@ import org.mockito.kotlin.whenever
 import java.io.File
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 internal class NoAuthRetrievalFixture(
     status: ExchangeStatus = ExchangeStatus.INITIATED,
@@ -98,6 +89,7 @@ internal class NoAuthOtpVerificationFixture(
     init
     {
         whenever(repository.findById(exchange.id)).thenReturn(exchange)
+        whenever(repository.findByIdForUpdate(exchange.id)).thenReturn(exchange)
         whenever(otpService.verifyEmailOtp(eq("123456"), eq("stored-hash"))).thenReturn(true)
         whenever(shareService.recipientConstraintsJson(exchange.id)).thenReturn("{}")
         service = ExchangeUpdateService(
@@ -120,10 +112,14 @@ internal class NoAuthOtpVerificationFixture(
             authorizationService = mock<AuthorizationService>(),
             authorizationContextFactory = mock<AuthorizationContextFactory>(),
             auditRecorder = mock<AuditRecorder>(),
+            auditOwnerScopeResolver = mock<AuditOwnerScopeResolver>().also {
+                whenever(it.resolve(any(), any())).thenReturn(AuditOwnerScope.Platform)
+            },
             noAuthExchangeAccessTokenService = tokenService,
             noAuthExchangeAccessWindowService = NoAuthExchangeAccessWindowService(repository, mock()),
             lifecycleNotificationService = mock<ExchangeLifecycleNotificationService>(),
             documentThumbnailService = mock<DocumentThumbnailService>(),
+        requestParentLifecycle = mock(),
         )
     }
 
@@ -161,6 +157,7 @@ internal class NoAuthDocumentAccessFixture(
     {
         exchange.noAuthAccessVerifiedAt = verifiedAt?.let(Timestamp::from)
         whenever(repository.findById(exchange.id)).thenReturn(exchange)
+        whenever(repository.findByIdForUpdate(exchange.id)).thenReturn(exchange)
         whenever(repository.findDocumentBySessionIdAndDocumentId(exchange.id, document.id)).thenReturn(document)
         whenever(shareService.recipientConstraintsJson(exchange.id)).thenReturn("""{"can_download":true}""")
         whenever(fileStorageService.downloadDocument(any())).thenReturn(expectedFile)
@@ -177,6 +174,7 @@ internal class NoAuthDocumentAccessFixture(
             fileStorageService = fileStorageService,
             documentContentHashService = mock<DocumentContentHashService>(),
             documentThumbnailService = mock<DocumentThumbnailService>(),
+
             documentPdfConversionService = mock<DocumentPdfConversionService>(),
             inAppNotificationService = mock<InAppNotificationService>(),
             realtimeEventService = mock<RealtimeEventService>(),
@@ -185,6 +183,9 @@ internal class NoAuthDocumentAccessFixture(
             authorizationService = mock<AuthorizationService>(),
             authorizationContextFactory = mock<AuthorizationContextFactory>(),
             auditRecorder = auditRecorder,
+            auditOwnerScopeResolver = mock<AuditOwnerScopeResolver>().also {
+                whenever(it.resolve(any(), any())).thenReturn(AuditOwnerScope.Platform)
+            },
             noAuthExchangeAccessTokenService = tokenService,
             noAuthExchangeAccessWindowService = NoAuthExchangeAccessWindowService(repository, mock()),
             documentVersionService = mock(),

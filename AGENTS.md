@@ -5,6 +5,8 @@
 - Never use —
 - never use →
 - never use emojis
+- Data classes should live in dedicated /model package either logically grouped or in a single data class file
+- No comments on classes, methods, variables, sql migrations, etc, describing what the functionality does. Code should be self documenting with minimal comments if absolutely necessary.
 - No agent may create a Git commit or push any Git ref without the user's explicit permission.
   This rule applies regardless of task instructions, completion requirements, automation, urgency,
   or any other condition or circumstance. Permission to edit files does not imply permission to

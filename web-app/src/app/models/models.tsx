@@ -689,6 +689,11 @@ export enum PlanFeature
     ORGANIZATION_ADMINISTRATION = 'ORGANIZATION_ADMINISTRATION',
     AUDIT_GOVERNANCE = 'AUDIT_GOVERNANCE',
     IDENTITY_AND_INTEGRATIONS = 'IDENTITY_AND_INTEGRATIONS',
+    /**
+     * Held back from every plan while the capability is built. An owner only holds it through an
+     * explicit platform-administered grant recorded against that owner.
+     */
+    INFORMATION_REQUESTS = 'INFORMATION_REQUESTS',
 }
 
 /**
@@ -1443,6 +1448,9 @@ export interface BlueprintDefinitionSummaryDto
     sourceTemplateId?: string;
     configJson: string;
     schemaDefinitionId?: string;
+    // The exact published Information Request Template Version future instantiations request
+    // against. Replacing it changes only what is created next.
+    informationRequestTemplateVersionId?: string;
     exchangeDocuments: BlueprintDocumentConfig[];
     participants: BlueprintParticipantConfig[];
     fieldDefaults?: BlueprintFieldDefaultConfig[];
@@ -1465,6 +1473,7 @@ export interface CreateBlueprintRequest
     participants?: BlueprintParticipantConfig[];
     schemaDefinitionId?: string;
     fieldDefaults?: BlueprintFieldDefaultConfig[];
+    informationRequestTemplateVersionId?: string;
     generalTags?: string[];
     isActive?: boolean;
     scope?: BlueprintScope;
@@ -1483,6 +1492,10 @@ export interface UpdateBlueprintRequest
     // When fieldDefaults is provided the schema linkage is also (re)applied from schemaDefinitionId.
     schemaDefinitionId?: string;
     fieldDefaults?: BlueprintFieldDefaultConfig[];
+    // An omitted Version reference is left alone; removing it is stated separately so an omitted
+    // value and a cleared one stay distinguishable.
+    informationRequestTemplateVersionId?: string;
+    clearInformationRequestTemplateVersion?: boolean;
     generalTags?: string[];
 }
 
@@ -1685,6 +1698,9 @@ export enum FieldScopeKind
 {
     PLATFORM = 'PLATFORM',
     ORGANIZATION = 'ORGANIZATION',
+    // Owned by one user rather than an organization. Storable, but not authorable yet: the server
+    // refuses a request that asks for it, so no screen offers it as a scope to create into.
+    PERSONAL = 'PERSONAL',
 }
 
 export enum FieldLifecycleStatus
@@ -1899,6 +1915,12 @@ export interface FieldValueDto
     value: unknown;
 }
 
+export interface FieldValueEntry
+{
+    fieldContractId: string;
+    value: unknown;
+}
+
 export interface SchemaAssignmentDto
 {
     id: string;
@@ -1911,7 +1933,545 @@ export interface SchemaAssignmentDto
     versionNumber: number;
     assignmentSource: SchemaAssignmentSource;
     assignedAt: string;
+    /**
+     * The questions the assigned schema version asks of this caller, as an editor is built from them.
+     * Filtered by the same rule as fields and listed in the same order, so a question that was not
+     * shared with the caller appears in neither list.
+     */
+    bindings: SchemaFieldBindingDto[];
     fields: FieldValueDto[];
+    /**
+     * Strong entity tag for the state of the values in fields. Sent back on the next write so a save
+     * can be refused when the values moved on underneath the editor. Absent only where the resource
+     * has no set of values to validate.
+     */
+    etag?: string;
+}
+
+// Information Request Template administration
+
+export enum InformationRequestTemplateScopeKind
+{
+    PLATFORM = 'PLATFORM',
+    ORGANIZATION = 'ORGANIZATION',
+    PERSONAL = 'PERSONAL',
+}
+
+export enum InformationRequestTemplateStatus
+{
+    DRAFT = 'DRAFT',
+    PUBLISHED = 'PUBLISHED',
+    RETIRED = 'RETIRED',
+}
+
+export enum InformationRequestRequirementType
+{
+    FIELD = 'FIELD',
+    DOCUMENT = 'DOCUMENT',
+    RESPONSE_ATTESTATION = 'RESPONSE_ATTESTATION',
+}
+
+export enum InformationRequestResponseMode
+{
+    PROVIDE = 'PROVIDE',
+    PROVIDE_ONCE = 'PROVIDE_ONCE',
+    VIEW_ONLY = 'VIEW_ONLY',
+    NOT_DISCLOSED = 'NOT_DISCLOSED',
+}
+
+export enum InformationRequestRequiredness
+{
+    REQUIRED = 'REQUIRED',
+    OPTIONAL = 'OPTIONAL',
+    CONDITIONAL = 'CONDITIONAL',
+}
+
+export enum InformationRequestConditionHiddenDataPolicy
+{
+    RETAIN_SECURELY = 'RETAIN_SECURELY',
+    CLEAR_WITH_CONFIRMATION = 'CLEAR_WITH_CONFIRMATION',
+    ARCHIVE_OUTSIDE_ACTIVE_RESPONSE = 'ARCHIVE_OUTSIDE_ACTIVE_RESPONSE',
+}
+
+export enum InformationRequestContributorRole
+{
+    SUBJECT = 'SUBJECT',
+    CONTRIBUTOR = 'CONTRIBUTOR',
+    PREPARER = 'PREPARER',
+    ATTESTOR = 'ATTESTOR',
+}
+
+export enum InformationRequestReviewPolicy
+{
+    NOT_REQUIRED = 'NOT_REQUIRED',
+    REQUIRED = 'REQUIRED',
+    REQUIRED_ON_EXCEPTION = 'REQUIRED_ON_EXCEPTION',
+}
+
+export enum InformationRequestEvidenceAttributeRequirement
+{
+    NOT_CAPTURED = 'NOT_CAPTURED',
+    OPTIONAL = 'OPTIONAL',
+    REQUIRED = 'REQUIRED',
+}
+
+export enum InformationRequestEvidenceAttribute
+{
+    CONTENT_TYPE = 'CONTENT_TYPE',
+    ISSUER = 'ISSUER',
+    JURISDICTION = 'JURISDICTION',
+    LANGUAGE = 'LANGUAGE',
+}
+
+export enum InformationRequestEvidenceWaiverPolicy
+{
+    NOT_PERMITTED = 'NOT_PERMITTED',
+    RESPONDENT_DECLARED = 'RESPONDENT_DECLARED',
+    REVIEW_APPROVAL_REQUIRED = 'REVIEW_APPROVAL_REQUIRED',
+}
+
+export enum InformationRequestEvidenceConformancePolicy
+{
+    CONFORMANCE_REQUIRED = 'CONFORMANCE_REQUIRED',
+    DEFICIENCY_REVIEWABLE = 'DEFICIENCY_REVIEWABLE',
+}
+
+export enum InformationRequestResponseDisposition
+{
+    NOT_ANSWERED = 'NOT_ANSWERED',
+    PROVIDED = 'PROVIDED',
+    PARTIALLY_PROVIDED = 'PARTIALLY_PROVIDED',
+    NOT_APPLICABLE = 'NOT_APPLICABLE',
+    UNAVAILABLE = 'UNAVAILABLE',
+    EXCEPTION_REQUESTED = 'EXCEPTION_REQUESTED',
+    SATISFIED_BY_REFERENCE = 'SATISFIED_BY_REFERENCE',
+    WAIVED = 'WAIVED',
+}
+
+export enum InformationRequestCapability
+{
+    STRUCTURED_RESPONSE = 'STRUCTURED_RESPONSE',
+    DOCUMENT_EVIDENCE = 'DOCUMENT_EVIDENCE',
+    RESPONSE_ATTESTATION = 'RESPONSE_ATTESTATION',
+    CONDITIONAL_REQUIREMENT = 'CONDITIONAL_REQUIREMENT',
+    REPEATABLE_OCCURRENCE = 'REPEATABLE_OCCURRENCE',
+    RESPONSE_REVIEW = 'RESPONSE_REVIEW',
+    CONFIDENTIALITY_COMPARTMENT = 'CONFIDENTIALITY_COMPARTMENT',
+    EVIDENCE_WAIVER = 'EVIDENCE_WAIVER',
+    SUBSTITUTE_EVIDENCE = 'SUBSTITUTE_EVIDENCE',
+    SUPPORTING_EVIDENCE = 'SUPPORTING_EVIDENCE',
+    RESPONSE_SUBMISSION = 'RESPONSE_SUBMISSION',
+}
+
+export interface InformationRequestTemplateDto
+{
+    id: string;
+    scopeKind: InformationRequestTemplateScopeKind;
+    scopeOrgId?: string;
+    scopeUserId?: string;
+    namespace: string;
+    templateKey: string;
+    displayName: string;
+    description?: string;
+    status: InformationRequestTemplateStatus;
+    draftVersion?: InformationRequestTemplateVersionDto;
+    latestPublishedVersion?: InformationRequestTemplateVersionDto;
+    unsupportedPolicyControls?: InformationRequestTemplateUnsupportedPolicyControlDto[];
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface InformationRequestTemplateUnsupportedPolicyControlDto
+{
+    controlKey: string;
+    label: string;
+    reason: string;
+}
+
+export interface InformationRequestTemplateSummaryDto
+{
+    id: string;
+    scopeKind: InformationRequestTemplateScopeKind;
+    scopeOrgId?: string;
+    scopeUserId?: string;
+    namespace: string;
+    templateKey: string;
+    displayName: string;
+    description?: string;
+    status: InformationRequestTemplateStatus;
+    hasEditableVersion: boolean;
+    latestPublishedVersionNumber?: number;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface InformationRequestTemplateVersionDto
+{
+    id: string;
+    templateDefinitionId: string;
+    versionNumber: number;
+    status: InformationRequestTemplateStatus;
+    schemaVersionId?: string;
+    sections: InformationRequestTemplateSectionDto[];
+    groups: InformationRequestTemplateGroupDto[];
+    conditionRules: InformationRequestTemplateConditionRuleDto[];
+    requiredCapabilities: InformationRequestTemplateCapabilityDto[];
+    publishedAt?: string;
+    retiredAt?: string;
+    createdAt: string;
+}
+
+export interface InformationRequestTemplateGroupDto
+{
+    id: string;
+    groupKey: string;
+    parentGroupKey?: string;
+    minOccurrences: number;
+    maxOccurrences?: number;
+}
+
+export interface InformationRequestTemplateConditionRuleDto
+{
+    id: string;
+    ruleKey: string;
+    expressionVersion: number;
+    hiddenDataPolicy: InformationRequestConditionHiddenDataPolicy;
+    predicates: InformationRequestTemplateConditionPredicateDto[];
+}
+
+export interface InformationRequestTemplateConditionPredicateDto
+{
+    id: string;
+    sourceRequirementKey?: string;
+    fieldDefinitionId?: string;
+    valueType?: FieldValueType;
+    operator: FieldOperator;
+    value?: unknown;
+    expectedDisposition?: InformationRequestResponseDisposition;
+}
+
+export interface InformationRequestTemplateSectionDto
+{
+    id: string;
+    sectionKey: string;
+    title: string;
+    helpText?: string;
+    requirements: InformationRequestTemplateRequirementDto[];
+}
+
+export interface InformationRequestTemplateRequirementDto
+{
+    id: string;
+    templateRequirementId: string;
+    requirementKey: string;
+    requirementType: InformationRequestRequirementType;
+    prompt: string;
+    helpText?: string;
+    responseMode: InformationRequestResponseMode;
+    requiredness: InformationRequestRequiredness;
+    contributorRole: InformationRequestContributorRole;
+    reviewPolicy: InformationRequestReviewPolicy;
+    confidentialityCompartmentKey?: string;
+    conditionalRuleKey?: string;
+    occurrenceAnchorKey?: string;
+    collectedFieldDefinitionId?: string;
+    permittedDispositions: InformationRequestResponseDisposition[];
+    evidencePolicy?: InformationRequestTemplateEvidencePolicyDto;
+    substituteRequirementKeys: string[];
+    supportingEvidenceRequirementKeys: string[];
+}
+
+export interface InformationRequestTemplateEvidencePolicyDto
+{
+    id: string;
+    minimumFileCount: number;
+    maximumFileCount?: number;
+    maximumFileSizeBytes?: number;
+    maximumTotalSizeBytes?: number;
+    minimumPageCount?: number;
+    maximumPageCount?: number;
+    issuerRequirement: InformationRequestEvidenceAttributeRequirement;
+    jurisdictionRequirement: InformationRequestEvidenceAttributeRequirement;
+    languageRequirement: InformationRequestEvidenceAttributeRequirement;
+    issueDateRequirement: InformationRequestEvidenceAttributeRequirement;
+    expiryDateRequirement: InformationRequestEvidenceAttributeRequirement;
+    coveragePeriodRequirement: InformationRequestEvidenceAttributeRequirement;
+    certificationRequirement: InformationRequestEvidenceAttributeRequirement;
+    signatureRequirement: InformationRequestEvidenceAttributeRequirement;
+    maximumIssueAgeDays?: number;
+    minimumRemainingValidityDays?: number;
+    minimumCoverageDays?: number;
+    coverageContinuityRequired: boolean;
+    waiverPolicy: InformationRequestEvidenceWaiverPolicy;
+    conformancePolicy: InformationRequestEvidenceConformancePolicy;
+    acceptedValues: InformationRequestTemplateAcceptedValueDto[];
+}
+
+export interface InformationRequestTemplateAcceptedValueDto
+{
+    attribute: InformationRequestEvidenceAttribute;
+    acceptedValue: string;
+}
+
+export interface InformationRequestTemplateCapabilityDto
+{
+    capability: InformationRequestCapability;
+    requiredContractVersion: number;
+}
+
+export interface CreateInformationRequestTemplateRequest
+{
+    namespace: string;
+    templateKey: string;
+    displayName: string;
+    description?: string;
+    scopeKind?: InformationRequestTemplateScopeKind;
+}
+
+export interface InformationRequestTemplateConfigurationRequest
+{
+    schemaVersionId?: string;
+    sections: InformationRequestTemplateSectionRequest[];
+    groups?: InformationRequestTemplateGroupRequest[];
+    conditionRules?: InformationRequestTemplateConditionRuleRequest[];
+}
+
+export interface InformationRequestTemplateConditionRuleRequest
+{
+    ruleKey: string;
+    expressionVersion?: number;
+    hiddenDataPolicy?: InformationRequestConditionHiddenDataPolicy;
+    predicates: InformationRequestTemplateConditionPredicateRequest[];
+}
+
+export interface InformationRequestTemplateConditionPredicateRequest
+{
+    sourceRequirementKey?: string;
+    fieldDefinitionId?: string;
+    valueType?: FieldValueType;
+    operator: FieldOperator;
+    value?: unknown;
+    expectedDisposition?: InformationRequestResponseDisposition;
+}
+
+export interface InformationRequestTemplateGroupRequest
+{
+    groupKey: string;
+    parentGroupKey?: string;
+    minOccurrences?: number;
+    maxOccurrences?: number;
+}
+
+export interface InformationRequestTemplateSectionRequest
+{
+    sectionKey: string;
+    title: string;
+    helpText?: string;
+    requirements: InformationRequestTemplateRequirementRequest[];
+}
+
+export interface InformationRequestTemplateRequirementRequest
+{
+    requirementKey: string;
+    requirementType: InformationRequestRequirementType;
+    prompt: string;
+    helpText?: string;
+    responseMode?: InformationRequestResponseMode;
+    requiredness?: InformationRequestRequiredness;
+    contributorRole?: InformationRequestContributorRole;
+    reviewPolicy?: InformationRequestReviewPolicy;
+    confidentialityCompartmentKey?: string;
+    conditionalRuleKey?: string;
+    occurrenceAnchorKey?: string;
+    collectedFieldDefinitionId?: string;
+    permittedDispositions?: InformationRequestResponseDisposition[];
+    evidencePolicy?: InformationRequestTemplateEvidencePolicyRequest;
+    substituteRequirementKeys?: string[];
+    supportingEvidenceRequirementKeys?: string[];
+}
+
+export interface InformationRequestTemplateEvidencePolicyRequest
+{
+    minimumFileCount?: number;
+    maximumFileCount?: number;
+    maximumFileSizeBytes?: number;
+    maximumTotalSizeBytes?: number;
+    minimumPageCount?: number;
+    maximumPageCount?: number;
+    issuerRequirement?: InformationRequestEvidenceAttributeRequirement;
+    jurisdictionRequirement?: InformationRequestEvidenceAttributeRequirement;
+    languageRequirement?: InformationRequestEvidenceAttributeRequirement;
+    issueDateRequirement?: InformationRequestEvidenceAttributeRequirement;
+    expiryDateRequirement?: InformationRequestEvidenceAttributeRequirement;
+    coveragePeriodRequirement?: InformationRequestEvidenceAttributeRequirement;
+    certificationRequirement?: InformationRequestEvidenceAttributeRequirement;
+    signatureRequirement?: InformationRequestEvidenceAttributeRequirement;
+    maximumIssueAgeDays?: number;
+    minimumRemainingValidityDays?: number;
+    minimumCoverageDays?: number;
+    coverageContinuityRequired?: boolean;
+    waiverPolicy?: InformationRequestEvidenceWaiverPolicy;
+    conformancePolicy?: InformationRequestEvidenceConformancePolicy;
+    acceptedValues?: InformationRequestTemplateAcceptedValueRequest[];
+}
+
+export interface InformationRequestTemplateAcceptedValueRequest
+{
+    attribute: InformationRequestEvidenceAttribute;
+    acceptedValue: string;
+}
+
+export interface InformationRequestTemplateNewVersionRequest
+{
+    sourceVersionNumber: number;
+}
+
+export interface CloneInformationRequestTemplateRequest
+{
+    sourceVersionNumber: number;
+    target: CreateInformationRequestTemplateRequest;
+}
+
+export enum InformationRequestOwnerType
+{
+    ORGANIZATION = "ORGANIZATION",
+    USER = "USER",
+}
+
+export enum InformationRequestState
+{
+    DRAFT = "DRAFT",
+    ISSUED = "ISSUED",
+    IN_PROGRESS = "IN_PROGRESS",
+    SUBMITTED = "SUBMITTED",
+    UNDER_REVIEW = "UNDER_REVIEW",
+    CHANGES_REQUESTED = "CHANGES_REQUESTED",
+    CLOSED = "CLOSED",
+    CANCELLED = "CANCELLED",
+    SUPERSEDED = "SUPERSEDED",
+    EXPIRED = "EXPIRED",
+}
+
+export enum InformationRequestConditionEvaluationState
+{
+    TRUE = "TRUE",
+    FALSE = "FALSE",
+    UNKNOWN = "UNKNOWN",
+}
+
+export interface InformationRequestConditionEvaluationDto
+{
+    ruleKey: string;
+    expressionVersion: number;
+    state: InformationRequestConditionEvaluationState;
+    occurrencePath: string;
+}
+
+export interface InformationRequestDto
+{
+    id: string;
+    exchangeId: string;
+    templateVersionId: string;
+    ownerType: InformationRequestOwnerType;
+    ownerOrganizationId?: string;
+    ownerUserId?: string;
+    state: InformationRequestState;
+    gatesExchangeClosure: boolean;
+    aggregateRevision: number;
+    issuedAt?: string;
+    closedAt?: string;
+    cancelledAt?: string;
+    supersededAt?: string;
+    supersededByRequestId?: string;
+    createdAt: string;
+    updatedAt: string;
+    requestETag: string;
+    conditionEvaluations: InformationRequestConditionEvaluationDto[];
+}
+
+export interface InformationRequestGroupOccurrenceDto
+{
+    id: string;
+    informationRequestId: string;
+    sourceTemplateGroupId: string;
+    parentOccurrenceId?: string;
+    occurrenceIndex: number;
+    occurrencePath: string;
+    createdAt: string;
+    removedAt?: string;
+}
+
+export interface InformationRequestResponseDto
+{
+    informationRequestRequirementId: string;
+    sourceTemplateRequirementId: string;
+    sourceTemplateBindingId: string;
+    occurrencePath: string;
+    disposition: InformationRequestResponseDisposition;
+    narrative?: string;
+    fieldValueSetId?: string;
+    fieldValueSetETag?: string;
+    fieldValues: FieldValueDto[];
+    responseRevision: number;
+    updatedAt: string;
+}
+
+export enum RequestAccessSessionVerificationStrength
+{
+    EMAIL_OTP = "EMAIL_OTP",
+}
+
+export interface InformationRequestAccessSessionDto
+{
+    sessionId: string;
+    sessionToken: string;
+    verificationStrength: RequestAccessSessionVerificationStrength;
+    issuedAt: string;
+    expiresAt: string;
+}
+
+export interface InformationRequestResponseWorkspaceDto
+{
+    request: InformationRequestDto;
+    templateVersion: InformationRequestTemplateVersionDto;
+    responseETag: string;
+    occurrences: InformationRequestGroupOccurrenceDto[];
+    schemaAssignment?: SchemaAssignmentDto;
+    responses: InformationRequestResponseDto[];
+}
+
+export interface InformationRequestResponseFieldValuesPatchRequest
+{
+    etag?: string;
+    values: FieldValueEntry[];
+}
+
+export interface InformationRequestResponsePatchRequest
+{
+    requirementId: string;
+    disposition?: InformationRequestResponseDisposition;
+    narrative?: string;
+    clearNarrative?: boolean;
+    fieldValues?: InformationRequestResponseFieldValuesPatchRequest;
+}
+
+export interface PatchInformationRequestResponsesRequest
+{
+    patches: InformationRequestResponsePatchRequest[];
+    confirmedHiddenResponseClearRequirementIds?: string[];
+}
+
+export interface CreateInformationRequestGroupOccurrenceRequest
+{
+    groupKey: string;
+    parentOccurrenceId?: string;
+}
+
+export interface ReorderInformationRequestGroupOccurrencesRequest
+{
+    groupKey: string;
+    parentOccurrenceId?: string;
+    occurrenceIds: string[];
 }
 
 // ── Audit projection, exports, and integrity ──────────────────────────────────

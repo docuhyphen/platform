@@ -1,71 +1,42 @@
 import {useMemo, useState} from 'react';
-import {Badge, Button, Spinner, Text} from '@fluentui/react-components';
+import {Button, Spinner} from '@fluentui/react-components';
 import {FieldValueDto, SchemaFieldBindingDto} from '../../../models/models';
-import {setExchangeFieldValues} from '../../../../services/fieldsService';
 import {useExchangeFieldsTabStyles} from './ExchangeFieldsTabStyles';
-import {toCanonicalValue} from './fieldValueUtils';
+import {buildSparseFieldValuePayload} from './fieldValuePayload';
+import {mergeFieldValueEdits, storedFieldValues} from './fieldEditorState';
+import {useFieldValuesSave} from './useFieldValuesSave';
 import FieldCard from './FieldCard';
 import FieldValueEditor from './FieldValueEditor';
-import {
-    groupBindingsBySection,
-    toFieldElementId,
-} from './fieldLayoutUtils';
+import {groupBindingsBySection, toFieldElementId,} from './fieldLayoutUtils';
 
 interface Props
 {
     exchangeId: string;
     bindings: SchemaFieldBindingDto[];
     values: FieldValueDto[];
-    onSaved: () => void;
+    /**
+     * Validator of the version the values were served in, sent back with a save so one built on
+     * values that have since changed is refused rather than applied.
+     */
+    valuesETag?: string;
+    /** Take a fresh reading of the stored values: they have just changed, or were found to have. */
+    onValuesChanged: () => void;
 }
 
-const FieldValuesForm = ({exchangeId, bindings, values, onSaved}: Props) =>
+const FieldValuesForm = ({exchangeId, bindings, values, valuesETag, onValuesChanged}: Props) =>
 {
     const styles = useExchangeFieldsTabStyles();
     const sections = useMemo(() => groupBindingsBySection(bindings), [bindings]);
-    const initial = useMemo(() =>
-    {
-        const map: Record<string, unknown> = {};
-        bindings.forEach(binding =>
-        {
-            const existing = values.find(v => v.fieldContractId === binding.fieldContractId);
-            map[binding.fieldContractId] = existing && !existing.isEmpty ? existing.value : undefined;
-        });
-        return map;
-    }, [bindings, values]);
+    const stored = useMemo(() => storedFieldValues(bindings, values), [bindings, values]);
 
-    const [state, setState] = useState<Record<string, unknown>>(initial);
-    const [saving, setSaving] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const [edits, setEdits] = useState<Record<string, unknown>>({});
+    const shown = useMemo(() => mergeFieldValueEdits(stored, edits), [stored, edits]);
+    const {saving, error, save} = useFieldValuesSave(exchangeId, valuesETag, onValuesChanged);
 
     const setValue = (fieldContractId: string, value: unknown) =>
-        setState(prev => ({...prev, [fieldContractId]: value}));
+        setEdits(prev => ({...prev, [fieldContractId]: value}));
 
-    const handleSave = async () =>
-    {
-        setSaving(true);
-        setError(null);
-        const entries = bindings.map(binding => ({
-            fieldContractId: binding.fieldContractId,
-            value: toCanonicalValue(binding.valueType, state[binding.fieldContractId]),
-        }));
-        try
-        {
-            await setExchangeFieldValues(exchangeId, {values: entries});
-            onSaved();
-        }
-        catch (e: unknown)
-        {
-            const msg = typeof e === 'object' && e !== null && 'error' in e
-                ? String((e as {error: string}).error)
-                : 'Failed to save values';
-            setError(msg);
-        }
-        finally
-        {
-            setSaving(false);
-        }
-    };
+    const handleSave = () => save(buildSparseFieldValuePayload(bindings, values, shown));
 
     return (
         <div id="exchange-fields-form-sections"
@@ -85,7 +56,7 @@ const FieldValuesForm = ({exchangeId, bindings, values, onSaved}: Props) =>
                                            required={binding.isRequired}
                                            readOnly={binding.isReadOnly}>
                                     <FieldValueEditor binding={binding}
-                                                      value={state[binding.fieldContractId]}
+                                                      value={shown[binding.fieldContractId]}
                                                       onChange={value => setValue(binding.fieldContractId, value)}
                                                       showLabel={false}/>
                                 </FieldCard>
@@ -93,7 +64,12 @@ const FieldValuesForm = ({exchangeId, bindings, values, onSaved}: Props) =>
                         </div>
                     </div>
                 ))}
-                {error && <span className={styles.errorText}>{error}</span>}
+                {error && (
+                    <span id="exchange-fields-save-error"
+                          className={styles.errorText}>
+                        {error}
+                    </span>
+                )}
             </div>
             <div className={styles.buttonRow}>
                 <Button id="exchange-fields-save-btn"

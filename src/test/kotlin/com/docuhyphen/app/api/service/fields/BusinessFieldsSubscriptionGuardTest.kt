@@ -7,12 +7,8 @@ import com.docuhyphen.app.api.service.subscription.SubscriptionContext
 import com.docuhyphen.app.api.service.subscription.SubscriptionEnforcementMode
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.any
-import org.mockito.kotlin.never
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.whenever
-import java.util.UUID
+import org.mockito.kotlin.*
+import java.util.*
 
 class BusinessFieldsSubscriptionGuardTest
 {
@@ -24,7 +20,7 @@ class BusinessFieldsSubscriptionGuardTest
     {
         whenever(accessService.enforcementMode()).thenReturn(SubscriptionEnforcementMode.OFF)
 
-        guard.requireConfigurationMutation(FieldScopeKind.ORGANIZATION, null)
+        guard.requireConfigurationMutation(FieldScopeKind.ORGANIZATION, null, null)
 
         verify(accessService, never()).requireMutationAllowed(any(), any())
     }
@@ -34,7 +30,7 @@ class BusinessFieldsSubscriptionGuardTest
     {
         whenever(accessService.enforcementMode()).thenReturn(SubscriptionEnforcementMode.ENFORCE)
 
-        guard.requireConfigurationMutation(FieldScopeKind.PLATFORM, null)
+        guard.requireConfigurationMutation(FieldScopeKind.PLATFORM, null, null)
 
         verify(accessService, never()).requireMutationAllowed(any(), any())
     }
@@ -46,10 +42,39 @@ class BusinessFieldsSubscriptionGuardTest
         val context = SubscriptionContext.forOrganization(organizationId)
         whenever(accessService.enforcementMode()).thenReturn(SubscriptionEnforcementMode.ENFORCE)
 
-        guard.requireConfigurationMutation(FieldScopeKind.ORGANIZATION, organizationId)
+        guard.requireConfigurationMutation(FieldScopeKind.ORGANIZATION, organizationId, null)
 
         verify(accessService).requireMutationAllowed(org.mockito.kotlin.eq(context), any())
         verify(accessService).requireFeature(context, PlanFeature.BUSINESS_FIELDS_AND_SCHEMAS)
+    }
+
+    @Test
+    fun `personal configuration bills the person who owns it`()
+    {
+        val ownerUserId = UUID.randomUUID()
+        val context = SubscriptionContext.forUser(ownerUserId)
+        whenever(accessService.enforcementMode()).thenReturn(SubscriptionEnforcementMode.ENFORCE)
+
+        guard.requireConfigurationMutation(FieldScopeKind.PERSONAL, null, ownerUserId)
+
+        verify(accessService).requireMutationAllowed(org.mockito.kotlin.eq(context), any())
+        verify(accessService).requireFeature(context, PlanFeature.BUSINESS_FIELDS_AND_SCHEMAS)
+    }
+
+    @Test
+    fun `each scope kind is billed to its own owner and to nobody else's`()
+    {
+        val organizationId = UUID.randomUUID()
+        val ownerUserId = UUID.randomUUID()
+        whenever(accessService.enforcementMode()).thenReturn(SubscriptionEnforcementMode.ENFORCE)
+
+        assertThrows<IllegalArgumentException> {
+            guard.requireConfigurationMutation(FieldScopeKind.PERSONAL, organizationId, null)
+        }
+        assertThrows<IllegalArgumentException> {
+            guard.requireConfigurationMutation(FieldScopeKind.ORGANIZATION, null, ownerUserId)
+        }
+        verify(accessService, never()).requireMutationAllowed(any(), any())
     }
 
     @Test

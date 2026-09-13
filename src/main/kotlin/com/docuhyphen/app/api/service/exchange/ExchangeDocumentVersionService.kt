@@ -3,33 +3,18 @@
 import com.docuhyphen.app.api.exception.ExchangeDocumentNotFoundException
 import com.docuhyphen.app.api.exception.ExchangeNotFoundException
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
-import com.docuhyphen.app.api.model.entity.DocumentAuditAction
-import com.docuhyphen.app.api.model.entity.DocumentType
-import com.docuhyphen.app.api.model.entity.DocumentVersion
-import com.docuhyphen.app.api.model.entity.Document
-import com.docuhyphen.app.api.model.entity.Exchange
-import com.docuhyphen.app.api.model.entity.ResourceType
-import com.docuhyphen.app.api.repository.user.AppUserRepository
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.repository.exchange.DocumentVersionRepository
 import com.docuhyphen.app.api.repository.exchange.ExchangeDocumentRepository
 import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
-import com.docuhyphen.app.api.service.audit.AuditCaptureFailedException
-import com.docuhyphen.app.api.service.audit.AuditDraftInvalidException
-import com.docuhyphen.app.api.service.audit.AuditEventDraft
-import com.docuhyphen.app.api.service.audit.AuditOwnerScope
-import com.docuhyphen.app.api.service.audit.AuditRecorder
+import com.docuhyphen.app.api.repository.user.AppUserRepository
+import com.docuhyphen.app.api.service.audit.*
 import com.docuhyphen.app.api.service.audit.catalog.AuditActorKind
 import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
 import com.docuhyphen.app.api.service.audit.catalog.AuditOutcome
-import com.docuhyphen.app.api.service.auth.authz.Action
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.Decision
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import com.docuhyphen.app.api.service.auth.authz.ResourceRef
+import com.docuhyphen.app.api.service.auth.authz.*
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
-import jakarta.persistence.EntityManager
 import jakarta.transaction.Transactional
 import org.slf4j.LoggerFactory
 import java.io.File
@@ -51,6 +36,7 @@ class ExchangeDocumentVersionService @Inject constructor(
     private val authorizationService: AuthorizationService,
     private val authorizationContextFactory: AuthorizationContextFactory,
     private val auditRecorder: AuditRecorder,
+    private val auditOwnerScopeResolver: AuditOwnerScopeResolver,
     private val exchangeFeatureSubscriptionGuard: ExchangeFeatureSubscriptionGuard,
 )
 {
@@ -249,7 +235,7 @@ class ExchangeDocumentVersionService @Inject constructor(
                     targetType = ResourceType.DOCUMENT.name,
                     targetId = documentId.toString(),
                     targetLabel = documentTitle,
-                    owner = exchange.ownerOrganizationId?.let(AuditOwnerScope::Organization) ?: AuditOwnerScope.Platform,
+                    owner = auditOwnerScopeResolver.resolve(ResourceType.EXCHANGE, exchange.id),
                     payload = mapOf(
                         "version_id" to versionId.toString(),
                         "exchange_id" to exchange.id.toString(),

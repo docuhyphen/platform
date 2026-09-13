@@ -1,49 +1,28 @@
 ﻿package com.docuhyphen.app.api.service.exchange
 
-import com.docuhyphen.app.api.extension.normalizeEmailOrNull
 import com.docuhyphen.app.api.exception.ExchangeNotFoundException
+import com.docuhyphen.app.api.extension.normalizeEmailOrNull
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.model.dto.SessionAccessEntryDto
-import com.docuhyphen.app.api.model.entity.AppUser
-import com.docuhyphen.app.api.model.entity.PrincipalKind
-import com.docuhyphen.app.api.model.entity.ResourceType
-import com.docuhyphen.app.api.model.entity.ExchangeShareRoleName
-import com.docuhyphen.app.api.model.entity.Share
-import com.docuhyphen.app.api.model.entity.ShareSource
-import com.docuhyphen.app.api.model.entity.ShareStatus
-import com.docuhyphen.app.api.model.entity.Exchange
-import com.docuhyphen.app.api.model.entity.ExchangeStatus
-import com.docuhyphen.app.api.model.entity.ExchangeRecipientAcceptanceStatus
-import com.docuhyphen.app.api.model.entity.ExchangeRecipientPurpose
-import com.docuhyphen.app.api.model.entity.ExchangeRecipientSelectionType
-import com.docuhyphen.app.api.model.entity.PrincipalGroupScope
+import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
+import com.docuhyphen.app.api.repository.exchange.ExternalParticipantRepository
+import com.docuhyphen.app.api.repository.exchange.ShareRepository
 import com.docuhyphen.app.api.resource.model.ExchangeRecipientSelectionRequest
 import com.docuhyphen.app.api.resource.model.TrustedGroupRecipientSelectionRequest
 import com.docuhyphen.app.api.resource.model.TrustedPersonRecipientSelectionRequest
-import com.docuhyphen.app.api.service.identity.ExternalIdentityResolutionService
-import com.docuhyphen.app.api.repository.exchange.ExternalParticipantRepository
-import com.docuhyphen.app.api.repository.exchange.ShareRepository
-import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
-import com.docuhyphen.app.api.service.user.AppUserService
-import com.docuhyphen.app.api.service.communication.EmailTemplateService
-import com.docuhyphen.app.api.service.communication.OtpService
-import com.docuhyphen.app.api.service.config.ConfigurationService
-import com.docuhyphen.app.api.service.auth.authz.Action
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.Decision
-import com.docuhyphen.app.api.service.auth.authz.ResourceRef
-import com.docuhyphen.app.api.service.auth.authz.ShareConstraints
-import com.docuhyphen.app.api.service.organization.OrganizationExchangePolicyService
-import com.docuhyphen.app.api.service.organization.OrganizationGroupService
-import com.docuhyphen.app.api.service.audit.AuditCaptureFailedException
-import com.docuhyphen.app.api.service.audit.AuditDraftInvalidException
-import com.docuhyphen.app.api.service.audit.AuditEventDraft
-import com.docuhyphen.app.api.service.audit.AuditOwnerScope
-import com.docuhyphen.app.api.service.audit.AuditRecorder
+import com.docuhyphen.app.api.service.audit.*
 import com.docuhyphen.app.api.service.audit.catalog.AuditActorKind
 import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
 import com.docuhyphen.app.api.service.audit.catalog.AuditOutcome
+import com.docuhyphen.app.api.service.auth.authz.*
+import com.docuhyphen.app.api.service.communication.EmailTemplateService
+import com.docuhyphen.app.api.service.communication.OtpService
+import com.docuhyphen.app.api.service.config.ConfigurationService
+import com.docuhyphen.app.api.service.identity.ExternalIdentityResolutionService
+import com.docuhyphen.app.api.service.organization.OrganizationExchangePolicyService
+import com.docuhyphen.app.api.service.organization.OrganizationGroupService
+import com.docuhyphen.app.api.service.user.AppUserService
 import io.quarkus.security.ForbiddenException
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
@@ -51,7 +30,7 @@ import jakarta.transaction.Transactional
 import org.slf4j.LoggerFactory
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 /**
  * Manage-access write API over the unified [com.docuhyphen.app.api.model.entity.Share] model
@@ -85,6 +64,7 @@ class ExchangeAccessManagementService @Inject constructor(
     private val noAuthExchangeAccessTokenService: NoAuthExchangeAccessTokenService,
     private val configurationService: ConfigurationService,
     private val auditRecorder: AuditRecorder,
+    private val auditOwnerScopeResolver: AuditOwnerScopeResolver,
     private val exchangeNotificationDeliveryService: ExchangeNotificationDeliveryService,
     private val exchangeFeatureSubscriptionGuard: ExchangeFeatureSubscriptionGuard,
 )
@@ -340,7 +320,7 @@ class ExchangeAccessManagementService @Inject constructor(
 
         val previousShare = shareService.getById(currentPrimary.directShareId)
             ?: throw IllegalArgumentException("The current primary recipient Share was not found")
-        val preservedRole = previousShare.roleName
+        val preservedRole = previousShare.exchangeRoleName()
         val preservedConstraints = previousShare.constraintsJson
 
         // Remove the old binding and attestation first so the single-primary constraint is free,
@@ -497,7 +477,7 @@ class ExchangeAccessManagementService @Inject constructor(
         )
         if (decision is Decision.Deny)
         {
-            recordAuthorizationDenied(exchangeId, principal.id, Action.EXCHANGE_MANAGE_ACCESS.name, session.ownerOrganizationId, session.name)
+            recordAuthorizationDenied(exchangeId, principal.id, Action.EXCHANGE_MANAGE_ACCESS.name, session.name)
             throw ExchangeNotFoundException("Exchange not found")
         }
         return shareQueryService.getSessionAccessView(exchangeId)
@@ -630,7 +610,7 @@ class ExchangeAccessManagementService @Inject constructor(
         )
         if (decision is Decision.Deny)
         {
-            recordAuthorizationDenied(exchangeId, principal.id, Action.EXCHANGE_MANAGE_ACCESS.name, session.ownerOrganizationId, session.name)
+            recordAuthorizationDenied(exchangeId, principal.id, Action.EXCHANGE_MANAGE_ACCESS.name, session.name)
             throw ForbiddenException("Not authorized to manage access on this session")
         }
     }
@@ -650,7 +630,7 @@ class ExchangeAccessManagementService @Inject constructor(
         )
         if (decision is Decision.Deny)
         {
-            recordAuthorizationDenied(exchangeId, principal.id, Action.EXCHANGE_MANAGE_ACCESS.name, session.ownerOrganizationId, session.name)
+            recordAuthorizationDenied(exchangeId, principal.id, Action.EXCHANGE_MANAGE_ACCESS.name, session.name)
             throw ForbiddenException("Not authorized to manage access on this session")
         }
         return session
@@ -696,7 +676,7 @@ class ExchangeAccessManagementService @Inject constructor(
             initiatorId != null &&
             share.principalKind == PrincipalKind.USER &&
             share.principalId == initiatorId &&
-            share.roleName == ExchangeShareRoleName.OWNER &&
+            share.roleName == ExchangeShareRoleName.OWNER.name &&
             share.source == ShareSource.DIRECT
         )
         {
@@ -921,7 +901,6 @@ class ExchangeAccessManagementService @Inject constructor(
         exchangeId: UUID,
         actorId: UUID,
         action: String,
-        ownerOrganizationId: UUID?,
         exchangeName: String? = null,
     )
     {
@@ -929,7 +908,7 @@ class ExchangeAccessManagementService @Inject constructor(
         {
             auditRecorder.record(
                 AuditEventDraft(
-                    owner = ownerOrganizationId?.let(AuditOwnerScope::Organization) ?: AuditOwnerScope.Platform,
+                    owner = auditOwnerScopeResolver.resolve(ResourceType.EXCHANGE, exchangeId),
                     eventTypeKey = AuditEventType.AUTHORIZATION_DENIED.key,
                     outcome = AuditOutcome.DENIED,
                     actorId = actorId,

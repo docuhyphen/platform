@@ -1,5 +1,5 @@
-import {makeStyles} from "@fluentui/react-components";
 import type {BadgeProps} from "@fluentui/react-components";
+import {makeStyles} from "@fluentui/react-components";
 
 export const useAuditCategoryBadgeStyles = makeStyles({
     badge: {
@@ -31,6 +31,7 @@ export const auditCategoryMetaMap: Record<string, AuditCategoryMeta> = {
     AUTHORIZATION: {label: "Authorization", color: "danger"},
     WORKFLOW: {label: "Workflow", color: "important"},
     FIELD_SCHEMA: {label: "Field / Schema", color: "informative"},
+    INFORMATION_REQUEST: {label: "Information Request", color: "brand"},
     ARCHIVE: {label: "Archive", color: "subtle"},
     AUDIT_GOVERNANCE: {label: "Audit Governance", color: "warning"},
 };

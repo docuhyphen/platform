@@ -2,14 +2,11 @@ package com.docuhyphen.app.api.service.subscription
 
 import com.docuhyphen.app.api.model.entity.OrganizationSubscriptionPolicy
 import com.docuhyphen.app.api.model.entity.UserSubscriptionPolicy
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 class EffectiveSubscriptionFactoryTest
 {
@@ -50,6 +47,7 @@ class EffectiveSubscriptionFactoryTest
     {
         val resolved = EffectiveSubscriptionFactory.fromUserPolicy(
             userPolicy(planCode = PlanCode.PERSONAL.name, billingFrequency = "ANNUAL"),
+            featureOverrides = emptyMap(),
         )
 
         assertEquals(PlanCode.PERSONAL, resolved.planCode)
@@ -63,7 +61,7 @@ class EffectiveSubscriptionFactoryTest
     @Test
     fun `free individual policy keeps the free allowances`()
     {
-        val resolved = EffectiveSubscriptionFactory.fromUserPolicy(userPolicy())
+        val resolved = EffectiveSubscriptionFactory.fromUserPolicy(userPolicy(), emptyMap())
 
         assertEquals(PlanCode.FREE, resolved.planCode)
         assertEquals(5L, resolved.limits.maxNewExchangesPerCalendarMonth)
@@ -105,6 +103,28 @@ class EffectiveSubscriptionFactoryTest
     }
 
     @Test
+    fun `individual overrides are applied on top of the plan defaults`()
+    {
+        val resolved = EffectiveSubscriptionFactory.fromUserPolicy(
+            userPolicy(planCode = PlanCode.PERSONAL.name),
+            featureOverrides = mapOf(
+                PlanFeature.INFORMATION_REQUESTS to true,
+                PlanFeature.DOCUMENT_VERSION_HISTORY to false,
+            ),
+        )
+
+        assertTrue(
+            resolved.hasFeature(PlanFeature.INFORMATION_REQUESTS),
+            "A granted feature the plan omits must reach the individual account",
+        )
+        assertFalse(
+            resolved.hasFeature(PlanFeature.DOCUMENT_VERSION_HISTORY),
+            "A withdrawn feature must leave the individual account",
+        )
+        assertTrue(resolved.hasFeature(PlanFeature.BLUEPRINT_MANAGE))
+    }
+
+    @Test
     fun `an override never mutates the shared plan definition`()
     {
         EffectiveSubscriptionFactory.fromOrganizationPolicy(
@@ -116,6 +136,15 @@ class EffectiveSubscriptionFactoryTest
         assertTrue(
             PlanCatalog.definitionOf(PlanCode.BUSINESS).includes(PlanFeature.WORKFLOW_AUTOMATION),
         )
+
+        EffectiveSubscriptionFactory.fromUserPolicy(
+            userPolicy(planCode = PlanCode.PERSONAL.name),
+            featureOverrides = mapOf(PlanFeature.INFORMATION_REQUESTS to true),
+        )
+
+        assertFalse(
+            PlanCatalog.definitionOf(PlanCode.PERSONAL).includes(PlanFeature.INFORMATION_REQUESTS),
+        )
     }
 
     @Test
@@ -123,6 +152,7 @@ class EffectiveSubscriptionFactoryTest
     {
         val resolvedUser = EffectiveSubscriptionFactory.fromUserPolicy(
             userPolicy(planCode = PlanCode.BUSINESS.name),
+            featureOverrides = emptyMap(),
         )
         assertEquals(PlanCatalog.DEFAULT_USER_PLAN, resolvedUser.planCode)
 
@@ -139,6 +169,7 @@ class EffectiveSubscriptionFactoryTest
     {
         val resolved = EffectiveSubscriptionFactory.fromUserPolicy(
             userPolicy(planCode = "LEGACY_TIER", status = "WHAT"),
+            featureOverrides = emptyMap(),
         )
 
         assertEquals(PlanCatalog.DEFAULT_USER_PLAN, resolved.planCode)
@@ -152,6 +183,7 @@ class EffectiveSubscriptionFactoryTest
 
         val suspended = EffectiveSubscriptionFactory.fromUserPolicy(
             userPolicy(planCode = PlanCode.PERSONAL.name, status = SubscriptionStatus.SUSPENDED.name),
+            featureOverrides = emptyMap(),
         )
         assertFalse(suspended.allowsMutations(now))
         assertTrue(suspended.status.permitsReads)
@@ -162,6 +194,7 @@ class EffectiveSubscriptionFactoryTest
                 status = SubscriptionStatus.PAST_DUE.name,
                 gracePeriodEnd = now.plusSeconds(60),
             ),
+            featureOverrides = emptyMap(),
         )
         assertTrue(inGracePeriod.allowsMutations(now))
 
@@ -171,6 +204,7 @@ class EffectiveSubscriptionFactoryTest
                 status = SubscriptionStatus.PAST_DUE.name,
                 gracePeriodEnd = now.minusSeconds(60),
             ),
+            featureOverrides = emptyMap(),
         )
         assertFalse(pastGracePeriod.allowsMutations(now))
     }

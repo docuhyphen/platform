@@ -3,8 +3,8 @@ package com.docuhyphen.app.api.service.subscription
 import com.docuhyphen.app.api.model.entity.Organization
 import com.docuhyphen.app.api.model.entity.OrganizationSubscriptionPolicy
 import com.docuhyphen.app.api.model.entity.UserSubscriptionPolicy
-import com.docuhyphen.app.api.repository.organization.OrganizationFeatureEntitlementRepository
 import com.docuhyphen.app.api.repository.subscription.OrganizationSubscriptionPolicyRepository
+import com.docuhyphen.app.api.repository.subscription.SubscriptionFeatureEntitlementRepository
 import com.docuhyphen.app.api.repository.subscription.UserSubscriptionPolicyRepository
 import com.docuhyphen.app.api.service.organization.OrganizationService
 import jakarta.enterprise.context.ApplicationScoped
@@ -13,7 +13,7 @@ import jakarta.transaction.Transactional
 import org.slf4j.LoggerFactory
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 /**
  * Owns persistence of subscription records.
@@ -26,7 +26,7 @@ import java.util.UUID
 class SubscriptionPolicyService @Inject constructor(
     private val userSubscriptionPolicyRepository: UserSubscriptionPolicyRepository,
     private val organizationSubscriptionPolicyRepository: OrganizationSubscriptionPolicyRepository,
-    private val organizationFeatureEntitlementRepository: OrganizationFeatureEntitlementRepository,
+    private val subscriptionFeatureEntitlementRepository: SubscriptionFeatureEntitlementRepository,
     private val organizationService: OrganizationService,
 )
 {
@@ -174,14 +174,26 @@ class SubscriptionPolicyService @Inject constructor(
     }
 
     /**
-     * Platform-administered decisions layered on top of an organization's plan defaults. An
-     * entry set to true adds a feature the plan omits and false removes one it grants. Codes
-     * that do not correspond to a known product feature are ignored so an obsolete override row
-     * can never change what a plan resolves to.
+     * Platform-administered decisions layered on top of the plan defaults of one owner. An entry
+     * set to true adds a feature the plan omits and false removes one it grants. Codes that do not
+     * correspond to a known product feature are ignored so an obsolete override row can never
+     * change what a plan resolves to.
+     *
+     * The owner kind decides which column is matched, so an organization and an individual account
+     * that happen to share an id never read each other's decisions.
      */
-    fun organizationFeatureOverrides(organizationId: UUID): Map<PlanFeature, Boolean>
+    fun featureOverrides(context: SubscriptionContext): Map<PlanFeature, Boolean>
     {
-        return organizationFeatureEntitlementRepository.findByOrganizationId(organizationId)
+        val entitlements = when (context.ownerType)
+        {
+            SubscriptionOwnerType.ORGANIZATION ->
+                subscriptionFeatureEntitlementRepository.findByOrganizationId(context.ownerId)
+
+            SubscriptionOwnerType.USER ->
+                subscriptionFeatureEntitlementRepository.findByAppUserId(context.ownerId)
+        }
+
+        return entitlements
             .mapNotNull { entitlement ->
                 PlanFeature.fromCodeOrNull(entitlement.featureCode)?.let { it to entitlement.isEnabled }
             }

@@ -23,6 +23,8 @@ data class AuditEventDto(
     val actorId: String? = null,
     val actorRole: String? = null,
     val actorLabel: String? = null,
+    val ownerType: String,
+    val ownerId: String? = null,
     val organizationId: String? = null,
     val organizationLabel: String? = null,
     val targetType: String? = null,

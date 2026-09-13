@@ -1,23 +1,18 @@
 package com.docuhyphen.app.api.service.auth.authz
 
-import com.docuhyphen.app.api.model.entity.PrincipalKind
-import com.docuhyphen.app.api.model.entity.PrincipalGroupRoleName
-import com.docuhyphen.app.api.model.entity.ResourceType
-import com.docuhyphen.app.api.model.entity.Share
-import com.docuhyphen.app.api.model.entity.ShareLinkStatus
-import com.docuhyphen.app.api.model.entity.ShareStatus
-import com.docuhyphen.app.api.repository.organization.OrganizationMembershipRepository
-import com.docuhyphen.app.api.repository.organization.PrincipalGroupMemberRepository
-import com.docuhyphen.app.api.repository.organization.PrincipalGroupRepository
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.repository.application.AppRoleAssignmentRepository
 import com.docuhyphen.app.api.repository.exchange.ShareLinkRepository
 import com.docuhyphen.app.api.repository.exchange.ShareRepository
+import com.docuhyphen.app.api.repository.organization.OrganizationMembershipRepository
+import com.docuhyphen.app.api.repository.organization.PrincipalGroupMemberRepository
+import com.docuhyphen.app.api.repository.organization.PrincipalGroupRepository
 import com.docuhyphen.app.api.service.application.ApplicationService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 /**
  * Default implementation of [AuthorizationService].
@@ -33,11 +28,20 @@ import java.util.UUID
  *  4. Union the capability sets.
  *  5. Apply per-share constraints (require_mfa, ip_allowlist, expiry, status).
  *  6. Apply resource-state denies: archived or suspended resources deny non-admin writes,
- *     resolved via [ResourceAuthorizationContextRegistry].
+ *     resolved via [ResourceAuthorizationContextRegistry]. A resource whose type states that it
+ *     carries its own authorization facts is denied outright when those facts cannot be produced.
  *  7. Return Allow if required capability is in the union, else Deny.
  *
+ * A resource kind may also register that it takes the grants held on its parent resource, which
+ * [ParentGrantInheritanceResolver] admits for exactly one owner-matched, cycle-free level, and may
+ * register a [ResourcePolicyEvaluator] that narrows an already-allowed decision with facts only
+ * that kind understands. Neither is available to a kind that has not registered it.
+ *
  * PUBLIC_LINK grants are resolved from the [ShareLinkRepository] when
- * [AuthorizationContext.shareLinkTokenHash] is present in the context.
+ * [AuthorizationContext.shareLinkTokenHash] is present in the context. A ShareLink whose
+ * [ShareLinkMode] is `VERIFICATION_BOOTSTRAP` never resolves this way, regardless of its
+ * constraints or covering Share: that mode only proves recipient contact for a runtime request
+ * session minted elsewhere, never a content grant.
  *
  * NOTE: The following are not yet implemented:
  *   - org-level sharing policy denies (iteration 6)
@@ -53,6 +57,10 @@ class DefaultAuthorizationService @Inject constructor(
     private val principalGroupRepository: PrincipalGroupRepository,
     private val applicationService: ApplicationService,
     private val resourceContextRegistry: ResourceAuthorizationContextRegistry,
+    private val parentGrantInheritanceResolver: ParentGrantInheritanceResolver =
+        ParentGrantInheritanceResolver(ParentGrantInheritancePolicyRegistry(), resourceContextRegistry),
+    private val resourcePolicyEvaluatorRegistry: ResourcePolicyEvaluatorRegistry =
+        ResourcePolicyEvaluatorRegistry(),
 ) : AuthorizationService
 {
     private val platformAuditGovernanceCapabilities = setOf(
@@ -70,7 +78,22 @@ class DefaultAuthorizationService @Inject constructor(
         context: AuthorizationContext,
     ): Decision
     {
-        val grants = grantsOn(principal, resource, context).toMutableList()
+        val resolution = resourceContextRegistry.resolution(resource)
+        if (resolution is ResourceContextResolution.Unresolved)
+        {
+            return Decision.Deny(
+                Decision.REASON_RESOURCE_CONTEXT_UNRESOLVED,
+                "Authorization context could not be resolved for ${resource.type}",
+            )
+        }
+
+        val inheritance = parentGrantInheritanceResolver.evaluate(resource, resolution)
+        if (inheritance is ParentGrantInheritance.Refused)
+        {
+            return Decision.Deny(inheritance.reasonCode, inheritance.message)
+        }
+
+        val grants = grantsOn(principal, resource, context, resolution, inheritance).toMutableList()
         if (action == Action.EXCHANGE_ACCEPT)
         {
             shareRepository.findDirectForPrincipalOnResource(
@@ -173,10 +196,13 @@ class DefaultAuthorizationService @Inject constructor(
         }
         val union = effectiveGrants.flatMap { it.capabilities }.toSet()
 
-        val resourceCtx = resourceContextRegistry.resolve(resource)
+        val resourceCtx = (resolution as? ResourceContextResolution.Resolved)?.context
         if (resourceCtx != null && !union.contains(Capability.EXCHANGE_ADMIN))
         {
-            if (resourceCtx.isArchived)
+            if (resourceCtx.isArchived && !(resource.type in setOf(
+                    com.docuhyphen.app.api.model.entity.ResourceType.INFORMATION_REQUEST,
+                    com.docuhyphen.app.api.model.entity.ResourceType.INFORMATION_REQUEST_REQUIREMENT,
+                ) && action in com.docuhyphen.app.api.service.informationrequest.InformationRequestParentPolicy.readActions))
             {
                 return Decision.Deny(Decision.REASON_EXCHANGE_ARCHIVED, "Exchange ${resource.id} is archived")
             }
@@ -186,7 +212,75 @@ class DefaultAuthorizationService @Inject constructor(
             }
         }
 
-        return Decision.Allow(computeObligations(validCapableShares, now))
+        return decideWithResourcePolicy(
+            principal = principal,
+            action = action,
+            resource = resource,
+            resourceContext = resourceCtx,
+            capabilities = union,
+            context = context,
+            obligations = computeObligations(validCapableShares, now),
+        )
+    }
+
+    /**
+     * Gives the resource's own kind the last word on a decision the central capability union has
+     * already allowed. A registered evaluator may deny it or attach obligations to it; a kind with
+     * no evaluator leaves it exactly as it was.
+     */
+    private fun decideWithResourcePolicy(
+        principal: PrincipalRef,
+        action: Action,
+        resource: ResourceRef,
+        resourceContext: ResourceAuthorizationContext?,
+        capabilities: Set<Capability>,
+        context: AuthorizationContext,
+        obligations: ShareObligations,
+    ): Decision
+    {
+        val kind = resourceContextRegistry.kindOf(resource) ?: return Decision.Allow(obligations)
+        val evaluator = resourcePolicyEvaluatorRegistry.evaluatorFor(kind) ?: return Decision.Allow(obligations)
+        if (resourceContext == null)
+        {
+            return Decision.Deny(
+                Decision.REASON_RESOURCE_POLICY_FACTS_UNAVAILABLE,
+                "Resource policy for $kind has no resolved resource context to evaluate",
+            )
+        }
+
+        val request = ResourcePolicyRequest(
+            principal = principal,
+            action = action,
+            resource = resource,
+            resourceContext = resourceContext,
+            capabilities = capabilities,
+            authorizationContext = context,
+        )
+        return when (val outcome = evaluator.evaluate(request))
+        {
+            is ResourcePolicyOutcome.Deny -> Decision.Deny(outcome.reasonCode, outcome.message)
+            is ResourcePolicyOutcome.FactsUnavailable -> Decision.Deny(
+                Decision.REASON_RESOURCE_POLICY_FACTS_UNAVAILABLE,
+                outcome.message,
+            )
+
+            is ResourcePolicyOutcome.Permit -> Decision.Allow(mergeObligations(obligations, outcome.obligations))
+        }
+    }
+
+    /** Most restrictive union of two obligation sets. */
+    private fun mergeObligations(left: ShareObligations, right: ShareObligations): ShareObligations
+    {
+        val formats = when
+        {
+            left.allowedDownloadFormats == null -> right.allowedDownloadFormats
+            right.allowedDownloadFormats == null -> left.allowedDownloadFormats
+            else -> left.allowedDownloadFormats.intersect(right.allowedDownloadFormats)
+        }
+        return ShareObligations(
+            watermark = left.watermark || right.watermark,
+            allowedDownloadFormats = formats,
+        )
     }
 
     override fun capabilities(
@@ -202,6 +296,34 @@ class DefaultAuthorizationService @Inject constructor(
         context: AuthorizationContext,
     ): List<Grant>
     {
+        val resolution = resourceContextRegistry.resolution(resource)
+        val inheritance = parentGrantInheritanceResolver.evaluate(resource, resolution)
+        // A refused inheritance contributes nothing rather than falling back to the resource's
+        // own grants, so a caller listing grants sees exactly what a decision would use.
+        if (inheritance is ParentGrantInheritance.Refused) return emptyList()
+        return grantsOn(principal, resource, context, resolution, inheritance)
+    }
+
+    /**
+     * Collects grants against an already-answered [resolution] so one decision resolves the
+     * resource's own facts once. [inheritance] is answered by the caller for the same reason and
+     * is never re-derived here, which is what keeps parent inheritance to exactly one level.
+     */
+    private fun grantsOn(
+        principal: PrincipalRef,
+        resource: ResourceRef,
+        context: AuthorizationContext,
+        resolution: ResourceContextResolution,
+        inheritance: ParentGrantInheritance = ParentGrantInheritance.None,
+    ): List<Grant>
+    {
+        // A resource that states its own authorization facts contributes nothing while those
+        // facts cannot be produced, so no unrelated grant can be mistaken for one scoped to it.
+        if (resolution is ResourceContextResolution.Unresolved)
+        {
+            return emptyList()
+        }
+
         val grants = mutableListOf<Grant>()
         val now = Timestamp.from(Instant.now())
 
@@ -221,14 +343,14 @@ class DefaultAuthorizationService @Inject constructor(
         }
 
         // 1b) Organization membership role grants. The relevant organization is the one that
-        // owns the resource, resolved via [ResourceAuthorizationContextRegistry] for EXCHANGE
-        // resources. For PRINCIPAL_GROUP resources the group's owning org is used. The
-        // active org from context is used only as a fallback for resource types without a
-        // registered provider. Org roles only ever yield ORG_*/GROUP_* capabilities, so this
+        // owns the resource, taken from the resolved resource context. For PRINCIPAL_GROUP
+        // resources the group's owning org is used. The active org from context applies only to
+        // resource types that carry no resource-level context at all, being the platform
+        // control-plane references. Org roles only ever yield ORG_*/GROUP_* capabilities, so this
         // never widens EXCHANGE/DOCUMENT authorization.
         if (principal.kind == PrincipalKind.USER)
         {
-            grants += collectOrgMembershipGrants(principal, resource, context)
+            grants += collectOrgMembershipGrants(principal, resource, context, resolution)
         }
 
         // 1c) Group-membership role grants. Only meaningful when the resource *is* the group.
@@ -287,7 +409,7 @@ class DefaultAuthorizationService @Inject constructor(
         // The raw token is presented by the client (X-Share-Link-Token header); the filter
         // hashes it before placing it in AuthorizationContext. If a valid, non-exhausted
         // ShareLink exists and its associated Share covers this resource, we add a SHARE_LINK
-        // grant. An invalid/exhausted link adds no grant — the principal gets NO_GRANT.
+        // grant. An invalid or exhausted link adds no grant, so the principal gets NO_GRANT.
         val linkHash = context.shareLinkTokenHash
         if (linkHash != null)
         {
@@ -295,6 +417,30 @@ class DefaultAuthorizationService @Inject constructor(
             if (linkShare != null)
             {
                 grants += linkShare
+            }
+        }
+
+        // 5) Grants held on the parent resource, when this kind has registered that it takes them.
+        // The parent is collected without any inheritance of its own, so exactly one level is
+        // followed. Each inherited grant keeps its own source kind and identity, so every share
+        // constraint, expiry, and obligation rule continues to apply to it unchanged.
+        if (inheritance is ParentGrantInheritance.Inherited)
+        {
+            grantsOn(
+                principal,
+                inheritance.parent,
+                context,
+                inheritance.parentResolution,
+                ParentGrantInheritance.None,
+            ).forEach { parentGrant ->
+                val capabilities = inheritance.policy.inheritedCapabilities(parentGrant.capabilities)
+                if (capabilities.isNotEmpty())
+                {
+                    grants += parentGrant.copy(
+                        capabilities = capabilities,
+                        inheritedFrom = inheritance.parent,
+                    )
+                }
             }
         }
 
@@ -414,29 +560,30 @@ class DefaultAuthorizationService @Inject constructor(
      * Translates the caller's [com.docuhyphen.app.api.model.entity.OrganizationMembership] role
      * into a [Grant].
      *
-     * The org used for authorization is the one that owns the target resource, resolved via
-     * [ResourceAuthorizationContextRegistry]. For EXCHANGE resources this means the exchange's
-     * stored owner org, not the caller's active org. A personal exchange (Personal owner) yields
-     * no org membership grants. The fallback to [AuthorizationContext.activeOrgId] applies only
-     * for resource types that have no registered provider.
+     * The org used for authorization is the one that owns the target resource, taken from
+     * [resolution]. For EXCHANGE resources this means the exchange's stored owner org, not the
+     * caller's active org. A personal resource (Personal owner) yields no org membership grants.
+     * [AuthorizationContext.activeOrgId] is used only for a type that carries no resource-level
+     * context, where no owner was ever recorded to read.
      */
     private fun collectOrgMembershipGrants(
         principal: PrincipalRef,
         resource: ResourceRef,
         context: AuthorizationContext,
+        resolution: ResourceContextResolution,
     ): List<Grant>
     {
         val orgId = when (resource.type)
         {
             ResourceType.PRINCIPAL_GROUP ->
                 principalGroupRepository.findById(resource.id)?.ownerOrganizationId
-            else ->
+            else -> when (resolution)
             {
-                val resolved = resourceContextRegistry.resolve(resource)
-                if (resolved != null)
-                    (resolved.ownerContext as? OwnerContext.Organization)?.organizationId
-                else
-                    context.activeOrgId
+                is ResourceContextResolution.Resolved ->
+                    (resolution.context.ownerContext as? OwnerContext.Organization)?.organizationId
+
+                ResourceContextResolution.NotGoverned -> context.activeOrgId
+                ResourceContextResolution.Unresolved -> null
             }
         } ?: return emptyList()
 
@@ -501,6 +648,10 @@ class DefaultAuthorizationService @Inject constructor(
     ): Grant?
     {
         val shareLink = shareLinkRepository.findByTokenHash(tokenHash) ?: return null
+
+        // A VERIFICATION_BOOTSTRAP-mode link proves recipient contact for a runtime request
+        // session; it never resolves as a content grant, regardless of its covering Share.
+        if (shareLink.linkMode == ShareLinkMode.VERIFICATION_BOOTSTRAP) return null
 
         if (shareLink.status == ShareLinkStatus.REVOKED) return null
         if (shareLink.status == ShareLinkStatus.EXPIRED) return null
@@ -605,12 +756,12 @@ class DefaultAuthorizationService @Inject constructor(
 
     private fun Share.toGrant(sourceKind: Grant.SourceKind): Grant
     {
-        val base = RoleCapabilities.forExchangeShareRole(this.roleName)
+        val base = RoleCapabilities.forShareRole(this.resourceType, this.roleName)
         val caps = ShareConstraints.parse(this.constraintsJson)?.adjustCapabilities(base) ?: base
         return Grant(
             sourceKind = sourceKind,
             sourceId = this.id,
-            roleName = this.roleName.name,
+            roleName = this.roleName,
             capabilities = caps,
             expiresAtEpochMillis = this.expiresAt?.time,
         )

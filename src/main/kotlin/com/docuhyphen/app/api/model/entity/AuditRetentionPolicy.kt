@@ -1,14 +1,9 @@
 package com.docuhyphen.app.api.model.entity
 
-import jakarta.persistence.Column
-import jakarta.persistence.Entity
-import jakarta.persistence.EnumType
-import jakarta.persistence.Enumerated
-import jakarta.persistence.Id
-import jakarta.persistence.Table
+import jakarta.persistence.*
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 /**
  * An organization's override of the platform-default retention catalog for one
@@ -24,8 +19,14 @@ class AuditRetentionPolicy
     @Id
     var id: UUID = UUID.randomUUID()
 
-    @Column(name = "organization_id", nullable = false)
-    var organizationId: UUID = UUID.randomUUID()
+    @Column(name = "organization_id")
+    var organizationId: UUID? = null
+
+    @Column(name = "owner_type", nullable = false, length = 32)
+    var ownerType: String = "ORGANIZATION"
+
+    @Column(name = "owner_id", nullable = false)
+    var ownerId: UUID = UUID.randomUUID()
 
     @Column(name = "category", nullable = false, length = 32)
     lateinit var category: String

@@ -2,21 +2,16 @@ package com.docuhyphen.app.api.service.workflow
 
 import com.docuhyphen.app.api.model.entity.FieldValueType
 import com.docuhyphen.app.api.model.entity.ResourceType
-import com.docuhyphen.app.api.service.fields.CanonicalFieldValue
-import com.docuhyphen.app.api.service.fields.ExchangeFieldQueryService
-import com.docuhyphen.app.api.service.fields.ExchangeFieldSnapshot
-import com.docuhyphen.app.api.service.fields.FieldOperator
-import com.docuhyphen.app.api.service.fields.FieldTypeRegistry
-import kotlinx.serialization.json.JsonPrimitive
+import com.docuhyphen.app.api.service.fields.*
 import kotlinx.serialization.json.JsonArray
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertThrows
-import org.junit.jupiter.api.Assertions.assertTrue
+import kotlinx.serialization.json.JsonPrimitive
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
 import java.math.BigDecimal
-import java.util.UUID
+import java.time.Instant
+import java.util.*
 
 class WorkflowApplicabilityEvaluatorTest
 {
@@ -112,6 +107,71 @@ class WorkflowApplicabilityEvaluatorTest
         assertTrue(isApplicable(condition(FieldValueType.INTEGER, FieldOperator.GREATER_THAN, JsonPrimitive(5))))
         assertTrue(isApplicable(condition(FieldValueType.INTEGER, FieldOperator.LESS_THAN_OR_EQUAL, JsonPrimitive(10))))
         assertFalse(isApplicable(condition(FieldValueType.INTEGER, FieldOperator.LESS_THAN, JsonPrimitive(10))))
+    }
+
+    // ── Date-time ──────────────────────────────────────────────────────────────
+
+    @Test
+    fun `date-time comparisons use the moment rather than the wall clock`()
+    {
+        whenever(queryService.getCanonicalValues(exchangeId)).thenReturn(
+            snapshotOf(
+                fieldId to CanonicalFieldValue(
+                    FieldValueType.DATE_TIME,
+                    false,
+                    datetimeValue = Instant.parse("2026-08-31T08:15:30Z"),
+                    datetimeOffsetMinutes = 120,
+                ),
+            ),
+        )
+
+        // The stored answer was written as 10:15:30+02:00, so a condition naming the same moment at
+        // any offset must match and one naming a different moment must not.
+        assertTrue(
+            isApplicable(
+                condition(FieldValueType.DATE_TIME, FieldOperator.EQUALS, JsonPrimitive("2026-08-31T08:15:30Z")),
+            ),
+        )
+        assertTrue(
+            isApplicable(
+                condition(FieldValueType.DATE_TIME, FieldOperator.EQUALS, JsonPrimitive("2026-08-31T03:15:30-05:00")),
+            ),
+        )
+        assertFalse(
+            isApplicable(
+                condition(FieldValueType.DATE_TIME, FieldOperator.EQUALS, JsonPrimitive("2026-08-31T10:15:30Z")),
+            ),
+        )
+        assertTrue(
+            isApplicable(
+                condition(FieldValueType.DATE_TIME, FieldOperator.LESS_THAN, JsonPrimitive("2026-08-31T10:15:30Z")),
+            ),
+        )
+    }
+
+    @Test
+    fun `a date-time literal with no offset is read as UTC`()
+    {
+        whenever(queryService.getCanonicalValues(exchangeId)).thenReturn(
+            snapshotOf(
+                fieldId to CanonicalFieldValue(
+                    FieldValueType.DATE_TIME,
+                    false,
+                    datetimeValue = Instant.parse("2026-08-31T08:15:30Z"),
+                ),
+            ),
+        )
+
+        assertTrue(
+            isApplicable(
+                condition(FieldValueType.DATE_TIME, FieldOperator.EQUALS, JsonPrimitive("2026-08-31T08:15:30")),
+            ),
+        )
+        assertFalse(
+            isApplicable(
+                condition(FieldValueType.DATE_TIME, FieldOperator.EQUALS, JsonPrimitive("2026-08-31T10:15:30")),
+            ),
+        )
     }
 
     // ── Boolean ────────────────────────────────────────────────────────────────

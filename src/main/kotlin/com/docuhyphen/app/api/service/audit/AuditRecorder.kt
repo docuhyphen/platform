@@ -131,10 +131,23 @@ class AuditRecorder @Inject constructor(
             targetType = draft.targetType
             targetId = draft.targetId
             targetLabel = draft.targetLabel
+            ownerType = when (draft.owner)
+            {
+                AuditOwnerScope.Platform -> "PLATFORM"
+                is AuditOwnerScope.Organization -> "ORGANIZATION"
+                is AuditOwnerScope.Personal -> "USER"
+            }
+            ownerId = when (val owner = draft.owner)
+            {
+                AuditOwnerScope.Platform -> null
+                is AuditOwnerScope.Organization -> owner.organizationId
+                is AuditOwnerScope.Personal -> owner.userId
+            }
             organizationId = when (val owner = draft.owner)
             {
                 AuditOwnerScope.Platform -> null
                 is AuditOwnerScope.Organization -> owner.organizationId
+                is AuditOwnerScope.Personal -> null
             }
             organizationLabel = draft.organizationLabel
             sessionId = draft.sessionId

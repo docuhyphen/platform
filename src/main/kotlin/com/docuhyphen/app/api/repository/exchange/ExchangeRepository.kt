@@ -1,16 +1,8 @@
 package com.docuhyphen.app.api.repository.exchange
 
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.repository.BaseRepository
-
-import com.docuhyphen.app.api.model.entity.Document
-import com.docuhyphen.app.api.model.entity.PrincipalKind
-import com.docuhyphen.app.api.model.entity.ResourceType
-import com.docuhyphen.app.api.model.entity.Exchange
-import com.docuhyphen.app.api.model.entity.ExchangeStatus
-import com.docuhyphen.app.api.model.entity.ExchangeRecipientAcceptanceStatus
-import com.docuhyphen.app.api.model.entity.ExchangeRecipientPurpose
-import com.docuhyphen.app.api.model.entity.PrincipalGroupRoleName
-import com.docuhyphen.app.api.model.entity.ShareStatus
+import com.docuhyphen.app.api.repository.exchange.ExchangeRepository.Companion.SEARCH_PREDICATE
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.transaction.Transactional
 import java.sql.Timestamp
@@ -75,7 +67,7 @@ class ExchangeRepository : BaseRepository<Exchange>(Exchange::class.java)
                 "SELECT sh2 FROM Share sh2 WHERE sh2.resourceType = :srt AND sh2.resourceId = s.id " +
                 "AND sh2.principalKind = :upk AND sh2.principalId = :appUserId AND sh2.status = :ass " +
                 "AND (sh2.expiresAt IS NULL OR sh2.expiresAt > CURRENT_TIMESTAMP) " +
-                "AND sh2.roleName <> PARTICIPANT) OR " + PENDING_PRIMARY_ACCESS + ")"
+                    "AND sh2.roleName <> 'PARTICIPANT') OR " + PENDING_PRIMARY_ACCESS + ")"
 
         /**
          * Free-text predicate for [searchSessions] / [countSearchResults]. Matches the session's
@@ -154,7 +146,7 @@ class ExchangeRepository : BaseRepository<Exchange>(Exchange::class.java)
                 """SELECT DISTINCT s FROM Exchange s WHERE EXISTS (
                    SELECT sh FROM Share sh WHERE sh.resourceType = :srt AND sh.resourceId = s.id
                    AND sh.principalKind = :upk AND sh.principalId = :appUserId AND sh.status = :ass
-                   AND sh.roleName <> OWNER)""",
+                   AND sh.roleName <> 'OWNER')""",
                 Exchange::class.java,
             ),
             recipient,

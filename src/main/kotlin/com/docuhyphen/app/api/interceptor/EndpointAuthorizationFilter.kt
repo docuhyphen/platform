@@ -2,14 +2,13 @@
 
 import com.docuhyphen.app.api.model.entity.AuthToken
 import com.docuhyphen.app.api.model.entity.AuthTokenType.ACCESS
-import com.docuhyphen.app.api.service.user.AppUserService
-import java.security.MessageDigest
+import com.docuhyphen.app.api.repository.organization.OrganizationMembershipRepository
 import com.docuhyphen.app.api.service.application.ApplicationService
 import com.docuhyphen.app.api.service.auth.ApplicationTokenBoundaryService
 import com.docuhyphen.app.api.service.auth.AuthenticationService
-import com.docuhyphen.app.api.repository.organization.OrganizationMembershipRepository
 import com.docuhyphen.app.api.service.auth.OrganizationMembershipValidationService
 import com.docuhyphen.app.api.service.config.ConfigurationService
+import com.docuhyphen.app.api.service.user.AppUserService
 import jakarta.enterprise.context.RequestScoped
 import jakarta.enterprise.inject.Produces
 import jakarta.inject.Inject
@@ -18,7 +17,14 @@ import jakarta.ws.rs.container.ContainerRequestFilter
 import jakarta.ws.rs.core.Response
 import jakarta.ws.rs.ext.Provider
 import org.slf4j.LoggerFactory
+import java.security.MessageDigest
 import java.util.UUID
+import kotlin.collections.ArrayDeque
+import kotlin.collections.Map
+import kotlin.collections.any
+import kotlin.collections.get
+import kotlin.collections.joinToString
+import kotlin.collections.listOf
 
 @RequestScoped
 class AuthTokenContext
@@ -59,6 +65,14 @@ class AuthTokenContext
 
     /** The OrganizationMembership row ID corresponding to [activeOrganizationId]. */
     var activeMembershipId: UUID? = null
+
+    /**
+     * The `UserSession` row this request arrived on, set once the filter has validated that the
+     * session is active and not revoked. It is a non-secret identifier of the session record, never
+     * the credential that opened it, so services may persist it as provenance on the records a
+     * request changes.
+     */
+    var userSessionId: UUID? = null
 
     /**
      * Server-generated trace ID for this request. Always set by [CorrelationContextFilter],
@@ -145,6 +159,8 @@ class EndpointVerificationFilter @Inject constructor(
         "/auth/application/token",
         "/no-auth/exchanges",
         "/no-auth/sales-enquiries",
+        "/no-auth/information-request-access-links/",
+        "/no-auth/information-requests/",
         "/scim/", // SCIM endpoints use their own static bearer token, validated in the resource.
     )
 
@@ -368,6 +384,7 @@ class EndpointVerificationFilter @Inject constructor(
         }
 
         userSessionService.touchSession(sessionId)
+        authenticationContext.userSessionId = sessionId
 
         // DPoP (RFC 9449) sender-constraint check. Required when enabled and the access token
         // carries a `cnf.jkt` claim. The proof's JWK thumbprint must match.

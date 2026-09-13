@@ -5,11 +5,11 @@ import com.docuhyphen.app.api.model.entity.OrganizationRoleName
 import com.docuhyphen.app.api.model.entity.PrincipalKind
 import com.docuhyphen.app.api.model.entity.ResourceType
 import com.docuhyphen.app.api.repository.application.AppRoleAssignmentRepository
+import com.docuhyphen.app.api.repository.exchange.ShareLinkRepository
+import com.docuhyphen.app.api.repository.exchange.ShareRepository
 import com.docuhyphen.app.api.repository.organization.OrganizationMembershipRepository
 import com.docuhyphen.app.api.repository.organization.PrincipalGroupMemberRepository
 import com.docuhyphen.app.api.repository.organization.PrincipalGroupRepository
-import com.docuhyphen.app.api.repository.exchange.ShareLinkRepository
-import com.docuhyphen.app.api.repository.exchange.ShareRepository
 import com.docuhyphen.app.api.service.application.ApplicationService
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
@@ -20,7 +20,7 @@ import org.mockito.Mockito.`when`
 import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.junit.jupiter.MockitoSettings
 import org.mockito.quality.Strictness
-import java.util.UUID
+import java.util.*
 
 /**
  * Phase 4 exit test: [DefaultAuthorizationService.collectOrgMembershipGrants] must use the
@@ -76,8 +76,16 @@ class ExchangeOwnerContextResolutionTest
     fun `org B membership grants are not applied to an exchange owned by org A`()
     {
         val resource = ResourceRef(ResourceType.EXCHANGE, exchangeId)
-        `when`(resourceContextRegistry.resolve(resource))
-            .thenReturn(ResourceAuthorizationContext(ownerContext = OwnerContext.Organization(orgAId)))
+        `when`(resourceContextRegistry.resolution(resource))
+            .thenReturn(
+                ResourceContextResolution.Resolved(
+                    ResourceAuthorizationContext(
+                        ownerContext = OwnerContext.Organization(
+                            orgAId
+                        )
+                    )
+                )
+            )
         `when`(organizationMembershipRepository.findActiveByUserAndOrg(callerUserId, orgBId))
             .thenReturn(membership(orgBId))
         `when`(organizationMembershipRepository.findActiveByUserAndOrg(callerUserId, orgAId))
@@ -98,8 +106,16 @@ class ExchangeOwnerContextResolutionTest
     fun `org A membership grants are applied when the exchange is owned by org A`()
     {
         val resource = ResourceRef(ResourceType.EXCHANGE, exchangeId)
-        `when`(resourceContextRegistry.resolve(resource))
-            .thenReturn(ResourceAuthorizationContext(ownerContext = OwnerContext.Organization(orgAId)))
+        `when`(resourceContextRegistry.resolution(resource))
+            .thenReturn(
+                ResourceContextResolution.Resolved(
+                    ResourceAuthorizationContext(
+                        ownerContext = OwnerContext.Organization(
+                            orgAId
+                        )
+                    )
+                )
+            )
         `when`(organizationMembershipRepository.findActiveByUserAndOrg(callerUserId, orgAId))
             .thenReturn(membership(orgAId))
 
@@ -120,8 +136,16 @@ class ExchangeOwnerContextResolutionTest
         // Caller has activeOrgId = Org B, but exchange is owned by Org A.
         // The active org must not bleed into the ownership resolution.
         val resource = ResourceRef(ResourceType.EXCHANGE, exchangeId)
-        `when`(resourceContextRegistry.resolve(resource))
-            .thenReturn(ResourceAuthorizationContext(ownerContext = OwnerContext.Organization(orgAId)))
+        `when`(resourceContextRegistry.resolution(resource))
+            .thenReturn(
+                ResourceContextResolution.Resolved(
+                    ResourceAuthorizationContext(
+                        ownerContext = OwnerContext.Organization(
+                            orgAId
+                        )
+                    )
+                )
+            )
         `when`(organizationMembershipRepository.findActiveByUserAndOrg(callerUserId, orgAId))
             .thenReturn(null)
 
@@ -141,8 +165,16 @@ class ExchangeOwnerContextResolutionTest
     {
         val personalOwnerId = UUID.randomUUID()
         val resource = ResourceRef(ResourceType.EXCHANGE, exchangeId)
-        `when`(resourceContextRegistry.resolve(resource))
-            .thenReturn(ResourceAuthorizationContext(ownerContext = OwnerContext.Personal(personalOwnerId)))
+        `when`(resourceContextRegistry.resolution(resource))
+            .thenReturn(
+                ResourceContextResolution.Resolved(
+                    ResourceAuthorizationContext(
+                        ownerContext = OwnerContext.Personal(
+                            personalOwnerId
+                        )
+                    )
+                )
+            )
 
         val principal = PrincipalRef.user(callerUserId)
         val context = AuthorizationContext(activeOrgId = orgBId)
@@ -159,7 +191,7 @@ class ExchangeOwnerContextResolutionTest
     fun `unresolvable exchange yields no org membership grants`()
     {
         val resource = ResourceRef(ResourceType.EXCHANGE, exchangeId)
-        `when`(resourceContextRegistry.resolve(resource)).thenReturn(null)
+        `when`(resourceContextRegistry.resolution(resource)).thenReturn(ResourceContextResolution.Unresolved)
 
         val principal = PrincipalRef.user(callerUserId)
         val context = AuthorizationContext(activeOrgId = orgBId)

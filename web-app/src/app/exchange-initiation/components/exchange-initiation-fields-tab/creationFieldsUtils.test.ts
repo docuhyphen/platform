@@ -1,5 +1,9 @@
 import {describe, expect, it} from 'vitest';
-import {buildBlueprintFieldDefaults, buildCreationFieldValues, filterEligibleExchangeSchemas} from './creationFieldsUtils';
+import {
+    buildBlueprintFieldDefaults,
+    buildCreationFieldValues,
+    filterEligibleExchangeSchemas
+} from './creationFieldsUtils';
 import {
     FieldDataClassification,
     FieldLifecycleStatus,
@@ -98,9 +102,29 @@ describe('buildCreationFieldValues', () =>
         ];
         const result = buildCreationFieldValues('schema-1', bindings, {num: '42', flag: true});
         expect(result).toEqual([
-            {fieldContractId: 'num', value: 42},
+            {fieldContractId: 'num', value: '42'},
             {fieldContractId: 'flag', value: true},
         ]);
+    });
+
+    it('omits a binding the initiator left blank so its configured default survives', () =>
+    {
+        const bindings = [
+            binding({fieldContractId: 'filled', valueType: FieldValueType.SHORT_TEXT}),
+            binding({fieldContractId: 'blank', valueType: FieldValueType.SHORT_TEXT}),
+        ];
+        const result = buildCreationFieldValues('schema-1', bindings, {filled: 'Provided', blank: ''});
+        expect(result).toEqual([{fieldContractId: 'filled', value: 'Provided'}]);
+    });
+
+    it('omits an unanswered boolean but keeps an explicit no', () =>
+    {
+        const bindings = [
+            binding({fieldContractId: 'unanswered', valueType: FieldValueType.BOOLEAN}),
+            binding({fieldContractId: 'answered', valueType: FieldValueType.BOOLEAN}),
+        ];
+        const result = buildCreationFieldValues('schema-1', bindings, {answered: false});
+        expect(result).toEqual([{fieldContractId: 'answered', value: false}]);
     });
 });
 
@@ -130,7 +154,27 @@ describe('buildBlueprintFieldDefaults', () =>
         ];
         const result = buildBlueprintFieldDefaults('schema-1', bindings, {num: '42'});
         expect(result).toEqual([
-            {fieldDefinitionId: 'dn', valueType: FieldValueType.INTEGER, value: 42, displayOrder: 0},
+            {fieldDefinitionId: 'dn', valueType: FieldValueType.INTEGER, value: '42', displayOrder: 0},
+        ]);
+    });
+
+    it('does not turn a yes or no field the initiator never touched into a No default', () =>
+    {
+        const bindings = [
+            binding({fieldContractId: 'flag', fieldDefinitionId: 'df', valueType: FieldValueType.BOOLEAN}),
+        ];
+
+        expect(buildBlueprintFieldDefaults('schema-1', bindings, {})).toEqual([]);
+    });
+
+    it('keeps an explicit No the initiator chose as a default', () =>
+    {
+        const bindings = [
+            binding({fieldContractId: 'flag', fieldDefinitionId: 'df', valueType: FieldValueType.BOOLEAN}),
+        ];
+
+        expect(buildBlueprintFieldDefaults('schema-1', bindings, {flag: false})).toEqual([
+            {fieldDefinitionId: 'df', valueType: FieldValueType.BOOLEAN, value: false, displayOrder: 0},
         ]);
     });
 });

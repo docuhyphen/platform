@@ -2,7 +2,10 @@
 
 import com.docuhyphen.app.api.serializer.TimestampSerializer
 import com.docuhyphen.app.api.serializer.UUIDSerializer
-import jakarta.persistence.*
+import jakarta.persistence.Column
+import jakarta.persistence.Entity
+import jakarta.persistence.Id
+import jakarta.persistence.Table
 import kotlinx.serialization.Serializable
 import java.sql.Timestamp
 import java.time.Instant
@@ -15,12 +18,10 @@ import java.util.*
  *
  * Scoping:
  * - `ownerOrganizationId != null` : participant belongs to the directory of that org.
- * - `ownerOrganizationId == null` : "personal" participant created by an individual
- *   [AppUser] for ad-hoc sharing outside any org.
+ * - `ownerAppUserId != null` : participant belongs to the personal address book of that user.
  *
- * Uniqueness: per owner (org or "PERSONAL" partition) on lower-cased email, enforced by
- * a partial unique index in V8. Cross-tenant merging is intentionally an explicit admin
- * operation, never implicit.
+ * Uniqueness is per exact owner on lower-cased email. Cross-tenant merging is intentionally an
+ * explicit admin operation, never implicit.
  */
 @Entity
 @Serializable
@@ -34,6 +35,10 @@ class ExternalParticipant
     @Column(name = "owner_organization_id", nullable = true)
     @Serializable(with = UUIDSerializer::class)
     var ownerOrganizationId: UUID? = null
+
+    @Column(name = "owner_app_user_id", nullable = true)
+    @Serializable(with = UUIDSerializer::class)
+    var ownerAppUserId: UUID? = null
 
     @Column(name = "email", nullable = false)
     lateinit var email: String

@@ -6,15 +6,10 @@ import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import java.nio.file.Files
 import java.nio.file.Path
-import java.security.KeyFactory
-import java.security.KeyPair
-import java.security.KeyPairGenerator
-import java.security.PrivateKey
-import java.security.PublicKey
-import java.security.Signature
+import java.security.*
 import java.security.spec.PKCS8EncodedKeySpec
 import java.security.spec.X509EncodedKeySpec
-import java.util.Base64
+import java.util.*
 import java.util.concurrent.locks.ReentrantLock
 
 /**
@@ -28,8 +23,7 @@ import java.util.concurrent.locks.ReentrantLock
 @Local
 class LocalAuditArchiveSigningKeyProvider @Inject constructor(
     private val configService: AuditArchiveConfigService,
-)
-    : AuditArchiveSigningKeyProvider
+) : AuditArchiveSigningKeyProvider
 {
     companion object
     {

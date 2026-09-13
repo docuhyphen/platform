@@ -1,32 +1,16 @@
 package com.docuhyphen.app.api.service.documentlibrary
 
-import com.docuhyphen.app.api.model.dto.CloneDocumentLibraryEntryRequest
-import com.docuhyphen.app.api.model.dto.CreateDocumentLibraryEntryRequest
-import com.docuhyphen.app.api.model.dto.DocumentLibraryEntrySummaryDto
-import com.docuhyphen.app.api.model.dto.DocumentLibraryEntryDto
-import com.docuhyphen.app.api.model.dto.PatchDocumentLibraryPublishedRequest
-import com.docuhyphen.app.api.model.dto.PatchDocumentLibraryStatusRequest
-import com.docuhyphen.app.api.model.dto.UpdateDocumentLibraryEntryRequest
+import com.docuhyphen.app.api.model.dto.*
 import com.docuhyphen.app.api.model.entity.BlueprintScope
 import com.docuhyphen.app.api.model.entity.DocumentLibraryEntry
 import com.docuhyphen.app.api.model.entity.ResourceType
 import com.docuhyphen.app.api.repository.documentlibrary.DocumentLibraryRepository
-import com.docuhyphen.app.api.service.audit.AuditCaptureFailedException
-import com.docuhyphen.app.api.service.audit.AuditDraftInvalidException
-import com.docuhyphen.app.api.service.audit.AuditEventDraft
-import com.docuhyphen.app.api.service.audit.AuditOwnerScope
-import com.docuhyphen.app.api.service.audit.AuditRecorder
+import com.docuhyphen.app.api.service.audit.*
 import com.docuhyphen.app.api.service.audit.catalog.AuditActorKind
 import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
 import com.docuhyphen.app.api.service.audit.catalog.AuditOutcome
 import com.docuhyphen.app.api.service.auth.UserRoleService
-import com.docuhyphen.app.api.service.auth.authz.Action
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.Decision
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import com.docuhyphen.app.api.service.auth.authz.ResourceRef
+import com.docuhyphen.app.api.service.auth.authz.*
 import com.docuhyphen.app.api.service.storage.FileStorageService
 import io.quarkus.security.ForbiddenException
 import jakarta.enterprise.context.ApplicationScoped
@@ -39,7 +23,7 @@ import org.slf4j.LoggerFactory
 import java.io.File
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class DocumentLibraryService @Inject constructor(
@@ -426,13 +410,16 @@ class DocumentLibraryService @Inject constructor(
                     targetType = ResourceType.DOC_LIBRARY.name,
                     targetId = entry.id.toString(),
                     targetLabel = entry.title,
-                    owner = if (entry.scope == BlueprintScope.ORG)
+                    owner = when (entry.scope)
                     {
-                        AuditOwnerScope.Organization(requireNotNull(entry.organizationId))
-                    }
-                    else
-                    {
-                        AuditOwnerScope.Platform
+                        BlueprintScope.ORG ->
+                            AuditOwnerScope.Organization(requireNotNull(entry.organizationId))
+
+                        BlueprintScope.PERSONAL ->
+                            entry.createdByAppUserId?.let(AuditOwnerScope::Personal) ?: AuditOwnerScope.Platform
+
+                        BlueprintScope.APP ->
+                            AuditOwnerScope.Platform
                     },
                     payload = mapOf("title" to entry.title, "scope" to entry.scope.name),
                 )

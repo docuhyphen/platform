@@ -1,0 +1,123 @@
+import {makeStyles, tokens} from "@fluentui/react-components";
+
+export const useInformationRequestTemplatesTabStyles = makeStyles({
+    root: {
+        display: "flex",
+        flexDirection: "column",
+        gap: 0,
+        height: "100%",
+        minHeight: 0,
+        width: "100%",
+    },
+    stickyBlock: {
+        backgroundColor: tokens.colorNeutralBackground1,
+        display: "flex",
+        flexDirection: "column",
+        gap: tokens.spacingHorizontalS,
+        paddingBottom: tokens.spacingVerticalM,
+        paddingInline: tokens.spacingHorizontalS,
+        boxSizing: "border-box",
+        flexShrink: 0,
+    },
+    headerRow: {
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: tokens.spacingHorizontalS,
+        flexWrap: "wrap",
+    },
+    content: {
+        flex: 1,
+        minHeight: 0,
+        overflowY: "auto",
+        overflowX: "hidden",
+        paddingInline: tokens.spacingHorizontalS,
+        boxSizing: "border-box",
+        display: "grid",
+        gridTemplateColumns: "minmax(18rem, 0.85fr) minmax(20rem, 1.15fr)",
+        gap: tokens.spacingHorizontalM,
+        "@media screen and (max-width: 780px)": {
+            gridTemplateColumns: "1fr",
+        },
+    },
+    list: {
+        display: "flex",
+        flexDirection: "column",
+        gap: tokens.spacingHorizontalS,
+    },
+    card: {
+        border: `1px solid ${tokens.colorNeutralStroke1}`,
+        borderRadius: tokens.borderRadiusMedium,
+        padding: `${tokens.spacingVerticalM} ${tokens.spacingHorizontalL}`,
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "flex-start",
+        gap: tokens.spacingHorizontalS,
+    },
+    cardMain: {
+        display: "flex",
+        flexDirection: "column",
+        gap: tokens.spacingHorizontalXS,
+        minWidth: 0,
+    },
+    keyText: {
+        color: tokens.colorNeutralForeground3,
+        fontFamily: "monospace",
+        fontSize: tokens.fontSizeBase200,
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap",
+    },
+    secondaryText: {
+        color: tokens.colorNeutralForeground3,
+    },
+    panel: {
+        border: `1px solid ${tokens.colorNeutralStroke1}`,
+        borderRadius: tokens.borderRadiusMedium,
+        padding: `${tokens.spacingVerticalM} ${tokens.spacingHorizontalL}`,
+        display: "flex",
+        flexDirection: "column",
+        gap: tokens.spacingHorizontalM,
+        minWidth: 0,
+    },
+    formGrid: {
+        display: "grid",
+        gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+        gap: tokens.spacingHorizontalM,
+        "@media screen and (max-width: 620px)": {
+            gridTemplateColumns: "1fr",
+        },
+    },
+    fullWidth: {
+        gridColumn: "1 / -1",
+    },
+    actionRow: {
+        display: "flex",
+        justifyContent: "flex-end",
+        alignItems: "center",
+        gap: tokens.spacingHorizontalS,
+        flexWrap: "wrap",
+    },
+    errorText: {
+        color: tokens.colorPaletteRedForeground1,
+    },
+    unsupportedList: {
+        display: "flex",
+        flexDirection: "column",
+        gap: tokens.spacingHorizontalXS,
+    },
+    unsupportedItem: {
+        display: "flex",
+        alignItems: "center",
+        gap: tokens.spacingHorizontalS,
+        flexWrap: "wrap",
+    },
+    disabledControl: {
+        border: `1px solid ${tokens.colorNeutralStrokeDisabled}`,
+        borderRadius: tokens.borderRadiusCircular,
+        backgroundColor: tokens.colorNeutralBackgroundDisabled,
+        color: tokens.colorNeutralForegroundDisabled,
+        padding: `${tokens.spacingVerticalSNudge} ${tokens.spacingHorizontalM}`,
+        font: "inherit",
+    },
+});

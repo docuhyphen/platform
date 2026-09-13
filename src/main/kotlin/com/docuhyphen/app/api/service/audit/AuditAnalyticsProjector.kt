@@ -11,7 +11,7 @@ import org.slf4j.LoggerFactory
 import java.sql.Timestamp
 import java.time.Instant
 import java.time.ZoneOffset
-import java.util.UUID
+import java.util.*
 
 data class AnalyticsProjectionResult(val projected: Int, val alreadyProjected: Int, val failed: Int)
 
@@ -97,6 +97,8 @@ class AuditAnalyticsProjector @Inject constructor(
         val fact = AuditAnalyticsFact().apply {
             ledgerEventId = event.eventId
             organizationId = event.organizationId
+            ownerType = event.ownerType
+            ownerId = event.ownerId
             streamId = event.streamId
             category = event.category
             eventTypeKey = event.eventTypeKey

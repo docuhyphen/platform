@@ -1,18 +1,8 @@
 package com.docuhyphen.app.api.service.exchange
 
-import com.docuhyphen.app.api.model.entity.ExchangeRecipient
-import com.docuhyphen.app.api.model.entity.ExchangeRecipientAttestation
-import com.docuhyphen.app.api.model.entity.ExchangeRecipientAcceptanceStatus
-import com.docuhyphen.app.api.model.entity.ExchangeRecipientPurpose
-import com.docuhyphen.app.api.model.entity.ExchangeRecipientSelectionType
-import com.docuhyphen.app.api.model.entity.ExchangeShareRoleName
-import com.docuhyphen.app.api.model.entity.Exchange
-import com.docuhyphen.app.api.model.entity.PrincipalKind
-import com.docuhyphen.app.api.model.entity.ResourceType
-import com.docuhyphen.app.api.model.entity.Share
-import com.docuhyphen.app.api.model.entity.ShareSource
-import com.docuhyphen.app.api.model.entity.ShareStatus
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.repository.exchange.ExchangeRecipientRepository
+import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.organization.OrganizationGroupService
 import com.docuhyphen.app.api.service.organization.TrustedRecipientAuditService
 import com.docuhyphen.app.api.service.organization.TrustedRecipientValidationService
@@ -21,7 +11,7 @@ import jakarta.inject.Inject
 import jakarta.transaction.Transactional
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class ExchangeRecipientService @Inject constructor(
@@ -49,7 +39,7 @@ class ExchangeRecipientService @Inject constructor(
         require(directShare.source == ShareSource.DIRECT && directShare.sourceShareId == null) {
             "Recipient binding requires a direct Share"
         }
-        require(directShare.roleName != ExchangeShareRoleName.OWNER) {
+        require(directShare.roleName != ExchangeShareRoleName.OWNER.name) {
             "Exchange owner Share cannot be a recipient"
         }
         validateSelectionPrincipal(selectionType, directShare.principalKind)
@@ -115,6 +105,40 @@ class ExchangeRecipientService @Inject constructor(
         exchangeRecipientRepository.findByDirectShareId(directShareId)
 
     fun getById(recipientId: UUID): ExchangeRecipient? = exchangeRecipientRepository.findById(recipientId)
+
+    fun requireAssignablePartyRecipient(
+        recipientId: UUID,
+        exchangeId: UUID,
+        principal: PrincipalRef,
+    ): ExchangeRecipient
+    {
+        val recipient = exchangeRecipientRepository.findById(recipientId)
+            ?: throw IllegalArgumentException("Exchange recipient was not found")
+        require(recipient.exchangeId == exchangeId) {
+            "Exchange recipient belongs to a different Exchange"
+        }
+        val share = eligibleDirectShare(recipient, exchangeId)
+        require(share.principalKind == principal.kind && share.principalId == principal.id) {
+            "Exchange recipient principal does not match the request party"
+        }
+        require(share.status == ShareStatus.ACTIVE) {
+            "Exchange recipient access must be active before it can be assigned to a request party"
+        }
+        if (recipient.isTrusted())
+        {
+            require(recipient.acceptanceStatus == ExchangeRecipientAcceptanceStatus.ACCEPTED) {
+                "Trusted recipient invitation must be accepted before request party assignment"
+            }
+            val attestation = attestationService.findForRecipient(recipient.id)
+                ?: throw IllegalArgumentException("Trusted recipient attestation was not found")
+            validateTrustedAttestation(recipient, attestation)
+            if (recipient.selectionType == ExchangeRecipientSelectionType.TRUSTED_GROUP)
+            {
+                shareService.reconcileGroupShare(share.id)
+            }
+        }
+        return recipient
+    }
 
     fun pendingTrustedParticipantShareIds(exchangeId: UUID): Set<UUID> =
         exchangeRecipientRepository.findPendingTrustedParticipants(exchangeId)

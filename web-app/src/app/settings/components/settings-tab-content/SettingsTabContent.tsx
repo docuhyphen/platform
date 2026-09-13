@@ -12,6 +12,7 @@ import OrganizationTab from "../../organization-tab/OrganizationTab.tsx";
 import OrganizationSequencesTab from "../../organization-sequences-tab/OrganizationSequencesTab.tsx";
 import VariablesTab from "../../variables-tab/VariablesTab.tsx";
 import FieldsTab from "../../fields-tab/FieldsTab.tsx";
+import InformationRequestTemplatesTab from "../../information-request-templates-tab/InformationRequestTemplatesTab.tsx";
 import CommunicationsTab from "../../communications-tab/CommunicationsTab.tsx";
 import DocumentLibraryTab from "../../document-library-tab/DocumentLibraryTab.tsx";
 import BillingTab from "../../billing-tab/BillingTab.tsx";
@@ -39,6 +40,7 @@ export interface SettingsTabIds
     sequences: string;
     variables: string;
     fields: string;
+    informationRequestTemplates: string;
     communications: string;
     documents: string;
     audit: string;
@@ -62,6 +64,7 @@ const SettingsTabContent = ({selectedValue, tabIds, direction}: SettingsTabConte
         tabIds.workflows,
         tabIds.variables,
         tabIds.fields,
+        tabIds.informationRequestTemplates,
         tabIds.communications,
         tabIds.documents,
         tabIds.audit,
@@ -93,6 +96,7 @@ const SettingsTabContent = ({selectedValue, tabIds, direction}: SettingsTabConte
                 {selectedValue === tabIds.sequences && <OrganizationSequencesTab/>}
                 {selectedValue === tabIds.variables && <VariablesTab/>}
                 {selectedValue === tabIds.fields && <FieldsTab/>}
+                {selectedValue === tabIds.informationRequestTemplates && <InformationRequestTemplatesTab/>}
                 {selectedValue === tabIds.communications && <CommunicationsTab/>}
                 {selectedValue === tabIds.documents && <DocumentLibraryTab/>}
                 {selectedValue === tabIds.audit && <AuditWorkspace/>}

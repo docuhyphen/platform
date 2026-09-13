@@ -127,3 +127,23 @@ data class PlatformSubscriptionTrialTransitionResponse(
     val seatCapacity: Long? = null,
     val reason: String,
 )
+
+@Serializable
+data class PlatformUserFeatureEntitlementDto(
+    val featureCode: String,
+    val enabled: Boolean,
+)
+
+@Serializable
+data class PlatformUserFeatureEntitlementsUpdateRequest(
+    val entitlements: List<PlatformUserFeatureEntitlementDto>,
+    val changeReason: String? = null,
+)
+
+@Serializable
+data class PlatformUserFeatureEntitlementsResponse(
+    val appUserId: String,
+    val email: String,
+    val displayName: String? = null,
+    val entitlements: List<PlatformUserFeatureEntitlementDto>,
+)

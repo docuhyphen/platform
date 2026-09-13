@@ -3,21 +3,15 @@ package com.docuhyphen.app.api.service.exchange
 import com.docuhyphen.app.api.model.entity.ResourceType
 import com.docuhyphen.app.api.model.entity.SchemaAssignmentSource
 import com.docuhyphen.app.api.resource.model.ExchangeInitiationDto
-import com.docuhyphen.app.api.service.fields.FieldValidationException
-import com.docuhyphen.app.api.service.fields.FieldValueEntry
-import com.docuhyphen.app.api.service.fields.SchemaAssignmentService
+import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
+import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.service.fields.*
 import io.quarkus.security.ForbiddenException
 import kotlinx.serialization.json.JsonPrimitive
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import org.mockito.kotlin.any
-import org.mockito.kotlin.eq
-import org.mockito.kotlin.inOrder
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.never
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.whenever
-import java.util.UUID
+import org.mockito.kotlin.*
+import java.util.*
 
 /**
  * Creation-time schema + field-value seam (EXCHANGE-FIELDS-AT-CREATION-PLAN.md, items 1-3).
@@ -41,6 +35,20 @@ class ExchangeInitiationFieldsTest
     private val exchangeId: UUID = UUID.randomUUID()
     private val schemaDefinitionId: UUID = UUID.randomUUID()
     private val fieldContractId: UUID = UUID.randomUUID()
+
+    private val access = FieldsAccessContext(PrincipalRef.user(UUID.randomUUID()), AuthorizationContext())
+
+    private val fieldsAccessContextFactory = mock<FieldsAccessContextFactory>().also {
+        whenever(it.current()).thenReturn(access)
+    }
+
+    private fun resource() = FieldsResourceRef(ResourceType.EXCHANGE.name, exchangeId)
+
+    private fun assignCommand() = SchemaAssignmentCommand(
+        resource(), access, SchemaAssignmentOperation.ASSIGN, schemaDefinitionId, SchemaAssignmentSource.MANUAL,
+    )
+
+    private fun writeCommand() = FieldValueWriteCommand(resource(), access, listOf(entry()))
 
     private fun makeService(schemaAssignmentService: SchemaAssignmentService): ExchangeInitiationService =
         ExchangeInitiationService(
@@ -70,6 +78,7 @@ class ExchangeInitiationFieldsTest
             documentContentHashService = mock(),
             documentThumbnailService = mock(),
             schemaAssignmentService = schemaAssignmentService,
+            fieldsAccessContextFactory = fieldsAccessContextFactory,
             noAuthExchangeAccessTokenService = mock(),
             exchangeNotificationDeliveryService = mock(),
             exchangeInitiationSubscriptionGuard = mock(),
@@ -93,9 +102,9 @@ class ExchangeInitiationFieldsTest
 
         val order = inOrder(schemaAssignmentService)
         order.verify(schemaAssignmentService)
-            .assignSchema(eq(ResourceType.EXCHANGE.name), eq(exchangeId), eq(schemaDefinitionId), eq(SchemaAssignmentSource.MANUAL))
+            .applySchemaAssignment(eq(assignCommand()))
         order.verify(schemaAssignmentService)
-            .setValues(eq(ResourceType.EXCHANGE.name), eq(exchangeId), eq(listOf(entry())))
+            .setValues(eq(writeCommand()))
     }
 
     @Test
@@ -111,8 +120,8 @@ class ExchangeInitiationFieldsTest
         service.applyCreationTimeFields(exchangeId, dto)
 
         verify(schemaAssignmentService)
-            .assignSchema(eq(ResourceType.EXCHANGE.name), eq(exchangeId), eq(schemaDefinitionId), eq(SchemaAssignmentSource.MANUAL))
-        verify(schemaAssignmentService, never()).setValues(any(), any(), any())
+            .applySchemaAssignment(eq(assignCommand()))
+        verify(schemaAssignmentService, never()).setValues(any())
     }
 
     @Test
@@ -127,15 +136,15 @@ class ExchangeInitiationFieldsTest
 
         assertThrows<IllegalArgumentException> { service.applyCreationTimeFields(exchangeId, dto) }
 
-        verify(schemaAssignmentService, never()).assignSchema(any(), any(), any(), any())
-        verify(schemaAssignmentService, never()).setValues(any(), any(), any())
+        verify(schemaAssignmentService, never()).applySchemaAssignment(any())
+        verify(schemaAssignmentService, never()).setValues(any())
     }
 
     @Test
     fun `invalid value - validation failure propagates for rollback after schema assigned`()
     {
         val schemaAssignmentService = mock<SchemaAssignmentService>()
-        whenever(schemaAssignmentService.setValues(any(), any(), any()))
+        whenever(schemaAssignmentService.setValues(any()))
             .thenThrow(FieldValidationException("Category is required"))
         val service = makeService(schemaAssignmentService)
 
@@ -147,14 +156,14 @@ class ExchangeInitiationFieldsTest
         assertThrows<FieldValidationException> { service.applyCreationTimeFields(exchangeId, dto) }
 
         verify(schemaAssignmentService)
-            .assignSchema(eq(ResourceType.EXCHANGE.name), eq(exchangeId), eq(schemaDefinitionId), eq(SchemaAssignmentSource.MANUAL))
+            .applySchemaAssignment(eq(assignCommand()))
     }
 
     @Test
     fun `forbidden assignment propagates`()
     {
         val schemaAssignmentService = mock<SchemaAssignmentService>()
-        whenever(schemaAssignmentService.assignSchema(any(), any(), any(), any()))
+        whenever(schemaAssignmentService.applySchemaAssignment(any()))
             .thenThrow(ForbiddenException("not owner"))
         val service = makeService(schemaAssignmentService)
 
@@ -165,7 +174,7 @@ class ExchangeInitiationFieldsTest
 
         assertThrows<ForbiddenException> { service.applyCreationTimeFields(exchangeId, dto) }
 
-        verify(schemaAssignmentService, never()).setValues(any(), any(), any())
+        verify(schemaAssignmentService, never()).setValues(any())
     }
 
     @Test
@@ -176,7 +185,7 @@ class ExchangeInitiationFieldsTest
 
         service.applyCreationTimeFields(exchangeId, ExchangeInitiationDto())
 
-        verify(schemaAssignmentService, never()).assignSchema(any(), any(), any(), any())
-        verify(schemaAssignmentService, never()).setValues(any(), any(), any())
+        verify(schemaAssignmentService, never()).applySchemaAssignment(any())
+        verify(schemaAssignmentService, never()).setValues(any())
     }
 }

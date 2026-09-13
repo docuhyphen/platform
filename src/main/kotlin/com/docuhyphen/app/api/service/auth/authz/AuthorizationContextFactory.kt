@@ -53,6 +53,7 @@ class AuthorizationContextFactory @Inject constructor(
             mfaSatisfied = runCatching { stepUpAuthService.isFresh() }.getOrDefault(false),
             clientIp = authTokenContext.clientIp,
             shareLinkTokenHash = authTokenContext.shareLinkTokenHash,
+            sessionRef = authTokenContext.userSessionId?.toString(),
         )
     }
 }

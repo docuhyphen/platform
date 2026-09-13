@@ -1,24 +1,12 @@
 package com.docuhyphen.app.api.service.fields
 
-import com.docuhyphen.app.api.model.entity.FieldContract
-import com.docuhyphen.app.api.model.entity.FieldValueType
-import com.docuhyphen.app.api.model.entity.ResourceType
-import com.docuhyphen.app.api.model.entity.SchemaDefinition
-import com.docuhyphen.app.api.model.entity.SchemaFieldBinding
-import com.docuhyphen.app.api.model.entity.SchemaVersion
-import com.docuhyphen.app.api.repository.fields.FieldContractRepository
-import com.docuhyphen.app.api.repository.fields.SchemaDefinitionRepository
-import com.docuhyphen.app.api.repository.fields.SchemaFieldBindingRepository
-import com.docuhyphen.app.api.repository.fields.SchemaVersionRepository
+import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.repository.fields.*
 import kotlinx.serialization.json.JsonPrimitive
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertThrows
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
-import org.mockito.kotlin.any
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.whenever
-import java.util.UUID
+import org.mockito.kotlin.*
+import java.util.*
 
 /**
  * Unit tests for [SchemaDefinitionService.validateDefaultsForSchema] - the authoring-time guard that
@@ -30,6 +18,7 @@ class SchemaDefinitionServiceDefaultsTest
     private val schemaVersionRepository: SchemaVersionRepository = mock()
     private val bindingRepository: SchemaFieldBindingRepository = mock()
     private val fieldContractRepository: FieldContractRepository = mock()
+    private val fieldDefinitionRepository: FieldDefinitionRepository = mock()
     private val fieldValueValidator: FieldValueValidator = mock()
 
     private val service = SchemaDefinitionService(
@@ -37,13 +26,17 @@ class SchemaDefinitionServiceDefaultsTest
         schemaVersionRepository,
         bindingRepository,
         fieldContractRepository,
-        mock(),
+        fieldDefinitionRepository,
         fieldValueValidator,
         mock(),
         mock(),
         mock(),
         mock(),
         mock(),
+        FieldsProjectionLoader(
+            bindingRepository, fieldContractRepository, fieldDefinitionRepository, mock(), mock(),
+        ),
+        SchemaTargetRegistry(),
     )
 
     private val schemaId = UUID.randomUUID()
@@ -70,7 +63,7 @@ class SchemaDefinitionServiceDefaultsTest
     @Test
     fun `empty values returns empty list without touching repositories`()
     {
-        val result = service.validateDefaultsForSchema(schemaId, emptyList())
+        val result = service.validateDefaultsForSchema(schemaId, emptyList(), ResourceType.EXCHANGE.name)
         assertTrue(result.isEmpty())
     }
 
@@ -79,7 +72,11 @@ class SchemaDefinitionServiceDefaultsTest
     {
         whenever(schemaDefinitionRepository.findById(schemaId)).thenReturn(null)
         assertThrows(IllegalArgumentException::class.java) {
-            service.validateDefaultsForSchema(schemaId, listOf(fieldDefinitionId to JsonPrimitive("x")))
+            service.validateDefaultsForSchema(
+                schemaId,
+                listOf(fieldDefinitionId to JsonPrimitive("x")),
+                ResourceType.EXCHANGE.name,
+            )
         }
     }
 
@@ -88,8 +85,46 @@ class SchemaDefinitionServiceDefaultsTest
     {
         whenever(schemaDefinitionRepository.findById(schemaId)).thenReturn(schema(target = "ORGANIZATION"))
         assertThrows(FieldValidationException::class.java) {
-            service.validateDefaultsForSchema(schemaId, listOf(fieldDefinitionId to JsonPrimitive("x")))
+            service.validateDefaultsForSchema(
+                schemaId,
+                listOf(fieldDefinitionId to JsonPrimitive("x")),
+                ResourceType.EXCHANGE.name,
+            )
         }
+    }
+
+    @Test
+    fun `a schema written for another resource is rejected for the resource being configured`()
+    {
+        whenever(schemaDefinitionRepository.findById(schemaId))
+            .thenReturn(schema(target = "INFORMATION_REQUEST"))
+
+        val refusal = assertThrows(FieldValidationException::class.java) {
+            service.validateDefaultsForSchema(
+                schemaId,
+                listOf(fieldDefinitionId to JsonPrimitive("x")),
+                ResourceType.EXCHANGE.name,
+            )
+        }
+
+        assertTrue(
+            refusal.message.orEmpty().contains("INFORMATION_REQUEST"),
+            "The refusal should name the resource the schema was written for: ${refusal.message}",
+        )
+    }
+
+    @Test
+    fun `a caller configuring a target nobody declared is rejected before the schema is read`()
+    {
+        assertThrows(FieldValidationException::class.java) {
+            service.validateDefaultsForSchema(
+                schemaId,
+                listOf(fieldDefinitionId to JsonPrimitive("x")),
+                "UNDECLARED_RESOURCE",
+            )
+        }
+
+        verify(schemaDefinitionRepository, never()).findById(any())
     }
 
     @Test
@@ -98,7 +133,11 @@ class SchemaDefinitionServiceDefaultsTest
         whenever(schemaDefinitionRepository.findById(schemaId)).thenReturn(schema())
         whenever(schemaVersionRepository.findLatestPublished(schemaId)).thenReturn(null)
         assertThrows(FieldValidationException::class.java) {
-            service.validateDefaultsForSchema(schemaId, listOf(fieldDefinitionId to JsonPrimitive("x")))
+            service.validateDefaultsForSchema(
+                schemaId,
+                listOf(fieldDefinitionId to JsonPrimitive("x")),
+                ResourceType.EXCHANGE.name,
+            )
         }
     }
 
@@ -110,7 +149,11 @@ class SchemaDefinitionServiceDefaultsTest
         whenever(bindingRepository.findByVersion(versionId)).thenReturn(listOf(binding()))
         whenever(fieldContractRepository.findByIds(listOf(contractId))).thenReturn(listOf(contract()))
         assertThrows(FieldValidationException::class.java) {
-            service.validateDefaultsForSchema(schemaId, listOf(UUID.randomUUID() to JsonPrimitive("x")))
+            service.validateDefaultsForSchema(
+                schemaId,
+                listOf(UUID.randomUUID() to JsonPrimitive("x")),
+                ResourceType.EXCHANGE.name,
+            )
         }
     }
 
@@ -126,7 +169,11 @@ class SchemaDefinitionServiceDefaultsTest
             .thenReturn(CanonicalFieldValue(type = FieldValueType.SHORT_TEXT, isEmpty = false, textValue = "Onboarding"))
 
         val value = JsonPrimitive("Onboarding")
-        val result = service.validateDefaultsForSchema(schemaId, listOf(fieldDefinitionId to value))
+        val result = service.validateDefaultsForSchema(
+            schemaId,
+            listOf(fieldDefinitionId to value),
+            ResourceType.EXCHANGE.name,
+        )
 
         assertEquals(1, result.size)
         assertEquals(fieldDefinitionId, result[0].fieldDefinitionId)
@@ -145,7 +192,11 @@ class SchemaDefinitionServiceDefaultsTest
             .thenThrow(FieldValidationException("bad value"))
 
         assertThrows(FieldValidationException::class.java) {
-            service.validateDefaultsForSchema(schemaId, listOf(fieldDefinitionId to JsonPrimitive("x")))
+            service.validateDefaultsForSchema(
+                schemaId,
+                listOf(fieldDefinitionId to JsonPrimitive("x")),
+                ResourceType.EXCHANGE.name,
+            )
         }
     }
 }

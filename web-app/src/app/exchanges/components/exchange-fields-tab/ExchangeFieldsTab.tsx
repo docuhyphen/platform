@@ -4,11 +4,10 @@ import {
     ExchangeDetailedDto,
     ExchangeStatus,
     FieldLifecycleStatus,
-    ResolvedSchemaViewDto,
     SchemaAssignmentDto,
     SchemaDefinitionDto,
 } from '../../../models/models';
-import {getExchangeSchema, getResolvedSchema, listSchemas} from '../../../../services/fieldsService';
+import {getExchangeSchema, listSchemas} from '../../../../services/fieldsService';
 import {useExchangeFieldsTabStyles} from './ExchangeFieldsTabStyles';
 import SchemaAssignPanel from './SchemaAssignPanel';
 import FieldValuesForm from './FieldValuesForm';
@@ -19,44 +18,53 @@ interface Props
     exchange: ExchangeDetailedDto;
 }
 
+/** A schema is written for one kind of resource, and only one kind can be given to an Exchange. */
+const EXCHANGE_RESOURCE = 'EXCHANGE';
+
 const ExchangeFieldsTab = ({exchange}: Props) =>
 {
     const styles = useExchangeFieldsTabStyles();
     const editable = exchange.status === ExchangeStatus.INITIATED;
 
     const [assignment, setAssignment] = useState<SchemaAssignmentDto | null>(null);
-    const [resolved, setResolved] = useState<ResolvedSchemaViewDto | null>(null);
     const [schemas, setSchemas] = useState<SchemaDefinitionDto[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const fieldCount = resolved?.fields.length ?? assignment?.fields.length ?? 0;
 
-    const load = () =>
+    /**
+     * The questions asked of this reader, and the answers held for them. Both come from the same
+     * reading of the Exchange, so a question this reader was not shown is neither described nor
+     * answered and the form cannot offer an editor for one it may not save.
+     */
+    const bindings = assignment?.bindings ?? [];
+    const fieldCount = bindings.length;
+
+    /**
+     * Reads the assignment, the questions it asks, and the answers it holds. A refresh the form asks
+     * for leaves the spinner alone: replacing the form with one would discard entries the responder
+     * has not saved yet and the message telling them why their last save was not applied.
+     */
+    const load = (spinner = true) =>
     {
-        setLoading(true);
+        if (spinner) setLoading(true);
         setError(null);
         getExchangeSchema(exchange.id)
             .then(async current =>
             {
                 setAssignment(current);
-                if (current)
+                if (!current && editable)
                 {
-                    const view = await getResolvedSchema(current.schemaDefinitionId).catch(() => null);
-                    setResolved(view);
-                }
-                else
-                {
-                    setResolved(null);
-                    if (editable)
-                    {
-                        const all = await listSchemas().catch(() => []);
-                        setSchemas(all.filter(s => !!s.latestPublishedVersion
-                            && s.status !== FieldLifecycleStatus.RETIRED));
-                    }
+                    const all = await listSchemas().catch(() => []);
+                    setSchemas(all.filter(s => !!s.latestPublishedVersion
+                        && s.status !== FieldLifecycleStatus.RETIRED
+                        && s.targetResourceType === EXCHANGE_RESOURCE));
                 }
             })
             .catch(() => setError('Failed to load fields'))
-            .finally(() => setLoading(false));
+            .finally(() =>
+            {
+                if (spinner) setLoading(false);
+            });
     };
 
     useEffect(() => { load(); }, [exchange.id, exchange.status]);
@@ -78,14 +86,14 @@ const ExchangeFieldsTab = ({exchange}: Props) =>
                                    onAssigned={load}/>
             )}
 
-            {assignment && !editable && fieldCount === 0 && (
+            {assignment && fieldCount === 0 && (
                 <Text id="exchange-fields-no-visible-fields"
                       className={styles.subText}>
                     No more details have been shared with you for this Exchange.
                 </Text>
             )}
 
-            {assignment && (editable || fieldCount > 0) && (
+            {assignment && fieldCount > 0 && (
                 <>
                     <div id="exchange-fields-schema-summary"
                          className={styles.schemaSummaryCard}>
@@ -113,12 +121,13 @@ const ExchangeFieldsTab = ({exchange}: Props) =>
                         </div>
                     </div>
 
-                    {editable && resolved
+                    {editable
                         ? <FieldValuesForm exchangeId={exchange.id}
-                                           bindings={resolved.fields}
+                                           bindings={bindings}
                                            values={assignment.fields}
-                                           onSaved={load}/>
-                        : <FieldValuesReadOnly bindings={resolved?.fields ?? []}
+                                           valuesETag={assignment.etag}
+                                           onValuesChanged={() => load(false)}/>
+                        : <FieldValuesReadOnly bindings={bindings}
                                                values={assignment.fields}/>}
                 </>
             )}

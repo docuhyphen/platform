@@ -18,6 +18,7 @@ enum class AuditCategory
     AUTHORIZATION,
     WORKFLOW,
     FIELD_SCHEMA,
+    INFORMATION_REQUEST,
     ARCHIVE,
     AUDIT_GOVERNANCE,
 }

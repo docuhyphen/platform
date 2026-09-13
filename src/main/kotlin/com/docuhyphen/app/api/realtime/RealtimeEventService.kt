@@ -7,7 +7,7 @@ import jakarta.websocket.CloseReason
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.slf4j.LoggerFactory
-import java.util.UUID
+import java.util.*
 
 /**
  * Central send-side API for the realtime channel. Callers (auth, sharing, comments, etc.)

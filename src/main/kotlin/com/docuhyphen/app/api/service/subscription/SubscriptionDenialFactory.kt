@@ -96,6 +96,26 @@ object SubscriptionDenialFactory
         )
     }
 
+    /**
+     * Refuses a capability the owner is entitled to but that this deployment has not turned on for
+     * them. The wording avoids an upgrade hint because no plan change would help: what is missing
+     * is operational readiness, not an entitlement.
+     */
+    fun featureNotReleased(
+        subscription: EffectiveSubscription,
+        feature: PlanFeature,
+    ): SubscriptionDenial
+    {
+        return SubscriptionDenial(
+            reason = SubscriptionDenialReason.FEATURE_NOT_RELEASED,
+            planCode = subscription.planCode,
+            ownerType = subscription.ownerType,
+            feature = feature,
+            message = "${describeFeature(feature)} is not available yet. It is being released to " +
+                    "selected accounts and will become available to yours once that release reaches it.",
+        )
+    }
+
     fun organizationSubscriptionRequired(feature: PlanFeature): SubscriptionDenial
     {
         return SubscriptionDenial(
@@ -140,6 +160,7 @@ object SubscriptionDenialFactory
         PlanFeature.ORGANIZATION_ADMINISTRATION -> "Organization administration"
         PlanFeature.AUDIT_GOVERNANCE -> "The audit and governance workspace"
         PlanFeature.IDENTITY_AND_INTEGRATIONS -> "Identity and integrations"
+        PlanFeature.INFORMATION_REQUESTS -> "Information requests"
     }
 }
 

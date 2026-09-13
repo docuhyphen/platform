@@ -3,31 +3,15 @@ package com.docuhyphen.app.api.service.fields
 import com.docuhyphen.app.api.model.dto.FieldContractDto
 import com.docuhyphen.app.api.model.dto.FieldDefinitionDto
 import com.docuhyphen.app.api.model.dto.FieldTypeInfoDto
-import com.docuhyphen.app.api.model.entity.FieldContract
-import com.docuhyphen.app.api.model.entity.FieldDataClassification
-import com.docuhyphen.app.api.model.entity.FieldDefinition
-import com.docuhyphen.app.api.model.entity.FieldLifecycleStatus
-import com.docuhyphen.app.api.model.entity.FieldScopeKind
-import com.docuhyphen.app.api.model.entity.FieldValueType
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.repository.fields.FieldContractRepository
 import com.docuhyphen.app.api.repository.fields.FieldDefinitionRepository
-import com.docuhyphen.app.api.service.auth.UserRoleService
-import com.docuhyphen.app.api.service.auth.authz.Action
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.Decision
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import com.docuhyphen.app.api.service.auth.authz.ResourceRef
-import com.docuhyphen.app.api.service.auth.authz.RoleCapabilities
-import com.docuhyphen.app.api.service.audit.AuditCaptureFailedException
-import com.docuhyphen.app.api.service.audit.AuditDraftInvalidException
-import com.docuhyphen.app.api.service.audit.AuditEventDraft
-import com.docuhyphen.app.api.service.audit.AuditOwnerScope
-import com.docuhyphen.app.api.service.audit.AuditRecorder
+import com.docuhyphen.app.api.service.audit.*
 import com.docuhyphen.app.api.service.audit.catalog.AuditActorKind
 import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
 import com.docuhyphen.app.api.service.audit.catalog.AuditOutcome
+import com.docuhyphen.app.api.service.auth.UserRoleService
+import com.docuhyphen.app.api.service.auth.authz.*
 import io.quarkus.security.ForbiddenException
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
@@ -35,7 +19,7 @@ import jakarta.transaction.Transactional
 import kotlinx.serialization.Serializable
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 /**
  * Business logic for Field Definitions and their immutable Field Contract versions.
@@ -116,14 +100,14 @@ class FieldDefinitionService @Inject constructor(
             requireActiveOrganizationAccess(principal, Action.FIELD_CONFIG_EDIT)
         else
             null
-        subscriptionGuard.requireConfigurationMutation(scopeKind, scopeOrgId)
+        subscriptionGuard.requireConfigurationMutation(scopeKind, scopeOrgId, null)
 
         val namespace = request.namespace.trim().lowercase()
         val fieldKey = request.fieldKey.trim().lowercase()
         validateKey(namespace, "namespace")
         validateKey(fieldKey, "fieldKey")
 
-        if (fieldDefinitionRepository.findByKey(scopeKind, scopeOrgId, namespace, fieldKey) != null)
+        if (fieldDefinitionRepository.findByKey(scopeKind, scopeOrgId, null, namespace, fieldKey) != null)
             throw FieldValidationException("A field with key $namespace:$fieldKey already exists in this scope")
 
         val definition = FieldDefinition().apply {
@@ -148,7 +132,9 @@ class FieldDefinitionService @Inject constructor(
         val definition = fieldDefinitionRepository.findById(definitionId)
             ?: throw IllegalArgumentException("Field definition not found: $definitionId")
         requireScopeAccess(definition, Action.FIELD_CONFIG_EDIT)
-        subscriptionGuard.requireConfigurationMutation(definition.scopeKind, definition.scopeOrgId)
+        subscriptionGuard.requireConfigurationMutation(
+            definition.scopeKind, definition.scopeOrgId, definition.scopeUserId,
+        )
 
         val existing = fieldContractRepository.findByDefinition(definitionId)
         val firstType = existing.minByOrNull { it.contractVersion }?.valueType
@@ -169,7 +155,7 @@ class FieldDefinitionService @Inject constructor(
         val def = fieldDefinitionRepository.findById(id)
             ?: throw IllegalArgumentException("Field definition not found: $id")
         requireScopeAccess(def, Action.FIELD_CONFIG_EDIT)
-        subscriptionGuard.requireConfigurationMutation(def.scopeKind, def.scopeOrgId)
+        subscriptionGuard.requireConfigurationMutation(def.scopeKind, def.scopeOrgId, def.scopeUserId)
         def.status = FieldLifecycleStatus.RETIRED
         def.updatedAt = Timestamp.from(Instant.now())
         val updated = fieldDefinitionRepository.update(def)
@@ -217,6 +203,8 @@ class FieldDefinitionService @Inject constructor(
         val hasOrgEdit = activeOrgId != null &&
             hasOrganizationAccess(principal, activeOrgId, Action.FIELD_CONFIG_EDIT)
         val scope = requested ?: if (hasOrgEdit) FieldScopeKind.ORGANIZATION else FieldScopeKind.PLATFORM
+        if (scope == FieldScopeKind.PERSONAL)
+            throw FieldValidationException("Personal-scoped fields cannot be authored yet")
         if (scope == FieldScopeKind.PLATFORM && !userRoleService.isAppAdmin(principal.id))
             throw ForbiddenException("Only platform administrators may author platform-scoped fields")
         return scope
@@ -254,6 +242,9 @@ class FieldDefinitionService @Inject constructor(
                     hasOrganizationAccess(principal, organizationId, action))
                     return
             }
+            // A personally owned field is storable but has no resolvable owner in the configuration
+            // scope model yet, so no caller reaches it. Falling through denies rather than guessing.
+            FieldScopeKind.PERSONAL -> Unit
         }
         throw ForbiddenException("Access denied to field configuration")
     }

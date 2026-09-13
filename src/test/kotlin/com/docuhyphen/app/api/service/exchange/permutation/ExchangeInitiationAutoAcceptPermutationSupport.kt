@@ -1,59 +1,32 @@
 package com.docuhyphen.app.api.service.exchange.permutation
 
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
-import com.docuhyphen.app.api.model.entity.AppUser
-import com.docuhyphen.app.api.model.entity.AuthToken
-import com.docuhyphen.app.api.model.entity.Exchange
-import com.docuhyphen.app.api.model.entity.ExchangeRecipient
-import com.docuhyphen.app.api.model.entity.Organization
-import com.docuhyphen.app.api.model.entity.OrganizationSettings
-import com.docuhyphen.app.api.model.entity.Share
-import com.docuhyphen.app.api.repository.user.AppUserRepository
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
-import com.docuhyphen.app.api.resource.model.ExchangeInitiationDto
-import com.docuhyphen.app.api.resource.model.ExchangeRecipientSelectionRequest
-import com.docuhyphen.app.api.resource.model.ExchangeRequestDocumentRequest
-import com.docuhyphen.app.api.resource.model.ExternalEmailRecipientSelectionRequest
-import com.docuhyphen.app.api.resource.model.RegisteredUserRecipientSelectionRequest
-import com.docuhyphen.app.api.service.user.AppUserService
+import com.docuhyphen.app.api.repository.user.AppUserRepository
+import com.docuhyphen.app.api.resource.model.*
 import com.docuhyphen.app.api.service.auth.AuthAuditService
 import com.docuhyphen.app.api.service.auth.AuthRateLimitService
 import com.docuhyphen.app.api.service.auth.AuthenticationService
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.Decision
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.service.auth.authz.*
 import com.docuhyphen.app.api.service.communication.EmailTemplateService
 import com.docuhyphen.app.api.service.communication.OtpService
 import com.docuhyphen.app.api.service.config.ConfigurationService
 import com.docuhyphen.app.api.service.documentlibrary.DocumentLibraryService
-import com.docuhyphen.app.api.service.exchange.ExchangeInitiationService
-import com.docuhyphen.app.api.service.exchange.ExchangeInitiationSubscriptionGuard
-import com.docuhyphen.app.api.service.exchange.DocumentContentHashService
-import com.docuhyphen.app.api.service.exchange.DocumentThumbnailService
-import com.docuhyphen.app.api.service.exchange.ExchangeNotificationDeliveryService
-import com.docuhyphen.app.api.service.exchange.ExchangeRecipientAttestationService
-import com.docuhyphen.app.api.service.exchange.ExchangeRecipientSelectionResolver
-import com.docuhyphen.app.api.service.exchange.ExchangeRecipientService
-import com.docuhyphen.app.api.service.exchange.NoAuthExchangeAccessTokenService
-import com.docuhyphen.app.api.service.exchange.ResolvedExchangeRecipientSelection
-import com.docuhyphen.app.api.service.exchange.ShareService
+import com.docuhyphen.app.api.service.exchange.*
+import com.docuhyphen.app.api.service.fields.FieldsAccessContextFactory
 import com.docuhyphen.app.api.service.fields.SchemaAssignmentService
 import com.docuhyphen.app.api.service.identity.ExternalIdentityResolutionService
 import com.docuhyphen.app.api.service.organization.OrganizationGroupService
 import com.docuhyphen.app.api.service.organization.OrganizationService
 import com.docuhyphen.app.api.service.storage.FileStorageService
+import com.docuhyphen.app.api.service.user.AppUserService
 import com.docuhyphen.app.api.service.variable.InterpolationResult
 import com.docuhyphen.app.api.service.variable.TemplateVariableInterpolator
 import com.docuhyphen.app.api.service.workflow.WorkflowEngineService
 import jakarta.persistence.EntityManager
-import org.mockito.kotlin.any
-import org.mockito.kotlin.anyOrNull
-import org.mockito.kotlin.eq
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.whenever
-import java.util.UUID
+import org.mockito.kotlin.*
+import java.util.*
 
 internal class ExchangeInitiationAutoAcceptFixture
 {
@@ -139,7 +112,7 @@ internal class ExchangeInitiationAutoAcceptFixture
                 resourceId = invocation.getArgument(1)
                 principalKind = invocation.getArgument(2)
                 principalId = invocation.getArgument(3)
-                roleName = invocation.getArgument(4)
+                roleName = invocation.getArgument<ExchangeShareRoleName>(4).name
                 source = invocation.getArgument(6)
                 status = invocation.getArgument(9)
             }
@@ -181,6 +154,7 @@ internal class ExchangeInitiationAutoAcceptFixture
             documentContentHashService = mock<DocumentContentHashService>(),
             documentThumbnailService = mock<DocumentThumbnailService>(),
             schemaAssignmentService = mock<SchemaAssignmentService>(),
+            fieldsAccessContextFactory = mock<FieldsAccessContextFactory>(),
             noAuthExchangeAccessTokenService = mock<NoAuthExchangeAccessTokenService>(),
             exchangeNotificationDeliveryService = exchangeNotificationDeliveryService,
             exchangeInitiationSubscriptionGuard = mock<ExchangeInitiationSubscriptionGuard>(),

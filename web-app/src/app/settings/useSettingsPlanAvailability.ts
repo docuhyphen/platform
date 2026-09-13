@@ -12,6 +12,7 @@ export const useSettingsPlanAvailability = () =>
     const documents = usePlanFeature(PlanFeature.DOCUMENT_LIBRARY_USE);
     const blueprints = usePlanFeature(PlanFeature.BLUEPRINT_USE);
     const fields = usePlanFeature(PlanFeature.BUSINESS_FIELDS_AND_SCHEMAS);
+    const informationRequests = usePlanFeature(PlanFeature.INFORMATION_REQUESTS);
     const workflows = usePlanFeature(PlanFeature.WORKFLOW_AUTOMATION);
     const variables = usePlanFeature(PlanFeature.VARIABLES_AND_SEQUENCES);
     const administration = usePlanFeature(PlanFeature.ORGANIZATION_ADMINISTRATION);
@@ -40,6 +41,7 @@ export const useSettingsPlanAvailability = () =>
         ...(documents.isDiscoverable ? [tabIds.documents] : []),
         ...(blueprints.isDiscoverable ? [tabIds.blueprints] : []),
         ...(canManageOrganization && fields.isDiscoverable ? [tabIds.fields] : []),
+        ...(informationRequests.isDiscoverable ? [tabIds.informationRequestTemplates] : []),
         ...(canDiscoverWorkflows ? [tabIds.workflows, tabIds.communications] : []),
         ...(variables.isDiscoverable ? [tabIds.variables] : []),
         ...(hasOrg && variables.isDiscoverable ? [tabIds.sequences] : []),
@@ -55,6 +57,7 @@ export const useSettingsPlanAvailability = () =>
         documents.isDiscoverable,
         fields.isDiscoverable,
         hasOrg,
+        informationRequests.isDiscoverable,
         variables.isDiscoverable,
     ]);
 
@@ -67,6 +70,7 @@ export const useSettingsPlanAvailability = () =>
         canUseDocumentLibrary: documents.isDiscoverable,
         canUseBlueprints: blueprints.isDiscoverable,
         canUseBusinessFields: fields.isDiscoverable,
+        canUseInformationRequests: informationRequests.isDiscoverable,
         canUseWorkflows: canDiscoverWorkflows,
         canUseVariables: variables.isDiscoverable,
         visibleTabs,

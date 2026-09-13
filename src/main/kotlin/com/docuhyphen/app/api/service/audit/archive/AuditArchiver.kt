@@ -12,7 +12,7 @@ import kotlinx.serialization.json.Json
 import org.slf4j.LoggerFactory
 import java.nio.charset.StandardCharsets
 import java.time.Instant
-import java.util.Base64
+import java.util.*
 
 /** Canonical, signed segment manifest fields. Field order is fixed by declaration order so the same segment always produces byte-identical manifest JSON, which is what [AuditArchiveSigningKeyProvider.sign]/[AuditArchiveSigningKeyProvider.verify] operate over. */
 @Serializable
@@ -61,6 +61,8 @@ data class ArchivedLedgerEventRecord(
     val serverTraceId: String?,
     val correlationId: String?,
     val causationId: String?,
+    val ownerType: String = "PLATFORM",
+    val ownerId: String? = null,
     val organizationId: String?,
     val organizationLabel: String?,
     val targetType: String?,
@@ -255,6 +257,8 @@ class AuditArchiver @Inject constructor(
         serverTraceId = event.serverTraceId,
         correlationId = event.correlationId,
         causationId = event.causationId,
+        ownerType = event.ownerType,
+        ownerId = event.ownerId?.toString(),
         organizationId = event.organizationId?.toString(),
         organizationLabel = event.organizationLabel,
         targetType = event.targetType,

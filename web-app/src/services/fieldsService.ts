@@ -7,6 +7,7 @@
  *   - Schema Definition draft/publish/version management (/schemas/*)
  *   - Exchange schema assignment + typed field values (/exchanges/{id}/schema, /fields)
  */
+import axios from 'axios';
 import apiClient from './apiClient';
 import {
     FieldContractDto,
@@ -17,6 +18,7 @@ import {
     FieldTypeInfoDto,
     FieldValueType,
     ResolvedSchemaViewDto,
+    ResponseError,
     SchemaAssignmentDto,
     SchemaCompatibility,
     SchemaDefinitionDto,
@@ -218,8 +220,68 @@ export const assignExchangeSchema = (
 export const unassignExchangeSchema = (exchangeId: string): Promise<void> =>
     executeRequest(() => apiClient.delete(`/exchanges/${exchangeId}/schema`));
 
-export const setExchangeFieldValues = (
+/** The header a conditional save states the version of the values it read in. */
+const IF_MATCH_HEADER = 'If-Match';
+
+/** The validator standing for whichever version is current, which excludes no version. */
+const ANY_VERSION = '*';
+
+/** The machine code the server states when the version a save named is no longer the current one. */
+const STALE_VERSION_CODE = 'FIELDS_PRECONDITION_STALE';
+
+/**
+ * Whether a refused save was refused because the stored values moved past the version it named.
+ * Both the status and the machine code are required, so a precondition refused for any other reason
+ * is not mistaken for one a caller can recover from by reloading.
+ */
+const namesAVersionThatMovedOn = (error: unknown): boolean =>
+    axios.isAxiosError(error)
+    && error.response?.status === 412
+    && (error.response.data as ResponseError | undefined)?.reasonCode === STALE_VERSION_CODE;
+
+/** A refusal as the server stated it, falling back to whatever the transport could say. */
+const statedRefusal = (error: unknown): unknown =>
+{
+    if (axios.isAxiosError(error)) return error.response?.data ?? error.message;
+    return error instanceof Error ? error.message : error;
+};
+
+/** What a conditional save of an Exchange's field values was answered with. */
+export type SetFieldValuesResult =
+    | { outcome: 'SAVED'; assignment: SchemaAssignmentDto }
+    | { outcome: 'STALE' };
+
+/**
+ * Saves only the values it carries, and only while the Exchange's stored values still stand in the
+ * version [expectedETag] names.
+ *
+ * That validator is the one served with the values, or with the previous save, so a save built on
+ * values that someone else has since changed is refused instead of silently discarding their change.
+ * A read that served no validator has no version to name, which happens only where the resource
+ * holds no set of values to be stale about; the save then states that it accepts whichever version
+ * is current, which is the truth about what it read and is what keeps such a resource savable.
+ *
+ * A refusal for a version that has moved on is an answer rather than a failure, because reloading
+ * and deciding is the caller's job. Every other refusal is thrown as the server stated it.
+ */
+export const saveExchangeFieldValues = async (
     exchangeId: string,
     request: SetFieldValuesRequest,
-): Promise<SchemaAssignmentDto> =>
-    executeRequest(() => apiClient.put(`/exchanges/${exchangeId}/fields`, request));
+    expectedETag?: string,
+): Promise<SetFieldValuesResult> =>
+{
+    try
+    {
+        const {data} = await apiClient.patch<SchemaAssignmentDto>(
+            `/exchanges/${exchangeId}/fields`,
+            request,
+            {headers: {[IF_MATCH_HEADER]: expectedETag ?? ANY_VERSION}},
+        );
+        return {outcome: 'SAVED', assignment: data};
+    }
+    catch (error: unknown)
+    {
+        if (namesAVersionThatMovedOn(error)) return {outcome: 'STALE'};
+        throw statedRefusal(error);
+    }
+};

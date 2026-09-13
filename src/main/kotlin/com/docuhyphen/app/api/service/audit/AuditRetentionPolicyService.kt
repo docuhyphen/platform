@@ -16,7 +16,7 @@ import org.slf4j.LoggerFactory
 import java.sql.Timestamp
 import java.time.Instant
 import java.time.temporal.ChronoUnit
-import java.util.UUID
+import java.util.*
 
 /**
  * Organization-override layer over [AuditRetentionCatalogService]'s platform-default catalog
@@ -36,9 +36,22 @@ class AuditRetentionPolicyService @Inject constructor(
         private val logger = LoggerFactory.getLogger(AuditRetentionPolicyService::class.java)
     }
 
-    fun getEffectivePolicy(organizationId: UUID, category: AuditCategory): RetentionPolicySpec
+    fun getEffectivePolicy(organizationId: UUID, category: AuditCategory): RetentionPolicySpec =
+        getEffectivePolicy(AuditOwnerScope.Organization(organizationId), category)
+
+    fun getEffectivePolicy(owner: AuditOwnerScope, category: AuditCategory): RetentionPolicySpec
     {
-        val override = auditRetentionPolicyRepository.findByOrganizationAndCategory(organizationId, category.name)
+        val override = when (owner)
+        {
+            AuditOwnerScope.Platform -> null
+            is AuditOwnerScope.Organization -> auditRetentionPolicyRepository.findByOrganizationAndCategory(
+                owner.organizationId, category.name,
+            )
+
+            is AuditOwnerScope.Personal -> auditRetentionPolicyRepository.findByOwner(
+                "USER", owner.userId, category.name,
+            )
+        }
             ?: return auditRetentionCatalogService.defaultsFor(category)
 
         return RetentionPolicySpec(
@@ -53,6 +66,17 @@ class AuditRetentionPolicyService @Inject constructor(
 
     fun listEffectivePolicies(organizationId: UUID): List<RetentionPolicySpec> =
         auditRetentionCatalogService.allCategories().map { getEffectivePolicy(organizationId, it) }
+
+    fun listPersonalEffectivePolicies(ownerUserId: UUID, actorUserId: UUID): List<RetentionPolicySpec>
+    {
+        if (ownerUserId != actorUserId)
+        {
+            throw IllegalAccessException("Audit owner does not match the caller")
+        }
+        return auditRetentionCatalogService.allCategories().map {
+            getEffectivePolicy(AuditOwnerScope.Personal(ownerUserId), it)
+        }
+    }
 
     @Transactional
     fun upsertOverride(
@@ -73,6 +97,8 @@ class AuditRetentionPolicyService @Inject constructor(
         val now = Timestamp.from(Instant.now())
         val policy = existing ?: AuditRetentionPolicy().apply {
             this.organizationId = organizationId
+            ownerType = "ORGANIZATION"
+            ownerId = organizationId
             this.category = category.name
             this.createdAt = now
         }

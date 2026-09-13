@@ -218,7 +218,7 @@ const main = () =>
     const manifestBytes = entries.get("manifest.json");
     const manifest = JSON.parse(manifestBytes.toString("utf8"));
     const signature = JSON.parse(entries.get("signature.json").toString("utf8"));
-    if (manifest.formatVersion !== 2 || signature.signatureAlgorithm !== "SHA256withRSA")
+    if (![2, 3].includes(manifest.formatVersion) || signature.signatureAlgorithm !== "SHA256withRSA")
     {
         fail("Unsupported audit export format or signature algorithm");
     }

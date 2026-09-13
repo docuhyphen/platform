@@ -4,34 +4,24 @@ import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.model.PlatformOrganizationDtoMapper
 import com.docuhyphen.app.api.model.dto.PlatformOrganizationFeatureEntitlementUpdateDto
 import com.docuhyphen.app.api.model.dto.PlatformOrganizationFeatureEntitlementsUpdateRequest
-import com.docuhyphen.app.api.model.entity.AppUser
-import com.docuhyphen.app.api.model.entity.AuthToken
-import com.docuhyphen.app.api.model.entity.Organization
-import com.docuhyphen.app.api.model.entity.OrganizationFeatureEntitlement
-import com.docuhyphen.app.api.model.entity.OrganizationSubscriptionPolicy
-import com.docuhyphen.app.api.repository.organization.OrganizationFeatureEntitlementRepository
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.repository.organization.OrganizationRepository
 import com.docuhyphen.app.api.repository.subscription.OrganizationSubscriptionPolicyRepository
+import com.docuhyphen.app.api.repository.subscription.SubscriptionFeatureEntitlementRepository
 import com.docuhyphen.app.api.service.auth.AdminApprovalContext
 import com.docuhyphen.app.api.service.auth.AuthAuditService
 import com.docuhyphen.app.api.service.auth.UserRoleService
 import com.docuhyphen.app.api.service.organization.OrganizationMembershipService
+import com.docuhyphen.app.api.service.subscription.SubscriptionFeatureEntitlementAdminService
+import com.docuhyphen.app.api.service.subscription.SubscriptionOwnerType
 import io.quarkus.security.UnauthorizedException
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertThrows
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
-import org.mockito.kotlin.any
-import org.mockito.kotlin.eq
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.never
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.whenever
 import org.mockito.Mockito.mockingDetails
+import org.mockito.kotlin.*
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 class PlatformOrganizationServiceTest
 {
@@ -46,7 +36,7 @@ class PlatformOrganizationServiceTest
     private val userRoleService = mock<UserRoleService>()
     private val organizationRepository = mock<OrganizationRepository>()
     private val policyRepository = mock<OrganizationSubscriptionPolicyRepository>()
-    private val entitlementRepository = mock<OrganizationFeatureEntitlementRepository>()
+    private val entitlementRepository = mock<SubscriptionFeatureEntitlementRepository>()
     private val membershipService = mock<OrganizationMembershipService>()
     private val auditService = mock<AuthAuditService>()
     private val service = PlatformOrganizationService(
@@ -54,7 +44,7 @@ class PlatformOrganizationServiceTest
         userRoleService = userRoleService,
         organizationRepository = organizationRepository,
         organizationSubscriptionPolicyRepository = policyRepository,
-        organizationFeatureEntitlementRepository = entitlementRepository,
+        featureEntitlementAdminService = SubscriptionFeatureEntitlementAdminService(entitlementRepository),
         organizationMembershipService = membershipService,
         mapper = PlatformOrganizationDtoMapper(),
         authAuditService = auditService,
@@ -170,6 +160,33 @@ class PlatformOrganizationServiceTest
     }
 
     @Test
+    fun `a newly recorded decision names the organization as its owner`()
+    {
+        val organization = organization("Acme")
+        whenever(userRoleService.isAppAdmin(actor.id)).thenReturn(true)
+        whenever(organizationRepository.findById(organization.id)).thenReturn(organization)
+        whenever(entitlementRepository.findByOrganizationId(organization.id))
+            .thenReturn(emptyList())
+            .thenReturn(listOf(entitlement(organization.id, "INFORMATION_REQUESTS", true)))
+
+        service.replaceFeatureEntitlements(
+            organizationId = organization.id.toString(),
+            request = PlatformOrganizationFeatureEntitlementsUpdateRequest(
+                entitlements = listOf(
+                    PlatformOrganizationFeatureEntitlementUpdateDto("INFORMATION_REQUESTS", true),
+                ),
+            ),
+            adminApprovalContext = AdminApprovalContext("request-id"),
+        )
+
+        val saved = argumentCaptor<SubscriptionFeatureEntitlement>()
+        verify(entitlementRepository).save(saved.capture())
+        assertEquals(SubscriptionOwnerType.ORGANIZATION.name, saved.firstValue.ownerType)
+        assertEquals(organization.id, saved.firstValue.organizationId)
+        assertEquals(null, saved.firstValue.appUserId)
+    }
+
+    @Test
     fun `feature entitlement replacement rejects duplicate normalized codes`()
     {
         val organization = organization("Acme")
@@ -206,7 +223,8 @@ class PlatformOrganizationServiceTest
         organizationId: UUID,
         code: String,
         enabled: Boolean,
-    ): OrganizationFeatureEntitlement = OrganizationFeatureEntitlement().apply {
+    ): SubscriptionFeatureEntitlement = SubscriptionFeatureEntitlement().apply {
+        ownerType = SubscriptionOwnerType.ORGANIZATION.name
         this.organizationId = organizationId
         featureCode = code
         isEnabled = enabled

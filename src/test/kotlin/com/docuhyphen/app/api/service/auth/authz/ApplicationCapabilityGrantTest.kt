@@ -1,16 +1,12 @@
 package com.docuhyphen.app.api.service.auth.authz
 
-import com.docuhyphen.app.api.model.entity.Application
-import com.docuhyphen.app.api.model.entity.ApplicationRoleName
-import com.docuhyphen.app.api.model.entity.ApplicationType
-import com.docuhyphen.app.api.model.entity.PrincipalKind
-import com.docuhyphen.app.api.model.entity.ResourceType
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.repository.application.AppRoleAssignmentRepository
+import com.docuhyphen.app.api.repository.exchange.ShareLinkRepository
+import com.docuhyphen.app.api.repository.exchange.ShareRepository
 import com.docuhyphen.app.api.repository.organization.OrganizationMembershipRepository
 import com.docuhyphen.app.api.repository.organization.PrincipalGroupMemberRepository
 import com.docuhyphen.app.api.repository.organization.PrincipalGroupRepository
-import com.docuhyphen.app.api.repository.exchange.ShareLinkRepository
-import com.docuhyphen.app.api.repository.exchange.ShareRepository
 import com.docuhyphen.app.api.service.application.ApplicationService
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -21,8 +17,9 @@ import org.mockito.Mock
 import org.mockito.Mockito.`when`
 import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.junit.jupiter.MockitoSettings
+import org.mockito.kotlin.any
 import org.mockito.quality.Strictness
-import java.util.UUID
+import java.util.*
 
 /**
  * APPLICATION principal with and without EXCHANGE_INITIATE grant.
@@ -77,6 +74,33 @@ class ApplicationCapabilityGrantTest
         )).thenReturn(emptyList())
         `when`(resourceContextRegistry.resolve(resource))
             .thenReturn(ResourceAuthorizationContext(ownerContext = OwnerContext.Organization(acmeOrgId)))
+        // Mirror the real registry's answers so the resolution-driven paths behave as in production.
+        `when`(resourceContextRegistry.resolution(any<ResourceRef>()))
+            .thenAnswer { invocation ->
+                val ref = invocation.arguments[0] as ResourceRef
+                when (ref.type)
+                {
+                    ResourceType.APPLICATION, ResourceType.WORKFLOW_WEBHOOK_ENDPOINT ->
+                        ResourceContextResolution.NotGoverned
+
+                    ResourceType.ORGANIZATION -> ResourceContextResolution.Resolved(
+                        ResourceAuthorizationContext(ownerContext = OwnerContext.Organization(ref.id)),
+                    )
+
+                    else -> ResourceContextResolution.Resolved(
+                        ResourceAuthorizationContext(ownerContext = OwnerContext.Organization(acmeOrgId)),
+                    )
+                }
+            }
+        `when`(resourceContextRegistry.kindOf(any<ResourceRef>()))
+            .thenAnswer { invocation ->
+                when ((invocation.arguments[0] as ResourceRef).type)
+                {
+                    ResourceType.APPLICATION, ResourceType.WORKFLOW_WEBHOOK_ENDPOINT -> null
+                    ResourceType.ORGANIZATION -> ResourceKind.ORGANIZATION
+                    else -> ResourceKind.EXCHANGE
+                }
+            }
     }
 
     @Test

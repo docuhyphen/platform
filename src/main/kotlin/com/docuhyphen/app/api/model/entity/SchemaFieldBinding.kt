@@ -1,7 +1,7 @@
 package com.docuhyphen.app.api.model.entity
 
 import jakarta.persistence.*
-import java.util.UUID
+import java.util.*
 
 /**
  * Places a [FieldContract] into a [SchemaVersion]. Contextual behaviour (order, requiredness,
@@ -20,6 +20,13 @@ class SchemaFieldBinding
 
     @Column(name = "field_contract_id", nullable = false)
     lateinit var fieldContractId: UUID
+
+    /**
+     * Stable identity of the bound field, carried alongside the contract so a version can hold at
+     * most one binding per field however many contract versions that field has.
+     */
+    @Column(name = "field_definition_id", nullable = false)
+    lateinit var fieldDefinitionId: UUID
 
     @Column(name = "display_order", nullable = false)
     var displayOrder: Int = 0

@@ -11,17 +11,11 @@ import {
     Spinner,
 } from '@fluentui/react-components';
 import {FieldDefinitionDto, FieldScopeKind, SchemaDefinitionDto} from '../../models/models';
-import {
-    BindingRequest,
-    createSchema,
-    updateSchemaDraftBindings,
-} from '../../../services/fieldsService';
-import {
-    createPlatformSchema,
-    updatePlatformSchemaBindings,
-} from '../../../services/platformFieldsService.ts';
+import {BindingRequest, createSchema, updateSchemaDraftBindings,} from '../../../services/fieldsService';
+import {createPlatformSchema, updatePlatformSchemaBindings,} from '../../../services/platformFieldsService.ts';
 import {useFieldsTabStyles} from './FieldsTabStyles';
-import SchemaBindingsEditor, {BindingDraft} from './SchemaBindingsEditor';
+import SchemaBindingsEditor from './SchemaBindingsEditor';
+import {BindingDraft, toBindingDrafts} from './schemaBindingDrafts';
 import SchemaIdentityFields, {SchemaIdentity} from './SchemaIdentityFields';
 
 interface Props
@@ -66,13 +60,7 @@ const SchemaEditorDialog = ({open, onClose, onSaved, definitions, schema, enforc
                 displayName: schema.displayName,
                 description: schema.description ?? '',
             });
-            setBindings((schema.draftVersion?.bindings ?? []).map(b => ({
-                fieldContractId: b.fieldContractId,
-                label: b.label,
-                keyLabel: `${b.namespace}:${b.fieldKey}`,
-                isRequired: b.isRequired,
-                isReadOnly: b.isReadOnly,
-            })));
+            setBindings(toBindingDrafts(schema.draftVersion?.bindings ?? []));
         }
         else
         {

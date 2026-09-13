@@ -1,10 +1,7 @@
 package com.docuhyphen.app.api.migration
 
 import org.flywaydb.core.Flyway
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertThrows
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.testcontainers.containers.PostgreSQLContainer
 import java.nio.file.Files
@@ -13,7 +10,7 @@ import java.sql.Connection
 import java.sql.SQLException
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 private class KotlinPostgreSQLContainer(imageName: String) :
     PostgreSQLContainer<KotlinPostgreSQLContainer>(imageName)
@@ -129,9 +126,12 @@ class AuditMigrationUpgradeContractTest
                 assertFalse(tableExists(connection, "organization_exchange_link"))
                 assertFalse(columnExists(connection, "organization_settings", "allow_share_without_pairing"))
                 assertTrue(columnExists(connection, "organization_settings", "require_trusted_organization_for_b2b"))
-                assertTrue(tableExists(connection, "organization_feature_entitlement"))
-                assertTrue(columnExists(connection, "organization_feature_entitlement", "feature_code"))
-                assertTrue(columnExists(connection, "organization_feature_entitlement", "is_enabled"))
+                assertFalse(tableExists(connection, "organization_feature_entitlement"))
+                assertTrue(tableExists(connection, "subscription_feature_entitlement"))
+                assertTrue(columnExists(connection, "subscription_feature_entitlement", "feature_code"))
+                assertTrue(columnExists(connection, "subscription_feature_entitlement", "is_enabled"))
+                assertTrue(columnExists(connection, "subscription_feature_entitlement", "owner_type"))
+                assertTrue(columnExists(connection, "subscription_feature_entitlement", "app_user_id"))
                 assertTrue(tableExists(connection, "subscription_trial_grant"))
                 assertTrue(columnExists(connection, "subscription_trial_grant", "owner_type"))
                 assertTrue(columnExists(connection, "subscription_trial_grant", "granted_by_app_user_id"))
@@ -143,12 +143,24 @@ class AuditMigrationUpgradeContractTest
                 verifySubscriptionTrialRequestConstraints(connection)
             }
 
-            assertEquals("75", currentFlyway.info().current().version.toString())
+            // The whole released chain applies and stops at the newest migration on disk. Reading the
+            // expected head from the migration directory keeps this contract about the upgrade
+            // succeeding rather than about whichever version happens to be latest today.
+            assertEquals(latestMigrationVersion(), currentFlyway.info().current().version.toString())
         }
         finally
         {
             postgres.stop()
         }
+    }
+
+    /** The highest versioned migration present in the migration directory. */
+    private fun latestMigrationVersion(): String
+    {
+        val versions = Files.list(migrationDirectory).use { paths -> paths.toList() }
+            .mapNotNull { Regex("^V(\\d+)__").find(it.fileName.toString())?.groupValues?.get(1) }
+            .map { it.toInt() }
+        return versions.max().toString()
     }
 
     private fun flyway(postgres: KotlinPostgreSQLContainer, target: String? = null): Flyway

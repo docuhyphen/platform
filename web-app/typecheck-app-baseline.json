@@ -1,0 +1,1737 @@
+{
+  "command": "node scripts/typecheck-app-baseline.mjs",
+  "generatedAt": "2026-09-13T09:37:47.818Z",
+  "diagnosticCount": 346,
+  "diagnostics": [
+    {
+      "file": "src/app/authorization/identityProviderDisplayName.ts",
+      "code": "TS2550",
+      "message": "Property 'replaceAll' does not exist on type 'string'. Do you need to change your target library? Try changing the 'lib' compiler option to 'es2021' or later."
+    },
+    {
+      "file": "src/app/authorization/sign-in/SignIn.tsx",
+      "code": "TS6133",
+      "message": "'useToken' is declared but its value is never read."
+    },
+    {
+      "file": "src/app/components/help-docs/sections/articles/blueprintOverviewArticle.tsx",
+      "code": "TS6133",
+      "message": "'React' is declared but its value is never read."
+    },
+    {
+      "file": "src/app/components/help-docs/sections/articles/blueprintPlatformArticle.tsx",
+      "code": "TS6133",
+      "message": "'React' is declared but its value is never read."
+    },
+    {
+      "file": "src/app/components/help-docs/sections/articles/buildingAWorkflowArticle.tsx",
+      "code": "TS6133",
+      "message": "'React' is declared but its value is never read."
+    },
+    {
+      "file": "src/app/components/help-docs/sections/articles/communicationsInWorkflowsArticle.tsx",
+      "code": "TS6133",
+      "message": "'React' is declared but its value is never read."
+    },
+    {
+      "file": "src/app/components/help-docs/sections/articles/communicationsOverviewArticle.tsx",
+      "code": "TS6133",
+      "message": "'React' is declared but its value is never read."
+    },
+    {
+      "file": "src/app/components/help-docs/sections/articles/documentLibraryOverviewArticle.tsx",
+      "code": "TS6133",
+      "message": "'React' is declared but its value is never read."
+    },
+    {
+      "file": "src/app/components/help-docs/sections/articles/fieldsOverviewArticle.tsx",
+      "code": "TS6133",
+      "message": "'React' is declared but its value is never read."
+    },
+    {
+      "file": "src/app/components/help-docs/sections/articles/managingBlueprintsArticle.tsx",
+      "code": "TS6133",
+      "message": "'React' is declared but its value is never read."
+    },
+    {
+      "file": "src/app/components/help-docs/sections/articles/managingCommunicationsArticle.tsx",
+      "code": "TS6133",
+      "message": "'React' is declared but its value is never read."
+    },
+    {
+      "file": "src/app/components/help-docs/sections/articles/managingOrgVariablesArticle.tsx",
+      "code": "TS6133",
+      "message": "'React' is declared but its value is never read."
+    },
+    {
+      "file": "src/app/components/help-docs/sections/articles/managingPersonalVariablesArticle.tsx",
+      "code": "TS6133",
+      "message": "'React' is declared but its value is never read."
+    },
+    {
+      "file": "src/app/components/help-docs/sections/articles/managingSequencesArticle.tsx",
+      "code": "TS6133",
+      "message": "'React' is declared but its value is never read."
+    },
+    {
+      "file": "src/app/components/help-docs/sections/articles/orgBlueprintsArticle.tsx",
+      "code": "TS6133",
+      "message": "'React' is declared but its value is never read."
+    },
+    {
+      "file": "src/app/components/help-docs/sections/articles/platformTemplatesArticle.tsx",
+      "code": "TS6133",
+      "message": "'React' is declared but its value is never read."
+    },
+    {
+      "file": "src/app/components/help-docs/sections/articles/recipientWorkflowsArticle.tsx",
+      "code": "TS6133",
+      "message": "'React' is declared but its value is never read."
+    },
+    {
+      "file": "src/app/components/help-docs/sections/articles/slaEscalationsArticle.tsx",
+      "code": "TS6133",
+      "message": "'React' is declared but its value is never read."
+    },
+    {
+      "file": "src/app/components/help-docs/sections/articles/stepTypesArticle.tsx",
+      "code": "TS6133",
+      "message": "'React' is declared but its value is never read."
+    },
+    {
+      "file": "src/app/components/help-docs/sections/articles/triggerEventsArticle.tsx",
+      "code": "TS6133",
+      "message": "'React' is declared but its value is never read."
+    },
+    {
+      "file": "src/app/components/help-docs/sections/articles/usingExchangeFieldsArticle.tsx",
+      "code": "TS6133",
+      "message": "'React' is declared but its value is never read."
+    },
+    {
+      "file": "src/app/components/help-docs/sections/articles/variablesOverviewArticle.tsx",
+      "code": "TS6133",
+      "message": "'React' is declared but its value is never read."
+    },
+    {
+      "file": "src/app/components/help-docs/sections/articles/workflowActivityMonitoringArticle.tsx",
+      "code": "TS6133",
+      "message": "'React' is declared but its value is never read."
+    },
+    {
+      "file": "src/app/components/help-docs/sections/articles/workflowApplicabilityArticle.tsx",
+      "code": "TS6133",
+      "message": "'React' is declared but its value is never read."
+    },
+    {
+      "file": "src/app/components/help-docs/sections/articles/workflowDiagramPreviewArticle.tsx",
+      "code": "TS6133",
+      "message": "'React' is declared but its value is never read."
+    },
+    {
+      "file": "src/app/components/help-docs/sections/articles/workflowOrgSettingsArticle.tsx",
+      "code": "TS6133",
+      "message": "'React' is declared but its value is never read."
+    },
+    {
+      "file": "src/app/components/help-docs/sections/articles/workflowOverviewArticle.tsx",
+      "code": "TS6133",
+      "message": "'React' is declared but its value is never read."
+    },
+    {
+      "file": "src/app/components/help-docs/sections/startHereSection.tsx",
+      "code": "TS6133",
+      "message": "'React' is declared but its value is never read."
+    },
+    {
+      "file": "src/app/components/main-menu/pending-approvals/PendingApprovals.tsx",
+      "code": "TS2339",
+      "message": "Property 'errorMessage' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/app/components/main-menu/pending-approvals/PendingApprovals.tsx",
+      "code": "TS2339",
+      "message": "Property 'message' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/app/components/MainMenu.tsx",
+      "code": "TS2339",
+      "message": "Property 'verificationComplete' does not exist on type 'OrganizationDetailedDto'."
+    },
+    {
+      "file": "src/app/components/phone-management/PhoneManagementDialog.tsx",
+      "code": "TS6133",
+      "message": "'fallback' is declared but its value is never read."
+    },
+    {
+      "file": "src/app/components/share-constraints/DownloadFormatRestriction.tsx",
+      "code": "TS6133",
+      "message": "'Field' is declared but its value is never read."
+    },
+    {
+      "file": "src/app/components/share-constraints/DownloadFormatRestriction.tsx",
+      "code": "TS6133",
+      "message": "'Text' is declared but its value is never read."
+    },
+    {
+      "file": "src/app/exchange-initiation/components/blueprint-picker/BlueprintPicker.tsx",
+      "code": "TS6133",
+      "message": "'onCancel' is declared but its value is never read."
+    },
+    {
+      "file": "src/app/exchange-initiation/components/exchange-initiation-dialog-title-section/ExchangeInitiationDialogTabs.tsx",
+      "code": "TS2322",
+      "message": "Type 'ReactNode' is not assignable to type 'WithSlotShorthandValue<{ as?: \"span\"; } & Omit<Omit<DetailedHTMLProps<HTMLAttributes<HTMLSpanElement>, HTMLSpanElement>, \"ref\"> & { ...; }, \"children\"> & { ...; }>'."
+    },
+    {
+      "file": "src/app/exchange-initiation/components/exchange-initiation-dialog-trigger/ExchangeInitiationDialogTrigger.tsx",
+      "code": "TS6133",
+      "message": "'Button' is declared but its value is never read."
+    },
+    {
+      "file": "src/app/exchange-initiation/components/exchange-initiation-dialog-trigger/ExchangeInitiationDialogTrigger.tsx",
+      "code": "TS6133",
+      "message": "'ref' is declared but its value is never read."
+    },
+    {
+      "file": "src/app/exchange-initiation/components/exchange-initiation-recipients-tab/ExchangeInitiationRecipientsTab.tsx",
+      "code": "TS2339",
+      "message": "Property 'verificationComplete' does not exist on type 'OrganizationDetailedDto'."
+    },
+    {
+      "file": "src/app/exchange-initiation/components/exchange-initiation-recipients-tab/external-recipient-badge/ExternalRecipientBadge.tsx",
+      "code": "TS2339",
+      "message": "Property 'verificationComplete' does not exist on type 'OrganizationDetailedDto'."
+    },
+    {
+      "file": "src/app/exchange-initiation/components/exchange-initiation-recipients-tab/my-organization-recipients/MyOrganizationRecipients.tsx",
+      "code": "TS2345",
+      "message": "Argument of type 'SelectableOrganizationGroup' is not assignable to parameter of type 'SetStateAction<OrganizationGroupBasicDto>'."
+    },
+    {
+      "file": "src/app/exchange-initiation/components/exchange-initiation-recipients-tab/my-organization-recipients/MyOrganizationRecipients.tsx",
+      "code": "TS2345",
+      "message": "Argument of type 'SelectableOrganizationGroup' is not assignable to parameter of type 'OrganizationGroupBasicDto'."
+    },
+    {
+      "file": "src/app/exchange-initiation/ExchangeInitiation.tsx",
+      "code": "TS2345",
+      "message": "Argument of type 'BlueprintParticipantConfig[]' is not assignable to parameter of type 'SetStateAction<AppUserPublicDto[]>'."
+    },
+    {
+      "file": "src/app/exchange-initiation/ExchangeInitiation.tsx",
+      "code": "TS2304",
+      "message": "Cannot find name 'config'."
+    },
+    {
+      "file": "src/app/exchange-initiation/ExchangeInitiation.tsx",
+      "code": "TS2304",
+      "message": "Cannot find name 'config'."
+    },
+    {
+      "file": "src/app/exchange-initiation/ExchangeInitiation.tsx",
+      "code": "TS2304",
+      "message": "Cannot find name 'config'."
+    },
+    {
+      "file": "src/app/exchange-initiation/ExchangeInitiation.tsx",
+      "code": "TS2345",
+      "message": "Argument of type 'unknown' is not assignable to parameter of type 'ExchangeBasicDto'."
+    },
+    {
+      "file": "src/app/exchange-initiation/ExchangeInitiation.tsx",
+      "code": "TS2345",
+      "message": "Argument of type 'unknown' is not assignable to parameter of type 'SetStateAction<string>'."
+    },
+    {
+      "file": "src/app/exchange-initiation/ExchangeInitiation.tsx",
+      "code": "TS2322",
+      "message": "Type 'AppUserPublicDto[]' is not assignable to type 'BlueprintParticipantConfig[]'."
+    },
+    {
+      "file": "src/app/exchanges/components/exchange-acceptance-dialog/ExchangeAcceptanceRequestSummary.tsx",
+      "code": "TS2339",
+      "message": "Property 'organization' does not exist on type 'AppUserPublicDto'."
+    },
+    {
+      "file": "src/app/exchanges/components/exchange-delete-dialog/ExchangeDeleteDialog.tsx",
+      "code": "TS6133",
+      "message": "'token' is declared but its value is never read."
+    },
+    {
+      "file": "src/app/exchanges/components/exchange-document-add-dialog/ExchangeDocumentAddDialog.tsx",
+      "code": "TS6133",
+      "message": "'token' is declared but its value is never read."
+    },
+    {
+      "file": "src/app/exchanges/components/exchange-document-download-dialog/ExchangeDocumentDownloadDialog.tsx",
+      "code": "TS6133",
+      "message": "'token' is declared but its value is never read."
+    },
+    {
+      "file": "src/app/exchanges/components/exchange-document-download-dialog/ExchangeDocumentDownloadDialog.tsx",
+      "code": "TS2322",
+      "message": "Type 'unknown' is not assignable to type 'BlobPart'."
+    },
+    {
+      "file": "src/app/exchanges/components/exchange-document-update-dialog/ExchangeDocumentUpdateDialog.tsx",
+      "code": "TS6133",
+      "message": "'token' is declared but its value is never read."
+    },
+    {
+      "file": "src/app/exchanges/components/exchange-document-update-dialog/ExchangeDocumentUpdateDialog.tsx",
+      "code": "TS2322",
+      "message": "Type 'string' is not assignable to type 'DocumentType'."
+    },
+    {
+      "file": "src/app/exchanges/components/exchange-document-update-dialog/ExchangeDocumentUpdateDialog.tsx",
+      "code": "TS2345",
+      "message": "Argument of type 'UpdateShareExchangeDocumentRequest' is not assignable to parameter of type 'ExchangeRequestDocumentRequest'."
+    },
+    {
+      "file": "src/app/exchanges/components/exchange-document-update-dialog/ExchangeDocumentUpdateDialog.tsx",
+      "code": "TS2322",
+      "message": "Type '(_event: unknown, data: { optionValue: DocumentType | ImageType; }) => void' is not assignable to type '(event: SelectionEvents, data: OptionOnSelectData) => void'."
+    },
+    {
+      "file": "src/app/exchanges/components/exchange-document-upload-dialog/ExchangeDocumentUploadDialog.tsx",
+      "code": "TS2353",
+      "message": "Object literal may only specify known properties, and 'PNG' does not exist in type 'Record<DocumentType, string>'."
+    },
+    {
+      "file": "src/app/exchanges/components/exchange-document-zip-download-dialog/ExchangeDocumentZipDownloadDialog.tsx",
+      "code": "TS2554",
+      "message": "Expected 2 arguments, but got 3."
+    },
+    {
+      "file": "src/app/exchanges/components/exchange-document-zip-download-dialog/ExchangeDocumentZipDownloadDialog.tsx",
+      "code": "TS2322",
+      "message": "Type 'unknown' is not assignable to type 'BlobPart'."
+    },
+    {
+      "file": "src/app/exchanges/components/exchange-document-zip-download-dialog/ExchangeDocumentZipDownloadDialog.tsx",
+      "code": "TS6133",
+      "message": "'e' is declared but its value is never read."
+    },
+    {
+      "file": "src/app/exchanges/components/exchange-document-zip-download-dialog/ExchangeDocumentZipDownloadDialog.tsx",
+      "code": "TS2345",
+      "message": "Argument of type 'string | boolean' is not assignable to parameter of type 'boolean'."
+    },
+    {
+      "file": "src/app/exchanges/components/exchange-end-dialog/ExchangeEndDialog.tsx",
+      "code": "TS2339",
+      "message": "Property 'endNoteField' does not exist on type 'Record<\"dialogContentContainer\", string>'."
+    },
+    {
+      "file": "src/app/exchanges/components/exchange-list/exchange-list-item/ExchangeListItem.tsx",
+      "code": "TS2322",
+      "message": "Type '\"danger\" | \"warning\" | \"neutral\"' is not assignable to type '\"subtle\" | \"brand\" | \"danger\" | \"important\" | \"informative\" | \"severe\" | \"success\" | \"warning\"'."
+    },
+    {
+      "file": "src/app/exchanges/components/exchange-list/exchange-list-search-controls/ExchangeListSearchControls.tsx",
+      "code": "TS6133",
+      "message": "'onClearFilters' is declared but its value is never read."
+    },
+    {
+      "file": "src/app/exchanges/components/exchange-list/exchange-list-search-controls/ExchangeListSearchControls.tsx",
+      "code": "TS6133",
+      "message": "'hasActiveFilters' is declared but its value is never read."
+    },
+    {
+      "file": "src/app/exchanges/components/exchange-list/ExchangeList.test.tsx",
+      "code": "TS6133",
+      "message": "'React' is declared but its value is never read."
+    },
+    {
+      "file": "src/app/exchanges/components/exchange-list/ExchangeList.test.tsx",
+      "code": "TS2322",
+      "message": "Type '{ endDate: string; status: ExchangeStatus.ENDED; documents: undefined[]; id: string; createdDate: string; lastActivity: string; name?: string; initialShareMessage?: string; description?: string; ... 5 more ...; recipientOrganizationName?: string; }' is not assignable to type 'ExchangeDetailedDto'."
+    },
+    {
+      "file": "src/app/exchanges/components/exchange-list/ExchangeList.test.tsx",
+      "code": "TS2322",
+      "message": "Type 'ExchangeDetailedDto' is not assignable to type 'ExchangeBasicDto'."
+    },
+    {
+      "file": "src/app/exchanges/components/exchange-list/ExchangeList.tsx",
+      "code": "TS6133",
+      "message": "'totalElements' is declared but its value is never read."
+    },
+    {
+      "file": "src/app/exchanges/components/exchange-list/ExchangeList.tsx",
+      "code": "TS2339",
+      "message": "Property 'totalElements' does not exist on type 'ResponseError | { content: ExchangeBasicDto[]; totalElements: number; totalPages: number; currentPage: number; pageSize: number; }'."
+    },
+    {
+      "file": "src/app/exchanges/components/exchange-list/ExchangeList.tsx",
+      "code": "TS2339",
+      "message": "Property 'totalElements' does not exist on type 'ResponseError | { content: ExchangeBasicDto[]; totalElements: number; totalPages: number; currentPage: number; pageSize: number; }'."
+    },
+    {
+      "file": "src/app/exchanges/components/exchange-list/ExchangeList.tsx",
+      "code": "TS2339",
+      "message": "Property 'content' does not exist on type 'ResponseError | { content: ExchangeBasicDto[]; totalElements: number; totalPages: number; currentPage: number; pageSize: number; }'."
+    },
+    {
+      "file": "src/app/exchanges/components/exchange-list/ExchangeList.tsx",
+      "code": "TS2339",
+      "message": "Property 'totalPages' does not exist on type 'ResponseError | { content: ExchangeBasicDto[]; totalElements: number; totalPages: number; currentPage: number; pageSize: number; }'."
+    },
+    {
+      "file": "src/app/exchanges/components/exchange-list/ExchangeList.tsx",
+      "code": "TS2339",
+      "message": "Property 'totalElements' does not exist on type 'ResponseError | { content: ExchangeBasicDto[]; totalElements: number; totalPages: number; currentPage: number; pageSize: number; }'."
+    },
+    {
+      "file": "src/app/exchanges/components/exchange-list/ExchangeList.tsx",
+      "code": "TS2339",
+      "message": "Property 'totalElements' does not exist on type 'ResponseError | { content: ExchangeBasicDto[]; totalElements: number; totalPages: number; currentPage: number; pageSize: number; }'."
+    },
+    {
+      "file": "src/app/exchanges/components/exchange-list/ExchangeList.tsx",
+      "code": "TS2339",
+      "message": "Property 'totalElements' does not exist on type 'ResponseError | { content: ExchangeBasicDto[]; totalElements: number; totalPages: number; currentPage: number; pageSize: number; }'."
+    },
+    {
+      "file": "src/app/exchanges/components/exchange-list/ExchangeList.tsx",
+      "code": "TS2339",
+      "message": "Property 'totalElements' does not exist on type 'ResponseError | { content: ExchangeBasicDto[]; totalElements: number; totalPages: number; currentPage: number; pageSize: number; }'."
+    },
+    {
+      "file": "src/app/exchanges/components/exchange-list/ExchangeList.tsx",
+      "code": "TS2339",
+      "message": "Property 'totalElements' does not exist on type 'ResponseError | { content: ExchangeBasicDto[]; totalElements: number; totalPages: number; currentPage: number; pageSize: number; }'."
+    },
+    {
+      "file": "src/app/exchanges/components/exchange-list/ExchangeList.tsx",
+      "code": "TS2339",
+      "message": "Property 'content' does not exist on type 'ResponseError | { content: ExchangeBasicDto[]; totalElements: number; totalPages: number; currentPage: number; pageSize: number; }'."
+    },
+    {
+      "file": "src/app/exchanges/components/exchange-list/ExchangeList.tsx",
+      "code": "TS2339",
+      "message": "Property 'content' does not exist on type 'ResponseError | { content: ExchangeBasicDto[]; totalElements: number; totalPages: number; currentPage: number; pageSize: number; }'."
+    },
+    {
+      "file": "src/app/exchanges/components/exchange-list/ExchangeList.tsx",
+      "code": "TS2339",
+      "message": "Property 'content' does not exist on type 'ResponseError | { content: ExchangeBasicDto[]; totalElements: number; totalPages: number; currentPage: number; pageSize: number; }'."
+    },
+    {
+      "file": "src/app/exchanges/components/exchange-list/ExchangeList.tsx",
+      "code": "TS2339",
+      "message": "Property 'content' does not exist on type 'ResponseError | { content: ExchangeBasicDto[]; totalElements: number; totalPages: number; currentPage: number; pageSize: number; }'."
+    },
+    {
+      "file": "src/app/exchanges/components/exchange-list/ExchangeList.tsx",
+      "code": "TS2339",
+      "message": "Property 'totalElements' does not exist on type 'ResponseError | { content: ExchangeBasicDto[]; totalElements: number; totalPages: number; currentPage: number; pageSize: number; }'."
+    },
+    {
+      "file": "src/app/exchanges/components/exchange-list/ExchangeList.tsx",
+      "code": "TS2339",
+      "message": "Property 'totalElements' does not exist on type 'ResponseError | { content: ExchangeBasicDto[]; totalElements: number; totalPages: number; currentPage: number; pageSize: number; }'."
+    },
+    {
+      "file": "src/app/exchanges/components/exchange-list/ExchangeList.tsx",
+      "code": "TS2345",
+      "message": "Argument of type '(prevExchanges: ExchangeBasicDto[]) => (ExchangeBasicDto | ExchangeDetailedDto)[]' is not assignable to parameter of type 'SetStateAction<ExchangeBasicDto[]>'."
+    },
+    {
+      "file": "src/app/exchanges/components/exchange-workflow-tab/ClearanceStatusCard.tsx",
+      "code": "TS2322",
+      "message": "Type '\"subtle\" | \"brand\" | \"important\" | \"informative\" | \"severe\" | \"success\" | \"warning\" | \"neutral\"' is not assignable to type '\"subtle\" | \"brand\" | \"danger\" | \"important\" | \"informative\" | \"severe\" | \"success\" | \"warning\"'."
+    },
+    {
+      "file": "src/app/exchanges/components/exchange-workflow-tab/ClearanceStatusCard.tsx",
+      "code": "TS2322",
+      "message": "Type '\"subtle\" | \"brand\" | \"important\" | \"informative\" | \"severe\" | \"success\" | \"warning\" | \"neutral\"' is not assignable to type '\"subtle\" | \"brand\" | \"danger\" | \"important\" | \"informative\" | \"severe\" | \"success\" | \"warning\"'."
+    },
+    {
+      "file": "src/app/exchanges/components/exchange-workflow-tab/ExchangeWorkflowTabStyles.tsx",
+      "code": "TS1117",
+      "message": "An object literal cannot have multiple properties with the same name."
+    },
+    {
+      "file": "src/app/exchanges/components/exchange-workflow-tab/RejectionBanner.tsx",
+      "code": "TS6133",
+      "message": "'PRINCIPAL_KIND_LABELS' is declared but its value is never read."
+    },
+    {
+      "file": "src/app/models/models.tsx",
+      "code": "TS2300",
+      "message": "Duplicate identifier 'EQUALS'."
+    },
+    {
+      "file": "src/app/models/models.tsx",
+      "code": "TS2300",
+      "message": "Duplicate identifier 'NOT_EQUALS'."
+    },
+    {
+      "file": "src/app/models/models.tsx",
+      "code": "TS2300",
+      "message": "Duplicate identifier 'LESS_THAN'."
+    },
+    {
+      "file": "src/app/models/models.tsx",
+      "code": "TS2300",
+      "message": "Duplicate identifier 'LESS_THAN_OR_EQUAL'."
+    },
+    {
+      "file": "src/app/models/models.tsx",
+      "code": "TS2300",
+      "message": "Duplicate identifier 'GREATER_THAN'."
+    },
+    {
+      "file": "src/app/models/models.tsx",
+      "code": "TS2300",
+      "message": "Duplicate identifier 'GREATER_THAN_OR_EQUAL'."
+    },
+    {
+      "file": "src/app/models/models.tsx",
+      "code": "TS2300",
+      "message": "Duplicate identifier 'CONTAINS'."
+    },
+    {
+      "file": "src/app/models/models.tsx",
+      "code": "TS2300",
+      "message": "Duplicate identifier 'STARTS_WITH'."
+    },
+    {
+      "file": "src/app/models/models.tsx",
+      "code": "TS2300",
+      "message": "Duplicate identifier 'IN'."
+    },
+    {
+      "file": "src/app/models/models.tsx",
+      "code": "TS2300",
+      "message": "Duplicate identifier 'NOT_IN'."
+    },
+    {
+      "file": "src/app/models/models.tsx",
+      "code": "TS2300",
+      "message": "Duplicate identifier 'IS_EMPTY'."
+    },
+    {
+      "file": "src/app/models/models.tsx",
+      "code": "TS2300",
+      "message": "Duplicate identifier 'IS_NOT_EMPTY'."
+    },
+    {
+      "file": "src/app/models/models.tsx",
+      "code": "TS2300",
+      "message": "Duplicate identifier 'EQUALS'."
+    },
+    {
+      "file": "src/app/models/models.tsx",
+      "code": "TS2300",
+      "message": "Duplicate identifier 'NOT_EQUALS'."
+    },
+    {
+      "file": "src/app/models/models.tsx",
+      "code": "TS2300",
+      "message": "Duplicate identifier 'LESS_THAN'."
+    },
+    {
+      "file": "src/app/models/models.tsx",
+      "code": "TS2300",
+      "message": "Duplicate identifier 'LESS_THAN_OR_EQUAL'."
+    },
+    {
+      "file": "src/app/models/models.tsx",
+      "code": "TS2300",
+      "message": "Duplicate identifier 'GREATER_THAN'."
+    },
+    {
+      "file": "src/app/models/models.tsx",
+      "code": "TS2300",
+      "message": "Duplicate identifier 'GREATER_THAN_OR_EQUAL'."
+    },
+    {
+      "file": "src/app/models/models.tsx",
+      "code": "TS2300",
+      "message": "Duplicate identifier 'CONTAINS'."
+    },
+    {
+      "file": "src/app/models/models.tsx",
+      "code": "TS2300",
+      "message": "Duplicate identifier 'STARTS_WITH'."
+    },
+    {
+      "file": "src/app/models/models.tsx",
+      "code": "TS2300",
+      "message": "Duplicate identifier 'IN'."
+    },
+    {
+      "file": "src/app/models/models.tsx",
+      "code": "TS2300",
+      "message": "Duplicate identifier 'NOT_IN'."
+    },
+    {
+      "file": "src/app/models/models.tsx",
+      "code": "TS2300",
+      "message": "Duplicate identifier 'IS_EMPTY'."
+    },
+    {
+      "file": "src/app/models/models.tsx",
+      "code": "TS2300",
+      "message": "Duplicate identifier 'IS_NOT_EMPTY'."
+    },
+    {
+      "file": "src/app/onboarding/organization-onboarding/OrganizationOnboarding.tsx",
+      "code": "TS2339",
+      "message": "Property 'response' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/app/onboarding/organization-onboarding/OrganizationOnboarding.tsx",
+      "code": "TS6133",
+      "message": "'organization' is declared but its value is never read."
+    },
+    {
+      "file": "src/app/onboarding/organization-onboarding/OrganizationOnboardingForm.tsx",
+      "code": "TS6133",
+      "message": "'navigate' is declared but its value is never read."
+    },
+    {
+      "file": "src/app/onboarding/organization-onboarding/OrganizationOnboardingForm.tsx",
+      "code": "TS2345",
+      "message": "Argument of type 'OrganizationBasicDto' is not assignable to parameter of type 'OrganizationDetailedDto'."
+    },
+    {
+      "file": "src/app/onboarding/organization-onboarding/OrganizationOnboardingForm.tsx",
+      "code": "TS6133",
+      "message": "'ev' is declared but its value is never read."
+    },
+    {
+      "file": "src/app/settings/app-settings-tab/browser-notifications-card/BrowserNotificationsCard.test.tsx",
+      "code": "TS6133",
+      "message": "'React' is declared but its value is never read."
+    },
+    {
+      "file": "src/app/settings/billing-tab/BillingTab.tsx",
+      "code": "TS6133",
+      "message": "'DataBarVerticalFilled' is declared but its value is never read."
+    },
+    {
+      "file": "src/app/settings/blueprints-tab/BlueprintsTab.tsx",
+      "code": "TS6133",
+      "message": "'React' is declared but its value is never read."
+    },
+    {
+      "file": "src/app/settings/communications-tab/CommunicationEditorDialog.test.tsx",
+      "code": "TS6133",
+      "message": "'screen' is declared but its value is never read."
+    },
+    {
+      "file": "src/app/settings/communications-tab/CommunicationEditorDialog.tsx",
+      "code": "TS6133",
+      "message": "'tokens' is declared but its value is never read."
+    },
+    {
+      "file": "src/app/settings/communications-tab/CommunicationsTab.tsx",
+      "code": "TS6133",
+      "message": "'React' is declared but its value is never read."
+    },
+    {
+      "file": "src/app/settings/components/settings-menu/SettingsMenuTabs.tsx",
+      "code": "TS2322",
+      "message": "Type 'ReactNode' is not assignable to type 'WithSlotShorthandValue<{ as?: \"span\"; } & Omit<Omit<DetailedHTMLProps<HTMLAttributes<HTMLSpanElement>, HTMLSpanElement>, \"ref\"> & { ...; }, \"children\"> & { ...; }>'."
+    },
+    {
+      "file": "src/app/settings/components/settings-toolbar-menu/SettingsToolbarMenu.tsx",
+      "code": "TS2322",
+      "message": "Type 'ReactNode' is not assignable to type 'WithSlotShorthandValue<{ as?: \"span\"; } & Omit<Omit<DetailedHTMLProps<HTMLAttributes<HTMLSpanElement>, HTMLSpanElement>, \"ref\"> & { ...; }, \"children\"> & { ...; }>'."
+    },
+    {
+      "file": "src/app/settings/document-library-tab/DocumentLibraryEditorDialog.tsx",
+      "code": "TS6133",
+      "message": "'React' is declared but its value is never read."
+    },
+    {
+      "file": "src/app/settings/document-library-tab/DocumentLibraryEntryCard.tsx",
+      "code": "TS6133",
+      "message": "'React' is declared but its value is never read."
+    },
+    {
+      "file": "src/app/settings/document-library-tab/DocumentLibraryTab.tsx",
+      "code": "TS6133",
+      "message": "'React' is declared but its value is never read."
+    },
+    {
+      "file": "src/app/settings/document-library-tab/DocumentLibraryTab.tsx",
+      "code": "TS6133",
+      "message": "'DocumentAddIcon' is declared but its value is never read."
+    },
+    {
+      "file": "src/app/settings/fields-tab/field-type-label/FieldTypeLabel.tsx",
+      "code": "TS2322",
+      "message": "Type 'ReactNode' is not assignable to type 'WithSlotShorthandValue<{ as?: \"span\"; } & Omit<Omit<DetailedHTMLProps<HTMLAttributes<HTMLSpanElement>, HTMLSpanElement>, \"ref\"> & { ...; }, \"children\"> & { ...; }>'."
+    },
+    {
+      "file": "src/app/settings/my-groups-tab/MyGroupsTab.tsx",
+      "code": "TS2339",
+      "message": "Property 'errorMessage' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/app/settings/my-groups-tab/MyGroupsTab.tsx",
+      "code": "TS2339",
+      "message": "Property 'message' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/app/settings/my-groups-tab/MyGroupsTab.tsx",
+      "code": "TS2339",
+      "message": "Property 'errorMessage' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/app/settings/my-groups-tab/MyGroupsTab.tsx",
+      "code": "TS2339",
+      "message": "Property 'message' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/app/settings/my-groups-tab/MyGroupsTab.tsx",
+      "code": "TS2339",
+      "message": "Property 'errorMessage' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/app/settings/my-groups-tab/MyGroupsTab.tsx",
+      "code": "TS2339",
+      "message": "Property 'message' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/app/settings/my-groups-tab/MyGroupsTab.tsx",
+      "code": "TS2339",
+      "message": "Property 'errorMessage' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/app/settings/my-groups-tab/MyGroupsTab.tsx",
+      "code": "TS2339",
+      "message": "Property 'message' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/app/settings/my-groups-tab/MyGroupsTab.tsx",
+      "code": "TS2339",
+      "message": "Property 'errorMessage' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/app/settings/my-groups-tab/MyGroupsTab.tsx",
+      "code": "TS2339",
+      "message": "Property 'message' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/app/settings/my-groups-tab/MyGroupsTab.tsx",
+      "code": "TS2339",
+      "message": "Property 'errorMessage' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/app/settings/my-groups-tab/MyGroupsTab.tsx",
+      "code": "TS2339",
+      "message": "Property 'message' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/app/settings/organization-blueprints-tab/OrganizationBlueprintsTab.tsx",
+      "code": "TS6133",
+      "message": "'React' is declared but its value is never read."
+    },
+    {
+      "file": "src/app/settings/organization-details-tab/OrganizationDetailsTab.tsx",
+      "code": "TS6133",
+      "message": "'React' is declared but its value is never read."
+    },
+    {
+      "file": "src/app/settings/organization-details-tab/OrganizationDetailsTab.tsx",
+      "code": "TS2339",
+      "message": "Property 'message' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/app/settings/organization-groups-tab/add-group-dialog/AddGroupDialog.tsx",
+      "code": "TS2339",
+      "message": "Property 'message' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/app/settings/organization-groups-tab/add-group-dialog/AddGroupDialog.tsx",
+      "code": "TS2339",
+      "message": "Property 'message' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/app/settings/organization-groups-tab/edit-group-dialog/EditGroupDialog.tsx",
+      "code": "TS2339",
+      "message": "Property 'groupRole' does not exist on type 'OrganizationGroupMemberDetailedDto'."
+    },
+    {
+      "file": "src/app/settings/organization-groups-tab/edit-group-dialog/EditGroupDialog.tsx",
+      "code": "TS2339",
+      "message": "Property 'groupRole' does not exist on type 'OrganizationGroupMemberPermissionDto'."
+    },
+    {
+      "file": "src/app/settings/organization-groups-tab/edit-group-dialog/EditGroupDialog.tsx",
+      "code": "TS2339",
+      "message": "Property 'message' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/app/settings/organization-groups-tab/organization-groups-dialogs/OrganizationGroupsDialogs.tsx",
+      "code": "TS2741",
+      "message": "Property 'organizationId' is missing in type 'OrganizationGroupDetailedDto' but required in type 'OrganizationGroupBasicDto'."
+    },
+    {
+      "file": "src/app/settings/organization-people-tab/app-user-deactivate-dialog/AppUserDeactivateDialog.tsx",
+      "code": "TS2339",
+      "message": "Property 'response' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/app/settings/organization-people-tab/organization-people-toolbar/OrganizationPeopleFilterPopover.tsx",
+      "code": "TS2322",
+      "message": "Type 'ReactNode' is not assignable to type 'WithSlotShorthandValue<{ as?: \"span\"; } & Omit<Omit<DetailedHTMLProps<HTMLAttributes<HTMLSpanElement>, HTMLSpanElement>, \"ref\"> & { ...; }, \"children\"> & { ...; }>'."
+    },
+    {
+      "file": "src/app/settings/organization-tab/organization-empty-state-illustration/OrganizationEmptyStateIllustration.tsx",
+      "code": "TS6133",
+      "message": "'className' is declared but its value is never read."
+    },
+    {
+      "file": "src/app/settings/organization-tab/OrganizationTab.tsx",
+      "code": "TS6133",
+      "message": "'React' is declared but its value is never read."
+    },
+    {
+      "file": "src/app/settings/organization-tab/OrganizationTab.tsx",
+      "code": "TS6133",
+      "message": "'Divider' is declared but its value is never read."
+    },
+    {
+      "file": "src/app/settings/organization-tab/OrganizationTab.tsx",
+      "code": "TS6133",
+      "message": "'Switch' is declared but its value is never read."
+    },
+    {
+      "file": "src/app/settings/organization-tab/OrganizationTab.tsx",
+      "code": "TS6192",
+      "message": "All imports in import declaration are unused."
+    },
+    {
+      "file": "src/app/settings/organization-tab/OrganizationTab.tsx",
+      "code": "TS6133",
+      "message": "'PhoneManagementDialog' is declared but its value is never read."
+    },
+    {
+      "file": "src/app/settings/organization-tab/OrganizationTab.tsx",
+      "code": "TS6133",
+      "message": "'EmailManagementDialog' is declared but its value is never read."
+    },
+    {
+      "file": "src/app/settings/organization-tab/OrganizationTab.tsx",
+      "code": "TS6133",
+      "message": "'OrganizationDetailsEditDialog' is declared but its value is never read."
+    },
+    {
+      "file": "src/app/settings/organization-tab/OrganizationTab.tsx",
+      "code": "TS6133",
+      "message": "'ProfileTab' is declared but its value is never read."
+    },
+    {
+      "file": "src/app/settings/organization-tab/OrganizationTab.tsx",
+      "code": "TS6133",
+      "message": "'LinkedAccountsTab' is declared but its value is never read."
+    },
+    {
+      "file": "src/app/settings/organization-tab/OrganizationTab.tsx",
+      "code": "TS6133",
+      "message": "'SessionsTab' is declared but its value is never read."
+    },
+    {
+      "file": "src/app/settings/organization-tab/OrganizationTab.tsx",
+      "code": "TS6133",
+      "message": "'AppSettingsTab' is declared but its value is never read."
+    },
+    {
+      "file": "src/app/settings/organization-tab/OrganizationTab.tsx",
+      "code": "TS6133",
+      "message": "'MyGroupsTab' is declared but its value is never read."
+    },
+    {
+      "file": "src/app/settings/organization-tab/OrganizationTab.tsx",
+      "code": "TS6133",
+      "message": "'isDetailsDialogOpen' is declared but its value is never read."
+    },
+    {
+      "file": "src/app/settings/organization-tab/OrganizationTab.tsx",
+      "code": "TS6133",
+      "message": "'setIsDetailsDialogOpen' is declared but its value is never read."
+    },
+    {
+      "file": "src/app/settings/organization-tab/OrganizationTab.tsx",
+      "code": "TS6133",
+      "message": "'savingSettings' is declared but its value is never read."
+    },
+    {
+      "file": "src/app/settings/organization-tab/OrganizationTab.tsx",
+      "code": "TS6133",
+      "message": "'isPhoneDialogOpen' is declared but its value is never read."
+    },
+    {
+      "file": "src/app/settings/organization-tab/OrganizationTab.tsx",
+      "code": "TS6133",
+      "message": "'isEmailDialogOpen' is declared but its value is never read."
+    },
+    {
+      "file": "src/app/settings/organization-tab/OrganizationTab.tsx",
+      "code": "TS6133",
+      "message": "'phoneManagementMode' is declared but its value is never read."
+    },
+    {
+      "file": "src/app/settings/organization-tab/OrganizationTab.tsx",
+      "code": "TS6133",
+      "message": "'emailManagementMode' is declared but its value is never read."
+    },
+    {
+      "file": "src/app/settings/organization-tab/OrganizationTab.tsx",
+      "code": "TS2339",
+      "message": "Property 'message' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/app/settings/organization-tab/OrganizationTab.tsx",
+      "code": "TS6133",
+      "message": "'handleSettingChange' is declared but its value is never read."
+    },
+    {
+      "file": "src/app/settings/organization-tab/OrganizationTab.tsx",
+      "code": "TS2339",
+      "message": "Property 'message' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/app/settings/organization-tab/OrganizationTab.tsx",
+      "code": "TS6133",
+      "message": "'onAddOrEditPhone' is declared but its value is never read."
+    },
+    {
+      "file": "src/app/settings/organization-tab/OrganizationTab.tsx",
+      "code": "TS6133",
+      "message": "'onAddOrEditEmail' is declared but its value is never read."
+    },
+    {
+      "file": "src/app/settings/organization-tab/OrganizationTab.tsx",
+      "code": "TS6133",
+      "message": "'handleContactDetailsUpdate' is declared but its value is never read."
+    },
+    {
+      "file": "src/app/settings/profile-tab/basic-details-edit-dialog/BasicDetailsEditDialog.tsx",
+      "code": "TS2339",
+      "message": "Property 'response' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/app/settings/profile-tab/basic-details-edit-dialog/BasicDetailsEditDialog.tsx",
+      "code": "TS2339",
+      "message": "Property 'response' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/app/settings/profile-tab/basic-details-edit-dialog/BasicDetailsEditDialog.tsx",
+      "code": "TS2339",
+      "message": "Property 'response' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/app/settings/profile-tab/basic-details-edit-dialog/BasicDetailsEditDialog.tsx",
+      "code": "TS2339",
+      "message": "Property 'response' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/app/settings/trusted-organizations-tab/action-dialog/TrustActionDialog.tsx",
+      "code": "TS2322",
+      "message": "Type '{ children: Element; id: string; open: true; onOpenChange: (_: KeyboardEvent<HTMLElement> | MouseEvent<HTMLElement, MouseEvent>, data: DialogOpenChangeData) => void; }' is not assignable to type 'IntrinsicAttributes & Omit<Partial<DialogSlots>, \"root\"> & { modalType?: DialogModalType; open?: boolean; defaultOpen?: boolean; onOpenChange?: DialogOpenChangeEventHandler; children: Element | [...]; inertTrapFocus?: boolean; }'."
+    },
+    {
+      "file": "src/app/settings/trusted-organizations-tab/request-dialog/TrustedOrganizationRequestDialog.tsx",
+      "code": "TS2322",
+      "message": "Type '{ children: Element; id: string; open: boolean; onOpenChange: (_: KeyboardEvent<HTMLElement> | MouseEvent<HTMLElement, MouseEvent>, data: DialogOpenChangeData) => void; }' is not assignable to type 'IntrinsicAttributes & Omit<Partial<DialogSlots>, \"root\"> & { modalType?: DialogModalType; open?: boolean; defaultOpen?: boolean; onOpenChange?: DialogOpenChangeEventHandler; children: Element | [...]; inertTrapFocus?: boolean; }'."
+    },
+    {
+      "file": "src/app/settings/trusted-organizations-tab/useTrustedOrganizationDialogs.test.ts",
+      "code": "TS2561",
+      "message": "Object literal may only specify known properties, but 'suspendedByPartnerOrganization' does not exist in type 'OrganizationTrustRelationship'. Did you mean to write 'suspendedByCurrentOrganization'?"
+    },
+    {
+      "file": "src/app/settings/trusted-organizations-tab/useTrustedOrganizationDialogs.test.ts",
+      "code": "TS2345",
+      "message": "Argument of type '\"TERMINATE\"' is not assignable to parameter of type 'TrustRelationshipAction'."
+    },
+    {
+      "file": "src/app/settings/useSettingsPlanAvailability.test.ts",
+      "code": "TS2352",
+      "message": "Conversion of type '{ activeOrganizationId: string; availableOrganizations: undefined[]; capabilities: (Capability.ORG_POLICY_MANAGE | Capability.ORG_BILLING_MANAGE)[]; effectiveSubscription: EffectiveSubscriptionDto; }' to type 'CurrentSessionDto' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first."
+    },
+    {
+      "file": "src/app/settings/useSettingsPlanAvailability.test.ts",
+      "code": "TS2352",
+      "message": "Conversion of type '{ activeOrganizationId: string; availableOrganizations: undefined[]; capabilities: Capability.ORG_POLICY_MANAGE[]; effectiveSubscription: EffectiveSubscriptionDto; }' to type 'CurrentSessionDto' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first."
+    },
+    {
+      "file": "src/app/settings/workflows-tab/step-card/condition-expression/ConditionExpressionBuilder.tsx",
+      "code": "TS6133",
+      "message": "'React' is declared but its value is never read."
+    },
+    {
+      "file": "src/app/settings/workflows-tab/step-card/condition-expression/ConditionValueControl.tsx",
+      "code": "TS6133",
+      "message": "'React' is declared but its value is never read."
+    },
+    {
+      "file": "src/app/settings/workflows-tab/step-card/condition-expression/EntityPickerCombobox.tsx",
+      "code": "TS6133",
+      "message": "'React' is declared but its value is never read."
+    },
+    {
+      "file": "src/app/settings/workflows-tab/step-card/condition-expression/EntityPickerCombobox.tsx",
+      "code": "TS2322",
+      "message": "Type '{ children: (string | Element)[]; key: string; value: string; }' is not assignable to type 'IntrinsicAttributes & (OptionProps & RefAttributes<HTMLDivElement>)'."
+    },
+    {
+      "file": "src/app/settings/workflows-tab/workflow-designer/workflow-steps-section/step-summary-card/StepSummaryCard.tsx",
+      "code": "TS2550",
+      "message": "Property 'replaceAll' does not exist on type 'string'. Do you need to change your target library? Try changing the 'lib' compiler option to 'es2021' or later."
+    },
+    {
+      "file": "src/app/settings/workflows-tab/workflow-designer/WorkflowDesigner.tsx",
+      "code": "TS2550",
+      "message": "Property 'replaceAll' does not exist on type 'string'. Do you need to change your target library? Try changing the 'lib' compiler option to 'es2021' or later."
+    },
+    {
+      "file": "src/app/settings/workflows-tab/workflow-designer/WorkflowDesigner.tsx",
+      "code": "TS2550",
+      "message": "Property 'replaceAll' does not exist on type 'string'. Do you need to change your target library? Try changing the 'lib' compiler option to 'es2021' or later."
+    },
+    {
+      "file": "src/app/settings/workflows-tab/workflow-graph/workflowDefinitionGraphAdapter.ts",
+      "code": "TS2367",
+      "message": "This comparison appears to be unintentional because the types 'WorkflowStepType' and '\"WEBHOOK\"' have no overlap."
+    },
+    {
+      "file": "src/app/settings/workflows-tab/workflow-graph/WorkflowGraphCanvas.tsx",
+      "code": "TS6133",
+      "message": "'onNodesChange' is declared but its value is never read."
+    },
+    {
+      "file": "src/app/settings/workflows-tab/workflow-graph/WorkflowGraphCanvas.tsx",
+      "code": "TS6133",
+      "message": "'onEdgesChange' is declared but its value is never read."
+    },
+    {
+      "file": "src/app/settings/workflows-tab/workflow-graph/WorkflowGraphCanvas.tsx",
+      "code": "TS2322",
+      "message": "Type '{ children: Element[]; id: string; showFitView: false; showInteractive: false; }' is not assignable to type 'IntrinsicAttributes & ControlProps'."
+    },
+    {
+      "file": "src/app/settings/workflows-tab/workflow-graph/WorkflowGraphLegend.tsx",
+      "code": "TS6133",
+      "message": "'Divider' is declared but its value is never read."
+    },
+    {
+      "file": "src/app/settings/workflows-tab/workflow-graph/WorkflowStepNodeStyles.tsx",
+      "code": "TS2322",
+      "message": "Type 'string' is not assignable to type 'never'."
+    },
+    {
+      "file": "src/app/settings/workflows-tab/workflow-graph/WorkflowStepNodeStyles.tsx",
+      "code": "TS2322",
+      "message": "Type 'string' is not assignable to type 'never'."
+    },
+    {
+      "file": "src/app/settings/workflows-tab/workflow-graph/WorkflowStepNodeStyles.tsx",
+      "code": "TS2322",
+      "message": "Type 'string' is not assignable to type 'never'."
+    },
+    {
+      "file": "src/app/settings/workflows-tab/workflow-graph/WorkflowStepNodeStyles.tsx",
+      "code": "TS2322",
+      "message": "Type 'string' is not assignable to type 'never'."
+    },
+    {
+      "file": "src/app/settings/workflows-tab/workflow-graph/WorkflowStepNodeStyles.tsx",
+      "code": "TS2322",
+      "message": "Type 'string' is not assignable to type 'never'."
+    },
+    {
+      "file": "src/app/settings/workflows-tab/workflow-graph/WorkflowStepNodeStyles.tsx",
+      "code": "TS2322",
+      "message": "Type 'string' is not assignable to type 'never'."
+    },
+    {
+      "file": "src/app/settings/workflows-tab/workflow-graph/WorkflowStepNodeStyles.tsx",
+      "code": "TS2322",
+      "message": "Type 'string' is not assignable to type 'never'."
+    },
+    {
+      "file": "src/app/settings/workflows-tab/workflow-graph/WorkflowStepNodeStyles.tsx",
+      "code": "TS2322",
+      "message": "Type 'string' is not assignable to type 'never'."
+    },
+    {
+      "file": "src/context/AuthContext.tsx",
+      "code": "TS2339",
+      "message": "Property 'response' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/context/ThemeContext.test.tsx",
+      "code": "TS6133",
+      "message": "'React' is declared but its value is never read."
+    },
+    {
+      "file": "src/services/appUserApi.ts",
+      "code": "TS2339",
+      "message": "Property 'response' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/appUserApi.ts",
+      "code": "TS2339",
+      "message": "Property 'message' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/appUserApi.ts",
+      "code": "TS2339",
+      "message": "Property 'response' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/appUserApi.ts",
+      "code": "TS2339",
+      "message": "Property 'message' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/appUserApi.ts",
+      "code": "TS2339",
+      "message": "Property 'response' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/appUserApi.ts",
+      "code": "TS2339",
+      "message": "Property 'message' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/appUserApi.ts",
+      "code": "TS2339",
+      "message": "Property 'response' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/appUserApi.ts",
+      "code": "TS2339",
+      "message": "Property 'message' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/appUserApi.ts",
+      "code": "TS2339",
+      "message": "Property 'response' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/appUserApi.ts",
+      "code": "TS2339",
+      "message": "Property 'message' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/appUserApi.ts",
+      "code": "TS2339",
+      "message": "Property 'response' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/appUserApi.ts",
+      "code": "TS2339",
+      "message": "Property 'message' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/appUserApi.ts",
+      "code": "TS2339",
+      "message": "Property 'response' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/appUserApi.ts",
+      "code": "TS2339",
+      "message": "Property 'message' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/authApi.ts",
+      "code": "TS2339",
+      "message": "Property 'response' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/authApi.ts",
+      "code": "TS2339",
+      "message": "Property 'message' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/authApi.ts",
+      "code": "TS2339",
+      "message": "Property 'response' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/authApi.ts",
+      "code": "TS2339",
+      "message": "Property 'message' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/authApi.ts",
+      "code": "TS2339",
+      "message": "Property 'response' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/authApi.ts",
+      "code": "TS2339",
+      "message": "Property 'message' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/authApi.ts",
+      "code": "TS2339",
+      "message": "Property 'response' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/authApi.ts",
+      "code": "TS2339",
+      "message": "Property 'message' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/authApi.ts",
+      "code": "TS2339",
+      "message": "Property 'response' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/authApi.ts",
+      "code": "TS2339",
+      "message": "Property 'message' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/authApi.ts",
+      "code": "TS2339",
+      "message": "Property 'response' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/authApi.ts",
+      "code": "TS2339",
+      "message": "Property 'message' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/authApi.ts",
+      "code": "TS2339",
+      "message": "Property 'response' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/authApi.ts",
+      "code": "TS2339",
+      "message": "Property 'message' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/authApi.ts",
+      "code": "TS2339",
+      "message": "Property 'response' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/authApi.ts",
+      "code": "TS2339",
+      "message": "Property 'message' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/authApi.ts",
+      "code": "TS2339",
+      "message": "Property 'response' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/authApi.ts",
+      "code": "TS2339",
+      "message": "Property 'message' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/authApi.ts",
+      "code": "TS2339",
+      "message": "Property 'response' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/authApi.ts",
+      "code": "TS2339",
+      "message": "Property 'message' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/authApi.ts",
+      "code": "TS2339",
+      "message": "Property 'response' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/authApi.ts",
+      "code": "TS2339",
+      "message": "Property 'message' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/authApi.ts",
+      "code": "TS2339",
+      "message": "Property 'response' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/authApi.ts",
+      "code": "TS2339",
+      "message": "Property 'message' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/authApi.ts",
+      "code": "TS2339",
+      "message": "Property 'response' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/authApi.ts",
+      "code": "TS2339",
+      "message": "Property 'message' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/authApi.ts",
+      "code": "TS2339",
+      "message": "Property 'response' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/authApi.ts",
+      "code": "TS2339",
+      "message": "Property 'message' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/authApi.ts",
+      "code": "TS2339",
+      "message": "Property 'response' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/authApi.ts",
+      "code": "TS2339",
+      "message": "Property 'message' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/authApi.ts",
+      "code": "TS2339",
+      "message": "Property 'response' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/authApi.ts",
+      "code": "TS2339",
+      "message": "Property 'message' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/authApi.ts",
+      "code": "TS2339",
+      "message": "Property 'response' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/authApi.ts",
+      "code": "TS2339",
+      "message": "Property 'message' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/authApi.ts",
+      "code": "TS2339",
+      "message": "Property 'response' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/authApi.ts",
+      "code": "TS2339",
+      "message": "Property 'message' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/authApi.ts",
+      "code": "TS2339",
+      "message": "Property 'response' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/authApi.ts",
+      "code": "TS2339",
+      "message": "Property 'message' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/authApi.ts",
+      "code": "TS2339",
+      "message": "Property 'response' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/authApi.ts",
+      "code": "TS2339",
+      "message": "Property 'message' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/authApi.ts",
+      "code": "TS2339",
+      "message": "Property 'response' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/authApi.ts",
+      "code": "TS2339",
+      "message": "Property 'message' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/authApi.ts",
+      "code": "TS2339",
+      "message": "Property 'response' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/authApi.ts",
+      "code": "TS2339",
+      "message": "Property 'message' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/authApi.ts",
+      "code": "TS2339",
+      "message": "Property 'response' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/authApi.ts",
+      "code": "TS2339",
+      "message": "Property 'message' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/authApi.ts",
+      "code": "TS2339",
+      "message": "Property 'response' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/authApi.ts",
+      "code": "TS2339",
+      "message": "Property 'message' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/authApi.ts",
+      "code": "TS2339",
+      "message": "Property 'response' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/authApi.ts",
+      "code": "TS2339",
+      "message": "Property 'message' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/authApi.ts",
+      "code": "TS2339",
+      "message": "Property 'response' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/authApi.ts",
+      "code": "TS2339",
+      "message": "Property 'message' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/blueprintService.ts",
+      "code": "TS2339",
+      "message": "Property 'response' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/blueprintService.ts",
+      "code": "TS2339",
+      "message": "Property 'message' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/communicationService.ts",
+      "code": "TS2339",
+      "message": "Property 'response' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/communicationService.ts",
+      "code": "TS2339",
+      "message": "Property 'message' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/contactDetailsApi.ts",
+      "code": "TS2339",
+      "message": "Property 'response' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/contactDetailsApi.ts",
+      "code": "TS2339",
+      "message": "Property 'message' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/documentLibraryService.ts",
+      "code": "TS2339",
+      "message": "Property 'response' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/documentLibraryService.ts",
+      "code": "TS2339",
+      "message": "Property 'message' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/exchangeApi.ts",
+      "code": "TS2339",
+      "message": "Property 'response' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/exchangeApi.ts",
+      "code": "TS2339",
+      "message": "Property 'message' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/exchangeApi.ts",
+      "code": "TS2339",
+      "message": "Property 'response' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/exchangeApi.ts",
+      "code": "TS2339",
+      "message": "Property 'response' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/exchangeApi.ts",
+      "code": "TS2339",
+      "message": "Property 'response' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/fieldsService.ts",
+      "code": "TS2339",
+      "message": "Property 'response' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/fieldsService.ts",
+      "code": "TS2339",
+      "message": "Property 'message' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/fieldsService.ts",
+      "code": "TS2339",
+      "message": "Property 'response' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/fieldsService.ts",
+      "code": "TS2339",
+      "message": "Property 'message' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/meGroupsApi.ts",
+      "code": "TS2339",
+      "message": "Property 'response' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/meGroupsApi.ts",
+      "code": "TS2339",
+      "message": "Property 'message' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/organizationApi.ts",
+      "code": "TS6133",
+      "message": "'Organization' is declared but its value is never read."
+    },
+    {
+      "file": "src/services/organizationApi.ts",
+      "code": "TS2339",
+      "message": "Property 'response' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/organizationApi.ts",
+      "code": "TS2339",
+      "message": "Property 'message' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/organizationApi.ts",
+      "code": "TS2339",
+      "message": "Property 'response' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/organizationApi.ts",
+      "code": "TS2339",
+      "message": "Property 'message' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/organizationApi.ts",
+      "code": "TS2339",
+      "message": "Property 'response' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/organizationApi.ts",
+      "code": "TS2339",
+      "message": "Property 'message' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/organizationApi.ts",
+      "code": "TS2339",
+      "message": "Property 'response' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/organizationApi.ts",
+      "code": "TS2339",
+      "message": "Property 'message' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/organizationApi.ts",
+      "code": "TS2339",
+      "message": "Property 'response' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/organizationApi.ts",
+      "code": "TS2339",
+      "message": "Property 'message' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/organizationApi.ts",
+      "code": "TS2339",
+      "message": "Property 'response' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/organizationApi.ts",
+      "code": "TS2339",
+      "message": "Property 'message' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/organizationApi.ts",
+      "code": "TS2339",
+      "message": "Property 'response' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/organizationApi.ts",
+      "code": "TS2339",
+      "message": "Property 'message' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/organizationApi.ts",
+      "code": "TS2339",
+      "message": "Property 'response' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/organizationApi.ts",
+      "code": "TS2339",
+      "message": "Property 'message' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/organizationApi.ts",
+      "code": "TS2339",
+      "message": "Property 'response' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/organizationApi.ts",
+      "code": "TS2339",
+      "message": "Property 'message' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/organizationApi.ts",
+      "code": "TS2339",
+      "message": "Property 'response' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/organizationApi.ts",
+      "code": "TS2339",
+      "message": "Property 'message' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/organizationApi.ts",
+      "code": "TS2339",
+      "message": "Property 'response' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/organizationApi.ts",
+      "code": "TS2339",
+      "message": "Property 'message' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/organizationApi.ts",
+      "code": "TS2339",
+      "message": "Property 'response' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/organizationApi.ts",
+      "code": "TS2339",
+      "message": "Property 'message' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/organizationApi.ts",
+      "code": "TS2339",
+      "message": "Property 'response' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/organizationApi.ts",
+      "code": "TS2339",
+      "message": "Property 'message' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/organizationApi.ts",
+      "code": "TS2339",
+      "message": "Property 'response' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/organizationApi.ts",
+      "code": "TS2339",
+      "message": "Property 'response' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/organizationApi.ts",
+      "code": "TS2339",
+      "message": "Property 'message' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/organizationApi.ts",
+      "code": "TS2339",
+      "message": "Property 'response' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/organizationApi.ts",
+      "code": "TS2339",
+      "message": "Property 'message' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/organizationApi.ts",
+      "code": "TS2339",
+      "message": "Property 'response' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/organizationApi.ts",
+      "code": "TS2339",
+      "message": "Property 'message' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/organizationApi.ts",
+      "code": "TS2339",
+      "message": "Property 'response' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/organizationApi.ts",
+      "code": "TS2339",
+      "message": "Property 'message' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/organizationApi.ts",
+      "code": "TS2339",
+      "message": "Property 'response' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/organizationApi.ts",
+      "code": "TS2339",
+      "message": "Property 'message' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/personalContactsApi.ts",
+      "code": "TS2339",
+      "message": "Property 'response' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/personalContactsApi.ts",
+      "code": "TS2339",
+      "message": "Property 'message' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/variableService.ts",
+      "code": "TS2339",
+      "message": "Property 'response' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/variableService.ts",
+      "code": "TS2339",
+      "message": "Property 'message' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/workflowApi.ts",
+      "code": "TS2339",
+      "message": "Property 'response' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/workflowApi.ts",
+      "code": "TS2339",
+      "message": "Property 'message' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/workflowService.ts",
+      "code": "TS2339",
+      "message": "Property 'response' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/services/workflowService.ts",
+      "code": "TS2339",
+      "message": "Property 'message' does not exist on type 'unknown'."
+    },
+    {
+      "file": "src/utils/subscriptionDenialUtils.ts",
+      "code": "TS2322",
+      "message": "Type 'unknown' is not assignable to type 'number'."
+    }
+  ]
+}

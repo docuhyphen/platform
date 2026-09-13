@@ -4,20 +4,11 @@ import com.docuhyphen.app.api.exception.InvalidEmailException
 import com.docuhyphen.app.api.extension.normalizeEmailOrNull
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.model.entity.*
-import com.docuhyphen.app.api.model.entity.ExchangeRecipientType.APP_USER
 import com.docuhyphen.app.api.model.entity.ExchangeRecipientType.EMAIL
 import com.docuhyphen.app.api.model.entity.ExchangeRecipientType.GROUP
-import com.docuhyphen.app.api.repository.user.AppUserRepository
 import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
-import com.docuhyphen.app.api.resource.model.ExchangeInitiationDto
-import com.docuhyphen.app.api.resource.model.ExternalEmailRecipientSelectionRequest
-import com.docuhyphen.app.api.resource.model.InternalGroupRecipientSelectionRequest
-import com.docuhyphen.app.api.resource.model.PersonalGroupRecipientSelectionRequest
-import com.docuhyphen.app.api.resource.model.RegisteredUserRecipientSelectionRequest
-import com.docuhyphen.app.api.resource.model.TrustedGroupRecipientSelectionRequest
-import com.docuhyphen.app.api.resource.model.TrustedPersonRecipientSelectionRequest
-import com.docuhyphen.app.api.service.identity.ExternalIdentityResolutionService
-import com.docuhyphen.app.api.service.user.AppUserService
+import com.docuhyphen.app.api.repository.user.AppUserRepository
+import com.docuhyphen.app.api.resource.model.*
 import com.docuhyphen.app.api.service.auth.AuthAuditService
 import com.docuhyphen.app.api.service.auth.AuthRateLimitService
 import com.docuhyphen.app.api.service.auth.AuthenticationService
@@ -25,28 +16,34 @@ import com.docuhyphen.app.api.service.auth.RevocationReasonCode
 import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.Decision as AuthorizationDecision
 import com.docuhyphen.app.api.service.auth.authz.ResourceRef
 import com.docuhyphen.app.api.service.communication.EmailTemplateService
 import com.docuhyphen.app.api.service.communication.OtpService
 import com.docuhyphen.app.api.service.config.ConfigurationService
+import com.docuhyphen.app.api.service.documentlibrary.DocumentLibraryService
+import com.docuhyphen.app.api.service.fields.FieldValueWriteCommand
+import com.docuhyphen.app.api.service.fields.FieldsResourceRef
+import com.docuhyphen.app.api.service.fields.SchemaAssignmentCommand
+import com.docuhyphen.app.api.service.fields.SchemaAssignmentOperation
+import com.docuhyphen.app.api.service.identity.ExternalIdentityResolutionService
 import com.docuhyphen.app.api.service.organization.OrganizationGroupService
 import com.docuhyphen.app.api.service.organization.OrganizationService
-import com.docuhyphen.app.api.service.documentlibrary.DocumentLibraryService
 import com.docuhyphen.app.api.service.storage.FileStorageService
+import com.docuhyphen.app.api.service.user.AppUserService
 import com.docuhyphen.app.api.service.variable.TemplateVariableInterpolator
 import com.docuhyphen.app.api.service.variable.VariableResolutionContext
 import com.docuhyphen.app.api.service.workflow.TriggerRequest
+import io.quarkus.security.ForbiddenException
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.persistence.EntityManager
 import jakarta.persistence.PersistenceContext
 import jakarta.transaction.Transactional
-import io.quarkus.security.ForbiddenException
 import org.slf4j.LoggerFactory
 import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
+import com.docuhyphen.app.api.service.auth.authz.Decision as AuthorizationDecision
 
 @ApplicationScoped
 class ExchangeInitiationService @Inject constructor(
@@ -76,6 +73,7 @@ class ExchangeInitiationService @Inject constructor(
     private val documentContentHashService: DocumentContentHashService,
     private val documentThumbnailService: DocumentThumbnailService,
     private val schemaAssignmentService: com.docuhyphen.app.api.service.fields.SchemaAssignmentService,
+    private val fieldsAccessContextFactory: com.docuhyphen.app.api.service.fields.FieldsAccessContextFactory,
     private val noAuthExchangeAccessTokenService: NoAuthExchangeAccessTokenService,
     private val exchangeNotificationDeliveryService: ExchangeNotificationDeliveryService,
     private val exchangeInitiationSubscriptionGuard: ExchangeInitiationSubscriptionGuard,
@@ -592,9 +590,23 @@ class ExchangeInitiationService @Inject constructor(
 
         val assignmentSource = dto.schemaAssignmentSource
             ?: com.docuhyphen.app.api.model.entity.SchemaAssignmentSource.MANUAL
-        schemaAssignmentService.assignSchema(ResourceType.EXCHANGE.name, exchangeId, schemaDefinitionId, assignmentSource)
+        // The caller is resolved here, at the surface that received the creation request, and passed
+        // into the Fields engine, which never works out who is asking for itself.
+        val resource = FieldsResourceRef(ResourceType.EXCHANGE.name, exchangeId)
+        val access = fieldsAccessContextFactory.current()
+        schemaAssignmentService.applySchemaAssignment(
+            SchemaAssignmentCommand(
+                resource = resource,
+                access = access,
+                operation = SchemaAssignmentOperation.ASSIGN,
+                schemaDefinitionId = schemaDefinitionId,
+                source = assignmentSource,
+            ),
+        )
         if (fieldValues.isNotEmpty())
-            schemaAssignmentService.setValues(ResourceType.EXCHANGE.name, exchangeId, fieldValues)
+            schemaAssignmentService.setValues(
+                FieldValueWriteCommand(resource = resource, access = access, entries = fieldValues),
+            )
     }
 
     /**

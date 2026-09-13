@@ -1,19 +1,12 @@
 package com.docuhyphen.app.api.service.auth.authz
 
-import com.docuhyphen.app.api.model.entity.ExchangeShareRoleName
-import com.docuhyphen.app.api.model.entity.PrincipalGroupMember
-import com.docuhyphen.app.api.model.entity.PrincipalGroupRoleName
-import com.docuhyphen.app.api.model.entity.PrincipalKind
-import com.docuhyphen.app.api.model.entity.ResourceType
-import com.docuhyphen.app.api.model.entity.Share
-import com.docuhyphen.app.api.model.entity.ShareSource
-import com.docuhyphen.app.api.model.entity.ShareStatus
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.repository.application.AppRoleAssignmentRepository
+import com.docuhyphen.app.api.repository.exchange.ShareLinkRepository
+import com.docuhyphen.app.api.repository.exchange.ShareRepository
 import com.docuhyphen.app.api.repository.organization.OrganizationMembershipRepository
 import com.docuhyphen.app.api.repository.organization.PrincipalGroupMemberRepository
 import com.docuhyphen.app.api.repository.organization.PrincipalGroupRepository
-import com.docuhyphen.app.api.repository.exchange.ShareLinkRepository
-import com.docuhyphen.app.api.repository.exchange.ShareRepository
 import com.docuhyphen.app.api.service.application.ApplicationService
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -22,7 +15,7 @@ import org.mockito.kotlin.any
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
-import java.util.UUID
+import java.util.*
 
 /**
  * Group-mediated Share path in DefaultAuthorizationService.
@@ -64,7 +57,7 @@ class GroupMediatedShareTest
         principalId = groupId
         resourceType = ResourceType.EXCHANGE
         this.resourceId = resourceId
-        roleName = role
+        roleName = role.name
         source = ShareSource.DIRECT
         status = ShareStatus.ACTIVE
         constraintsJson = null
@@ -94,7 +87,11 @@ class GroupMediatedShareTest
         whenever(groupMemberRepo.findMembership(any(), any(), any())).thenReturn(null)
 
         val registry = mock<ResourceAuthorizationContextRegistry>()
-        whenever(registry.resolve(any<ResourceRef>())).thenReturn(null)
+        whenever(registry.resolution(any<ResourceRef>())).thenReturn(
+            ResourceContextResolution.Resolved(
+                ResourceAuthorizationContext(ownerContext = OwnerContext.Organization(UUID.randomUUID())),
+            ),
+        )
 
         return DefaultAuthorizationService(
             shareRepository = shareRepo,

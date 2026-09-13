@@ -9,6 +9,7 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
+    "typecheck:app": "node scripts/typecheck-app-baseline.mjs",
     "test": "vitest run",
     "test:watch": "vitest"
   },

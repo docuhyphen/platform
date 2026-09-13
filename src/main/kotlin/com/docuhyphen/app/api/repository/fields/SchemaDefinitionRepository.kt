@@ -1,11 +1,10 @@
 package com.docuhyphen.app.api.repository.fields
 
-import com.docuhyphen.app.api.repository.BaseRepository
-
 import com.docuhyphen.app.api.model.entity.FieldScopeKind
 import com.docuhyphen.app.api.model.entity.SchemaDefinition
+import com.docuhyphen.app.api.repository.BaseRepository
 import jakarta.enterprise.context.ApplicationScoped
-import java.util.UUID
+import java.util.*
 
 /** Persistence for [SchemaDefinition]. Scoped by owner like [FieldDefinitionRepository]. */
 @ApplicationScoped
@@ -37,6 +36,7 @@ class SchemaDefinitionRepository :
     fun findByKey(
         scopeKind: FieldScopeKind,
         scopeOrgId: UUID?,
+        scopeUserId: UUID?,
         namespace: String,
         schemaKey: String,
     ): SchemaDefinition? =
@@ -44,12 +44,14 @@ class SchemaDefinitionRepository :
             """SELECT s FROM SchemaDefinition s
                WHERE s.scopeKind = :sk
                  AND ((:oid IS NULL AND s.scopeOrgId IS NULL) OR s.scopeOrgId = :oid)
+                 AND ((:uid IS NULL AND s.scopeUserId IS NULL) OR s.scopeUserId = :uid)
                  AND s.namespace = :ns
                  AND s.schemaKey = :key""",
             SchemaDefinition::class.java,
         )
             .setParameter("sk", scopeKind)
             .setParameter("oid", scopeOrgId)
+            .setParameter("uid", scopeUserId)
             .setParameter("ns", namespace)
             .setParameter("key", schemaKey)
             .resultList

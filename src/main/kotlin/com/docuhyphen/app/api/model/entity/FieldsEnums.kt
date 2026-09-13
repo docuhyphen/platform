@@ -6,14 +6,20 @@ package com.docuhyphen.app.api.model.entity
  */
 
 /**
- * Governance scope kind that owns Fields configuration. The first release resolves PLATFORM and
- * ORGANIZATION only. Persisted as a string so future kinds (BUSINESS_UNIT, TEAM) extend the model
- * without a schema rewrite.
+ * Governance scope kind that owns Fields configuration. Each kind names exactly one owner: PLATFORM
+ * names none, ORGANIZATION names an organization, and PERSONAL names a single user who belongs to no
+ * organization for this configuration. Persisted as a string so future kinds (BUSINESS_UNIT, TEAM)
+ * extend the model without a schema rewrite.
+ *
+ * PERSONAL is storable but not yet authorable: the configuration scope model, the subscription
+ * owner, and the rollout decision for personal authoring are not in place, so the services refuse a
+ * request that asks for it.
  */
 enum class FieldScopeKind
 {
     PLATFORM,
     ORGANIZATION,
+    PERSONAL,
 }
 
 /** Draft/publish/retire lifecycle shared by Field Definitions, Schema Definitions, and Schema Versions. */
@@ -64,10 +70,23 @@ enum class SchemaAssignmentSource
     MIGRATION,
 }
 
+/**
+ * Whether a Field Value Set holds the answers an assignment gives as itself, or one repetition of a
+ * repeatable group within that assignment.
+ */
+enum class FieldValueSetKind
+{
+    ROOT,
+    OCCURRENCE,
+}
+
 /** Where a Field Value originated. Cheap to model early, hard to reconstruct later. */
 enum class FieldValueProvenance
 {
     USER,
+
+    /** Materialised from the schema binding's configured default when the schema was assigned. */
+    SCHEMA_DEFAULT,
     BLUEPRINT_DEFAULT,
     API,
     WORKFLOW_ACTION,

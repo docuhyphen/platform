@@ -25,6 +25,7 @@ import CapabilityProtectedContent from "./app/components/CapabilityProtectedCont
 import {Capability} from "./app/models/models.tsx";
 import PlatformAdministration from "./app/platform-administration/PlatformAdministration.tsx";
 import PlatformAudit from "./app/platform-audit/PlatformAudit.tsx";
+import InformationRequestRespondentWorkspace from "./app/information-requests/respondent-workspace/InformationRequestRespondentWorkspace.tsx";
 
 const App: React.FC = () =>
 {
@@ -69,6 +70,11 @@ const App: React.FC = () =>
                                        }/>
                                }/>
 
+                        <Route path="/nir"
+                               element={
+                                   <InformationRequestRespondentWorkspace accessMode={"no-auth"}/>
+                               }/>
+
                         <Route path="/app-session-expired"
                                element={
                                    <RedirectIfNotAuthenticated element={<AppSessionExpired/>}/>
@@ -96,6 +102,12 @@ const App: React.FC = () =>
                                element={
                                    <ProtectedRoute path='/sign-in'
                                                    element={<Exchanges/>}/>
+                               }/>
+
+                        <Route path="/information-requests/:requestId/respond"
+                               element={
+                                   <ProtectedRoute path='/sign-in'
+                                                   element={<InformationRequestRespondentWorkspace accessMode={"authenticated"}/>}/>
                                }/>
 
                         <Route path="/platform/administration"

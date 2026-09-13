@@ -15,6 +15,19 @@ enum class ShareLinkStatus
     EXPIRED,
 }
 
+enum class ShareLinkMode
+{
+    /** Anyone-with-link content access. Resolves as a PUBLIC_LINK grant on its covering [Share]. */
+    DIRECT_GRANT,
+
+    /**
+     * Issued to prove one respondent's recipient contact before a runtime request session is
+     * minted. Never resolves as a content grant; its covering [Share] is a request-party Share,
+     * not a content grant, and the central authorizer refuses it as a [Share] grant path.
+     */
+    VERIFICATION_BOOTSTRAP,
+}
+
 /**
  * Tokenised anonymous principal backing a [Share] with `principalKind = PUBLIC_LINK`.
  * One [Share] row + one [ShareLink] row per distinct link (anyone-with-link,
@@ -58,6 +71,47 @@ class ShareLink
     @Column(name = "status", nullable = false, length = 32)
     @Enumerated(EnumType.STRING)
     var status: ShareLinkStatus = ShareLinkStatus.ACTIVE
+
+    @Column(name = "link_mode", nullable = false, length = 32)
+    @Enumerated(EnumType.STRING)
+    var linkMode: ShareLinkMode = ShareLinkMode.DIRECT_GRANT
+
+    /**
+     * Hash of the outstanding recipient contact-proof code for a [ShareLinkMode.VERIFICATION_BOOTSTRAP]
+     * link. Scoped to this link alone, never to the parent Exchange, so verifying one respondent's
+     * contact can never satisfy another's. Cleared once verified or replaced.
+     */
+    @Column(name = "contact_otp_hash", nullable = true)
+    var contactOtpHash: String? = null
+
+    @Column(name = "contact_otp_expires_at", nullable = true)
+    @Serializable(with = TimestampSerializer::class)
+    var contactOtpExpiresAt: Timestamp? = null
+
+    @Column(name = "contact_otp_failed_attempts", nullable = false)
+    var contactOtpFailedAttempts: Int = 0
+
+    @Column(name = "contact_otp_locked_until", nullable = true)
+    @Serializable(with = TimestampSerializer::class)
+    var contactOtpLockedUntil: Timestamp? = null
+
+    /** Set each time this link's secret is rotated in place. Null until the first rotation. */
+    @Column(name = "rotated_at", nullable = true)
+    @Serializable(with = TimestampSerializer::class)
+    var rotatedAt: Timestamp? = null
+
+    /** Number of times this link's secret has been rotated in place. */
+    @Column(name = "rotation_count", nullable = false)
+    var rotationCount: Int = 0
+
+    /**
+     * The bootstrap [ShareLink] this one replaced, if any. Null for a link issued directly rather
+     * than as a replacement. Lets a respondent's link history be traced without recovering any
+     * retired secret.
+     */
+    @Column(name = "replaces_share_link_id", nullable = true)
+    @Serializable(with = UUIDSerializer::class)
+    var replacesShareLinkId: UUID? = null
 
     @Column(name = "expires_at", nullable = true)
     @Serializable(with = TimestampSerializer::class)

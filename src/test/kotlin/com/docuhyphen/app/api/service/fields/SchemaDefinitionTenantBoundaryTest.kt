@@ -1,34 +1,16 @@
 package com.docuhyphen.app.api.service.fields
 
-import com.docuhyphen.app.api.model.entity.FieldContract
-import com.docuhyphen.app.api.model.entity.FieldDefinition
-import com.docuhyphen.app.api.model.entity.FieldScopeKind
-import com.docuhyphen.app.api.model.entity.OrganizationRoleName
-import com.docuhyphen.app.api.model.entity.SchemaDefinition
-import com.docuhyphen.app.api.model.entity.SchemaVersion
-import com.docuhyphen.app.api.repository.fields.FieldContractRepository
-import com.docuhyphen.app.api.repository.fields.FieldDefinitionRepository
-import com.docuhyphen.app.api.repository.fields.SchemaDefinitionRepository
-import com.docuhyphen.app.api.repository.fields.SchemaFieldBindingRepository
-import com.docuhyphen.app.api.repository.fields.SchemaVersionRepository
-import com.docuhyphen.app.api.service.auth.UserRoleService
-import com.docuhyphen.app.api.service.auth.authz.Action
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.Decision
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.repository.fields.*
 import com.docuhyphen.app.api.service.audit.AuditRecorder
+import com.docuhyphen.app.api.service.auth.UserRoleService
+import com.docuhyphen.app.api.service.auth.authz.*
 import io.quarkus.security.ForbiddenException
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import org.mockito.kotlin.any
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.never
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.whenever
-import java.util.UUID
+import org.mockito.kotlin.*
+import java.util.*
 
 class SchemaDefinitionTenantBoundaryTest
 {
@@ -91,6 +73,10 @@ class SchemaDefinitionTenantBoundaryTest
                 userRoleService = roles,
                 auditRecorder = mock<AuditRecorder>(),
                 subscriptionGuard = mock<BusinessFieldsSubscriptionGuard>(),
+                projectionLoader = FieldsProjectionLoader(
+                    bindingRepository, contractRepository, fieldRepository, mock(), mock(),
+                ),
+                schemaTargets = SchemaTargetRegistry(),
             ),
             schemaRepository,
             versionRepository,
@@ -109,6 +95,7 @@ class SchemaDefinitionTenantBoundaryTest
         namespace = "boundary"
         schemaKey = "case"
         displayName = "Boundary Case"
+        targetResourceType = ResourceType.EXCHANGE.name
     }
 
     @Test

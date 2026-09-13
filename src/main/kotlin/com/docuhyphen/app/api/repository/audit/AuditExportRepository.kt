@@ -1,13 +1,12 @@
 package com.docuhyphen.app.api.repository.audit
 
-import com.docuhyphen.app.api.repository.BaseRepository
-
 import com.docuhyphen.app.api.model.entity.AuditExport
 import com.docuhyphen.app.api.model.entity.AuditExportStatus
+import com.docuhyphen.app.api.repository.BaseRepository
 import jakarta.enterprise.context.RequestScoped
 import jakarta.persistence.LockModeType
 import java.sql.Timestamp
-import java.util.UUID
+import java.util.*
 
 @RequestScoped
 class AuditExportRepository : BaseRepository<AuditExport>(AuditExport::class.java)
@@ -16,11 +15,11 @@ class AuditExportRepository : BaseRepository<AuditExport>(AuditExport::class.jav
     {
         val jpql = if (platformOnly)
         {
-            "SELECT e FROM AuditExport e WHERE e.organizationId IS NULL ORDER BY e.requestedAt DESC"
+            "SELECT e FROM AuditExport e WHERE e.ownerType = 'PLATFORM' ORDER BY e.requestedAt DESC"
         }
         else
         {
-            "SELECT e FROM AuditExport e WHERE e.organizationId = :organizationId ORDER BY e.requestedAt DESC"
+            "SELECT e FROM AuditExport e WHERE e.ownerType = 'ORGANIZATION' AND e.ownerId = :organizationId ORDER BY e.requestedAt DESC"
         }
         val query = entityManager.createQuery(jpql, AuditExport::class.java)
         if (!platformOnly)
@@ -29,6 +28,14 @@ class AuditExportRepository : BaseRepository<AuditExport>(AuditExport::class.jav
         }
         return query.resultList
     }
+
+    fun listForPersonalOwner(ownerUserId: UUID): List<AuditExport> =
+        entityManager.createQuery(
+            "SELECT e FROM AuditExport e WHERE e.ownerType = 'USER' AND e.ownerId = :ownerUserId ORDER BY e.requestedAt DESC",
+            AuditExport::class.java,
+        )
+            .setParameter("ownerUserId", ownerUserId)
+            .resultList
 
     /**
      * `BUILDING` exports eligible to be claimed for an archive build, oldest first: those with no

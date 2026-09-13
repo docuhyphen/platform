@@ -3,7 +3,7 @@ package com.docuhyphen.app.api.service.auth.idp
 import com.docuhyphen.app.api.service.config.ConfigurationService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
-import java.util.Base64
+import java.util.*
 
 /** Raised when an ID token fails any structural, signature, or claim check. */
 class OidcValidationException(message: String) : RuntimeException(message)

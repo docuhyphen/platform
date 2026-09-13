@@ -1,21 +1,7 @@
 package com.docuhyphen.app.api.service.blueprint
 
-import com.docuhyphen.app.api.model.dto.BlueprintConfigJson
-import com.docuhyphen.app.api.model.dto.BlueprintDefinitionDto
-import com.docuhyphen.app.api.model.dto.BlueprintDocumentConfig
-import com.docuhyphen.app.api.model.dto.BlueprintFieldDefaultConfig
-import com.docuhyphen.app.api.model.dto.BlueprintParticipantConfig
-import com.docuhyphen.app.api.model.dto.CloneBlueprintRequest
-import com.docuhyphen.app.api.model.dto.CreateBlueprintRequest
-import com.docuhyphen.app.api.model.dto.PatchBlueprintPublishedRequest
-import com.docuhyphen.app.api.model.dto.PatchBlueprintStatusRequest
-import com.docuhyphen.app.api.model.dto.UpdateBlueprintRequest
-import com.docuhyphen.app.api.model.entity.BlueprintDefinition
-import com.docuhyphen.app.api.model.entity.BlueprintDocumentDefault
-import com.docuhyphen.app.api.model.entity.BlueprintFieldDefault
-import com.docuhyphen.app.api.model.entity.BlueprintParticipantDefault
-import com.docuhyphen.app.api.model.entity.BlueprintScope
-import com.docuhyphen.app.api.model.entity.DocumentLibraryEntry
+import com.docuhyphen.app.api.model.dto.*
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.repository.blueprint.BlueprintDefinitionRepository
 import com.docuhyphen.app.api.repository.blueprint.BlueprintDocumentDefaultRepository
 import com.docuhyphen.app.api.repository.blueprint.BlueprintFieldDefaultRepository
@@ -24,14 +10,9 @@ import com.docuhyphen.app.api.repository.documentlibrary.DocumentLibraryReposito
 import com.docuhyphen.app.api.service.auth.AdminActionGuardService
 import com.docuhyphen.app.api.service.auth.AdminApprovalContext
 import com.docuhyphen.app.api.service.auth.UserRoleService
-import com.docuhyphen.app.api.service.auth.authz.Action
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.Decision
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import com.docuhyphen.app.api.service.auth.authz.ResourceRef
+import com.docuhyphen.app.api.service.auth.authz.*
 import com.docuhyphen.app.api.service.fields.SchemaDefinitionService
+import com.docuhyphen.app.api.service.informationrequest.InformationRequestTemplateReferenceService
 import io.quarkus.security.ForbiddenException
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
@@ -44,7 +25,20 @@ import kotlinx.serialization.json.JsonNull
 import org.slf4j.LoggerFactory
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
+
+data class BlueprintDocumentInstantiationDefault(
+    val default: BlueprintDocumentDefault,
+    val libraryEntry: DocumentLibraryEntry?,
+)
+
+data class BlueprintInformationRequestInstantiationSnapshot(
+    val blueprintDefinitionId: UUID,
+    val templateVersionId: UUID,
+    val participantDefaults: List<BlueprintParticipantDefault>,
+    val documentDefaults: List<BlueprintDocumentInstantiationDefault>,
+    val fieldDefaults: List<BlueprintFieldDefault>,
+)
 
 @ApplicationScoped
 class BlueprintDefinitionService @Inject constructor(
@@ -59,6 +53,7 @@ class BlueprintDefinitionService @Inject constructor(
     private val authorizationContextFactory: AuthorizationContextFactory,
     private val userRoleService: UserRoleService,
     private val blueprintSubscriptionGuard: BlueprintSubscriptionGuard,
+    private val templateReferenceService: InformationRequestTemplateReferenceService,
 )
 {
     private val logger = LoggerFactory.getLogger(BlueprintDefinitionService::class.java)
@@ -100,6 +95,52 @@ class BlueprintDefinitionService @Inject constructor(
         return bp.toDto()
     }
 
+    /**
+     * The exact Information Request Template Version a request created from this blueprint now
+     * would be pinned to, or null when the blueprint requests no information.
+     *
+     * The question is asked again on every instantiation rather than trusted from the moment the
+     * Version was named, because the named Version may have been retired since. Requests already
+     * created keep resolving the Version they pinned; only new ones are refused.
+     */
+    fun resolveInformationRequestTemplateVersionForInstantiation(id: UUID): UUID?
+    {
+        val principal = currentPrincipal()
+        val context = currentContext()
+        val bp = repository.findById(id)
+            ?: throw IllegalArgumentException("Blueprint not found: $id")
+        checkReadAccess(bp, principal, context)
+
+        val namedVersionId = bp.informationRequestTemplateVersionId ?: return null
+        return templateReferenceService.requireInstantiableVersion(namedVersionId).templateVersionId
+    }
+
+    fun loadInformationRequestInstantiationSnapshot(
+        id: UUID,
+        principal: PrincipalRef,
+        context: AuthorizationContext,
+    ): BlueprintInformationRequestInstantiationSnapshot
+    {
+        val bp = repository.findById(id)
+            ?: throw IllegalArgumentException("Blueprint not found: $id")
+        checkReadAccess(bp, principal, context)
+        val namedVersionId = bp.informationRequestTemplateVersionId
+            ?: throw IllegalStateException("Blueprint does not name an Information Request Template Version")
+        val reference = templateReferenceService.requireInstantiableVersion(namedVersionId)
+        return BlueprintInformationRequestInstantiationSnapshot(
+            blueprintDefinitionId = bp.id,
+            templateVersionId = reference.templateVersionId,
+            participantDefaults = participantDefaultRepository.findAllByBlueprintDefinitionId(bp.id),
+            documentDefaults = documentDefaultRepository.findAllByBlueprintDefinitionId(bp.id).map { default ->
+                BlueprintDocumentInstantiationDefault(
+                    default,
+                    default.libraryDocumentId?.let(documentLibraryRepository::findById)
+                )
+            },
+            fieldDefaults = fieldDefaultRepository.findAllByBlueprintDefinitionId(bp.id),
+        )
+    }
+
     // ── Write ─────────────────────────────────────────────────────────────────
 
     @Transactional
@@ -124,6 +165,9 @@ class BlueprintDefinitionService @Inject constructor(
             description = request.description?.trim()
             configJson = encodeConfig(parseConfig(request.configJson))
             schemaDefinitionId = request.schemaDefinitionId
+            informationRequestTemplateVersionId = request.informationRequestTemplateVersionId?.let {
+                selectTemplateVersion(it, resolvedScope, activeOrgId, principal.id)
+            }
             generalTags = encodeTags(request.generalTags)
             isActive = request.isActive
             scope = resolvedScope
@@ -163,6 +207,7 @@ class BlueprintDefinitionService @Inject constructor(
             bp.schemaDefinitionId = request.schemaDefinitionId
             persistFieldDefaults(bp.id, request.schemaDefinitionId, it)
         }
+        applyTemplateVersionChange(bp, request, principal.id)
         request.generalTags?.let { bp.generalTags = encodeTags(it) }
         bp.updatedAt = Timestamp.from(Instant.now())
 
@@ -257,6 +302,9 @@ class BlueprintDefinitionService @Inject constructor(
             description = source.description
             configJson = source.configJson
             schemaDefinitionId = source.schemaDefinitionId
+            informationRequestTemplateVersionId = carriedTemplateVersion(
+                source, targetScope, activeOrgId, principal.id,
+            )
             generalTags = source.generalTags
             isActive = false
             scope = targetScope
@@ -270,8 +318,105 @@ class BlueprintDefinitionService @Inject constructor(
         return clone.toDto()
     }
 
-    // ── Access control ────────────────────────────────────────────────────────
+    // ── Information Request Template Version reference ────────────────────────
 
+    /**
+     * Resolves the exact Version this blueprint is about to name and refuses one its own owner does
+     * not hold. Reusable request configuration belongs to an owner, and a blueprint that named
+     * another owner's Version would be issuing configuration it has no claim to.
+     */
+    private fun selectTemplateVersion(
+        templateVersionId: UUID,
+        scope: BlueprintScope,
+        activeOrgId: UUID?,
+        callerUserId: UUID,
+    ): UUID
+    {
+        val reference = templateReferenceService.requireSelectableVersion(templateVersionId)
+        val owned = when (scope)
+        {
+            BlueprintScope.ORG ->
+                reference.ownerScopeKind == InformationRequestTemplateScopeKind.ORGANIZATION &&
+                        reference.ownerOrganizationId != null &&
+                        reference.ownerOrganizationId == activeOrgId
+
+            BlueprintScope.PERSONAL ->
+                reference.ownerScopeKind == InformationRequestTemplateScopeKind.PERSONAL &&
+                        reference.ownerUserId == callerUserId
+            // A platform blueprint answers to no organization and no person, so there is no owner
+            // whose entitlement and release decisions the request it would create could be made
+            // against.
+            BlueprintScope.APP -> false
+        }
+        if (!owned)
+        {
+            throw ForbiddenException(
+                "This blueprint cannot request information against a template version its owner " +
+                        "does not hold",
+            )
+        }
+        return reference.templateVersionId
+    }
+
+    /**
+     * Applies a stated change to the named Version and leaves an unstated one alone. Editing the
+     * rest of a blueprint must not depend on the named Version still being publishable, otherwise
+     * retiring a Version would freeze every blueprint that named it.
+     */
+    private fun applyTemplateVersionChange(
+        bp: BlueprintDefinition,
+        request: UpdateBlueprintRequest,
+        callerUserId: UUID,
+    )
+    {
+        if (request.clearInformationRequestTemplateVersion)
+        {
+            if (request.informationRequestTemplateVersionId != null)
+            {
+                throw IllegalArgumentException(
+                    "An information request template version cannot be selected and cleared in the " +
+                            "same update",
+                )
+            }
+            bp.informationRequestTemplateVersionId = null
+            return
+        }
+        request.informationRequestTemplateVersionId?.let {
+            bp.informationRequestTemplateVersionId =
+                selectTemplateVersion(it, bp.scope, bp.organizationId, callerUserId)
+        }
+    }
+
+    /**
+     * The Version a copy keeps. A copy made for another owner starts without one, because one
+     * owner's reusable configuration is not another's to issue and carrying the name across would
+     * produce a blueprint whose every instantiation was refused.
+     */
+    private fun carriedTemplateVersion(
+        source: BlueprintDefinition,
+        targetScope: BlueprintScope,
+        activeOrgId: UUID?,
+        callerUserId: UUID,
+    ): UUID?
+    {
+        val named = source.informationRequestTemplateVersionId ?: return null
+        val sameOwner = when (targetScope)
+        {
+            BlueprintScope.ORG ->
+                source.scope == BlueprintScope.ORG &&
+                        source.organizationId != null &&
+                        source.organizationId == activeOrgId
+
+            BlueprintScope.PERSONAL ->
+                source.scope == BlueprintScope.PERSONAL &&
+                        source.createdByAppUserId == callerUserId
+
+            BlueprintScope.APP -> false
+        }
+        return if (sameOwner) named else null
+    }
+
+    // ── Access control ────────────────────────────────────────────────────────
     private fun checkReadAccess(bp: BlueprintDefinition, principal: PrincipalRef, context: AuthorizationContext)
     {
         when (bp.scope)
@@ -524,9 +669,12 @@ class BlueprintDefinitionService @Inject constructor(
         if (schemaDefinitionId == null)
             throw IllegalArgumentException("Field defaults were supplied without a schema; select a schema first")
 
+        // A blueprint's defaults are the values the Exchange it creates starts with, so the schema
+        // holding them has to be a schema an Exchange can be given.
         val validated = schemaDefinitionService.validateDefaultsForSchema(
             schemaDefinitionId,
             nonEmpty.map { it.fieldDefinitionId to it.value!! },
+            ResourceType.EXCHANGE.name,
         ).associateBy { it.fieldDefinitionId }
 
         nonEmpty.forEachIndexed { idx, default ->
@@ -576,6 +724,7 @@ class BlueprintDefinitionService @Inject constructor(
         sourceTemplateId = sourceTemplateId,
         configJson = configJson,
         schemaDefinitionId = schemaDefinitionId,
+        informationRequestTemplateVersionId = informationRequestTemplateVersionId,
         exchangeDocuments = loadDocuments(id),
         participants = loadParticipants(id),
         fieldDefaults = loadFieldDefaults(id),

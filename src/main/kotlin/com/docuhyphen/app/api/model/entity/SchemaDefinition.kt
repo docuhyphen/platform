@@ -3,7 +3,7 @@ package com.docuhyphen.app.api.model.entity
 import jakarta.persistence.*
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 /**
  * The stable identity of a configurable business concept for a resource type (for example
@@ -24,6 +24,10 @@ class SchemaDefinition
     @Column(name = "scope_org_id", nullable = true)
     var scopeOrgId: UUID? = null
 
+    /** Set when [scopeKind] is PERSONAL; the one user who owns this definition. */
+    @Column(name = "scope_user_id", nullable = true)
+    var scopeUserId: UUID? = null
+
     @Column(name = "namespace", nullable = false, length = 128)
     lateinit var namespace: String
 
@@ -36,9 +40,13 @@ class SchemaDefinition
     @Column(name = "description", nullable = true, length = 1024)
     var description: String? = null
 
-    /** Target resource type code; only EXCHANGE is supported in the first release. */
+    /**
+     * The kind of resource this definition is written for. Every writer states it, because more
+     * than one kind can be written for and defaulting to any of them would silently mislabel the
+     * others. The stored codes are the ones the schema target registry declares.
+     */
     @Column(name = "target_resource_type", nullable = false, length = 48)
-    var targetResourceType: String = "EXCHANGE"
+    lateinit var targetResourceType: String
 
     @Column(name = "status", nullable = false, length = 16)
     @Enumerated(EnumType.STRING)

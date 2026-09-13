@@ -1,49 +1,34 @@
 package com.docuhyphen.app.api.service.exchange
 
-import com.docuhyphen.app.api.exception.NoAuthOtpException
 import com.docuhyphen.app.api.exception.ExchangeNotFoundException
+import com.docuhyphen.app.api.exception.NoAuthOtpException
 import com.docuhyphen.app.api.exception.WorkflowConflictException
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.model.BasicEntityToDtoTransformer
 import com.docuhyphen.app.api.model.DetailedEntityToDtoTransformer
 import com.docuhyphen.app.api.model.dto.ExchangeDetailedDto
 import com.docuhyphen.app.api.model.dto.NoAuthExchangeBasicDto
-import com.docuhyphen.app.api.model.entity.PrincipalKind
-import com.docuhyphen.app.api.model.entity.ResourceType
-import com.docuhyphen.app.api.model.entity.ExchangeShareRoleName
-import com.docuhyphen.app.api.model.entity.ShareSource
-import com.docuhyphen.app.api.model.entity.Exchange
-import com.docuhyphen.app.api.model.entity.ExchangeStatus
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.realtime.RealtimeEventService
 import com.docuhyphen.app.api.realtime.RealtimeMessage
 import com.docuhyphen.app.api.realtime.RealtimeMessageType
 import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
 import com.docuhyphen.app.api.repository.exchange.ExternalParticipantRepository
-import com.docuhyphen.app.api.repository.organization.PrincipalGroupRepository
 import com.docuhyphen.app.api.repository.exchange.ShareRepository
+import com.docuhyphen.app.api.repository.organization.PrincipalGroupRepository
 import com.docuhyphen.app.api.repository.workflow.WorkflowInstanceRepository
 import com.docuhyphen.app.api.repository.workflow.WorkflowStepInstanceRepository
 import com.docuhyphen.app.api.resource.model.UpdateExchangeRequest
-import com.docuhyphen.app.api.service.user.AppUserService
-import com.docuhyphen.app.api.service.contactdetails.UserContactService
-import com.docuhyphen.app.api.service.audit.AuditCaptureFailedException
-import com.docuhyphen.app.api.service.audit.AuditDraftInvalidException
-import com.docuhyphen.app.api.service.audit.AuditEventDraft
-import com.docuhyphen.app.api.service.audit.AuditOwnerScope
-import com.docuhyphen.app.api.service.audit.AuditRecorder
+import com.docuhyphen.app.api.service.audit.*
 import com.docuhyphen.app.api.service.audit.catalog.AuditActorKind
 import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
 import com.docuhyphen.app.api.service.audit.catalog.AuditOutcome
-import com.docuhyphen.app.api.service.auth.authz.Action
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.Decision as AuthDecision
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import com.docuhyphen.app.api.service.auth.authz.ResourceRef
-import com.docuhyphen.app.api.service.auth.authz.ShareConstraints
+import com.docuhyphen.app.api.service.auth.authz.*
 import com.docuhyphen.app.api.service.communication.EmailService
 import com.docuhyphen.app.api.service.communication.EmailTemplateService
 import com.docuhyphen.app.api.service.communication.OtpService
+import com.docuhyphen.app.api.service.contactdetails.UserContactService
+import com.docuhyphen.app.api.service.user.AppUserService
 import com.docuhyphen.app.api.service.workflow.Decision
 import com.docuhyphen.app.api.service.workflow.TriggerRequest
 import com.docuhyphen.app.api.service.workflow.WorkflowEngineService
@@ -60,6 +45,7 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
+import com.docuhyphen.app.api.service.auth.authz.Decision as AuthDecision
 
 @ApplicationScoped
 class ExchangeUpdateService @Inject constructor(
@@ -82,10 +68,12 @@ class ExchangeUpdateService @Inject constructor(
     private val authorizationService: AuthorizationService,
     private val authorizationContextFactory: AuthorizationContextFactory,
     private val auditRecorder: AuditRecorder,
+    private val auditOwnerScopeResolver: AuditOwnerScopeResolver,
     private val noAuthExchangeAccessTokenService: NoAuthExchangeAccessTokenService,
     private val noAuthExchangeAccessWindowService: NoAuthExchangeAccessWindowService,
     private val lifecycleNotificationService: ExchangeLifecycleNotificationService,
     private val documentThumbnailService: DocumentThumbnailService,
+    private val requestParentLifecycle: com.docuhyphen.app.api.service.informationrequest.InformationRequestParentLifecycleService,
 )
 {
     @PersistenceContext
@@ -181,7 +169,7 @@ class ExchangeUpdateService @Inject constructor(
             }
         }
 
-        val existingExchange = exchangeRepository.findById(sessionUUID)
+        val existingExchange = exchangeRepository.findByIdForUpdate(sessionUUID)
             ?: throw ExchangeNotFoundException("Exchange not found")
 
         request?.name?.let {
@@ -255,6 +243,7 @@ class ExchangeUpdateService @Inject constructor(
                     // dialog fire first). When the recipient explicitly accepts/rejects via the
                     // dialog and routing lands here, this path owns the status transition.
                     exchangeRepository.updateStatus(sessionUUID, newStatus)
+                    requestParentLifecycle.apply(sessionUUID, newStatus, false, principal)
                     if (newStatus == ExchangeStatus.REJECTED)
                     {
                         exchangeRepository.updateEndDate(sessionUUID, Timestamp.from(Instant.now()))
@@ -263,7 +252,7 @@ class ExchangeUpdateService @Inject constructor(
                     request.rejectionReason?.let { exchangeRepository.updateRejectionReason(sessionUUID, it) }
                     exchangeRepository.updateLastActivity(sessionUUID, Timestamp.from(Instant.now()))
                     val updatedSession = exchangeRepository.findById(sessionUUID)!!
-                    recordLifecycleTransition(sessionUUID, existingExchange.name, existingExchange.ownerOrganizationId, previousStatus, newStatus)
+                    recordLifecycleTransition(sessionUUID, existingExchange.name, previousStatus, newStatus)
                     sendStatusChangeEmails(updatedSession, newStatus, request.rejectionReason)
                     broadcastStatusChange(updatedSession, newStatus)
                     logger.info(
@@ -332,6 +321,7 @@ class ExchangeUpdateService @Inject constructor(
                 )
             }
             exchangeRepository.updateStatus(sessionUUID, newStatus)
+            requestParentLifecycle.apply(sessionUUID, newStatus, false, principal)
 
             if (newStatus == ExchangeStatus.ENDED || newStatus == ExchangeStatus.REJECTED)
             {
@@ -347,7 +337,7 @@ class ExchangeUpdateService @Inject constructor(
                 shareService.revokeAllForResource(ResourceType.EXCHANGE, sessionUUID, resourceLabel = existingExchange.name)
             }
 
-            recordLifecycleTransition(sessionUUID, existingExchange.name, existingExchange.ownerOrganizationId, previousStatus, newStatus)
+            recordLifecycleTransition(sessionUUID, existingExchange.name, previousStatus, newStatus)
         }
 
         request?.rejectionReason?.let {
@@ -448,8 +438,8 @@ class ExchangeUpdateService @Inject constructor(
                     .filter {
                         it.principalKind == PrincipalKind.USER &&
                             it.principalId != initiator.id &&
-                            it.roleName != ExchangeShareRoleName.OWNER &&
-                            it.roleName != ExchangeShareRoleName.PARTICIPANT
+                                it.roleName != ExchangeShareRoleName.OWNER.name &&
+                                it.roleName != ExchangeShareRoleName.PARTICIPANT.name
                     }
                     .map { it.principalId }
                     .distinct()
@@ -469,7 +459,7 @@ class ExchangeUpdateService @Inject constructor(
     fun rescindExchange(exchangeId: String): Exchange
     {
         val exchangeUuid = UUID.fromString(exchangeId)
-        val exchange = exchangeRepository.findById(exchangeUuid)
+        val exchange = exchangeRepository.findByIdForUpdate(exchangeUuid)
             ?: throw ExchangeNotFoundException("Exchange not found")
 
         val principal = authorizationContextFactory.currentPrincipal()
@@ -494,6 +484,7 @@ class ExchangeUpdateService @Inject constructor(
         val rescindedAt = Timestamp.from(Instant.now())
         val previousStatus = exchange.status
         exchangeRepository.updateStatus(exchangeUuid, ExchangeStatus.RESCINDED)
+        requestParentLifecycle.apply(exchangeUuid, ExchangeStatus.RESCINDED, false, principal)
         exchangeRepository.updateEndDate(exchangeUuid, rescindedAt)
         exchangeRepository.updateLastActivity(exchangeUuid, rescindedAt)
 
@@ -509,7 +500,7 @@ class ExchangeUpdateService @Inject constructor(
                 targetType = ResourceType.EXCHANGE.name,
                 targetId = exchangeUuid.toString(),
                 targetLabel = exchange.name,
-                owner = exchange.ownerOrganizationId?.let(AuditOwnerScope::Organization) ?: AuditOwnerScope.Platform,
+                owner = auditOwnerScopeResolver.resolve(ResourceType.EXCHANGE, exchangeUuid),
                 payload = mapOf(
                     "previousStatus" to previousStatus.name,
                     "newStatus" to ExchangeStatus.RESCINDED.name,
@@ -537,6 +528,7 @@ class ExchangeUpdateService @Inject constructor(
         return updatedExchange
     }
 
+    @Transactional
     fun deleteExchange(exchangeId: String?)
     {
         if (exchangeId == null)
@@ -555,7 +547,7 @@ class ExchangeUpdateService @Inject constructor(
             throw ExchangeNotFoundException("Exchange not found")
         }
 
-        var session = exchangeRepository.findById(sessionUUID)?.apply {
+        var session = exchangeRepository.findByIdForUpdate(sessionUUID)?.apply {
 
             isDeleted = true
             dateDeleted = Timestamp.from(Instant.now())
@@ -563,6 +555,7 @@ class ExchangeUpdateService @Inject constructor(
         } ?: throw ExchangeNotFoundException("Exchange not found")
 
         exchangeRepository.update(session)
+        requestParentLifecycle.apply(sessionUUID, session.status, true, principal)
         session.documents.forEach { document ->
             documentThumbnailService.scheduleDeletion(document.id.toString())
         }
@@ -574,7 +567,7 @@ class ExchangeUpdateService @Inject constructor(
 
         shareService.revokeAllForResource(ResourceType.EXCHANGE, sessionUUID, resourceLabel = session.name)
 
-        recordExchangeDeleted(sessionUUID, session.name, session.ownerOrganizationId)
+        recordExchangeDeleted(sessionUUID, session.name)
 
         logger.info("Exchange ${session.name} deleted")
     }
@@ -590,7 +583,6 @@ class ExchangeUpdateService @Inject constructor(
     private fun recordLifecycleTransition(
         exchangeId: UUID,
         exchangeName: String?,
-        organizationId: UUID?,
         previousStatus: ExchangeStatus,
         newStatus: ExchangeStatus,
     )
@@ -613,7 +605,7 @@ class ExchangeUpdateService @Inject constructor(
                     targetType = ResourceType.EXCHANGE.name,
                     targetId = exchangeId.toString(),
                     targetLabel = exchangeName,
-                    owner = organizationId?.let(AuditOwnerScope::Organization) ?: AuditOwnerScope.Platform,
+                    owner = auditOwnerScopeResolver.resolve(ResourceType.EXCHANGE, exchangeId),
                     payload = mapOf(
                         "previousStatus" to previousStatus.name,
                         "newStatus" to newStatus.name,
@@ -632,7 +624,7 @@ class ExchangeUpdateService @Inject constructor(
     }
 
     /** Captures Exchange deletion onto the ledger. */
-    private fun recordExchangeDeleted(exchangeId: UUID, exchangeName: String?, organizationId: UUID?)
+    private fun recordExchangeDeleted(exchangeId: UUID, exchangeName: String?)
     {
         try
         {
@@ -645,7 +637,7 @@ class ExchangeUpdateService @Inject constructor(
                     targetType = ResourceType.EXCHANGE.name,
                     targetId = exchangeId.toString(),
                     targetLabel = exchangeName,
-                    owner = organizationId?.let(AuditOwnerScope::Organization) ?: AuditOwnerScope.Platform,
+                    owner = auditOwnerScopeResolver.resolve(ResourceType.EXCHANGE, exchangeId),
                 )
             )
         }
@@ -670,7 +662,7 @@ class ExchangeUpdateService @Inject constructor(
     {
         val sessionUUID = UUID.fromString(exchangeId)
 
-        val session = exchangeRepository.findById(sessionUUID)
+        val session = exchangeRepository.findByIdForUpdate(sessionUUID)
             ?: throw ExchangeNotFoundException("Exchange not found")
         noAuthExchangeAccessTokenService.requireValid(session, noAuthAccessToken)
 
@@ -762,6 +754,7 @@ class ExchangeUpdateService @Inject constructor(
                     // Write status directly � EVENT_EXCHANGE_ACTIVATED does not advance status
                     // when requireRecipientAcceptance=true, so this path owns the transition.
                     exchangeRepository.updateStatus(sessionUUID, requestedStatus)
+                    requestParentLifecycle.apply(sessionUUID, requestedStatus, false, PrincipalRef(PrincipalKind.SERVICE_ACCOUNT, UUID(0, 0)))
                     if (requestedStatus == ExchangeStatus.REJECTED)
                     {
                         exchangeRepository.updateEndDate(sessionUUID, Timestamp.from(Instant.now()))
@@ -795,6 +788,7 @@ class ExchangeUpdateService @Inject constructor(
 
         sessionStatus?.let {
             exchangeRepository.updateStatus(sessionUUID, it)
+            requestParentLifecycle.apply(sessionUUID, it, false, PrincipalRef(PrincipalKind.SERVICE_ACCOUNT, UUID(0, 0)))
 
             if (it == ExchangeStatus.REJECTED)
             {
@@ -841,7 +835,7 @@ class ExchangeUpdateService @Inject constructor(
     ): NoAuthExchangeBasicDto
     {
         val sessionUUID = UUID.fromString(exchangeId)
-        val session = exchangeRepository.findById(sessionUUID)
+        val session = exchangeRepository.findByIdForUpdate(sessionUUID)
             ?: throw ExchangeNotFoundException("Exchange not found")
         noAuthExchangeAccessTokenService.requireValid(session, noAuthAccessToken)
 
@@ -873,7 +867,7 @@ class ExchangeUpdateService @Inject constructor(
     {
         val sessionUUID = UUID.fromString(exchangeId)
 
-        val session = exchangeRepository.findById(sessionUUID)
+        val session = exchangeRepository.findByIdForUpdate(sessionUUID)
             ?: throw ExchangeNotFoundException("Exchange not found")
 
         if (noAuthAccessToken != null)
@@ -1110,7 +1104,7 @@ class ExchangeUpdateService @Inject constructor(
         else shareRepository.findActiveByResource(ResourceType.EXCHANGE, exchangeId))
             .firstOrNull {
                 it.principalKind == PrincipalKind.PARTICIPANT &&
-                    it.roleName != ExchangeShareRoleName.OWNER &&
+                        it.roleName != ExchangeShareRoleName.OWNER.name &&
                     it.source == ShareSource.DIRECT
             }
             ?.principalId

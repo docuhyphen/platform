@@ -1,41 +1,16 @@
 package com.docuhyphen.app.api.service.exchange
 
+import com.docuhyphen.app.api.exception.ExchangeNotFoundException
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
-import com.docuhyphen.app.api.model.entity.AppUser
-import com.docuhyphen.app.api.model.entity.AuthToken
-import com.docuhyphen.app.api.model.entity.Document
-import com.docuhyphen.app.api.model.entity.Exchange
-import com.docuhyphen.app.api.model.entity.ExchangeRecipient
-import com.docuhyphen.app.api.model.entity.ExchangeRecipientAcceptanceStatus
-import com.docuhyphen.app.api.model.entity.ExchangeRecipientPurpose
-import com.docuhyphen.app.api.model.entity.ExchangeRecipientSelectionType
-import com.docuhyphen.app.api.model.entity.ExchangeRecipientType
-import com.docuhyphen.app.api.model.entity.ExchangeShareRoleName
-import com.docuhyphen.app.api.model.entity.ExchangeStatus
-import com.docuhyphen.app.api.model.entity.ExternalIdentityResolution
-import com.docuhyphen.app.api.model.entity.PrincipalKind
-import com.docuhyphen.app.api.model.entity.PrincipalGroup
-import com.docuhyphen.app.api.model.entity.ResourceType
-import com.docuhyphen.app.api.model.entity.Share
-import com.docuhyphen.app.api.model.entity.ShareSource
-import com.docuhyphen.app.api.model.entity.ShareStatus
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
 import com.docuhyphen.app.api.repository.exchange.ExternalParticipantRepository
 import com.docuhyphen.app.api.repository.exchange.ShareRepository
-import com.docuhyphen.app.api.resource.model.ExchangeRecipientSelectionRequest
-import com.docuhyphen.app.api.resource.model.ExternalEmailRecipientSelectionRequest
-import com.docuhyphen.app.api.resource.model.InternalGroupRecipientSelectionRequest
-import com.docuhyphen.app.api.resource.model.PersonalGroupRecipientSelectionRequest
-import com.docuhyphen.app.api.resource.model.RegisteredUserRecipientSelectionRequest
-import com.docuhyphen.app.api.resource.model.TrustedGroupRecipientSelectionRequest
-import com.docuhyphen.app.api.resource.model.TrustedPersonRecipientSelectionRequest
-import com.docuhyphen.app.api.service.user.AppUserService
+import com.docuhyphen.app.api.resource.model.*
+import com.docuhyphen.app.api.service.audit.AuditOwnerScope
+import com.docuhyphen.app.api.service.audit.AuditOwnerScopeResolver
 import com.docuhyphen.app.api.service.audit.AuditRecorder
-import com.docuhyphen.app.api.service.auth.authz.Action
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.Decision
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.service.auth.authz.*
 import com.docuhyphen.app.api.service.communication.EmailTemplateService
 import com.docuhyphen.app.api.service.communication.OtpService
 import com.docuhyphen.app.api.service.communication.templates.RenderedEmailTemplate
@@ -44,23 +19,14 @@ import com.docuhyphen.app.api.service.identity.ExternalIdentityResolutionService
 import com.docuhyphen.app.api.service.identity.ExternalIdentityResolutionService.PreparedPersonResolution
 import com.docuhyphen.app.api.service.organization.OrganizationExchangePolicyService
 import com.docuhyphen.app.api.service.organization.OrganizationGroupService
+import com.docuhyphen.app.api.service.user.AppUserService
 import io.quarkus.security.ForbiddenException
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertAll
-import org.mockito.kotlin.any
-import org.mockito.kotlin.anyOrNull
-import org.mockito.kotlin.argumentCaptor
-import org.mockito.kotlin.doThrow
-import org.mockito.kotlin.eq
-import org.mockito.kotlin.isNull
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.never
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.verifyNoInteractions
-import org.mockito.kotlin.whenever
-import java.util.UUID
+import org.mockito.kotlin.*
+import java.util.*
 
 class ExchangeAccessManagementServiceTest
 {
@@ -89,6 +55,9 @@ class ExchangeAccessManagementServiceTest
     private val noAuthExchangeAccessTokenService = mock<NoAuthExchangeAccessTokenService>()
     private val configurationService = mock<ConfigurationService>()
     private val auditRecorder = mock<AuditRecorder>()
+    private val auditOwnerScopeResolver = mock<AuditOwnerScopeResolver>().also {
+        whenever(it.resolve(any(), any())).thenReturn(AuditOwnerScope.Platform)
+    }
 
     private val service = ExchangeAccessManagementService(
         exchangeRepository,
@@ -111,6 +80,7 @@ class ExchangeAccessManagementServiceTest
         noAuthExchangeAccessTokenService,
         configurationService,
         auditRecorder,
+        auditOwnerScopeResolver,
         notificationDeliveryService,
         mock<ExchangeFeatureSubscriptionGuard>(),
     )
@@ -158,7 +128,7 @@ class ExchangeAccessManagementServiceTest
         resourceId = exchangeId
         principalKind = kind
         this.principalId = principalId
-        roleName = ExchangeShareRoleName.VIEWER
+        roleName = ExchangeShareRoleName.VIEWER.name
         source = ShareSource.DIRECT
         status = ShareStatus.PENDING_APPROVAL
     }
@@ -558,6 +528,28 @@ class ExchangeAccessManagementServiceTest
         verify(shareService, never()).grant(
             any(), any(), any(), any(), any(), anyOrNull(), any(), anyOrNull(), anyOrNull(), any(), anyOrNull(),
         )
+    }
+
+    @Test
+    fun `denied EXCHANGE_MANAGE_ACCESS records AUTHORIZATION_DENIED under the Exchange's real owner, not Platform`()
+    {
+        val ownerUserId = UUID.randomUUID()
+        val principal = PrincipalRef(PrincipalKind.USER, callerId)
+        whenever(authorizationContextFactory.currentPrincipal()).thenReturn(principal)
+        whenever(authorizationContextFactory.currentContext()).thenReturn(mock())
+        whenever(authorizationService.authorize(any(), eq(Action.EXCHANGE_MANAGE_ACCESS), any(), any()))
+            .thenReturn(Decision.Deny(Decision.REASON_NO_GRANT, "denied"))
+        whenever(exchangeRepository.findById(exchangeId)).thenReturn(draftExchange())
+        whenever(auditOwnerScopeResolver.resolve(ResourceType.EXCHANGE, exchangeId))
+            .thenReturn(AuditOwnerScope.Personal(ownerUserId))
+
+        assertThrows(ExchangeNotFoundException::class.java) {
+            service.getSessionAccessView(exchangeId)
+        }
+
+        val draftCaptor = argumentCaptor<com.docuhyphen.app.api.service.audit.AuditEventDraft>()
+        verify(auditRecorder).record(draftCaptor.capture())
+        assertEquals(AuditOwnerScope.Personal(ownerUserId), draftCaptor.firstValue.owner)
     }
 
     @Test

@@ -6,7 +6,7 @@ import com.docuhyphen.app.api.service.subscription.SubscriptionAccessService
 import com.docuhyphen.app.api.service.subscription.SubscriptionContext
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
-import java.util.UUID
+import java.util.*
 
 /** Applies the Business subscription requirement to Fields and Schema mutations. */
 @ApplicationScoped
@@ -14,18 +14,36 @@ class BusinessFieldsSubscriptionGuard @Inject constructor(
     private val subscriptionAccessService: SubscriptionAccessService,
 )
 {
-    fun requireConfigurationMutation(scopeKind: FieldScopeKind, organizationId: UUID?)
+    /**
+     * Bills a change to reusable configuration to whoever owns that configuration. Each scope kind
+     * names exactly one owner, so the owner the scope does not name is not consulted: an
+     * organization id supplied alongside a personally owned Schema would otherwise bill an
+     * organization for something it does not own.
+     */
+    fun requireConfigurationMutation(scopeKind: FieldScopeKind, organizationId: UUID?, userId: UUID?)
     {
-        if (!subscriptionAccessService.enforcementMode().evaluatesDecisions ||
-            scopeKind == FieldScopeKind.PLATFORM)
-        {
-            return
-        }
+        if (!subscriptionAccessService.enforcementMode().evaluatesDecisions) return
 
-        val ownerOrganizationId = requireNotNull(organizationId) {
-            "Organization-scoped Fields configuration has no subscription owner"
+        when (scopeKind)
+        {
+            // Platform configuration is the platform's own, so there is nobody to bill for it.
+            FieldScopeKind.PLATFORM -> return
+            FieldScopeKind.ORGANIZATION -> requireMutation(
+                SubscriptionContext.forOrganization(
+                    requireNotNull(organizationId) {
+                        "Organization-scoped Fields configuration has no subscription owner"
+                    },
+                ),
+            )
+
+            FieldScopeKind.PERSONAL -> requireMutation(
+                SubscriptionContext.forUser(
+                    requireNotNull(userId) {
+                        "Personally scoped Fields configuration has no subscription owner"
+                    },
+                ),
+            )
         }
-        requireMutation(SubscriptionContext.forOrganization(ownerOrganizationId))
     }
 
     fun requireResourceMutation(context: SubscriptionContext?)

@@ -6,7 +6,7 @@ import jakarta.persistence.Id
 import jakarta.persistence.Table
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 /**
  * Durable, immutable audit intent written by
@@ -76,6 +76,12 @@ class AuditOutboxEntry
 
     @Column(name = "organization_id")
     var organizationId: UUID? = null
+
+    @Column(name = "owner_type", nullable = false, length = 32)
+    var ownerType: String = "PLATFORM"
+
+    @Column(name = "owner_id")
+    var ownerId: UUID? = null
 
     /** Human-readable organization name, added in `V48__audit_denormalized_labels.sql`. */
     @Column(name = "organization_label", length = 256)

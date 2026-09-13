@@ -53,8 +53,11 @@ export const managingBlueprintsArticle = (
                 formats or image formats).
             </li>
             <li>
-                Check <b>Required</b> to mark the document as mandatory. Required
-                documents must be uploaded before the Exchange can be completed.
+                Check <b>Required</b> to record the slot as one you expect to be filled. The
+                flag is carried onto every Exchange started from the blueprint and kept with the
+                document there. It is not a gate: nothing stops an Exchange being ended while a
+                slot marked Required is empty, and the flag is not shown on the Exchange itself,
+                so treat it as a note to whoever prepares the Exchange.
             </li>
             <li>Click the red delete icon to remove a document slot.</li>
         </ul>

@@ -3,17 +3,7 @@ package com.docuhyphen.app.api.service.variable
 import com.docuhyphen.app.api.exception.SubscriptionDenialException
 import com.docuhyphen.app.api.model.entity.OrganizationSubscriptionPolicy
 import com.docuhyphen.app.api.model.entity.UserSubscriptionPolicy
-import com.docuhyphen.app.api.service.subscription.ExchangeUsageCounter
-import com.docuhyphen.app.api.service.subscription.OrganizationSeatCounter
-import com.docuhyphen.app.api.service.subscription.PlanCode
-import com.docuhyphen.app.api.service.subscription.PlanFeature
-import com.docuhyphen.app.api.service.subscription.SubscriptionAccessService
-import com.docuhyphen.app.api.service.subscription.SubscriptionDenialReason
-import com.docuhyphen.app.api.service.subscription.SubscriptionEnforcementConfigService
-import com.docuhyphen.app.api.service.subscription.SubscriptionEnforcementMode
-import com.docuhyphen.app.api.service.subscription.SubscriptionPolicyService
-import com.docuhyphen.app.api.service.subscription.SubscriptionStatus
-import com.docuhyphen.app.api.service.subscription.SubscriptionUsageService
+import com.docuhyphen.app.api.service.subscription.*
 import org.junit.jupiter.api.Assertions.assertDoesNotThrow
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
@@ -21,7 +11,7 @@ import org.junit.jupiter.api.assertThrows
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.verifyNoInteractions
 import org.mockito.kotlin.whenever
-import java.util.UUID
+import java.util.*
 
 /**
  * Covers the allowance that decides whether variables and sequences may be authored.
@@ -44,6 +34,7 @@ class VariableSubscriptionGuardTest
                 mock<OrganizationSeatCounter>(),
             ),
             enforcementConfigService = SubscriptionEnforcementConfigService(mode.name),
+            featureRolloutConfigService = FeatureRolloutConfigService(Optional.empty()),
         )
 
         return VariableSubscriptionGuard(accessService)
@@ -68,7 +59,8 @@ class VariableSubscriptionGuardTest
                 this.subscriptionStatus = SubscriptionStatus.ACTIVE.name
             },
         )
-        whenever(policyService.organizationFeatureOverrides(organizationId)).thenReturn(emptyMap())
+        whenever(policyService.featureOverrides(SubscriptionContext.forOrganization(organizationId)))
+            .thenReturn(emptyMap())
     }
 
     @Test

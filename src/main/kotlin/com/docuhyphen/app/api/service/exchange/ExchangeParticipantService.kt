@@ -1,8 +1,8 @@
 ﻿package com.docuhyphen.app.api.service.exchange
 
+import com.docuhyphen.app.api.model.entity.ExchangeShareRoleName
 import com.docuhyphen.app.api.model.entity.PrincipalKind
 import com.docuhyphen.app.api.model.entity.ResourceType
-import com.docuhyphen.app.api.model.entity.ExchangeShareRoleName
 import com.docuhyphen.app.api.model.entity.ShareSource
 import com.docuhyphen.app.api.repository.exchange.ShareRepository
 import jakarta.enterprise.context.ApplicationScoped
@@ -52,7 +52,7 @@ class ExchangeParticipantService @Inject constructor(
             PrincipalKind.USER, participantUuid, ResourceType.EXCHANGE, sessionUuid,
         )
             .filter {
-                it.roleName == ExchangeShareRoleName.PARTICIPANT &&
+                it.roleName == ExchangeShareRoleName.PARTICIPANT.name &&
                     it.source == ShareSource.DIRECT
             }
             .forEach { exchangeAccessManagementService.revokeAccess(sessionUuid, it.id) }

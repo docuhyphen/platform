@@ -141,4 +141,37 @@ describe("useSettingsPlanAvailability", () =>
         expect(result.current.visibleTabs.has(tabIds.organization)).toBe(false);
         expect(result.current.visibleTabs.has(tabIds.fields)).toBe(false);
     });
+
+    it("shows Information Request Template settings only when the feature is discoverable", () =>
+    {
+        subscriptionMock.current = subscription(
+            PlanCode.BUSINESS,
+            SubscriptionOwnerType.ORGANIZATION,
+            [
+                PlanFeature.EXCHANGE_CREATE,
+                PlanFeature.INFORMATION_REQUESTS,
+            ],
+        );
+        authMock.currentSession = {
+            activeOrganizationId: "org-1",
+            availableOrganizations: [],
+            capabilities: [Capability.ORG_POLICY_MANAGE],
+            effectiveSubscription: subscriptionMock.current,
+        } as CurrentSessionDto;
+        authMock.appUserPersonOrganization = {isActive: true};
+        authMock.capabilities = [Capability.ORG_POLICY_MANAGE];
+
+        const {result, rerender} = renderHook(() => useSettingsPlanAvailability());
+
+        expect(result.current.visibleTabs.has("InformationRequestTemplatesTab")).toBe(true);
+
+        subscriptionMock.current = subscription(
+            PlanCode.BUSINESS,
+            SubscriptionOwnerType.ORGANIZATION,
+            [PlanFeature.EXCHANGE_CREATE],
+        );
+        rerender();
+
+        expect(result.current.visibleTabs.has("InformationRequestTemplatesTab")).toBe(false);
+    });
 });

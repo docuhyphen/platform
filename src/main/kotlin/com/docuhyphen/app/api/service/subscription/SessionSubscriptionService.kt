@@ -5,7 +5,7 @@ import com.docuhyphen.app.api.model.dto.EffectiveSubscriptionDto
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import org.slf4j.LoggerFactory
-import java.util.UUID
+import java.util.*
 
 /**
  * Builds the commercial part of the session contract.
@@ -17,6 +17,10 @@ import java.util.UUID
  * A resolution failure returns null rather than failing the session. The session is an identity
  * and capability contract first, and a missing commercial summary must never widen access or
  * lock a customer out of the application.
+ *
+ * The reported features are the ones the caller can actually reach, which excludes a capability
+ * the owner is entitled to but that this deployment has not released to them. The client decides
+ * what to offer from this list, so it must not name something every call site would refuse.
  */
 @ApplicationScoped
 class SessionSubscriptionService @Inject constructor(
@@ -37,6 +41,7 @@ class SessionSubscriptionService @Inject constructor(
                 subscription = subscription,
                 usage = usage,
                 enforcementMode = subscriptionAccessService.enforcementMode(),
+                availableFeatures = subscriptionAccessService.availableFeatures(subscription),
             )
         }.getOrElse { failure ->
             logger.error(

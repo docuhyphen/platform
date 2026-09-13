@@ -1,21 +1,13 @@
 ﻿package com.docuhyphen.app.api.service.exchange
 
-import com.docuhyphen.app.api.model.entity.PrincipalKind
-import com.docuhyphen.app.api.model.entity.ResourceType
-import com.docuhyphen.app.api.model.entity.ExchangeShareRoleName
-import com.docuhyphen.app.api.model.entity.Share
-import com.docuhyphen.app.api.model.entity.ShareSource
-import com.docuhyphen.app.api.model.entity.ShareStatus
-import com.docuhyphen.app.api.repository.organization.PrincipalGroupMemberRepository
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.repository.exchange.ShareRepository
-import com.docuhyphen.app.api.service.audit.AuditCaptureFailedException
-import com.docuhyphen.app.api.service.audit.AuditDraftInvalidException
-import com.docuhyphen.app.api.service.audit.AuditEventDraft
-import com.docuhyphen.app.api.service.audit.AuditOwnerScope
-import com.docuhyphen.app.api.service.audit.AuditRecorder
+import com.docuhyphen.app.api.repository.organization.PrincipalGroupMemberRepository
+import com.docuhyphen.app.api.service.audit.*
 import com.docuhyphen.app.api.service.audit.catalog.AuditActorKind
 import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
 import com.docuhyphen.app.api.service.audit.catalog.AuditOutcome
+import com.docuhyphen.app.api.service.auth.authz.*
 import com.docuhyphen.app.api.service.organization.TrustedRecipientValidationService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
@@ -23,7 +15,7 @@ import jakarta.inject.Provider
 import org.slf4j.LoggerFactory
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 /**
  * Write-side service for the unified [Share] model. The legacy recipient columns
@@ -39,7 +31,7 @@ class ShareService @Inject constructor(
     private val shareRepository: ShareRepository,
     private val groupMemberRepository: PrincipalGroupMemberRepository,
     private val auditRecorder: AuditRecorder,
-    private val exchangeAuthorizationContextProvider: ExchangeAuthorizationContextProvider,
+    private val resourceAuthorizationContextRegistry: ResourceAuthorizationContextRegistry,
     private val exchangeRecipientAttestationService: ExchangeRecipientAttestationService,
     private val trustedRecipientValidationService: TrustedRecipientValidationService,
     private val exchangeRecipientServiceProvider: Provider<ExchangeRecipientService>,
@@ -82,6 +74,87 @@ class ShareService @Inject constructor(
         expiresAt: Timestamp? = null,
         status: ShareStatus = ShareStatus.ACTIVE,
         resourceLabel: String? = null,
+    ): Share =
+        grantInternal(
+            resourceType = resourceType,
+            resourceId = resourceId,
+            principalKind = principalKind,
+            principalId = principalId,
+            roleName = roleName.name,
+            grantor = grantedByAppUserId?.let(PrincipalRef::user),
+            source = source,
+            constraintsJson = constraintsJson,
+            expiresAt = expiresAt,
+            status = status,
+            resourceLabel = resourceLabel,
+        )
+
+    fun grantWithPrincipalProvenance(
+        resourceType: ResourceType,
+        resourceId: UUID,
+        principalKind: PrincipalKind,
+        principalId: UUID,
+        roleName: ExchangeShareRoleName,
+        grantedByPrincipal: PrincipalRef? = null,
+        source: ShareSource = ShareSource.DIRECT,
+        constraintsJson: String? = null,
+        expiresAt: Timestamp? = null,
+        status: ShareStatus = ShareStatus.ACTIVE,
+        resourceLabel: String? = null,
+    ): Share =
+        grantInternal(
+            resourceType = resourceType,
+            resourceId = resourceId,
+            principalKind = principalKind,
+            principalId = principalId,
+            roleName = roleName.name,
+            grantor = grantedByPrincipal,
+            source = source,
+            constraintsJson = constraintsJson,
+            expiresAt = expiresAt,
+            status = status,
+            resourceLabel = resourceLabel,
+        )
+
+    fun grantRoleKeyWithPrincipalProvenance(
+        resourceType: ResourceType,
+        resourceId: UUID,
+        principalKind: PrincipalKind,
+        principalId: UUID,
+        roleName: String,
+        grantedByPrincipal: PrincipalRef? = null,
+        source: ShareSource = ShareSource.DIRECT,
+        constraintsJson: String? = null,
+        expiresAt: Timestamp? = null,
+        status: ShareStatus = ShareStatus.ACTIVE,
+        resourceLabel: String? = null,
+    ): Share =
+        grantInternal(
+            resourceType = resourceType,
+            resourceId = resourceId,
+            principalKind = principalKind,
+            principalId = principalId,
+            roleName = roleName,
+            grantor = grantedByPrincipal,
+            source = source,
+            constraintsJson = constraintsJson,
+            expiresAt = expiresAt,
+            status = status,
+            resourceLabel = resourceLabel,
+        )
+
+    private fun grantInternal(
+        resourceType: ResourceType,
+        resourceId: UUID,
+        principalKind: PrincipalKind,
+        principalId: UUID,
+        roleName: String,
+        grantor: PrincipalRef?,
+        source: ShareSource,
+        constraintsJson: String?,
+        expiresAt: Timestamp?,
+        status: ShareStatus,
+        resourceLabel: String?,
     ): Share
     {
         val existingDirect = shareRepository
@@ -97,11 +170,14 @@ class ShareService @Inject constructor(
             this.resourceId = resourceId
             this.principalKind = principalKind
             this.principalId = principalId
+            require(RoleCapabilities.isShareRoleValid(resourceType, roleName)) {
+                "Role $roleName is not valid for $resourceType"
+            }
             this.roleName = roleName
             this.source = source
             this.sourceShareId = null
             this.status = status
-            this.grantedByAppUserId = grantedByAppUserId
+            recordGrantor(this, grantor)
             this.constraintsJson = constraintsJson
             this.expiresAt = expiresAt
             if (existingDirect == null)
@@ -110,14 +186,16 @@ class ShareService @Inject constructor(
             }
             this.revokedAt = null
             this.revokedByAppUserId = null
+            this.revokedByPrincipalKind = null
+            this.revokedByPrincipalId = null
         }
         val persisted = if (existingDirect == null && previouslyDirect == null) shareRepository.save(share) else shareRepository.update(share)
 
         recordShareEvent(
             eventType = AuditEventType.SHARE_GRANT,
             share = persisted,
-            actorId = grantedByAppUserId,
-            extraPayload = mapOf("role_name" to roleName.name, "principal_kind" to principalKind.name),
+            actor = grantor,
+            extraPayload = mapOf("role_name" to roleName, "principal_kind" to principalKind.name),
             resourceLabel = resourceLabel,
         )
 
@@ -202,10 +280,14 @@ class ShareService @Inject constructor(
             sourceShareId = parentShare.id
             status = ShareStatus.ACTIVE
             grantedByAppUserId = parentShare.grantedByAppUserId
+            grantedByPrincipalKind = parentShare.grantedByPrincipalKind
+            grantedByPrincipalId = parentShare.grantedByPrincipalId
             constraintsJson = parentShare.constraintsJson
             expiresAt = parentShare.expiresAt
             revokedAt = null
             revokedByAppUserId = null
+            revokedByPrincipalKind = null
+            revokedByPrincipalId = null
         }
         if (existing.isEmpty()) shareRepository.save(inherited) else shareRepository.update(inherited)
         existing.drop(1).forEach { duplicate ->
@@ -232,8 +314,8 @@ class ShareService @Inject constructor(
         recordShareEvent(
             eventType = AuditEventType.SHARE_ACTIVATE,
             share = activated,
-            actorId = null,
-            extraPayload = mapOf("role_name" to activated.roleName.name, "principal_kind" to activated.principalKind.name),
+            actor = null,
+            extraPayload = mapOf("role_name" to activated.roleName, "principal_kind" to activated.principalKind.name),
         )
 
         if (activated.principalKind == PrincipalKind.PRINCIPAL_GROUP)
@@ -277,9 +359,24 @@ class ShareService @Inject constructor(
         resourceLabel: String? = null,
     )
     {
+        revokePendingForResourceWithPrincipalProvenance(
+            resourceType = resourceType,
+            resourceId = resourceId,
+            revokedByPrincipal = revokedByAppUserId?.let(PrincipalRef::user),
+            resourceLabel = resourceLabel,
+        )
+    }
+
+    fun revokePendingForResourceWithPrincipalProvenance(
+        resourceType: ResourceType,
+        resourceId: UUID,
+        revokedByPrincipal: PrincipalRef? = null,
+        resourceLabel: String? = null,
+    )
+    {
         val now = Timestamp.from(Instant.now())
         shareRepository.findByResourceAndStatus(resourceType, resourceId, ShareStatus.PENDING_APPROVAL)
-            .forEach { markRevoked(it, revokedByAppUserId, now, resourceLabel) }
+            .forEach { markRevoked(it, revokedByPrincipal, now, resourceLabel) }
     }
 
     /**
@@ -302,7 +399,7 @@ class ShareService @Inject constructor(
     {
         val share = shareRepository.findById(shareId) ?: return null
         val previousRole = share.roleName
-        share.roleName = roleName
+        share.roleName = roleName.name
         if (applyConstraints)
         {
             share.constraintsJson = constraintsJson
@@ -310,7 +407,7 @@ class ShareService @Inject constructor(
         val updated = shareRepository.update(share)
 
         shareRepository.findBySourceShareId(shareId).forEach { child ->
-            child.roleName = roleName
+            child.roleName = roleName.name
             if (applyConstraints)
             {
                 child.constraintsJson = constraintsJson
@@ -321,9 +418,9 @@ class ShareService @Inject constructor(
         recordShareEvent(
             eventType = AuditEventType.SHARE_ROLE_CHANGE,
             share = updated,
-            actorId = null,
+            actor = null,
             extraPayload = mapOf(
-                "previous_role" to previousRole.name,
+                "previous_role" to previousRole,
                 "new_role" to roleName.name,
                 "constraints_changed" to applyConstraints.toString(),
             ),
@@ -341,7 +438,7 @@ class ShareService @Inject constructor(
         shareRepository.findActiveByResource(ResourceType.EXCHANGE, exchangeId)
             .filter {
                 it.principalKind == PrincipalKind.USER &&
-                    it.roleName != ExchangeShareRoleName.OWNER
+                        it.roleName != ExchangeShareRoleName.OWNER.name
             }
 
     /**
@@ -352,7 +449,7 @@ class ShareService @Inject constructor(
     private fun allRecipientShares(exchangeId: UUID): List<Share> =
         shareRepository.findActiveByResource(ResourceType.EXCHANGE, exchangeId)
             .filter {
-                it.roleName != ExchangeShareRoleName.OWNER
+                it.roleName != ExchangeShareRoleName.OWNER.name
             }
 
     fun recipientUserIds(exchangeId: UUID): List<UUID> =
@@ -362,7 +459,7 @@ class ShareService @Inject constructor(
         shareRepository.findAllByResource(ResourceType.EXCHANGE, exchangeId)
             .filter {
                 it.principalKind == PrincipalKind.USER &&
-                    it.roleName != ExchangeShareRoleName.OWNER
+                        it.roleName != ExchangeShareRoleName.OWNER.name
             }
             .map { it.principalId }
             .distinct()
@@ -445,18 +542,43 @@ class ShareService @Inject constructor(
     }
 
     /** Revoke a single share and any inherited children that point at it. */
-    fun revoke(shareId: UUID, revokedByAppUserId: UUID? = null, resourceLabel: String? = null)
+    fun revoke(
+        shareId: UUID,
+        revokedByAppUserId: UUID? = null,
+        resourceLabel: String? = null,
+    )
+    {
+        revokeWithPrincipalProvenance(
+            shareId = shareId,
+            revokedByPrincipal = revokedByAppUserId?.let(PrincipalRef::user),
+            resourceLabel = resourceLabel,
+        )
+    }
+
+    fun revokeWithPrincipalProvenance(
+        shareId: UUID,
+        revokedByPrincipal: PrincipalRef? = null,
+        resourceLabel: String? = null,
+    )
     {
         val now = Timestamp.from(Instant.now())
         shareRepository.findById(shareId)?.let { share ->
-            markRevoked(share, revokedByAppUserId, now, resourceLabel)
+            markRevoked(share, revokedByPrincipal, now, resourceLabel)
             shareRepository.findBySourceShareId(shareId).forEach { child ->
-                markRevoked(child, revokedByAppUserId, now, resourceLabel)
+                markRevoked(child, revokedByPrincipal, now, resourceLabel)
             }
         }
     }
 
-    /** Revoke every active share on a resource (e.g. when a session is ended/deleted). */
+    fun retainInformationRequestOwnerRead(requestId: UUID, ownerUserId: UUID)
+    {
+        val existing = shareRepository.findActiveForPrincipalOnResource(
+            PrincipalKind.USER, ownerUserId, ResourceType.INFORMATION_REQUEST, requestId)
+        if (existing.isEmpty())
+            grantRoleKeyWithPrincipalProvenance(ResourceType.INFORMATION_REQUEST, requestId,
+                PrincipalKind.USER, ownerUserId, InformationRequestShareRoleKey.SUBJECT.name)
+    }
+
     fun revokeAllForResource(
         resourceType: ResourceType,
         resourceId: UUID,
@@ -464,9 +586,24 @@ class ShareService @Inject constructor(
         resourceLabel: String? = null,
     )
     {
+        revokeAllForResourceWithPrincipalProvenance(
+            resourceType = resourceType,
+            resourceId = resourceId,
+            revokedByPrincipal = revokedByAppUserId?.let(PrincipalRef::user),
+            resourceLabel = resourceLabel,
+        )
+    }
+
+    fun revokeAllForResourceWithPrincipalProvenance(
+        resourceType: ResourceType,
+        resourceId: UUID,
+        revokedByPrincipal: PrincipalRef? = null,
+        resourceLabel: String? = null,
+    )
+    {
         val now = Timestamp.from(Instant.now())
         shareRepository.findActiveByResource(resourceType, resourceId).forEach {
-            markRevoked(it, revokedByAppUserId, now, resourceLabel)
+            markRevoked(it, revokedByPrincipal, now, resourceLabel)
         }
     }
 
@@ -476,41 +613,36 @@ class ShareService @Inject constructor(
      * once per share regardless of which caller triggered it. The `status == REVOKED` guard
      * above (unchanged) also prevents a duplicate event for an already-revoked share.
      */
-    private fun markRevoked(share: Share, revokedByAppUserId: UUID?, now: Timestamp, resourceLabel: String? = null)
+    private fun markRevoked(share: Share, revoker: PrincipalRef?, now: Timestamp, resourceLabel: String? = null)
     {
         if (share.status == ShareStatus.REVOKED) return
         share.status = ShareStatus.REVOKED
         share.revokedAt = now
-        share.revokedByAppUserId = revokedByAppUserId
+        recordRevoker(share, revoker)
         shareRepository.update(share)
 
         recordShareEvent(
             eventType = AuditEventType.SHARE_REVOKE,
             share = share,
-            actorId = revokedByAppUserId,
-            extraPayload = mapOf("role_name" to share.roleName.name, "principal_kind" to share.principalKind.name),
+            actor = revoker,
+            extraPayload = mapOf("role_name" to share.roleName, "principal_kind" to share.principalKind.name),
             resourceLabel = resourceLabel,
         )
     }
 
     /**
-     * Captures Share
-     * grant/activation/role-constraint-change/revocation through [AuditRecorder].
-     * is superseded as the write path (its table/repository are left untouched, out of scope to
-     * remove). Target is the resource being shared (denormalized `resourceType.name`/
+     * Captures Share grant, activation, role changes, and revocation through [AuditRecorder].
+     * Target is the resource being shared (denormalized `resourceType.name`/
      * `resourceId`), not the Share row itself, so the event is discoverable alongside every other
-     * event about that resource. Actor kind is HUMAN when an acting app user id is known (a
-     * human-initiated grant/role-change/revoke); grants/activations with no acting app user id
-     * (e.g. system/workflow-driven activation after an approval step completes) are recorded as
-     * SYSTEM, since ShareService has no per-request context of its own to distinguish a workflow
-     * actor from another background process, so background operations are attributed to the system.
+     * event about that resource. When an acting principal is known, its canonical kind is mapped to
+     * the audit actor kind. Grants and activations without an actor are recorded as SYSTEM.
      * Failures are caught and logged, never propagated, so audit plumbing can never break a
      * Share mutation.
      */
     private fun recordShareEvent(
         eventType: AuditEventType,
         share: Share,
-        actorId: UUID?,
+        actor: PrincipalRef?,
         extraPayload: Map<String, String>,
         resourceLabel: String? = null,
     )
@@ -522,8 +654,8 @@ class ShareService @Inject constructor(
                     owner = resolveOwnerScope(share),
                     eventTypeKey = eventType.key,
                     outcome = AuditOutcome.SUCCESS,
-                    actorId = actorId,
-                    actorKind = if (actorId != null) AuditActorKind.HUMAN else AuditActorKind.SYSTEM,
+                    actorId = actor?.id,
+                    actorKind = actor?.kind?.let(AuditActorKind::forPrincipal) ?: AuditActorKind.SYSTEM,
                     targetType = share.resourceType.name,
                     targetId = share.resourceId.toString(),
                     targetLabel = resourceLabel,
@@ -546,13 +678,35 @@ class ShareService @Inject constructor(
 
     private fun resolveOwnerScope(share: Share): AuditOwnerScope
     {
-        if (share.resourceType != ResourceType.EXCHANGE) return AuditOwnerScope.Platform
-
-        return when (val owner = exchangeAuthorizationContextProvider.resolve(share.resourceId)?.ownerContext)
+        return when (
+            val owner = resourceAuthorizationContextRegistry.resolve(
+                ResourceRef(share.resourceType, share.resourceId),
+            )?.ownerContext
+        )
         {
-            is com.docuhyphen.app.api.service.auth.authz.OwnerContext.Organization ->
+            is OwnerContext.Organization ->
                 AuditOwnerScope.Organization(owner.organizationId)
+
+            is OwnerContext.Personal ->
+                AuditOwnerScope.Personal(owner.userId)
             else -> AuditOwnerScope.Platform
         }
     }
+
+    private fun recordGrantor(share: Share, grantor: PrincipalRef?)
+    {
+        share.grantedByPrincipalKind = grantor?.kind
+        share.grantedByPrincipalId = grantor?.id
+        share.grantedByAppUserId = legacyAppUserId(grantor)
+    }
+
+    private fun recordRevoker(share: Share, revoker: PrincipalRef?)
+    {
+        share.revokedByPrincipalKind = revoker?.kind
+        share.revokedByPrincipalId = revoker?.id
+        share.revokedByAppUserId = legacyAppUserId(revoker)
+    }
+
+    private fun legacyAppUserId(principal: PrincipalRef?): UUID? =
+        principal?.id?.takeIf { principal.kind == PrincipalKind.USER }
 }

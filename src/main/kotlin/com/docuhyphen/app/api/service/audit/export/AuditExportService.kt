@@ -5,14 +5,7 @@ import com.docuhyphen.app.api.model.entity.AuditExportApproval
 import com.docuhyphen.app.api.model.entity.AuditExportStatus
 import com.docuhyphen.app.api.repository.audit.AuditExportApprovalRepository
 import com.docuhyphen.app.api.repository.audit.AuditExportRepository
-import com.docuhyphen.app.api.service.user.AppUserService
-import com.docuhyphen.app.api.service.audit.AuditCaptureFailedException
-import com.docuhyphen.app.api.service.audit.AuditDraftInvalidException
-import com.docuhyphen.app.api.service.audit.AuditDeniedAttemptService
-import com.docuhyphen.app.api.service.audit.AuditEngagementService
-import com.docuhyphen.app.api.service.audit.AuditEventDraft
-import com.docuhyphen.app.api.service.audit.AuditOwnerScope
-import com.docuhyphen.app.api.service.audit.AuditRecorder
+import com.docuhyphen.app.api.service.audit.*
 import com.docuhyphen.app.api.service.audit.AuditSearchProjectionService.AuditAccessActor
 import com.docuhyphen.app.api.service.audit.archive.AuditArchiveStorage
 import com.docuhyphen.app.api.service.audit.archive.MerkleTree
@@ -20,12 +13,12 @@ import com.docuhyphen.app.api.service.audit.catalog.AuditActorKind
 import com.docuhyphen.app.api.service.audit.catalog.AuditCategory
 import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
 import com.docuhyphen.app.api.service.audit.catalog.AuditOutcome
-import com.docuhyphen.app.api.service.audit.requiresEngagementAccess
 import com.docuhyphen.app.api.service.auth.authz.Capability
 import com.docuhyphen.app.api.service.config.AuditExportConfigService
 import com.docuhyphen.app.api.service.organization.OrganizationService
 import com.docuhyphen.app.api.service.subscription.OrganizationFeatureSubscriptionGuard
 import com.docuhyphen.app.api.service.subscription.PlanFeature
+import com.docuhyphen.app.api.service.user.AppUserService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
@@ -33,7 +26,7 @@ import org.slf4j.LoggerFactory
 import java.sql.Timestamp
 import java.time.Duration
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 class AuditExportNotFoundException(message: String) : RuntimeException(message)
 
@@ -63,6 +56,7 @@ class AuditExportService @Inject constructor(
 {
     data class ExportRequest(
         val organizationId: UUID?,
+        val ownerUserId: UUID? = null,
         val categories: Set<AuditCategory>,
         val occurredAfter: Instant,
         val occurredBefore: Instant,
@@ -80,17 +74,40 @@ class AuditExportService @Inject constructor(
     @Transactional
     fun requestExport(request: ExportRequest, actor: AuditAccessActor): AuditExport
     {
-        subscriptionGuard.requireMutation(request.organizationId, PlanFeature.AUDIT_GOVERNANCE)
         validateRequest(request)
         val requestedByUserId = actor.principal.id
+        if (request.ownerUserId != null && request.ownerUserId != requestedByUserId)
+        {
+            throw AuditExportAccessException("Audit owner does not match the caller")
+        }
+        if (request.ownerUserId == null)
+        {
+            subscriptionGuard.requireMutation(request.organizationId, PlanFeature.AUDIT_GOVERNANCE)
+        }
         appUserService.getById(requestedByUserId) ?: throw IllegalArgumentException("Requester not found")
         request.organizationId?.let { organizationService.getOrganizationById(it) }
-        requireEngagementPermitsExport(actor, request.organizationId, request.categories, request.occurredAfter, request.occurredBefore)
+        if (request.ownerUserId == null)
+        {
+            requireEngagementPermitsExport(
+                actor,
+                request.organizationId,
+                request.categories,
+                request.occurredAfter,
+                request.occurredBefore
+            )
+        }
 
         val dualControlRequired = configService.isDualControlRequired()
         val now = Timestamp.from(Instant.now())
         val export = AuditExport().apply {
             organizationId = request.organizationId
+            ownerType = when
+            {
+                request.ownerUserId != null -> "USER"
+                request.organizationId != null -> "ORGANIZATION"
+                else -> "PLATFORM"
+            }
+            ownerId = request.ownerUserId ?: request.organizationId
             this.requestedByUserId = requestedByUserId
             requestedAt = now
             categoriesCsv = request.categories.joinToString(",") { it.name }
@@ -356,6 +373,15 @@ class AuditExportService @Inject constructor(
     fun listForOrganization(organizationId: UUID?, platformOnly: Boolean): List<AuditExport> =
         auditExportRepository.listForOrganization(organizationId, platformOnly)
 
+    fun listForPersonalOwner(ownerUserId: UUID, actorUserId: UUID): List<AuditExport>
+    {
+        if (ownerUserId != actorUserId)
+        {
+            throw AuditExportAccessException("Audit owner does not match the caller")
+        }
+        return auditExportRepository.listForPersonalOwner(ownerUserId)
+    }
+
     fun listApprovals(exportId: UUID): List<AuditExportApproval> = auditExportApprovalRepository.findByExport(exportId)
 
     private fun requireExport(exportId: UUID): AuditExport =
@@ -444,7 +470,11 @@ class AuditExportService @Inject constructor(
         {
             return
         }
-        val isCustodian = if (export.organizationId != null)
+        val isCustodian = if (export.ownerType == "USER")
+        {
+            false
+        }
+        else if (export.organizationId != null)
         {
             Capability.ORG_POLICY_MANAGE in actor.capabilities
         }
@@ -478,6 +508,9 @@ class AuditExportService @Inject constructor(
 
     private fun validateRequest(request: ExportRequest)
     {
+        require(request.organizationId == null || request.ownerUserId == null) {
+            "An audit export must name one owner"
+        }
         require(request.categories.isNotEmpty()) { "At least one audit category is required" }
         require(request.purpose.isNotBlank()) { "Purpose is required" }
         require(request.occurredBefore.isAfter(request.occurredAfter)) { "occurredBefore must be after occurredAfter" }
@@ -504,7 +537,12 @@ class AuditExportService @Inject constructor(
                     actorId = actorId,
                     actorKind = if (actorId == null) AuditActorKind.SYSTEM else AuditActorKind.HUMAN,
                     actorRole = if (actorId == null) "SYSTEM" else "AUDIT_GOVERNANCE",
-                    owner = export.organizationId?.let(AuditOwnerScope::Organization) ?: AuditOwnerScope.Platform,
+                    owner = when (export.ownerType)
+                    {
+                        "USER" -> AuditOwnerScope.Personal(requireNotNull(export.ownerId))
+                        "ORGANIZATION" -> AuditOwnerScope.Organization(requireNotNull(export.organizationId))
+                        else -> AuditOwnerScope.Platform
+                    },
                     targetType = "AUDIT_EXPORT",
                     targetId = export.id.toString(),
                     targetLabel = export.caseReference?.let { "${export.purpose} ($it)" } ?: export.purpose,

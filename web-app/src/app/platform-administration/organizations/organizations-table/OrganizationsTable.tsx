@@ -49,7 +49,6 @@ const OrganizationsTable = ({organizations, onEdit}: OrganizationsTableProps) =>
                             <TableHeaderCell id={"platform-organizations-status-header"}>Status</TableHeaderCell>
                         <TableHeaderCell id={"platform-organizations-tier-header"}>Tier</TableHeaderCell>
                         <TableHeaderCell id={"platform-organizations-capacity-header"}>Usage</TableHeaderCell>
-                        <TableHeaderCell id={"platform-organizations-features-header"}>Features</TableHeaderCell>
                         <TableHeaderCell
                             id={"platform-organizations-actions-header"}
                             className={styles.actions}>Actions</TableHeaderCell>
@@ -80,9 +79,6 @@ const OrganizationsTable = ({organizations, onEdit}: OrganizationsTableProps) =>
                             <TableCell>{organization.tierCode}</TableCell>
                             <TableCell>
                                 {organization.activeUsers} / {organization.maxUsers ?? "Unlimited"}
-                            </TableCell>
-                            <TableCell className={styles.entitlements}>
-                                {entitlementSummary(organization)}
                             </TableCell>
                             <TableCell className={styles.actions}>
                                 <Button

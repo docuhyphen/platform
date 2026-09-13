@@ -18,22 +18,15 @@ class FieldResourceAdapterRegistry
     @Any
     private lateinit var adapters: Instance<FieldResourceAdapter>
 
+    @Inject
+    private lateinit var schemaTargets: SchemaTargetRegistry
+
     private lateinit var index: Map<String, FieldResourceAdapter>
 
     @PostConstruct
     fun init()
     {
-        val map = mutableMapOf<String, FieldResourceAdapter>()
-        for (adapter in adapters)
-        {
-            val type = adapter.resourceType
-            check(type !in map) {
-                "Duplicate FieldResourceAdapter for $type: " +
-                    "${map[type]!!::class.qualifiedName} vs ${adapter::class.qualifiedName}"
-            }
-            map[type] = adapter
-        }
-        index = map
+        index = indexAdapters(adapters, schemaTargets)
     }
 
     /** @throws FieldValidationException when no adapter is registered for [resourceType]. */
@@ -42,4 +35,32 @@ class FieldResourceAdapterRegistry
             ?: throw FieldValidationException("Unsupported resource type for fields: $resourceType")
 
     fun supportedResourceTypes(): Set<String> = index.keys
+}
+
+/**
+ * Indexes adapters by the resource type each one governs. Both refusals here are startup failures
+ * because neither leaves a working installation: two adapters claiming one type leaves no answer to
+ * which of them governs it, and an adapter governing a type no Schema may be written for could never
+ * be given one, since an assignment requires a Schema written for exactly that type.
+ */
+internal fun indexAdapters(
+    adapters: Iterable<FieldResourceAdapter>,
+    schemaTargets: SchemaTargetRegistry,
+): Map<String, FieldResourceAdapter>
+{
+    val map = mutableMapOf<String, FieldResourceAdapter>()
+    for (adapter in adapters)
+    {
+        val type = adapter.resourceType
+        check(type !in map) {
+            "Duplicate FieldResourceAdapter for $type: " +
+                    "${map[type]!!::class.qualifiedName} vs ${adapter::class.qualifiedName}"
+        }
+        check(type in schemaTargets.supportedTargets()) {
+            "FieldResourceAdapter ${adapter::class.qualifiedName} governs $type, " +
+                    "which is not a resource type a schema may be written for"
+        }
+        map[type] = adapter
+    }
+    return map
 }

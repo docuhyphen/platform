@@ -1,13 +1,12 @@
 package com.docuhyphen.app.api.service.user
 
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
-import com.docuhyphen.app.api.service.user.AppUserService
 import com.docuhyphen.app.api.service.storage.ProfilePictureStorageService
 import io.quarkus.security.UnauthorizedException
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
 import java.io.File
-import java.util.UUID
+import java.util.*
 
 /**
  * Handles the storage lifecycle of a user's profile picture (avatar): uploading a new
@@ -58,7 +57,13 @@ class AppUserAvatarService @Inject constructor(
         val normalizedExtension = extension?.lowercase()?.trimStart('.')?.trim()
         if (normalizedExtension.isNullOrBlank() || !ALLOWED_EXTENSIONS.containsKey(normalizedExtension))
         {
-            throw IllegalArgumentException("Unsupported image type. Allowed types: ${ALLOWED_EXTENSIONS.keys.joinToString(", ")}")
+            throw IllegalArgumentException(
+                "Unsupported image type. Allowed types: ${
+                    ALLOWED_EXTENSIONS.keys.joinToString(
+                        ", "
+                    )
+                }"
+            )
         }
 
         if (file.length() > MAX_AVATAR_SIZE_BYTES)

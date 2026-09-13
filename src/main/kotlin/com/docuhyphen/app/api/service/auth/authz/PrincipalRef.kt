@@ -2,7 +2,7 @@
 
 import com.docuhyphen.app.api.model.entity.PrincipalKind
 import com.docuhyphen.app.api.model.entity.ResourceType
-import java.util.UUID
+import java.util.*
 
 /** Canonical principal reference: `(kind, id)`. */
 data class PrincipalRef(val kind: PrincipalKind, val id: UUID)
@@ -34,6 +34,9 @@ data class ResourceRef(val type: ResourceType, val id: UUID)
         fun variable(id: UUID)            = ResourceRef(ResourceType.VARIABLE, id)
         fun communication(id: UUID)       = ResourceRef(ResourceType.COMMUNICATION, id)
         fun organization(id: UUID)        = ResourceRef(ResourceType.ORGANIZATION, id)
+        fun informationRequest(id: UUID) = ResourceRef(ResourceType.INFORMATION_REQUEST, id)
+        fun informationRequestRequirement(id: UUID) =
+            ResourceRef(ResourceType.INFORMATION_REQUEST_REQUIREMENT, id)
     }
 }
 

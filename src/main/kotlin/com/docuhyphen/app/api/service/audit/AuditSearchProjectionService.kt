@@ -20,7 +20,7 @@ import org.slf4j.LoggerFactory
 import java.sql.Timestamp
 import java.time.Duration
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 data class AuditProjectionCursor(
     val occurredAt: Instant,
@@ -41,6 +41,8 @@ data class AuditProjectionEvent(
     val actorId: UUID?,
     val actorRole: String?,
     val actorLabel: String?,
+    val ownerType: String,
+    val ownerId: UUID?,
     val organizationId: UUID?,
     val organizationLabel: String?,
     val targetType: String?,
@@ -331,6 +333,39 @@ class AuditSearchProjectionService @Inject constructor(
         requireEngagement = false,
     )
 
+    fun listPersonalOwnerEvents(
+        actor: AuditAccessActor,
+        ownerUserId: UUID,
+        categories: Set<AuditCategory>,
+        cursor: AuditProjectionCursor?,
+        limit: Int,
+        occurredAfter: Instant? = null,
+        occurredBefore: Instant? = null,
+    ): AuditProjectionPage
+    {
+        if (actor.principal.id != ownerUserId)
+        {
+            throw AuditProjectionAccessDeniedException("Audit owner does not match the caller")
+        }
+        return searchEvents(
+            actor = actor,
+            organizationId = null,
+            platformOnly = false,
+            categories = categories,
+            targetTypes = emptySet(),
+            targetIds = emptySet(),
+            actorIdFilter = null,
+            cursor = cursor,
+            limit = limit,
+            occurredAfter = occurredAfter,
+            occurredBefore = occurredBefore,
+            auditTargetType = "APP_USER",
+            auditTargetId = ownerUserId.toString(),
+            requireEngagement = false,
+            ownerUserId = ownerUserId,
+        )
+    }
+
     fun listSecurityIncidentAreaEvents(
         actor: AuditAccessActor,
         cursor: AuditProjectionCursor?,
@@ -389,6 +424,7 @@ class AuditSearchProjectionService @Inject constructor(
         auditTargetId: String,
         auditTargetLabel: String? = null,
         requireEngagement: Boolean = shouldRequireEngagement(actor, organizationId, platformOnly),
+        ownerUserId: UUID? = null,
     ): AuditProjectionPage
     {
         if (requireEngagement)
@@ -421,19 +457,37 @@ class AuditSearchProjectionService @Inject constructor(
         var rawResultsExhausted = false
         while (visible.size < limit && !rawResultsExhausted)
         {
-            val events = auditLedgerEventRepository.search(
-                organizationId = organizationId,
-                platformOnly = platformOnly,
-                categories = categories.map { it.name }.toSet(),
-                targetTypes = targetTypes,
-                targetIds = targetIds,
-                actorId = actorIdFilter,
-                occurredAfter = effectiveOccurredAfter?.let(Timestamp::from),
-                occurredBefore = effectiveOccurredBefore?.let(Timestamp::from),
-                cursorOccurredAt = rawCursor?.occurredAt?.let(Timestamp::from),
-                cursorEventId = rawCursor?.eventId,
-                limit = limit,
-            )
+            val events = if (ownerUserId != null)
+            {
+                auditLedgerEventRepository.searchPersonal(
+                    ownerUserId = ownerUserId,
+                    categories = categories.map { it.name }.toSet(),
+                    targetTypes = targetTypes,
+                    targetIds = targetIds,
+                    actorId = actorIdFilter,
+                    occurredAfter = effectiveOccurredAfter?.let(Timestamp::from),
+                    occurredBefore = effectiveOccurredBefore?.let(Timestamp::from),
+                    cursorOccurredAt = rawCursor?.occurredAt?.let(Timestamp::from),
+                    cursorEventId = rawCursor?.eventId,
+                    limit = limit,
+                )
+            }
+            else
+            {
+                auditLedgerEventRepository.search(
+                    organizationId = organizationId,
+                    platformOnly = platformOnly,
+                    categories = categories.map { it.name }.toSet(),
+                    targetTypes = targetTypes,
+                    targetIds = targetIds,
+                    actorId = actorIdFilter,
+                    occurredAfter = effectiveOccurredAfter?.let(Timestamp::from),
+                    occurredBefore = effectiveOccurredBefore?.let(Timestamp::from),
+                    cursorOccurredAt = rawCursor?.occurredAt?.let(Timestamp::from),
+                    cursorEventId = rawCursor?.eventId,
+                    limit = limit,
+                )
+            }
             rawResultsExhausted = events.size < limit
 
             for (event in events)
@@ -469,6 +523,7 @@ class AuditSearchProjectionService @Inject constructor(
                 "categories" to categories.joinToString(",") { it.name },
             ),
             reason = "Searched the audit trail",
+            ownerUserId = ownerUserId,
         )
 
         val nextCursor = lastRawEvent?.let {
@@ -546,6 +601,8 @@ class AuditSearchProjectionService @Inject constructor(
             actorId = event.actorId.takeIf { canViewSensitive },
             actorRole = event.actorRole.takeIf { canViewSensitive },
             actorLabel = event.actorLabel.takeIf { canViewSensitive },
+            ownerType = event.ownerType,
+            ownerId = event.ownerId,
             organizationId = event.organizationId,
             organizationLabel = event.organizationLabel,
             targetType = event.targetType,
@@ -640,6 +697,7 @@ class AuditSearchProjectionService @Inject constructor(
         outcome: AuditOutcome,
         payload: Map<String, String>,
         reason: String,
+        ownerUserId: UUID? = null,
     )
     {
         try
@@ -651,7 +709,12 @@ class AuditSearchProjectionService @Inject constructor(
                     actorId = actor.principal.id,
                     actorKind = AuditActorKind.HUMAN,
                     actorRole = "AUDIT_READER",
-                    owner = organizationId?.let(AuditOwnerScope::Organization) ?: AuditOwnerScope.Platform,
+                    owner = when
+                    {
+                        ownerUserId != null -> AuditOwnerScope.Personal(ownerUserId)
+                        organizationId != null -> AuditOwnerScope.Organization(organizationId)
+                        else -> AuditOwnerScope.Platform
+                    },
                     targetType = targetType,
                     targetId = targetId,
                     targetLabel = targetLabel,

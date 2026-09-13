@@ -11,13 +11,8 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import org.mockito.kotlin.any
-import org.mockito.kotlin.eq
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.never
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.whenever
-import java.util.UUID
+import org.mockito.kotlin.*
+import java.util.*
 
 /**
  * Verifies [AuditRecorder]:
@@ -110,6 +105,26 @@ class AuditRecorderTest
 
         val entry = org.mockito.kotlin.argumentCaptor<AuditOutboxEntry>()
         verify(repo).insert(entry.capture())
+        assertEquals(null, entry.firstValue.organizationId)
+    }
+
+    @Test
+    fun `personal owner is captured without filing under platform or organization scope`()
+    {
+        val ownerUserId = UUID.randomUUID()
+        val repo = mock<AuditOutboxRepository>()
+        whenever(repo.findByIdempotencyKey(any())).thenReturn(null)
+        whenever(repo.insert(any())).thenAnswer { invocation ->
+            invocation.getArgument<AuditOutboxEntry>(0).also { it.id = UUID.randomUUID() }
+        }
+        val recorder = AuditRecorder(repo, makeTokenContext(), makeResolver(AuditFailurePolicy.DEGRADED))
+
+        recorder.record(validDraft().copy(owner = AuditOwnerScope.Personal(ownerUserId)))
+
+        val entry = org.mockito.kotlin.argumentCaptor<AuditOutboxEntry>()
+        verify(repo).insert(entry.capture())
+        assertEquals("USER", entry.firstValue.ownerType)
+        assertEquals(ownerUserId, entry.firstValue.ownerId)
         assertEquals(null, entry.firstValue.organizationId)
     }
 

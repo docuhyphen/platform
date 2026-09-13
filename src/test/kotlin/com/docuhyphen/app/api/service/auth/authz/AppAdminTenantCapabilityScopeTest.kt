@@ -4,11 +4,11 @@ import com.docuhyphen.app.api.model.entity.AppRoleAssignment
 import com.docuhyphen.app.api.model.entity.AppRoleName
 import com.docuhyphen.app.api.model.entity.ResourceType
 import com.docuhyphen.app.api.repository.application.AppRoleAssignmentRepository
+import com.docuhyphen.app.api.repository.exchange.ShareLinkRepository
+import com.docuhyphen.app.api.repository.exchange.ShareRepository
 import com.docuhyphen.app.api.repository.organization.OrganizationMembershipRepository
 import com.docuhyphen.app.api.repository.organization.PrincipalGroupMemberRepository
 import com.docuhyphen.app.api.repository.organization.PrincipalGroupRepository
-import com.docuhyphen.app.api.repository.exchange.ShareLinkRepository
-import com.docuhyphen.app.api.repository.exchange.ShareRepository
 import com.docuhyphen.app.api.service.application.ApplicationService
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -19,7 +19,7 @@ import org.mockito.Mock
 import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.kotlin.any
 import org.mockito.kotlin.whenever
-import java.util.UUID
+import java.util.*
 
 @ExtendWith(MockitoExtension::class)
 class AppAdminTenantCapabilityScopeTest
@@ -66,6 +66,11 @@ class AppAdminTenantCapabilityScopeTest
         val principal = PrincipalRef.user(appAdminId)
         val organization = ResourceRef.organization(UUID.randomUUID())
         val context = AuthorizationContext(activeOrgId = organization.id)
+        whenever(resourceContextRegistry.resolution(organization)).thenReturn(
+            ResourceContextResolution.Resolved(
+                ResourceAuthorizationContext(ownerContext = OwnerContext.Organization(organization.id)),
+            ),
+        )
 
         val capabilities = authorizationService.capabilities(principal, organization, context)
 
@@ -89,6 +94,8 @@ class AppAdminTenantCapabilityScopeTest
     {
         val principal = PrincipalRef.user(appAdminId)
         val platform = ResourceRef(ResourceType.APPLICATION, UUID(0, 0))
+        whenever(resourceContextRegistry.resolution(platform))
+            .thenReturn(ResourceContextResolution.NotGoverned)
 
         val capabilities = authorizationService.capabilities(principal, platform, AuthorizationContext())
 

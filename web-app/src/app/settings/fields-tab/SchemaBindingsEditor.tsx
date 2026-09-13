@@ -1,16 +1,10 @@
 import {useState} from 'react';
 import {Button, Combobox, Option, Switch, Text} from '@fluentui/react-components';
-import {ArrowUpRegular, ArrowDownRegular, DeleteRegular} from '@fluentui/react-icons';
+import {ArrowDownRegular, ArrowUpRegular, DeleteRegular} from '@fluentui/react-icons';
 import {FieldDefinitionDto} from '../../models/models';
 import {useFieldsTabStyles} from './FieldsTabStyles';
-export interface BindingDraft
-{
-    fieldContractId: string;
-    label: string;
-    keyLabel: string;
-    isRequired: boolean;
-    isReadOnly: boolean;
-}
+import {addableDefinitions, BindingDraft, draftForDefinition} from './schemaBindingDrafts';
+
 interface Props
 {
     definitions: FieldDefinitionDto[];
@@ -21,8 +15,7 @@ const SchemaBindingsEditor = ({definitions, bindings, onChange}: Props) =>
 {
     const styles = useFieldsTabStyles();
     const [fieldSearch, setFieldSearch] = useState('');
-    const usedIds = new Set(bindings.map(b => b.fieldContractId));
-    const available = definitions.filter(d => d.latestContract && !usedIds.has(d.latestContract.id));
+    const available = addableDefinitions(definitions, bindings);
     const normalizedSearch = fieldSearch.trim().toLowerCase();
     const filteredAvailable = available.filter(definition =>
     {
@@ -48,14 +41,9 @@ const SchemaBindingsEditor = ({definitions, bindings, onChange}: Props) =>
     const add = (definitionId: string) =>
     {
         const definition = definitions.find(d => d.id === definitionId);
-        if (!definition?.latestContract) return;
-        onChange([...bindings, {
-            fieldContractId: definition.latestContract.id,
-            label: definition.latestContract.label,
-            keyLabel: `${definition.namespace}:${definition.fieldKey}`,
-            isRequired: false,
-            isReadOnly: false,
-        }]);
+        const draft = definition ? draftForDefinition(definition) : null;
+        if (!draft) return;
+        onChange([...bindings, draft]);
         setFieldSearch('');
     };
 
@@ -65,7 +53,7 @@ const SchemaBindingsEditor = ({definitions, bindings, onChange}: Props) =>
                 <Text className={styles.emptyText}>No fields added yet.</Text>
             )}
             {bindings.map((binding, index) => (
-                <div key={binding.fieldContractId}
+                <div key={binding.fieldDefinitionId}
                      className={styles.bindingRow}>
                     <div className={styles.bindingHeader}>
                         <div className={styles.cardMain}>

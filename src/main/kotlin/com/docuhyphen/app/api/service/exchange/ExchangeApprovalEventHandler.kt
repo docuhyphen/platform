@@ -1,4 +1,4 @@
-﻿package com.docuhyphen.app.api.service.exchange
+package com.docuhyphen.app.api.service.exchange
 
 import com.docuhyphen.app.api.model.entity.ExchangeStatus
 import com.docuhyphen.app.api.model.entity.ResourceType
@@ -39,6 +39,7 @@ class ExchangeApprovalEventHandler @Inject constructor(
     private val exchangeParticipantOrgService: ExchangeParticipantOrgService,
     private val lifecycleNotificationService: ExchangeLifecycleNotificationService,
     private val exchangeRecipientService: ExchangeRecipientService,
+    private val requestParentLifecycle: com.docuhyphen.app.api.service.informationrequest.InformationRequestParentLifecycleService,
 )
 {
     companion object
@@ -81,6 +82,9 @@ class ExchangeApprovalEventHandler @Inject constructor(
             return
         }
 
+        val parent = exchangeRepository.findByIdForUpdate(exchangeId) ?: return
+        if (parent.isDeleted || parent.status in setOf(ExchangeStatus.REJECTED, ExchangeStatus.RESCINDED, ExchangeStatus.ENDED)) return
+
         when (event.type)
         {
             // ---------------------------------------------------------------------------
@@ -91,11 +95,13 @@ class ExchangeApprovalEventHandler @Inject constructor(
             {
                 val activated = activateExchangeGateShares(exchangeId)
                 // Fix known gap: the legacy handler did not set exchange.status; do it now.
-                exchangeRepository.findById(exchangeId)?.let { session ->
+                exchangeRepository.findByIdForUpdate(exchangeId)?.let { session ->
                     if (session.status != ExchangeStatus.ACCEPTED_STARTED)
                     {
                         session.status = ExchangeStatus.ACCEPTED_STARTED
                         exchangeRepository.update(session)
+                        requestParentLifecycle.apply(exchangeId, session.status, session.isDeleted,
+                            com.docuhyphen.app.api.service.auth.authz.PrincipalRef(com.docuhyphen.app.api.model.entity.PrincipalKind.SERVICE_ACCOUNT, UUID(0, 0)))
                         lifecycleNotificationService.publish(session, ExchangeStatus.ACCEPTED_STARTED)
                     }
                 }
@@ -109,12 +115,14 @@ class ExchangeApprovalEventHandler @Inject constructor(
 
             EVENT_REJECTED ->
             {
-                exchangeRepository.findById(exchangeId)?.let { session ->
+                exchangeRepository.findByIdForUpdate(exchangeId)?.let { session ->
                     if (session.status != ExchangeStatus.REJECTED)
                     {
                         session.status = ExchangeStatus.REJECTED
                         session.endDate = Timestamp.from(Instant.now())
                         exchangeRepository.update(session)
+                        requestParentLifecycle.apply(exchangeId, session.status, session.isDeleted,
+                            com.docuhyphen.app.api.service.auth.authz.PrincipalRef(com.docuhyphen.app.api.model.entity.PrincipalKind.SERVICE_ACCOUNT, UUID(0, 0)))
                         lifecycleNotificationService.publish(session, ExchangeStatus.REJECTED)
                     }
                 }
@@ -130,7 +138,7 @@ class ExchangeApprovalEventHandler @Inject constructor(
             {
                 // Fired when the acceptance_pending workflow completes (or auto-acceptance).
                 val activated = activateExchangeGateShares(exchangeId)
-                val exchange = exchangeRepository.findById(exchangeId)
+                val exchange = exchangeRepository.findByIdForUpdate(exchangeId)
                 val orgId = exchange?.ownerOrganizationId
                 val requireRecipientAcceptance = orgId
                     ?.let { organizationService.getOrganizationById(it) }?.settings?.requireRecipientAcceptance
@@ -144,6 +152,8 @@ class ExchangeApprovalEventHandler @Inject constructor(
                             // Acceptance is not required: auto-advance straight to active.
                             session.status = ExchangeStatus.ACCEPTED_STARTED
                             exchangeRepository.update(session)
+                        requestParentLifecycle.apply(exchangeId, session.status, session.isDeleted,
+                            com.docuhyphen.app.api.service.auth.authz.PrincipalRef(com.docuhyphen.app.api.model.entity.PrincipalKind.SERVICE_ACCOUNT, UUID(0, 0)))
                             lifecycleNotificationService.publish(session, ExchangeStatus.ACCEPTED_STARTED)
                             logger.info(
                                 "Exchange {} activated: {} pending share(s) activated, status -> ACCEPTED_STARTED",
@@ -184,7 +194,7 @@ class ExchangeApprovalEventHandler @Inject constructor(
                 // Fire exchange.acceptance_pending or auto-advance to ACCEPTED_STARTED,
                 // depending on the org's requireRecipientAcceptance setting.
                 logger.info("Exchange {} draft approved; checking whether to fire acceptance_pending", exchangeId)
-                val exchange = exchangeRepository.findById(exchangeId) ?: run {
+                val exchange = exchangeRepository.findByIdForUpdate(exchangeId) ?: run {
                     logger.warn("Exchange {} not found for draft_approved event", exchangeId)
                     return
                 }
@@ -237,13 +247,15 @@ class ExchangeApprovalEventHandler @Inject constructor(
             // exchange.ending is emitted by a workflow step to signal the ending workflow completed.
             EVENT_ENDING ->
             {
-                val exchange = exchangeRepository.findById(exchangeId)
+                val exchange = exchangeRepository.findByIdForUpdate(exchangeId)
                 exchange?.let { session ->
                     if (session.status != ExchangeStatus.ENDED)
                     {
                         session.status = ExchangeStatus.ENDED
                         session.endDate = Timestamp.from(Instant.now())
                         exchangeRepository.update(session)
+                        requestParentLifecycle.apply(exchangeId, session.status, session.isDeleted,
+                            com.docuhyphen.app.api.service.auth.authz.PrincipalRef(com.docuhyphen.app.api.model.entity.PrincipalKind.SERVICE_ACCOUNT, UUID(0, 0)))
                         lifecycleNotificationService.publish(session, ExchangeStatus.ENDED)
                     }
                 }
@@ -259,13 +271,15 @@ class ExchangeApprovalEventHandler @Inject constructor(
             EVENT_ENDED_CONFIRMED ->
             {
                 // Canonical terminal event from an ending workflow (step onApprove.emit).
-                val exchange = exchangeRepository.findById(exchangeId)
+                val exchange = exchangeRepository.findByIdForUpdate(exchangeId)
                 exchange?.let { session ->
                     if (session.status != ExchangeStatus.ENDED)
                     {
                         session.status = ExchangeStatus.ENDED
                         session.endDate = Timestamp.from(Instant.now())
                         exchangeRepository.update(session)
+                        requestParentLifecycle.apply(exchangeId, session.status, session.isDeleted,
+                            com.docuhyphen.app.api.service.auth.authz.PrincipalRef(com.docuhyphen.app.api.model.entity.PrincipalKind.SERVICE_ACCOUNT, UUID(0, 0)))
                         lifecycleNotificationService.publish(session, ExchangeStatus.ENDED)
                     }
                 }

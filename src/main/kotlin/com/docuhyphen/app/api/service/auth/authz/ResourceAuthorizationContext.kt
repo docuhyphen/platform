@@ -8,8 +8,13 @@ package com.docuhyphen.app.api.service.auth.authz
  *
  * A null result from the provider always fails closed.
  */
+interface ResourcePolicyFacts
+{
+    data object None : ResourcePolicyFacts
+}
+
 data class ResourceAuthorizationContext(
-    /** Stable owner of the resource — never inferred from the caller's active organization. */
+    /** Stable owner of the resource, never inferred from the caller's active organization. */
     val ownerContext: OwnerContext,
     /**
      * True when the resource is in a terminal state (e.g. rescinded, ended, deleted).
@@ -23,4 +28,6 @@ data class ResourceAuthorizationContext(
     val isSuspended: Boolean = false,
     /** Parent resource from which this resource inherits authorization, if applicable. */
     val parentRef: ResourceRef? = null,
+    /** Resource-specific facts available to a registered policy evaluator. */
+    val policyFacts: ResourcePolicyFacts = ResourcePolicyFacts.None,
 )

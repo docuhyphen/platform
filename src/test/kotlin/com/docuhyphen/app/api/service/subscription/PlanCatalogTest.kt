@@ -1,14 +1,17 @@
 package com.docuhyphen.app.api.service.subscription
 
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Assertions.assertThrows
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 
 class PlanCatalogTest
 {
+    /**
+     * Features that exist as a code but are deliberately absent from every plan while the
+     * capability behind them is built. A capability that declares itself under controlled release
+     * is exactly that set, so the two statements cannot drift apart.
+     */
+    private val heldBackFeatures = PlanFeature.entries.filter { it.requiresRolloutGrant }.toSet()
+
     @Test
     fun `free is an individual plan limited to the basic sharing flow`()
     {
@@ -94,15 +97,30 @@ class PlanCatalogTest
     }
 
     @Test
-    fun `business is the organization plan and includes every feature`()
+    fun `business is the organization plan and includes every released feature`()
     {
         val business = PlanCatalog.definitionOf(PlanCode.BUSINESS)
 
         assertEquals(SubscriptionOwnerType.ORGANIZATION, business.ownerType)
-        assertEquals(PlanFeature.entries.toSet(), business.features)
+        assertEquals(PlanFeature.entries.toSet() - heldBackFeatures, business.features)
         assertTrue(business.limits.seatsArePurchased)
         assertNull(business.limits.includedSeats)
         assertNull(business.upgradePlanCode)
+    }
+
+    @Test
+    fun `a feature held back for controlled release is sold by no plan`()
+    {
+        assertEquals(setOf(PlanFeature.INFORMATION_REQUESTS), heldBackFeatures)
+
+        heldBackFeatures.forEach { feature ->
+            PlanCatalog.all().forEach { plan ->
+                assertFalse(
+                    plan.includes(feature),
+                    "${plan.planCode} must not sell $feature while it is held back",
+                )
+            }
+        }
     }
 
     @Test

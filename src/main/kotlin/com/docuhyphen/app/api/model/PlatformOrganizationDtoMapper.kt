@@ -4,13 +4,13 @@ import com.docuhyphen.app.api.model.dto.PlatformOrganizationFeatureEntitlementDt
 import com.docuhyphen.app.api.model.dto.PlatformOrganizationFeatureEntitlementsDto
 import com.docuhyphen.app.api.model.dto.PlatformOrganizationSummaryDto
 import com.docuhyphen.app.api.model.entity.Organization
-import com.docuhyphen.app.api.model.entity.OrganizationFeatureEntitlement
 import com.docuhyphen.app.api.model.entity.OrganizationSubscriptionPolicy
+import com.docuhyphen.app.api.model.entity.SubscriptionFeatureEntitlement
 import com.docuhyphen.app.api.resource.model.PlatformOrganizationSubscriptionPolicyResponse
 import com.docuhyphen.app.api.service.subscription.PlatformOrganizationSubscriptionPolicyService
 import com.docuhyphen.app.api.service.subscription.PolicyResult
 import jakarta.enterprise.context.ApplicationScoped
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class PlatformOrganizationDtoMapper
@@ -19,7 +19,7 @@ class PlatformOrganizationDtoMapper
         organization: Organization,
         policy: OrganizationSubscriptionPolicy?,
         activeUsers: Long,
-        entitlements: List<OrganizationFeatureEntitlement>,
+        entitlements: List<SubscriptionFeatureEntitlement>,
     ): PlatformOrganizationSummaryDto
     {
         val tierCode = policy?.tierCode ?: PlatformOrganizationSubscriptionPolicyService.ORGANIZATION_TIER_CODE
@@ -46,7 +46,7 @@ class PlatformOrganizationDtoMapper
 
     fun toEntitlements(
         organizationId: UUID,
-        entitlements: List<OrganizationFeatureEntitlement>,
+        entitlements: List<SubscriptionFeatureEntitlement>,
     ): PlatformOrganizationFeatureEntitlementsDto =
         PlatformOrganizationFeatureEntitlementsDto(
             organizationId = organizationId.toString(),
@@ -73,7 +73,7 @@ class PlatformOrganizationDtoMapper
         )
 
     private fun toEntitlement(
-        entitlement: OrganizationFeatureEntitlement,
+        entitlement: SubscriptionFeatureEntitlement,
     ): PlatformOrganizationFeatureEntitlementDto =
         PlatformOrganizationFeatureEntitlementDto(
             featureCode = entitlement.featureCode,

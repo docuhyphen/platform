@@ -30,6 +30,12 @@ export const workflowApplicabilityArticle = (
                 operators take no value.
             </li>
             <li>
+                A condition on a Date and time field compares moments, not wall-clock
+                readings. The moment you pick is recorded with your browser&apos;s time zone
+                offset, so it matches a stored answer that names the same moment even if it
+                was entered in a different zone.
+            </li>
+            <li>
                 All conditions must match (AND). If any condition fails, the workflow
                 is skipped for that Exchange.
             </li>
@@ -37,11 +43,21 @@ export const workflowApplicabilityArticle = (
 
         <h3>When a workflow is skipped</h3>
         <p>
-            The gate never fails open. A workflow with conditions is skipped when the
-            subject is not an Exchange, when the Exchange has no assigned schema, when
-            a referenced field has no value, or when a selected option is no longer
-            stored. This means values must be entered before the workflow fires - the
-            Business Fields step of Exchange creation runs first.
+            The gate never fails open. A condition that cannot be judged counts as a
+            failed condition, and one failed condition skips the workflow. That covers a
+            subject that is not an Exchange, an Exchange with no assigned schema, a
+            condition whose field or comparison value cannot be read, and an operator the
+            field type does not offer.
+        </p>
+        <p>
+            An unanswered field is judged rather than skipped over. It fails every
+            operator that compares a value, so a condition such as <code>equals</code>
+            needs the field answered before the workflow fires, which is why the Business
+            Fields step of Exchange creation runs first. It matches <code>is empty</code>
+            and fails <code>is not empty</code>, so a condition written with{" "}
+            <code>is empty</code> deliberately starts the workflow for the Exchange that
+            left the field blank. A selection whose stored options are gone counts as
+            unanswered in exactly the same way.
         </p>
 
         <h3>Example</h3>

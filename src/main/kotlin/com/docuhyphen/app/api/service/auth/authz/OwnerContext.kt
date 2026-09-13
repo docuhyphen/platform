@@ -1,6 +1,6 @@
 package com.docuhyphen.app.api.service.auth.authz
 
-import java.util.UUID
+import java.util.*
 
 /**
  * Identifies who owns a governed resource. Ownership is immutable after creation and
@@ -28,22 +28,23 @@ sealed class OwnerContext
 
 /**
  * Identifies who governs reusable configuration (Schema Definitions, Field Definitions,
- * Workflow Definitions, etc.). The first Fields release resolves Platform and Organization
- * configuration scopes only.
+ * Workflow Definitions, etc.). Each kind names exactly one governing owner.
  *
  * [ScopeReference] is related to but distinct from [OwnerContext]:
  * - An organization-owned Exchange has an [OwnerContext.Organization] but its Field
  *   Schemas are governed by whichever [ScopeReference] published them.
- * - Personal resources may be governed by platform configuration scope when the platform
- *   publishes the relevant schema.
+ * - A personally held resource may be governed by the platform configuration scope when the
+ *   platform publishes the relevant schema, as well as by its holder's own scope.
  *
- * Do not substitute a nullable [Organization] scope for personal ownership; use
- * [OwnerContext.Personal] for that.
+ * Do not substitute a nullable [Organization] scope for personal ownership; use [Personal] for
+ * that. An absent scope means the governing owner could not be resolved at all, which is not the
+ * same statement as a resource one person governs.
  */
 sealed class ScopeReference
 {
     data object Platform : ScopeReference()
     data class Organization(val organizationId: UUID) : ScopeReference()
+    data class Personal(val userId: UUID) : ScopeReference()
 }
 
 /**
@@ -81,4 +82,6 @@ enum class ResourceKind
     COMMUNICATION,
     APPLICATION,
     ORGANIZATION,
+    INFORMATION_REQUEST,
+    INFORMATION_REQUEST_REQUIREMENT,
 }

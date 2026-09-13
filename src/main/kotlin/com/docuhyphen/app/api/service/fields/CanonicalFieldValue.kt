@@ -2,8 +2,8 @@ package com.docuhyphen.app.api.service.fields
 
 import com.docuhyphen.app.api.model.entity.FieldValueType
 import java.math.BigDecimal
+import java.time.Instant
 import java.time.LocalDate
-import java.time.LocalDateTime
 
 /**
  * A validated, canonical field value ready to persist onto a
@@ -18,7 +18,8 @@ data class CanonicalFieldValue(
     val numberValue: BigDecimal? = null,
     val boolValue: Boolean? = null,
     val dateValue: LocalDate? = null,
-    val datetimeValue: LocalDateTime? = null,
+    val datetimeValue: Instant? = null,
+    val datetimeOffsetMinutes: Int? = null,
     val selectionCodes: List<String> = emptyList(),
 )
 {

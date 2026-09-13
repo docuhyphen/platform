@@ -1,29 +1,14 @@
 package com.docuhyphen.app.api.service.exchange.permutation
 
-import com.docuhyphen.app.api.model.entity.ExchangeShareRoleName
-import com.docuhyphen.app.api.model.entity.PrincipalGroupMember
-import com.docuhyphen.app.api.model.entity.PrincipalGroupRoleName
-import com.docuhyphen.app.api.model.entity.PrincipalKind
-import com.docuhyphen.app.api.model.entity.ResourceType
-import com.docuhyphen.app.api.model.entity.Share
-import com.docuhyphen.app.api.model.entity.ShareSource
-import com.docuhyphen.app.api.model.entity.ShareStatus
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.repository.application.AppRoleAssignmentRepository
+import com.docuhyphen.app.api.repository.exchange.ShareLinkRepository
+import com.docuhyphen.app.api.repository.exchange.ShareRepository
 import com.docuhyphen.app.api.repository.organization.OrganizationMembershipRepository
 import com.docuhyphen.app.api.repository.organization.PrincipalGroupMemberRepository
 import com.docuhyphen.app.api.repository.organization.PrincipalGroupRepository
-import com.docuhyphen.app.api.repository.exchange.ShareLinkRepository
-import com.docuhyphen.app.api.repository.exchange.ShareRepository
 import com.docuhyphen.app.api.service.application.ApplicationService
-import com.docuhyphen.app.api.service.auth.authz.Action
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
-import com.docuhyphen.app.api.service.auth.authz.Decision
-import com.docuhyphen.app.api.service.auth.authz.DefaultAuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.OwnerContext
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import com.docuhyphen.app.api.service.auth.authz.ResourceAuthorizationContext
-import com.docuhyphen.app.api.service.auth.authz.ResourceAuthorizationContextRegistry
-import com.docuhyphen.app.api.service.auth.authz.ResourceRef
+import com.docuhyphen.app.api.service.auth.authz.*
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.mockito.kotlin.any
@@ -31,7 +16,7 @@ import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 internal class ExchangeAuthorizationProbe
 {
@@ -53,7 +38,7 @@ internal class ExchangeAuthorizationProbe
         resourceId = this@ExchangeAuthorizationProbe.resourceId
         this.principalKind = principalKind
         this.principalId = principalId
-        roleName = role
+        roleName = role.name
         this.source = source
         this.sourceShareId = sourceShareId
         this.status = status
@@ -169,7 +154,17 @@ internal class ExchangeAuthorizationProbe
             }
 
         val registry = mock<ResourceAuthorizationContextRegistry>()
-        whenever(registry.resolve(any<ResourceRef>())).thenReturn(resourceContext)
+        // An Exchange under test always exists, so its facts always resolve. A probe that says
+        // nothing about resource state gets an organization-owned, non-archived Exchange whose
+        // owner the caller is not a member of, so shares alone decide the outcome.
+        whenever(registry.resolution(any<ResourceRef>())).thenReturn(
+            ResourceContextResolution.Resolved(
+                resourceContext
+                    ?: ResourceAuthorizationContext(
+                        ownerContext = OwnerContext.Organization(UUID.randomUUID()),
+                    ),
+            ),
+        )
 
         return DefaultAuthorizationService(
             shareRepository = shareRepository,

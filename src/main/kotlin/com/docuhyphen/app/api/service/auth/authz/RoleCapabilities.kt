@@ -1,10 +1,6 @@
 package com.docuhyphen.app.api.service.auth.authz
 
-import com.docuhyphen.app.api.model.entity.AppRoleName
-import com.docuhyphen.app.api.model.entity.ApplicationRoleName
-import com.docuhyphen.app.api.model.entity.ExchangeShareRoleName
-import com.docuhyphen.app.api.model.entity.OrganizationRoleName
-import com.docuhyphen.app.api.model.entity.PrincipalGroupRoleName
+import com.docuhyphen.app.api.model.entity.*
 
 object RoleCapabilities
 {
@@ -112,6 +108,10 @@ object RoleCapabilities
         Capability.FIELD_SCHEMA_READ,
         Capability.FIELD_SCHEMA_WRITE,
         Capability.FIELD_SCHEMA_PUBLISH,
+        // Authoring reusable request configuration is a settings activity, so it stays with the
+        // roles that administer the organization rather than reaching every member.
+        Capability.INFORMATION_REQUEST_TEMPLATE_READ,
+        Capability.INFORMATION_REQUEST_TEMPLATE_WRITE,
     )
 
     private val ORGANIZATION: Map<OrganizationRoleName, Set<Capability>> = mapOf(
@@ -189,6 +189,15 @@ object RoleCapabilities
             Capability.DOCUMENT_WRITE,
             Capability.DOCUMENT_DELETE,
             Capability.DOCUMENT_COMMENT,
+            // The Exchange owner is the only Share role that may author runtime Information
+            // Requests against their own Exchange, since no request-scoped Share can exist before
+            // the request itself does. Issuance, editing, export, and every respondent or reviewer
+            // capability are deliberately withheld here; those are granted only through a
+            // request-scoped Share once request parties exist.
+            Capability.INFORMATION_REQUEST_CREATE,
+            Capability.INFORMATION_REQUEST_READ,
+            Capability.INFORMATION_REQUEST_CANCEL,
+            Capability.INFORMATION_REQUEST_ADMIN,
         ),
         ExchangeShareRoleName.EDITOR to setOf(
             Capability.EXCHANGE_ACCEPT,
@@ -231,6 +240,46 @@ object RoleCapabilities
         ),
     )
 
+    private val INFORMATION_REQUEST_SHARE: Map<InformationRequestShareRoleKey, Set<Capability>> = mapOf(
+        InformationRequestShareRoleKey.SUBJECT to setOf(
+            Capability.INFORMATION_REQUEST_READ,
+        ),
+        InformationRequestShareRoleKey.CONTRIBUTOR to setOf(
+            Capability.INFORMATION_REQUEST_READ,
+            Capability.INFORMATION_REQUEST_RESPOND,
+            Capability.INFORMATION_REQUEST_SUBMIT,
+            Capability.INFORMATION_REQUEST_EVIDENCE_READ,
+            Capability.INFORMATION_REQUEST_EVIDENCE_WRITE,
+        ),
+        InformationRequestShareRoleKey.PREPARER to setOf(
+            Capability.INFORMATION_REQUEST_READ,
+            Capability.INFORMATION_REQUEST_RESPOND,
+            Capability.INFORMATION_REQUEST_SUBMIT,
+            Capability.INFORMATION_REQUEST_EVIDENCE_READ,
+            Capability.INFORMATION_REQUEST_EVIDENCE_WRITE,
+        ),
+        InformationRequestShareRoleKey.ATTESTOR to setOf(
+            Capability.INFORMATION_REQUEST_READ,
+            Capability.INFORMATION_REQUEST_ATTEST,
+            Capability.INFORMATION_REQUEST_EVIDENCE_READ,
+        ),
+        InformationRequestShareRoleKey.REVIEWER to setOf(
+            Capability.INFORMATION_REQUEST_READ,
+            Capability.INFORMATION_REQUEST_REVIEW,
+            Capability.INFORMATION_REQUEST_EVIDENCE_READ,
+        ),
+        InformationRequestShareRoleKey.DECISION_MAKER to setOf(
+            Capability.INFORMATION_REQUEST_READ,
+            Capability.INFORMATION_REQUEST_WRITE,
+            Capability.INFORMATION_REQUEST_ISSUE,
+            Capability.INFORMATION_REQUEST_CANCEL,
+            Capability.INFORMATION_REQUEST_ADMIN,
+            Capability.INFORMATION_REQUEST_EXPORT,
+            Capability.INFORMATION_REQUEST_EVIDENCE_READ,
+            Capability.INFORMATION_REQUEST_EVIDENCE_ADMIN,
+        ),
+    )
+
     fun forAppRole(role: AppRoleName): Set<Capability> = APP.getValue(role)
 
     fun forApplicationRole(role: ApplicationRoleName): Set<Capability> = APPLICATION.getValue(role)
@@ -240,4 +289,32 @@ object RoleCapabilities
     fun forPrincipalGroupRole(role: PrincipalGroupRoleName): Set<Capability> = PRINCIPAL_GROUP.getValue(role)
 
     fun forExchangeShareRole(role: ExchangeShareRoleName): Set<Capability> = EXCHANGE_SHARE.getValue(role)
+
+    fun forShareRole(resourceType: ResourceType, roleName: String): Set<Capability> =
+        when (resourceType)
+        {
+            ResourceType.EXCHANGE ->
+                parseExchangeShareRole(roleName)?.let(EXCHANGE_SHARE::getValue) ?: emptySet()
+
+            ResourceType.INFORMATION_REQUEST ->
+                parseInformationRequestShareRole(roleName)?.let(INFORMATION_REQUEST_SHARE::getValue) ?: emptySet()
+
+            else -> emptySet()
+        }
+
+    fun isShareRoleValid(resourceType: ResourceType, roleName: String): Boolean =
+        when (resourceType)
+        {
+            ResourceType.EXCHANGE -> parseExchangeShareRole(roleName) != null
+            ResourceType.DOCUMENT -> parseExchangeShareRole(roleName) != null
+            ResourceType.PRINCIPAL_GROUP -> parseExchangeShareRole(roleName) != null
+            ResourceType.INFORMATION_REQUEST -> parseInformationRequestShareRole(roleName) != null
+            else -> false
+        }
+
+    private fun parseExchangeShareRole(roleName: String): ExchangeShareRoleName? =
+        runCatching { ExchangeShareRoleName.valueOf(roleName) }.getOrNull()
+
+    private fun parseInformationRequestShareRole(roleName: String): InformationRequestShareRoleKey? =
+        runCatching { InformationRequestShareRoleKey.valueOf(roleName) }.getOrNull()
 }

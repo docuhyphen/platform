@@ -1,12 +1,11 @@
 package com.docuhyphen.app.api.repository.audit
 
-import com.docuhyphen.app.api.repository.BaseRepository
-
 import com.docuhyphen.app.api.model.entity.AuditLedgerEvent
+import com.docuhyphen.app.api.repository.BaseRepository
 import jakarta.enterprise.context.RequestScoped
 import jakarta.persistence.NoResultException
 import java.sql.Timestamp
-import java.util.UUID
+import java.util.*
 
 @RequestScoped
 class AuditLedgerEventRepository : BaseRepository<AuditLedgerEvent>(AuditLedgerEvent::class.java)
@@ -108,16 +107,54 @@ class AuditLedgerEventRepository : BaseRepository<AuditLedgerEvent>(AuditLedgerE
         cursorOccurredAt: Timestamp? = null,
         cursorEventId: UUID? = null,
         limit: Int = 50,
+    ): List<AuditLedgerEvent> = searchScoped(
+        organizationId, platformOnly, null, categories, targetTypes, targetIds, actorId,
+        occurredAfter, occurredBefore, cursorOccurredAt, cursorEventId, limit,
+    )
+
+    fun searchPersonal(
+        ownerUserId: UUID,
+        categories: Set<String> = emptySet(),
+        targetTypes: Set<String> = emptySet(),
+        targetIds: Set<String> = emptySet(),
+        actorId: UUID? = null,
+        occurredAfter: Timestamp? = null,
+        occurredBefore: Timestamp? = null,
+        cursorOccurredAt: Timestamp? = null,
+        cursorEventId: UUID? = null,
+        limit: Int = 50,
+    ): List<AuditLedgerEvent> = searchScoped(
+        null, false, ownerUserId, categories, targetTypes, targetIds, actorId,
+        occurredAfter, occurredBefore, cursorOccurredAt, cursorEventId, limit,
+    )
+
+    private fun searchScoped(
+        organizationId: UUID?,
+        platformOnly: Boolean,
+        ownerUserId: UUID?,
+        categories: Set<String>,
+        targetTypes: Set<String>,
+        targetIds: Set<String>,
+        actorId: UUID?,
+        occurredAfter: Timestamp?,
+        occurredBefore: Timestamp?,
+        cursorOccurredAt: Timestamp?,
+        cursorEventId: UUID?,
+        limit: Int,
     ): List<AuditLedgerEvent>
     {
         val where = mutableListOf<String>()
-        if (platformOnly)
+        if (ownerUserId != null)
         {
-            where += "l.organizationId IS NULL"
+            where += "l.ownerType = 'USER' AND l.ownerId = :ownerUserId"
+        }
+        else if (platformOnly)
+        {
+            where += "l.ownerType = 'PLATFORM'"
         }
         else if (organizationId != null)
         {
-            where += "l.organizationId = :organizationId"
+            where += "l.ownerType = 'ORGANIZATION' AND l.ownerId = :organizationId"
         }
         if (categories.isNotEmpty())
         {
@@ -160,7 +197,11 @@ class AuditLedgerEventRepository : BaseRepository<AuditLedgerEvent>(AuditLedgerE
 
         val query = entityManager.createQuery(jpql, AuditLedgerEvent::class.java)
             .setMaxResults(limit)
-        if (!platformOnly && organizationId != null)
+        if (ownerUserId != null)
+        {
+            query.setParameter("ownerUserId", ownerUserId)
+        }
+        else if (!platformOnly && organizationId != null)
         {
             query.setParameter("organizationId", organizationId)
         }
@@ -212,11 +253,11 @@ class AuditLedgerEventRepository : BaseRepository<AuditLedgerEvent>(AuditLedgerE
         val where = mutableListOf("l.occurredAt >= :occurredAfter", "l.occurredAt < :occurredBefore")
         if (platformOnly)
         {
-            where += "l.organizationId IS NULL"
+            where += "l.ownerType = 'PLATFORM'"
         }
         else
         {
-            where += "l.organizationId = :organizationId"
+            where += "l.ownerType = 'ORGANIZATION' AND l.ownerId = :organizationId"
         }
 
         val query = entityManager.createQuery(
@@ -232,6 +273,21 @@ class AuditLedgerEventRepository : BaseRepository<AuditLedgerEvent>(AuditLedgerE
         return query.resultList
     }
 
+    fun findDistinctStreamIdsForPersonalExport(
+        ownerUserId: UUID,
+        occurredAfter: Timestamp,
+        occurredBefore: Timestamp,
+    ): List<String> = entityManager.createQuery(
+        """SELECT DISTINCT l.streamId FROM AuditLedgerEvent l
+           WHERE l.ownerType = 'USER' AND l.ownerId = :ownerUserId
+             AND l.occurredAt >= :occurredAfter AND l.occurredAt < :occurredBefore""",
+        String::class.java,
+    )
+        .setParameter("ownerUserId", ownerUserId)
+        .setParameter("occurredAfter", occurredAfter)
+        .setParameter("occurredBefore", occurredBefore)
+        .resultList
+
     /**
      * Every distinct stream currently carrying at least one event for [organizationId] (or every
      * platform stream when [platformOnly]), regardless of time range. Backs the
@@ -242,11 +298,11 @@ class AuditLedgerEventRepository : BaseRepository<AuditLedgerEvent>(AuditLedgerE
     {
         val jpql = if (platformOnly)
         {
-            "SELECT DISTINCT l.streamId FROM AuditLedgerEvent l WHERE l.organizationId IS NULL"
+            "SELECT DISTINCT l.streamId FROM AuditLedgerEvent l WHERE l.ownerType = 'PLATFORM'"
         }
         else
         {
-            "SELECT DISTINCT l.streamId FROM AuditLedgerEvent l WHERE l.organizationId = :organizationId"
+            "SELECT DISTINCT l.streamId FROM AuditLedgerEvent l WHERE l.ownerType = 'ORGANIZATION' AND l.ownerId = :organizationId"
         }
         val query = entityManager.createQuery(jpql, String::class.java)
         if (!platformOnly)
@@ -273,11 +329,11 @@ class AuditLedgerEventRepository : BaseRepository<AuditLedgerEvent>(AuditLedgerE
         val where = mutableListOf("l.occurredAt >= :occurredAfter", "l.occurredAt < :occurredBefore")
         if (platformOnly)
         {
-            where += "l.organizationId IS NULL"
+            where += "l.ownerType = 'PLATFORM'"
         }
         else
         {
-            where += "l.organizationId = :organizationId"
+            where += "l.ownerType = 'ORGANIZATION' AND l.ownerId = :organizationId"
         }
         if (categories.isNotEmpty())
         {
@@ -298,6 +354,28 @@ class AuditLedgerEventRepository : BaseRepository<AuditLedgerEvent>(AuditLedgerE
         {
             query.setParameter("categories", categories)
         }
+        return query.resultList
+    }
+
+    fun findForPersonalExport(
+        ownerUserId: UUID,
+        categories: Set<String>,
+        occurredAfter: Timestamp,
+        occurredBefore: Timestamp,
+    ): List<AuditLedgerEvent>
+    {
+        val categoryClause = if (categories.isEmpty()) "" else " AND l.category IN :categories"
+        val query = entityManager.createQuery(
+            """SELECT l FROM AuditLedgerEvent l
+               WHERE l.ownerType = 'USER' AND l.ownerId = :ownerUserId
+                 AND l.occurredAt >= :occurredAfter AND l.occurredAt < :occurredBefore$categoryClause
+               ORDER BY l.streamId ASC, l.streamSequence ASC""",
+            AuditLedgerEvent::class.java,
+        )
+            .setParameter("ownerUserId", ownerUserId)
+            .setParameter("occurredAfter", occurredAfter)
+            .setParameter("occurredBefore", occurredBefore)
+        if (categories.isNotEmpty()) query.setParameter("categories", categories)
         return query.resultList
     }
 
@@ -325,11 +403,11 @@ class AuditLedgerEventRepository : BaseRepository<AuditLedgerEvent>(AuditLedgerE
     {
         val jpql = if (platformOnly)
         {
-            "SELECT l FROM AuditLedgerEvent l WHERE l.organizationId IS NULL"
+            "SELECT l FROM AuditLedgerEvent l WHERE l.ownerType = 'PLATFORM'"
         }
         else
         {
-            "SELECT l FROM AuditLedgerEvent l WHERE l.organizationId = :organizationId"
+            "SELECT l FROM AuditLedgerEvent l WHERE l.ownerType = 'ORGANIZATION' AND l.ownerId = :organizationId"
         }
         val query = entityManager.createQuery(jpql, AuditLedgerEvent::class.java)
         if (!platformOnly)
@@ -348,11 +426,11 @@ class AuditLedgerEventRepository : BaseRepository<AuditLedgerEvent>(AuditLedgerE
     {
         val jpql = if (platformOnly)
         {
-            "SELECT COUNT(l) FROM AuditLedgerEvent l WHERE l.organizationId IS NULL"
+            "SELECT COUNT(l) FROM AuditLedgerEvent l WHERE l.ownerType = 'PLATFORM'"
         }
         else
         {
-            "SELECT COUNT(l) FROM AuditLedgerEvent l WHERE l.organizationId = :organizationId"
+            "SELECT COUNT(l) FROM AuditLedgerEvent l WHERE l.ownerType = 'ORGANIZATION' AND l.ownerId = :organizationId"
         }
         val query = entityManager.createQuery(jpql, Long::class.javaObjectType)
         if (!platformOnly)
@@ -366,16 +444,21 @@ class AuditLedgerEventRepository : BaseRepository<AuditLedgerEvent>(AuditLedgerE
         eventId: UUID,
         organizationId: UUID? = null,
         platformOnly: Boolean = false,
+        ownerUserId: UUID? = null,
     ): AuditLedgerEvent?
     {
         val where = mutableListOf("l.eventId = :eventId")
-        if (platformOnly)
+        if (ownerUserId != null)
         {
-            where += "l.organizationId IS NULL"
+            where += "l.ownerType = 'USER' AND l.ownerId = :ownerUserId"
+        }
+        else if (platformOnly)
+        {
+            where += "l.ownerType = 'PLATFORM'"
         }
         else if (organizationId != null)
         {
-            where += "l.organizationId = :organizationId"
+            where += "l.ownerType = 'ORGANIZATION' AND l.ownerId = :organizationId"
         }
 
         return try
@@ -385,7 +468,11 @@ class AuditLedgerEventRepository : BaseRepository<AuditLedgerEvent>(AuditLedgerE
                 AuditLedgerEvent::class.java,
             )
                 .setParameter("eventId", eventId)
-            if (!platformOnly && organizationId != null)
+            if (ownerUserId != null)
+            {
+                query.setParameter("ownerUserId", ownerUserId)
+            }
+            else if (!platformOnly && organizationId != null)
             {
                 query.setParameter("organizationId", organizationId)
             }

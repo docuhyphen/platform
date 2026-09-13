@@ -1,6 +1,6 @@
 package com.docuhyphen.app.api.service.auth
 
-import java.util.Locale
+import java.util.*
 
 object StepUpActionLabelFormatter
 {
@@ -61,6 +61,7 @@ object StepUpActionLabelFormatter
         "PLATFORM_ORG_SUBSCRIPTION_TRIAL_CONVERT" to "convert an organization trial to a paid subscription",
         "PLATFORM_SUBSCRIPTION_TRIAL_REQUEST_DECIDE" to "decide a subscription trial request",
         "PLATFORM_ORG_FEATURE_ENTITLEMENTS_UPDATE" to "update organization feature entitlements",
+        "PLATFORM_USER_FEATURE_ENTITLEMENTS_UPDATE" to "update user feature entitlements",
         "PLATFORM_ORGANIZATION_STATUS_UPDATE" to "update an organization account status",
         "WORKFLOW_DEFINITION_SAVE" to "save this workflow",
         "ORG_WORKFLOW_DEFINITION_DELETE" to "delete a workflow",

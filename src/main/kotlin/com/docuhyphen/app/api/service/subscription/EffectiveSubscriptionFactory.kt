@@ -3,7 +3,7 @@ package com.docuhyphen.app.api.service.subscription
 import com.docuhyphen.app.api.model.entity.OrganizationSubscriptionPolicy
 import com.docuhyphen.app.api.model.entity.UserSubscriptionPolicy
 import org.slf4j.LoggerFactory
-import java.util.UUID
+import java.util.*
 
 /**
  * Turns a persisted subscription record into the resolved commercial position used by every
@@ -19,7 +19,14 @@ object EffectiveSubscriptionFactory
 {
     private val logger = LoggerFactory.getLogger(EffectiveSubscriptionFactory::class.java)
 
-    fun fromUserPolicy(policy: UserSubscriptionPolicy): EffectiveSubscription
+    /**
+     * @param featureOverrides platform-administered decisions applied on top of the plan
+     * defaults. An entry set to true adds a feature the plan omits; false removes one it grants.
+     */
+    fun fromUserPolicy(
+        policy: UserSubscriptionPolicy,
+        featureOverrides: Map<PlanFeature, Boolean>,
+    ): EffectiveSubscription
     {
         val planCode = resolvePlanCode(
             persistedValue = policy.planCode,
@@ -33,7 +40,7 @@ object EffectiveSubscriptionFactory
             ownerType = SubscriptionOwnerType.USER,
             ownerId = policy.appUserId,
             status = resolveStatus(policy.subscriptionStatus, policy.appUserId),
-            features = definition.features,
+            features = applyOverrides(definition.features, featureOverrides),
             limits = definition.limits,
             billingFrequency = BillingFrequency.fromCodeOrNull(policy.billingFrequency),
             currentPeriodStart = policy.currentPeriodStart?.toInstant(),

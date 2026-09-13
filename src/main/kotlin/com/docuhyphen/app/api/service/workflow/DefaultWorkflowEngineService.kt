@@ -6,8 +6,8 @@ import com.docuhyphen.app.api.model.entity.WorkflowInstance
 import com.docuhyphen.app.api.model.entity.WorkflowInstanceStatus
 import com.docuhyphen.app.api.model.entity.WorkflowStepInstance
 import com.docuhyphen.app.api.model.entity.WorkflowStepStatus
-import com.docuhyphen.app.api.model.entity.WorkflowStepType
 import com.docuhyphen.app.api.model.entity.WorkflowStepTransition
+import com.docuhyphen.app.api.model.entity.WorkflowStepType
 import com.docuhyphen.app.api.model.entity.WorkflowTransitionOutcome
 import com.docuhyphen.app.api.repository.workflow.WorkflowDefinitionRepository
 import com.docuhyphen.app.api.repository.workflow.WorkflowInstanceRepository
@@ -15,31 +15,28 @@ import com.docuhyphen.app.api.repository.workflow.WorkflowStepInstanceRepository
 import com.docuhyphen.app.api.repository.workflow.WorkflowTriggerEventRepository
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.communication.AppNotificationService
+import com.docuhyphen.app.api.service.communication.CommunicationResolver
 import com.docuhyphen.app.api.service.communication.EmailService
 import com.docuhyphen.app.api.service.communication.MarkdownRenderer
 import com.docuhyphen.app.api.service.communication.templates.EmailTemplateRenderer
-import com.docuhyphen.app.api.service.notification.DomainEvent
-import com.docuhyphen.app.api.service.notification.DomainEventPublisher
-import com.docuhyphen.app.api.service.notification.InAppNotificationService
-import com.docuhyphen.app.api.service.notification.NotificationReadCriteria
-import com.docuhyphen.app.api.service.communication.CommunicationResolver
+import com.docuhyphen.app.api.service.notification.*
 import com.docuhyphen.app.api.service.variable.VariableResolutionContext
-import org.eclipse.microprofile.config.inject.ConfigProperty
 import jakarta.annotation.PostConstruct
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.enterprise.inject.Instance
 import jakarta.inject.Inject
-import jakarta.transaction.Transactional
 import jakarta.transaction.Status
 import jakarta.transaction.Synchronization
 import jakarta.transaction.TransactionSynchronizationRegistry
-import kotlinx.serialization.builtins.MapSerializer
+import jakarta.transaction.Transactional
 import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.builtins.serializer
+import org.eclipse.microprofile.config.inject.ConfigProperty
 import org.slf4j.LoggerFactory
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 /**
  * Default [WorkflowEngineService] implementation.
@@ -67,7 +64,7 @@ class DefaultWorkflowEngineService : WorkflowEngineService
     @Inject private lateinit var decisionRepository: com.docuhyphen.app.api.repository.workflow.WorkflowStepDecisionRepository
     @Inject private lateinit var assigneeResolver: WorkflowAssigneeResolver
     @Inject
-    @field:com.docuhyphen.app.api.service.notification.WorkflowEventSink
+    @field:TransactionalEventSink
     private lateinit var eventPublisher: DomainEventPublisher
     @Inject private lateinit var principalGroupMemberRepository: com.docuhyphen.app.api.repository.organization.PrincipalGroupMemberRepository
     @Inject private lateinit var principalGroupRepository: com.docuhyphen.app.api.repository.organization.PrincipalGroupRepository

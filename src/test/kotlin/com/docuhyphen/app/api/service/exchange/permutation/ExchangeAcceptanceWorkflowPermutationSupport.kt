@@ -1,45 +1,29 @@
 package com.docuhyphen.app.api.service.exchange.permutation
 
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
-import com.docuhyphen.app.api.model.entity.AppUser
-import com.docuhyphen.app.api.model.entity.AuthToken
-import com.docuhyphen.app.api.model.entity.Exchange
-import com.docuhyphen.app.api.model.entity.ExchangeStatus
-import com.docuhyphen.app.api.model.entity.WorkflowInstance
-import com.docuhyphen.app.api.model.entity.WorkflowStepInstance
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.realtime.RealtimeEventService
 import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
 import com.docuhyphen.app.api.repository.exchange.ExternalParticipantRepository
-import com.docuhyphen.app.api.repository.organization.PrincipalGroupRepository
 import com.docuhyphen.app.api.repository.exchange.ShareRepository
+import com.docuhyphen.app.api.repository.organization.PrincipalGroupRepository
 import com.docuhyphen.app.api.repository.workflow.WorkflowInstanceRepository
 import com.docuhyphen.app.api.repository.workflow.WorkflowStepInstanceRepository
-import com.docuhyphen.app.api.service.user.AppUserService
-import com.docuhyphen.app.api.service.contactdetails.UserContactService
+import com.docuhyphen.app.api.service.audit.AuditOwnerScope
+import com.docuhyphen.app.api.service.audit.AuditOwnerScopeResolver
 import com.docuhyphen.app.api.service.audit.AuditRecorder
-import com.docuhyphen.app.api.service.auth.authz.Action
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.Decision as AuthorizationDecision
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.service.auth.authz.*
 import com.docuhyphen.app.api.service.communication.EmailService
 import com.docuhyphen.app.api.service.communication.EmailTemplateService
 import com.docuhyphen.app.api.service.communication.OtpService
-import com.docuhyphen.app.api.service.exchange.ExchangeLifecycleNotificationService
-import com.docuhyphen.app.api.service.exchange.DocumentThumbnailService
-import com.docuhyphen.app.api.service.exchange.ExchangeRecipientService
-import com.docuhyphen.app.api.service.exchange.ExchangeUpdateService
-import com.docuhyphen.app.api.service.exchange.NoAuthExchangeAccessTokenService
-import com.docuhyphen.app.api.service.exchange.ShareService
+import com.docuhyphen.app.api.service.contactdetails.UserContactService
+import com.docuhyphen.app.api.service.exchange.*
+import com.docuhyphen.app.api.service.user.AppUserService
 import com.docuhyphen.app.api.service.workflow.Decision
 import com.docuhyphen.app.api.service.workflow.WorkflowEngineService
-import org.mockito.kotlin.any
-import org.mockito.kotlin.eq
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.whenever
-import java.util.UUID
+import org.mockito.kotlin.*
+import java.util.*
+import com.docuhyphen.app.api.service.auth.authz.Decision as AuthorizationDecision
 
 internal class ExchangeAcceptanceWorkflowFixture
 {
@@ -87,6 +71,7 @@ internal class ExchangeAcceptanceWorkflowFixture
         whenever(authorizationService.authorize(eq(principal), eq(Action.EXCHANGE_ACCEPT), any(), any()))
             .thenReturn(AuthorizationDecision.Allow())
         whenever(exchangeRepository.findById(exchangeId)).thenReturn(exchange)
+        whenever(exchangeRepository.findByIdForUpdate(exchangeId)).thenReturn(exchange)
         whenever(
             workflowInstanceRepository.findActiveForSubjectAndTrigger(
                 exchangeId,
@@ -126,10 +111,14 @@ internal class ExchangeAcceptanceWorkflowFixture
             authorizationService = authorizationService,
             authorizationContextFactory = authorizationContextFactory,
             auditRecorder = mock<AuditRecorder>(),
+            auditOwnerScopeResolver = mock<AuditOwnerScopeResolver>().also {
+                whenever(it.resolve(any(), any())).thenReturn(AuditOwnerScope.Platform)
+            },
             noAuthExchangeAccessTokenService = mock<NoAuthExchangeAccessTokenService>(),
             noAuthExchangeAccessWindowService = mock(),
             lifecycleNotificationService = mock<ExchangeLifecycleNotificationService>(),
             documentThumbnailService = mock<DocumentThumbnailService>(),
+        requestParentLifecycle = mock(),
         )
     }
 

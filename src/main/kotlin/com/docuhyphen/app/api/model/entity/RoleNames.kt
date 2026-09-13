@@ -42,3 +42,13 @@ enum class ExchangeShareRoleName
     COMMENTER,
     PARTICIPANT,
 }
+
+enum class InformationRequestShareRoleKey
+{
+    SUBJECT,
+    CONTRIBUTOR,
+    PREPARER,
+    ATTESTOR,
+    REVIEWER,
+    DECISION_MAKER,
+}

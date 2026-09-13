@@ -1,41 +1,18 @@
 package com.docuhyphen.app.api.service.fields
 
+import com.docuhyphen.app.api.model.SchemaFieldBindingDtoMapper
 import com.docuhyphen.app.api.model.dto.ResolvedSchemaViewDto
 import com.docuhyphen.app.api.model.dto.SchemaDefinitionDto
 import com.docuhyphen.app.api.model.dto.SchemaFieldBindingDto
 import com.docuhyphen.app.api.model.dto.SchemaVersionDto
-import com.docuhyphen.app.api.model.entity.FieldContract
-import com.docuhyphen.app.api.model.entity.FieldDefinition
-import com.docuhyphen.app.api.model.entity.FieldLifecycleStatus
-import com.docuhyphen.app.api.model.entity.FieldScopeKind
-import com.docuhyphen.app.api.model.entity.FieldValueType
-import com.docuhyphen.app.api.model.entity.ResourceType
-import com.docuhyphen.app.api.model.entity.SchemaCompatibility
-import com.docuhyphen.app.api.model.entity.SchemaDefinition
-import com.docuhyphen.app.api.model.entity.SchemaFieldBinding
-import com.docuhyphen.app.api.model.entity.SchemaVersion
-import com.docuhyphen.app.api.repository.fields.FieldContractRepository
-import com.docuhyphen.app.api.repository.fields.FieldDefinitionRepository
-import com.docuhyphen.app.api.repository.fields.SchemaDefinitionRepository
-import com.docuhyphen.app.api.repository.fields.SchemaFieldBindingRepository
-import com.docuhyphen.app.api.repository.fields.SchemaVersionRepository
-import com.docuhyphen.app.api.service.auth.UserRoleService
-import com.docuhyphen.app.api.service.auth.authz.Action
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.Decision
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import com.docuhyphen.app.api.service.auth.authz.ResourceRef
-import com.docuhyphen.app.api.service.auth.authz.RoleCapabilities
-import com.docuhyphen.app.api.service.audit.AuditCaptureFailedException
-import com.docuhyphen.app.api.service.audit.AuditDraftInvalidException
-import com.docuhyphen.app.api.service.audit.AuditEventDraft
-import com.docuhyphen.app.api.service.audit.AuditOwnerScope
-import com.docuhyphen.app.api.service.audit.AuditRecorder
+import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.repository.fields.*
+import com.docuhyphen.app.api.service.audit.*
 import com.docuhyphen.app.api.service.audit.catalog.AuditActorKind
 import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
 import com.docuhyphen.app.api.service.audit.catalog.AuditOutcome
+import com.docuhyphen.app.api.service.auth.UserRoleService
+import com.docuhyphen.app.api.service.auth.authz.*
 import io.quarkus.security.ForbiddenException
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
@@ -44,7 +21,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 /**
  * Business logic for Schema Definitions, their immutable published Schema Versions, and the
@@ -64,6 +41,8 @@ class SchemaDefinitionService @Inject constructor(
     private val userRoleService: UserRoleService,
     private val auditRecorder: AuditRecorder,
     private val subscriptionGuard: BusinessFieldsSubscriptionGuard,
+    private val projectionLoader: FieldsProjectionLoader,
+    private val schemaTargets: SchemaTargetRegistry,
 )
 {
     private val logger = org.slf4j.LoggerFactory.getLogger(SchemaDefinitionService::class.java)
@@ -110,23 +89,28 @@ class SchemaDefinitionService @Inject constructor(
     }
 
     /**
-     * Validates blueprint default values (keyed by the stable [FieldDefinition] id) against the
-     * schema's latest published version. Confirms the schema targets EXCHANGE, has a published
-     * version, and that each supplied field belongs to that version; canonicalizes each value
-     * through its type contract (throwing [FieldValidationException] on an invalid value). Returns
-     * the validated defaults with their value type for persistence. Unknown fields are rejected at
-     * authoring time (callers drop unknowns at apply time instead).
+     * Validates configured default values (keyed by the stable [FieldDefinition] id) against the
+     * schema's latest published version. Confirms the schema was written for [targetResourceType],
+     * the resource the caller is configuring defaults for, has a published version, and that each
+     * supplied field belongs to that version; canonicalizes each value through its type contract
+     * (throwing [FieldValidationException] on an invalid value). Returns the validated defaults with
+     * their value type for persistence. Unknown fields are rejected at authoring time (callers drop
+     * unknowns at apply time instead).
      */
     fun validateDefaultsForSchema(
         schemaDefinitionId: UUID,
         values: List<Pair<UUID, JsonElement>>,
+        targetResourceType: String,
     ): List<ValidatedSchemaDefault>
     {
         if (values.isEmpty()) return emptyList()
+        val configuredTarget = schemaTargets.requireDeclared(targetResourceType)
         val def = schemaDefinitionRepository.findById(schemaDefinitionId)
             ?: throw IllegalArgumentException("Schema not found: $schemaDefinitionId")
-        if (def.targetResourceType != ResourceType.EXCHANGE.name)
-            throw FieldValidationException("Schema targets ${def.targetResourceType}, not an Exchange")
+        if (def.targetResourceType != configuredTarget)
+            throw FieldValidationException(
+                "Schema targets ${def.targetResourceType}, not $configuredTarget"
+            )
         val version = schemaVersionRepository.findLatestPublished(schemaDefinitionId)
             ?: throw FieldValidationException("Schema has no published version")
 
@@ -151,12 +135,13 @@ class SchemaDefinitionService @Inject constructor(
     fun createSchema(request: CreateSchemaRequest): SchemaDefinitionDto
     {
         val principal = currentPrincipal()
+        val targetResourceType = schemaTargets.resolveRequestedTarget(request.targetResourceType)
         val scopeKind = resolveCreateScope(request.scopeKind, principal)
         val scopeOrgId = if (scopeKind == FieldScopeKind.ORGANIZATION)
             requireActiveOrganizationAccess(principal, Action.FIELD_CONFIG_EDIT)
         else
             null
-        subscriptionGuard.requireConfigurationMutation(scopeKind, scopeOrgId)
+        subscriptionGuard.requireConfigurationMutation(scopeKind, scopeOrgId, null)
 
         val namespace = request.namespace.trim().lowercase()
         val schemaKey = request.schemaKey.trim().lowercase()
@@ -164,7 +149,7 @@ class SchemaDefinitionService @Inject constructor(
         validateKey(schemaKey, "schemaKey")
         if (request.displayName.isBlank()) throw FieldValidationException("displayName is required")
 
-        if (schemaDefinitionRepository.findByKey(scopeKind, scopeOrgId, namespace, schemaKey) != null)
+        if (schemaDefinitionRepository.findByKey(scopeKind, scopeOrgId, null, namespace, schemaKey) != null)
             throw FieldValidationException("A schema with key $namespace:$schemaKey already exists in this scope")
 
         val definition = SchemaDefinition().apply {
@@ -174,7 +159,7 @@ class SchemaDefinitionService @Inject constructor(
             this.schemaKey = schemaKey
             this.displayName = request.displayName.trim()
             this.description = request.description?.trim()?.ifBlank { null }
-            this.targetResourceType = "EXCHANGE"
+            this.targetResourceType = targetResourceType
             this.status = FieldLifecycleStatus.DRAFT
             this.createdByAppUserId = principal.id
         }
@@ -199,7 +184,7 @@ class SchemaDefinitionService @Inject constructor(
         val def = schemaDefinitionRepository.findById(schemaDefinitionId)
             ?: throw IllegalArgumentException("Schema not found: $schemaDefinitionId")
         requireScopeAccess(def, Action.FIELD_CONFIG_EDIT)
-        subscriptionGuard.requireConfigurationMutation(def.scopeKind, def.scopeOrgId)
+        subscriptionGuard.requireConfigurationMutation(def.scopeKind, def.scopeOrgId, def.scopeUserId)
         val draft = schemaVersionRepository.findDraft(schemaDefinitionId)
             ?: throw IllegalStateException("Schema has no editable draft version")
         bindingRepository.deleteByVersion(draft.id)
@@ -216,7 +201,7 @@ class SchemaDefinitionService @Inject constructor(
         val def = schemaDefinitionRepository.findById(schemaDefinitionId)
             ?: throw IllegalArgumentException("Schema not found: $schemaDefinitionId")
         requireScopeAccess(def, Action.FIELD_CONFIG_EDIT)
-        subscriptionGuard.requireConfigurationMutation(def.scopeKind, def.scopeOrgId)
+        subscriptionGuard.requireConfigurationMutation(def.scopeKind, def.scopeOrgId, def.scopeUserId)
         if (schemaVersionRepository.findDraft(schemaDefinitionId) != null)
             throw IllegalStateException("Schema already has an open draft version")
 
@@ -233,6 +218,7 @@ class SchemaDefinitionService @Inject constructor(
                 bindingRepository.save(SchemaFieldBinding().apply {
                     this.schemaVersionId = draft.id
                     this.fieldContractId = source.fieldContractId
+                    this.fieldDefinitionId = source.fieldDefinitionId
                     this.displayOrder = source.displayOrder
                     this.section = source.section
                     this.isRequired = source.isRequired
@@ -253,7 +239,7 @@ class SchemaDefinitionService @Inject constructor(
         val def = schemaDefinitionRepository.findById(schemaDefinitionId)
             ?: throw IllegalArgumentException("Schema not found: $schemaDefinitionId")
         requireScopeAccess(def, Action.FIELD_CONFIG_PUBLISH)
-        subscriptionGuard.requireConfigurationMutation(def.scopeKind, def.scopeOrgId)
+        subscriptionGuard.requireConfigurationMutation(def.scopeKind, def.scopeOrgId, def.scopeUserId)
         val draft = schemaVersionRepository.findDraft(schemaDefinitionId)
             ?: throw IllegalStateException("Schema has no draft version to publish")
         val bindings = bindingRepository.findByVersion(draft.id)
@@ -280,7 +266,7 @@ class SchemaDefinitionService @Inject constructor(
         val def = schemaDefinitionRepository.findById(schemaDefinitionId)
             ?: throw IllegalArgumentException("Schema not found: $schemaDefinitionId")
         requireScopeAccess(def, Action.FIELD_CONFIG_PUBLISH)
-        subscriptionGuard.requireConfigurationMutation(def.scopeKind, def.scopeOrgId)
+        subscriptionGuard.requireConfigurationMutation(def.scopeKind, def.scopeOrgId, def.scopeUserId)
         def.status = FieldLifecycleStatus.RETIRED
         def.updatedAt = Timestamp.from(Instant.now())
         val updated = schemaDefinitionRepository.update(def)
@@ -300,11 +286,19 @@ class SchemaDefinitionService @Inject constructor(
         if (bindings.map { it.fieldContractId }.toSet().size != bindings.size)
             throw FieldValidationException("A field may only be bound once per schema version")
 
+        // Two contracts of one definition are two versions of the same field. Binding both would
+        // leave every consumer that addresses a field by its stable id with two answers.
+        val boundFieldDefinitionIds = mutableSetOf<UUID>()
+
         bindings.forEachIndexed { index, req ->
             val contract = fieldContractRepository.findById(req.fieldContractId)
                 ?: throw FieldValidationException("Unknown field contract: ${req.fieldContractId}")
             val fieldDef = fieldDefinitionRepository.findById(contract.fieldDefinitionId)
                 ?: throw FieldValidationException("Field definition missing for contract ${contract.id}")
+            if (!boundFieldDefinitionIds.add(fieldDef.id))
+                throw FieldValidationException(
+                    "Field ${fieldDef.namespace}:${fieldDef.fieldKey} is already bound in this schema version",
+                )
             if (fieldDef.status == FieldLifecycleStatus.RETIRED)
                 throw FieldValidationException("Field ${fieldDef.namespace}:${fieldDef.fieldKey} is retired")
             // A field must be visible in the schema's scope (its own org, or platform).
@@ -318,6 +312,7 @@ class SchemaDefinitionService @Inject constructor(
             bindingRepository.save(SchemaFieldBinding().apply {
                 this.schemaVersionId = version.id
                 this.fieldContractId = contract.id
+                this.fieldDefinitionId = fieldDef.id
                 this.displayOrder = if (req.displayOrder >= 0) req.displayOrder else index
                 this.section = req.section?.trim()?.ifBlank { null }
                 this.isRequired = req.isRequired
@@ -334,6 +329,8 @@ class SchemaDefinitionService @Inject constructor(
         val hasOrgEdit = activeOrgId != null &&
             hasOrganizationAccess(principal, activeOrgId, Action.FIELD_CONFIG_EDIT)
         val scope = requested ?: if (hasOrgEdit) FieldScopeKind.ORGANIZATION else FieldScopeKind.PLATFORM
+        if (scope == FieldScopeKind.PERSONAL)
+            throw FieldValidationException("Personal-scoped schemas cannot be authored yet")
         if (scope == FieldScopeKind.PLATFORM && !userRoleService.isAppAdmin(principal.id))
             throw ForbiddenException("Only platform administrators may author platform-scoped schemas")
         return scope
@@ -371,6 +368,9 @@ class SchemaDefinitionService @Inject constructor(
                     hasOrganizationAccess(principal, organizationId, action))
                     return
             }
+            // A personally owned schema is storable but has no resolvable owner in the configuration
+            // scope model yet, so no caller reaches it. Falling through denies rather than guessing.
+            FieldScopeKind.PERSONAL -> Unit
         }
         throw ForbiddenException("Access denied to schema configuration")
     }
@@ -469,7 +469,7 @@ class SchemaDefinitionService @Inject constructor(
         versionNumber = versionNumber,
         status = status,
         compatibility = compatibility,
-        bindings = mapBindings(bindingRepository.findByVersion(id)),
+        bindings = mapBindings(id),
         publishedAt = publishedAt,
         createdAt = createdAt,
     )
@@ -484,41 +484,12 @@ class SchemaDefinitionService @Inject constructor(
             versionNumber = version.versionNumber,
             targetResourceType = def.targetResourceType,
             scopeKind = def.scopeKind,
-            fields = mapBindings(bindingRepository.findByVersion(version.id)),
+            fields = mapBindings(version.id),
         )
 
-    private fun mapBindings(bindings: List<SchemaFieldBinding>): List<SchemaFieldBindingDto>
-    {
-        if (bindings.isEmpty()) return emptyList()
-        val contracts = fieldContractRepository.findByIds(bindings.map { it.fieldContractId })
-            .associateBy { it.id }
-        val definitions = fieldDefinitionRepository.let { repo ->
-            contracts.values.mapNotNull { repo.findById(it.fieldDefinitionId) }.associateBy { it.id }
-        }
-        return bindings.sortedBy { it.displayOrder }.mapNotNull { binding ->
-            val contract = contracts[binding.fieldContractId] ?: return@mapNotNull null
-            val fieldDef = definitions[contract.fieldDefinitionId] ?: return@mapNotNull null
-            SchemaFieldBindingDto(
-                id = binding.id,
-                fieldContractId = contract.id,
-                fieldDefinitionId = fieldDef.id,
-                namespace = fieldDef.namespace,
-                fieldKey = fieldDef.fieldKey,
-                label = contract.label,
-                valueType = contract.valueType,
-                displayOrder = binding.displayOrder,
-                section = binding.section,
-                isRequired = binding.isRequired,
-                isReadOnly = binding.isReadOnly,
-                defaultValueJson = binding.defaultValueJson,
-                visibility = binding.visibility,
-                description = contract.description,
-                helpText = contract.helpText,
-                constraints = FieldConstraints.parse(contract.constraintsJson),
-                options = FieldOption.parseList(contract.optionsJson),
-            )
-        }
-    }
+    /** The questions a version asks, in the order it asks them, as an editor is built from them. */
+    private fun mapBindings(schemaVersionId: UUID): List<SchemaFieldBindingDto> =
+        projectionLoader.resolveBindings(schemaVersionId).map(SchemaFieldBindingDtoMapper::toDto)
 }
 
 // ── Request DTOs ─────────────────────────────────────────────────────────────
@@ -549,6 +520,7 @@ data class CreateSchemaRequest(
     val displayName: String,
     val description: String? = null,
     val scopeKind: FieldScopeKind? = null,
+    val targetResourceType: String? = null,
     val bindings: List<BindingRequest> = emptyList(),
 )
 

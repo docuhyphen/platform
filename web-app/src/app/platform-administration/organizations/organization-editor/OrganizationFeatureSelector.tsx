@@ -1,10 +1,4 @@
-import {
-    Dropdown,
-    Field,
-    Option,
-    OptionOnSelectData,
-    SelectionEvents,
-} from "@fluentui/react-components";
+import {Dropdown, Field, Option, OptionOnSelectData, SelectionEvents,} from "@fluentui/react-components";
 import {PlanFeature} from "../../../models/models.tsx";
 import {useOrganizationEditorStyles} from "./OrganizationEditorStyles.tsx";
 
@@ -32,6 +26,7 @@ const featureLabels: Record<PlanFeature, string> = {
     [PlanFeature.ORGANIZATION_ADMINISTRATION]: "Organization administration",
     [PlanFeature.AUDIT_GOVERNANCE]: "Audit governance",
     [PlanFeature.IDENTITY_AND_INTEGRATIONS]: "Identity and integrations",
+    [PlanFeature.INFORMATION_REQUESTS]: "Information requests",
 };
 
 const organizationFeatureOptions = Object.values(PlanFeature);

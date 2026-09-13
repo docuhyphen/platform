@@ -1,18 +1,10 @@
 package com.docuhyphen.app.api.service.exchange.permutation
 
-import com.docuhyphen.app.api.model.entity.ExchangeRecipientAttestation
-import com.docuhyphen.app.api.model.entity.ExchangeShareRoleName
-import com.docuhyphen.app.api.model.entity.PrincipalGroupMember
-import com.docuhyphen.app.api.model.entity.PrincipalGroupRoleName
-import com.docuhyphen.app.api.model.entity.PrincipalKind
-import com.docuhyphen.app.api.model.entity.ResourceType
-import com.docuhyphen.app.api.model.entity.Share
-import com.docuhyphen.app.api.model.entity.ShareSource
-import com.docuhyphen.app.api.model.entity.ShareStatus
-import com.docuhyphen.app.api.repository.organization.PrincipalGroupMemberRepository
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.repository.exchange.ShareRepository
+import com.docuhyphen.app.api.repository.organization.PrincipalGroupMemberRepository
 import com.docuhyphen.app.api.service.audit.AuditRecorder
-import com.docuhyphen.app.api.service.exchange.ExchangeAuthorizationContextProvider
+import com.docuhyphen.app.api.service.auth.authz.ResourceAuthorizationContextRegistry
 import com.docuhyphen.app.api.service.exchange.ExchangeRecipientAttestationService
 import com.docuhyphen.app.api.service.exchange.ExchangeRecipientService
 import com.docuhyphen.app.api.service.exchange.ShareService
@@ -21,7 +13,7 @@ import jakarta.inject.Provider
 import org.mockito.kotlin.any
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
-import java.util.UUID
+import java.util.*
 
 internal class TrustedGroupShareFixture(
     status: ShareStatus,
@@ -36,7 +28,7 @@ internal class TrustedGroupShareFixture(
         resourceId = UUID.randomUUID()
         principalKind = PrincipalKind.PRINCIPAL_GROUP
         principalId = groupId
-        roleName = ExchangeShareRoleName.VIEWER
+        roleName = ExchangeShareRoleName.VIEWER.name
         source = ShareSource.DIRECT
         this.status = status
     }
@@ -54,7 +46,7 @@ internal class TrustedGroupShareFixture(
         repository,
         memberRepository,
         mock<AuditRecorder>(),
-        mock<ExchangeAuthorizationContextProvider>(),
+        mock<ResourceAuthorizationContextRegistry>(),
         attestationService,
         validationService,
         mock<Provider<ExchangeRecipientService>>(),

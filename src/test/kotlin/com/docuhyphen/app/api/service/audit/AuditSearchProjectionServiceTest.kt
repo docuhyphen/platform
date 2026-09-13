@@ -7,26 +7,13 @@ import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.service.auth.authz.Capability
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.exchange.ExchangeRetrievalService
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Assertions.assertThrows
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
-import org.mockito.kotlin.any
-import org.mockito.kotlin.anyOrNull
-import org.mockito.kotlin.argumentCaptor
-import org.mockito.kotlin.eq
-import org.mockito.kotlin.isNull
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.never
-import org.mockito.kotlin.times
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.whenever
+import org.mockito.kotlin.*
 import java.sql.Timestamp
-import java.time.Instant
 import java.time.Duration
-import java.util.UUID
+import java.time.Instant
+import java.util.*
 
 class AuditSearchProjectionServiceTest
 {
@@ -42,9 +29,12 @@ class AuditSearchProjectionServiceTest
         auditRecorder = auditRecorder,
     )
 
-    private fun actor(vararg capabilities: Capability): AuditSearchProjectionService.AuditAccessActor =
+    private fun actor(
+        vararg capabilities: Capability,
+        userId: UUID = UUID.randomUUID()
+    ): AuditSearchProjectionService.AuditAccessActor =
         AuditSearchProjectionService.AuditAccessActor(
-            principal = PrincipalRef.user(UUID.randomUUID()),
+            principal = PrincipalRef.user(userId),
             context = AuthorizationContext(mfaSatisfied = true),
             capabilities = capabilities.toSet(),
         )
@@ -398,6 +388,53 @@ class AuditSearchProjectionServiceTest
             null,
             1,
         )
+
+        @Test
+        fun `personal owner search denies a different user before reading the ledger`()
+        {
+            assertThrows(AuditProjectionAccessDeniedException::class.java) {
+                service().listPersonalOwnerEvents(
+                    actor = actor(userId = UUID.randomUUID()),
+                    ownerUserId = UUID.randomUUID(),
+                    categories = emptySet(),
+                    cursor = null,
+                    limit = 50,
+                )
+            }
+
+            verify(ledgerRepository, never()).searchPersonal(
+                any(), any(), any(), any(), anyOrNull(), anyOrNull(), anyOrNull(), anyOrNull(), anyOrNull(), any(),
+            )
+        }
+
+        @Test
+        fun `personal owner search filters by the exact user owner`()
+        {
+            val ownerUserId = UUID.randomUUID()
+            whenever(
+                ledgerRepository.searchPersonal(
+                    eq(ownerUserId), any(), any(), any(), isNull(), isNull(), isNull(), isNull(), isNull(), eq(50),
+                ),
+            ).thenReturn(emptyList())
+            whenever(auditRecorder.record(any())).thenReturn(
+                AuditCaptureResult.Captured(UUID.randomUUID(), UUID.randomUUID()),
+            )
+
+            service().listPersonalOwnerEvents(
+                actor = actor(userId = ownerUserId),
+                ownerUserId = ownerUserId,
+                categories = emptySet(),
+                cursor = null,
+                limit = 50,
+            )
+
+            verify(ledgerRepository).searchPersonal(
+                eq(ownerUserId), any(), any(), any(), isNull(), isNull(), isNull(), isNull(), isNull(), eq(50),
+            )
+            val draft = argumentCaptor<AuditEventDraft>()
+            verify(auditRecorder).record(draft.capture())
+            assertEquals(AuditOwnerScope.Personal(ownerUserId), draft.firstValue.owner)
+        }
 
         assertTrue(page.items.isEmpty())
         verify(ledgerRepository, times(21)).search(

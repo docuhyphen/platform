@@ -1,10 +1,9 @@
 package com.docuhyphen.app.api.repository.audit
 
-import com.docuhyphen.app.api.repository.BaseRepository
-
 import com.docuhyphen.app.api.model.entity.AuditAnalyticsFact
+import com.docuhyphen.app.api.repository.BaseRepository
 import jakarta.enterprise.context.RequestScoped
-import java.util.UUID
+import java.util.*
 
 @RequestScoped
 class AuditAnalyticsFactRepository : BaseRepository<AuditAnalyticsFact>(AuditAnalyticsFact::class.java)
@@ -29,11 +28,11 @@ class AuditAnalyticsFactRepository : BaseRepository<AuditAnalyticsFact>(AuditAna
     {
         val jpql = if (platformOnly)
         {
-            "SELECT COUNT(f) FROM AuditAnalyticsFact f WHERE f.organizationId IS NULL"
+            "SELECT COUNT(f) FROM AuditAnalyticsFact f WHERE f.ownerType = 'PLATFORM'"
         }
         else
         {
-            "SELECT COUNT(f) FROM AuditAnalyticsFact f WHERE f.organizationId = :organizationId"
+            "SELECT COUNT(f) FROM AuditAnalyticsFact f WHERE f.ownerType = 'ORGANIZATION' AND f.ownerId = :organizationId"
         }
         val query = entityManager.createQuery(jpql, Long::class.javaObjectType)
         if (!platformOnly)
@@ -49,11 +48,11 @@ class AuditAnalyticsFactRepository : BaseRepository<AuditAnalyticsFact>(AuditAna
         val where = mutableListOf("NOT EXISTS (SELECT 1 FROM AuditAnalyticsFact f WHERE f.ledgerEventId = l.eventId)")
         if (platformOnly)
         {
-            where += "l.organizationId IS NULL"
+            where += "l.ownerType = 'PLATFORM'"
         }
         else
         {
-            where += "l.organizationId = :organizationId"
+            where += "l.ownerType = 'ORGANIZATION' AND l.ownerId = :organizationId"
         }
 
         val query = entityManager.createQuery(
@@ -72,11 +71,11 @@ class AuditAnalyticsFactRepository : BaseRepository<AuditAnalyticsFact>(AuditAna
     {
         val jpql = if (platformOnly)
         {
-            "DELETE FROM AuditAnalyticsFact f WHERE f.organizationId IS NULL"
+            "DELETE FROM AuditAnalyticsFact f WHERE f.ownerType = 'PLATFORM'"
         }
         else
         {
-            "DELETE FROM AuditAnalyticsFact f WHERE f.organizationId = :organizationId"
+            "DELETE FROM AuditAnalyticsFact f WHERE f.ownerType = 'ORGANIZATION' AND f.ownerId = :organizationId"
         }
         val query = entityManager.createQuery(jpql)
         if (!platformOnly)

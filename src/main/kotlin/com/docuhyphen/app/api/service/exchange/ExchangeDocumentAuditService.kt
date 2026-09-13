@@ -2,17 +2,10 @@
 
 import com.docuhyphen.app.api.exception.ExchangeNotFoundException
 import com.docuhyphen.app.api.model.dto.DocumentAuditDetailedDto
-import com.docuhyphen.app.api.model.entity.AppUser
-import com.docuhyphen.app.api.model.entity.AuditLedgerEvent
-import com.docuhyphen.app.api.model.entity.Document
-import com.docuhyphen.app.api.model.entity.DocumentAuditAction
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.repository.audit.AuditLedgerEventRepository
 import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
-import com.docuhyphen.app.api.service.audit.AuditCaptureFailedException
-import com.docuhyphen.app.api.service.audit.AuditDraftInvalidException
-import com.docuhyphen.app.api.service.audit.AuditEventDraft
-import com.docuhyphen.app.api.service.audit.AuditOwnerScope
-import com.docuhyphen.app.api.service.audit.AuditRecorder
+import com.docuhyphen.app.api.service.audit.*
 import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
 import com.docuhyphen.app.api.service.audit.catalog.AuditOutcome
 import jakarta.enterprise.context.ApplicationScoped
@@ -27,6 +20,7 @@ import java.util.*
 class ExchangeDocumentAuditService @Inject constructor(
     private val exchangeRepository: ExchangeRepository,
     private val auditRecorder: AuditRecorder,
+    private val auditOwnerScopeResolver: AuditOwnerScopeResolver,
     private val auditLedgerEventRepository: AuditLedgerEventRepository,
 )
 {
@@ -121,11 +115,10 @@ class ExchangeDocumentAuditService @Inject constructor(
 
         try
         {
+            val owningExchange = exchangeRepository.findByDocumentId(document.id)
             auditRecorder.record(
                 AuditEventDraft(
-                    owner = exchangeRepository.findByDocumentId(document.id)
-                        ?.ownerOrganizationId
-                        ?.let(AuditOwnerScope::Organization)
+                    owner = owningExchange?.let { auditOwnerScopeResolver.resolve(ResourceType.EXCHANGE, it.id) }
                         ?: AuditOwnerScope.Platform,
                     eventTypeKey = eventType.key,
                     outcome = AuditOutcome.SUCCESS,

@@ -2,43 +2,27 @@ package com.docuhyphen.app.api.service.exchange
 
 import com.docuhyphen.app.api.exception.ExchangeNotFoundException
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
-import com.docuhyphen.app.api.model.entity.AppUser
-import com.docuhyphen.app.api.model.entity.AuthToken
-import com.docuhyphen.app.api.model.entity.Exchange
-import com.docuhyphen.app.api.model.entity.ExchangeStatus
-import com.docuhyphen.app.api.model.entity.Person
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
 import com.docuhyphen.app.api.repository.workflow.WorkflowInstanceRepository
-import com.docuhyphen.app.api.model.entity.WorkflowInstance
-import com.docuhyphen.app.api.model.entity.WorkflowInstanceStatus
 import com.docuhyphen.app.api.resource.model.UpdateExchangeRequest
-import com.docuhyphen.app.api.service.user.AppUserService
-import com.docuhyphen.app.api.service.contactdetails.UserContactService
-import com.docuhyphen.app.api.service.auth.authz.Action
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.Decision
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import com.docuhyphen.app.api.service.auth.authz.ResourceRef
+import com.docuhyphen.app.api.service.audit.AuditOwnerScope
+import com.docuhyphen.app.api.service.audit.AuditOwnerScopeResolver
+import com.docuhyphen.app.api.service.auth.authz.*
 import com.docuhyphen.app.api.service.communication.EmailService
 import com.docuhyphen.app.api.service.communication.EmailTemplateService
 import com.docuhyphen.app.api.service.communication.OtpService
 import com.docuhyphen.app.api.service.communication.templates.RenderedEmailTemplate
+import com.docuhyphen.app.api.service.user.AppUserService
 import com.docuhyphen.app.api.service.workflow.WorkflowEngineService
 import io.quarkus.security.ForbiddenException
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import org.mockito.kotlin.any
-import org.mockito.kotlin.eq
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.whenever
-import org.mockito.kotlin.never
-import org.mockito.kotlin.verify
+import org.mockito.kotlin.*
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 /**
  * Central authorization for Exchange write paths.
@@ -125,6 +109,9 @@ class ExchangeAuthorizationTest
         shareService: ShareService = mock(),
         appUserService: AppUserService = mock(),
         noAuthExchangeAccessTokenService: NoAuthExchangeAccessTokenService = mock(),
+        auditOwnerScopeResolver: AuditOwnerScopeResolver = mock<AuditOwnerScopeResolver>().also {
+            whenever(it.resolve(any(), any())).thenReturn(AuditOwnerScope.Platform)
+        },
     ): ExchangeUpdateService = ExchangeUpdateService(
         exchangeRepository = exchangeRepo,
         emailService = emailService,
@@ -145,10 +132,12 @@ class ExchangeAuthorizationTest
         authorizationService = authSvc,
         authorizationContextFactory = factory,
         auditRecorder = mock(),
+        auditOwnerScopeResolver = auditOwnerScopeResolver,
         noAuthExchangeAccessTokenService = noAuthExchangeAccessTokenService,
         noAuthExchangeAccessWindowService = mock(),
         lifecycleNotificationService = mock(),
         documentThumbnailService = mock(),
+        requestParentLifecycle = mock(),
     )
 
     // -------------------------------------------------------------------------
@@ -204,6 +193,7 @@ class ExchangeAuthorizationTest
         }
         whenever(exchangeRepo.findById(exchangeId)).thenReturn(exchange)
         whenever(exchangeRepo.findByIdForUpdate(exchangeId)).thenReturn(exchange)
+        whenever(exchangeRepo.findByIdForUpdate(exchangeId)).thenReturn(exchange)
         whenever(instanceRepo.findActiveForSubjectAndTrigger(exchangeId, "exchange.ending")).thenReturn(active)
 
         val svc = makeService(
@@ -226,6 +216,7 @@ class ExchangeAuthorizationTest
         val exchange = makeExchange(ExchangeStatus.INITIATED)
         val repo = mock<ExchangeRepository>()
         whenever(repo.findById(exchangeId)).thenReturn(exchange)
+        whenever(repo.findByIdForUpdate(exchangeId)).thenReturn(exchange)
 
         val svc = makeService(
             authSvc = makeAuthService(Action.EXCHANGE_VIEW),
@@ -261,6 +252,7 @@ class ExchangeAuthorizationTest
         val repo = mock<ExchangeRepository>()
         val recipientService = mock<ExchangeRecipientService>()
         whenever(repo.findById(exchangeId)).thenReturn(exchange)
+        whenever(repo.findByIdForUpdate(exchangeId)).thenReturn(exchange)
 
         val svc = makeService(
             authSvc = makeAuthService(Action.EXCHANGE_ACCEPT),
@@ -286,6 +278,7 @@ class ExchangeAuthorizationTest
             triggerEventSnapshot = "exchange.draft_submitted"
         }
         whenever(repo.findById(exchangeId)).thenReturn(exchange)
+        whenever(repo.findByIdForUpdate(exchangeId)).thenReturn(exchange)
         whenever(instanceRepo.findActiveForSubjectAndTrigger(exchangeId, "exchange.draft_submitted"))
             .thenReturn(draftApproval)
 
@@ -315,6 +308,7 @@ class ExchangeAuthorizationTest
         }
         val repo = mock<ExchangeRepository>()
         whenever(repo.findById(exchangeId)).thenReturn(exchange)
+        whenever(repo.findByIdForUpdate(exchangeId)).thenReturn(exchange)
 
         val svc = makeService(
             authSvc = makeAuthService(Action.EXCHANGE_VIEW, Action.EXCHANGE_EDIT),
@@ -335,6 +329,7 @@ class ExchangeAuthorizationTest
     {
         val repo = mock<ExchangeRepository>()
         whenever(repo.findById(exchangeId)).thenReturn(makeExchange())
+        whenever(repo.findByIdForUpdate(exchangeId)).thenReturn(makeExchange())
 
         val svc = makeService(factory = makeUnauthFactory(), exchangeRepo = repo)
         assertThrows<ForbiddenException> {
@@ -347,6 +342,7 @@ class ExchangeAuthorizationTest
     {
         val repo = mock<ExchangeRepository>()
         whenever(repo.findById(exchangeId)).thenReturn(makeExchange())
+        whenever(repo.findByIdForUpdate(exchangeId)).thenReturn(makeExchange())
 
         val svc = makeService(authSvc = makeAuthService(), exchangeRepo = repo)
         assertThrows<ForbiddenException> {
@@ -360,6 +356,7 @@ class ExchangeAuthorizationTest
         val exchange = makeExchange(ExchangeStatus.RESCINDED)
         val repo = mock<ExchangeRepository>()
         whenever(repo.findById(exchangeId)).thenReturn(exchange)
+        whenever(repo.findByIdForUpdate(exchangeId)).thenReturn(exchange)
 
         val svc = makeService(
             authSvc = makeAuthService(Action.EXCHANGE_RESCIND),
@@ -397,6 +394,7 @@ class ExchangeAuthorizationTest
         val exchange = makeExchange()
         val repo = mock<ExchangeRepository>()
         whenever(repo.findById(exchangeId)).thenReturn(exchange)
+        whenever(repo.findByIdForUpdate(exchangeId)).thenReturn(exchange)
         whenever(repo.update(any())).thenReturn(exchange)
 
         val svc = makeService(
@@ -435,6 +433,7 @@ class ExchangeAuthorizationTest
         exchange.requireRecipientSignIn = true
         val repo = mock<ExchangeRepository>()
         whenever(repo.findById(exchangeId)).thenReturn(exchange)
+        whenever(repo.findByIdForUpdate(exchangeId)).thenReturn(exchange)
 
         val svc = makeService(
             authSvc = makeAuthService(Action.EXCHANGE_EDIT),
@@ -472,6 +471,7 @@ class ExchangeAuthorizationTest
         val appUserService = mock<AppUserService>()
         val tokenService = mock<NoAuthExchangeAccessTokenService>()
         whenever(repo.findById(exchangeId)).thenReturn(exchange)
+        whenever(repo.findByIdForUpdate(exchangeId)).thenReturn(exchange)
         whenever(shareService.primaryRecipientUserId(exchangeId)).thenReturn(recipientId)
         whenever(appUserService.getById(recipientId)).thenReturn(recipient)
         whenever(otpService.generateEmailOtp()).thenReturn("123456")

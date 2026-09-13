@@ -7,7 +7,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
-import java.util.UUID
+import java.util.*
 
 /**
  * Confirms that the features an organization pays for can never be unlocked by an individual
@@ -31,6 +31,7 @@ class PersonalContextBusinessFeatureTest
         enforcementConfigService = SubscriptionEnforcementConfigService(
             SubscriptionEnforcementMode.ENFORCE.name,
         ),
+        featureRolloutConfigService = FeatureRolloutConfigService(Optional.empty()),
     )
 
     private fun givenUserPlan(planCode: PlanCode)

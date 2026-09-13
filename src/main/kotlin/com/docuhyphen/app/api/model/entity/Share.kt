@@ -71,8 +71,7 @@ class Share
     lateinit var principalId: UUID
 
     @Column(name = "role_name", nullable = false, length = 64)
-    @Enumerated(EnumType.STRING)
-    var roleName: ExchangeShareRoleName = ExchangeShareRoleName.VIEWER
+    var roleName: String = ExchangeShareRoleName.VIEWER.name
 
     @Column(name = "source", nullable = false, length = 32)
     @Enumerated(EnumType.STRING)
@@ -90,6 +89,14 @@ class Share
     @Serializable(with = UUIDSerializer::class)
     var grantedByAppUserId: UUID? = null
 
+    @Column(name = "granted_by_principal_kind", nullable = true, length = 32)
+    @Enumerated(EnumType.STRING)
+    var grantedByPrincipalKind: PrincipalKind? = null
+
+    @Column(name = "granted_by_principal_id", nullable = true)
+    @Serializable(with = UUIDSerializer::class)
+    var grantedByPrincipalId: UUID? = null
+
     @Column(name = "granted_at", nullable = false)
     @Serializable(with = TimestampSerializer::class)
     var grantedAt: Timestamp = Timestamp.from(Instant.now())
@@ -106,6 +113,14 @@ class Share
     @Serializable(with = UUIDSerializer::class)
     var revokedByAppUserId: UUID? = null
 
+    @Column(name = "revoked_by_principal_kind", nullable = true, length = 32)
+    @Enumerated(EnumType.STRING)
+    var revokedByPrincipalKind: PrincipalKind? = null
+
+    @Column(name = "revoked_by_principal_id", nullable = true)
+    @Serializable(with = UUIDSerializer::class)
+    var revokedByPrincipalId: UUID? = null
+
     /**
      * Optional JSON blob describing per-share constraints
      * (can_reshare, can_download, watermark, ip_allowlist, require_mfa, max_views, etc.).
@@ -116,5 +131,9 @@ class Share
     var constraintsJson: String? = null
 
     constructor()
+
+    fun exchangeRoleName(): ExchangeShareRoleName =
+        runCatching { ExchangeShareRoleName.valueOf(roleName) }
+            .getOrElse { throw IllegalStateException("Share $id does not carry an Exchange role key: $roleName") }
 }
 

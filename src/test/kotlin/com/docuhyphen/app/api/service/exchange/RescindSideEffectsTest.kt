@@ -1,42 +1,18 @@
 package com.docuhyphen.app.api.service.exchange
 
 import com.docuhyphen.app.api.exception.ExchangeDocumentNotFoundException
-import com.docuhyphen.app.api.exception.ExchangeNotFoundException
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
-import com.docuhyphen.app.api.model.entity.AppUser
-import com.docuhyphen.app.api.model.entity.AuthToken
-import com.docuhyphen.app.api.model.entity.Exchange
-import com.docuhyphen.app.api.model.entity.ExchangeStatus
-import com.docuhyphen.app.api.model.entity.ResourceType
-import com.docuhyphen.app.api.model.entity.WorkflowInstance
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
 import com.docuhyphen.app.api.repository.workflow.WorkflowInstanceRepository
-import com.docuhyphen.app.api.service.user.AppUserService
-import com.docuhyphen.app.api.service.contactdetails.UserContactService
-import com.docuhyphen.app.api.service.audit.AuditCaptureFailedException
-import com.docuhyphen.app.api.service.audit.AuditCaptureResult
-import com.docuhyphen.app.api.service.audit.AuditRecorder
-import com.docuhyphen.app.api.service.auth.authz.Action
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.Decision
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import com.docuhyphen.app.api.service.auth.authz.ResourceRef
-import com.docuhyphen.app.api.service.communication.EmailService
-import com.docuhyphen.app.api.service.communication.EmailTemplateService
-import com.docuhyphen.app.api.service.communication.OtpService
+import com.docuhyphen.app.api.service.audit.*
+import com.docuhyphen.app.api.service.auth.authz.*
 import com.docuhyphen.app.api.service.workflow.WorkflowEngineService
 import io.quarkus.security.ForbiddenException
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import org.mockito.kotlin.any
-import org.mockito.kotlin.anyOrNull
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.never
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.whenever
-import java.util.UUID
+import org.mockito.kotlin.*
+import java.util.*
 
 /**
  * Rescind side effects and document-parent path validation.
@@ -107,6 +83,9 @@ class RescindSideEffectsTest
         auditRecorder: AuditRecorder = mock<AuditRecorder>().also {
             whenever(it.record(any())).thenReturn(AuditCaptureResult.Captured(UUID.randomUUID(), UUID.randomUUID()))
         },
+        auditOwnerScopeResolver: AuditOwnerScopeResolver = mock<AuditOwnerScopeResolver>().also {
+            whenever(it.resolve(any(), any())).thenReturn(AuditOwnerScope.Platform)
+        },
     ): ExchangeUpdateService = ExchangeUpdateService(
         exchangeRepository = exchangeRepo,
         emailService = mock(),
@@ -127,10 +106,12 @@ class RescindSideEffectsTest
         authorizationService = authSvc,
         authorizationContextFactory = makeFactory(),
         auditRecorder = auditRecorder,
+        auditOwnerScopeResolver = auditOwnerScopeResolver,
         noAuthExchangeAccessTokenService = mock(),
         noAuthExchangeAccessWindowService = mock(),
         lifecycleNotificationService = mock(),
         documentThumbnailService = mock(),
+        requestParentLifecycle = mock(),
     )
 
     // -------------------------------------------------------------------------
@@ -143,6 +124,7 @@ class RescindSideEffectsTest
         val exchange = makeExchange(ExchangeStatus.INITIATED)
         val repo = mock<ExchangeRepository>()
         whenever(repo.findById(exchangeId)).thenReturn(exchange, exchange)
+        whenever(repo.findByIdForUpdate(exchangeId)).thenReturn(exchange, exchange)
 
         val shareService = mock<ShareService>()
 
@@ -166,6 +148,7 @@ class RescindSideEffectsTest
         val exchange = makeExchange(ExchangeStatus.INITIATED)
         val repo = mock<ExchangeRepository>()
         whenever(repo.findById(exchangeId)).thenReturn(exchange, exchange)
+        whenever(repo.findByIdForUpdate(exchangeId)).thenReturn(exchange, exchange)
 
         val workflowInstanceRepo = mock<WorkflowInstanceRepository>()
         whenever(workflowInstanceRepo.findAllActiveForSubject(any(), any())).thenReturn(listOf(instance))
@@ -194,6 +177,7 @@ class RescindSideEffectsTest
         val exchange = makeExchange(ExchangeStatus.INITIATED)
         val repo = mock<ExchangeRepository>()
         whenever(repo.findById(exchangeId)).thenReturn(exchange)
+        whenever(repo.findByIdForUpdate(exchangeId)).thenReturn(exchange)
 
         val shareService = mock<ShareService>()
 
@@ -218,6 +202,7 @@ class RescindSideEffectsTest
         val exchange = makeExchange(ExchangeStatus.ENDED)
         val repo = mock<ExchangeRepository>()
         whenever(repo.findById(exchangeId)).thenReturn(exchange)
+        whenever(repo.findByIdForUpdate(exchangeId)).thenReturn(exchange)
 
         val shareService = mock<ShareService>()
 
@@ -238,6 +223,7 @@ class RescindSideEffectsTest
         val exchange = makeExchange(ExchangeStatus.REJECTED)
         val repo = mock<ExchangeRepository>()
         whenever(repo.findById(exchangeId)).thenReturn(exchange)
+        whenever(repo.findByIdForUpdate(exchangeId)).thenReturn(exchange)
 
         val shareService = mock<ShareService>()
 
@@ -262,6 +248,7 @@ class RescindSideEffectsTest
         val exchange = makeExchange(ExchangeStatus.INITIATED)
         val repo = mock<ExchangeRepository>()
         whenever(repo.findById(exchangeId)).thenReturn(exchange, exchange)
+        whenever(repo.findByIdForUpdate(exchangeId)).thenReturn(exchange, exchange)
 
         val workflowInstanceRepo = mock<WorkflowInstanceRepository>()
         whenever(workflowInstanceRepo.findAllActiveForSubject(any(), any())).thenReturn(listOf(instance))
@@ -293,6 +280,7 @@ class RescindSideEffectsTest
         val exchange = makeExchange(ExchangeStatus.INITIATED)
         val repo = mock<ExchangeRepository>()
         whenever(repo.findById(exchangeId)).thenReturn(exchange, exchange)
+        whenever(repo.findByIdForUpdate(exchangeId)).thenReturn(exchange, exchange)
 
         val shareService = mock<ShareService>()
 
@@ -330,6 +318,7 @@ class RescindSideEffectsTest
 
         val repo = mock<ExchangeRepository>()
         whenever(repo.findById(exchangeBId)).thenReturn(exchangeB)
+        whenever(repo.findByIdForUpdate(exchangeBId)).thenReturn(exchangeB)
         whenever(repo.findDocumentBySessionIdAndDocumentId(exchangeBId, documentFromAId)).thenReturn(null)
 
         val authSvc = mock<AuthorizationService>()
@@ -351,6 +340,7 @@ class RescindSideEffectsTest
             fileStorageService = mock(),
             documentContentHashService = mock(),
             documentThumbnailService = mock(),
+
             documentPdfConversionService = mock(),
             inAppNotificationService = mock(),
             realtimeEventService = mock(),
@@ -359,6 +349,9 @@ class RescindSideEffectsTest
             authorizationService = authSvc,
             authorizationContextFactory = factory,
             auditRecorder = mock(),
+            auditOwnerScopeResolver = mock<AuditOwnerScopeResolver>().also {
+                whenever(it.resolve(any(), any())).thenReturn(AuditOwnerScope.Platform)
+            },
             noAuthExchangeAccessTokenService = mock(),
             noAuthExchangeAccessWindowService = mock(),
             documentVersionService = mock(),

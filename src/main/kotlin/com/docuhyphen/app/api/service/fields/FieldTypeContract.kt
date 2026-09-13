@@ -1,15 +1,10 @@
 package com.docuhyphen.app.api.service.fields
 
 import com.docuhyphen.app.api.model.entity.FieldValueType
-import kotlinx.serialization.json.JsonArray
-import kotlinx.serialization.json.JsonElement
-import kotlinx.serialization.json.JsonNull
-import kotlinx.serialization.json.JsonPrimitive
-import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.*
 import java.math.BigDecimal
+import java.math.RoundingMode
 import java.time.LocalDate
-import java.time.LocalDateTime
-import java.time.format.DateTimeParseException
 
 /**
  * A controlled type contract: it validates a raw JSON input against a Field Contract's constraints
@@ -157,18 +152,19 @@ private abstract class NumberTypeContract : FieldTypeContract
         val number = runCatching { BigDecimal(raw) }.getOrElse {
             throw FieldValidationException("Not a valid number")
         }
-        if (integerOnly && number.stripTrailingZeros().scale() > 0)
+        if (integerOnly && CanonicalNumber.significantScale(number) > 0)
         {
             throw FieldValidationException("Must be a whole number")
         }
         val scale = constraints.scale
         val normalized = if (!integerOnly && scale != null)
         {
-            if (number.scale() > scale)
+            if (CanonicalNumber.significantScale(number) > scale)
                 throw FieldValidationException("At most $scale decimal place(s) allowed")
-            number.setScale(scale)
+            number.setScale(scale, RoundingMode.UNNECESSARY)
         }
         else number
+        CanonicalNumber.assertStorable(normalized)
 
         constraints.minValue?.let {
             if (normalized < BigDecimal(it)) throw FieldValidationException("Must be at least $it")
@@ -251,22 +247,14 @@ private object DateTimeContract : FieldTypeContract
             ?: throw FieldValidationException("Expected an ISO date-time")
         if (raw.isEmpty()) return CanonicalFieldValue.empty(type)
 
-        val dateTime = parseFlexible(raw)
+        val reading = CanonicalDateTime.parse(raw)
             ?: throw FieldValidationException("Expected an ISO date-time")
-        return CanonicalFieldValue(type = type, isEmpty = false, datetimeValue = dateTime)
-    }
-
-    private fun parseFlexible(raw: String): LocalDateTime? = try
-    {
-        // Accept both offset and local ISO forms; normalize offset to UTC local time.
-        if (raw.endsWith("Z") || raw.contains('+') || raw.matches(Regex(".*T.*[-+]\\d\\d:?\\d\\d$")))
-            java.time.OffsetDateTime.parse(raw).toLocalDateTime()
-        else
-            LocalDateTime.parse(raw)
-    }
-    catch (e: DateTimeParseException)
-    {
-        null
+        return CanonicalFieldValue(
+            type = type,
+            isEmpty = false,
+            datetimeValue = reading.instant,
+            datetimeOffsetMinutes = reading.offsetMinutes,
+        )
     }
 }
 

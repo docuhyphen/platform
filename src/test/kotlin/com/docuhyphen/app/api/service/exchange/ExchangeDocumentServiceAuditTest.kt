@@ -1,38 +1,25 @@
 package com.docuhyphen.app.api.service.exchange
 
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
-import com.docuhyphen.app.api.model.entity.AppUser
-import com.docuhyphen.app.api.model.entity.AuthToken
-import com.docuhyphen.app.api.model.entity.Document
-import com.docuhyphen.app.api.model.entity.DocumentType
-import com.docuhyphen.app.api.model.entity.Exchange
-import com.docuhyphen.app.api.model.entity.ResourceType
+import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.realtime.RealtimeEventService
 import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
-import com.docuhyphen.app.api.service.user.AppUserService
-import com.docuhyphen.app.api.service.audit.AuditCaptureResult
-import com.docuhyphen.app.api.service.audit.AuditEventDraft
-import com.docuhyphen.app.api.service.audit.AuditRecorder
+import com.docuhyphen.app.api.service.audit.*
 import com.docuhyphen.app.api.service.audit.catalog.AuditActorKind
 import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
-import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
 import com.docuhyphen.app.api.service.auth.authz.Decision
-import com.docuhyphen.app.api.service.communication.AppNotificationService
 import com.docuhyphen.app.api.service.communication.EmailService
 import com.docuhyphen.app.api.service.communication.EmailTemplateService
 import com.docuhyphen.app.api.service.config.ConfigurationService
 import com.docuhyphen.app.api.service.storage.FileStorageService
-import com.docuhyphen.app.api.realtime.RealtimeEventService
+import com.docuhyphen.app.api.service.user.AppUserService
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
-import org.mockito.kotlin.any
-import org.mockito.kotlin.argumentCaptor
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.whenever
+import org.mockito.kotlin.*
 import java.io.File
-import java.util.UUID
+import java.util.*
 
 /**
  * Verifies that [ExchangeDocumentService.downloadDocument]
@@ -62,6 +49,9 @@ class ExchangeDocumentServiceAuditTest
         exchangeRepository: ExchangeRepository,
         shareService: ShareService = mock(),
         fileStorageService: FileStorageService = mock(),
+        auditOwnerScopeResolver: AuditOwnerScopeResolver = mock<AuditOwnerScopeResolver>().also {
+            whenever(it.resolve(any(), any())).thenReturn(AuditOwnerScope.Platform)
+        },
     ): ExchangeDocumentService
     {
         val authTokenContext = AuthTokenContext()
@@ -91,6 +81,7 @@ class ExchangeDocumentServiceAuditTest
             authorizationService = authorizationService,
             authorizationContextFactory = authorizationContextFactory,
             auditRecorder = auditRecorder,
+            auditOwnerScopeResolver = auditOwnerScopeResolver,
             noAuthExchangeAccessTokenService = mock(),
             noAuthExchangeAccessWindowService = mock(),
             documentVersionService = mock(),
@@ -121,6 +112,43 @@ class ExchangeDocumentServiceAuditTest
         assertEquals(documentId.toString(), captor.firstValue.targetId)
         assertEquals(AuditActorKind.HUMAN, captor.firstValue.actorKind)
         assertEquals(actorId, captor.firstValue.actorId)
+    }
+
+    @Test
+    fun `downloadDocument resolves the owner through AuditOwnerScopeResolver rather than a live organization check`()
+    {
+        val auditRecorder = mock<AuditRecorder>()
+        whenever(auditRecorder.record(any())).thenReturn(
+            AuditCaptureResult.Captured(
+                UUID.randomUUID(),
+                UUID.randomUUID()
+            )
+        )
+
+        val exchangeRepository = mock<ExchangeRepository>()
+        whenever(exchangeRepository.findById(exchangeId)).thenReturn(exchange())
+        whenever(exchangeRepository.findDocumentBySessionIdAndDocumentId(exchangeId, documentId)).thenReturn(document())
+
+        val fileStorageService = mock<FileStorageService>()
+        whenever(fileStorageService.downloadDocument(any())).thenReturn(File("dummy"))
+
+        val ownerUserId = UUID.randomUUID()
+        val auditOwnerScopeResolver = mock<AuditOwnerScopeResolver>()
+        whenever(auditOwnerScopeResolver.resolve(ResourceType.EXCHANGE, exchangeId))
+            .thenReturn(AuditOwnerScope.Personal(ownerUserId))
+
+        val service = service(
+            auditRecorder,
+            exchangeRepository,
+            fileStorageService = fileStorageService,
+            auditOwnerScopeResolver = auditOwnerScopeResolver,
+        )
+
+        service.downloadDocument(exchangeId.toString(), documentId.toString())
+
+        val captor = argumentCaptor<AuditEventDraft>()
+        verify(auditRecorder).record(captor.capture())
+        assertEquals(AuditOwnerScope.Personal(ownerUserId), captor.firstValue.owner)
     }
 
     @Test

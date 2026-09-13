@@ -68,6 +68,7 @@ const Settings = () =>
             canUseDocumentLibrary={planAvailability.canUseDocumentLibrary}
             canUseBlueprints={planAvailability.canUseBlueprints}
             canUseBusinessFields={planAvailability.canUseBusinessFields}
+            canUseInformationRequests={planAvailability.canUseInformationRequests}
             canUseWorkflows={planAvailability.canUseWorkflows}
             canUseVariables={planAvailability.canUseVariables}
             onTabSelect={onTabSelect}

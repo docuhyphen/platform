@@ -9,7 +9,7 @@ import com.docuhyphen.app.api.service.auth.authz.RoleCapabilities
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
-import java.util.UUID
+import java.util.*
 
 /**
  * Guards the boundary between the two independent questions a protected action must answer:
@@ -28,7 +28,7 @@ class SubscriptionAuthorizationSeparationTest
             this.planCode = PlanCode.FREE.name
             this.subscriptionStatus = SubscriptionStatus.ACTIVE.name
         }
-        return EffectiveSubscriptionFactory.fromUserPolicy(policy)
+        return EffectiveSubscriptionFactory.fromUserPolicy(policy, emptyMap())
     }
 
     private fun businessOrganization(): EffectiveSubscription

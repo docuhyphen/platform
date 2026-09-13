@@ -25,6 +25,8 @@ object AuditProjectionDtoMapper
         actorId = event.actorId?.toString(),
         actorRole = event.actorRole,
         actorLabel = event.actorLabel,
+        ownerType = event.ownerType,
+        ownerId = event.ownerId?.toString(),
         organizationId = event.organizationId?.toString(),
         organizationLabel = event.organizationLabel,
         targetType = event.targetType,

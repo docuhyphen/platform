@@ -111,6 +111,8 @@ enum class AuditEventType(val key: String, val category: AuditCategory)
     PLATFORM_ORGANIZATION_VIEW("platform.organization.view", AuditCategory.PLATFORM),
     PLATFORM_ORG_FEATURE_ENTITLEMENTS_VIEW("platform.org_feature_entitlements.view", AuditCategory.PLATFORM),
     PLATFORM_ORG_FEATURE_ENTITLEMENTS_UPDATE("platform.org_feature_entitlements.update", AuditCategory.PLATFORM),
+    PLATFORM_USER_FEATURE_ENTITLEMENTS_VIEW("platform.user_feature_entitlements.view", AuditCategory.PLATFORM),
+    PLATFORM_USER_FEATURE_ENTITLEMENTS_UPDATE("platform.user_feature_entitlements.update", AuditCategory.PLATFORM),
 
     SCIM_USER_CREATE("scim.user.create", AuditCategory.SCIM),
     SCIM_USER_DEPROVISION("scim.user.deprovision", AuditCategory.SCIM),
@@ -165,6 +167,68 @@ enum class AuditEventType(val key: String, val category: AuditCategory)
     SCHEMA_DEFINITION_CREATE("field_schema.schema_definition.create", AuditCategory.FIELD_SCHEMA),
     SCHEMA_DEFINITION_PUBLISH("field_schema.schema_definition.publish", AuditCategory.FIELD_SCHEMA),
     SCHEMA_DEFINITION_RETIRE("field_schema.schema_definition.retire", AuditCategory.FIELD_SCHEMA),
+    SCHEMA_ASSIGNMENT_ASSIGN("field_schema.schema_assignment.assign", AuditCategory.FIELD_SCHEMA),
+    SCHEMA_ASSIGNMENT_UNASSIGN("field_schema.schema_assignment.unassign", AuditCategory.FIELD_SCHEMA),
+    FIELD_VALUE_UPDATE("field_schema.field_value.update", AuditCategory.FIELD_SCHEMA),
+
+    // Reusable, versioned configuration for what a request for information asks for.
+    INFORMATION_REQUEST_TEMPLATE_CREATE(
+        "information_request.template.create", AuditCategory.INFORMATION_REQUEST,
+    ),
+    INFORMATION_REQUEST_TEMPLATE_CONFIGURE(
+        "information_request.template.configure", AuditCategory.INFORMATION_REQUEST,
+    ),
+    INFORMATION_REQUEST_TEMPLATE_PUBLISH(
+        "information_request.template.publish", AuditCategory.INFORMATION_REQUEST,
+    ),
+    INFORMATION_REQUEST_TEMPLATE_NEW_VERSION(
+        "information_request.template.new_version", AuditCategory.INFORMATION_REQUEST,
+    ),
+    INFORMATION_REQUEST_TEMPLATE_RETIRE(
+        "information_request.template.retire", AuditCategory.INFORMATION_REQUEST,
+    ),
+
+    // Runtime request lifecycle. Namespaced under "information_request.request" so the
+    // transactional-event idempotency namespace derived from the leading key segment
+    // ("information_request") never collides with a Workflow event's "workflow" segment.
+    INFORMATION_REQUEST_CREATE(
+        "information_request.request.create", AuditCategory.INFORMATION_REQUEST,
+    ),
+    INFORMATION_REQUEST_ISSUE(
+        "information_request.request.issue", AuditCategory.INFORMATION_REQUEST,
+    ),
+    INFORMATION_REQUEST_SUBMIT(
+        "information_request.request.submit", AuditCategory.INFORMATION_REQUEST,
+    ),
+    INFORMATION_REQUEST_AMEND(
+        "information_request.request.amend", AuditCategory.INFORMATION_REQUEST,
+    ),
+    INFORMATION_REQUEST_CANCEL(
+        "information_request.request.cancel", AuditCategory.INFORMATION_REQUEST,
+    ),
+    INFORMATION_REQUEST_SUPERSEDE(
+        "information_request.request.supersede", AuditCategory.INFORMATION_REQUEST,
+    ),
+    INFORMATION_REQUEST_EXPORT(
+        "information_request.request.export", AuditCategory.INFORMATION_REQUEST,
+    ),
+    INFORMATION_REQUEST_PARTY_REASSIGN(
+        "information_request.party.reassign", AuditCategory.INFORMATION_REQUEST,
+    ),
+
+    // Runtime Requirement occurrence actions.
+    INFORMATION_REQUEST_REQUIREMENT_RESPOND(
+        "information_request.requirement.respond", AuditCategory.INFORMATION_REQUEST,
+    ),
+    INFORMATION_REQUEST_REQUIREMENT_ATTEST(
+        "information_request.requirement.attest", AuditCategory.INFORMATION_REQUEST,
+    ),
+    INFORMATION_REQUEST_REQUIREMENT_REVIEW(
+        "information_request.requirement.review", AuditCategory.INFORMATION_REQUEST,
+    ),
+    INFORMATION_REQUEST_EVIDENCE_ADMINISTER(
+        "information_request.evidence.administer", AuditCategory.INFORMATION_REQUEST,
+    ),
 
     // Organization membership and role changes.
     ORG_MEMBERSHIP_ROLE_ASSIGN("organization.membership.role_assign", AuditCategory.ORGANIZATION),
@@ -209,7 +273,7 @@ enum class AuditEventType(val key: String, val category: AuditCategory)
          * consumers (ledger, exports, projections) can reason about which catalog shape produced
          * a given event.
          */
-        const val CATALOG_VERSION: Int = 14
+        const val CATALOG_VERSION: Int = 20
 
         private val byKey: Map<String, AuditEventType> = entries.associateBy { it.key }
 

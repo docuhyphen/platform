@@ -118,6 +118,28 @@ enum class Capability
     FIELD_SCHEMA_WRITE,
     FIELD_SCHEMA_PUBLISH,
 
+    // Information Request Template configuration
+    INFORMATION_REQUEST_TEMPLATE_READ,
+    INFORMATION_REQUEST_TEMPLATE_WRITE,
+
+    // Runtime Information Request. Each capability names one thing a party may do, so a
+    // contributor who answers is not thereby able to review, and a reviewer who reads is not
+    // thereby able to answer. No role holds any of these until a request role grants it.
+    INFORMATION_REQUEST_CREATE,
+    INFORMATION_REQUEST_READ,
+    INFORMATION_REQUEST_WRITE,
+    INFORMATION_REQUEST_ISSUE,
+    INFORMATION_REQUEST_CANCEL,
+    INFORMATION_REQUEST_ADMIN,
+    INFORMATION_REQUEST_RESPOND,
+    INFORMATION_REQUEST_ATTEST,
+    INFORMATION_REQUEST_SUBMIT,
+    INFORMATION_REQUEST_REVIEW,
+    INFORMATION_REQUEST_EVIDENCE_READ,
+    INFORMATION_REQUEST_EVIDENCE_WRITE,
+    INFORMATION_REQUEST_EVIDENCE_ADMIN,
+    INFORMATION_REQUEST_EXPORT,
+
     // Platform
     APP_ADMIN,
     APP_AUDIT_READ,

@@ -1,32 +1,18 @@
 package com.docuhyphen.app.api.service.exchange
 
-import com.docuhyphen.app.api.model.entity.ExchangeShareRoleName
-import com.docuhyphen.app.api.model.entity.PrincipalKind
-import com.docuhyphen.app.api.model.entity.ResourceType
-import com.docuhyphen.app.api.model.entity.Share
-import com.docuhyphen.app.api.model.entity.ShareSource
-import com.docuhyphen.app.api.model.entity.ShareStatus
-import com.docuhyphen.app.api.repository.organization.PrincipalGroupMemberRepository
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.repository.exchange.ShareRepository
-import com.docuhyphen.app.api.service.audit.AuditCaptureFailedException
-import com.docuhyphen.app.api.service.audit.AuditCaptureResult
-import com.docuhyphen.app.api.service.audit.AuditEventDraft
-import com.docuhyphen.app.api.service.audit.AuditOwnerScope
-import com.docuhyphen.app.api.service.auth.authz.OwnerContext
-import com.docuhyphen.app.api.service.auth.authz.ResourceAuthorizationContext
-import com.docuhyphen.app.api.service.audit.AuditRecorder
+import com.docuhyphen.app.api.repository.organization.PrincipalGroupMemberRepository
+import com.docuhyphen.app.api.service.audit.*
 import com.docuhyphen.app.api.service.audit.catalog.AuditActorKind
 import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
+import com.docuhyphen.app.api.service.auth.authz.*
 import com.docuhyphen.app.api.service.organization.TrustedRecipientValidationService
 import jakarta.inject.Provider
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
-import org.mockito.kotlin.any
-import org.mockito.kotlin.argumentCaptor
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.whenever
-import java.util.UUID
+import org.mockito.kotlin.*
+import java.util.*
 
 /**
  * Verifies that [ShareService.revoke] calls
@@ -47,7 +33,7 @@ class ShareServiceAuditTest
         resourceId = exchangeId
         principalKind = PrincipalKind.USER
         principalId = sharePrincipalId
-        roleName = ExchangeShareRoleName.VIEWER
+        roleName = ExchangeShareRoleName.VIEWER.name
         source = ShareSource.DIRECT
         status = ShareStatus.ACTIVE
     }
@@ -55,12 +41,12 @@ class ShareServiceAuditTest
     private fun service(
         auditRecorder: AuditRecorder,
         shareRepository: ShareRepository,
-        contextProvider: ExchangeAuthorizationContextProvider = mock(),
+        contextRegistry: ResourceAuthorizationContextRegistry = mock(),
     ): ShareService = ShareService(
         shareRepository = shareRepository,
         groupMemberRepository = mock<PrincipalGroupMemberRepository>(),
         auditRecorder = auditRecorder,
-        exchangeAuthorizationContextProvider = contextProvider,
+        resourceAuthorizationContextRegistry = contextRegistry,
         exchangeRecipientAttestationService = mock<ExchangeRecipientAttestationService>(),
         trustedRecipientValidationService = mock<TrustedRecipientValidationService>(),
         exchangeRecipientServiceProvider = mock<Provider<ExchangeRecipientService>>(),
@@ -76,16 +62,96 @@ class ShareServiceAuditTest
         whenever(shareRepository.findById(shareId)).thenReturn(share())
         whenever(shareRepository.findBySourceShareId(shareId)).thenReturn(emptyList())
         whenever(shareRepository.update(any())).thenAnswer { it.getArgument(0) }
-        val contextProvider = mock<ExchangeAuthorizationContextProvider>()
-        whenever(contextProvider.resolve(exchangeId)).thenReturn(
+        val contextRegistry = mock<ResourceAuthorizationContextRegistry>()
+        whenever(contextRegistry.resolve(ResourceRef.exchange(exchangeId))).thenReturn(
             ResourceAuthorizationContext(OwnerContext.Organization(organizationId))
         )
 
-        service(auditRecorder, shareRepository, contextProvider).revoke(shareId, revokedByAppUserId)
+        service(auditRecorder, shareRepository, contextRegistry).revoke(shareId, revokedByAppUserId)
 
         val captor = argumentCaptor<AuditEventDraft>()
         verify(auditRecorder).record(captor.capture())
         assertEquals(AuditOwnerScope.Organization(organizationId), captor.firstValue.owner)
+    }
+
+    @Test
+    fun `revoke records a non Exchange Share under its resolved organization owner`()
+    {
+        val organizationId = UUID.randomUUID()
+        val groupId = UUID.randomUUID()
+        val groupShare = share().apply {
+            resourceType = ResourceType.PRINCIPAL_GROUP
+            resourceId = groupId
+        }
+        val auditRecorder = mock<AuditRecorder>()
+        whenever(auditRecorder.record(any())).thenReturn(
+            AuditCaptureResult.Captured(
+                UUID.randomUUID(),
+                UUID.randomUUID()
+            )
+        )
+        val shareRepository = mock<ShareRepository>()
+        whenever(shareRepository.findById(shareId)).thenReturn(groupShare)
+        whenever(shareRepository.findBySourceShareId(shareId)).thenReturn(emptyList())
+        whenever(shareRepository.update(any())).thenAnswer { it.getArgument(0) }
+        val contextRegistry = mock<ResourceAuthorizationContextRegistry>()
+        whenever(contextRegistry.resolve(ResourceRef.group(groupId))).thenReturn(
+            ResourceAuthorizationContext(OwnerContext.Organization(organizationId))
+        )
+
+        service(auditRecorder, shareRepository, contextRegistry).revoke(shareId, revokedByAppUserId)
+
+        val captor = argumentCaptor<AuditEventDraft>()
+        verify(auditRecorder).record(captor.capture())
+        assertEquals(AuditOwnerScope.Organization(organizationId), captor.firstValue.owner)
+    }
+
+    @Test
+    fun `grant records canonical non user provenance without legacy app user drift`()
+    {
+        val applicationId = UUID.randomUUID()
+        val auditRecorder = mock<AuditRecorder>()
+        whenever(auditRecorder.record(any())).thenReturn(
+            AuditCaptureResult.Captured(
+                UUID.randomUUID(),
+                UUID.randomUUID()
+            )
+        )
+        val shareRepository = mock<ShareRepository>()
+        whenever(
+            shareRepository.findActiveForPrincipalOnResource(
+                PrincipalKind.USER,
+                sharePrincipalId,
+                ResourceType.EXCHANGE,
+                exchangeId,
+            ),
+        ).thenReturn(emptyList())
+        whenever(
+            shareRepository.findDirectForPrincipalOnResource(
+                PrincipalKind.USER,
+                sharePrincipalId,
+                ResourceType.EXCHANGE,
+                exchangeId,
+            ),
+        ).thenReturn(emptyList())
+        whenever(shareRepository.save(any())).thenAnswer { it.getArgument(0) }
+        val contextRegistry = mock<ResourceAuthorizationContextRegistry>()
+        whenever(contextRegistry.resolve(ResourceRef.exchange(exchangeId))).thenReturn(
+            ResourceAuthorizationContext(OwnerContext.Organization(UUID.randomUUID()))
+        )
+
+        val granted = service(auditRecorder, shareRepository, contextRegistry).grantWithPrincipalProvenance(
+            resourceType = ResourceType.EXCHANGE,
+            resourceId = exchangeId,
+            principalKind = PrincipalKind.USER,
+            principalId = sharePrincipalId,
+            roleName = ExchangeShareRoleName.VIEWER,
+            grantedByPrincipal = PrincipalRef.application(applicationId),
+        )
+
+        assertEquals(PrincipalKind.APPLICATION, granted.grantedByPrincipalKind)
+        assertEquals(applicationId, granted.grantedByPrincipalId)
+        assertEquals(null, granted.grantedByAppUserId)
     }
 
     @Test
@@ -94,8 +160,9 @@ class ShareServiceAuditTest
         val auditRecorder = mock<AuditRecorder>()
         whenever(auditRecorder.record(any())).thenReturn(AuditCaptureResult.Captured(UUID.randomUUID(), UUID.randomUUID()))
 
+        val targetShare = share()
         val shareRepository = mock<ShareRepository>()
-        whenever(shareRepository.findById(shareId)).thenReturn(share())
+        whenever(shareRepository.findById(shareId)).thenReturn(targetShare)
         whenever(shareRepository.findBySourceShareId(shareId)).thenReturn(emptyList())
         whenever(shareRepository.update(any())).thenAnswer { it.getArgument(0) }
 
@@ -110,6 +177,9 @@ class ShareServiceAuditTest
         assertEquals(exchangeId.toString(), captor.firstValue.targetId)
         assertEquals(AuditActorKind.HUMAN, captor.firstValue.actorKind)
         assertEquals(revokedByAppUserId, captor.firstValue.actorId)
+        assertEquals(PrincipalKind.USER, targetShare.revokedByPrincipalKind)
+        assertEquals(revokedByAppUserId, targetShare.revokedByPrincipalId)
+        assertEquals(revokedByAppUserId, targetShare.revokedByAppUserId)
     }
 
     @Test

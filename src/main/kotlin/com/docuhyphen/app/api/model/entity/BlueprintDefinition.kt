@@ -46,6 +46,17 @@ class BlueprintDefinition
     @Serializable(with = UUIDSerializer::class)
     var schemaDefinitionId: UUID? = null
 
+    /**
+     * The exact published Information Request Template Version that future instantiations of this
+     * blueprint request information against, or null when it requests none. It names a Version
+     * rather than a Template because a request has to keep resolving exactly the configuration it
+     * was created against, and a Template keeps changing. Replacing it changes only what is created
+     * next; everything already created stays pinned to what it used.
+     */
+    @Column(name = "information_request_template_version_id", nullable = true)
+    @Serializable(with = UUIDSerializer::class)
+    var informationRequestTemplateVersionId: UUID? = null
+
     @Column(name = "summary", nullable = true, length = 512)
     var summary: String? = null
 

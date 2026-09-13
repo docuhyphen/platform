@@ -2,19 +2,12 @@ package com.docuhyphen.app.api.service.fields
 
 import com.docuhyphen.app.api.model.entity.FieldValue
 import com.docuhyphen.app.api.model.entity.FieldValueType
-import kotlinx.serialization.json.JsonArray
-import kotlinx.serialization.json.JsonNull
-import kotlinx.serialization.json.JsonPrimitive
-import kotlinx.serialization.json.boolean
-import kotlinx.serialization.json.jsonPrimitive
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Assertions.assertTrue
+import kotlinx.serialization.json.*
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import java.math.BigDecimal
+import java.time.Instant
 import java.time.LocalDate
-import java.time.LocalDateTime
 
 class CanonicalValueCodecTest
 {
@@ -73,8 +66,16 @@ class CanonicalValueCodecTest
     fun `toJson renders datetime as ISO string`()
     {
         val v = value()
-        CanonicalValueCodec.applyTo(v, CanonicalFieldValue(FieldValueType.DATE_TIME, isEmpty = false, datetimeValue = LocalDateTime.of(2026, 7, 2, 9, 30)))
-        assertEquals("2026-07-02T09:30", CanonicalValueCodec.toJson(v, emptyList()).jsonPrimitive.content)
+        CanonicalValueCodec.applyTo(
+            v,
+            CanonicalFieldValue(
+                FieldValueType.DATE_TIME,
+                isEmpty = false,
+                datetimeValue = Instant.parse("2026-07-02T09:30:00Z"),
+                datetimeOffsetMinutes = 0,
+            ),
+        )
+        assertEquals("2026-07-02T09:30:00Z", CanonicalValueCodec.toJson(v, emptyList()).jsonPrimitive.content)
     }
 
     @Test

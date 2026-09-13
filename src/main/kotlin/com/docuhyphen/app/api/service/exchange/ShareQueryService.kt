@@ -5,14 +5,14 @@ import com.docuhyphen.app.api.model.entity.PrincipalKind
 import com.docuhyphen.app.api.model.entity.ResourceType
 import com.docuhyphen.app.api.model.entity.Share
 import com.docuhyphen.app.api.model.entity.ShareSource
-import com.docuhyphen.app.api.repository.user.AppUserRepository
 import com.docuhyphen.app.api.repository.exchange.ExternalParticipantRepository
-import com.docuhyphen.app.api.repository.organization.PrincipalGroupRepository
 import com.docuhyphen.app.api.repository.exchange.ShareRepository
+import com.docuhyphen.app.api.repository.organization.PrincipalGroupRepository
+import com.docuhyphen.app.api.repository.user.AppUserRepository
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.inject.Provider
-import java.util.UUID
+import java.util.*
 
 /**
  * Read-side over the unified [Share] model that powers the "manage access" view.
@@ -47,7 +47,7 @@ class ShareQueryService @Inject constructor(
             principalKind = principalKind.name,
             principalId = principalId,
             displayName = resolveDisplayName(principalKind, principalId),
-            roleName = roleName,
+            roleName = exchangeRoleName(),
             source = source.name,
             status = status.name,
             recipientPurpose = recipientPurpose,
@@ -66,6 +66,7 @@ class ShareQueryService @Inject constructor(
                 val fullName = "${user?.person?.firstName.orEmpty()} ${user?.person?.lastName.orEmpty()}".trim()
                 fullName.ifBlank { user?.email }
             }
+
             PrincipalKind.PRINCIPAL_GROUP -> principalGroupRepository.findById(id)?.name
             PrincipalKind.PARTICIPANT -> externalParticipantRepository.findById(id)?.email
             else -> null

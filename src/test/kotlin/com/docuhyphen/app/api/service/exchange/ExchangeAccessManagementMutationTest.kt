@@ -1,43 +1,27 @@
 package com.docuhyphen.app.api.service.exchange
 
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
-import com.docuhyphen.app.api.model.entity.AppUser
-import com.docuhyphen.app.api.model.entity.AuthToken
-import com.docuhyphen.app.api.model.entity.Exchange
-import com.docuhyphen.app.api.model.entity.ExchangeShareRoleName
-import com.docuhyphen.app.api.model.entity.ExchangeStatus
-import com.docuhyphen.app.api.model.entity.PrincipalKind
-import com.docuhyphen.app.api.model.entity.ResourceType
-import com.docuhyphen.app.api.model.entity.Share
-import com.docuhyphen.app.api.model.entity.ShareSource
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
 import com.docuhyphen.app.api.repository.exchange.ShareRepository
-import com.docuhyphen.app.api.service.user.AppUserService
+import com.docuhyphen.app.api.service.audit.AuditOwnerScope
+import com.docuhyphen.app.api.service.audit.AuditOwnerScopeResolver
 import com.docuhyphen.app.api.service.audit.AuditRecorder
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.Decision
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.service.auth.authz.*
 import com.docuhyphen.app.api.service.communication.EmailTemplateService
 import com.docuhyphen.app.api.service.communication.OtpService
 import com.docuhyphen.app.api.service.config.ConfigurationService
 import com.docuhyphen.app.api.service.identity.ExternalIdentityResolutionService
 import com.docuhyphen.app.api.service.organization.OrganizationExchangePolicyService
 import com.docuhyphen.app.api.service.organization.OrganizationGroupService
+import com.docuhyphen.app.api.service.user.AppUserService
 import io.quarkus.security.ForbiddenException
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.EnumSource
-import org.mockito.kotlin.any
-import org.mockito.kotlin.eq
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.never
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.verifyNoInteractions
-import org.mockito.kotlin.whenever
-import java.util.UUID
+import org.mockito.kotlin.*
+import java.util.*
 
 class ExchangeAccessManagementMutationTest
 {
@@ -245,7 +229,7 @@ class ExchangeAccessManagementMutationTest
             resourceId = exchange.id
             principalKind = PrincipalKind.USER
             principalId = sharePrincipalId ?: UUID.randomUUID()
-            roleName = shareRole
+            roleName = shareRole.name
             source = ShareSource.DIRECT
         }
         val shareRepository = mock<ShareRepository>()
@@ -288,6 +272,9 @@ class ExchangeAccessManagementMutationTest
                 noAuthExchangeAccessTokenService = mock<NoAuthExchangeAccessTokenService>(),
                 configurationService = mock<ConfigurationService>(),
                 auditRecorder = mock<AuditRecorder>(),
+                auditOwnerScopeResolver = mock<AuditOwnerScopeResolver>().also {
+                    whenever(it.resolve(any(), any())).thenReturn(AuditOwnerScope.Platform)
+                },
                 exchangeNotificationDeliveryService = mock<ExchangeNotificationDeliveryService>(),
                 exchangeFeatureSubscriptionGuard = mock<ExchangeFeatureSubscriptionGuard>(),
             )

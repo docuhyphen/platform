@@ -1,30 +1,21 @@
 package com.docuhyphen.app.api.service.auth.authz
 
-import com.docuhyphen.app.api.model.entity.ExchangeShareRoleName
-import com.docuhyphen.app.api.model.entity.PrincipalKind
-import com.docuhyphen.app.api.model.entity.ResourceType
-import com.docuhyphen.app.api.model.entity.Share
-import com.docuhyphen.app.api.model.entity.ShareLink
-import com.docuhyphen.app.api.model.entity.ShareLinkStatus
-import com.docuhyphen.app.api.model.entity.ShareSource
-import com.docuhyphen.app.api.model.entity.ShareStatus
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.repository.application.AppRoleAssignmentRepository
+import com.docuhyphen.app.api.repository.exchange.ShareLinkRepository
+import com.docuhyphen.app.api.repository.exchange.ShareRepository
 import com.docuhyphen.app.api.repository.organization.OrganizationMembershipRepository
 import com.docuhyphen.app.api.repository.organization.PrincipalGroupMemberRepository
 import com.docuhyphen.app.api.repository.organization.PrincipalGroupRepository
-import com.docuhyphen.app.api.repository.exchange.ShareLinkRepository
-import com.docuhyphen.app.api.repository.exchange.ShareRepository
 import com.docuhyphen.app.api.service.application.ApplicationService
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 /**
  * PUBLIC_LINK grant resolution.
@@ -40,6 +31,8 @@ import java.util.UUID
  *  - ShareLink whose Share covers a different exchange denies access.
  *  - ShareLink token is accepted alongside an authenticated user session.
  *  - No share link in context produces no SHARE_LINK grant.
+ *  - A VERIFICATION_BOOTSTRAP-mode ShareLink never produces a content grant, even when otherwise
+ *    valid, active, and covering the requested resource.
  */
 class PublicLinkShareTest
 {
@@ -204,6 +197,25 @@ class PublicLinkShareTest
     }
 
     @Test
+    fun `VERIFICATION_BOOTSTRAP-mode ShareLink never produces a content grant`()
+    {
+        val link = activeLink().apply { linkMode = ShareLinkMode.VERIFICATION_BOOTSTRAP }
+        val share = coveringShare()
+
+        val svc = buildService(link = link, share = share)
+        val context = AuthorizationContext(shareLinkTokenHash = tokenHash)
+
+        val decision = svc.authorize(
+            PrincipalRef(PrincipalKind.USER, UUID.randomUUID()),
+            Action.EXCHANGE_VIEW,
+            ResourceRef.exchange(exchangeId),
+            context,
+        )
+        assertFalse(decision.isAllowed, "A bootstrap-mode link must never resolve as a content grant")
+        assertEquals(Decision.REASON_NO_GRANT, (decision as Decision.Deny).reasonCode)
+    }
+
+    @Test
     fun `no shareLinkTokenHash in context produces no SHARE_LINK grant`()
     {
         val link = activeLink()
@@ -241,7 +253,7 @@ class PublicLinkShareTest
         this.principalId = UUID.randomUUID()
         this.resourceType = ResourceType.EXCHANGE
         this.resourceId = exchangeId
-        this.roleName = ExchangeShareRoleName.VIEWER
+        this.roleName = ExchangeShareRoleName.VIEWER.name
         this.source = ShareSource.LINK
         this.status = ShareStatus.ACTIVE
     }
@@ -265,7 +277,11 @@ class PublicLinkShareTest
         }
 
         val registry = mock<ResourceAuthorizationContextRegistry>()
-        whenever(registry.resolve(any<ResourceRef>())).thenReturn(null)
+        whenever(registry.resolution(any<ResourceRef>())).thenReturn(
+            ResourceContextResolution.Resolved(
+                ResourceAuthorizationContext(ownerContext = OwnerContext.Organization(UUID.randomUUID())),
+            ),
+        )
         return DefaultAuthorizationService(
             shareRepository = shareRepo,
             shareLinkRepository = shareLinkRepo,

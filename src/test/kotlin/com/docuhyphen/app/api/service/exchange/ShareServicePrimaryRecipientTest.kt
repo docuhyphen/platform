@@ -1,14 +1,10 @@
 package com.docuhyphen.app.api.service.exchange
 
-import com.docuhyphen.app.api.model.entity.ExchangeRecipient
-import com.docuhyphen.app.api.model.entity.ExchangeRecipientPurpose
-import com.docuhyphen.app.api.model.entity.PrincipalKind
-import com.docuhyphen.app.api.model.entity.ResourceType
-import com.docuhyphen.app.api.model.entity.Share
-import com.docuhyphen.app.api.model.entity.ShareStatus
-import com.docuhyphen.app.api.repository.organization.PrincipalGroupMemberRepository
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.repository.exchange.ShareRepository
+import com.docuhyphen.app.api.repository.organization.PrincipalGroupMemberRepository
 import com.docuhyphen.app.api.service.audit.AuditRecorder
+import com.docuhyphen.app.api.service.auth.authz.ResourceAuthorizationContextRegistry
 import com.docuhyphen.app.api.service.organization.TrustedRecipientValidationService
 import jakarta.inject.Provider
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -16,7 +12,7 @@ import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
-import java.util.UUID
+import java.util.*
 
 class ShareServicePrimaryRecipientTest
 {
@@ -27,7 +23,7 @@ class ShareServicePrimaryRecipientTest
         shareRepository = shareRepository,
         groupMemberRepository = mock<PrincipalGroupMemberRepository>(),
         auditRecorder = mock<AuditRecorder>(),
-        exchangeAuthorizationContextProvider = mock<ExchangeAuthorizationContextProvider>(),
+        resourceAuthorizationContextRegistry = mock<ResourceAuthorizationContextRegistry>(),
         exchangeRecipientAttestationService = mock<ExchangeRecipientAttestationService>(),
         trustedRecipientValidationService = mock<TrustedRecipientValidationService>(),
         exchangeRecipientServiceProvider = recipientServiceProvider,

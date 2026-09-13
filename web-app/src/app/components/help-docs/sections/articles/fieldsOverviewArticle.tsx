@@ -20,7 +20,8 @@ export const fieldsOverviewArticle = (
             </li>
             <li>
                 A <b>schema</b> composes one or more fields into a case type that Exchange
-                creators can select. Schemas target Exchanges.
+                creators can select. Schemas target Exchanges. A schema lists each field
+                once, so a field you have already added is no longer offered.
             </li>
         </ul>
 
@@ -28,9 +29,12 @@ export const fieldsOverviewArticle = (
         <p>Nine value types are supported:</p>
         <ul>
             <li>Short text and Long text.</li>
-            <li>Yes or No.</li>
-            <li>Integer and Decimal.</li>
-            <li>Date and Date and time.</li>
+            <li>Yes or No, which can also be left unanswered.</li>
+            <li>
+                Integer and Decimal, holding up to 28 digits before the decimal point and 10
+                after it. A Decimal field can be given a fixed number of decimal places.
+            </li>
+            <li>Date, and Date and time, which records an exact moment rather than a local reading.</li>
             <li>Single selection and Multiple selection (each with a list of options).</li>
         </ul>
 
@@ -65,8 +69,18 @@ export const fieldsOverviewArticle = (
             adding one.
         </p>
         <p>
-            If the Business entitlement or mutation access is unavailable, existing definitions,
-            schemas, assignments, and values stay readable, but configuration changes are refused.
+            Each field you add to a schema has a <b>Required</b> and a <b>Read only</b> switch.
+            Required marks the field on the Exchange and refuses a save that clears it. Read only
+            disables the field&apos;s editor everywhere; because the schema editor has no setting
+            for a default value, a field marked Read only stays empty on every Exchange that uses
+            the schema.
+        </p>
+        <p>
+            While the plan still includes Business Fields, a lapsed or suspended subscription
+            leaves this tab readable and refuses configuration changes. If the plan stops
+            including Business Fields, the tab is not shown at all. Nothing is deleted either way:
+            definitions, schemas, assignments, and values are kept, and are readable again as soon
+            as the plan includes Business Fields once more.
         </p>
 
         <h3>Platform fields and schemas</h3>

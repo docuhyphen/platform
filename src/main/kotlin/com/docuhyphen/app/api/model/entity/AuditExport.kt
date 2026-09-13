@@ -1,15 +1,9 @@
 package com.docuhyphen.app.api.model.entity
 
-import jakarta.persistence.Column
-import jakarta.persistence.Entity
-import jakarta.persistence.EnumType
-import jakarta.persistence.Enumerated
-import jakarta.persistence.Id
-import jakarta.persistence.Table
-import jakarta.persistence.Version
+import jakarta.persistence.*
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 /**
  * One requested, built, and downloaded verifiable evidence export. A normal mutable lifecycle row - like
@@ -30,6 +24,12 @@ class AuditExport
     /** Null means a platform-scope export (no single owning organization). */
     @Column(name = "organization_id")
     var organizationId: UUID? = null
+
+    @Column(name = "owner_type", nullable = false, length = 32)
+    var ownerType: String = "PLATFORM"
+
+    @Column(name = "owner_id")
+    var ownerId: UUID? = null
 
     @Column(name = "requested_by_user_id", nullable = false)
     var requestedByUserId: UUID = UUID.randomUUID()

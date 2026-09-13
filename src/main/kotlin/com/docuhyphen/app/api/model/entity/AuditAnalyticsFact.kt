@@ -7,7 +7,7 @@ import jakarta.persistence.Table
 import java.sql.Timestamp
 import java.time.Instant
 import java.time.LocalDate
-import java.util.UUID
+import java.util.*
 
 /**
  * One denormalized dimensional fact per ledger event, keyed by [ledgerEventId] so projection is
@@ -26,6 +26,12 @@ class AuditAnalyticsFact
 
     @Column(name = "organization_id")
     var organizationId: UUID? = null
+
+    @Column(name = "owner_type", nullable = false, length = 32)
+    var ownerType: String = "PLATFORM"
+
+    @Column(name = "owner_id")
+    var ownerId: UUID? = null
 
     @Column(name = "stream_id", nullable = false, length = 128)
     lateinit var streamId: String

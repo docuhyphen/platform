@@ -1,15 +1,14 @@
 package com.docuhyphen.app.api.repository.fields
 
-import com.docuhyphen.app.api.repository.BaseRepository
-
 import com.docuhyphen.app.api.model.entity.FieldDefinition
 import com.docuhyphen.app.api.model.entity.FieldScopeKind
+import com.docuhyphen.app.api.repository.BaseRepository
 import jakarta.enterprise.context.ApplicationScoped
-import java.util.UUID
+import java.util.*
 
 /**
- * Persistence for [FieldDefinition]. Lookups are always scoped by owner (PLATFORM or an
- * organization) so stable keys never collide across scopes.
+ * Persistence for [FieldDefinition]. Lookups are always scoped by owner (the platform, an
+ * organization, or one user) so stable keys never collide across scopes.
  */
 @ApplicationScoped
 class FieldDefinitionRepository :
@@ -41,6 +40,7 @@ class FieldDefinitionRepository :
     fun findByKey(
         scopeKind: FieldScopeKind,
         scopeOrgId: UUID?,
+        scopeUserId: UUID?,
         namespace: String,
         fieldKey: String,
     ): FieldDefinition? =
@@ -48,12 +48,14 @@ class FieldDefinitionRepository :
             """SELECT f FROM FieldDefinition f
                WHERE f.scopeKind = :sk
                  AND ((:oid IS NULL AND f.scopeOrgId IS NULL) OR f.scopeOrgId = :oid)
+                 AND ((:uid IS NULL AND f.scopeUserId IS NULL) OR f.scopeUserId = :uid)
                  AND f.namespace = :ns
                  AND f.fieldKey = :fk""",
             FieldDefinition::class.java,
         )
             .setParameter("sk", scopeKind)
             .setParameter("oid", scopeOrgId)
+            .setParameter("uid", scopeUserId)
             .setParameter("ns", namespace)
             .setParameter("fk", fieldKey)
             .resultList

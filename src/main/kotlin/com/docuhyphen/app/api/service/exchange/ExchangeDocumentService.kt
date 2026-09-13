@@ -3,34 +3,24 @@
 import com.docuhyphen.app.api.exception.ExchangeDocumentNotFoundException
 import com.docuhyphen.app.api.exception.ExchangeNotFoundException
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
-import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.dto.DocumentThumbnailResult
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.realtime.RealtimeEventService
 import com.docuhyphen.app.api.realtime.RealtimeMessage
 import com.docuhyphen.app.api.realtime.RealtimeMessageType
 import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
-import com.docuhyphen.app.api.service.user.AppUserService
-import com.docuhyphen.app.api.service.audit.AuditCaptureFailedException
-import com.docuhyphen.app.api.service.audit.AuditDraftInvalidException
-import com.docuhyphen.app.api.service.audit.AuditEventDraft
-import com.docuhyphen.app.api.service.audit.AuditOwnerScope
-import com.docuhyphen.app.api.service.audit.AuditRecorder
+import com.docuhyphen.app.api.service.audit.*
 import com.docuhyphen.app.api.service.audit.catalog.AuditActorKind
 import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
 import com.docuhyphen.app.api.service.audit.catalog.AuditOutcome
-import com.docuhyphen.app.api.service.auth.authz.Action
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.Decision
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import com.docuhyphen.app.api.service.auth.authz.ResourceRef
-import com.docuhyphen.app.api.service.auth.authz.ShareConstraints
+import com.docuhyphen.app.api.service.auth.authz.*
 import com.docuhyphen.app.api.service.communication.EmailService
 import com.docuhyphen.app.api.service.communication.EmailTemplateService
 import com.docuhyphen.app.api.service.config.ConfigurationService
 import com.docuhyphen.app.api.service.notification.InAppNotificationService
 import com.docuhyphen.app.api.service.notification.UserNotificationPreference
 import com.docuhyphen.app.api.service.storage.FileStorageService
+import com.docuhyphen.app.api.service.user.AppUserService
 import io.quarkus.security.ForbiddenException
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
@@ -62,6 +52,7 @@ class ExchangeDocumentService @Inject constructor(
     private val authorizationService: AuthorizationService,
     private val authorizationContextFactory: AuthorizationContextFactory,
     private val auditRecorder: AuditRecorder,
+    private val auditOwnerScopeResolver: AuditOwnerScopeResolver,
     private val noAuthExchangeAccessTokenService: NoAuthExchangeAccessTokenService,
     private val noAuthExchangeAccessWindowService: NoAuthExchangeAccessWindowService,
     private val documentVersionService: ExchangeDocumentVersionService,
@@ -927,7 +918,7 @@ class ExchangeDocumentService @Inject constructor(
                     targetType = ResourceType.DOCUMENT.name,
                     targetId = document.id.toString(),
                     targetLabel = document.title,
-                    owner = exchange.ownerOrganizationId?.let(AuditOwnerScope::Organization) ?: AuditOwnerScope.Platform,
+                    owner = auditOwnerScopeResolver.resolve(ResourceType.EXCHANGE, exchange.id),
                     payload = buildMap {
                         put("document_title", document.title ?: "")
                         put("exchange_id", exchange.id.toString())
@@ -966,7 +957,7 @@ class ExchangeDocumentService @Inject constructor(
                     targetType = ResourceType.EXCHANGE.name,
                     targetId = exchange.id.toString(),
                     targetLabel = exchange.name,
-                    owner = exchange.ownerOrganizationId?.let(AuditOwnerScope::Organization) ?: AuditOwnerScope.Platform,
+                    owner = auditOwnerScopeResolver.resolve(ResourceType.EXCHANGE, exchange.id),
                     payload = mapOf(
                         "document_count" to documents.size.toString(),
                         "document_ids" to documents.joinToString(",") { it.id.toString() },
@@ -1005,7 +996,7 @@ class ExchangeDocumentService @Inject constructor(
                     targetType = ResourceType.EXCHANGE.name,
                     targetId = exchange.id.toString(),
                     targetLabel = exchange.name,
-                    owner = exchange.ownerOrganizationId?.let(AuditOwnerScope::Organization) ?: AuditOwnerScope.Platform,
+                    owner = auditOwnerScopeResolver.resolve(ResourceType.EXCHANGE, exchange.id),
                     payload = mapOf("action" to action),
                 )
             )

@@ -1,19 +1,13 @@
 package com.docuhyphen.app.api.service.exchange.permutation
 
-import com.docuhyphen.app.api.model.entity.ExchangeRecipientAcceptanceStatus
-import com.docuhyphen.app.api.model.entity.ExchangeRecipientPurpose
-import com.docuhyphen.app.api.model.entity.ExchangeRecipientSelectionType
-import com.docuhyphen.app.api.model.entity.ExchangeShareRoleName
-import com.docuhyphen.app.api.model.entity.PrincipalGroupRoleName
-import com.docuhyphen.app.api.model.entity.PrincipalKind
-import com.docuhyphen.app.api.model.entity.ShareStatus
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.resource.model.RegisteredUserRecipientSelectionRequest
 import com.docuhyphen.app.api.service.auth.authz.Action
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.whenever
-import java.util.UUID
+import java.util.*
 
 class ExchangeAdditionalParticipantPermutationTest
 {
@@ -148,7 +142,7 @@ class ExchangeAdditionalParticipantPermutationTest
         val probe = ExchangeAuthorizationProbe()
         val viewer = probe.share(ExchangeShareRoleName.VIEWER)
         probe.assertDenied(Action.DOCUMENT_UPDATE, listOf(viewer))
-        viewer.roleName = ExchangeShareRoleName.EDITOR
+        viewer.roleName = ExchangeShareRoleName.EDITOR.name
         probe.assertAllowed(Action.DOCUMENT_UPDATE, listOf(viewer))
     }
 

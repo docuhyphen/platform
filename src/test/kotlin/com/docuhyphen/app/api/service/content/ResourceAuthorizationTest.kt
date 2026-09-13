@@ -4,13 +4,7 @@ import com.docuhyphen.app.api.model.dto.UpdateBlueprintRequest
 import com.docuhyphen.app.api.model.dto.UpdateCommunicationRequest
 import com.docuhyphen.app.api.model.dto.UpdateSequenceRequest
 import com.docuhyphen.app.api.model.dto.UpdateVariableRequest
-import com.docuhyphen.app.api.model.entity.BlueprintDefinition
-import com.docuhyphen.app.api.model.entity.BlueprintScope
-import com.docuhyphen.app.api.model.entity.Communication
-import com.docuhyphen.app.api.model.entity.CommunicationScope
-import com.docuhyphen.app.api.model.entity.SequenceDefinition
-import com.docuhyphen.app.api.model.entity.VariableDefinition
-import com.docuhyphen.app.api.model.entity.VariableScope
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.repository.blueprint.BlueprintDefinitionRepository
 import com.docuhyphen.app.api.repository.blueprint.BlueprintDocumentDefaultRepository
 import com.docuhyphen.app.api.repository.blueprint.BlueprintParticipantDefaultRepository
@@ -20,12 +14,7 @@ import com.docuhyphen.app.api.repository.variable.SequenceDefinitionRepository
 import com.docuhyphen.app.api.repository.variable.VariableDefinitionRepository
 import com.docuhyphen.app.api.service.auth.AdminApprovalContext
 import com.docuhyphen.app.api.service.auth.UserRoleService
-import com.docuhyphen.app.api.service.auth.authz.Action
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.Decision
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.service.auth.authz.*
 import com.docuhyphen.app.api.service.blueprint.BlueprintDefinitionService
 import com.docuhyphen.app.api.service.communication.CommunicationService
 import com.docuhyphen.app.api.service.subscription.OrganizationFeatureSubscriptionGuard
@@ -39,7 +28,7 @@ import org.junit.jupiter.api.assertThrows
 import org.mockito.kotlin.any
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
-import java.util.UUID
+import java.util.*
 
 /**
  * Central authorization gates for content service read/write paths.
@@ -446,6 +435,7 @@ class ResourceAuthorizationTest
         authorizationContextFactory = factory,
         userRoleService = roleService,
         blueprintSubscriptionGuard = mock(),
+        templateReferenceService = mock(),
     )
 
     @Test

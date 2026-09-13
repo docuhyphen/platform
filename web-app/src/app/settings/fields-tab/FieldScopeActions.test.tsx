@@ -1,12 +1,7 @@
 /** @vitest-environment jsdom */
 import {cleanup, render} from "@testing-library/react";
 import {afterEach, describe, expect, it, vi} from "vitest";
-import {
-    FieldDefinitionDto,
-    FieldLifecycleStatus,
-    FieldScopeKind,
-    SchemaDefinitionDto,
-} from "../../models/models.tsx";
+import {FieldDefinitionDto, FieldLifecycleStatus, FieldScopeKind, SchemaDefinitionDto,} from "../../models/models.tsx";
 import FieldDefinitionsPanel from "./FieldDefinitionsPanel.tsx";
 import SchemaCard from "./SchemaCard.tsx";
 
@@ -39,9 +34,10 @@ describe("Settings field scope actions", () =>
     {
         const platform = definition(FieldScopeKind.PLATFORM);
         const organization = definition(FieldScopeKind.ORGANIZATION);
+        const personal = definition(FieldScopeKind.PERSONAL);
         render(
             <FieldDefinitionsPanel
-                definitions={[platform, organization]}
+                definitions={[platform, organization, personal]}
                 viewMode={"cards"}
                 canManage={item => item.scopeKind === FieldScopeKind.ORGANIZATION}
                 loading={false}
@@ -51,6 +47,8 @@ describe("Settings field scope actions", () =>
 
         expect(document.querySelector(`#field-def-menu-${platform.id}`)).toBeNull();
         expect(document.querySelector(`#field-def-menu-${organization.id}`)).toBeTruthy();
+        // A personally owned record renders, but the organization manage rule does not reach it.
+        expect(document.querySelector(`#field-def-menu-${personal.id}`)).toBeNull();
     });
 
     it("does not show schema actions for a platform record", () =>

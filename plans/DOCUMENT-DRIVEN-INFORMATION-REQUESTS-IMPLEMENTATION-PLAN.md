@@ -2,20 +2,356 @@
 
 ## Status
 
-- Overall status: Not started
-- Current phase: Phase 1, Business Fields foundation program
-- Next task: `P1-T1`, secure Schema Assignment read and write behavior
-- Last updated: 2026-08-30, third architecture review
+- Overall status: In progress
+- Review checkpoint: 2026-09-09. All 20 findings in
+  [the Phases 1-5 review](DOCUMENT-DRIVEN-INFORMATION-REQUESTS-PHASES-1-5-REVIEW.md)
+  are fixed and verified under `P5-R01` through `P5-R20`. `P5-R-GATE` passed on
+  2026-09-13 with recorded evidence. No finding was deferred to Phase 6 or later.
+- Current phase: Phase 6, Evidence and Secure Document Handling, is blocked and not started until
+  the required scanner approval decision is resolved. Phase 5, Structured Responses, Repeatable
+  Groups, and Conditions, is complete.
+  Phase 3, Runtime Requests, Parties, Lifecycle, and Command Safety, is complete apart from three
+  explicitly blocked subtasks. Phase 4, Authorization and Dual Access Surfaces: `P4-T1`
+  through `P4-T9` are all complete (`P4-T3`'s correction-allowlist slice is resolved as blocked, not implemented,
+  and `P4-T6b` is deferred, not blocked).
+  `P4-T4` is complete at the service layer: `ShareLinkMode` plus central-authorizer refusal, persisted
+  `RequestAccessSession` plus bootstrap `ShareLink` issuance, recipient contact-proof verification,
+  bootstrap-link rotation/replacement/revocation, and the verified-registration upgrade path
+  (`ParticipantAccountLink`) are all done. `P4-T5` (REST exposure) is complete: the authenticated
+  owner-facing bootstrap access-link admin resource (issue/rotate/replace/revoke), the no-auth
+  respondent adapter for contact-proof challenge issuance and session minting, the authenticated
+  participant registration-upgrade resource, the `EndpointAuthorizationFilter` no-auth allowlist entry,
+  and its look-alike-prefix rejection test are all implemented and passing. `P4-T6` is complete for its
+  `P4-T6a` slice (recipient-safe party projection); its `P4-T6b` slice (occurrence and response
+  projection) is deferred, not blocked, since occurrence entities carry no identity-bearing field today
+  and response/evidence content does not exist until Phase 5-7. `P4-T7` is now fully complete: it was
+  too large for one session and was split into `P4-T7a` through `P4-T7d`, all four of which are done.
+  `P4-T7a` froze `RequestExecutionGrant` issuance; `P4-T7b` added the idempotent
+  `RequestExecutionUsageReservation` capacity ledger (no caller yet); `P4-T7c` redirected continuation-path
+  subscription and Business-Fields checks to the frozen grant; `P4-T7d` added the commercial-entitlement
+  x rollout-grant truth-table tests, an emergency operational suspension check
+  (`InformationRequestEntitlementGuard.requireNotOperationallySuspended`, reusing the existing
+  `SubscriptionStatus.SUSPENDED` value, which still reaches a request even once its grant is frozen), and
+  explicit per-request grant revocation (`InformationRequestExecutionGrantService.revoke`, using the
+  existing `revokedAt`/`revokedReason` columns, enforced in `InformationRequestLifecycleService.mutate()`
+  via a new `EXECUTION_GRANT_REVOKED` catalog code). `P4-T8` is complete: both commercial and
+  rollout gates for `INFORMATION_REQUESTS` remain off by default (no plan in `PlanCatalog` includes the
+  feature; `app.subscription.rollout.grants` defaults to empty), and tests prove -- through the
+  actual `InformationRequestAdHocCreationService.createAdHoc` and `InformationRequestLifecycleService
+  .issue` call paths, not only the guard in isolation -- that holding the rollout grant alone or the
+  commercial entitlement alone still denies both creation and issuance, while a request that already
+  carries a frozen execution grant (as if issued earlier, while both gates were held) remains
+  cancellable regardless of which single gate is currently missing. `P4-T9` is now complete: the
+  minimal authenticated and no-auth runtime request read shell exists end to end.
+  `InformationRequestQueryService.findById` and the new `InformationRequestResource.get`
+  (`GET /information-requests/{id}`) expose owner-facing detail projection. The new
+  `InformationRequestPartyResource` (`GET /information-requests/{id}/parties`) is the first REST
+  caller of the `P4-T6a` party projection service, which was service-layer-complete but unreachable
+  until now. The new `InformationRequestNoAuthReadAccessService` turns a presented bootstrap
+  `X-Request-Access-Token` into the same `RequestAccessContext` shape the authenticated surface
+  builds -- reusing `InformationRequestContactProofService.resolveBootstrapLink` (made public) to
+  resolve the link, the new `RequestAccessSessionService.findUsableForShareLink` to find its usable
+  session, and `InformationRequestAccessContextFactory.fromBootstrapSession` (built in `P4-T4`, its
+  first production caller) to build the context -- refusing with a new `ACCESS_SESSION_REQUIRED`
+  catalog code when the link is valid but never verified. The new
+  `InformationRequestNoAuthRequestResource` (`no-auth/information-requests/{id}` and `.../parties`)
+  mirrors the authenticated resource's two reads against the identical application services, so both
+  surfaces project identical data for an equivalent caller; it is already covered by the existing
+  `/no-auth/information-requests/` allowlist prefix, confirmed by a new test rather than assumed.
+  Phase 4 exit criteria were reviewed at the start of the 2026-09-07 `P5-T1a` session and matched the
+  completed task set, with `P4-T6b` still intentionally deferred until response and evidence content
+  exists. `P5-T1a` is complete: the first response-draft persistence and service slice provides a
+  current `InformationRequestResponse` envelope, request-level `responseRevision`/ETag, sparse
+  disposition and narrative patching, explicit narrative clear, canonical principal/session
+  provenance, central Requirement response authorization, Command Receipt replay/conflict handling,
+  parent-state/frozen-grant checks, and `SAVE_RESPONSE` transition/audit routing. `P5-T1b` is also
+  complete: the new authenticated `InformationRequestResponseResource`
+  (`PATCH /information-requests/{id}/responses`) and a new `patchResponses` method on the no-auth
+  `InformationRequestNoAuthRequestResource` both require `If-Match` and an `Idempotency-Key`, build
+  the same explicit access context (`currentAuthenticated()` or the resolved bootstrap session)
+  on both surfaces, delegate to the identical `InformationRequestResponseDraftService.patch`, return
+  the response ETag, and map precondition/idempotency/domain/forbidden refusals to stable HTTP
+  responses via the same per-resource `CommandPreconditionResponse`/`ResponseError` pattern every
+  other Information Request resource uses. Both surfaces project only the requirement occurrences the
+  caller's own patch named, never another party's response on the same request, closing -- for this
+  response surface -- the Phase 4 exit criterion about cross-party response leakage that could not be
+  proven before response content existed. `P5-T1c` was found already complete -- Field Requirement
+  patches were already wired through the Fields engine (typed canonicalization, explicit clear,
+  canonical provenance, current Value Set identity, occurrence-scoped writes), uncommitted in the
+  working tree, with green unit and contract test coverage -- at the start of the 2026-09-07 `P5-T1d`
+  session; only the plan text had not been updated to reflect it. That session verified `P5-T1c`'s
+  exit criteria directly against the code and its tests (not assumed from the plan), then completed
+  `P5-T1d`: three new tests in `InformationRequestResponseDraftServiceTest` proving multi-occurrence
+  writes, field-patch replay without re-writing Fields, and a stale Field precondition aborting the
+  whole patch with no response/history side effects. All three passed immediately against the
+  existing generic per-patch-loop production code, so no production Kotlin changed. `P5-T1` is now
+  fully complete. `P5-T2` is now fully complete: `P5-T2a` added authored repeatable group
+  definitions, `P5-T2b` added runtime group occurrence instances at issuance, and `P5-T2c` added
+  authenticated and no-auth add, remove, and reorder commands with authored-cardinality checks,
+  response-shape ETag preconditions, idempotency, occurrence Field Value Set provisioning, and a
+  removed-marker model that preserves existing requirement history and stable occurrence paths.
+  `P5-T3` (a versioned condition expression model using stable Requirement and Field IDs) is now
+  fully complete: `P5-T3a` persists condition rule and predicate definitions, `P5-T3b` evaluates
+  them against a live runtime request, and `P5-T3c` exposes a client-safe rule-key/state projection
+  on the authenticated and no-auth runtime request detail read surfaces. `P5-T4` is complete:
+  condition rules now define, persist, copy, expose, and enforce per-condition hidden-response-data
+  policy. Response drafts now carry active or hidden state; hidden conditional responses are removed
+  from active response projections, retained or cleared according to the authored policy, and clear
+  policy requires an explicit response-patch confirmation. `P5-T5` is complete: runtime response
+  saves enforce the Template binding's platform disposition allowlist and now require a nonblank
+  narrative for exception-style dispositions (`PARTIALLY_PROVIDED`, `NOT_APPLICABLE`, `UNAVAILABLE`,
+  `EXCEPTION_REQUESTED`, `SATISFIED_BY_REFERENCE`, and `WAIVED`) while leaving `PROVIDED` narrative
+  optional. `P5-T6` is complete: structured response draft saves now run a dedicated validation
+  service before any Field write or response mutation, expose validator extension points for
+  cross-field, cross-row, unit, currency, date-range, period-coverage, and duplicate checks, and
+  reject duplicate Requirement patches or duplicate Field entries with a stable runtime error code.
+  `P5-T7` is complete: `InformationRequestCompletenessProgressService` now computes a deterministic
+  structured-response progress denominator and exposes a contribution contract that later evidence
+  and review evaluators can extend without double-counting a Requirement.
+  `P5-T8` is complete: the two test-only walking-skeleton fixtures now cover Phase 5 sparse draft
+  response, stress-fixture occurrence creation bounds, authored conditions, and structured-response
+  completeness progress. `P5-T9` is complete: the shared structured-response UI slice now exists end
+  to end behind the feature switch. The presentational workspace, its toolbar, its occurrence editor,
+  and its patch-building state were already green in the working tree, but nothing bound them to the
+  runtime API. `structuredResponseCommands` now builds the workspace's save, add, remove, and reorder
+  handlers over `informationRequestRuntimeService`, minting one idempotency key per command, passing
+  the expected response ETag as `If-Match`, threading an optional access-link token so the identical
+  handlers serve the authenticated and no-auth routes, and reporting a stale refusal without
+  inventing an ETag. `InformationRequestStructuredResponsePanel` gates the workspace on
+  `PlanFeature.INFORMATION_REQUESTS` for an authenticated caller and treats a presented access-link
+  token as server-gated access. Mounting the panel on a respondent route is Phase 10 integration
+  work, consistent with the walking-skeleton rule.
+  All nine original `P5-*` tasks are checked. The Phase 5 exit gate was run on 2026-09-08 and
+  failed, finding that condition evaluation was not occurrence-aware and failed open. That gap is
+  now closed by `P5-T10`, added to the phase and completed the same day: rules are evaluated once
+  per occurrence they govern, Field predicates resolve the occurrence's own Value Set laid over the
+  root set, disposition predicates resolve that occurrence's own answer and stay UNKNOWN rather than
+  picking an arbitrary sibling, and the occurrence path now travels through completeness,
+  hidden-response policy, the DTO read shape, and the respondent UI.
+- Next task: resolve the Phase 6 scanner approval decision, then start `P6-T1`.
+  `P5-R-GATE` is complete: all `P5-R01` through `P5-R20` tasks were checked with completion
+  evidence, the full Docker-backed backend suite passed with 2554 tests, the full frontend Vitest
+  suite passed with 118 files and 481 tests, `npm run typecheck:app` passed against the reviewed
+  346-diagnostic unrelated baseline with 0 Information Request diagnostics, root `npx tsc --noEmit`
+  passed, help docs were read and size-checked, and an integrated remediation review found no new
+  pre-Phase 6 defect. The remaining `npm run lint` and `npm run buildWithTs` failures are the
+  accepted broader frontend baseline with no Information Request matches in filtered reruns.
+  Phase 6 was not started.
+  `P5-R20` is complete: the Information Request Template tab test fixture now supplies the
+  required Template Version `groups` and `conditionRules` arrays and uses the real
+  `FieldValueType.SHORT_TEXT` value instead of nonexistent `FieldValueType.TEXT`. The new
+  `npm run typecheck:app` command runs the application project compiler and compares diagnostics
+  against a reviewed unrelated baseline, failing on any Information Request diagnostic or any new
+  unrelated diagnostic. The gate is backed by focused unit coverage and was proven to fail on a
+  temporary introduced Information Request type error, then pass after the probe was removed.
+  `P5-R19` is complete: the runtime persistence contract fixture now writes V102's required
+  delegated-authority grantor kind, grantor ID, and effective time. The positive contract path also
+  asserts those instrument fields round-trip, while the assigned-party, Requirement-scope, and
+  delegate-principal constraint refusals remain covered. The focused PostgreSQL case, full runtime
+  persistence contract class, and full Docker-backed backend suite are green.
+  `P5-R18` is complete: actual issuance and acting-party expansion paths now spend the frozen
+  `RequestExecutionGrant` additional-recipient capacity through the reservation ledger. Issuance
+  consumes one reservation per active acting party and skips the subject party. Issued acting-party
+  assignment reserves before creating the request Share, consumes after the party is saved, releases
+  an unconsumed reservation if the command fails, and command receipt replay does not double-spend.
+  Revoking an issued acting party rolls back that party's consumed reservation so the slot can be
+  reused. Regression coverage now includes production-caller rollback, replay idempotency,
+  assignment release, revocation reuse, and the PostgreSQL concurrency ledger contract.
+  `P5-R17` is complete: structured completeness now inspects the exact collected Field's current
+  canonical value for Field Requirements instead of treating the existence of a Value Set as an
+  answer. Empty first saves and cleared current Field values remain incomplete, field-only saves
+  with a non-empty collected value count complete, and neutral exception dispositions such as
+  waived continue to resolve the Requirement without requiring a Field value. The Phase 5 walking
+  skeleton fixtures now carry the authored collected Field identity and store real current Field
+  values for completed Field rows.
+  `P5-R16` is complete: hidden response policy enforcement now handles TRUE transitions as well as
+  false and unknown transitions. Retained and archived conditional responses reactivate with their
+  saved disposition, narrative, provenance, and history intact when their rule returns to TRUE.
+  Confirmed-clear responses reactivate as active empty response envelopes, without restoring cleared
+  Field or response data. Regression coverage now includes false to TRUE retained/archive
+  reactivation and unknown to TRUE clear-policy reactivation.
+  `P5-R15` is complete: condition evaluation now overlays root, ancestor, and exact occurrence
+  Field Value Sets in order, so a nested conditional Requirement can read the parent occurrence
+  answer for its own branch without crossing into a sibling branch. Disposition predicates now use
+  the same occurrence ancestry before falling back to root answers. The structured-response
+  workspace now uses immutable template group and occurrence identity for nested controls: root
+  add commands stay in the toolbar, child add controls are rendered within the selected parent
+  occurrence, sibling reorder is scoped to the same group and parent occurrence, and add/reorder
+  payloads include `parentOccurrenceId` for nested groups.
+  `P5-R14` is complete: runtime Information Request reads now use the same owner-funded frozen
+  execution grant rule already used by continuation mutations. When a request has a
+  `P5-R14` is complete: runtime Information Request reads now use the same owner-funded frozen
+  execution grant rule already used by continuation mutations. When a request has a
+  `RequestExecutionGrant`, detail and workspace reads skip live commercial entitlement and rollout
+  rechecks, but still enforce live operational suspension and explicit per-request grant revocation.
+  Draft or never-issued request reads still require live owner Information Requests access. Exchange
+  lists evaluate this per request, so issued work remains visible while gated drafts drop out. The
+  structured response panel no longer gates an authenticated respondent on the respondent account's
+  own `PlanFeature.INFORMATION_REQUESTS`; server-returned workspace access is authoritative for both
+  signed-in and recipient-session callers. Regression coverage now includes owner rollout or feature
+  withdrawal, mixed issued/draft lists, grant revocation, operational suspension, recipient-bound
+  session access, and a signed-in Free respondent UI path.
+  `P5-R13` is complete: receipt replay now locks and rechecks the current parent Exchange,
+  current request lifecycle, frozen continuation entitlement, operational suspension state,
+  request-level read access, Requirement response authorization, active occurrence state, and the
+  receipt's recorded revision before returning a replay representation. Replayed response and Field
+  projections are capped to the receipt revision, so a retry confirms only the result originally
+  saved and cannot disclose a later replacement response or later collected Field value.
+  `P5-R12` is complete: contact-proof challenge issuance and verification now lock the bootstrap
+  ShareLink row, enforce expiry and `maxUses`, bound failed OTP attempts with a temporary lockout,
+  reset attempt state on reissue, clear OTP state on success, and atomically advance the bootstrap
+  `ShareLink.usedCount` when a verified respondent session is minted. Session-authenticated reads
+  and writes continue to use the minted session credential without consuming additional link uses,
+  while new challenge and verification attempts fail closed after exhaustion, revocation, expiry,
+  failed proof lockout, or wrong binding.
+  `P5-R11` is complete: exact-party Requirement authorization now resolves assigned participant
+  parties through verified `ParticipantAccountLink` records and assigned group parties through
+  current active group membership while preserving the original assigned party principal,
+  assignment role, party ID, subject identity, Exchange recipient, and Share provenance. Registered
+  linked accounts and active group members can read and respond for the assigned party. Unrelated
+  accounts, removed members, unsupported nested group members, and callers without a current
+  assignment fact remain denied.
+  `P5-R10` is complete: group occurrence commands now separate display order from stable occurrence
+  identity. Add commands lock every sibling occurrence for the request, group, and parent path,
+  including removed rows, choose the next display index from active siblings, and choose the next
+  path identity from all existing sibling occurrence paths, so remove, reorder, then add cannot
+  reuse an earlier stable path. The regression suite now covers the duplicate-path probe,
+  occurrence Field Value Set path provisioning, and the same-request sibling lock that serializes
+  concurrent adds.
+  `P5-R09` is complete: response DTOs now carry explicit `sourceTemplateRequirementId` and
+  `sourceTemplateBindingId` correlation from runtime Requirement rows to the frozen Template
+  requirement and binding identities. Authenticated and no-auth response resources return the same
+  contract for saved and synthetic not-yet-answered responses, and the structured response workspace
+  now matches Field Requirements by the binding identity first, then the stable Template Requirement
+  identity, instead of guessing from whole Value Set Field presence. The regression proves editing
+  only the second Field and editing both Fields in one repeated occurrence both name the correct
+  distinct runtime Requirements.
+  `P5-R08` is complete: `InformationRequestResponseDraftService.mutate` now groups response patches
+  carrying Field values by the Value Set their Requirement's occurrence resolves to and submits one
+  merged `FieldValueWriteCommand` per group instead of one per Requirement, so two Requirements
+  collecting Fields in the same occurrence no longer make the second write see the first write's
+  already-advanced revision and fail its own precondition. A new `mergeFieldPreconditions` requires
+  every patch in a group to carry the identical precondition, failing closed with
+  `STRUCTURED_RESPONSE_VALIDATION_FAILED` rather than silently picking one on a mismatch.
+  `P5-R07` is complete: removed occurrence subtrees were already excluded from active completeness,
+  condition evaluation, the response workspace, and response-patch writes (`GROUP_OCCURRENCE_REMOVED`)
+  by prior working-tree code, each with its own passing regression test. The one remaining gap was
+  that `InformationRequestRequirementAuthorizationContextProvider.resolve` never considered occurrence
+  removal, so a caller reaching a removed occurrence's Requirement through the generic Fields engine
+  directly (`InformationRequestFieldResourceAdapter` / `InformationRequestFieldBindingPolicy`, which
+  authorizes per Field write against `ResourceRef.informationRequestRequirement(id)` rather than
+  through `InformationRequestResponseDraftService`) was never denied. Added an `occurrenceRemoved`
+  fact, computed from the same active-occurrence-path set used elsewhere, and a new
+  `InformationRequestRequirementPolicyEvaluator` check that denies every response-mutation action
+  (never view) for a Requirement whose occurrence has been removed, reusing `GROUP_OCCURRENCE_REMOVED`.
+  `P5-R06` is complete: `InformationRequestGroupOccurrenceService` now authorizes add, remove, and
+  reorder group-occurrence commands against the actual per-Requirement policy instead of only the
+  coarse aggregate `INFORMATION_REQUEST` grant. A new `InformationRequestGroupAuthorizationService`
+  authorizes every occurrence path a remove or reorder command touches (the target occurrence plus
+  its descendants, or every active sibling being reordered) against its already-materialized
+  Requirement, and authorizes every Template binding an add command would materialize (the group's
+  own anchored binding plus any descendant group whose authored minimum occurrences also
+  materialize) against either an existing Requirement instance sharing that binding or, when none
+  has been created yet, a new `InformationRequestRequirementAuthorizationContextProvider.authoredContextFor`
+  path that builds the same policy facts a materialized Requirement would carry and evaluates them
+  directly, so a zero-occurrence group's first occurrence can no longer be added by falling back to
+  aggregate contributor authority.
+  `P5-R05` is complete: `InformationRequestFieldBindingPolicy.isExternalCaller` now resolves whether
+  the caller is an active member of the request's owning organization (or its personal owner),
+  mirroring `ExchangeFieldBindingPolicy`, instead of always returning `false`; and `decide()` now
+  refuses an external caller outright when no Requirement collects the addressed Field, instead of
+  falling through to the shared audience rule, so an uncollected `INTERNAL`/`CONFIDENTIAL` Field can
+  no longer reach an external or registered respondent while an owner-side caller keeps its existing
+  access. Reads and writes both flow through this same `decide()` call, so the fix applies to
+  projections and writes consistently.
+  `P5-R04` is complete: `InformationRequestFieldBindingPolicy.requirementIdAnswering` now resolves the
+  Requirement occurrence the caller's `FieldValueSetRef` actually addresses (root or a named
+  occurrence) instead of the first Requirement anywhere on the request that happens to collect the
+  same Field Definition, so a repeated Field can no longer be authorized against a sibling
+  occurrence's Requirement in either direction. `InformationRequestResponseDraftService` now also
+  rejects, before any Fields write, a response Field patch entry whose Field Definition does not
+  match the named Requirement's own collected Field, closing the remaining gap where a patch naming
+  one Requirement could still smuggle in an entry answering a different Requirement sharing the same
+  occurrence.
+  `P5-R03` is complete: hidden current values are excluded from active projections, and confirmed
+  clearing writes empty current Fields through the revision-preserving Fields engine.
+  `P5-R01` is complete: independently authenticated recipient sessions, mandatory expiry,
+  request/link/recipient binding, both adapters, client transport, and migration regression checks.
+  `P5-R02` is complete: Exchange rejection, rescission, deletion, and ending now drive a
+  transactional child-request lifecycle service that cancels unfinished requests, revokes respondent
+  sessions, and retains owner read; the parent snapshot is now a resource policy fact that the
+  central authorizer applies on every request and Requirement read surface; and all request mutation
+  commands take the parent Exchange row lock before the request row so a concurrent termination
+  serializes instead of deadlocking.
+  All required remediation tasks and `P5-R-GATE` are complete; resolve the Phase 6 scanner approval
+  decision before Phase 6 implementation begins.
+  The review's Docker-backed run originally executed 2453 tests with zero assertion failures and one
+  fixture error tracked by `P5-R19`; `P5-R19` is now repaired, and the backend suite passes with
+  2554 tests. The 2026-09-13 `P5-R-GATE` rerun also passed with 2554 backend tests.
+  Neither `InformationRequestExecutionGrantService.revoke` nor `requireNotOperationallySuspended` has
+  a REST caller yet; an administrative surface for either has not been placed in the phase plan, so a
+  future session scoping owner or platform administration should decide where that belongs.
+  `P5-T10` implemented occurrence-scoped evaluation; `P5-R15` completed ancestor inheritance and
+  nested editor command identity; `P5-R16` completed hidden-response reactivation; `P5-R17`
+  completed exact Field-value completeness; `P5-R18` wired frozen recipient-capacity reservations
+  into issuance and issued acting-party changes; `P5-R19` repaired the delegated-authority
+  persistence fixture; `P5-R20` repaired the Information Request Template frontend fixtures and
+  established the baseline-aware app typecheck gate; and `P5-R-GATE` closed the complete
+  pre-Phase 6 remediation review.
+- Last implementation: 2026-09-13, `P5-R-GATE` completed. The complete remediation gate passed
+  with the full backend suite, full frontend Vitest suite, baseline-aware app typecheck, root
+  TypeScript command, help-doc review, and integrated remediation review. See the latest result and
+  companion evidence for exact commands, accepted baseline failures, and the Phase 6 handoff.
+- Plan structure updated: 2026-09-03, completion evidence split created
+- Completion evidence: `plans/DOCUMENT-DRIVEN-INFORMATION-REQUESTS-COMPLETION-EVIDENCE.md`
 - Implementation source of truth:
   `plans/DOCUMENT-DRIVEN-INFORMATION-REQUESTS-IMPLEMENTATION-PLAN.md`
 - Design input: `plans/DOCUMENT-DRIVEN-INFORMATION-REQUESTS-PROPOSAL.md`
 
-No production implementation has started under this plan. Existing working-tree changes belong to
-the user and must be preserved. In particular, do not rewrite or normalize the proposal while
-implementing this plan.
+This active plan keeps the original planning context, remaining tasks, exact next task, subsequent plans, and the latest
+implementation result. Historical completion results, test evidence, decisions, and older journal entries live in
+`plans/DOCUMENT-DRIVEN-INFORMATION-REQUESTS-COMPLETION-EVIDENCE.md`.
 
-This is a living implementation plan. Every implementation session must update the status, task
-checkboxes, decisions, verification results, and implementation journal before it ends.
+Phase 1 and Phase 2 are complete. Phase 3 is complete apart from `P3-T11b` (ShareLink bootstrap rotation on
+request-party reassignment), `P3-T11c` (RequestAccessSession revocation on reassignment), and `P3-T11d`
+(completed-work preservation), which remain blocked: `P4-T4` now provides a bootstrap `ShareLink` issuance, rotation,
+replacement, and revocation service and a persisted `RequestAccessSession` with its own revocation, but nothing in the
+repository yet implements request-party reassignment itself to call them from, and no response/evidence content entity
+exists for `P3-T11d`. They depend on the rest of Phase 4 and Phase 5-7 respectively and are journaled under `P3-T11`
+rather than attempted early.
+
+Phase 4's task list (`P4-T1` through `P4-T9`) is now fully checked off. `P4-T3`'s correction-allowlist slice is resolved as blocked on `P8-T3` (no
+Review, Finding, or correction-request entity exists yet in the repository; the only related artifact,
+`InformationRequestMutation.REQUEST_CORRECTION` in
+`InformationRequestTransitionMatrix`, is a whole-request-state transition with no item parameter that nothing invokes),
+the same way `P3-T11b`/`c`/`d` are blocked on their own prerequisite subsystems. Until `P8-T3` lands, the existing
+binary `correctionScope` (`NORMAL_RESPONSE`/`OPEN_CORRECTION`)
+denies every answer mutation while a request is `CHANGES_REQUESTED` regardless of which item a reviewer actually
+flagged; that is a known, accepted limitation, not a bug.
+
+Full historical implementation detail for every completed `P3-*` and `P4-*` task (exact gaps found, files changed,
+migrations, and decisions) lives newest-first in the companion evidence file's
+`## Implementation Journal`.
+
+Existing working-tree changes belong to the user and must be preserved. In particular, do not rewrite or normalize the
+proposal while implementing this plan.
+
+## Plan and Evidence Update Protocol
+
+Future sessions must keep the active plan and completion evidence split.
+
+- Update this active plan with current status, the exact next task, remaining unchecked work, subsequent planned work,
+  any task splits, and only the latest implementation result.
+- Do not accumulate older implementation results in this active plan. When a newer result is added, make sure the
+  displaced result is present in the completion evidence file, then replace it here.
+- Add full completion results and evidence to
+  `plans/DOCUMENT-DRIVEN-INFORMATION-REQUESTS-COMPLETION-EVIDENCE.md` newest first. Include exact tests, observed
+  failures, files changed, migrations, decisions, help documentation review, risks, blockers, the exact next task, and
+  files for the next agent.
+- For planning-only sessions, update this active plan and add evidence only when the session changes handoff context,
+  task boundaries, or future-session instructions.
+- In older task text, references to a journal or journaled decisions mean the companion completion evidence file unless
+  a section explicitly says otherwise.
 
 ## Mandatory Protocol for Every Implementation Session
 
@@ -24,7 +360,9 @@ the test-first, implementation, verification, and handoff stages.
 
 1. Read the repository `AGENTS.md` completely before inspecting or changing implementation files,
    plus any more-specific `AGENTS.md` governing files in scope.
-2. Read this implementation plan completely, including the latest implementation journal entry.
+2. Read this implementation plan completely, including the latest implementation result. Read
+   `plans/DOCUMENT-DRIVEN-INFORMATION-REQUESTS-COMPLETION-EVIDENCE.md` when you need prior completion evidence, older
+   test results, or historical decisions.
 3. Inspect `git status`, the current implementation, relevant migrations, tests, and help articles.
    Preserve all unrelated user changes and never assume a dirty file belongs to the current task.
 4. Select the first incomplete and unblocked task. Confirm its dependencies and exit criteria.
@@ -42,10 +380,13 @@ the test-first, implementation, verification, and handoff stages.
 9. For every user-visible feature change, search the help documentation, read every matched article
    in full, update inaccurate content, enforce the article and registry size limits in `AGENTS.md`,
    and run `npx tsc --noEmit` from `web-app`.
-10. As the final action after the implementation and verification attempt, update this plan even if
-    the task is blocked or a test still fails. Record what changed, what remains, any migrations,
-    every exact test result, decisions, risks, the blocking failure, and the exact next task and
-    files to read. Never hide a failed or incomplete session by omitting its journal entry.
+10. As the final action after the implementation and verification attempt, update this plan and the companion completion
+    evidence file even if the task is blocked or a test still fails. Keep this plan limited to current status, what is
+    next, remaining planned work, any task splits, and the latest implementation result. Add the detailed completion
+    evidence entry to
+    `plans/DOCUMENT-DRIVEN-INFORMATION-REQUESTS-COMPLETION-EVIDENCE.md`, including what changed, what remains,
+    migrations, every exact test result, decisions, risks, blocking failures, the exact next task, and files to read.
+    Never hide a failed or incomplete session by omitting its evidence entry.
 11. Do not create a Git commit or push any Git ref without the user's explicit permission.
 
 Documentation-only planning sessions do not need artificial tests. Any session that changes
@@ -80,8 +421,8 @@ plan.
 - Each generic capability must be validated against at least two materially different neutral
   process patterns. If a task cannot be implemented without industry-specific production naming or
   behavior, stop and ask the user how to scope it before implementation.
-- Before checking a task, audit all changed artifacts for industry-specific naming and embedded
-  process rules. Record the result in the implementation journal.
+- Before checking a task, audit all changed artifacts for industry-specific naming and embedded process rules. Record
+  the result in the companion completion evidence file.
 
 ## Objective
 
@@ -650,20 +991,20 @@ reason summary.
 
 ## Phase Summary
 
-| Phase | Purpose | Dependencies | Status | Exit gate |
-|---|---|---|---|---|
-| 1 | Business Fields foundation program | None | Not started | Current Fields are safe, principal-aware, version-aware, and deterministic enough to reuse. |
-| 2 | Versioned Information Request Templates | Phase 1 | Not started | Published templates are immutable and referenceable by existing Blueprint Definitions. |
-| 3 | Runtime requests, parties, lifecycle, and command safety | Phase 2 | Not started | Drafts, parties, exact assignments, parent-child lifecycle, audit, transactional events, idempotency, and concurrency are safe; issuance remains executor-gated. |
-| 4 | Authorization and dual access surfaces | Phase 3 | Not started | Registered and recipient-bound no-auth actors share the central capability model. |
-| 5 | Structured responses, repeatable groups, and conditions | Phase 4 | Not started | Complex drafts save safely and completeness is server-authoritative. |
-| 6 | Evidence and secure document handling | Phase 5 plus approved scanner decision | Not started | Versioned evidence is policy-validated, scanned fail-closed, and request-scoped. |
-| 7 | Submission, response attestation, amendments, and recurrence | Phase 6 | Not started | Immutable packages survive staged submission, amendments, supplements, and recurrence. |
-| 8 | Review, findings, remediation, and decision separation | Phase 7 | Not started | Item-level and staged review is complete and auditable. |
-| 9 | Time, Workflow, audit, retention, and export | Phase 8 | Not started | Events, clocks, immutable notices, preservation holds, disposal, and downstream use are reliable. |
-| 10 | Author, respondent, reviewer, and operations UX | Phases 2-9 | Not started | All primary journeys are responsive, accessible, and documented. |
-| 11 | Generic capability conformance and extension contracts | Phases 2-10 | Not started | Eight neutral conformance scenarios pass. |
-| 12 | Compatibility, packaging, rollout, and final hardening | Phases 1-11 | Not started | Migration, entitlement, quotas, documentation, and release gates pass. |
+| Phase | Purpose                                                      | Dependencies                           | Status      | Exit gate                                                                                                                                                        |
+|-------|--------------------------------------------------------------|----------------------------------------|-------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| 1     | Business Fields foundation program                           | None                                   | Complete    | Current Fields are safe, principal-aware, version-aware, and deterministic enough to reuse.                                                                      |
+| 2     | Versioned Information Request Templates                      | Phase 1                                | Complete    | Published templates are immutable and referenceable by existing Blueprint Definitions.                                                                           |
+| 3     | Runtime requests, parties, lifecycle, and command safety     | Phase 2                                | In progress | Drafts, parties, exact assignments, parent-child lifecycle, audit, transactional events, idempotency, and concurrency are safe; issuance remains executor-gated. |
+| 4     | Authorization and dual access surfaces                       | Phase 3                                | Complete    | Registered and recipient-bound no-auth actors share the central capability model.                                                                                |
+| 5     | Structured responses, repeatable groups, and conditions      | Phase 4                                | Complete | All 20 review findings resolved, P5-R-GATE passed, safe drafts and authoritative completeness verified. |
+| 6     | Evidence and secure document handling                        | P5-R-GATE plus approved scanner decision | Blocked, not started | Versioned evidence is policy-validated, scanned fail-closed, and request-scoped. |
+| 7     | Submission, response attestation, amendments, and recurrence | Phase 6                                | Not started | Immutable packages survive staged submission, amendments, supplements, and recurrence.                                                                           |
+| 8     | Review, findings, remediation, and decision separation       | Phase 7                                | Not started | Item-level and staged review is complete and auditable.                                                                                                          |
+| 9     | Time, Workflow, audit, retention, and export                 | Phase 8                                | Not started | Events, clocks, immutable notices, preservation holds, disposal, and downstream use are reliable.                                                                |
+| 10    | Author, respondent, reviewer, and operations UX              | Phases 2-9                             | Not started | All primary journeys are responsive, accessible, and documented.                                                                                                 |
+| 11    | Generic capability conformance and extension contracts       | Phases 2-10                            | Not started | Eight neutral conformance scenarios pass.                                                                                                                        |
+| 12    | Compatibility, packaging, rollout, and final hardening       | Phases 1-11                            | Not started | Migration, entitlement, quotas, documentation, and release gates pass.                                                                                           |
 
 ### Progress rules
 
@@ -683,6 +1024,14 @@ reason summary.
 
 Use focused test selectors during TDD, then run the applicable suite below before checking a task.
 Run the complete phase suite before marking a phase complete.
+
+TypeScript verification must actually compile the application project. Continue running the
+repository-required `npx tsc --noEmit`, but its root configuration has an empty file list and its
+success is not application typecheck evidence. Also run `npx tsc -p tsconfig.app.json --noEmit`
+or an equivalent verified build-mode check. `P5-R20` must establish an enforced diagnostic gate:
+zero Information Request feature diagnostics and no new diagnostics against a recorded, reviewed
+unrelated baseline. Record any remaining baseline errors explicitly; never describe that result as
+a clean full application typecheck. This rule supersedes older no-op TypeScript gate substitutions.
 
 | Change type | Required verification |
 |---|---|
@@ -749,31 +1098,31 @@ both milestones pass.
 
 ### Tasks
 
-- [ ] `P1-T1` Write failing authorization and projection tests for external reads, writes, Schema
+- [x] `P1-T1` Write failing authorization and projection tests for external reads, writes, Schema
   assignment, and unassignment. Enforce identical audience filtering on read and write responses,
   block writes to invisible bindings, and require an explicit owner or configuration capability for
   assignment changes. Cover the currently reachable external registered-User path and use explicit
   synthetic `PARTICIPANT` and `PUBLIC_LINK` principals at the service and adapter boundary as
   pre-exposure contract tests. Do not claim no-auth HTTP reachability until Phase 4 adds that
   endpoint surface.
-- [ ] `P1-T2` Write failing tests that characterize sparse Field updates and cover read-only
+- [x] `P1-T2` Write failing tests that characterize sparse Field updates and cover read-only
   defaults and the Details form posting read-only bindings. Keep sparse updates permitted. Do not add
   Information Request aggregate completeness to the Fields service; Request requiredness belongs to
   Template Requirements and is implemented in Phases 5 and 7. Correct read-only default population
   and client payload behavior now, while preserving the existing sparse `PUT` contract. Defer the
   canonical `PATCH` and ETag rollout to `P1-T7`, after Value Sets provide a monotonic revision.
-- [ ] `P1-T3` Write failing service and PostgreSQL migration contract tests proving that one Schema
+- [x] `P1-T3` Write failing service and PostgreSQL migration contract tests proving that one Schema
   Version cannot bind two Contract versions of the same stable Field Definition. Use an
   expand-contract migration: first block new duplicates in the service, add and backfill the stable
   definition invariant key, report and explicitly resolve existing conflicts, then enforce
   consistency and uniqueness. Test clean and populated baselines, including existing duplicates.
-- [ ] `P1-T4` Write failing tests for offset date-time normalization, decimal precision, and
+- [x] `P1-T4` Write failing tests for offset date-time normalization, decimal precision, and
   unanswered Boolean values. Store time with explicit instant or offset semantics and preserve
   decimal values without JavaScript `Number` conversion.
-- [ ] `P1-T5` Add one root `FieldValueSet` per existing Schema Assignment and backfill current Field
+- [x] `P1-T5` Add one root `FieldValueSet` per existing Schema Assignment and backfill current Field
   Values through an expand-contract migration. Make all new Field Value history and uniqueness
   Value Set-aware while preserving existing Exchange query behavior.
-- [ ] `P1-T6` Replace App User-only Field Value and Schema Assignment attribution through an
+- [x] `P1-T6` Replace App User-only Field Value and Schema Assignment attribution through an
   expand-contract migration with canonical `PrincipalKind` and principal ID provenance plus a
   separate non-secret session reference where applicable. Backfill existing authors and assigners
   as `USER`. Add immutable `FieldValueRevision`, value-mutation and assignment audit coverage,
@@ -782,7 +1131,7 @@ both milestones pass.
   them only for `USER` principals. Participant, public-link, application, and service principals
   populate canonical columns only. Record the old-writer drain and later retain-or-drop contract
   decision before changing either legacy foreign key. Do not add a competing actor identity.
-- [ ] `P1-T7` Generalize the Fields command and authorization contract before Information Request
+- [x] `P1-T7` Generalize the Fields command and authorization contract before Information Request
   runtime work. Every Field-value read or mutation identifies its resource, Value Set, occurrence,
   binding, operation, explicit access context, and expected revision. Schema-assignment commands
   instead carry the target resource, exact Schema reference where applicable, operation, access
@@ -796,12 +1145,34 @@ both milestones pass.
   GETs and successful mutations return the current root-set ETag, and migrate the frontend. Preserve
   sparse `PUT` as a deprecated alias: enforce `If-Match` when supplied, emit deprecation metadata,
   and record missing-header usage throughout the measured compatibility window.
-- [ ] `P1-T8` Move Field request DTOs out of `SchemaAssignmentService`, extract repository-backed
+    - [x] `P1-T7a` Give each Value Set a monotonic revision and derive the Fields strong ETag from that persisted value.
+      Advance the revision exactly once per mutation that stores a change, leave it alone for a write that stores
+      nothing, and return the current root-set ETag from the Fields read and from a successful mutation.
+    - [x] `P1-T7b` Introduce the generalized Fields command and per-binding authorization contract. A value read or
+      mutation carries its resource, Value Set, occurrence, binding, operation, explicit access context, and expected
+      revision; a Schema-assignment command carries the target resource, Schema reference, operation, access context,
+      and expected assignment revision. Add the generic per-binding Fields authorization port and keep the Exchange
+      adapter on an
+      `INITIATED`-only compatibility implementation. Enforce the expected revision with a missing precondition and a
+      stale precondition distinguishable by stable machine code.
+    - [x] `P1-T7c` Add canonical sparse `PATCH /exchanges/{id}/fields` requiring `If-Match`, returning
+      `428` when absent and `412` when stale. Preserve sparse `PUT` as a deprecated alias that enforces `If-Match` when
+      supplied, emits deprecation metadata, and records missing-header usage.
+    - [x] `P1-T7d` Migrate the first-party frontend to the canonical `PATCH` with ETag round-tripping and
+      stale-precondition recovery, so it no longer depends on unconditioned `PUT` behavior.
+- [x] `P1-T8` Move Field request DTOs out of `SchemaAssignmentService`, extract repository-backed
   projection assembly, and place pure DTO construction in dedicated mapper classes under
   the existing flat `model` package with Fields-qualified class names. Do not introduce a
   `model/mapper` package or place `toDto` logic in a service or resource. Add characterization,
   mapper, and projection tests before changing behavior.
-- [ ] `P1-T9` Correct inaccurate help documentation concerning required Documents, read-only Fields,
+    - [x] `P1-T8a` Move the Field request DTOs out of `SchemaAssignmentService`, extract the repository-backed
+      projection assembly into one collaborator both Fields services resolve their bindings through, and place the pure
+      construction of the value, binding, and assignment projections in dedicated mapper classes under the flat `model`
+      package. Pin the current projection with characterization tests first and keep it byte-identical.
+    - [x] `P1-T8b` Make one audience-filtered projection authoritative for both the bindings the Details form renders
+      its editors from and the values it carries, so the form no longer depends on the separately fetched,
+      scope-authorized resolved-schema view. Migrate the frontend to the single fetch.
+- [x] `P1-T9` Correct inaccurate help documentation concerning required Documents, read-only Fields,
   entitlement-loss visibility, Workflow missing-value behavior, and the deprecated sparse `PUT`
   alias. Refactor help registry composition before adding any new section so
   `helpDocsRegistry.tsx` remains under 60 lines.
@@ -850,6 +1221,17 @@ npm run lint
 npm run buildWithTs
 ```
 
+Phase-gate substitution recorded at Phase 1 completion. Two of the listed commands fail on a backlog that predates this
+program and that Phase 1 neither created nor is scoped to clear.
+`npm run buildWithTs` is `tsc -b` plus `vite build`, and `tsc -b` reports 345 errors spread across service modules,
+`models.tsx`, and 26 help-doc files whose unused `React` import trips
+`noUnusedLocals`. `npm run lint` reports 109 problems, 61 of them errors, mostly unused variables and stale
+`eslint-disable` directives in service modules. No error or warning from either command is in a file Phase 1 added, and
+none is in `web-app/src/app/components/help-docs`. The frontend gate actually used for Phase 1 is therefore `npm test`,
+`npx tsc --noEmit`, `npm run build`, and
+`npx eslint` on the changed paths, all of which pass. A later phase that needs `buildWithTs` or a clean repository-wide
+`npm run lint` has to clear those two backlogs first, and neither total may be allowed to grow in the meantime.
+
 ### Exit criteria
 
 - Read and write projections cannot disclose non-visible Fields.
@@ -880,7 +1262,7 @@ Documents, and Response Attestations without placing respondent behavior inside 
 
 ### Tasks
 
-- [ ] `P2-T1` Add `PERSONAL`-capable ownership columns, checks, and tenant-safe unique indexes for
+- [x] `P2-T1` Add `PERSONAL`-capable ownership columns, checks, and tenant-safe unique indexes for
   Fields, Schemas, and Information Request Templates. Extend `FieldScopeKind` and the persisted
   Template scope vocabulary exactly to `PLATFORM`, `ORGANIZATION`, and `PERSONAL`; do not import
   another domain's `APP` or `ORG` spelling. Rewrite `ck_field_def_scope_kind`,
@@ -907,30 +1289,115 @@ Documents, and Response Attestations without placing respondent behavior inside 
   capabilities default-off until Phase 4 is complete. Split ownership, personal-scope code
   reachability, commercial entitlement, rollout, and personal audit into journaled subtasks before
   implementation.
-- [ ] `P2-T2` Add the tenant-scoped `SubjectIdentityRef` foundation with stable opaque identity,
+    - [x] `P2-T1a` Personal-capable ownership storage. One migration adds the personal owner column to
+      `field_definition`, `schema_definition`, and `schema_assignment`, widens
+      `ck_field_def_scope_kind`, `ck_schema_def_scope_kind`, and `ck_assignment_scope_kind` to
+      `PERSONAL`, rewrites `ck_field_def_scope_org` and `ck_schema_def_scope_org` into owner checks that admit exactly
+      one owner per scope kind, adds the assignment owner check the released schema never had, and replaces
+      `ux_field_def_key` and `ux_schema_def_key`. The released indexes key
+      `PLATFORM` rows through a `COALESCE(scope_org_id, '000...0')` sentinel, so a personal row would collide with the
+      platform row of the same key; the replacement must separate the three owner spaces without a sentinel collision.
+      Extend `FieldScopeKind` and the three entities. Starts red with a clean-schema and populated-baseline PostgreSQL
+      contract test.
+    - [x] `P2-T1b` Personal-scope code reachability. Add `ScopeReference.Personal`, return it from
+      `FieldResourceAdapter.ownerScope` for a personally owned resource, rewrite
+      `SchemaAssignmentService.assertSchemaVisibleToResource` so it stops casting to
+      `ScopeReference.Organization` and rejecting everything else, and give
+      `BusinessFieldsSubscriptionGuard.requireConfigurationMutation` a personal-owner branch in place of
+      `requireNotNull(organizationId)`. Depends on `P2-T1a`.
+    - [x] `P2-T1c` `INFORMATION_REQUEST` Schema target. Register the target with explicit compatibility rules through
+      `SchemaDefinitionService` and the adapter registry only, replacing the hardcoded
+      `ResourceType.EXCHANGE` comparison. `schema_definition.target_resource_type` is a
+      `VARCHAR(48) NOT NULL DEFAULT 'EXCHANGE'` with no CHECK constraint, so this needs no migration and must not be
+      journaled or ledgered as one.
+    - [x] `P2-T1d` Owner-scoped commercial entitlement. Add `INFORMATION_REQUESTS` to backend and frontend
+      `PlanFeature`, absent from every default plan catalog. Generalize
+      `organization_feature_entitlement` and `SubscriptionPolicyService.organizationFeatureOverrides`
+      into an owner-scoped override that resolves for an organization or a user owner, preserving every existing
+      organization row and its resolution. Depends on `P2-T1a` for the personal owner concept. Split into two journaled
+      subtasks because storage plus resolution and the platform-administered writer for a personal grant are separate
+      bounded behaviors, and shipping the first without the second would leave a table whose personal half has no
+      writer.
+        - [x] `P2-T1d1` Owner-scoped entitlement storage and resolution. One migration generalizes
+          `organization_feature_entitlement` into an owner-scoped override table that names either an organization or a
+          person, admits exactly one owner per row, keys uniqueness per owner, and carries every released organization
+          row across unchanged. Generalize the entity, the repository, and
+          `SubscriptionPolicyService.organizationFeatureOverrides` into an owner-scoped lookup, and make
+          `EffectiveSubscriptionFactory.fromUserPolicy` apply overrides the way the organization path already does. Add
+          `INFORMATION_REQUESTS` to backend and frontend
+          `PlanFeature`, held back from every plan in the catalog. A feature no plan sells must not tell an individual
+          to select an organization plan. Starts red with a clean-schema and populated-baseline PostgreSQL contract test
+          plus owner-resolution tests.
+        - [x] `P2-T1d2` Platform-administered personal grant. Add the platform-admin surface that writes a user owner's
+          override, mirroring the organization surface already released: service, thin REST resource, admin-action
+          approval, and audit. Without it the personal half of the table has no writer and a personal commercial grant
+          cannot be recorded. Depends on `P2-T1d1`.
+    - [x] `P2-T1e` Operational rollout gate. Add a separate owner-scoped rollout grant that is distinct from the
+      commercial entitlement and defaults to deny. Controlled testing requires an explicit
+      `INFORMATION_REQUESTS` commercial grant and a rollout grant for the same owner; either alone denies. Depends on
+      `P2-T1d`.
+    - [x] `P2-T1f` Personal audit ownership. Extend `AuditOwnerScope` and audit persistence, search projection,
+      authorization, retention, and export with a tenant-safe personal user owner, so a personally owned resource stops
+      filing under `AuditOwnerScope.Platform`. Cross-owner reads must deny. Required before any personal Template
+      mutation is exposed. Depends on `P2-T1a`.
+- [x] `P2-T2` Add the tenant-scoped `SubjectIdentityRef` foundation with stable opaque identity,
   subject kind, optional authorized external identifiers, merge and supersession history, and
   tenant-boundary rules. Keep it distinct from the existing serialized
   `DomainEvent.SubjectRef`. Do not use mutable PII as the primary identity.
-- [ ] `P2-T3` Add template definition, immutable template version, ordered section, stable
+- [x] `P2-T3` Add template definition, immutable template version, ordered section, stable
   Requirement, and versioned Requirement binding entities with Flyway migrations and repository
   contract tests.
-- [ ] `P2-T4` Implement Requirement types `FIELD`, `DOCUMENT`, and `RESPONSE_ATTESTATION`. The last
+- [x] `P2-T4` Implement Requirement types `FIELD`, `DOCUMENT`, and `RESPONSE_ATTESTATION`. The last
   name distinguishes a respondent assertion from `ExchangeRecipientAttestation`, which remains a
   Trusted Organization recipient-selection snapshot. Store prompt, help, response mode,
   requiredness, allowed dispositions, contributor role, review policy,
   confidentiality compartment, conditional-rule reference, repeatable occurrence anchor, and
   optional supporting-evidence relationship on the template binding.
-- [ ] `P2-T5` Define versioned Document evidence policy fields for file counts and types, file and
+- [x] `P2-T5` Define versioned Document evidence policy fields for file counts and types, file and
   page limits, issuer, coverage period, issue and expiry dates, freshness, jurisdiction, language,
   certification, signature, substitutes, waiver policy, and technical conformance.
-- [ ] `P2-T6` Add a versioned template capability schema and executor registry. Publication requires
+- [x] `P2-T6` Add a versioned template capability schema and executor registry. Publication requires
   structural validation and records the exact capability versions a runtime must supply. Issuance,
   not publication, rejects any Template Version whose required runtime executors are not installed.
-- [ ] `P2-T7` Implement draft, publish, clone, retire, and create-new-version services. Published
-  versions must be immutable and mappable through dedicated DTO mappers.
-- [ ] `P2-T8` Add thin REST resources and typed frontend service contracts for template
+- [x] `P2-T7` Implement draft, publish, clone, retire, and create-new-version services. Published versions must be
+  immutable and mappable through dedicated DTO mappers. Split into three journaled subtasks before implementation,
+  because the five named operations divide cleanly into authoring a draft, freezing one, and the lifecycle after a
+  Version has frozen, and the first of the three has to establish the authorization, entitlement, audit, and read
+  contracts the other two reuse.
+    - [x] `P2-T7a` Draft authoring. Create a Template Definition together with the one Version an author can edit,
+      replace everything that Version configures as a single authored document over the eight configuration tables, and
+      read it back through dedicated DTO mappers in the flat
+      `model` package. Positions are derived from the authored order rather than stated, so a stored configuration
+      cannot hold a gap, a duplicate, or two orders for one thing. Validate coherence within the document and refuse
+      with the offending section or requirement key named; leave cross-cutting policy validation to `P2-T10` and
+      single-row bound contradictions to the stored constraints that already refuse them. A rewrite replaces rather than
+      merges, keeps the stable requirement identities the new document still names, and leaves behind the identities it
+      stops naming. A requirement cannot change what kind of thing it asks for. Configuration cannot reach a Version
+      that has stopped being a draft. Add the template-configuration `Action` and `Capability`
+      values with organization-administrator grants only, the Information Request audit category and the two
+      configuration event types with a catalog version bump, and one owner-scoped guard that requires both the
+      commercial entitlement and the rollout grant for the owner the configuration names. Refuse `PLATFORM` ownership,
+      which holds neither gate.
+    - [x] `P2-T7b` Publication. Transition the editable Version into a frozen one. Derive the required runtime
+      capability set through `request_template_required_capabilities` rather than reimplementing it, record it with the
+      contract version of each capability from
+      `InformationRequestCapability`, and flip the status in the same transaction, because the stored completeness rules
+      refuse an unrecorded set and the freeze guard refuses a later addition. Create the draft and transition it; a
+      service that inserted a finished published Version in one statement would bypass every completeness rule V87
+      through V89 added, since
+      `request_template_version_guard` is a `BEFORE UPDATE OR DELETE` trigger. Refuse a Version that configures nothing.
+      Advance the Definition's own status, which `P2-T7a` leaves at `DRAFT`
+      because nothing had frozen yet. Settle ownership of
+      `InformationRequestTemplateVersionCapabilityRepository` so the reader and the writer are not two services both
+      writing it. Depends on `P2-T7a`.
+    - [x] `P2-T7c` Lifecycle after a Version freezes. Retire a published Version, start a new editable Version from a
+      published one, and clone a Definition into a new Definition the caller owns. Each copies configuration into a new
+      Version rather than reusing frozen rows, and recomputes the capability set rather than copying it, which the
+      composite freeze would refuse anyway. A Definition holds at most one editable Version at a time. Depends on
+      `P2-T7b`.
+- [x] `P2-T8` Add thin REST resources and typed frontend service contracts for template
   administration. Do not build the full authoring UI until Phase 10.
-- [ ] `P2-T9` Extend the existing mutable Blueprint Definition with an optional exact published
+- [x] `P2-T9` Extend the existing mutable Blueprint Definition with an optional exact published
   Information Request Template Version reference. Do not create Blueprint version history and do
   not change the existing stable Schema Definition or Field default semantics. Updating the
   reference affects only future instantiations; every created request pins and snapshots the exact
@@ -938,15 +1405,33 @@ Documents, and Response Attestations without placing respondent behavior inside 
   history and editing, but new instantiation fails with a stable retired-version error until the
   author selects a currently published, non-retired Version. Existing pinned requests remain
   unaffected. Do not permit Blueprint-level policy overrides that make the Template incomplete.
-- [ ] `P2-T10` Add configuration validation for stable Requirement keys, section ordering, Schema
-  compatibility, duplicate Fields, invalid policies, contradictory bounds, and unsafe
-  classification or response-mode combinations.
-- [ ] `P2-T11` Add the versioned, test-only `basic_field_document_response_attestation_request` and
+- [x] `P2-T10` Add configuration validation for stable Requirement keys, section ordering, Schema
+  compatibility, duplicate Fields, invalid policies, contradictory bounds, and unsafe classification or response-mode
+  combinations. Split into two journaled subtasks before implementation, because the seven named areas divide into rules
+  that read only the authored document or one already-stored Schema Version, and rules that first need a typed
+  requirement to say which Field of that Schema Version it collects. The second needs a migration, a new authored value,
+  and a change to every Field requirement fixture, so it cannot share a session with the first.
+    - [x] `P2-T10a` Rules over the authored document and the Schema Version it names. A named Schema Version must exist,
+      have frozen, be written for `INFORMATION_REQUEST`, not be retired, and belong to the Template's own owner or to
+      the platform; the question is asked while a draft is authored, so an author can still choose another Version, and
+      it is asked about the stored owner so a copy made for another owner cannot carry a contract that owner was never
+      shown. Within one requirement, everything stated about answering must be reachable by the party the response mode
+      nominates: a party that cannot answer is not owed an answer, is offered no answers to choose from, and cannot
+      declare a waiver, while a requirement reviewed only on exception must permit an answer that is one. Stable
+      Requirement keys, section ordering, and single-row contradictory bounds were already refused by `P2-T7a` and the
+      stored constraints in V86 through V89, so nothing restates them.
+    - [x] `P2-T10b` The Field a typed requirement collects. A `FIELD` requirement names the stable Field Definition it
+      resolves against, a requirement of any other kind names none, and one Version cannot collect the same Field twice.
+      Publication additionally refuses a named Field that the Version's Schema Version does not bind. Needs a migration
+      for the binding column, its write guard, and its per-Version uniqueness, plus the authored value on the
+      requirement request and read shape. Also settle what an empty permitted-disposition set means, which the stored
+      waiver rule currently reads as an allowlist while nothing refuses an empty one. Depends on `P2-T10a`.
+- [x] `P2-T11` Add the versioned, test-only `basic_field_document_response_attestation_request` and
   `multi_party_staged_evidence_request` fixtures and contract tests. Every fixture identifier,
   label, value, file, test class, and helper function must use neutral capability terminology.
   Extend these same walking-skeleton scenarios in every later phase so core-model failures are
   found before Phase 11 conformance testing.
-- [ ] `P2-T12` Add the smallest feature-switched Template list, draft, and publish UI needed to
+- [x] `P2-T12` Add the smallest feature-switched Template list, draft, and publish UI needed to
   exercise the typed administration contract. Keep unsupported policy controls disabled with a
   server-provided reason.
 
@@ -1011,7 +1496,7 @@ exist.
 
 ### Tasks
 
-- [ ] `P3-T1` Extend the existing central authorization stack for `INFORMATION_REQUEST` and its
+- [x] `P3-T1` Extend the existing central authorization stack for `INFORMATION_REQUEST` and its
   runtime Requirement occurrences: add aggregate and subordinate `ResourceType` and `ResourceKind`
   values, registry mappings that fail closed until their providers are installed, `ResourceRef`
   helpers, request `Action` values, atomic `Capability` values, and default-deny role grants.
@@ -1046,8 +1531,39 @@ exist.
   authenticated input path of
   `InformationRequestAccessContextFactory` so owner-side services receive explicit
   `RequestAccessContext` from the first mutation. Define the full request action vocabulary and
-  stable error catalog. Do not add an independent authorization service or actor identity.
-- [ ] `P3-T2` Add the Information Request audit category and namespaced event types, bump the audit
+  stable error catalog. Do not add an independent authorization service or actor identity. Split into journaled subtasks
+  before implementation, because the task names a vocabulary, a behavioral correction to an existing generic path, an
+  expand-contract Share migration, a provenance expansion, two new central contracts, and an access-context input, each
+  of which has its own failing behavior and verification set.
+    - [x] `P3-T1a` Resource vocabulary and default-deny capability model. Add the request aggregate and
+      Requirement-occurrence `ResourceType`, `ResourceKind`, and `ResourceRef` helpers, the runtime request `Action` and
+      `Capability` vocabulary granted to no role, the registry mapping, and the stable refusal catalog. A kind whose
+      facts may only come from a registered provider is refused while no provider is installed, so the new types are
+      unreachable rather than decided from grants that were never scoped to them. No migration, no Share row, no
+      provider.
+    - [x] `P3-T1b` Unresolved-resource-context correction. Characterize today's behavior for
+      `DOCUMENT`, whose `ResourceKind` has no registered provider, and for `APPLICATION` and
+      `WORKFLOW_WEBHOOK_ENDPOINT`, which map to null deliberately. Then add the explicit unresolved-context deny for
+      every mapped kind and remove the `activeOrgId` organization-role fallback, so the archived and suspended denies
+      are no longer skipped. Depends on `P3-T1a` for the refusal shape it generalizes.
+    - [x] `P3-T1c` Resource-scoped Share role key. Generalize `Share.roleName` from
+      `ExchangeShareRoleName` to a resource-scoped role key with a resource-kind capability registry through an
+      expand-contract migration that widens `share_resource_type_check` and
+      `share_role_name_check`, preserves every existing Share row, and replaces both Exchange-only database checks with
+      resource-aware validation. Characterize the three ResourceTypes that can hold a Share and prove by test that the
+      other nine hold none. Depends on `P3-T1a`.
+    - [x] `P3-T1d` Share provenance and audit owner. Expand Share grant and revocation provenance to canonical principal
+      kind and ID, backfilling trusted App User foreign keys as `USER` and dual-writing them only for User actors, and
+      correct `ShareService` so a non-Exchange Share audit event resolves its real owner instead of defaulting to
+      `AuditOwnerScope.Platform`. Depends on
+      `P3-T1c`.
+    - [x] `P3-T1e` Parent-grant inheritance and resource policy evaluator. Add both central contracts, defaulting to no
+      inheritance and no resource-specific allowance until registered, validating owner equality, rejecting cycles, and
+      failing closed on missing facts. Depends on `P3-T1b`.
+    - [x] `P3-T1f` Authenticated request access context. Add the authenticated input path of
+      `InformationRequestAccessContextFactory` so owner-side services receive an explicit
+      `RequestAccessContext` from the first mutation. Depends on `P3-T1a`.
+- [x] `P3-T2` Add the Information Request audit category and namespaced event types, bump the audit
   catalog version, and cover search projection, retention classification, failure policy, and
   sensitive-data redaction. Preserve the already-neutral `DomainEvent` and `DomainEventPublisher`
   contracts. Generalize the existing Workflow-branded durable qualifier, mapped entity class,
@@ -1070,16 +1586,54 @@ exist.
   `ExchangeDocumentVersionService`, `ExchangeDocumentAuditService`,
   `ExchangeAccessManagementService`, `ShareService`, `DocumentLibraryService`, and
   `AuditLegalHoldService`. Give each one a personal owner where the resource is personally owned, and
-  record any deliberately unchanged site with its reason. Without this, a personal request inherits
-  platform-scoped audit through reused Exchange code.
-- [ ] `P3-T3` Implement the shared `CommandReceipt` and HTTP precondition foundation. Scope receipts
+  record any deliberately unchanged site with its reason. Without this, a personal request inherits platform-scoped
+  audit through reused Exchange code. Split into two journaled subtasks before implementation, because the runtime audit
+  vocabulary and personal-owner correction read and write only the already-released `AuditOwnerScope`/
+  `ResourceAuthorizationContextRegistry` stack, while generalizing the durable transactional-event outbox is an
+  unrelated rename-and-extend of the Workflow-branded dispatcher that no personal-owner fix depends on.
+    - [x] `P3-T2a` Runtime request audit vocabulary and personal-owner correction. Add the runtime Information Request
+      event vocabulary (`information_request.request.*`,
+      `information_request.party.*`, `information_request.requirement.*`, and
+      `information_request.evidence.*`) beside the existing Template events under the same
+      `INFORMATION_REQUEST` category, and bump `AuditEventType.CATALOG_VERSION` from 18 to 19. Search projection,
+      retention classification, and failure-policy resolution already key off
+      `AuditCategory` generically, so the new event types are covered without further production changes; a catalog test
+      pins the new keys, category, and version instead. Add the reusable
+      `AuditOwnerScopeResolver`, which asks `ResourceAuthorizationContextRegistry` for a resource's real
+      `OwnerContext` the same way `ShareService.resolveOwnerScope` already does, and correct every enumerated
+      `organizationId?.let(AuditOwnerScope::Organization) ?: AuditOwnerScope.Platform`
+      fallback a request mutation can reach: `ExchangeUpdateService` (rescind, lifecycle transition, deletion),
+      `ExchangeDocumentService` (document access, ZIP export, denied download),
+      `ExchangeDocumentVersionService` (version download), `ExchangeDocumentAuditService` (per-action logging), and
+      `ExchangeAccessManagementService` (denied access-management decisions).
+      `ShareService` already resolved real ownership before this task. `DocumentLibraryService` gets a direct
+      `BlueprintScope.PERSONAL` branch reading `createdByAppUserId` instead of the registry, because a Document Library
+      entry already carries its own scope and creator column and has no resource-kind provider. `AuditLegalHoldService`
+      is deliberately left unchanged: Architectural Decision 28 assigns hold-owner generalization to Phase 9's
+      `RecordPreservationHold` contract, and a hold's own `organizationId` column records the administering scope rather
+      than the held resource's owner, so rewriting it here would preempt that later contract. The nine remaining
+      `?: AuditOwnerScope.Platform` sites (`WorkflowDefinitionService`, `TrustedRecipientAuditService`,
+      `SchemaDefinitionService`, `FieldDefinitionService`, `AuditDeniedAttemptService`,
+      `AuditAnalyticsReconciliationService`, `AuditEngagementService`, `AuditIntegrityService`,
+      `AuthAuditService`) audit platform- and organization-governed configuration or authentication resources with no
+      personal-ownership path today and are not reachable by an Information Request mutation, so they are left
+      unchanged.
+    - [x] `P3-T2b` Transactional event outbox generalization. Preserve the already-neutral `DomainEvent`
+      and `DomainEventPublisher` contracts. Generalize the existing Workflow-branded durable qualifier, mapped entity
+      class, repository, dispatcher, scheduler, backlog health, metrics, and log vocabulary behind those contracts,
+      keeping the existing physical `workflow_event_outbox` table and index names. Add explicit event owner kind and ID
+      columns so platform, organization, and personal events are distinguishable. Define and test an explicit
+      Information Request idempotency-key namespace so a request key cannot collide with a Workflow key in the shared
+      global unique index. Depends on `P3-T2a` only for the shared `AuditOwnerScope` vocabulary it reuses to describe
+      owner kind consistently; the outbox rename itself is independent production work.
+- [x] `P3-T3` Implement the shared `CommandReceipt` and HTTP precondition foundation. Scope receipts
   by resource, operation, validated principal or access-session ID, idempotency key, and canonical
   request fingerprint. Commit the result reference atomically with the mutation. Define reusable
   revision-to-ETag parsing, response, `428`, and `412` contracts against a synthetic versioned
   resource in this task. `P3-T5` adds request revisions, and `P3-T8` through `P3-T10` wire party,
   creation, and transition commands after persistence exists. Test same key with same versus
   different fingerprints. Never scope by a raw token.
-- [ ] `P3-T4` Define a pure, exhaustive Exchange and Information Request transition matrix plus the
+- [x] `P3-T4` Define a pure, exhaustive Exchange and Information Request transition matrix plus the
   parent-lock and recheck contract that later commands must call. An
   `INITIATED` Exchange may contain drafts and issued requests, but response and review mutations
   require `ACCEPTED_STARTED`. `REJECTED` and `RESCINDED` atomically cancel nonterminal requests and
@@ -1091,13 +1645,13 @@ exist.
   `ENDED` is authorized read-only until session expiry or revocation, `REJECTED` and `RESCINDED`
   revoke external access by default while preserving owner history, and deletion revokes all
   external sessions while retaining authorized owner or recovery reads.
-- [ ] `P3-T5` Add `InformationRequest`, `InformationRequestParty`, append-only runtime Requirement
+- [x] `P3-T5` Add `InformationRequest`, `InformationRequestParty`, append-only runtime Requirement
   revisions, transition history, and current-revision entities with migration contract tests. Each
   Requirement revision stores its stable request Requirement ID, source Template Requirement
   Version, revision, occurrence path, effective interval, configuration hash, and optimistic
   version needed by the shared precondition contract. Derive a strong response ETag from the
   persisted aggregate or party revision, never from timestamps or serialized response order.
-- [ ] `P3-T6` Add a Fields-domain operation that assigns one exact published `schemaVersionId` after
+- [x] `P3-T6` Add a Fields-domain operation that assigns one exact published `schemaVersionId` after
   validating its Schema Definition lifecycle, target resource type, tenant scope, and visibility.
   Preserve the existing assign-latest-by-definition path for legacy Exchanges. Use the exact path
   to create one root Value Set for a Field-bearing request and expose only dedicated Fields service
@@ -1108,13 +1662,13 @@ exist.
   Resolve the Field write path through the request's `RequestExecutionGrant` rather than
   `BusinessFieldsSubscriptionGuard.requireResourceMutation`, whose live owner-plan lookup would
   strand an already-issued request after a lapse. Leave the guard's Exchange behavior unchanged.
-- [ ] `P3-T7` Add an `InformationRequestFieldResourceAdapter` using
+- [x] `P3-T7` Add an `InformationRequestFieldResourceAdapter` using
   `resource_type = INFORMATION_REQUEST`. Preserve the Schema Assignment uniqueness constraint and
   enforce equality with the Template Version's Schema Version. Forbid assignment replacement or
   removal after issuance. Do not create an assignment for a request with no Field Requirements.
   Keep this adapter unavailable to runtime callers until `P3-T8` registers the central subordinate
   resource provider.
-- [ ] `P3-T8` Implement party roles for subject, contributor, preparer, attestor, reviewer, and
+- [x] `P3-T8` Implement party roles for subject, contributor, preparer, attestor, reviewer, and
   decision maker. Allow non-account subjects while linking acting contributors to an
   ExchangeRecipient or supported principal reference and linking the subject role to a stable
   `SubjectIdentityRef`. Reference an `ExchangeRecipient` by ID only. Its `direct_share_id` is
@@ -1154,7 +1708,7 @@ exist.
   scope. Register explicit owner-matched parent-grant inheritance for Requirement occurrences and
   the central resource-policy evaluator that narrows inherited capability by those facts. Apply
   Command Receipts and required party-aggregate `If-Match` preconditions to party and Share changes.
-- [ ] `P3-T9` Implement ad hoc request creation and Blueprint Definition instantiation. Snapshot every runtime
+- [x] `P3-T9` Implement ad hoc request creation and Blueprint Definition instantiation. Snapshot every runtime
   Requirement and resolve default party-role assignments without copying respondent data between
   Exchanges. Explicitly map existing `BlueprintParticipantDefault`, `BlueprintDocumentDefault`,
   `BlueprintFieldDefault`, and Document Library-derived metadata into request party roles,
@@ -1163,9 +1717,22 @@ exist.
   creation atomically materializes a validated request-owned, non-reusable
   Template Definition and immutable published Version, then pins the new request to it. It does not
   bypass Template validation or create a request without a Template Version. The combined Template
-  and request creation uses one Command Receipt and commits one result reference so retry cannot
-  create duplicate private Templates or requests.
-- [ ] `P3-T10` Implement named transitions for draft creation, cancellation, and supersession. Define
+  and request creation uses one Command Receipt and commits one result reference so retry cannot create duplicate
+  private Templates or requests. Split into dependency-ordered subtasks because ad hoc creation establishes the reusable
+  request-creation command, while Blueprint instantiation adds existing Blueprint and Document Library default mappings
+  on top of that command.
+    - [x] `P3-T9a` Ad hoc request creation. Add a command service that, inside one Command Receipt, creates a validated
+      request-owned, non-reusable private Template Definition and immutable published Version from an authored
+      configuration, creates the runtime request pinned to that Version, materializes runtime Requirements through the
+      existing materializer, records one result reference, and replays the same command without duplicate private
+      Templates or requests.
+    - [x] `P3-T9b` Blueprint Definition instantiation and defaults. Instantiate from the optional exact Blueprint
+      Template Version reference, fail with the stable retired-version reason when the referenced Version is no longer
+      instantiable, map `BlueprintParticipantDefault`,
+      `BlueprintDocumentDefault`, `BlueprintFieldDefault`, and Document Library-derived metadata into request party
+      roles, Requirement defaults, document placeholders, and compatible root Field defaults, and prove no respondent
+      data is copied between Exchanges or treated as submitted.
+- [x] `P3-T10` Implement named transitions for draft creation, cancellation, and supersession. Define
   issue, first view, first progress, expiry, submission, close, and correction-cycle contracts, but
   do not expose a generic transition setter. Successful issuance remains disabled until Phase 4
   authorization passes and the executor registry confirms every capability required by the
@@ -1175,21 +1742,100 @@ exist.
   and correction commands must be atomic with records created in Phase 8. Scheduled expiry belongs
   to Phase 9.
 - [ ] `P3-T11` Define reassignment behavior for recipient replacement, revoked access, group
-  membership changes, trust-policy revision or suspension, and work already completed by the
-  previous contributor. Reuse the transactional shape and eligibility validation of
-  `ExchangeAccessManagementService.replacePrimaryRecipient` where applicable while adding
-  request-party history, Command Receipt, `If-Match`, completed-work preservation, ShareLink
-  bootstrap rotation, and RequestAccessSession revocation. That method enforces five preconditions
-  that are not request policy by default: a sender organization, an `INITIATED` Exchange, a `PENDING`
-  acceptance status, a trusted-person or trusted-group selection, and an authenticated App User
-  caller. Record an explicit decision for each one rather than inheriting it, and in particular
-  define replacement for a personally owned request and for an already-issued request.
-- [ ] `P3-T12` Model delegated authority separately from party role. Record the
+  membership changes, trust-policy revision or suspension, and work already completed by the previous contributor. Split
+  into dependency-ordered subtasks because the bootstrap-credential and no-auth session subsystems the full behavior
+  depends on do not exist yet in this repository.
+    - [x] `P3-T11a` Wire `InformationRequestPartyService.reassignMutation` through the same locked-parent-Exchange
+      recheck, transition matrix, and request-party transition history/audit/domain-event mechanism the Phase 3
+      lifecycle commands already use. Journal an explicit decision for each of the five `replacePrimaryRecipient`
+      preconditions rather than inheriting it:
+        1. Sender organization: not a separate check. Central authorization
+           (`Action.INFORMATION_REQUEST_MANAGE_PARTIES`) already resolves organization-membership grants against the
+           request owner, and a personally owned request has no sender organization by design (Architectural Decision
+           22), so this precondition does not apply uniformly and is not reproduced.
+        2. `INITIATED` Exchange only: explicitly rejected as request policy. Party reassignment must remain usable while
+           a request is already issued and in progress, for example when an assigned contributor's access is revoked
+           mid-request, so it reuses the same parent-lock and recheck contract as lifecycle mutations (Architectural
+           Decision 32) and the transition matrix's existing `REASSIGN -> allowSameFrom(nonTerminalStates())` rule
+           rather than
+           `replacePrimaryRecipient`'s single-state restriction. This was the concrete gap fixed in this task:
+           `reassignMutation` previously performed no parent lock or recheck at all.
+        3. `PENDING` acceptance status only: not applicable. `InformationRequestParty` has no acceptance-status field;
+           its own `active` flag governs eligibility, and the existing
+           `require(party.active)` guard is the equivalent precondition.
+        4. Trusted-person or trusted-group selection only: not inherited. Reassignment already accepts any
+           `requireSupportedActingPrincipal` kind (`USER`, `PARTICIPANT`, `PRINCIPAL_GROUP`), which is broader than
+           primary-recipient replacement by design, since request parties are not limited to Trusted Organization
+           selections. Trust suspension for a trusted-selection-bound recipient is still enforced through the existing
+           reused path: when `exchangeRecipientId` is supplied,
+           `ExchangeRecipientService.requireAssignablePartyRecipient` revalidates the trusted attestation and reconciles
+           group Shares before the party is updated.
+        5. Authenticated App User caller only: not inherited. Reassignment authorizes through
+           `RequestAccessContext.principal` and the central authorization service, consistent with Architectural
+           Decision 13, rather than requiring an App User specifically. Group membership changes for a `PRINCIPAL_GROUP`
+           party are out of scope for this command by design: they do not change the party's `principalId` and are
+           already propagated by
+           `ShareService.synchronizeGroupMemberAccess`/group inheritance without calling reassignment. Added a nullable
+           `party_id` column (migration `V101`) to `information_request_transition` with an insert-time scope guard so
+           party-scoped history is queryable, and extended
+           `InformationRequestTransitionHistoryCommand`/`InformationRequestTransitionHistoryService` to accept and
+           persist it.
+    - [ ] `P3-T11b` ShareLink bootstrap rotation on reassignment. Blocked: no `ShareLink` creation or rotation service
+      exists yet anywhere in the repository (only read-only no-auth validation), and
+      `VERIFICATION_BOOTSTRAP` mode does not exist. This depends on the Phase 4 no-auth bootstrap credential work in
+      Architectural Decision 24, not on Phase 3.
+    - [ ] `P3-T11c` RequestAccessSession revocation on reassignment. Blocked: `RequestAccessSession`
+      has no entity, repository, or service anywhere in the repository yet; only the forward-looking
+      `RequestAccessContext` exists. This is first built by the Phase 4 no-auth surface.
+    - [ ] `P3-T11d` Completed-work preservation on reassignment. Blocked: no response or evidence content entity exists
+      yet (`RequestResponse`, `EvidenceArtifact`, `EvidenceVersion`, and
+      `SubmissionPackage` are Phase 5-7 scope). Preservation requires that storage to key off
+      `informationRequestPartyId` rather than `principalId`; record that requirement against the Phase 5-7 schema design
+      rather than inventing interim storage here.
+- [x] `P3-T12` Model delegated authority separately from party role. Record the
   authority instrument or evidence reference, grantor, grantee, scope, effective and expiry dates,
-  revocation, and the exact requests or Requirements for which the delegate may act.
-- [ ] `P3-T13` Add a feature-switched owner-only request list, draft creation, cancellation, and
+  revocation, and the exact requests or Requirements for which the delegate may act. Reconciled the pre-existing
+  untracked code against this task's text before writing anything new:
+  the minimal fact table added under `P3-T8` (migration `V98`) already modeled grantee (delegate principal), scope
+  (request plus an optional single Requirement), and a boolean `active` flag, but had no grantor, no authority
+  instrument or evidence reference, no explicit effective/expiry window, and no revocation record distinct from the
+  active flag -- exactly the gap its own migration comment named as deferred to this later task. Migration `V102` adds
+  `grantor_principal_kind`/`grantor_principal_id`, `authority_instrument_ref`,
+  `effective_at`/`expires_at` with a `CHECK` that expiry is after the effective date, and
+  `revoked_at`/`revoked_by_principal_kind`/`revoked_by_principal_id`/`revocation_reason` with a
+  `CHECK` tying the revocation columns to the `active` flag. The table has no rows in any environment, so the new
+  `NOT NULL` columns needed no default or backfill.
+  `InformationRequestDelegatedAuthorityService.grant` now persists the command's access principal as grantor and rejects
+  an expiry at or before the effective date; `revoke` now stamps the revoking principal, a revocation timestamp, and an
+  optional reason. Both commands' fingerprints include the new fields so a replay with the same idempotency key but
+  different content is still distinguishable from an identical replay.
+  `InformationRequestDelegatedAuthorityFactSource.factsFor` now also excludes an authority that is not yet effective or
+  has expired, computing "now" once per call rather than accepting an `asOf`
+  parameter, because a default parameter on this concrete Mockito-mocked class broke
+  `InformationRequestRequirementAuthorizationContextProviderTest`'s positional `eq()` stubs (Kotlin's default-argument
+  bridge passes a resolved literal for the omitted parameter alongside matcher results for the others, which Mockito
+  rejects as a mixed matcher/literal call).
+- [x] `P3-T13` Add a feature-switched owner-only request list, draft creation, cancellation, and
   supersession slice for the walking scenarios. Do not expose issuance or respondent behavior
-  before authorization and runtime executors are complete.
+  before authorization and runtime executors are complete. Added `InformationRequestResource` at
+  `/information-requests`: owner-only `GET` list scoped by
+  `exchangeId`, ad hoc draft creation (`POST`), cancellation (`POST .../{id}/cancellation`), and supersession
+  (`POST .../{id}/supersession`), all delegating to the existing
+  `InformationRequestAdHocCreationService`, `InformationRequestLifecycleService`, and the new
+  `InformationRequestQueryService`. No issuance or respondent action is exposed; a pinned resource test asserts that.
+  Added `InformationRequestEntitlementGuard` and wired it into ad hoc creation, lifecycle mutation (cancel and
+  supersede), and the new query service list, so `PlanFeature.INFORMATION_REQUESTS`
+  commercial entitlement and operational rollout are both required for every one of the four operations, answered
+  against the parent Exchange's owner. Neither gate existed for runtime requests before this task. Added
+  `InformationRequestDto` and `InformationRequestDtoMapper`, carrying a per-row
+  `requestETag` so a client can cancel or supersede any listed request directly from the list response. Granted
+  `ExchangeShareRoleName.OWNER` exactly `INFORMATION_REQUEST_CREATE`,
+  `INFORMATION_REQUEST_READ`, `INFORMATION_REQUEST_CANCEL`, and `INFORMATION_REQUEST_ADMIN`, the narrow exception a
+  request aggregate that does not exist yet requires, since no request-scoped Share can exist before it does. Every
+  other role stays untouched, and
+  `INFORMATION_REQUEST_ISSUE`/`WRITE`/`EXPORT` remain withheld from the owner grant. Updated the two
+  `InformationRequestAuthorizationVocabularyTest` cases that pinned blanket default-deny to pin this narrower,
+  documented exception instead.
 
 ### Tests to write first
 
@@ -1218,6 +1864,8 @@ exist.
   skipped.
 - Information Request event idempotency-key namespace tests proving no collision with a Workflow key
   in the shared global unique index.
+- Runtime request audit event type, namespace, category, and catalog-version pin tests, plus
+  `AuditOwnerScopeResolver` personal, organization, and unresolved-fallback tests.
 - Personal-owner audit tests for each corrected
   `?: AuditOwnerScope.Platform` call site a request mutation can reach.
 - Requirement-occurrence `ResourceRef`, parent-context resolution, binding mapping, correction
@@ -1288,22 +1936,65 @@ registered recipients, group recipients, and unregistered magic-link respondents
 
 ### Tasks
 
-- [ ] `P4-T1` Extend the Phase 3 `InformationRequestAccessContextFactory` with its second explicit
+- [x] `P4-T1` Extend the Phase 3 `InformationRequestAccessContextFactory` with its second explicit
   input: a validated bootstrap-mode ShareLink and RequestAccessSession plus its recipient-bound participant
   `PrincipalRef`. Keep credential and session identity separate from the authorization principal.
   Shared services receive the same result as the authenticated path and never inspect
-  `AuthTokenContext` or a raw bearer token.
-- [ ] `P4-T2` Implement the concrete Information Request actions through the central
+  `AuthTokenContext` or a raw bearer token. Added `fromBootstrapSession(shareLink, session, participant)` alongside the
+  existing
+  `currentAuthenticated()`. `RequestAccessSession` is introduced here as a plain, non-persisted data class (`id`,
+  `shareLinkId`, `expiresAt`, `revokedAt`) since no persisted entity exists yet; `P4-T4`
+  is expected to grow it into the full persisted entity rather than replace it. The method refuses a session not bound
+  to the given ShareLink, a revoked session, or an expired session, and otherwise returns
+  `RequestAccessContext(participant, AuthorizationContext(sessionRef = session.id.toString()))`
+  -- the session's own non-secret id, never a ShareLink token, so a bootstrap-mode ShareLink can never read as a
+  `PUBLIC_LINK` content grant through this path.
+- [x] `P4-T2` Implement the concrete Information Request actions through the central
   `DefaultAuthorizationService`, including authoring, issuing, viewing, responding, attesting,
   reviewing, reassigning, cancelling, and administering evidence. Confirm every new capability is
-  default-deny until explicitly granted.
-- [ ] `P4-T3` Feed Exchange ownership, request party role, Requirement assignment, response mode,
+  default-deny until explicitly granted. Found already implemented, uncommitted, in the working tree:
+  `RoleCapabilities.INFORMATION_REQUEST_SHARE`
+  maps every `InformationRequestShareRoleKey` (`SUBJECT`, `CONTRIBUTOR`, `PREPARER`, `ATTESTOR`,
+  `REVIEWER`, `DECISION_MAKER`) to its exact capability set, `RoleCapabilities.forShareRole` dispatches on
+  `ResourceType` so `DefaultAuthorizationService.toGrant` resolves any Share's role generically, and migration `V92`
+  already widened the check constraints for `INFORMATION_REQUEST`. This task added the missing complete actor-capability
+  matrix test proving all six roles resolve correctly end-to-end through `DefaultAuthorizationService`, that none grants
+  `INFORMATION_REQUEST_CREATE`, that the six roles jointly cover the full runtime request capability vocabulary apart
+  from creation, and that concrete unauthorized actions are denied. No production code changed.
+- [x] `P4-T3` Feed Exchange ownership, request party role, Requirement assignment, response mode,
   confidentiality compartment, request state, delegated authority, and correction allowlist into
   the registered aggregate and Requirement-occurrence resource authorization contexts and decision
   obligations. Fields operations map each binding and occurrence to that subordinate resource and
-  use the central authorization decision. Do not create a parallel policy engine.
-- [ ] `P4-T4` Extend existing `ShareLink` persistence and services with an explicit
-  `VERIFICATION_BOOTSTRAP` mode and add `RequestAccessSession` persistence and services. Bind the
+  use the central authorization decision. Do not create a parallel policy engine. Complete apart from the correction
+  allowlist, which is resolved as blocked on `P8-T3` (no Review, Finding, or correction-request entity exists yet in the
+  repository) -- a deliberate, documented limitation, not an oversight. Every other slice is implemented: Exchange
+  ownership reaches request resource decisions through `InformationRequestParentGrantInheritancePolicy`; request party
+  role, Requirement assignment, response mode, confidentiality compartment, delegated authority, and request state are
+  all fed into
+  `InformationRequestRequirementPolicyFacts`/`InformationRequestRequirementPolicyEvaluator`; and Fields
+  binding/occurrence operations now map onto the `INFORMATION_REQUEST_REQUIREMENT` resource through
+  `InformationRequestFieldBindingPolicy`, which resolves the Requirement a binding answers (via
+  `InformationRequestTemplateRequirementBinding.collectedFieldDefinitionId`) and asks the central
+  `AuthorizationService` for `INFORMATION_REQUEST_REQUIREMENT_VIEW`/`_RESPOND` against that exact occurrence instead of
+  the blanket request aggregate.
+- [x] `P4-T4` Extend existing `ShareLink` persistence and services with an explicit
+  `VERIFICATION_BOOTSTRAP` mode and add `RequestAccessSession` persistence and services. Complete at
+  the service layer (unreachable from any REST surface until `P4-T5`):
+  `ShareLink.linkMode` (`DIRECT_GRANT`/`VERIFICATION_BOOTSTRAP`, migration `V103`) exists and
+  `DefaultAuthorizationService.resolveLinkGrant` refuses a content grant for a bootstrap-mode link.
+  Persisted `RequestAccessSession` (migration `V104`), bootstrap-issuance
+  (`InformationRequestBootstrapShareLinkService`, with `requireRecipientSignIn` refusal and Command
+  Receipts), contact-proof verification (`InformationRequestContactProofService`, migration
+  `V105`), bootstrap-link rotation, replacement, and revocation
+  (`InformationRequestBootstrapShareLinkService.rotate`/`replace`/`revoke`, migration `V106`, each
+  revoking every active `RequestAccessSession` minted from the affected link via
+  `RequestAccessSessionService.revokeAllForShareLink`), and the verified-registration upgrade path
+  (`InformationRequestParticipantAccountUpgradeService.upgrade`, migration `V107`, persisting a
+  `ParticipantAccountLink`, granting the App User an equivalent Share via
+  `ShareService.grantRoleKeyWithPrincipalProvenance` without touching the Participant's original
+  Share/party/ShareLink history, and revoking every active bootstrap ShareLink and session bound to
+  that Share via `ShareLinkRepository.findActiveBootstrapLinksForShare` and
+  `RequestAccessSessionService.revokeAllForShareLink`) are done. Bind the
   ShareLink to one request-party Share, request party, and canonical participant principal, and
   reference its `ExchangeRecipient` by ID; the V63 trigger forbids putting a request-party Share into
   `exchange_recipient.direct_share_id`. Refuse bootstrap issuance when the parent Exchange sets
@@ -1327,15 +2018,37 @@ registered recipients, group recipients, and unregistered magic-link respondents
   bootstrap-mode ShareLinks and active sessions in the same transaction; preserve all earlier
   participant provenance unchanged. Bootstrap ShareLink issue, rotation, replacement, revocation,
   and registration upgrade use Command Receipts and expected aggregate revisions.
-- [ ] `P4-T5` Add authenticated REST resources and a parallel no-auth adapter. Each validates its
+- [x] `P4-T5` Add authenticated REST resources and a parallel no-auth adapter. Each validates its
   own credential type, builds the same explicit access context, and delegates to the same
   application services. The no-auth path remains outside the global authentication filter, which
   means adding its exact path prefix to the `EndpointAuthorizationFilter` allowlist that currently
   names `/no-auth/exchanges` and `/no-auth/sales-enquiries`. Add a test that a request path absent
-  from that allowlist is rejected rather than silently authenticated.
-- [ ] `P4-T6` Apply recipient-safe projection to every read and mutation response. The same audience
-  rule must govern identifier disclosure, write eligibility, and returned values.
-- [ ] `P4-T7` Resolve subscription checks from the owning Exchange. A respondent's plan must never
+  from that allowlist is rejected rather than silently authenticated. Complete: authenticated
+  `InformationRequestAccessLinkResource` (`/information-requests/{id}/access-links`) exposes
+  `InformationRequestBootstrapShareLinkService.issue`/`rotate`/`replace`/`revoke`.
+  `InformationRequestNoAuthAccessResource` (`/no-auth/information-requests/access-links/challenges` and
+  `/sessions`) exposes `InformationRequestContactProofService.issueChallenge`/`verifyChallenge` behind
+  an `X-Request-Access-Token` header, mirroring `NoAuthExchangeResource`'s header-based raw-token
+  handling; `/no-auth/information-requests/` (trailing slash, so a look-alike path that only shares the
+  prefix's characters is not accidentally excluded) was added to
+  `EndpointAuthorizationFilter.excludedEndpoints`, with a passing rejection test.
+  `InformationRequestParticipantAccountLinkResource` (`/information-requests/{id}/participant-account-links`)
+  exposes `InformationRequestParticipantAccountUpgradeService.upgrade`, authenticating the caller's App
+  User identity from the access token while taking the no-auth session id from the request body.
+- [x] `P4-T6` Apply recipient-safe projection to every read and mutation response. The same audience
+  rule must govern identifier disclosure, write eligibility, and returned values. Complete for
+  `P4-T6a` (party projection): every `InformationRequestShareRoleKey` shares `INFORMATION_REQUEST_READ`,
+  so `Action.INFORMATION_REQUEST_VIEW` alone could not distinguish which party rows a caller should see
+  in full; `InformationRequestPartyQueryService.listForRequest` now reveals a party's `principalId`,
+  `principalKind`, `subjectIdentityRefId`, and `exchangeRecipientId` (via `InformationRequestPartyDtoMapper`)
+  only to a caller holding `INFORMATION_REQUEST_MANAGE_PARTIES` or viewing their own party row; every
+  other caller sees only role and status. Now reachable from both the authenticated
+  `InformationRequestPartyResource` and the no-auth `InformationRequestNoAuthRequestResource`, added in
+  `P4-T9`. `P4-T6b` (occurrence and response projection) is deferred, not blocked: today's
+  `InformationRequestRequirement`/`InformationRequestRequirementRevision` occurrence carries only
+  template/source references and a path string, no identity-bearing field to redact, and response and
+  evidence content does not exist until Phase 5-7; revisit then and reuse this same projection pattern.
+- [x] `P4-T7` Resolve subscription checks from the owning Exchange. A respondent's plan must never
   hide or block an assigned request. Freeze execution entitlement and quota limits at issuance.
   Persist an immutable `RequestExecutionGrant` containing owner type and ID, entitlement and policy
   version, paid or trial entitlement source, trial grant reference and issuance-time expiry where
@@ -1357,13 +2070,91 @@ registered recipients, group recipients, and unregistered magic-link respondents
   `BUSINESS_FIELDS_AND_SCHEMAS` into the grant at issuance and require both then. Add a test proving
   a lapsed owner's respondent can still write Field values on an issued request, which fails today
   against the live guard.
-- [ ] `P4-T8` Keep both gates off until authenticated and no-auth access, authorization, audit, and
+
+  Too large for one implementation session; split into dependency-ordered subtasks, none of which may
+  check the parent box until all are done:
+  - [x] `P4-T7a` Persist the immutable `RequestExecutionGrant` (migration `V108`) once, at issuance,
+    via `InformationRequestExecutionGrantService.issueGrant`, called from
+    `InformationRequestLifecycleService.issue()`. Freezes owner type/id, plan code, subscription
+    status, the enforcement mode observed, trial expiry (when trialing), a mutation-allowance expiry
+    (trial end, grace-period end, or paid-through date depending on status), and the plan's
+    additional-participant limit as the request's local recipient cap. Idempotent by request id.
+    Complete. Deliberately narrower than the full task text: `BUSINESS_FIELDS_AND_SCHEMAS` snapshotting,
+    upload/storage caps, permitted continuation actions, and revocation semantics are out of scope here
+    (`P4-T7c`/`P4-T7d`); upload/storage caps specifically have nothing to size against yet, since no
+    upload or storage capability exists anywhere in the platform before Phase 5-7. Nothing yet reads
+    this grant back.
+  - [x] `P4-T7b` Add the idempotent `RequestExecutionUsageReservation` model: reserve, consume, release,
+    and roll back capacity against a `RequestExecutionGrant` under concurrent operations, with tests for
+    exhaustion and concurrent reservation up to the cap. Complete: `reserve`/`consume`/`release`/`rollback`
+    all implemented and unit-tested against mocked repositories (10 cases); a real-Postgres concurrency
+    contract test proving the exhaustion and release-then-reuse cases under actual concurrent
+    transactions was also written, mirroring `OrganizationSeatConcurrencyPostgresContractTest`'s
+    raw-JDBC lock pattern, but could not be executed in this session's environment (no Docker daemon
+    available, the same pre-existing limitation that already blocks that older test here) -- a
+    Docker-capable session should run it before treating its pass as observed. Nothing yet calls any of
+    the four operations; wiring a caller is `P4-T7c`'s job.
+  - [x] `P4-T7c` Redirect continuation-path subscription checks to the frozen grant instead of the live
+    subscription: request lifecycle mutations driven by a respondent or reviewer on an already-issued
+    request, and `BusinessFieldsSubscriptionGuard`/`InformationRequestFieldResourceAdapter` Field writes.
+    Prove a lapsed owner's respondent can still submit and write Field values within the reserved
+    limits, while new or expanding work (new requests, issuance, adding parties beyond the reserved cap)
+    still answers to the live subscription. Complete: `InformationRequestLifecycleService.mutate()` now
+    consults `InformationRequestExecutionGrantService.findForRequest` before deciding whether to call the
+    live-subscription `entitlementGuard` -- a request with no grant yet (issuance, or any `DRAFT`
+    mutation) still answers to the live subscription, a request that already holds one (today, only
+    `cancel`/`supersede` are wired past issuance) does not. `FieldResourceAdapter` gained a default
+    `mutationEntitlementFrozen` method that `InformationRequestFieldResourceAdapter` overrides to consult
+    the same grant, and `SchemaAssignmentService` skips `BusinessFieldsSubscriptionGuard.requireResourceMutation`
+    when an adapter reports a frozen entitlement. Grant issuance itself now also requires
+    `BUSINESS_FIELDS_AND_SCHEMAS` when the Template binds a Field. `SUBMIT` and the other Phase 5-7
+    response mutations remain unwired and were not exercised; whichever session wires them should route
+    through the same `findForRequest(requestId) == null` gate.
+  - [x] `P4-T7d` Global enforcement-mode and owner-rollout interplay, operational suspension, and
+    explicit grant revocation; the commercial-entitlement and operational-rollout truth-table tests.
+    Complete: `InformationRequestEntitlementGuardTest` now pins all four commercial-entitlement x
+    rollout-grant combinations plus the `REPORT_ONLY` enforcement-mode cases. Emergency operational
+    suspension reuses the existing `SubscriptionStatus.SUSPENDED` value (deliberately not a new global
+    kill-switch configuration) through
+    `InformationRequestEntitlementGuard.requireNotOperationallySuspended`, which the lifecycle service
+    now checks even once a request already holds a frozen grant, since `SUSPENDED` carries no grace
+    window unlike `PAST_DUE`/`CANCELED`. Explicit per-request revocation is
+    `InformationRequestExecutionGrantService.revoke`, writing the grant's existing
+    `revokedAt`/`revokedReason` columns and enforced in `InformationRequestLifecycleService.mutate()`
+    via a new `EXECUTION_GRANT_REVOKED` catalog code. Neither has a REST caller yet; an administrative
+    surface for either was left for a future session to place.
+- [x] `P4-T8` Keep both gates off until authenticated and no-auth access, authorization, audit, and
   safe projection tests all pass. In a controlled scope, add an explicit owner commercial
   entitlement and separately enable owner rollout; prove that either gate alone denies creation or
   issuance while retained and already-issued authorized work stays discoverable. Do not add the
-  feature to a default plan before Phase 12 rollout.
-- [ ] `P4-T9` Add the minimal authenticated and no-auth request shell that proves safe request list
+  feature to a default plan before Phase 12 rollout. Complete: both gates are confirmed off by
+  default (`PlanCatalog` grants `INFORMATION_REQUESTS` to no plan; `app.subscription.rollout.grants`
+  defaults to empty), and the full `auth.authz`/`informationrequest`/`fields`/`subscription`
+  regression suite passes with only the pre-existing Docker-dependent contract-test errors unrelated
+  to this change. New tests in `InformationRequestAdHocCreationServiceTest` and
+  `InformationRequestLifecycleServiceTest` wire a real `InformationRequestEntitlementGuard` (built
+  from a real `SubscriptionAccessService`/`FeatureRolloutConfigService` against a mocked policy
+  repository, rather than mocking the guard itself) through the actual creation and issuance call
+  paths and prove each single-gate combination (rollout only, entitlement only) denies both, while a
+  request that already holds a frozen execution grant remains cancellable under the same single-gate
+  gap. No production code changed: `InformationRequestAdHocCreationService.createAdHoc` and
+  `InformationRequestLifecycleService.issue`/`mutate` were already correctly wired to the guard; the
+  gap closed here was that nothing previously exercised that wiring end to end rather than only
+  through the guard's own unit tests.
+- [x] `P4-T9` Add the minimal authenticated and no-auth request shell that proves safe request list
   and detail projection, token handling, and equal capability discovery for the walking scenarios.
+  Complete: `InformationRequestQueryService.findById` plus `InformationRequestResource.get`
+  (`GET /information-requests/{id}`) add authenticated detail projection alongside the existing
+  authenticated list. `InformationRequestPartyResource`
+  (`GET /information-requests/{id}/parties`) is the first REST caller of the `P4-T6a` party
+  projection. `InformationRequestNoAuthReadAccessService` resolves a presented bootstrap
+  `X-Request-Access-Token` to the same `RequestAccessContext` shape via
+  `InformationRequestContactProofService.resolveBootstrapLink` (made public),
+  `RequestAccessSessionService.findUsableForShareLink` (new), and
+  `InformationRequestAccessContextFactory.fromBootstrapSession` (its first production caller), and
+  `InformationRequestNoAuthRequestResource` (`no-auth/information-requests/{id}` and `.../parties`)
+  mirrors the authenticated detail and party reads against the identical application services, already
+  covered by the existing `/no-auth/information-requests/` allowlist prefix.
 
 ### Tests to write first
 
@@ -1431,31 +2222,148 @@ processes.
 
 ### Tasks
 
-- [ ] `P5-T1` Implement sparse `PATCH` response updates with typed canonicalization, explicit clear
+- [x] `P5-T1` Implement sparse `PATCH` response updates with typed canonicalization, explicit clear
   operations, canonical `PrincipalRef` provenance, explicit access context, Value Set and occurrence
-  identity, Command Receipt handling, required `If-Match`, and optimistic concurrency.
-- [ ] `P5-T2` Add arbitrary repeatable and nested group definitions and runtime group instances.
+  identity, Command Receipt handling, required `If-Match`, and optimistic concurrency. Split into
+  dependency-ordered subtasks because persistence, HTTP exposure, and Field Value Set integration
+  are each independently testable:
+  - [x] `P5-T1a` Add the first response-draft persistence and service slice: current
+    `InformationRequestResponse` envelopes, request-level response ETag, sparse disposition and
+    narrative patching, explicit narrative clear, canonical principal/session provenance, central
+    Requirement response authorization, Command Receipt replay/conflict handling, parent-state and
+    frozen-grant checks, and `SAVE_RESPONSE` transition/audit routing.
+  - [x] `P5-T1b` Expose authenticated and no-auth sparse response `PATCH` resources that require
+    `If-Match` and an idempotency key, build the same explicit access context on both surfaces,
+    delegate to `InformationRequestResponseDraftService`, return response ETags, and map stable
+    service refusals to HTTP responses without adding resource-layer business logic. Complete:
+    `InformationRequestResponseResource` (`PATCH /information-requests/{id}/responses`) and a new
+    `patchResponses` method on `InformationRequestNoAuthRequestResource` both delegate to the
+    identical service and additionally project only the requirement occurrences the caller's own
+    patch named, since the service's own result carries every current response on the request and
+    echoing it verbatim would leak a co-party's disposition/narrative to a single-occurrence
+    respondent.
+  - [x] `P5-T1c` Wire Field Requirement patches through the existing Fields engine with typed
+    canonicalization, explicit clear operations, canonical provenance, current Value Set identity,
+    and occurrence-scoped writes. Complete: `ResponseFieldValuesPatch`/`writeFieldValues`/
+    `readFieldValues` on `InformationRequestResponseDraftService`, `InformationRequestResponse
+    .fieldValueSetId`, both `P5-T1b` resources, and `InformationRequestResponseDto`'s
+    `fieldValueSetId`/`fieldValueSetETag`/`fieldValues` all delegate to the Fields engine's existing
+    `FieldValueSetRef`/`FieldValueEntry`/`FieldsPrecondition` machinery.
+  - [x] `P5-T1d` Add optimistic-concurrency and replay coverage for multi-field and multi-occurrence
+    response saves, then run the full affected Phase 5 regression gate. Complete:
+    `InformationRequestResponseDraftServiceTest` covers a two-occurrence patch writing independent
+    Field Value Sets, a field-patch replay that does not re-invoke `SchemaAssignmentService.setValues`,
+    and a stale Field precondition aborting the whole patch with no response/history side effects.
+- [x] `P5-T2` Add arbitrary repeatable and nested group definitions and runtime group instances.
   Give each occurrence a stable path and parent reference that can anchor Field, Document, and
-  Response Attestation Requirement instances independently.
-- [ ] `P5-T3` Add a versioned condition expression model using stable Requirement and Field IDs.
+  Response Attestation Requirement instances independently. Split into dependency-ordered subtasks
+  because the template-level definition, runtime occurrence provisioning, and runtime add/remove/
+  reorder are each independently testable:
+  - [x] `P5-T2a` Add template-level repeatable and nested group definitions: a version-scoped
+    `InformationRequestTemplateRequirementGroup` (stable key within the version, optional parent
+    group for nesting, min/max occurrence cardinality), authored and read through the same
+    configuration document as sections and bindings, with an existing occurrence anchor key now
+    required to resolve to a group the document defines. Complete: entity, repository, `V111`
+    migration, DTOs, validator (distinct keys, parent resolution, cycle detection, occurrence-anchor
+    resolution), writer (parents written before children in topological layers), projection loader,
+    and the lifecycle service's new-version-from-existing round trip all updated and covered by
+    `InformationRequestTemplateConfigurationValidatorTest` (9 new cases) and
+    `InformationRequestTemplateConfigurationWriterContractTest` (whole-document and rewrite cases
+    extended with nested groups). `occurrence_anchor_key` deliberately keeps no new database-level
+    foreign key to the group table: existing persistence-contract tests write it as a bare string to
+    exercise the binding row in isolation, so the resolution rule is enforced only where every other
+    cross-requirement relation in this document already is, at the Kotlin validator.
+  - [x] `P5-T2b` Add runtime group occurrence instances: decide where an occurrence `FieldValueSet`
+    get-or-create belongs relative to Requirement occurrence provisioning (`SchemaAssignmentService
+    .valueSetForWrite` only get-or-creates the root set and throws for a missing occurrence set
+    today), materialize the first occurrence(s) at issuance, and give each occurrence a stable path
+    and parent reference that can anchor Field, Document, and Response Attestation Requirement
+    instances independently. Complete: `InformationRequestGroupOccurrence` (`V112` migration) holds
+    a stable `occurrencePath` and `parentOccurrenceId` per runtime repetition;
+    `InformationRequestTemplateMaterializer` materializes each group's authored `minOccurrences`
+    parent-first at issuance and threads the resolved path into every anchored Requirement instead of
+    a hardcoded `root`; `SchemaAssignmentService.createOccurrenceValueSet` provisions each
+    occurrence's Field Value Set get-or-create, called only from server-side provisioning, never
+    implicitly from a write.
+  - [x] `P5-T2c` Add authenticated and no-auth support to add, remove, and reorder repeatable group
+    occurrences at runtime within the group's authored cardinality, with concurrent-edit coverage.
+    Complete: a shared `InformationRequestGroupOccurrenceService` powers authenticated and no-auth
+    REST adapters, requires response-shape ETags plus Command Receipt idempotency, checks central
+    Requirement response authorization and issued-request continuation gates, provisions occurrence
+    Field Value Sets and new Requirement rows when an occurrence is added, marks occurrences removed
+    with canonical principal provenance while keeping prior Requirement history addressable, and
+    reorders active sibling occurrences without changing their stable paths.
+- [x] `P5-T3` Add a versioned condition expression model using stable Requirement and Field IDs.
   Define supported operators, null and unknown semantics, cycle detection, server evaluation, and
-  a client-safe evaluation projection.
-- [ ] `P5-T4` Define hidden-data policy per condition: retain securely, clear with confirmation, or
+  a client-safe evaluation projection. Split into dependency-ordered subtasks because persistence,
+  server evaluation, and the client-safe projection are each independently testable:
+  - [x] `P5-T3a` Persist the versioned condition rule and predicate definitions a template version
+    authors, instead of validating them and discarding them. Complete:
+    `InformationRequestTemplateConditionRule`/`ConditionPredicate`/`ConditionPredicateLiteral`
+    entities, migration `V114`, repositories, `InformationRequestConditionPredicateLiteralCodec` for
+    the canonical-JSON/typed-column literal conversion (mirroring `FieldValue`'s own typed-column
+    convention), `InformationRequestTemplateConfigurationWriter.writeConditionRules`, and
+    `InformationRequestTemplateProjectionLoader.loadConditionRules` onto the new
+    `InformationRequestTemplateVersionDto.conditionRules`.
+  - [x] `P5-T3b` Wire `InformationRequestConditionEvaluator` against a live runtime request's
+    current Field values and current Requirement dispositions, resolving each rule's predicates from
+    the now-persisted rows rather than an ad hoc in-memory list, so a request's conditional
+    requirements can be evaluated server-side. Complete: `InformationRequestConditionEvaluationService
+    .evaluate(requestId)` loads the request's persisted condition rules via
+    `InformationRequestTemplateProjectionLoader.loadConditionRules`, resolves current Requirement
+    dispositions (defaulting an unanswered Requirement to `NOT_ANSWERED` rather than unknown) and
+    current root Field Value Set values, and delegates to the unchanged `InformationRequestConditionEvaluator`.
+    Occurrence-scoped Field predicates are not yet handled; only root-scoped values resolve.
+  - [x] `P5-T3c` Expose a client-safe evaluation projection (rule key to TRUE/FALSE/UNKNOWN state)
+    on the runtime request read surfaces (`InformationRequestResource`/
+    `InformationRequestNoAuthRequestResource`). Complete: `InformationRequestDto` now carries
+    `conditionEvaluations`, each entry includes only rule key, expression version, and state, and
+    both authenticated and no-auth detail reads populate it from
+    `InformationRequestConditionEvaluationService.evaluate` after the existing read authorization
+    and no-auth request-token checks pass.
+- [x] `P5-T4` Define hidden-data policy per condition: retain securely, clear with confirmation, or
   archive outside the active response. Re-evaluate completeness when conditions change.
-- [ ] `P5-T5` Implement the neutral platform response dispositions and narratives, including
+  - [x] `P5-T4a` Define, persist, copy, and expose the per-condition hidden-response-data policy
+    with `RETAIN_SECURELY` as the omitted and upgrade default.
+  - [x] `P5-T4b` Enforce hidden-response data handling when conditions become false or unknown:
+    retain securely, clear with explicit confirmation, or archive outside the active response, then
+    re-evaluate active response shape and completeness.
+- [x] `P5-T5` Implement the neutral platform response dispositions and narratives, including
   partial, not applicable, unavailable, exception requested, satisfied by reference, and waived
   where the Template permits. Customer-authored labels and reason codes remain configuration data
   and cannot add production branches.
-- [ ] `P5-T6` Add cross-field, cross-row, unit, currency, date-range, period-coverage, and duplicate
+- [x] `P5-T6` Add cross-field, cross-row, unit, currency, date-range, period-coverage, and duplicate
   validation extension points.
-- [ ] `P5-T7` Implement a deterministic completeness and progress service. Optional, hidden, waived,
+- [x] `P5-T7` Implement a deterministic completeness and progress service. Optional, hidden, waived,
   rejected, and conditional structured responses must have defined denominator behavior. Expose a
   composable evaluator that Phase 6 extends with evidence and Phase 7 invokes for final submission.
-- [ ] `P5-T8` Extend `basic_field_document_response_attestation_request` and
+- [x] `P5-T8` Extend `basic_field_document_response_attestation_request` and
   `multi_party_staged_evidence_request` through sparse draft response, occurrence creation,
   conditions, and structured-response completeness.
-- [ ] `P5-T9` Add the minimal shared structured-response UI for Field Requirements, occurrence
-  editing, conditions, sparse save, and conflict feedback behind the feature switch.
+- [x] `P5-T9` Add the minimal shared structured-response UI for Field Requirements, occurrence
+  editing, conditions, sparse save, and conflict feedback behind the feature switch. Complete:
+  `InformationRequestStructuredResponseWorkspace` renders active Field Requirements per occurrence
+  with add, remove, and reorder controls, names each inactive condition rule, saves only changed
+  Field values sparsely, and shows stale conflict feedback instead of retrying.
+  `structuredResponseCommands` binds those four commands to `informationRequestRuntimeService` with
+  a per-command idempotency key, the expected response ETag as `If-Match`, and an optional
+  access-link token so the identical handlers serve the authenticated and no-auth routes.
+  `InformationRequestStructuredResponsePanel` gates the workspace on
+  `PlanFeature.INFORMATION_REQUESTS` for an authenticated caller while treating a presented
+  access-link token as server-gated access. Mounting the panel on a respondent route belongs to
+  Phase 10 integration.
+- [x] `P5-T10` Evaluate condition rules per occurrence. Added after the 2026-09-08 exit-gate run
+  found that evaluation was root-only and failed open, so a conditional Requirement inside a
+  repeatable group was permanently UNKNOWN, was treated as HIDDEN, and silently left the completeness
+  denominator. Complete: `InformationRequestConditionEvaluationService` resolves the occurrences each
+  rule governs from its conditional bindings and the runtime Requirements that name them, evaluates
+  the rule once per occurrence, lays each occurrence's Field Value Set over the root set so a
+  root-collected Field still resolves from inside a group, and resolves a disposition predicate to
+  that occurrence's own answer, falling back to a single root answer and otherwise staying UNKNOWN
+  rather than picking an arbitrary sibling. `InformationRequestConditionEvaluationProjection`, the
+  evaluation DTO, `InformationRequestCompletenessProgressService`, the hidden-response policy in
+  `InformationRequestResponseDraftService`, and the respondent workspace all key condition state by
+  rule key plus occurrence path.
 
 ### Tests to write first
 
@@ -1478,6 +2386,126 @@ processes.
   disposition; final package completeness remains owned by Phase 7.
 - Progress uses one documented formula and does not conflict with ordinary Exchange Document counts.
 
+### Mandatory pre-Phase 6 review remediation
+
+The numbered tasks below map one-to-one to findings 1 through 20 in
+[the Phases 1-5 review](DOCUMENT-DRIVEN-INFORMATION-REQUESTS-PHASES-1-5-REVIEW.md).
+All are mandatory, including P2 findings. Keep each unchecked until the production or verification
+defect is corrected, a meaningful regression demonstrates the fix, and completion evidence names
+the changed files, exact commands and results. A passing existing suite, a documentation change,
+or a decision to defer the defect does not close a finding. Preserve the report as the original
+review record and record resolutions in the companion evidence journal using these stable IDs.
+
+All `P5-R01` through `P5-R20` remediation tasks and `P5-R-GATE` are complete. If a later review
+finds a defect in this remediation scope before Phase 6 starts, add it as a new unchecked
+pre-Phase 6 remediation task and retain the Phase 6 block until it is complete.
+Any earlier deferral that overlaps these findings is superseded for already implemented behavior.
+In particular, implement the session, reassignment, revocation, and structured-response preservation
+parts of `P3-T11b` through `P3-T11d` needed here; their old missing-prerequisite descriptions are not
+a reason to defer these fixes. Evidence and package behavior that does not yet exist remains in its
+original future phase. No Phase 6 implementation may proceed while a remediation is blocked.
+
+- [x] `P5-R01` (finding 1, P1): Separate bootstrap links from content session credentials.
+  Require an independent secret session credential with mandatory expiry and validated recipient,
+  request, and link binding. Update both access surfaces and client transport. Prove that a second
+  browser holding only the original link still cannot read or mutate after the recipient verifies,
+  and that expired, revoked, rotated, or incorrectly bound credentials fail closed.
+- [x] `P5-R02` (finding 2, P1): Apply parent Exchange termination effects to runtime access.
+  Wire rejection, rescission, and deletion into transactional child lifecycle and session revocation;
+  enforce the defined actor-specific read policy and parent effects on every access surface.
+  Test each parent transition, permitted historical reads, refused writes, and concurrent commands.
+- [x] `P5-R03` (finding 3, P1): Remove hidden values from active workspace projections and clear
+  current Fields through the revision-preserving Fields engine when policy requires CLEAR.
+  Do not merely detach the response envelope or delete historical revisions. Test read DTOs after
+  false/unknown conditions and explicit clear, including retained history and fresh workspace loads.
+- [x] `P5-R04` (finding 4, P1): Authorize the exact Field binding and addressed occurrence using
+  `FieldBindingAccess.valueSet`. Reject patch entries outside the named Requirement's collected
+  Field. Test sibling occurrences, differently assigned Requirements, and scoped delegates for both
+  reads and writes; never choose the first matching Field definition as the authorization target.
+- [x] `P5-R05` (finding 5, P1): Enforce Field audience and purpose boundaries using the actual
+  caller and owner context. Missing collecting Requirements must fail closed for respondent access.
+  Filter read projections and writes consistently. Test extra INTERNAL and CONFIDENTIAL Schema
+  Fields against external and registered respondents while preserving permitted owner access.
+- [x] `P5-R06` (finding 6, P1): Authorize group commands against the authored group and every
+  affected Requirement and descendant scope. Cover zero-occurrence creation without falling back
+  to aggregate contributor authority. Test add, remove, and reorder refusal for protected,
+  PREPARER, and NOT_DISCLOSED scopes and success for appropriately assigned actors.
+- [x] `P5-R07` (finding 7, P1): Exclude removed occurrence subtrees from active workspace,
+  conditions, and completeness, and reject subsequent response writes to them. Preserve history.
+  Test parent removal with descendants, stale commands, and progress before and after removal.
+- [x] `P5-R08` (finding 8, P1): Batch sparse Field changes per distinct Value Set, validate each
+  precondition once, and return consistent resulting ETags within one atomic command. Test two
+  Fields in one occurrence, multiple occurrences, explicit clear, stale external edits, and full
+  rollback on failure. Restore the review's self-conflicting-save probe as permanent coverage.
+- [x] `P5-R09` (finding 9, P1): Provide explicit runtime Requirement to Template/binding identity
+  in the response contract and use it in the frontend. Remove Field-presence guessing over whole
+  Value Sets. Test editing only the second Field and editing both Fields in the same occurrence,
+  plus repeated occurrences, with commands naming the correct distinct runtime Requirements.
+- [x] `P5-R10` (finding 10, P1): Allocate stable occurrence identity independently of display
+  order and retain uniqueness across removal and reordering. Add PostgreSQL coverage for remove,
+  reorder, then add, including concurrent adds and correct Field Value Set paths. Restore the
+  review's duplicate-path probe as permanent coverage.
+- [x] `P5-R11` (finding 11, P1): Resolve exact-party assignment through verified
+  `ParticipantAccountLink` records and current group membership. Preserve assignment provenance
+  and scope. Test upgraded registered recipients and assigned group members across reads and
+  writes, unrelated accounts, membership removal, reassignment, and revoked access.
+- [x] `P5-R12` (finding 12, P1): Close both contact-proof abuse and bootstrap accounting gaps.
+  Bound OTP verification attempts and enforce rate limits and expiry, including concurrent guesses.
+  Atomically advance the bootstrap usage counter that `maxUses` actually checks when access is
+  consumed. Test exhausted links, failed proof, successful proof, expiry, and parallel redemption;
+  session-only counters do not satisfy bootstrap limits.
+- [x] `P5-R13` (finding 13, P1): Reauthorize receipt replay and any returned representation
+  against current assignment, lifecycle, and grant state. Ensure payload and ETag describe the
+  same authorized result. Test narrative-only and Field replays after revocation, reassignment,
+  replacement responses, parent termination, and operational suspension without leaking new content.
+- [x] `P5-R14` (finding 14, P1): Align existing-work reads and UI access with owner-funded,
+  frozen execution grants. Fix both server live-commercial-gate checks and the authenticated
+  respondent's own-plan UI gate. Test owner entitlement lapse, rollout changes, explicit operational
+  revocation, a free registered recipient, and recipient-bound sessions; permitted continuation must
+  not weaken operational suspension or new-work issuance checks.
+- [x] `P5-R15` (finding 15, P1): Complete supported nesting in both backend conditions and the
+  editor. Resolve ancestor occurrence Fields in order with sibling isolation. Expose immutable
+  group, occurrence, and parent identifiers and send `parentOccurrenceId` in nested commands;
+  remove outermost-path parsing as identity. Test two-level nested conditions, two distinct parent
+  branches, nested add/remove/reorder/save, and independent completeness. Do not defer supported
+  nesting or hide UNKNOWN conditions as a substitute for implementing ancestor resolution.
+- [x] `P5-R16` (finding 16, P2): Define and implement response activation transitions for every
+  hidden-response policy when conditions return to TRUE. Retained responses must reactivate with
+  their authorship and history intact. Test TRUE/FALSE/TRUE and UNKNOWN/TRUE sequences and ensure
+  CLEAR does not resurrect cleared current values. Keep the review's reactivation probe permanently.
+- [x] `P5-R17` (finding 17, P2): Compute structured completeness from the exact collected
+  canonical Field value and allowed exception semantics, not existence of a Value Set. Test empty
+  first patches, explicit clear, optional Schema Fields required by the request, and exceptions.
+  Incomplete draft saves remain allowed; final package submission validation remains in Phase 7.
+- [x] `P5-R18` (finding 18, P2): Wire reservation reserve/consume/release/rollback into actual
+  issuance and party expansion paths and enforce frozen recipient capacity. Test transactional
+  rollback, idempotency, concurrent capacity claims, and release without double counting through
+  production callers. Recipient capacity must be enforced now; future upload/evidence usage remains
+  in its original phase and cannot serve as justification for an unused current reservation ledger.
+- [x] `P5-R19` (finding 19, P2): Repair the delegated-authority persistence fixture to supply
+  V102's required grantor kind, grantor ID, and effective time. Preserve migration constraints.
+  Run the positive and scope-refusal contract cases against PostgreSQL, then the full Docker-backed
+  backend suite with zero failures, errors, or unexplained skips.
+- [x] `P5-R20` (finding 20, P2): Fix invalid Information Request Template test fixtures,
+  including missing `groups`/`conditionRules` and nonexistent `FieldValueType.TEXT`. Establish an
+  enforced application-project typecheck command, following the Verification Command Matrix.
+  Capture and review the unrelated diagnostic baseline separately; require zero feature diagnostics
+  and no new unrelated diagnostics. Demonstrate that an introduced feature type error fails the gate.
+  A root `tsc --noEmit` success alone cannot close this finding or pass the Phase 5 exit gate.
+
+- [x] `P5-R-GATE` Close the complete review before authorizing Phase 6 entry.
+  Verify that all 20 parent tasks and any subtasks are checked with implementation and regression
+  evidence; reconcile overlapping earlier tasks and all active handoff instructions. Rerun
+  `.\mvnw.cmd test` with Docker and PostgreSQL available, `npm test -- --run` in `web-app`, the
+  meaningful application typecheck gate from `P5-R20`, and applicable lint/build checks from the
+  Verification Command Matrix. Record exact totals, all baseline diagnostics, and any accepted
+  pre-existing lint/build baseline explicitly; no feature-related failure or environmental blocker
+  can be waived. Check changed help articles in full, their size limits, and industry-neutral naming.
+  Re-review the integrated changes across authenticated and no-auth access, lifecycle, Fields,
+  conditions, occurrence identity, entitlements, idempotency, and persistence. Any newly discovered
+  defect in this remediation scope becomes an additional unchecked pre-Phase 6 task. Only after
+  this gate passes may Phase 5 be marked complete and the exact next task change to `P6-T1`.
+
 ## Phase 6: Evidence and Secure Document Handling
 
 ### Goal
@@ -1486,6 +2514,10 @@ Represent supporting evidence as versioned, policy-checked material whose access
 Information Request Requirement rather than inherited blindly from ordinary Exchange Documents.
 
 ### Entry gate
+
+Phase 6 is blocked until every `P5-R01` through `P5-R20` finding is fixed and verified and
+`P5-R-GATE` is checked with recorded evidence. This applies before starting any Phase 6 task,
+including `P6-T1`, not merely before enabling uploads. Scanner approval does not waive remediation.
 
 Content-type inspection is not malware scanning. Before external evidence upload can be enabled in
 any production scope, select and approve a concrete scanner deployment and signature-update model
@@ -2236,9 +3268,145 @@ No phase is complete unless its applicable gates pass.
   or populated-baseline PostgreSQL contract test and records rolling-version compatibility where
   applicable.
 
-| Task | Migration filename | Allocated | Status |
-|---|---|---|---|
-| None | None | Not allocated | No program migration has been created |
+| Task    | Migration filename                                     | Allocated  | Status                                                                                                                                                                                                                                                                                                                                                                                                       |
+|---------|--------------------------------------------------------|------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `P1-T2` | `V76__field_value_schema_default_provenance.sql`       | 2026-08-31 | Created and contract-tested. Widens `ck_field_value_provenance` with `SCHEMA_DEFAULT`.                                                                                                                                                                                                                                                                                                                       |
+| `P1-T3` | `V77__schema_field_binding_stable_field_invariant.sql` | 2026-08-31 | Created and contract-tested. Adds and backfills the stable `field_definition_id` invariant key, records and resolves conflicts, then enforces uniqueness and contract consistency.                                                                                                                                                                                                                           |
+| `P1-T4` | `V78__field_value_datetime_instant_semantics.sql`      | 2026-08-31 | Created and contract-tested. Converts `field_value.datetime_value` to an explicit instant and adds `datetime_offset_minutes` with its range and companionship rule.                                                                                                                                                                                                                                          |
+| `P1-T5` | `V79__field_value_root_value_set.sql`                  | 2026-08-31 | Created and contract-tested. Adds `field_value_set`, backfills one root set per Schema Assignment, carries every Field Value into it, and moves value uniqueness from the assignment to the set.                                                                                                                                                                                                             |
+| `P1-T6` | `V80__field_value_canonical_principal_provenance.sql`  | 2026-08-31 | Created and contract-tested. Adds canonical principal kind, principal ID, and non-secret session reference to `field_value` and `schema_assignment`, backfills them from the trustworthy legacy App User keys, ties the legacy key to the canonical pair, and adds the append-only `field_value_revision` and `field_value_revision_selection` tables with one backfilled revision per existing Field Value. |
+
+| `P1-T7a` | `V81__field_value_set_revision.sql` | 2026-08-31 | Created and contract-tested. Adds the monotonic
+`revision` count to `field_value_set`, carries every existing set to its first revision, and refuses any update that
+would move a count backwards. |
+
+| `P2-T1a` | `V82__fields_personal_ownership.sql` | 2026-08-31 | Created and contract-tested. Adds the `scope_user_id`
+owner to `field_definition`, `schema_definition`, and `schema_assignment`, widens the three scope-kind checks to
+`PERSONAL`, replaces the two owner checks with three-way owner checks, adds the assignment owner check the released
+schema never had after restoring drifted rows from their definition, and rebuilds `ux_field_def_key` and
+`ux_schema_def_key` so each owner contributes its own id instead of sharing the platform sentinel. |
+
+| `P2-T1d1` | `V83__subscription_feature_entitlement_owner.sql` | 2026-09-01 | Created and contract-tested. Renames
+`organization_feature_entitlement` to `subscription_feature_entitlement`, adds the `owner_type` kind and the
+`app_user_id` owner beside the now-nullable `organization_id`, carries every released row across as an organization
+decision, adds the owner check that admits exactly one owner per kind, and replaces the
+`(organization_id, feature_code)` unique constraint with a per-owner unique index so a nullable organization id cannot
+stop constraining a personal row. |
+
+| `P2-T1f` | `V84__audit_personal_ownership.sql` | 2026-09-01 | Created and contract-tested. Adds the audit owner pair
+to the outbox, ledger, analytics, export, and retention tables, backfills the trustworthy platform and organization
+owners, and keeps an equal-UUID organization and user in separate owner streams. |
+
+| `P2-T2` | `V85__subject_identity_ref.sql` | 2026-09-01 | Created and contract-tested. Adds the opaque
+`subject_identity_ref` identity with exactly one organization or person owner, the separate authorized external alias
+table, and the tenant-bound, single-successor, cycle-safe, append-only merge and supersession lineage. |
+
+| `P2-T3` | `V86__information_request_template.sql` | 2026-09-01 | Created and contract-tested. Adds the Template
+Definition with the three owner key spaces, the Version with per-definition numbering and its publication rule, the
+per-Version ordered Section, the per-definition stable Requirement, and the Requirement Binding whose composite foreign
+keys hold its section to its own Version and its requirement to its own definition. Guards freeze a published Version
+and its configuration except to record retirement, and refuse any rewrite of a stable requirement identity. |
+
+| `P2-T4` | `V87__information_request_template_requirement_policy.sql` | 2026-09-01 | Created and contract-tested. Adds
+the requirement type to the stable requirement identity and widens the identity guard to protect it, adds the nine
+respondent-policy columns and their checks to the Requirement Binding, and adds the permitted-disposition and
+supporting-evidence sets as version-keyed child tables that freeze with the Version. Publication now refuses a Version
+that binds a Field Requirement without naming the Schema Version it resolves against. |
+
+| `P2-T5` | `V88__information_request_template_evidence_policy.sql` | 2026-09-01 | Created and contract-tested. Adds the
+per-binding evidence policy with its file-count, size, page, attribute-requirement, freshness, validity, coverage,
+waiver, and conformance columns and checks, the generic accepted-value set keyed by which attribute it restricts, and
+the flat substitute-evidence set. Triggers keep a policy and a substitute on Document requirements only, refuse a
+chained substitute from either end, and freeze all three with the Version. Publication completeness moves into its own
+function: the released typed-data rule now sits beside the rules that a requested document has a policy, that no
+restriction names an uncaptured attribute, and that the waiver rule and the permitted waived answer agree. |
+
+| `P2-T6` | `V89__information_request_template_version_capability.sql` | 2026-09-01 | Created and contract-tested. Adds
+the per-Version capability requirement with its closed capability vocabulary, its per-Version uniqueness, and its
+contract-version floor, and freezes it with the Version through the guard the earlier configuration tables already use.
+Adds `request_template_required_capabilities`, which derives from one Version's configuration the set of capabilities it
+needs, and two publication-completeness rules that refuse a recorded set differing from the derived one in either
+direction. |
+
+| `P2-T9` | `V90__blueprint_information_request_template_version.sql` | 2026-09-01 | Created and contract-tested. Adds
+the optional `blueprint_definition.information_request_template_version_id` reference to one exact Template Version,
+with a restricting foreign key so a Version something still names cannot be removed, and a partial index over the rows
+that name one. Storage deliberately states nothing about the named Version's status: a reference stays after retirement
+so the blueprint remains readable and editable, and whether a new request may be created from it is asked at
+instantiation. |
+
+| `P2-T10b` | `V91__information_request_template_collected_field.sql` | 2026-09-02 | Created and contract-tested. Adds
+the stable collected Field reference for typed-data requirements, refuses one on other requirement kinds, keeps one
+Version from collecting the same Field twice, and asks at publication whether the named Schema Version contains that
+Field. |
+
+| `P3-T1c` | `V92__share_resource_scoped_role_key.sql` | 2026-09-02 | Created and contract-tested. Widens Share storage
+to admit `INFORMATION_REQUEST`, widens `share.resource_type` to `VARCHAR(64)` so longer central ResourceType values
+reach the check constraint, keeps legacy Exchange-role strings for Exchange, Document, and Principal Group rows, admits
+only request-party role keys for request rows, refuses all other resource types, and preserves existing Share rows
+across upgrade. |
+
+| `P3-T1d` | `V93__share_canonical_principal_provenance.sql` | 2026-09-02 | Created and contract-tested. Adds canonical
+grantor and revoker principal kind and ID columns to Share, backfills legacy App User provenance as `USER`, keeps legacy
+user foreign keys aligned when present, indexes canonical provenance, and refuses half-principal or legacy-drift rows. |
+
+| `P3-T2b` | `V94__domain_event_outbox_owner.sql` | 2026-09-02 | Created and contract-tested. Adds explicit owner kind
+and owner ID columns to the shared durable domain-event outbox while preserving the physical `workflow_event_outbox`
+table, backfills legacy rows from `organization_id`, keeps rolling old-writer inserts owned by trigger, and admits
+personal user-owned event rows without an organization. |
+
+| `P3-T3` | `V95__command_receipt.sql` | 2026-09-03 | Created and contract-tested. Adds the shared `command_receipt`
+table with a per-resource, per-operation, per-actor idempotency-key uniqueness scope, stores the canonical request
+fingerprint and replay result reference, and indexes resource and actor lookup paths. |
+
+| `P3-T5` | `V96__information_request_runtime_persistence.sql` | 2026-09-03 | Created and contract-tested. Adds runtime
+request aggregates, request-scoped parties, stable runtime Requirement occurrences, append-only Requirement revisions,
+current-revision pointers, and append-only transition history with owner and Template Version guards. |
+
+| `P3-T8` | `V97__external_participant_personal_owner.sql` | 2026-09-03 | Created and contract-tested. Adds an explicit
+personal owner App User column to External Participants, enforces exactly one owner kind, and replaces organization-only
+email uniqueness with owner-scoped organization and personal unique indexes. |
+
+| `P3-T8` | `V98__information_request_delegated_authority.sql` | 2026-09-04 | Created and contract-tested. Adds the
+minimal delegated-authority fact table, principal-kind check, indexes, and same-request guards for the assigned party
+and optional Requirement scope. |
+
+| `P3-T9a` | `V99__information_request_ad_hoc_template_origin.sql` | 2026-09-05 | Created and contract-tested. Adds
+reusable versus ad hoc Template origin facts, deferrable request-origin ownership, a one-private-Template-per-request
+uniqueness guard, and reusable-list filtering support. |
+
+| `P3-T9b` | `V100__information_request_blueprint_document_placeholders.sql` | 2026-09-05 | Created and contract-tested.
+Adds request-scoped document placeholders sourced from Blueprint document defaults, snapshots Document Library metadata
+without storage paths, keeps the optional library reference nullable on library deletion, and guards blank titles and
+negative file sizes. |
+
+| `P3-T11a` | `V101__information_request_transition_party.sql` | 2026-09-06 | Created and contract-tested. Adds a
+nullable `party_id` column to `information_request_transition` with an index and an insert-time scope guard trigger so
+party-scoped reassignment history is queryable. |
+
+| `P3-T12` | `V102__information_request_delegated_authority_instrument.sql` | 2026-09-06 | Created and contract-tested.
+Adds grantor identity, an authority instrument or evidence reference, an effective/expiry window with a `CHECK` that
+expiry follows the effective date, and an explicit revocation record (`revoked_at`, revoker, reason) with a `CHECK`
+tying it to the `active` flag. The table has no rows in any environment, so the new `NOT NULL` columns needed no default
+or backfill. |
+
+| `P5-T4a` | `V115__information_request_condition_hidden_data_policy.sql` | 2026-09-08 | Created. Adds the
+per-condition hidden-response-data policy column, defaults existing rows to `RETAIN_SECURELY`, and constrains stored
+values to the three platform policies. Docker was unavailable in this environment, so its Testcontainers contract could
+compile but could not execute. |
+
+| `P5-T4b` | `V116__information_request_response_hidden_state.sql` | 2026-09-08 | Created. Adds active or
+hidden state to mutable response drafts so hidden conditional responses can leave active response projections while
+preserving their recorded data or clearing the active reference after explicit confirmation. Docker was unavailable in
+this environment, so the updated Testcontainers runtime-persistence contract could compile but could not execute. |
+
+| `P5-R01` | `V117__request_access_session_credential.sql` | 2026-09-09 | Created and PostgreSQL contract-tested. Adds hashed independent session credentials, enforces expiry for credential-bearing sessions, freezes binding identity, and revokes legacy token-only sessions. |
+
+Remaining unallocated program range after these allocations and prior P4/P5 allocations: V118 through V139.
+
+When verifying that a migration contract test is genuinely red, remove the migration from
+`target/classes/db/migration` as well as from `src/main/resources/db/migration`. Flyway resolves migrations from the
+compiled classpath copy, so deleting only the source file leaves the test green and produces a false red observation.
 
 ### Compatibility rules
 
@@ -2258,10 +3426,27 @@ No phase is complete unless its applicable gates pass.
   `schema_definition.target_resource_type` is an unconstrained `VARCHAR(48)`, so this needs no
   migration and must not consume a migration number.
 - Add one root Field Value Set per existing Schema Assignment, backfill current Field Values into
-  that set, and change Field Value uniqueness to include the set. Existing Exchange queries always
-  address the root set; repeatable occurrence sets are Information Request behavior.
-- Add immutable Field Value Revisions after the Value Set key exists, so every historical response
-  resolves the exact canonical value and occurrence it recorded.
+  that set, and change Field Value uniqueness to include the set. Existing Exchange queries always address the root set;
+  repeatable occurrence sets are Information Request behavior. `V79` completes both stages in one file: a Field Value
+  written after it applies must name its set, so an application version older than `V79` cannot insert a Field Value
+  once it has run. The service runs one task with `MinimumHealthyPercent: 100` and migrates at start, so the old task
+  serves until the new one is healthy. Drain the old task before or while `V79` applies, or accept that a Field-value
+  save issued by the old task in that window is refused. Reads and every other write path are unaffected.
+- Add immutable Field Value Revisions after the Value Set key exists, so every historical response resolves the exact
+  canonical value and occurrence it recorded. `V80` does this and adds canonical principal provenance in the same file.
+  Its consistency rule refuses a legacy App User key that is not accompanied by the matching canonical `USER` pair, so
+  an application version older than `V80`
+  can neither write a Field Value nor create a Schema Assignment once it has applied. This is the same rolling-deploy
+  consequence `V79` already carries for Field Values, extended to Schema Assignment, and both files ship in the same
+  release, so the single drain requirement stated for
+  `V79` covers both. The alternative, a check that tolerates a legacy key with no canonical pair, was rejected because
+  it readmits exactly the state the backfill removed and would make a later drop of the legacy column lose authorship
+  silently.
+- Keep `field_value.updated_by_app_user_id` and `schema_assignment.assigned_by_app_user_id` for the whole program. After
+  `V80` they are write-only: `FieldPrincipalProvenance` is the only writer, no DTO, projection, query, or frontend reads
+  either column, and the consistency rule guarantees every value in them is duplicated in the canonical pair. Dropping
+  them is therefore information preserving and belongs to a separate later task, which may only run once no deployed
+  application version still writes them. Do not drop them while `FieldPrincipalProvenance.recordOn` sets them.
 - Generalize the organization-only feature-entitlement rows into owner type and ID through rolling
   expand-contract, preserving all existing organization decisions. Add operational rollout in a
   separate owner-scoped table and resolver so no migration or fallback can confuse commercial and
@@ -2425,298 +3610,66 @@ recipient access, no-auth access, Documents, Workflows, audit, subscriptions, an
 - No new AWS service or paid resource type is added without explicit user approval.
 - All required backend, frontend, migration, documentation, and manual validation gates pass.
 
-## Implementation Journal
+## Latest Implementation Result
 
-Add new entries directly below this instruction, newest first. Every implementation session must add
-one entry before ending.
+Keep only the newest product implementation result in this section. Full historical results and completion evidence live
+in `plans/DOCUMENT-DRIVEN-INFORMATION-REQUESTS-COMPLETION-EVIDENCE.md`. When a newer implementation session finishes,
+make sure this result is present in the evidence file, then replace it here with the new latest result.
 
-Required entry format:
+### 2026-09-13: `P5-R-GATE` Complete pre-Phase 6 remediation gate
 
-```text
-### YYYY-MM-DD: Session title
+- Status: complete. Read `AGENTS.md`, the active plan, the completion evidence, and the Phases 1-5
+  review before starting. Inspected the dirty working tree and preserved unrelated changes. No
+  production, migration, REST, frontend behavior, or help-doc content change was needed. Phase 6 was
+  not started. No commit or push was made.
+- Gate verification: all `P5-R01` through `P5-R20` parent tasks are checked with evidence, and no
+  unchecked P5-R subtasks remain. The remediation scope was re-reviewed across authenticated and
+  no-auth access, lifecycle and parent-state effects, Fields projection and writes, condition and
+  occurrence handling, frozen execution grants, idempotent receipt replay, reservation usage, and
+  persistence fixtures. No new pre-Phase 6 remediation defect was found.
+- Regression results: `.\mvnw.cmd test` passed with 2554 tests, 0 failures, 0 errors, and 0 skips
+  after rerunning with Docker and PostgreSQL available. `npm test -- --run` in `web-app` passed with
+  118 files and 481 tests. `npm run typecheck:app` passed with 346 total app-project diagnostics,
+  all 346 reviewed unrelated baseline diagnostics, and 0 Information Request diagnostics. Root
+  `npx tsc --noEmit` in `web-app` passed with no output.
+- Accepted existing frontend baseline: `npm run lint` still fails on the broad existing frontend
+  lint backlog with 109 problems, 61 errors and 48 warnings; a filtered rerun for Information
+  Request and gate-script terms returned no matches. `npm run buildWithTs` still fails on the known
+  broader app-project TypeScript baseline; a filtered rerun for Information Request, the P5-R20 gate
+  script, and stale fixture terms returned no matches. These are not clean gates.
+- Help documentation: searched the help-doc sections for Information Request, Template, Fields,
+  conditions, occurrence, entitlement, no-auth, access-link, and session terms. Read the matched
+  articles and section files in full. No help-doc content needed updating because this gate changed
+  no user-visible behavior. Article, section, and registry size checks passed.
+- Industry-neutrality and infrastructure check: no industry-specific production naming, shipped
+  default, test fixture, or behavior was introduced. No new AWS service or paid resource type was
+  added.
+- Exact next task: resolve the Phase 6 scanner approval decision, then start `P6-T1` without
+  enabling external evidence upload in any production scope until an approved scanner deployment and
+  signature-update model are recorded.
+- Full detail is in the companion completion evidence file's Implementation Journal entry for this
+  task.
 
-- Current phase and task:
-- Status at session end:
-- Tests added first:
-- Failure observed before implementation:
-- Implementation completed:
-- Files changed:
-- Database migrations added:
-- Focused tests run and results:
-- Full validation commands and results:
-- Help documentation reviewed or updated:
-- Decisions made:
-- Assumptions:
-- Known risks or blockers:
-- Exact next task:
-- Files the next agent should read first:
-```
+Changed files:
+- `plans/DOCUMENT-DRIVEN-INFORMATION-REQUESTS-IMPLEMENTATION-PLAN.md`
+- `plans/DOCUMENT-DRIVEN-INFORMATION-REQUESTS-COMPLETION-EVIDENCE.md`
 
-### 2026-08-30: Third architecture review, existing-platform misunderstanding corrections
-
-- Current phase and task: Phase 1, `P1-T1`
-- Status at session end: Nine gaps caused by an inaccurate model of existing platform behavior were
-  verified against the repository and corrected in the plan. Production implementation has not
-  started.
-- Tests added first: None. This was a planning-document correction session.
-- Failure observed before implementation: The plan asserted breadth and maturity that the code does
-  not have. It treated all twelve `ResourceType` values as Share-bearing when
-  `share_resource_type_check` admits only three and `ShareService.grant` is only ever called with
-  `EXCHANGE`, and it never allocated the resource-type widening that request-party Shares require.
-  It described `ExternalParticipant` as an existing populated model to extend and planned a backfill
-  with ambiguity detection, when no code constructs or persists a row and the table is empty
-  everywhere. It softened the temporary-App-User reality to "may", when `EXTERNAL_EMAIL` selection
-  always creates one and three reusable acceptance and resend paths require a `USER`-kind Share. It
-  scoped personal Fields scope as a schema change only, missing four code sites that make it throw
-  on first use. It promised that a lapsed owner cannot strand an issued request while
-  `BusinessFieldsSubscriptionGuard.requireResourceMutation` re-checks the live owner plan on every
-  Field write. It described the resource-context registry as something to keep fail-closed when the
-  existing generic path fails open and falls back to the caller's active organization. It planned to
-  bind a bootstrap ShareLink through `exchange_recipient`, whose V63 trigger requires an
-  Exchange-typed Share. It added a personal audit owner without addressing roughly twenty existing
-  `?: AuditOwnerScope.Platform` writers that a request mutation reaches through reused Exchange code.
-  It never mentioned `Exchange.requireRecipientSignIn`, the owner's existing switch for
-  unauthenticated recipient access.
-- Implementation completed: No production code. Rewrote the Authorization, No-auth access, Schema
-  Assignment, Fields scope vocabulary, Audit, and Transactional events baseline rows; added
-  Resource authorization context, Fields commercial guard, Email-only recipient identity, and
-  Exchange recipient binding rows; rewrote the External participants and Principal Groups rows;
-  extended Decisions 14, 22, 24, and 25 and added Decisions 40 and 41; corrected `P2-T1`, `P3-T1`,
-  `P3-T2`, `P3-T6`, `P3-T8`, `P3-T11`, `P4-T4`, `P4-T5`, `P4-T7`, and `P12-T1`; updated the Phase 2,
-  3, and 4 test lists, the Capability, Entitlement, No-auth, and Migration test-matrix rows, the
-  security gates, the compatibility rules, and the acceptance criteria. Added the three recurring
-  review failure modes to the baseline preamble.
-- Files changed: `plans/DOCUMENT-DRIVEN-INFORMATION-REQUESTS-IMPLEMENTATION-PLAN.md` only.
-- Database migrations added: None. Repository head remains V75; V76 through V139 remains a
-  provisional allocation that must be collision-checked before each migration. One previously
-  assumed migration was removed from scope: `INFORMATION_REQUEST` as a Schema target needs no
-  migration because `schema_definition.target_resource_type` has no CHECK constraint.
-- Focused tests run and results: Not run because no production code, migration, API, configuration,
-  or user-visible behavior changed.
-- Full validation commands and results: Repository verification only. Read `V1__baseline.sql`,
-  `V36__fields_engine.sql`, `V51`, `V55`, `V58`, `V62`, `V63`, `V67`, `SchemaAssignmentService.kt`,
-  `FieldResourceAdapter.kt`, `ExchangeFieldResourceAdapter.kt`, `ExchangeFieldsResource.kt`,
-  `BusinessFieldsSubscriptionGuard.kt`, `DefaultAuthorizationService.kt`, `OwnerContext.kt`,
-  `ResourceAuthorizationContextRegistry.kt`, `ShareLink.kt`, `ShareLinkValidationService.kt`,
-  `NoAuthExchangeResource.kt`, `ExchangeRecipientService.kt`,
-  `ExchangeRecipientSelectionResolver.kt`, `ExchangeAccessManagementService.kt`,
-  `ExternalParticipant.kt`, `ExternalParticipantRepository.kt`, `DocumentVersion.kt`,
-  `ExchangeDocumentVersionService.kt`, `AuditLegalHold.kt`, `AuditEventDraft.kt`, `PlanFeature.kt`,
-  `Action.kt`, and `NotificationDeliveryLog.kt`. Confirmed Flyway head V75, `helpDocsRegistry.tsx`
-  at 58 lines against the under-60 limit, and `npx tsc --noEmit` from `web-app` exiting 0. Confirmed
-  by grep that no `ExternalParticipant()` construction or repository `save`/`persist` call exists in
-  `src`, and that `ShareService.grant` is called only with `ResourceType.EXCHANGE`.
-- Help documentation reviewed or updated: Not required. Only the implementation plan changed.
-- Decisions made: Characterize Share migration against the three ResourceTypes the database
-  permits and prove the other nine are enum-only. Widen `share_resource_type_check` and
-  `share_role_name_check` in one migration before any request-party Share exists. Treat External
-  Participant identity as greenfield with a forward-only column addition and no backfill. Keep
-  `exchange_recipient` and its V63 trigger untouched and reference recipients by ID. Honor
-  `requireRecipientSignIn` as an authoritative owner policy. Govern Information Request Field writes
-  by the frozen `RequestExecutionGrant` rather than the live Fields commercial guard, and require
-  both `INFORMATION_REQUESTS` and `BUSINESS_FIELDS_AND_SCHEMAS` at issuance for Field-bearing
-  Templates. Treat registry fail-closed and the removal of the `activeOrgId` fallback as corrections
-  to existing behavior that must be characterized first. Correct the reachable
-  `?: AuditOwnerScope.Platform` writers rather than only adding a personal owner type. Deliver
-  personal Fields scope as one task covering the schema, `ScopeReference`, the adapter, the
-  visibility check, and the configuration guard.
-- Assumptions: The corrected baseline is accurate as of 2026-08-30 and must be rechecked by the task
-  that implements each area. Existing unrelated working-tree changes remain user-owned.
-- Known risks or blockers: No blocker to `P1-T1`. The `share_resource_type_check` widening is now a
-  hard prerequisite for `P3-T8`, and the External Participant lifecycle is materially larger than the
-  previous plan implied, so Phase 4 estimates should be revisited before it starts. A real malware
-  scanner and signature-update model remain required before eligible external Evidence can satisfy a
-  Requirement. Any new AWS service or paid resource requires explicit user approval.
-- Exact next task: Start `P1-T1` with synthetic Participant and Public Link service or adapter tests
-  for the current pre-exposure contract, alongside reachable authenticated coverage, before making
-  the smallest Fields authorization and projection correction.
-- Files the next agent should read first: `AGENTS.md`, this complete plan and newest journal entry,
-  `SchemaAssignmentService.kt`, `FieldResourceAdapter.kt`, `ExchangeFieldResourceAdapter.kt`,
-  `ExchangeFieldsResource.kt`, `BusinessFieldsSubscriptionGuard.kt`,
-  `DefaultAuthorizationService.kt`, `ResourceAuthorizationContextRegistry.kt`, `OwnerContext.kt`,
-  and the existing Fields tests.
-
-### 2026-08-30: Second architecture review corrections
-
-- Current phase and task: Phase 1, `P1-T1`
-- Status at session end: All 22 external-review findings have been reconciled in the plan; 18 valid
-  or partially valid findings produced concrete corrections, while four overstated findings were
-  resolved with explicit boundary language. Production implementation has not started.
-- Tests added first: None. This was a planning-document correction session.
-- Failure observed before implementation: The plan under-described existing ShareLink, trust,
-  Principal Group, Blueprint default, trial, Workflow registry, webhook, Variable, Sequence, and
-  realtime capabilities. It also left collisions or gaps around Share role migration breadth,
-  holds, personal event ownership, subject and attestation names, mapper placement, scope spelling,
-  attribution foreign keys, end-to-end encrypted Evidence, and Exchange-versus-request editability.
-- Implementation completed: Corrected the verified baseline, architectural decisions, domain names,
-  phase tasks, test matrices, security gates, compatibility rules, acceptance criteria, and handoff
-  guidance. The plan now extends bootstrap-mode `ShareLink` and adds scoped
-  `RequestAccessSession`; regresses every existing Share-bearing resource; generalizes the existing
-  hold persistence; preserves neutral event contracts while adding event ownership and audit-event
-  correlation; uses `SubjectIdentityRef`, `RESPONSE_ATTESTATION`, and
-  `SubmissionAttestation`; reuses trust, Principal Group, recipient replacement, Blueprint default,
-  Workflow registry, and webhook foundations; freezes one Sequence render; handles trial and global
-  enforcement states; and makes opaque end-to-end encrypted content Evidence-ineligible.
-- Files changed: `plans/DOCUMENT-DRIVEN-INFORMATION-REQUESTS-IMPLEMENTATION-PLAN.md` only.
-- Database migrations added: None. Repository head remains V75; V76 through V139 remains a
-  provisional allocation that must be collision-checked before each migration.
-- Focused tests run and results: Not run because no production code, migration, API, configuration,
-  or user-visible behavior changed.
-- Full validation commands and results: Structural PowerShell and `rg` checks found 128 unique,
-  contiguous task definitions across 12 phases, all eight Markdown fences balanced, no trailing
-  whitespace, no forbidden glyphs, no stale superseded names, and Flyway head V75.
-- Help documentation reviewed or updated: Not required. Only the implementation plan changed.
-- Decisions made: Reuse and extend ShareLink instead of adding a request credential table. Keep
-  `RequestAccessSession` as an intentionally scoped authentication term and make HTTP ETags the
-  correctness mechanism without requiring no-auth realtime. Preserve the existing
-  ExternalParticipant model and add only explicit personal ownership. Use existing Blueprint
-  defaults, trust services, ShareService operations, Workflow trigger registry, and compatible
-  webhook infrastructure. Keep the audit and domain-event outboxes separate but correlated and
-  atomic. Preserve legacy attribution foreign keys during expand. Do not allow opaque
-  `END_TO_END` ciphertext to satisfy file-backed Evidence.
-- Assumptions: The repository facts in the verified baseline remain accurate as of 2026-08-30 and
-  must be rechecked by the task that implements each area. Existing unrelated working-tree changes
-  remain user-owned.
-- Known risks or blockers: No blocker to `P1-T1`. A real malware scanner and signature-update model
-  remain required before eligible external Evidence can satisfy a Requirement. Any new AWS service
-  or paid resource requires explicit user approval. Flyway allocation remains provisional.
-- Exact next task: Start `P1-T1` with synthetic Participant and Public Link service or adapter tests
-  for the current pre-exposure contract, alongside reachable authenticated coverage, before making
-  the smallest Fields authorization and projection correction.
-- Files the next agent should read first: `AGENTS.md`, this complete plan and newest journal entry,
-  `SchemaAssignmentService.kt`, `FieldResourceAdapter.kt`, `ExchangeFieldResourceAdapter.kt`,
-  `ExchangeFieldsResource.kt`, `DefaultAuthorizationService.kt`, `ShareLink.kt`,
-  `ShareLinkValidationService.kt`, `ShareService.kt`, and the existing Fields tests.
-
-### 2026-08-30: External architecture review reconciliation
-
-- Current phase and task: Phase 1, `P1-T1`
-- Status at session end: External review findings verified against the repository and reconciled in
-  the plan; production implementation has not started.
-- Tests added first: None. This was a documentation-only planning and repository-analysis session.
-- Failure observed before implementation: The prior plan assumed capabilities that did not exist or
-  were narrower than described, including Blueprint versions, exact Schema Version assignment,
-  recipient-bound no-auth identity, generic Share roles, personal audit ownership, reusable command
-  safety, immutable Document Version storage and hashes, malware scanning, business-record holds,
-  immutable notices, issued-capacity guarantees, and a reserved Flyway range.
-- Implementation completed: No production code. Added a verified repository baseline and corrected
-  the architecture, phase ownership, release cuts, dependencies, TDD gates, compatibility rules,
-  test matrices, and acceptance criteria. The plan now uses mutable Blueprint Definitions without
-  fabricated history; exact Template and Schema version pinning; canonical `PrincipalRef`; central
-  resource-scoped authorization; recipient-verified sessions; durable execution grants; typed
-  write-once Document Version locators; every-source scanning; Notice Intents; immutable notices;
-  authorized hold lifecycle; reference-safe disposal; and explicit commercial, rollout, lifecycle,
-  audit, and concurrency contracts. Clarified the single viewer-filtered Exchange
-  `Information Requests` tab and the marketing neutrality boundary.
-- Files changed: `AGENTS.md`,
-  `plans/DOCUMENT-DRIVEN-INFORMATION-REQUESTS-IMPLEMENTATION-PLAN.md`. The user's modified
-  `plans/DOCUMENT-DRIVEN-INFORMATION-REQUESTS-PROPOSAL.md` was inspected only as prior context and
-  was not changed by this session.
-- Database migrations added: None. Repository head remains V75; V76 through V139 is the provisional
-  program allocation and must be collision-checked before every migration.
-- Focused tests run and results: Not run because no production code, migration, API, configuration,
-  or user-facing behavior changed.
-- Full validation commands and results: Plan whitespace and forbidden-glyph `rg` scan returned no
-  matches; targeted industry-vocabulary scan of the plan and `AGENTS.md` returned no matches; the
-  plan contains 128 unique task definitions with contiguous numbering across 12 phases; all eight
-  neutral scenario identifiers are present; eight Markdown fence markers are balanced; Flyway head
-  detection returned V75; `git diff --check -- AGENTS.md` passed with only Git's LF-to-CRLF warning;
-  a stale-assumption scan returned only the intentional statement that Notice Intent durability
-  cannot depend on an outbox event. Three independent final read-only audits reported no remaining
-  architecture contradiction after corrections.
-- Help documentation reviewed or updated: Not required. This session changed repository instructions
-  and the implementation plan only.
-- Decisions made: Do not build Blueprint versioning in this program. Reuse `PrincipalRef`, the
-  central authorization stack, and the compatible physical outbox while generalizing their narrow
-  contracts. A no-auth link is verification bootstrap only. Every request pins a Template Version;
-  ad hoc creation produces a private immutable version. Issuance reserves request-local completion
-  capacity. Every file-backed evidence path is scanned against exact verified bytes. Record disposal
-  is hold-aware, reference-aware, claimed, retryable, and recoverable. Production identifiers,
-  fixtures, and branches remain industry-neutral; concrete industries may appear only as
-  explanatory marketing or documentation content.
-- Assumptions: Repository facts in the verified baseline are accurate as of 2026-08-30 and must be
-  rechecked by the owning task. The older journal entry's 124-task count is a correct historical
-  snapshot; this revised plan now has 128 tasks. Existing unrelated working-tree changes remain
-  user-owned.
-- Known risks or blockers: No blocker to `P1-T1`. Before Phase 6 production evidence enablement, a
-  concrete real scanner and signature-update model must be selected; any new AWS service or paid
-  resource requires explicit user approval. Flyway allocation is provisional. Ambiguous legacy
-  personal External Participant ownership must be reported and explicitly resolved rather than
-  guessed during its later migration.
-- Exact next task: Start `P1-T1` using TDD. Add focused failing authorization and recipient-safe
-  projection tests, confirm the intended behavioral failure, implement the smallest fix, run focused
-  and affected regression tests, review matched help articles if behavior changes, and update this
-  journal before ending the session.
-- Files the next agent should read first: `AGENTS.md`, this complete plan and latest journal entry,
-  `SchemaAssignmentService.kt`, `FieldResourceAdapter.kt`, `ExchangeFieldResourceAdapter.kt`,
-  `ExchangeFieldsResource.kt`, `DefaultAuthorizationService.kt`, `Share.kt`, `RoleCapabilities.kt`,
-  and the existing Fields resource and service tests.
-
-### 2026-08-30: Industry-neutral plan correction
-
-- Current phase and task: Phase 1, `P1-T1`
-- Status at session end: Plan and repository instructions corrected; production implementation not
-  started.
-- Tests added first: None. This was a documentation-only planning session.
-- Failure observed before implementation: Not applicable.
-- Implementation completed: No production code. Replaced industry-specific examples, fixtures,
-  packs, proofs, dispositions, and acceptance gates with generic process capabilities, neutral
-  conformance fixtures, and configurable extension contracts. Added the repository-wide
-  industry-neutrality invariant.
-- Files changed: `AGENTS.md`, `DOCUMENT-DRIVEN-INFORMATION-REQUESTS-IMPLEMENTATION-PLAN.md`
-- Database migrations added: None.
-- Focused tests run and results: Not run because no production code changed.
-- Full validation commands and results: `git diff --check -- AGENTS.md` passed; targeted `rg`
-  neutrality scans found none of the removed industry vocabularies; the plan contains 124 unique
-  task definitions across 12 phase headings; all eight neutral scenario identifiers are present;
-  eight Markdown code-fence markers are balanced; trailing-whitespace and forbidden-glyph scans of
-  the plan returned no matches; a final independent read-only neutrality audit found no remaining
-  industry-specific implementation after its terminology and coverage-gate findings were applied.
-- Help documentation reviewed or updated: Not required because this session changed only repository
-  instructions and a planning document.
-- Decisions made: Production names and behavior must be process-neutral. Customer terminology is
-  runtime configuration only. Core and acceptance fixtures use neutral synthetic names and cannot
-  be shipped as platform Templates or trigger special production branches. Phase 11 now proves
-  generic capability conformance instead of installing industry packs.
-- Assumptions: Existing proposal changes are user-owned and remain untouched. Industry-specific
-  examples may appear only in explanatory documentation, never in implementation artifacts or
-  acceptance gates.
-- Known risks or blockers: No current blocker. Future sessions must prevent customer-authored labels
-  or Template identifiers from becoming hidden production branch keys.
-- Exact next task: Start `P1-T1` with failing authorization and recipient-safe projection tests.
-- Files the next agent should read first: `AGENTS.md`, this plan,
-  `SchemaAssignmentService.kt`, `ExchangeFieldResourceAdapter.kt`, `ExchangeFieldsResource.kt`,
-  `RoleCapabilities.kt`, and the existing Fields DTO and resource tests.
-
-### 2026-08-29: Implementation plan created
-
-- Current phase and task: Phase 1, `P1-T1`
-- Status at session end: Plan created; production implementation not started.
-- Tests added first: None. This was a documentation-only planning session.
-- Failure observed before implementation: Not applicable.
-- Implementation completed: None.
-- Files changed: `DOCUMENT-DRIVEN-INFORMATION-REQUESTS-IMPLEMENTATION-PLAN.md`
-- Database migrations added: None.
-- Focused tests run and results: Not run because no production code changed.
-- Full validation commands and results: Not run because no production code changed.
-- Help documentation reviewed or updated: Not required for a planning-only document.
-- Decisions made: Recorded under `Architectural Decisions`.
-- Assumptions: Existing proposal changes are user-owned and remain untouched.
-- Known risks or blockers: The current Business Fields defects in Phase 1 must be fixed before the
-  Information Request model reuses the Fields engine.
-- Exact next task: Start `P1-T1` with failing authorization and recipient-safe projection tests.
-- Files the next agent should read first: `AGENTS.md`, this plan,
-  `SchemaAssignmentService.kt`, `ExchangeFieldResourceAdapter.kt`, `ExchangeFieldsResource.kt`,
-  `RoleCapabilities.kt`, and the existing Fields DTO and resource tests.
+The displaced `P5-R20` result is preserved in full in
+`plans/DOCUMENT-DRIVEN-INFORMATION-REQUESTS-COMPLETION-EVIDENCE.md`.
 
 ## Continuation Prompt
 
 Use this instruction in a new implementation session:
 
 > Continue the Document-Driven Information Requests implementation from
-> `plans/DOCUMENT-DRIVEN-INFORMATION-REQUESTS-IMPLEMENTATION-PLAN.md`. First read `AGENTS.md` and the
-> full plan, including the latest journal entry. Inspect the working tree and preserve unrelated changes.
-> Start the exact next task using TDD: add a focused failing test, confirm the intended failure,
-> implement the smallest complete change, run focused and required regression tests, update affected
-> help documentation, then update the plan and journal with the exact next starting point. Do not
-> commit or push without explicit permission.
+> `plans/DOCUMENT-DRIVEN-INFORMATION-REQUESTS-IMPLEMENTATION-PLAN.md`. First read `AGENTS.md`, then the
+> full active plan, including `## Status`, `## Plan and Evidence Update Protocol`,
+> `## Mandatory Protocol for Every Implementation Session`, and `## Latest Implementation Result`. Use
+> `plans/DOCUMENT-DRIVEN-INFORMATION-REQUESTS-COMPLETION-EVIDENCE.md` for prior completion results,
+> evidence, and older decisions. Inspect the working tree and preserve unrelated changes. `P5-R01`
+> through `P5-R20` and `P5-R-GATE` are complete. Do not start Phase 6 until the scanner approval
+> decision required by the Phase 6 entry gate is resolved. After that decision, continue with
+> `P6-T1`. Follow the exact next task using TDD: add a focused failing test, confirm the intended
+> failure, implement the smallest complete change, run focused and required regression tests, update
+> affected help documentation, then update the active plan and companion evidence file with the exact
+> next starting point. Do not commit or push without explicit permission.

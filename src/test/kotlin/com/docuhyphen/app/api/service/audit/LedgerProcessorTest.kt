@@ -6,21 +6,12 @@ import com.docuhyphen.app.api.model.entity.StreamHead
 import com.docuhyphen.app.api.repository.audit.AuditLedgerEventRepository
 import com.docuhyphen.app.api.repository.audit.AuditOutboxRepository
 import com.docuhyphen.app.api.repository.audit.StreamHeadRepository
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertNotEquals
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
-import org.mockito.kotlin.any
-import org.mockito.kotlin.eq
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.never
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.whenever
+import org.mockito.kotlin.*
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 /**
  * Verifies the append and recovery guarantees provided by [LedgerProcessor]:
@@ -224,5 +215,27 @@ class LedgerProcessorTest
 
         assertEquals("$orgId:2026-03", LedgerProcessor.resolveStreamId(withOrg))
         assertEquals("platform:2026-03", LedgerProcessor.resolveStreamId(withoutOrg))
+    }
+
+    @Test
+    fun `resolveStreamId keeps organization and personal owners with the same id separate`()
+    {
+        val sharedId = UUID.randomUUID()
+        val occurredAt = Timestamp.from(Instant.parse("2026-03-05T00:00:00Z"))
+        val organizationEntry = outboxEntry(organizationId = sharedId, occurredAt = occurredAt).apply {
+            ownerType = "ORGANIZATION"
+            ownerId = sharedId
+        }
+        val personalEntry = outboxEntry(occurredAt = occurredAt).apply {
+            ownerType = "USER"
+            ownerId = sharedId
+        }
+
+        assertEquals("$sharedId:2026-03", LedgerProcessor.resolveStreamId(organizationEntry))
+        assertEquals("user:$sharedId:2026-03", LedgerProcessor.resolveStreamId(personalEntry))
+        assertNotEquals(
+            LedgerProcessor.resolveStreamId(organizationEntry),
+            LedgerProcessor.resolveStreamId(personalEntry),
+        )
     }
 }

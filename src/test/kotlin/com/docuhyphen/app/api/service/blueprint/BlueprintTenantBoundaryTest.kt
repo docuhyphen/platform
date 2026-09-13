@@ -1,10 +1,6 @@
 package com.docuhyphen.app.api.service.blueprint
 
-import com.docuhyphen.app.api.model.dto.CloneBlueprintRequest
-import com.docuhyphen.app.api.model.dto.CreateBlueprintRequest
-import com.docuhyphen.app.api.model.dto.PatchBlueprintPublishedRequest
-import com.docuhyphen.app.api.model.dto.PatchBlueprintStatusRequest
-import com.docuhyphen.app.api.model.dto.UpdateBlueprintRequest
+import com.docuhyphen.app.api.model.dto.*
 import com.docuhyphen.app.api.model.entity.BlueprintDefinition
 import com.docuhyphen.app.api.model.entity.BlueprintScope
 import com.docuhyphen.app.api.repository.blueprint.BlueprintDefinitionRepository
@@ -15,24 +11,16 @@ import com.docuhyphen.app.api.repository.documentlibrary.DocumentLibraryReposito
 import com.docuhyphen.app.api.service.auth.AdminActionGuardService
 import com.docuhyphen.app.api.service.auth.AdminApprovalContext
 import com.docuhyphen.app.api.service.auth.UserRoleService
-import com.docuhyphen.app.api.service.auth.authz.Action
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.Decision
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.service.auth.authz.*
 import com.docuhyphen.app.api.service.fields.SchemaDefinitionService
+import com.docuhyphen.app.api.service.informationrequest.InformationRequestTemplateReferenceService
 import io.quarkus.security.ForbiddenException
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import org.mockito.kotlin.any
-import org.mockito.kotlin.argumentCaptor
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.whenever
-import java.util.UUID
+import org.mockito.kotlin.*
+import java.util.*
 
 class BlueprintTenantBoundaryTest
 {
@@ -103,6 +91,7 @@ class BlueprintTenantBoundaryTest
                 authorizationContextFactory = contextFactory(context),
                 userRoleService = roleService(appAdmin, orgAdmin),
                 blueprintSubscriptionGuard = mock<BlueprintSubscriptionGuard>(),
+                templateReferenceService = mock<InformationRequestTemplateReferenceService>(),
             ),
             repository = repository,
         )

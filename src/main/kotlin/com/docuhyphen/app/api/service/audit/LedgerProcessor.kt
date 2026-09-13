@@ -59,7 +59,17 @@ class LedgerProcessor @Inject constructor(
          */
         fun resolveStreamId(entry: AuditOutboxEntry): String
         {
-            val owner = entry.organizationId?.toString() ?: "platform"
+            val effectiveOwnerType = entry.ownerType.takeUnless {
+                it == "PLATFORM" && entry.ownerId == null && entry.organizationId != null
+            } ?: "ORGANIZATION"
+            val effectiveOwnerId = entry.ownerId ?: entry.organizationId
+            val owner = when (effectiveOwnerType)
+            {
+                "PLATFORM" -> "platform"
+                "ORGANIZATION" -> requireNotNull(effectiveOwnerId).toString()
+                "USER" -> "user:${requireNotNull(effectiveOwnerId)}"
+                else -> error("Unsupported audit owner type $effectiveOwnerType")
+            }
             val month = STREAM_MONTH_FORMAT.format(entry.occurredAt.toInstant())
             return "$owner:$month"
         }
@@ -267,6 +277,10 @@ class LedgerProcessor @Inject constructor(
             correlationId = entry.correlationId
             causationId = entry.causationId
             organizationId = entry.organizationId
+            ownerType = entry.ownerType.takeUnless {
+                it == "PLATFORM" && entry.ownerId == null && entry.organizationId != null
+            } ?: "ORGANIZATION"
+            ownerId = entry.ownerId ?: entry.organizationId
             organizationLabel = entry.organizationLabel
             targetType = entry.targetType
             targetId = entry.targetId

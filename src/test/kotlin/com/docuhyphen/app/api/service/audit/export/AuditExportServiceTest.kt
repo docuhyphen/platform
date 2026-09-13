@@ -1,14 +1,8 @@
 package com.docuhyphen.app.api.service.audit.export
 
-import com.docuhyphen.app.api.model.entity.AppUser
-import com.docuhyphen.app.api.model.entity.AuditEngagementSensitivity
-import com.docuhyphen.app.api.model.entity.AuditExport
-import com.docuhyphen.app.api.model.entity.AuditExportApproval
-import com.docuhyphen.app.api.model.entity.AuditExportStatus
-import com.docuhyphen.app.api.model.entity.Organization
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.repository.audit.AuditExportApprovalRepository
 import com.docuhyphen.app.api.repository.audit.AuditExportRepository
-import com.docuhyphen.app.api.service.user.AppUserService
 import com.docuhyphen.app.api.service.audit.AuditEngagementService
 import com.docuhyphen.app.api.service.audit.AuditRecorder
 import com.docuhyphen.app.api.service.audit.AuditSearchProjectionService.AuditAccessActor
@@ -20,25 +14,14 @@ import com.docuhyphen.app.api.service.auth.authz.Capability
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.config.AuditExportConfigService
 import com.docuhyphen.app.api.service.organization.OrganizationService
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNotNull
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Assertions.assertThrows
-import org.junit.jupiter.api.Assertions.assertTrue
+import com.docuhyphen.app.api.service.user.AppUserService
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
-import org.mockito.kotlin.any
-import org.mockito.kotlin.anyOrNull
-import org.mockito.kotlin.doReturn
-import org.mockito.kotlin.eq
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.never
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.verifyNoInteractions
-import org.mockito.kotlin.whenever
+import org.mockito.kotlin.*
 import java.sql.Timestamp
 import java.time.Duration
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 /**
  * Verifies [AuditExportService]:
@@ -145,6 +128,34 @@ class AuditExportServiceTest
             ),
         )
         return engagementService
+    }
+
+    @Test
+    fun `personal export records the exact user owner`()
+    {
+        val ownerUserId = UUID.randomUUID()
+        val export = service().requestExport(
+            request(organizationId = null).copy(ownerUserId = ownerUserId, purpose = "Personal record copy"),
+            actor(principalId = ownerUserId),
+        )
+
+        assertEquals("USER", export.ownerType)
+        assertEquals(ownerUserId, export.ownerId)
+        assertNull(export.organizationId)
+    }
+
+    @Test
+    fun `personal export denies a different user owner`()
+    {
+        assertThrows(AuditExportAccessException::class.java) {
+            service().requestExport(
+                request(organizationId = null).copy(
+                    ownerUserId = UUID.randomUUID(),
+                    purpose = "Personal record copy",
+                ),
+                actor(principalId = UUID.randomUUID()),
+            )
+        }
     }
 
     @Test

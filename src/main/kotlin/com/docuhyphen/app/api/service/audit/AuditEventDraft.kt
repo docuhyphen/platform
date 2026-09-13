@@ -2,7 +2,7 @@ package com.docuhyphen.app.api.service.audit
 
 import com.docuhyphen.app.api.service.audit.catalog.AuditActorKind
 import com.docuhyphen.app.api.service.audit.catalog.AuditOutcome
-import java.util.UUID
+import java.util.*
 
 /**
  * Typed input for a prospective audit event, prior to catalog/prohibited-field validation.
@@ -46,6 +46,7 @@ sealed interface AuditOwnerScope
 {
     data object Platform : AuditOwnerScope
     data class Organization(val organizationId: UUID) : AuditOwnerScope
+    data class Personal(val userId: UUID) : AuditOwnerScope
 }
 
 data class AuditEventDraft(

@@ -6,13 +6,9 @@ import {
     WorkflowFieldConditionDraft,
 } from "../../../../models/models.tsx";
 import {useApplicabilityEditorStyles} from "./ApplicabilityEditorStyles.tsx";
-import {
-    operatorIsMultiValue,
-    operatorLabel,
-    operatorNeedsValue,
-    operatorsForType,
-} from "./applicabilityOperators.ts";
+import {operatorIsMultiValue, operatorLabel, operatorNeedsValue, operatorsForType,} from "./applicabilityOperators.ts";
 import {DeleteIcon} from "../../../../components/IconBundles.tsx";
+import {toConditionLiteral, toConditionLiteralInputValue} from "./conditionLiteral.ts";
 
 interface Props
 {
@@ -107,9 +103,8 @@ const ApplicabilityConditionRow = ({index, condition, binding, onChange, onRemov
                 size={"small"}
                 id={`applicability-condition-${index}-value`}
                 type={inputType}
-                value={condition.value == null ? "" : String(condition.value)}
-                onChange={(_, d) =>
-                    setValue(inputType === "number" ? (d.value === "" ? undefined : Number(d.value)) : d.value)}
+                value={toConditionLiteralInputValue(type, condition.value)}
+                onChange={(_, d) => setValue(toConditionLiteral(type, d.value))}
             />
         );
     };

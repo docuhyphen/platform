@@ -10,21 +10,20 @@ import com.docuhyphen.app.api.model.dto.PlatformOrganizationListDto
 import com.docuhyphen.app.api.model.dto.PlatformOrganizationSummaryDto
 import com.docuhyphen.app.api.model.entity.AppUser
 import com.docuhyphen.app.api.model.entity.Organization
-import com.docuhyphen.app.api.model.entity.OrganizationFeatureEntitlement
-import com.docuhyphen.app.api.repository.organization.OrganizationFeatureEntitlementRepository
 import com.docuhyphen.app.api.repository.organization.OrganizationRepository
 import com.docuhyphen.app.api.repository.subscription.OrganizationSubscriptionPolicyRepository
 import com.docuhyphen.app.api.service.auth.AdminApprovalContext
 import com.docuhyphen.app.api.service.auth.AuthAuditService
 import com.docuhyphen.app.api.service.auth.UserRoleService
 import com.docuhyphen.app.api.service.organization.OrganizationMembershipService
+import com.docuhyphen.app.api.service.subscription.FeatureEntitlementDecision
+import com.docuhyphen.app.api.service.subscription.SubscriptionContext
+import com.docuhyphen.app.api.service.subscription.SubscriptionFeatureEntitlementAdminService
 import io.quarkus.security.UnauthorizedException
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
-import java.sql.Timestamp
-import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 @RequestScoped
 class PlatformOrganizationService @Inject constructor(
@@ -32,12 +31,17 @@ class PlatformOrganizationService @Inject constructor(
     private val userRoleService: UserRoleService,
     private val organizationRepository: OrganizationRepository,
     private val organizationSubscriptionPolicyRepository: OrganizationSubscriptionPolicyRepository,
-    private val organizationFeatureEntitlementRepository: OrganizationFeatureEntitlementRepository,
+    private val featureEntitlementAdminService: SubscriptionFeatureEntitlementAdminService,
     private val organizationMembershipService: OrganizationMembershipService,
     private val mapper: PlatformOrganizationDtoMapper,
     private val authAuditService: AuthAuditService,
 )
 {
+    companion object
+    {
+        private const val MAX_CHANGE_REASON_LENGTH = 1024
+    }
+
     fun list(
         query: String?,
         status: String?,
@@ -117,7 +121,9 @@ class PlatformOrganizationService @Inject constructor(
     {
         val actor = requirePlatformAdmin("PLATFORM_ORG_FEATURE_ENTITLEMENTS_VIEW")
         val organization = requireOrganization(organizationId)
-        val entitlements = organizationFeatureEntitlementRepository.findByOrganizationId(organization.id)
+        val entitlements = featureEntitlementAdminService.findDecisions(
+            SubscriptionContext.forOrganization(organization.id),
+        )
         authAuditService.emit(
             action = "PLATFORM_ORG_FEATURE_ENTITLEMENTS_VIEW",
             outcome = "SUCCESS",
@@ -140,36 +146,16 @@ class PlatformOrganizationService @Inject constructor(
     {
         val actor = requirePlatformAdmin("PLATFORM_ORG_FEATURE_ENTITLEMENTS_UPDATE")
         val organization = requireOrganization(organizationId)
-        validateEntitlementRequest(request)
-        val requested = request.entitlements.associateBy { it.featureCode.trim().uppercase() }
-        val existing = organizationFeatureEntitlementRepository.findByOrganizationId(organization.id)
-        val existingByCode = existing.associateBy { it.featureCode }
-        val beforeSnapshot = entitlementSnapshot(existing)
-        val now = Timestamp.from(Instant.now())
+        validateChangeReason(request)
 
-        existing.filter { it.featureCode !in requested }.forEach(
-            organizationFeatureEntitlementRepository::delete,
+        val replacement = featureEntitlementAdminService.replaceDecisions(
+            owner = SubscriptionContext.forOrganization(organization.id),
+            requested = request.entitlements.map {
+                FeatureEntitlementDecision(it.featureCode, it.enabled)
+            },
+            actorId = actor.id,
         )
-        requested.forEach { (featureCode, value) ->
-            val entitlement = existingByCode[featureCode] ?: OrganizationFeatureEntitlement().apply {
-                this.organizationId = organization.id
-                this.featureCode = featureCode
-                this.createdDate = now
-            }
-            entitlement.isEnabled = value.enabled
-            entitlement.updatedByAppUserId = actor.id
-            entitlement.updatedDate = now
-            if (featureCode in existingByCode)
-            {
-                organizationFeatureEntitlementRepository.update(entitlement)
-            }
-            else
-            {
-                organizationFeatureEntitlementRepository.save(entitlement)
-            }
-        }
 
-        val updated = organizationFeatureEntitlementRepository.findByOrganizationId(organization.id)
         authAuditService.emitRequired(
             action = "PLATFORM_ORG_FEATURE_ENTITLEMENTS_UPDATE",
             outcome = "SUCCESS",
@@ -178,16 +164,16 @@ class PlatformOrganizationService @Inject constructor(
             requestId = adminApprovalContext.requestId,
             reason = request.changeReason?.trim()?.takeIf { it.isNotBlank() }
                 ?: "Platform administrator replaced organization feature entitlements",
-            beforeSnapshot = beforeSnapshot,
-            afterSnapshot = entitlementSnapshot(updated),
+            beforeSnapshot = replacement.beforeSnapshot,
+            afterSnapshot = replacement.afterSnapshot,
             targetType = "ORGANIZATION",
             targetId = organization.id.toString(),
             structuredDetails = mapOf(
-                "before_state" to beforeSnapshot,
-                "after_state" to entitlementSnapshot(updated),
+                "before_state" to replacement.beforeSnapshot,
+                "after_state" to replacement.afterSnapshot,
             ),
         )
-        return mapper.toEntitlements(organization.id, updated)
+        return mapper.toEntitlements(organization.id, replacement.entitlements)
     }
 
     private fun summaries(organizations: List<Organization>): List<PlatformOrganizationSummaryDto>
@@ -195,7 +181,7 @@ class PlatformOrganizationService @Inject constructor(
         val organizationIds = organizations.map { it.id }
         val policies = organizationSubscriptionPolicyRepository.findByOrganizationIds(organizationIds)
             .associateBy { it.organization?.id }
-        val entitlements = organizationFeatureEntitlementRepository.findByOrganizationIds(organizationIds)
+        val entitlements = featureEntitlementAdminService.findOrganizationDecisions(organizationIds)
             .groupBy { it.organizationId }
         val activeUserCounts = organizationMembershipService.activeProvisionedMemberCounts(organizationIds)
 
@@ -263,23 +249,15 @@ class PlatformOrganizationService @Inject constructor(
         else -> throw IllegalArgumentException("Direction must be asc or desc")
     }
 
-    private fun validateEntitlementRequest(request: PlatformOrganizationFeatureEntitlementsUpdateRequest)
+    /**
+     * The requested codes are validated where they are stored, so only the narrative the
+     * administrator attached to this change is checked here.
+     */
+    private fun validateChangeReason(request: PlatformOrganizationFeatureEntitlementsUpdateRequest)
     {
-        require(request.entitlements.size <= 100) { "At most 100 feature entitlements may be configured" }
-        val normalizedCodes = request.entitlements.map { it.featureCode.trim().uppercase() }
-        require(normalizedCodes.distinct().size == normalizedCodes.size) {
-            "Feature entitlement codes must be unique"
-        }
-        require(normalizedCodes.all { it.matches(Regex("[A-Z][A-Z0-9_]{0,63}")) }) {
-            "Feature entitlement codes must contain only uppercase letters, numbers, and underscores"
-        }
-        require(request.changeReason == null || request.changeReason.length <= 1024) {
-            "Change reason must be at most 1024 characters"
+        require(request.changeReason == null || request.changeReason.length <= MAX_CHANGE_REASON_LENGTH) {
+            "Change reason must be at most $MAX_CHANGE_REASON_LENGTH characters"
         }
     }
-
-    private fun entitlementSnapshot(entitlements: List<OrganizationFeatureEntitlement>): String =
-        entitlements.sortedBy { it.featureCode }
-            .joinToString(",") { "${it.featureCode}=${it.isEnabled}" }
 
 }

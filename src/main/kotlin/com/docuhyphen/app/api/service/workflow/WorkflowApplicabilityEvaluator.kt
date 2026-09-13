@@ -8,17 +8,12 @@ import com.docuhyphen.app.api.service.fields.FieldOperator
 import com.docuhyphen.app.api.service.fields.FieldTypeRegistry
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
-import kotlinx.serialization.json.JsonArray
-import kotlinx.serialization.json.JsonElement
-import kotlinx.serialization.json.JsonNull
-import kotlinx.serialization.json.JsonPrimitive
-import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.*
 import org.slf4j.LoggerFactory
 import java.math.BigDecimal
+import java.time.Instant
 import java.time.LocalDate
-import java.time.LocalDateTime
-import java.time.OffsetDateTime
-import java.util.UUID
+import java.util.*
 
 /**
  * Evaluates a workflow definition's [ApplicabilitySpec] against the subject Exchange's typed field
@@ -185,7 +180,7 @@ class WorkflowApplicabilityEvaluator @Inject constructor(
         return compareByOperator(operator, cmp)
     }
 
-    private fun matchesDateTime(operator: FieldOperator, stored: LocalDateTime?, literal: JsonElement?): Boolean
+    private fun matchesDateTime(operator: FieldOperator, stored: Instant?, literal: JsonElement?): Boolean
     {
         val storedValue = stored ?: return false
         val expected = literalString(literal)?.let { parseDateTime(it) } ?: return warnUnparseable(literal)
@@ -258,12 +253,8 @@ class WorkflowApplicabilityEvaluator @Inject constructor(
     private fun literalStringList(literal: JsonElement?): List<String>? =
         (literal as? JsonArray)?.mapNotNull { (it as? JsonPrimitive)?.content }
 
-    private fun parseDateTime(raw: String): LocalDateTime? = runCatching {
-        if (raw.endsWith("Z") || raw.matches(Regex(".*T.*[-+]\\d\\d:?\\d\\d$")))
-            OffsetDateTime.parse(raw).toLocalDateTime()
-        else
-            LocalDateTime.parse(raw)
-    }.getOrNull()
+    private fun parseDateTime(raw: String): Instant? =
+        com.docuhyphen.app.api.service.fields.CanonicalDateTime.parse(raw)?.instant
 
     private fun warnUnparseable(literal: JsonElement?): Boolean
     {

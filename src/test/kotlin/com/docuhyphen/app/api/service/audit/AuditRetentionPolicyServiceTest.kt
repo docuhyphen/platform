@@ -4,16 +4,13 @@ import com.docuhyphen.app.api.model.entity.AuditIdentityTreatment
 import com.docuhyphen.app.api.model.entity.AuditRetentionPolicy
 import com.docuhyphen.app.api.repository.audit.AuditRetentionPolicyRepository
 import com.docuhyphen.app.api.service.audit.catalog.AuditCategory
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertThrows
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 /**
  * Verifies [AuditRetentionPolicyService]: an organization with no override row gets the
@@ -97,5 +94,23 @@ class AuditRetentionPolicyServiceTest
 
         assertFalse(svc.isLedgerRetentionExpired(orgId, AuditCategory.EXCHANGE, occurredAt, notYetExpired))
         assertTrue(svc.isLedgerRetentionExpired(orgId, AuditCategory.EXCHANGE, occurredAt, expired))
+    }
+
+    @Test
+    fun `personal retention reads deny a different user owner`()
+    {
+        assertThrows(IllegalAccessException::class.java) {
+            service().listPersonalEffectivePolicies(UUID.randomUUID(), UUID.randomUUID())
+        }
+    }
+
+    @Test
+    fun `personal retention reads use the exact user owner`()
+    {
+        val ownerUserId = UUID.randomUUID()
+        val policies = service().listPersonalEffectivePolicies(ownerUserId, ownerUserId)
+
+        assertEquals(AuditCategory.entries.size, policies.size)
+        assertTrue(policies.none { it.isOverride })
     }
 }

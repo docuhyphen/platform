@@ -3,7 +3,7 @@ package com.docuhyphen.app.api.model.entity
 import jakarta.persistence.*
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 /**
  * The stable identity of a reusable business attribute (for example `common:customer-reference`).
@@ -23,6 +23,10 @@ class FieldDefinition
 
     @Column(name = "scope_org_id", nullable = true)
     var scopeOrgId: UUID? = null
+
+    /** Set when [scopeKind] is PERSONAL; the one user who owns this definition. */
+    @Column(name = "scope_user_id", nullable = true)
+    var scopeUserId: UUID? = null
 
     @Column(name = "namespace", nullable = false, length = 128)
     lateinit var namespace: String

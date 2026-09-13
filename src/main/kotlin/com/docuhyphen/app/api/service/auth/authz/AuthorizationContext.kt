@@ -1,7 +1,7 @@
 package com.docuhyphen.app.api.service.auth.authz
 
 import com.docuhyphen.app.api.model.entity.AppUser
-import java.util.UUID
+import java.util.*
 
 /**
  * Per-request contextual envelope passed alongside [PrincipalRef] / [ResourceRef] when
@@ -18,6 +18,10 @@ import java.util.UUID
  *                           principal; mutually exclusive with [actingUser].
  * - [shareLinkTokenHash]  : when present, the request is being made via a [ShareLink] token;
  *                           authorisation treats the caller as a `PUBLIC_LINK` principal.
+ * - [sessionRef]          : non-secret identifier of the access session the request arrived on,
+ *                           recorded as provenance on the records a request changes. It names the
+ *                           session row, never the credential that opened it, so it is safe to
+ *                           persist and read back. Null when the caller has no session record.
  */
 data class AuthorizationContext(
     val actingUser: AppUser? = null,
@@ -27,6 +31,7 @@ data class AuthorizationContext(
     val mfaSatisfied: Boolean = false,
     val clientIp: String? = null,
     val shareLinkTokenHash: String? = null,
+    val sessionRef: String? = null,
 )
 {
     companion object

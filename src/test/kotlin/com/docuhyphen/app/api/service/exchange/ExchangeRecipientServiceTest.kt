@@ -1,36 +1,17 @@
 package com.docuhyphen.app.api.service.exchange
 
-import com.docuhyphen.app.api.exception.OrganizationTrustNotFoundException
 import com.docuhyphen.app.api.exception.ExchangeRecipientEligibilityException
-import com.docuhyphen.app.api.model.entity.ExchangeRecipient
-import com.docuhyphen.app.api.model.entity.ExchangeRecipientAttestation
-import com.docuhyphen.app.api.model.entity.ExchangeRecipientAcceptanceStatus
-import com.docuhyphen.app.api.model.entity.ExchangeRecipientPurpose
-import com.docuhyphen.app.api.model.entity.ExchangeRecipientSelectionType
-import com.docuhyphen.app.api.model.entity.ExchangeShareRoleName
-import com.docuhyphen.app.api.model.entity.Exchange
-import com.docuhyphen.app.api.model.entity.PrincipalKind
-import com.docuhyphen.app.api.model.entity.ResourceType
-import com.docuhyphen.app.api.model.entity.Share
-import com.docuhyphen.app.api.model.entity.ShareSource
+import com.docuhyphen.app.api.exception.OrganizationTrustNotFoundException
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.repository.exchange.ExchangeRecipientRepository
+import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.organization.OrganizationGroupService
 import com.docuhyphen.app.api.service.organization.TrustedRecipientAuditService
 import com.docuhyphen.app.api.service.organization.TrustedRecipientValidationService
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertThrows
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
-import org.mockito.kotlin.any
-import org.mockito.kotlin.anyOrNull
-import org.mockito.kotlin.doThrow
-import org.mockito.kotlin.eq
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.never
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.whenever
-import java.util.UUID
+import org.mockito.kotlin.*
+import java.util.*
 
 class ExchangeRecipientServiceTest
 {
@@ -73,6 +54,77 @@ class ExchangeRecipientServiceTest
 
         verify(repository).findPendingTrustedParticipantsFor(appUserId)
         verify(shareService, never()).getById(any())
+    }
+
+    @Test
+    fun `request party recipient linkage requires the direct Share principal to match`()
+    {
+        val recipient = pendingRecipient(UUID.randomUUID()).apply {
+            acceptanceStatus = ExchangeRecipientAcceptanceStatus.NOT_REQUIRED
+        }
+        val share = directShare(PrincipalKind.USER, UUID.randomUUID())
+        whenever(repository.findById(recipient.id)).thenReturn(recipient)
+        whenever(shareService.getById(recipient.directShareId)).thenReturn(share)
+
+        assertThrows(IllegalArgumentException::class.java) {
+            service.requireAssignablePartyRecipient(
+                recipient.id,
+                exchangeId,
+                PrincipalRef.user(UUID.randomUUID()),
+            )
+        }
+        verify(attestationService, never()).findForRecipient(any())
+    }
+
+    @Test
+    fun `request party recipient linkage refuses pending trusted group invitations`()
+    {
+        val groupId = UUID.randomUUID()
+        val share = directShare(PrincipalKind.PRINCIPAL_GROUP, groupId).apply {
+            status = com.docuhyphen.app.api.model.entity.ShareStatus.PENDING_APPROVAL
+        }
+        val recipient = pendingRecipient(share.id).apply {
+            purpose = ExchangeRecipientPurpose.PARTICIPANT
+            selectionType = ExchangeRecipientSelectionType.TRUSTED_GROUP
+        }
+        whenever(repository.findById(recipient.id)).thenReturn(recipient)
+        whenever(shareService.getById(share.id)).thenReturn(share)
+
+        assertThrows(IllegalArgumentException::class.java) {
+            service.requireAssignablePartyRecipient(
+                recipient.id,
+                exchangeId,
+                PrincipalRef.group(groupId),
+            )
+        }
+        verify(attestationService, never()).findForRecipient(any())
+    }
+
+    @Test
+    fun `request party recipient linkage revalidates accepted trusted group and reconciles access`()
+    {
+        val groupId = UUID.randomUUID()
+        val share = directShare(PrincipalKind.PRINCIPAL_GROUP, groupId)
+        val recipient = pendingRecipient(share.id).apply {
+            purpose = ExchangeRecipientPurpose.PARTICIPANT
+            selectionType = ExchangeRecipientSelectionType.TRUSTED_GROUP
+            acceptanceStatus = ExchangeRecipientAcceptanceStatus.ACCEPTED
+        }
+        val attestation = trustedAttestation()
+        whenever(repository.findById(recipient.id)).thenReturn(recipient)
+        whenever(shareService.getById(share.id)).thenReturn(share)
+        whenever(attestationService.findForRecipient(recipient.id)).thenReturn(attestation)
+        whenever(validationService.validateGroupAttestation(eq(attestation), any())).thenReturn(mock())
+
+        val result = service.requireAssignablePartyRecipient(
+            recipient.id,
+            exchangeId,
+            PrincipalRef.group(groupId),
+        )
+
+        assertEquals(recipient, result)
+        verify(validationService).validateGroupAttestation(eq(attestation), any())
+        verify(shareService).reconcileGroupShare(share.id)
     }
 
     @Test
@@ -178,7 +230,7 @@ class ExchangeRecipientServiceTest
     fun `rejects an owner Share as a recipient binding`()
     {
         val ownerShare = directShare(PrincipalKind.USER, UUID.randomUUID()).apply {
-            roleName = ExchangeShareRoleName.OWNER
+            roleName = ExchangeShareRoleName.OWNER.name
         }
 
         assertThrows(IllegalArgumentException::class.java) {
@@ -434,6 +486,25 @@ class ExchangeRecipientServiceTest
         assertEquals(ExchangeRecipientAcceptanceStatus.ACCEPTED, updated.acceptanceStatus)
         assertEquals(recipientUserId, updated.acceptedOrRejectedByAppUserId)
         verify(externalEmailAcceptancePolicyService).validate(exchange, share, authenticatedAppUserId = null)
+    }
+
+    @Test
+    fun `participant principal cannot use the no-auth primary recipient decision path`()
+    {
+        val share = directShare(PrincipalKind.PARTICIPANT, UUID.randomUUID())
+        val recipient = pendingRecipient(share.id).apply {
+            selectionType = ExchangeRecipientSelectionType.EXTERNAL_EMAIL
+        }
+        whenever(repository.findPrimaryForUpdate(exchangeId)).thenReturn(recipient)
+        whenever(shareService.getById(share.id)).thenReturn(share)
+
+        assertThrows(IllegalArgumentException::class.java) {
+            service.recordExternalEmailPrimaryDecision(exchange, accepted = true)
+        }
+
+        assertEquals(ExchangeRecipientAcceptanceStatus.PENDING, recipient.acceptanceStatus)
+        verify(externalEmailAcceptancePolicyService, never()).validate(any(), any(), any())
+        verify(repository, never()).update(any())
     }
 
     @Test
@@ -714,7 +785,7 @@ class ExchangeRecipientServiceTest
         resourceId = exchangeId
         principalKind = kind
         this.principalId = principalId
-        roleName = ExchangeShareRoleName.VIEWER
+        roleName = ExchangeShareRoleName.VIEWER.name
         source = ShareSource.DIRECT
         status = com.docuhyphen.app.api.model.entity.ShareStatus.ACTIVE
     }

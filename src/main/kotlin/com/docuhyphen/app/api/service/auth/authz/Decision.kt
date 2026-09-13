@@ -1,6 +1,6 @@
 package com.docuhyphen.app.api.service.auth.authz
 
-import java.util.UUID
+import java.util.*
 
 /** Result of an authorisation check. */
 sealed class Decision
@@ -34,6 +34,24 @@ sealed class Decision
         const val REASON_POLICY_BLOCKED        = "POLICY_BLOCKED"
         const val REASON_LINK_EXHAUSTED        = "LINK_EXHAUSTED"
         const val REASON_LINK_DOMAIN           = "LINK_DOMAIN_DENIED"
+
+        /**
+         * The resource kind may only be decided from its own resolved facts and no provider
+         * is installed to supply them.
+         */
+        const val REASON_RESOURCE_CONTEXT_UNRESOLVED = "RESOURCE_CONTEXT_UNRESOLVED"
+
+        /** A registered parent-grant inheritance could not resolve the parent's own facts. */
+        const val REASON_PARENT_CONTEXT_UNRESOLVED = "PARENT_CONTEXT_UNRESOLVED"
+
+        /** The named authorization parent belongs to a different owner than the resource. */
+        const val REASON_PARENT_OWNER_MISMATCH = "PARENT_OWNER_MISMATCH"
+
+        /** The resource and its named authorization parent reference each other. */
+        const val REASON_PARENT_INHERITANCE_CYCLE = "PARENT_INHERITANCE_CYCLE"
+
+        /** A registered resource-kind policy evaluator could not read the facts it needs. */
+        const val REASON_RESOURCE_POLICY_FACTS_UNAVAILABLE = "RESOURCE_POLICY_FACTS_UNAVAILABLE"
     }
 }
 
@@ -47,6 +65,12 @@ data class Grant(
     val roleName: String,
     val capabilities: Set<Capability>,
     val expiresAtEpochMillis: Long? = null,
+    /**
+     * Set when the grant was held on another resource and reached this one through registered
+     * one-level parent inheritance. The grant keeps its own source kind and identity so every
+     * share constraint, expiry, and obligation rule still applies to it unchanged.
+     */
+    val inheritedFrom: ResourceRef? = null,
 )
 {
     enum class SourceKind

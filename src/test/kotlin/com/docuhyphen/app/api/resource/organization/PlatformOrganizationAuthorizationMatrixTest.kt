@@ -2,36 +2,27 @@ package com.docuhyphen.app.api.resource.organization
 
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.model.PlatformOrganizationDtoMapper
-import com.docuhyphen.app.api.model.entity.AppRoleAssignment
-import com.docuhyphen.app.api.model.entity.AppRoleName
-import com.docuhyphen.app.api.model.entity.AppUser
-import com.docuhyphen.app.api.model.entity.AuthToken
-import com.docuhyphen.app.api.model.entity.OrganizationMembership
-import com.docuhyphen.app.api.model.entity.OrganizationMembershipStatus
-import com.docuhyphen.app.api.model.entity.OrganizationRoleName
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.repository.application.AppRoleAssignmentRepository
-import com.docuhyphen.app.api.repository.organization.OrganizationFeatureEntitlementRepository
 import com.docuhyphen.app.api.repository.organization.OrganizationMembershipRepository
 import com.docuhyphen.app.api.repository.organization.OrganizationRepository
 import com.docuhyphen.app.api.repository.subscription.OrganizationSubscriptionPolicyRepository
+import com.docuhyphen.app.api.repository.subscription.SubscriptionFeatureEntitlementRepository
 import com.docuhyphen.app.api.service.auth.AuthAuditService
 import com.docuhyphen.app.api.service.auth.UserRoleService
 import com.docuhyphen.app.api.service.organization.OrganizationMembershipService
 import com.docuhyphen.app.api.service.platform.PlatformOrganizationService
 import com.docuhyphen.app.api.service.platform.PlatformOrganizationStatusService
+import com.docuhyphen.app.api.service.subscription.SubscriptionFeatureEntitlementAdminService
 import jakarta.ws.rs.core.Response
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.MethodSource
-import org.mockito.kotlin.any
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.never
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.whenever
+import org.mockito.kotlin.*
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 import java.util.stream.Stream
 
 class PlatformOrganizationAuthorizationMatrixTest
@@ -169,7 +160,9 @@ class PlatformOrganizationAuthorizationMatrixTest
             userRoleService = userRoleService,
             organizationRepository = organizationRepository,
             organizationSubscriptionPolicyRepository = mock<OrganizationSubscriptionPolicyRepository>(),
-            organizationFeatureEntitlementRepository = mock<OrganizationFeatureEntitlementRepository>(),
+            featureEntitlementAdminService = SubscriptionFeatureEntitlementAdminService(
+                mock<SubscriptionFeatureEntitlementRepository>(),
+            ),
             organizationMembershipService = mock<OrganizationMembershipService>(),
             mapper = PlatformOrganizationDtoMapper(),
             authAuditService = mock<AuthAuditService>(),

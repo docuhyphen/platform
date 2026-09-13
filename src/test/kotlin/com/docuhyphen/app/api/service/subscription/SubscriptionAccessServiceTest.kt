@@ -3,10 +3,7 @@ package com.docuhyphen.app.api.service.subscription
 import com.docuhyphen.app.api.exception.SubscriptionDenialException
 import com.docuhyphen.app.api.model.entity.OrganizationSubscriptionPolicy
 import com.docuhyphen.app.api.model.entity.UserSubscriptionPolicy
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertDoesNotThrow
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.mockito.kotlin.any
@@ -14,7 +11,7 @@ import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 class SubscriptionAccessServiceTest
 {
@@ -33,6 +30,7 @@ class SubscriptionAccessServiceTest
             subscriptionPolicyService = policyService,
             subscriptionUsageService = usageService,
             enforcementConfigService = SubscriptionEnforcementConfigService(mode.name),
+            featureRolloutConfigService = FeatureRolloutConfigService(Optional.empty()),
         )
     }
 
@@ -40,6 +38,7 @@ class SubscriptionAccessServiceTest
         planCode: PlanCode,
         status: SubscriptionStatus = SubscriptionStatus.ACTIVE,
         gracePeriodEnd: Instant? = null,
+        overrides: Map<PlanFeature, Boolean> = emptyMap(),
     )
     {
         val policy = UserSubscriptionPolicy().apply {
@@ -49,6 +48,8 @@ class SubscriptionAccessServiceTest
             this.gracePeriodEnd = gracePeriodEnd?.let { Timestamp.from(it) }
         }
         whenever(policyService.findUserPolicy(appUserId)).thenReturn(policy)
+        whenever(policyService.featureOverrides(SubscriptionContext.forUser(appUserId)))
+            .thenReturn(overrides)
     }
 
     private fun givenOrganizationPlan(
@@ -63,7 +64,8 @@ class SubscriptionAccessServiceTest
             this.maxUsers = purchasedSeats
         }
         whenever(policyService.findOrganizationPolicy(organizationId)).thenReturn(policy)
-        whenever(policyService.organizationFeatureOverrides(organizationId)).thenReturn(overrides)
+        whenever(policyService.featureOverrides(SubscriptionContext.forOrganization(organizationId)))
+            .thenReturn(overrides)
     }
 
     private fun userContext() = SubscriptionContext.forUser(appUserId)
@@ -131,6 +133,56 @@ class SubscriptionAccessServiceTest
         assertDoesNotThrow {
             service.requireFeature(organizationContext(), PlanFeature.AUDIT_GOVERNANCE)
         }
+    }
+
+    @Test
+    fun `an individual grant reaches a feature no individual plan sells`()
+    {
+        givenUserPlan(
+            PlanCode.PERSONAL,
+            overrides = mapOf(PlanFeature.WORKFLOW_AUTOMATION to true),
+        )
+
+        val service = service(SubscriptionEnforcementMode.ENFORCE)
+        val resolved = service.resolve(userContext())
+
+        assertTrue(resolved.hasFeature(PlanFeature.WORKFLOW_AUTOMATION))
+        assertDoesNotThrow {
+            service.requireFeature(userContext(), PlanFeature.WORKFLOW_AUTOMATION)
+        }
+    }
+
+    @Test
+    fun `an individual withdrawal removes a feature the plan grants`()
+    {
+        givenUserPlan(
+            PlanCode.PERSONAL,
+            overrides = mapOf(PlanFeature.BLUEPRINT_MANAGE to false),
+        )
+
+        val service = service(SubscriptionEnforcementMode.ENFORCE)
+
+        assertFalse(service.resolve(userContext()).hasFeature(PlanFeature.BLUEPRINT_MANAGE))
+        assertThrows<SubscriptionDenialException> {
+            service.requireFeature(userContext(), PlanFeature.BLUEPRINT_MANAGE)
+        }
+    }
+
+    @Test
+    fun `a feature no plan sells does not point an individual at an organization plan`()
+    {
+        givenUserPlan(PlanCode.PERSONAL)
+
+        val denial = assertThrows<SubscriptionDenialException> {
+            service(SubscriptionEnforcementMode.ENFORCE)
+                .requireFeature(userContext(), PlanFeature.INFORMATION_REQUESTS)
+        }.denial
+
+        assertEquals(
+            SubscriptionDenialReason.FEATURE_NOT_INCLUDED,
+            denial.reason,
+            "No organization plan sells this either, so selecting one would not help",
+        )
     }
 
     @Test
