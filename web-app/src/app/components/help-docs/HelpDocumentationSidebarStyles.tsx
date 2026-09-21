@@ -38,7 +38,7 @@ export const useHelpDocumentationSidebarStyles = makeStyles({
     resizeGrip: {
         position: "absolute",
         top: "50%",
-        left: "50%",
+        left: "calc(50% - 9px)",
         transform: "translate(-50%, -50%)",
         display: "flex",
         alignItems: "center",
