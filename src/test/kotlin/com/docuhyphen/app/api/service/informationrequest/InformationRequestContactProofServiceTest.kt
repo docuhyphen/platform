@@ -190,6 +190,26 @@ class InformationRequestContactProofServiceTest
     }
 
     @Test
+    fun `resending cannot erase failures or issue unlimited challenges`()
+    {
+        val fixture = Fixture()
+        fixture.service.issueChallenge(fixture.rawToken)
+        assertThrows(InformationRequestLifecycleException::class.java) {
+            fixture.service.verifyChallenge(fixture.rawToken, "000000")
+        }
+
+        fixture.service.issueChallenge(fixture.rawToken)
+        assertEquals(1, fixture.shareLink.contactOtpFailedAttempts)
+        fixture.service.issueChallenge(fixture.rawToken)
+        assertEquals(3, fixture.shareLink.contactOtpChallengeCount)
+
+        val refused = assertThrows(InformationRequestLifecycleException::class.java) {
+            fixture.service.issueChallenge(fixture.rawToken)
+        }
+        assertEquals(InformationRequestErrorCatalog.CONTACT_PROOF_CHALLENGE_LIMIT, refused.reasonCode)
+    }
+
+    @Test
     fun `verifying an expired code is refused`()
     {
         val fixture = Fixture()

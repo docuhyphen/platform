@@ -59,7 +59,7 @@ class InformationRequestTemplateResource @Inject constructor(
                 null
             else
                 parseScopeKind(scopeKindParam) ?: return badRequest("Invalid scopeKind")
-            Response.ok(authoringService.listTemplates(scopeKind)).build()
+            Response.ok(authoringService.listTemplates(scopeKind).toTypedArray()).build()
         }
         catch (exception: Exception)
         {

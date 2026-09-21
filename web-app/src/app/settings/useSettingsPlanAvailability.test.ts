@@ -92,6 +92,7 @@ describe("useSettingsPlanAvailability", () =>
                 PlanFeature.BLUEPRINT_MANAGE,
                 PlanFeature.MULTIPLE_PARTICIPANTS,
                 PlanFeature.ADVANCED_ACCESS_CONTROLS,
+                PlanFeature.INFORMATION_REQUESTS,
             ],
         );
 
@@ -99,6 +100,7 @@ describe("useSettingsPlanAvailability", () =>
 
         expect(result.current.visibleTabs.has(tabIds.documents)).toBe(true);
         expect(result.current.visibleTabs.has(tabIds.blueprints)).toBe(true);
+        expect(result.current.visibleTabs.has(tabIds.informationRequestTemplates)).toBe(true);
         expect(result.current.visibleTabs.has(tabIds.fields)).toBe(false);
         expect(result.current.visibleTabs.has(tabIds.workflows)).toBe(false);
     });
@@ -162,6 +164,11 @@ describe("useSettingsPlanAvailability", () =>
         authMock.capabilities = [Capability.ORG_POLICY_MANAGE];
 
         const {result, rerender} = renderHook(() => useSettingsPlanAvailability());
+
+        expect(result.current.visibleTabs.has("InformationRequestTemplatesTab")).toBe(true);
+
+        authMock.capabilities = [];
+        rerender();
 
         expect(result.current.visibleTabs.has("InformationRequestTemplatesTab")).toBe(true);
 

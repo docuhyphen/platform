@@ -24,6 +24,18 @@ class SchemaDefinitionRepository :
             .setParameter("oid", organizationId)
             .resultList
 
+    fun findAllForUser(userId: UUID): List<SchemaDefinition> =
+        entityManager.createQuery(
+            """SELECT s FROM SchemaDefinition s
+               WHERE s.scopeKind = com.docuhyphen.app.api.model.entity.FieldScopeKind.PLATFORM
+                  OR (s.scopeKind = com.docuhyphen.app.api.model.entity.FieldScopeKind.PERSONAL
+                      AND s.scopeUserId = :uid)
+               ORDER BY s.displayName""",
+            SchemaDefinition::class.java,
+        )
+            .setParameter("uid", userId)
+            .resultList
+
     /** All PLATFORM-owned schema definitions. */
     fun findAllPlatform(): List<SchemaDefinition> =
         entityManager.createQuery(

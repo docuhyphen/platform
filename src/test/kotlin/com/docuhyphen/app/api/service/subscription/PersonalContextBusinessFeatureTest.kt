@@ -31,7 +31,6 @@ class PersonalContextBusinessFeatureTest
         enforcementConfigService = SubscriptionEnforcementConfigService(
             SubscriptionEnforcementMode.ENFORCE.name,
         ),
-        featureRolloutConfigService = FeatureRolloutConfigService(Optional.empty()),
     )
 
     private fun givenUserPlan(planCode: PlanCode)
@@ -75,6 +74,5 @@ class PersonalContextBusinessFeatureTest
         }
     }
 }
-
 
 

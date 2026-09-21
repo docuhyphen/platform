@@ -311,6 +311,812 @@ particular, do not rewrite or normalize the proposal while implementing this pla
 
 ## Implementation Journal
 
+### 2026-09-21: Personal and organization Information Request entitlement corrected
+
+- Corrected the denial that reported Information Requests were excluded from Personal. The fixed
+  plan catalog includes `INFORMATION_REQUESTS` in Personal, inherited by Business, while explicit
+  platform-admin overrides can still withdraw or grant a feature for an owner.
+- Personal Template reads and mutations now resolve both the personal owner and the active
+  organization. Either eligible owner permits the Personal Settings scope, so organization members
+  do not need individual grants. Organization scope still resolves only its organization, and
+  Platform remains read-only.
+- Personal schema selection now returns platform plus personally owned Schemas, never the active
+  organization's Schemas. Personal Field-backed Information Requests no longer require the
+  organization-only `BUSINESS_FIELDS_AND_SCHEMAS` feature at execution-grant issuance.
+- Removed stale subscription-rollout assumptions from the active decision text. Historical task
+  descriptions are superseded; platform-admin feature overrides are the only per-owner control.
+- Verification: the focused backend command covering plan, access, Template guard/authoring/reference,
+  execution grant, and Schema tenant-boundary behavior passed 107 tests with zero failures, errors,
+  or skips. The first complete backend run exposed three obsolete tests that still expected a missing
+  override to deny the now-included feature. After correcting those expectations, the affected three
+  classes passed 31 tests and a clean `\.\mvnw.cmd test -DskipFrontend=true` rerun passed 2,569 tests
+  with zero failures, errors, or skips. Focused frontend Settings/service tests passed 13 tests,
+  including Personal-plan Settings visibility. `npx tsc --noEmit` passed.
+- Help documentation now states Personal inclusion, active-organization sponsorship, Personal,
+  Organization, and read-only Platform scopes, and personal/platform Schema selection. The article
+  remains 148 lines. No migration, infrastructure, commit, or push was added.
+- Phase 6 remains in progress. Its next task remains P6-T1b after this entitlement correction.
+
+### 2026-09-20: scanner deferral narrowed; independent Phase 6 work resumed
+
+- User clarification: "don't make it on hold, other steps must continue without it, i will get
+  back to it later". This supersedes the immediately preceding whole-phase hold interpretation.
+- Updated Phase 6 status, dependency summary, entry gate, P6-T6 deferral, and continuation prompt.
+  The completed Phase 5 gate permits independent work. The concrete scanner deployment/signature
+  decision is deferred, not waived. Production external uploads remain disabled without a healthy
+  approved real scanner; unscanned file-backed evidence cannot satisfy Requirements.
+- Split P6-T1 into source-model contracts (a), Artifact/Version schema invariants (b), and
+  entity/repository mappings (c). The parent remains unchecked until all parts are verified.
+- Started P6-T1a: added source variants under `model/informationrequest` and focused tests under
+  the matching test package. An exact Document Version UUID is distinct from a typed opaque
+  external reference. These models do not perform network access or establish safety/authority.
+- TDD red: `.\mvnw.cmd "-Dtest=InformationRequestEvidenceSourceTest" test -DskipFrontend=true`
+  ran 9 tests, 7 failures, zero errors/skips, at 13:04:33 +02:00. Minimal compiling source variants
+  accepted blank reference types/values and invalid copies, producing the intended assertion failures.
+- Implemented constructor validation with immutable values; data-class copy invokes the same checks.
+  Valid source identity remains exact and opaque, with no trimming, resolving, or rewriting.
+- Green and adjacent regressions:
+  `.\mvnw.cmd "-Dtest=InformationRequestEvidenceSourceTest,InformationRequestResponseWorkspaceServiceTest,InformationRequestRequirementPolicyEvaluatorTest" test -DskipFrontend=true`
+  passed 40 tests (9 source-model, 13 workspace, 18 Requirement-policy), zero failures/errors/skips,
+  at 13:06:33 +02:00. Existing unchecked-cast and Mockito dynamic-agent warnings remain.
+  `npx tsc --noEmit` from web-app passed; it is the root-config check, not a clean app-typecheck claim.
+- Scope/verification limits: this is a model-only slice, without JPA entities, persistence, command
+  mutation, or exposed user capability. Existence/ownership of a referenced Document Version is
+  not proven by constructing a UUID value; database and authorization checks remain required in
+  P6-T1b/c and P6-T3. Full backend/frontend suites were not rerun for this slice; the verification
+  matrix requires the full backend run for the upcoming persistence changes and at phase completion.
+  Earlier full Phase 5 test totals are not presented as a fresh run of these new models.
+- Read the Information Request help article in full; its behavior remains unchanged and no help
+  edit is needed. Reviewed the new model/tests for industry leakage: exact file-version and typed
+  external-record/result patterns are neutral; no customer vocabulary drives production behavior.
+  `git diff --check` passed. P6-T1a is checked, but P6-T1 and Phase 6 remain unchecked.
+- Exact next step: P6-T1b persistence contracts, then P6-T1c entity/repository mappings. Continue
+  these without awaiting the deferred scanner decision. No migration, endpoint, upload enablement,
+  scanner infrastructure, commit, or push was added here. Existing working-tree changes preserved.
+
+### 2026-09-20: scanner decision deferred by user
+
+- User direction: "skip this for now" after discussion of scanner deployment and signature updates.
+- Deferred that decision and further scanner design work. Phase 6 remains not started; this does
+  not waive scanning, authorize unsafe uploads, or authorize new infrastructure.
+- Updated active status and continuation instructions. No production code changed; no tests rerun
+  for this documentation-only handoff. Prior verification results remain in the entry below.
+- Exact next step: await user direction. When scanner work resumes, propose and obtain approval
+  for the deployment and signature-update approach before P6-T1 under the existing entry gate.
+
+### 2026-09-20: P5-R30 disclosure remediation and repeated gate completed
+
+- Outcome: P5-R30 and P5-R-GATE are complete. Phases 1 through 5 are complete within their
+  defined scope. This supersedes the reopened-gate handoff below, not its historical failure evidence.
+  Phase 6 has not started. No commit, push, or new infrastructure was added.
+- Implementation: added `InformationRequestWorkspaceOccurrenceProjection.kt` in the existing
+  Information Request service package. Occurrences are scoped to disclosed runtime Requirements,
+  retaining authorized ancestors and empty-parent optional-group controls without exposing denied
+  occupied siblings. Condition results require the disclosed target's exact occurrence (or applicable
+  root fallback) and disclosed source Requirements in the evaluated branch. Original authored
+  bindings remain authoritative for condition activity, even when response configuration is redacted.
+- Updated `InformationRequestResponseWorkspaceService.kt` to share active-Requirement/template
+  loading and project request-detail reads as well as workspaces. Both
+  `InformationRequestResource.kt` and `InformationRequestNoAuthRequestResource.kt` delegate GET
+  projection to this service; no-auth request/session binding remains enforced before delegation.
+- Tests changed: `InformationRequestResponseWorkspaceServiceTest.kt` now has 13 tests covering both
+  adapters, siblings, nested ancestors, hidden condition activity, detail GET, optional empty parents,
+  and branch-local source disclosure. Both resource contract suites assert projected GET delegation.
+  `InformationRequestPartyConcurrencyTransactionTest.kt` captures original response ID/revision
+  scalars before reassignment and checks content, associations, and original principal provenance.
+- TDD evidence, in sequence: 8 tests/2 expected failures for sibling metadata and condition results;
+  10/4 for nested disclosure and condition-redaction reactivation; 11/1 for detail GET bypass after
+  the workspace fix; 36/1 for empty-parent optional-group preservation; 37/1 for a denied local
+  condition source despite a readable source in another branch. These were behavioral failures.
+- Final focused command: `.\mvnw.cmd "-Dtest=InformationRequestResponseWorkspaceServiceTest,InformationRequestResourceContractTest,InformationRequestNoAuthRequestResourceContractTest,InformationRequestPartyConcurrencyTransactionTest" test -DskipFrontend=true`.
+  Passed 40 tests, zero failures/errors/skips, on 2026-09-19 at 23:12:01 local time.
+- Final full backend command: `.\mvnw.cmd test -DskipFrontend=true`.
+  Passed 2,579 tests, zero failures/errors/skips, finished 2026-09-19 at 23:27:38 +02:00.
+  Docker/PostgreSQL were available and migration V119 was exercised. On resume, the 356 XML reports
+  written after the focused run independently total 2,579/0/0/0. An obsolete five-test
+  `ReviewWorkspaceProjectionProbeTest` report dated September 13 contains one old failure and is
+  not part of this run; no corresponding source remains. It was not deleted or counted as current.
+- Test limitations: adapter tests invoke the real resources and workspace service with mocked
+  dependencies, not live HTTP. The reassignment test uses real transaction/parent locking but
+  mocked response storage; it proves the service does not mutate retained content/provenance,
+  not a separate end-to-end persisted-response database round trip.
+- Frontend verification on the unchanged frontend tree: `npm test -- --run` passed 118 files,
+  487 tests; `npx tsc --noEmit` and focused ESLint passed. `npm run typecheck:app` was initially
+  not executed because automatic approval review hit the usage limit. The resumed command ran
+  successfully on September 20: 346 total diagnostics, all reviewed unrelated baseline, zero
+  Information Request diagnostics. The root tsc command alone is not the meaningful app gate.
+- Accepted existing baseline: broad ESLint exits 1 with 61 errors and 48 warnings (109 total),
+  zero relevant affected-file diagnostics. `npm run buildWithTs` exits 2 before Vite with 346
+  unrelated TypeScript diagnostics, zero relevant diagnostics. No baseline was expanded.
+  `npm run build` passed (3,666 modules, 17.62 seconds), with existing duplicate `metaText` key
+  warning in ExchangeWorkflowTabStyles.tsx and large-chunk warnings. These are not clean lint or
+  full TypeScript-build claims. Earlier exact commands/results remain in the gate evidence below.
+- Documentation/review: matched help articles were read in full earlier and the Information Request
+  article was reread for this fix. R30 restores documented disclosure behavior, so no additional
+  help edit was needed. The changed article is 145 lines, registry 24, and sections below 300.
+  StructuredResponseOccurrence remains 150 lines. Changed production code, tests, UI, migration,
+  and configuration were reviewed for industry-specific naming/rules; no leakage identified.
+  Existing changes, including V119 and prior R21-R29 remediation, are preserved. R30 adds no migration.
+- Handoff: active plan status, phase summary, R30, gate, stale P3-T11 prerequisite wording, latest
+  result, and continuation prompt are reconciled. No known unmet Phase 1-5 remediation remains.
+  Exact next step is the explicit scanner deployment and signature-update decision before P6-T1;
+  do not begin Phase 6 or introduce a new AWS service/paid resource type without required approval.
+  Read the active plan, this entry, the preserved recheck, the projection helper, workspace service,
+  both resources, and their tests when resuming. Future evidence/package and correction-allowlist
+  capabilities remain in their designated later phases, not silently included in this closure.
+
+### 2026-09-19: final disclosure review reopened P5-R-GATE
+
+- The final full `.\mvnw.cmd test -DskipFrontend=true` run completed successfully with 2,572 tests,
+  zero failures, zero errors, and zero skipped tests at 18:46:27 +02:00.
+- A subsequent code review found an uncovered disclosure gap: workspace occurrences were filtered
+  by shared group ID and condition results by shared rule key. An authorized occurrence could
+  expose a denied sibling's metadata and result.
+- Added P5-R30 and reopened P5-R-GATE. The earlier same-day gate closure candidate is superseded.
+- `.\mvnw.cmd -Dtest=InformationRequestResponseWorkspaceServiceTest test -DskipFrontend=true`
+  confirmed the defect: 8 tests, 2 expected failures, zero errors. The denied sibling path and its
+  condition result were present in the returned workspace.
+- User explicitly requested fixing the gap. Expanded regressions now exercise both resource
+  adapters, necessary nested ancestors, and condition-redaction behavior.
+- Exact next step: finish the red run for expanded tests, implement P5-R30, and rerun the relevant
+  checks and integrated gate. Phase 6 remains blocked and not started.
+
+### 2026-09-19: repeated Phase 5 remediation gate closure
+
+- Scope and outcome:
+  - Inspected the dirty working tree before changing it and preserved the existing P5-R21 through
+    P5-R27 implementation.
+  - Rechecked the plan and the 2026-09-13 review against actual code and current test output.
+  - Closed two additional gate findings as P5-R28 and P5-R29, then closed P5-R-GATE.
+  - Reconciled stale P3-T11b through P3-T11d text with the implemented runtime behavior. Phases 1
+    through 5 are now complete.
+  - Did not start Phase 6. Its scanner deployment and signature-update decision still requires
+    explicit approval, and any new AWS service or paid resource type remains prohibited without
+    explicit user approval.
+- Initial red and gap evidence:
+  - The first `npm test -- --run` ran 118 files and 487 tests with one failure: the existing
+    `OrganizationsTable` test expected `WORKFLOWS: On`, but the table did not render the available
+    entitlement summary.
+  - The first `npm run typecheck:app` reported 347 diagnostics: the reviewed baseline of 346 plus
+    one new unused `entitlementSummary` diagnostic in `OrganizationsTable.tsx`.
+  - Integrated review found that `StructuredResponseOccurrence.tsx` was 199 lines, over the
+    repository's approximate 150-line component limit.
+  - Integrated review also found no explicit regression proving that party reassignment preserves
+    an existing response's identity, content, revision, and original principal provenance.
+- Remediation:
+  - Restored the Feature entitlements header and cell in `OrganizationsTable.tsx` using its existing
+    `entitlementSummary` function and co-located styles. The focused existing test then passed 2 of
+    2 and the application typecheck returned to the reviewed baseline.
+  - Added `InformationRequestPartyConcurrencyTransactionTest.reassignment preserves response content
+    and original principal provenance`. It exercises the real transaction-backed party service and
+    parent/request locking while asserting the response store is unchanged across reassignment.
+  - Extracted occurrence commands into `useStructuredResponseOccurrenceCommands.ts`, moved
+    presentation derivation into `structuredResponseWorkspaceState.ts`, and centralized the props
+    type in `StructuredResponseWorkspaceTypes.ts`. `StructuredResponseOccurrence.tsx` is now exactly
+    150 lines.
+- Backend verification:
+  - `.\mvnw.cmd test -DskipFrontend=true`: passed 2,571 tests, zero failures, zero errors, zero
+    skipped, with Docker and PostgreSQL available. Flyway validated 116 migrations and applied the
+    schema through V119 in the migration-backed suites.
+  - `.\mvnw.cmd -Dtest=InformationRequestPartyConcurrencyTransactionTest test -DskipFrontend=true`:
+    passed 3 tests, zero failures, zero errors, zero skipped after recompiling the new regression.
+  - The first sandboxed focused Maven attempt failed before compilation because the wrapper could
+    not connect to obtain its distribution. The approved outside-sandbox rerun used the available
+    Maven/Docker environment and passed. This was an environment failure, not a waived test.
+- Frontend verification:
+  - `npm test -- --run`: passed 118 test files and 487 tests after all current-tree changes.
+  - `npm run typecheck:app`: passed its meaningful baseline gate with 346 total diagnostics, 346
+    reviewed unrelated diagnostics, and zero Information Request diagnostics.
+  - `npx tsc --noEmit`: passed with zero diagnostics.
+  - Focused ESLint over the modified structured-response files and `OrganizationsTable.tsx`: passed.
+  - Whole-project ESLint: exit 1 with the unchanged reviewed baseline of 61 errors and 48 warnings,
+    109 total. Zero affected files had a diagnostic.
+  - `npm run buildWithTs`: exit 2 with 346 TypeScript diagnostics, all in the reviewed unrelated
+    baseline and zero in affected files. Vite did not run because TypeScript failed first.
+  - Node-based commands initially encountered sandbox access failures while probing Windows user
+    profile paths. Approved outside-sandbox reruns produced the recorded results.
+- Documentation and structural verification:
+  - Searched the help documentation for the changed Information Request behavior and read every
+    matched article in full. Navigation, labels, permissions, lifecycle behavior, listed values,
+    and endpoint descriptions remain accurate.
+  - `informationRequestTemplatesArticle.tsx` is 145 lines, every section file is below 300 lines,
+    and `helpDocsRegistry.tsx` is 24 lines.
+  - Reviewed changed production code, migrations, APIs, tests, fixtures, and UI for industry-specific
+    naming or embedded rules. No industry-specific leakage was found.
+  - `git diff --check` passed apart from Git's existing line-ending conversion warnings.
+  - No new paid infrastructure, AWS service, commit, or push was added.
+- Exact next step:
+  - Obtain an explicit decision for the Phase 6 scanner deployment and signature-update model that
+    runs on existing infrastructure. Do not start P6-T1 or add a new AWS service or paid resource
+    type until that decision is recorded.
+
+### 2026-09-19: P5-R26/P5-R27 party concurrency and credential lifecycle closure
+
+- Current phase/task: Phase 5 reopened remediation, `P5-R26` and `P5-R27`.
+- Outcome: complete. The earlier P5-R26 Docker/Testcontainers blocker is resolved on this host,
+  deterministic PostgreSQL concurrency coverage passed, and party reassignment/revocation now
+  explicitly revokes active bootstrap ShareLinks and their request access sessions before revoking
+  the old Share. `P5-R-GATE` remains unchecked and Phase 6 remains blocked.
+- TDD red result for P5-R27: before changing production code,
+  `.\mvnw.cmd -Dtest=InformationRequestPartyServiceTest test -DskipFrontend=true` failed at
+  compile time because the test referenced missing `revokeAllForShare` behavior and a missing
+  `InformationRequestBootstrapShareLinkService` dependency on `InformationRequestPartyService`.
+  This proved the lifecycle hook was not yet wired.
+- P5-R26 verification completed:
+  `.\mvnw.cmd -Dtest=InformationRequestPartyConcurrencyTransactionTest test -DskipFrontend=true`
+  passed 2 tests, zero failures, zero errors, zero skipped, with Docker Desktop/Testcontainers and
+  PostgreSQL 16 containers available. This covered reassignment versus response save and
+  reassignment versus parent termination using real transactional service entry points.
+- P5-R27 implementation completed: added
+  `InformationRequestBootstrapShareLinkService.revokeAllForShare`, which loads active
+  verification-bootstrap ShareLinks for a Share, revokes sessions through
+  `RequestAccessSessionService.revokeAllForShareLink`, marks the links revoked, and persists the
+  updates. `InformationRequestPartyService.reassignMutation` and `revokeMutation` now call this
+  before revoking the old Share. Replacement principal binding remains unchanged, and response
+  history is preserved because these party mutations do not rewrite structured response records.
+- Focused verification:
+  `.\mvnw.cmd -Dtest=InformationRequestPartyServiceTest test -DskipFrontend=true` passed 23 tests,
+  zero failures, zero errors, zero skipped.
+  `.\mvnw.cmd -Dtest=InformationRequestBootstrapShareLinkServiceTest test -DskipFrontend=true`
+  passed 22 tests, zero failures, zero errors, zero skipped.
+  `.\mvnw.cmd "-Dtest=InformationRequestPartyServiceTest,InformationRequestBootstrapShareLinkServiceTest,InformationRequestPartyConcurrencyTransactionTest" test -DskipFrontend=true`
+  passed 47 tests, zero failures, zero errors, zero skipped.
+- Broad backend verification:
+  `.\mvnw.cmd test -DskipFrontend=true` passed 2,571 tests, zero failures, zero errors, zero
+  skipped. Finished at 2026-09-19T17:06:48+02:00. The output includes expected negative-path SQL
+  and workflow error logs from tests that assert failure handling, but Maven reported BUILD
+  SUCCESS.
+- Help documentation review: searched
+  `web-app/src/app/components/help-docs/sections/` for Information Request, access link, session,
+  recipient, reassign, revoke, and revoked terms. Read
+  `web-app/src/app/components/help-docs/sections/articles/informationRequestTemplatesArticle.tsx`
+  in full and updated it to say reassigning or revoking a respondent ends their existing access
+  links and sessions while preserving response history. Size checks remained within limits:
+  article 145 lines, section 14 lines, registry 24 lines.
+- Required frontend docs check: `npx tsc --noEmit` in `web-app` passed with zero output.
+- Sandbox note: the first Maven wrapper attempts in the sandbox failed before execution with
+  `java.net.SocketException: Permission denied: connect`; approved escalated reruns produced the
+  results above.
+- Hygiene and neutrality: changed production code and tests use neutral party, ShareLink, session,
+  Share, Exchange, and Information Request terminology. No industry-specific vocabulary, new AWS
+  service, paid infrastructure, migration, commit, or push was added by this session. The untracked
+  V119 migration and other dirty-tree files were pre-existing and preserved.
+- Files changed in this session:
+  `src/main/kotlin/com/docuhyphen/app/api/service/informationrequest/InformationRequestBootstrapShareLinkService.kt`,
+  `src/main/kotlin/com/docuhyphen/app/api/service/informationrequest/InformationRequestPartyService.kt`,
+  `src/test/kotlin/com/docuhyphen/app/api/service/informationrequest/InformationRequestBootstrapShareLinkServiceTest.kt`,
+  `src/test/kotlin/com/docuhyphen/app/api/service/informationrequest/InformationRequestPartyServiceTest.kt`,
+  `src/test/kotlin/com/docuhyphen/app/api/service/informationrequest/InformationRequestPartyConcurrencyTransactionTest.kt`,
+  `web-app/src/app/components/help-docs/sections/articles/informationRequestTemplatesArticle.tsx`,
+  the active implementation plan, and this evidence file.
+- Remaining work and blocker: `P5-R-GATE` remains unchecked. Phase 6 remains blocked, including
+  the separate scanner approval decision. The gate must reconcile current backend and frontend
+  checks, help docs, typecheck, lint/build baselines, industry-neutral naming, and any unrelated
+  dirty-tree diagnostics without silently expanding an accepted baseline.
+- Exact next task: close `P5-R-GATE`. Start by rerunning and recording the full gate matrix from the
+  active plan: backend, frontend tests, meaningful application typecheck, lint/build checks, help
+  article sizes, and industry-neutral review. Do not start Phase 6 or scanner work until the gate
+  is complete.
+- Files to read first next session: `AGENTS.md`, the active plan status and P5-R-GATE text, this
+  newest evidence entry, `plans/DOCUMENT-DRIVEN-INFORMATION-REQUESTS-PHASES-1-5-RECHECK.md`, and
+  the current `git status --short`.
+
+### 2026-09-19: P5-R26 party command parent-lock ordering partial
+
+- Current phase/task: Phase 5 reopened remediation, `P5-R26`.
+- Outcome: partially implemented, not checked complete. Command-based Information Request party
+  mutations now use parent-before-request lock ordering, but the required deterministic
+  PostgreSQL concurrency evidence for reassignment versus response save and parent termination could
+  not run because Docker/Testcontainers is unavailable on this host.
+- TDD red result: added focused `InformationRequestPartyServiceTest` coverage before changing
+  production code for acting-party assignment, reassignment, and revocation lock ordering. The
+  first sandboxed `.\mvnw.cmd -Dtest=InformationRequestPartyServiceTest test -DskipFrontend=true`
+  failed before test execution with `java.net.SocketException: Permission denied: connect` while the
+  Maven wrapper attempted dependency access. The approved rerun failed for the intended behavior:
+  23 tests ran, 3 failed, 0 errors, 0 skipped. Assignment and revocation never called
+  `exchangeRepository.findByIdForUpdate`, and reassignment called it only after
+  `requestRepository.findRequestByIdForUpdate`.
+- Implementation completed: added `lockPartyMutationRequest` to
+  `InformationRequestPartyService` and routed `assignMutation`,
+  `assignExternalParticipantMutation`, `assignTrustedRecipientSelectionMutation`,
+  `reassignMutation`, and `revokeMutation` through the existing `lockParentExchangeOf` helper before
+  taking the request row lock. The existing `requireReassignable` parent-state check remains after
+  both locks are acquired.
+- Focused verification:
+  `.\mvnw.cmd -Dtest=InformationRequestPartyServiceTest test -DskipFrontend=true` passed 23 tests,
+  zero failures, zero errors, zero skipped.
+  `.\mvnw.cmd "-Dtest=InformationRequestLifecycleServiceTest,InformationRequestResponseDraftServiceTest,InformationRequestGroupOccurrenceServiceTest" test -DskipFrontend=true`
+  passed 67 tests, zero failures, zero errors, zero skipped.
+- Broad backend verification:
+  `.\mvnw.cmd test -DskipFrontend=true` failed because this host does not have a valid
+  Docker/Testcontainers environment. Quarkus Dev Services Kafka startup repeatedly failed with
+  `Could not find a valid Docker environment` and `Previous attempts to find a Docker environment
+  failed. Will not retry.` Maven reported 2,568 tests run, 0 failures, 126 errors, and 37 skipped.
+  This is not a clean backend gate and does not satisfy the P5-R26 real-service concurrency
+  requirement.
+- Session/link lock inspection: `RequestAccessSessionRepository.findSessionByIdForUpdate` resolves
+  the session's ShareLink and calls `lockParentForShare` before refreshing the session row with a
+  write lock; `RequestAccessSessionService.issue` also calls `lockParentForShare` before saving the
+  session. Bootstrap link rotation/replacement/revocation still resolve `ShareLink` first and then
+  revoke sessions; the missing party reassignment handoff and explicit credential revocation remain
+  under `P5-R27`.
+- Help review: no documentation edit was needed because this was an internal transaction ordering
+  change with no user-visible navigation, labels, permission text, statuses, or lifecycle wording
+  change.
+- Hygiene and neutrality: `git diff --check` over the touched party service, party service test,
+  plan, and evidence files exited 0 with only line-ending warnings. New test names and code use
+  neutral party, Exchange, request, and lock-order terminology. No migration, AWS service, paid
+  infrastructure, commit, or push was added.
+- Existing working tree context preserved: pre-existing P5-R21 through P5-R25 backend, migration,
+  frontend, help, plan, and evidence edits remain in the working tree and were not reverted or
+  normalized.
+- Files changed in this session:
+  `src/main/kotlin/com/docuhyphen/app/api/service/informationrequest/InformationRequestPartyService.kt`,
+  `src/test/kotlin/com/docuhyphen/app/api/service/informationrequest/InformationRequestPartyServiceTest.kt`,
+  `plans/DOCUMENT-DRIVEN-INFORMATION-REQUESTS-IMPLEMENTATION-PLAN.md`, and this evidence file.
+- Remaining work and blocker: `P5-R26` remains unchecked until deterministic real-service
+  PostgreSQL concurrency coverage runs and passes on a Docker-capable host. `P5-R27` and the
+  reopened `P5-R-GATE` remain unchecked. Phase 6 remains blocked, including the separate scanner
+  decision.
+- Exact next task: complete `P5-R26` by adding or running deterministic service-entry PostgreSQL
+  concurrency coverage for reassignment versus response save and reassignment versus parent
+  termination. The test must use real service entry points and preserve the lifecycle recheck after
+  acquiring locks. After that evidence is green, update this plan/evidence and proceed to `P5-R27`.
+- Files to read first next session: `AGENTS.md`, the active plan, this newest evidence entry, the
+  recheck, `src/main/kotlin/com/docuhyphen/app/api/service/informationrequest/InformationRequestPartyService.kt`,
+  `src/test/kotlin/com/docuhyphen/app/api/service/informationrequest/InformationRequestPartyServiceTest.kt`,
+  `src/main/kotlin/com/docuhyphen/app/api/service/informationrequest/InformationRequestResponseDraftService.kt`,
+  `src/main/kotlin/com/docuhyphen/app/api/service/informationrequest/InformationRequestLifecycleService.kt`,
+  `src/main/kotlin/com/docuhyphen/app/api/service/informationrequest/RequestAccessSessionService.kt`,
+  and `src/main/kotlin/com/docuhyphen/app/api/repository/informationrequest/RequestAccessSessionRepository.kt`.
+
+### 2026-09-19: P5-R25 response editor refusal recovery and hidden clear confirmation
+
+- Current phase/task: Phase 5 reopened remediation, `P5-R25`.
+- Outcome: complete. The structured response workspace now releases busy state and displays a
+  handled error when save or group occurrence commands are refused. Unsaved edits stay in the
+  editor for retry. Hidden response data that is inactive under a `CLEAR_WITH_CONFIRMATION` rule
+  now gets an explicit respondent checkbox, and the save payload includes the affected runtime
+  Requirement IDs only while those checkboxes are selected.
+- TDD red result: added
+  `InformationRequestStructuredResponseWorkspace.test.tsx` coverage for a rejected save before
+  changing production handling. The first sandboxed `npx vitest run
+  src/app/information-requests/structured-response-workspace/InformationRequestStructuredResponseWorkspace.test.tsx`
+  failed before tests with `EPERM: operation not permitted, lstat 'C:\Users\Black'`; the approved
+  rerun failed for the intended behavior. Vitest reported one failed test and one unhandled
+  rejection because the save command rejection was not caught, no server error was displayed, and
+  the Save button remained disabled. Added hidden-clear confirmation tests before implementation;
+  they failed for the intended missing confirmation UI and missing payload path.
+- Implementation completed: added shared command failure handling in the structured response
+  workspace and occurrence controls; failed save, add, remove, and reorder promises now clear busy
+  state and surface the normalized server refusal. Added
+  `StructuredResponseHiddenClearConfirmations.tsx` and `hiddenClearConfirmations` derivation so
+  inactive `CLEAR_WITH_CONFIRMATION` rules with saved runtime responses produce explicit
+  confirmations. Passed Template condition rules through
+  `InformationRequestStructuredResponsePanel` from the loaded response workspace. Extracted command
+  and save state into `useStructuredResponseWorkspaceController.ts` so
+  `InformationRequestStructuredResponseWorkspace.tsx` remains focused and under the component size
+  guidance.
+- Focused verification:
+  `npx vitest run src/app/information-requests/structured-response-workspace/InformationRequestStructuredResponseWorkspace.test.tsx`
+  passed 1 file, 12 tests, zero failures.
+  `npx vitest run src/app/information-requests/structured-response-workspace/structuredResponseWorkspaceState.test.ts`
+  passed 1 file, 2 tests, zero failures.
+  `npx vitest run src/app/information-requests/structured-response-workspace/structuredResponseCommands.test.ts`
+  passed 1 file, 3 tests, zero failures.
+  `npx vitest run src/app/information-requests/structured-response-workspace/InformationRequestStructuredResponsePanel.test.tsx`
+  passed 1 file, 3 tests, zero failures.
+- Frontend regression verification:
+  `npx tsc --noEmit` in `web-app` passed after implementation and again after the component split.
+  `npm test -- --run` in `web-app` failed with the same unrelated platform administration failure
+  recorded by the recheck: 117 files passed, 1 failed; 486 tests passed, 1 failed. The failing
+  assertion is
+  `src/app/platform-administration/organizations/organizations-table/OrganizationsTable.test.tsx:43`
+  in `OrganizationsTable > renders only restricted platform account summary fields`, expecting
+  `WORKFLOWS: On`. All Information Request test files passed in the full run.
+- Help review: searched
+  `web-app/src/app/components/help-docs/sections` for `Information Request`, `hidden`, `clear`,
+  `confirm`, `structured response`, `response workspace`, and `Requirement`. Read
+  `web-app/src/app/components/help-docs/sections/articles/informationRequestTemplatesArticle.tsx`
+  in full. No documentation edit was needed because the implementation restores the article's
+  existing instruction that respondents confirm affected Requirements before saving when confirmed
+  clearing is required. Size checks: `informationRequestTemplatesArticle.tsx` 143 lines,
+  `fieldsSection.tsx` 14 lines, and `helpDocsRegistry.tsx` 24 lines.
+- Component size checks: `InformationRequestStructuredResponseWorkspace.tsx` 83 lines,
+  `StructuredResponseHiddenClearConfirmations.tsx` 40 lines,
+  `StructuredResponseOccurrenceList.tsx` 117 lines, and `StructuredResponseSaveFooter.tsx` 39 lines.
+- Files changed in this session:
+  `web-app/src/app/information-requests/respondent-workspace/InformationRequestRespondentWorkspace.tsx`,
+  `web-app/src/app/information-requests/structured-response-workspace/InformationRequestStructuredResponsePanel.tsx`,
+  `web-app/src/app/information-requests/structured-response-workspace/InformationRequestStructuredResponsePanel.test.tsx`,
+  `web-app/src/app/information-requests/structured-response-workspace/InformationRequestStructuredResponseWorkspace.tsx`,
+  `web-app/src/app/information-requests/structured-response-workspace/InformationRequestStructuredResponseWorkspace.test.tsx`,
+  `web-app/src/app/information-requests/structured-response-workspace/InformationRequestStructuredResponseWorkspaceStyles.tsx`,
+  `web-app/src/app/information-requests/structured-response-workspace/StructuredResponseHiddenClearConfirmations.tsx`,
+  `web-app/src/app/information-requests/structured-response-workspace/StructuredResponseOccurrence.tsx`,
+  `web-app/src/app/information-requests/structured-response-workspace/StructuredResponseOccurrenceList.tsx`,
+  `web-app/src/app/information-requests/structured-response-workspace/StructuredResponseToolbar.tsx`,
+  `web-app/src/app/information-requests/structured-response-workspace/StructuredResponseWorkspaceTypes.ts`,
+  `web-app/src/app/information-requests/structured-response-workspace/structuredResponseWorkspaceState.ts`,
+  `web-app/src/app/information-requests/structured-response-workspace/useStructuredResponseWorkspaceController.ts`,
+  plus this plan and evidence update. Existing P5-R21 through P5-R24 backend, migration, help,
+  and frontend changes in the working tree were preserved.
+- Hygiene and neutrality: no migration, AWS service, paid infrastructure, commit, or push was
+  added. New tests and UI copy use neutral Requirement, response, group, occurrence, and
+  confirmation terminology. No industry-specific production identifiers or fixtures were added.
+- Remaining work and blocker: `P5-R26`, `P5-R27`, and the reopened `P5-R-GATE` remain unchecked.
+  Phase 6 remains blocked, including the separate scanner decision. The broad backend gate was not
+  rerun in this frontend-focused session; the last recorded backend broad run still requires a
+  Docker/Testcontainers-capable rerun.
+- Exact next task: `P5-R26`, standardize parent-before-request locking for party reassignment.
+  Start with deterministic real-service PostgreSQL concurrency coverage for reassignment versus
+  response save and reassignment versus parent termination, and inspect session/link lock ordering
+  before implementation.
+- Files to read first next session: `AGENTS.md`, the active plan, this newest entry and the
+  recheck; `src/main/kotlin/com/docuhyphen/app/api/service/informationrequest/InformationRequestPartyService.kt`,
+  `src/main/kotlin/com/docuhyphen/app/api/service/informationrequest/InformationRequestResponseDraftService.kt`,
+  `src/main/kotlin/com/docuhyphen/app/api/service/informationrequest/InformationRequestLifecycleService.kt`,
+  existing Information Request party and lifecycle tests, and the response-save service tests.
+
+### 2026-09-19: P5-R24 group creation authorization
+
+- Current phase/task: Phase 5 reopened remediation, `P5-R24`.
+- Outcome: complete. New group occurrence creation now authorizes the intended authored creation
+  scope for each materialized Template binding, instead of borrowing authority from any existing or
+  removed runtime Requirement that happens to share the same Template binding ID. Remove and reorder
+  commands still authorize concrete runtime occurrence paths through persisted Requirements.
+- TDD red result: added focused service tests in
+  `InformationRequestGroupAuthorizationServiceTest` before changing production code. The first
+  sandboxed Maven launch failed before test execution because the Maven wrapper attempted network
+  access and received `java.net.SocketException: Permission denied: connect`; the same command was
+  rerun with approval. The approved red run,
+  `.\mvnw.cmd -Dtest=InformationRequestGroupAuthorizationServiceTest test -DskipFrontend=true`,
+  failed for the intended behavior: an actor represented by exact existing-Requirement
+  authorization was allowed to create a new sibling occurrence, and an assigned party could not
+  recreate a removed zero-minimum occurrence because the stale runtime Requirement denial was used.
+- Implementation completed: simplified
+  `InformationRequestGroupAuthorizationService.authorizeMaterializedBindings` so each distinct
+  binding is evaluated through `authorizeAgainstAuthoredBinding`. Updated the old test that encoded
+  the surrogate-Requirement behavior and added regressions for exact-Requirement delegation denial
+  and removed-last-occurrence recreation. The existing occurrence-service coverage continues to
+  verify that add commands authorize the selected group and minimum-child descendant bindings before
+  materialization, including nested parent scopes.
+- Focused verification:
+  `.\mvnw.cmd -Dtest=InformationRequestGroupAuthorizationServiceTest test -DskipFrontend=true`
+  passed 11 tests, zero failures, zero errors, zero skipped.
+  `.\mvnw.cmd -Dtest=InformationRequestGroupOccurrenceServiceTest test -DskipFrontend=true`
+  passed 18 tests, zero failures, zero errors, zero skipped.
+- Broader backend verification:
+  `.\mvnw.cmd test -DskipFrontend=true` failed before product assertions because this host does not
+  currently have a valid Docker/Testcontainers environment. The failure began with
+  `Could not find a valid Docker environment` and Quarkus Dev Services Kafka/Testcontainers startup
+  errors. Maven reported 2,565 tests run, zero failures, 126 errors, and 37 skipped. This does not
+  provide a clean backend gate and must be rerun when Docker is available.
+- Help review: searched help docs with
+  `rg -n "Information Request|group occurrence|occurrence|repeatable|Requirement|response workspace|structured response" web-app/src/app/components/help-docs/sections`.
+  Read the matched `informationRequestTemplatesArticle.tsx` in full. No documentation edit was
+  needed because the fix restores the documented repeatable-group assignment behavior rather than
+  changing navigation, labels, permissions, statuses, or lifecycle. Size checks:
+  `informationRequestTemplatesArticle.tsx` 143 lines, `helpDocsRegistry.tsx` 24 lines, and section
+  files remain under the section limit. No frontend source changed in this session, so
+  `npx tsc --noEmit` was not rerun for a documentation edit.
+- Hygiene and neutrality: `git diff --check` over the touched backend, test, plan, and evidence
+  files exited 0 with only line-ending warnings. New and changed test names use neutral group,
+  item, occurrence, and Requirement terminology. No migration, AWS service, paid infrastructure,
+  commit, or push was added.
+- Existing working tree context preserved: pre-existing P5-R21 through P5-R23 backend, migration,
+  frontend, help, plan, and evidence edits remain in the working tree and were not reverted or
+  normalized. The new P5-R24 edits are limited to
+  `InformationRequestGroupAuthorizationService.kt`,
+  `InformationRequestGroupAuthorizationServiceTest.kt`, and plan/evidence updates.
+- Remaining work and blocker: `P5-R25` through `P5-R27` and the reopened `P5-R-GATE` remain
+  unchecked. Phase 6 remains blocked, including the separate scanner decision. The broad backend
+  suite still needs a Docker-capable rerun; the unrelated frontend failures recorded by P5-R23 and
+  the recheck were not rerun or expanded in this session.
+- Exact next task: `P5-R25`, response editor refusal recovery and confirmed hidden-data clearing.
+  Start with UI interaction tests proving rejected save and group commands release busy state,
+  preserve unsaved edits, and show a handled error, then add confirmation acceptance and
+  cancellation for hidden response clearing.
+- Files to read first next session: `AGENTS.md`, the active plan, this newest entry and the recheck;
+  `web-app/src/app/information-requests/structured-response-workspace/InformationRequestStructuredResponseWorkspace.tsx`,
+  `web-app/src/app/information-requests/structured-response-workspace/structuredResponseCommands.ts`,
+  `web-app/src/app/information-requests/structured-response-workspace/structuredResponseWorkspaceState.ts`,
+  `web-app/src/app/information-requests/structured-response-workspace/InformationRequestStructuredResponseWorkspace.test.tsx`,
+  `web-app/src/app/information-requests/structured-response-workspace/structuredResponseCommands.test.ts`,
+  `web-app/src/app/information-requests/structured-response-workspace/structuredResponseWorkspaceState.test.ts`,
+  and `web-app/src/app/components/help-docs/sections/articles/informationRequestTemplatesArticle.tsx`.
+
+Changed files:
+
+- `src/main/kotlin/com/docuhyphen/app/api/service/informationrequest/InformationRequestGroupAuthorizationService.kt`
+- `src/test/kotlin/com/docuhyphen/app/api/service/informationrequest/InformationRequestGroupAuthorizationServiceTest.kt`
+- `plans/DOCUMENT-DRIVEN-INFORMATION-REQUESTS-IMPLEMENTATION-PLAN.md`
+- `plans/DOCUMENT-DRIVEN-INFORMATION-REQUESTS-COMPLETION-EVIDENCE.md`
+
+### 2026-09-14: P5-R23 nested Field save path
+
+- Current phase/task: Phase 5 reopened remediation, `P5-R23`.
+- Outcome: complete. Nested structured-response Field edits now save through the same immutable
+  Template group and runtime Requirement identity used to render the editor. `buildResponsePatches`
+  receives the Template group list and resolves each occurrence with `sourceTemplateGroupId`,
+  falling back to the old path-derived group key only when the Template group cannot be found.
+- TDD red result: added UI-handler coverage in
+  `InformationRequestStructuredResponseWorkspace.test.tsx` before changing production code. The
+  focused run
+  `npx vitest run src/app/information-requests/structured-response-workspace/InformationRequestStructuredResponseWorkspace.test.tsx src/app/information-requests/structured-response-workspace/structuredResponseCommands.test.ts`
+  failed for the intended behavior: child-only nested edits made zero save calls, and mixed
+  parent/child/deeper saves emitted only the parent patch. This reproduced the recheck finding
+  without counting a compile or fixture failure as the red state. The first sandboxed Node launch
+  failed before test execution with `EPERM: operation not permitted, lstat 'C:\Users\Black'`, so
+  the same command was rerun outside the sandbox for product evidence.
+- Implementation: updated `structuredResponseWorkspaceState.ts` and
+  `InformationRequestStructuredResponseWorkspace.tsx` so Save patch construction uses Template
+  group identity instead of parsing the outer occurrence path. Added tests for child-only saves,
+  parent-plus-child saves, two sibling parent branches, and a deeper nested branch through the Save
+  button. Extended `structuredResponseCommands.test.ts` so the no-auth save command explicitly
+  carries the access-link token, matching the existing authenticated command coverage.
+- Component split: because the touched workspace component was above the repository size target, it
+  was split without changing behavior into `StructuredResponseOccurrenceList.tsx`,
+  `StructuredResponseInactiveConditionNotices.tsx`, and `StructuredResponseSaveFooter.tsx`.
+  Existing DOM IDs, circular Buttons, and styles remain in place. Final line counts:
+  `InformationRequestStructuredResponseWorkspace.tsx` 137,
+  `StructuredResponseOccurrenceList.tsx` 111,
+  `StructuredResponseInactiveConditionNotices.tsx` 43, and
+  `StructuredResponseSaveFooter.tsx` 39.
+- Focused verification: after implementation and after the final component split,
+  `npx vitest run src/app/information-requests/structured-response-workspace/InformationRequestStructuredResponseWorkspace.test.tsx src/app/information-requests/structured-response-workspace/structuredResponseWorkspaceState.test.ts src/app/information-requests/structured-response-workspace/structuredResponseCommands.test.ts`
+  passed 3 files, 13 tests, zero failures.
+- Frontend regression verification: final `npx tsc --noEmit` in `web-app` passed. Final
+  `npm test -- --run` in `web-app` failed with the same unrelated platform administration test
+  failure already recorded by the recheck: 117 files passed, 1 failed; 482 tests passed, 1 failed.
+  The failing assertion remains
+  `src/app/platform-administration/organizations/organizations-table/OrganizationsTable.test.tsx:43`,
+  expecting `WORKFLOWS: On` in `OrganizationsTable > renders only restricted platform account
+  summary fields`. All Information Request tests passed in the full run.
+- App-project typecheck: final `npm run typecheck:app` failed with 347 total diagnostics, 347
+  unrelated, 0 Information Request diagnostics. It still reports the same new unrelated diagnostic
+  beyond the reviewed 346-entry baseline:
+  `src/app/platform-administration/organizations/organizations-table/OrganizationsTable.tsx`
+  TS6133, `entitlementSummary` is declared but its value is never read.
+- Help review: searched help docs with
+  `rg -n "Information Request|structured response|Requirement|nested|occurrence|response workspace|confirm|clear" web-app/src/app/components/help-docs/sections`.
+  Read the matched Information Request article and broader matched help files. No documentation edit
+  was needed because the change restores the documented nested group behavior rather than changing
+  navigation, labels, permissions, statuses, or lifecycle. Relevant size checks remained within
+  limits: `informationRequestTemplatesArticle.tsx` 143 lines, `fieldsSection.tsx` 14 lines, and
+  `helpDocsRegistry.tsx` 24 lines.
+- Hygiene and neutrality: `git diff --check` exited 0 and reported only line-ending warnings. A
+  targeted scan for forbidden glyphs over the touched frontend, plan, and evidence files returned
+  no matches. Changed test fixtures use neutral reported-item, entry, and detail terminology. No
+  new migration, AWS service, paid resource, commit, or push was added. Existing P5-R21/P5-R22
+  backend, migration, help, plan, and evidence changes in the working tree were preserved.
+- Remaining work and blocker: `P5-R24` through `P5-R27` and the reopened `P5-R-GATE` remain
+  unchecked. Phase 6 remains blocked, including its separate scanner decision. The unrelated
+  frontend test and app-project typecheck baseline failures still prevent gate closure; no baseline
+  was expanded.
+- Exact next task: `P5-R24`, authorize new group occurrence creation against its intended creation
+  scope instead of borrowing authority from an arbitrary existing or removed runtime Requirement.
+  Start with a failing service-level test for exact-Requirement delegation versus new sibling scope,
+  then cover minimum-zero removed-last-occurrence recreation and nested parent scope boundaries.
+- Files to read first next session: `AGENTS.md`, the active plan, this newest entry and the recheck;
+  `src/main/kotlin/com/docuhyphen/app/api/service/informationrequest/InformationRequestGroupAuthorizationService.kt`,
+  `src/main/kotlin/com/docuhyphen/app/api/service/informationrequest/InformationRequestGroupOccurrenceService.kt`,
+  `src/test/kotlin/com/docuhyphen/app/api/service/informationrequest/InformationRequestGroupAuthorizationServiceTest.kt`,
+  `src/test/kotlin/com/docuhyphen/app/api/service/informationrequest/InformationRequestGroupOccurrenceServiceTest.kt`,
+  and the runtime Requirement authorization policy tests.
+
+Changed files:
+
+- `web-app/src/app/information-requests/structured-response-workspace/structuredResponseWorkspaceState.ts`
+- `web-app/src/app/information-requests/structured-response-workspace/InformationRequestStructuredResponseWorkspace.tsx`
+- `web-app/src/app/information-requests/structured-response-workspace/StructuredResponseOccurrenceList.tsx`
+- `web-app/src/app/information-requests/structured-response-workspace/StructuredResponseInactiveConditionNotices.tsx`
+- `web-app/src/app/information-requests/structured-response-workspace/StructuredResponseSaveFooter.tsx`
+- `web-app/src/app/information-requests/structured-response-workspace/InformationRequestStructuredResponseWorkspace.test.tsx`
+- `web-app/src/app/information-requests/structured-response-workspace/structuredResponseWorkspaceState.test.ts`
+- `web-app/src/app/information-requests/structured-response-workspace/structuredResponseCommands.test.ts`
+- `plans/DOCUMENT-DRIVEN-INFORMATION-REQUESTS-IMPLEMENTATION-PLAN.md`
+- `plans/DOCUMENT-DRIVEN-INFORMATION-REQUESTS-COMPLETION-EVIDENCE.md`
+
+### 2026-09-14: P5-R22 recipient-safe workspace configuration projection
+
+- Current phase/task: Phase 5 reopened remediation, `P5-R22`.
+- Outcome: complete. `InformationRequestResponseWorkspaceService` now returns a recipient-safe
+  Template Version projection for workspace reads instead of the full author-facing configuration.
+  It computes disclosed runtime Requirements from active occurrences and Requirement authorization,
+  filters denied requirement prompts, stable keys, policies, condition rules, condition evaluations,
+  cross-Requirement relationships, occurrence metadata, response values, and field projections, and
+  applies the same service path for authenticated and no-auth resource adapters.
+- Zero-occurrence handling: authored zero-occurrence group controls are retained only after the
+  materialized bindings for that group, including minimum-occurrence child groups, pass the existing
+  group authorization service. The projection keeps the group controls without exposing
+  unmaterialized Requirement prompts or binding details.
+- TDD red result: added
+  `InformationRequestResponseWorkspaceServiceTest.workspace configuration omits requirements and occurrence details the caller cannot view`.
+  Before implementation,
+  `.\mvnw.cmd "-Dtest=InformationRequestResponseWorkspaceServiceTest" test -DskipFrontend=true`
+  failed as expected because the workspace Template still returned both `visible` and `hidden`
+  Requirement keys instead of only the visible key.
+- Focused verification:
+  `.\mvnw.cmd "-Dtest=InformationRequestResponseWorkspaceServiceTest,InformationRequestResourceContractTest,InformationRequestNoAuthRequestResourceContractTest" test -DskipFrontend=true`
+  passed 30 tests, zero failures, zero errors, zero skips.
+- Affected backend verification:
+  `.\mvnw.cmd "-Dtest=InformationRequestResponseWorkspaceServiceTest,InformationRequestResponseDraftServiceTest,InformationRequestConditionEvaluationServiceTest,InformationRequestGroupOccurrenceServiceTest,InformationRequestGroupAuthorizationServiceTest,InformationRequestResourceContractTest,InformationRequestNoAuthRequestResourceContractTest" test -DskipFrontend=true`
+  passed 96 tests, zero failures, zero errors, zero skips.
+- Full backend verification: `.\mvnw.cmd test -DskipFrontend=true` passed 2,563 tests, zero
+  failures, zero errors, zero skips in 15:43, finishing at 2026-09-14T09:49:15+02:00. An earlier
+  full-suite run was canceled before completion because it had started before the final
+  zero-occurrence projection test and implementation were added, so it was stale evidence.
+- Frontend and hygiene verification: `npx tsc --noEmit` in `web-app` passed. `git diff --check`
+  exited 0 and reported only line-ending warnings. A targeted forbidden-glyph scan over the touched
+  production, test, plan, and evidence files found no matches.
+- Help review: searched help docs with
+  `rg -n "Information Request|response workspace|structured response|Requirement|condition|recipient|no-auth|contact proof|verification code" web-app/src/app/components/help-docs/sections`.
+  Read every matched article in full: `informationRequestTemplatesArticle.tsx`,
+  `usingExchangeFieldsArticle.tsx`, and `fieldsSection.tsx`. No documentation edit was needed
+  because the existing text already states recipient assignment and response boundaries accurately.
+  Size checks stayed within limits: `informationRequestTemplatesArticle.tsx` 143 lines,
+  `usingExchangeFieldsArticle.tsx` 128 lines, `fieldsSection.tsx` 14 lines, and
+  `helpDocsRegistry.tsx` 24 lines.
+- Neutrality and repository checks: changed production code, test fixtures, and plan evidence use
+  neutral Information Request, Requirement, group, occurrence, and response terminology. No new
+  migration, AWS service, paid resource, commit, or push was added. Existing unrelated P5-R21
+  changes and untracked files were preserved.
+- Remaining work and blocker: `P5-R23` through `P5-R27` and the reopened `P5-R-GATE` remain
+  unchecked. Phase 6 remains blocked, including its separate scanner decision. Exact next task:
+  `P5-R23`, save nested Field edits using the same Template group and runtime Requirement identity
+  as rendering. Start with a failing UI-handler test that proves child-only nested Field patches are
+  emitted and saved.
+- Files to read first next session: `AGENTS.md`, the active plan, this newest entry and the recheck;
+  `InformationRequestResponseWorkspaceService.kt`,
+  `InformationRequestResponseWorkspaceServiceTest.kt`, frontend respondent workspace rendering and
+  patch-building files, the sparse response draft service, and the Field save route adapters.
+
+Changed files:
+
+- `src/main/kotlin/com/docuhyphen/app/api/service/informationrequest/InformationRequestResponseWorkspaceService.kt`
+- `src/test/kotlin/com/docuhyphen/app/api/service/informationrequest/InformationRequestResponseWorkspaceServiceTest.kt`
+- `src/test/kotlin/com/docuhyphen/app/api/resource/informationrequest/InformationRequestResourceContractTest.kt`
+- `src/test/kotlin/com/docuhyphen/app/api/resource/informationrequest/InformationRequestNoAuthRequestResourceContractTest.kt`
+- `plans/DOCUMENT-DRIVEN-INFORMATION-REQUESTS-IMPLEMENTATION-PLAN.md`
+- `plans/DOCUMENT-DRIVEN-INFORMATION-REQUESTS-COMPLETION-EVIDENCE.md`
+
+### 2026-09-13: P5-R21 transaction-safe contact proof and bounded challenges
+
+- Current task and outcome: P5-R21 complete. The real CDI/PostgreSQL test first failed for the
+  intended reason: after one invalid code and a returned refusal, a fresh transaction found
+  `contact_otp_failed_attempts = 0` instead of `1`. No compilation or fixture failure was counted
+  as the TDD red state.
+- Implementation: `ContactProofInvalidException` is the only lifecycle refusal exempted from
+  rollback in `verifyChallenge`; the existing transactional success path still consumes the code,
+  increments bootstrap use, and issues the session in one transaction. `issueChallenge` retains
+  failed attempts on resend and permits three total sends per link. The existing pessimistic
+  ShareLink row lock serializes parallel verification and challenge requests. Authorized in-place
+  link rotation resets the new send count together with the old code and failure state.
+- Migration: V119 adds nonnegative, default-zero `contact_otp_challenge_count` to `share_link`.
+  The clean-schema migration test sees the column, and the full suite applied V119 successfully.
+  The REST resource continues to return its stable conflict response with a new
+  `CONTACT_PROOF_CHALLENGE_LIMIT` reason for an exhausted send budget.
+- Focused test sequence: `.\mvnw.cmd "-Dtest=InformationRequestContactProofTransactionTest" test
+  -DskipFrontend=true` failed as expected, 1 test, assertion expected `1` but found `0` on the
+  first persisted failure. After implementation,
+  `.\mvnw.cmd "-Dtest=InformationRequestContactProofTransactionTest,InformationRequestContactProofServiceTest,ShareLinkContactProofAttemptsContractTest,InformationRequestBootstrapShareLinkServiceTest" test -DskipFrontend=true`
+  passed 38 tests, then passed 41 tests after adding parallel challenge, parallel invalid-code,
+  and session-issuance rollback coverage. A focused rerun of the transaction class passed 3 tests
+  before the fourth atomic-rollback test was added.
+- Full backend verification: `.\mvnw.cmd test` passed 2,559 tests, zero failures, zero errors,
+  zero skips in 17:01 with Docker/PostgreSQL available. The log is
+  `target/information-request-r21-mvn.log`.
+- Frontend verification: `npx tsc --noEmit` in `web-app` passed. `npm test -- --run`
+  failed with 117 files passed and 1 failed; 480 tests passed and 1 failed. The same unrelated
+  `OrganizationsTable > renders only restricted platform account summary fields` expectation
+  for `WORKFLOWS: On` failed at line 43. `npm run typecheck:app` failed with 347 unrelated
+  diagnostics, zero Information Request diagnostics, and the same new TS6133
+  `OrganizationsTable.tsx` `entitlementSummary` diagnostic beyond the reviewed 346-entry baseline.
+  `npm run lint` failed with 110 problems (62 errors, 48 warnings); `npm run buildWithTs` failed
+  on application TypeScript diagnostics. Neither lint nor build output names Information Request
+  files. Logs are under `target/information-request-r21-{vitest,typecheck,lint,build}.log`.
+- Help review: searched all help sections for Information Request, verification code, and contact
+  proof, read each matched article in full, and updated only the relevant Information Request
+  article with the three-send limit and resend behavior. The article is 143 lines and
+  `helpDocsRegistry.tsx` is 24, within their limits.
+- Neutrality and repository checks: changed production names, migration, fixtures, and help copy
+  use neutral process terminology; a targeted industry-vocabulary scan found no matches.
+  `git diff --check` passed. Existing plan/recheck/evidence edits were preserved. No new AWS
+  service, paid resource, commit, or push was made.
+- Remaining work and blocker: P5-R22 through P5-R27 and the reopened P5-R-GATE remain unchecked.
+  The unrelated frontend test, application typecheck, lint, and build failures still prevent gate
+  closure; no baseline was expanded. Phase 6 remains blocked, including its separate scanner
+  decision. Exact next task: P5-R22, recipient-safe workspace configuration projection, beginning
+  with a failing mixed-visibility test for both authenticated and no-auth workspace JSON.
+- Files to read first next session: `AGENTS.md`, the active plan, this newest entry and the recheck;
+  `InformationRequestResponseWorkspaceService.kt`,
+  `InformationRequestTemplateProjectionLoader.kt`, the workspace resources and DTOs, the
+  Requirement authorization service, and existing workspace projection tests.
+
+Changed files:
+
+- `src/main/kotlin/com/docuhyphen/app/api/model/entity/ShareLink.kt`
+- `src/main/kotlin/com/docuhyphen/app/api/service/informationrequest/InformationRequestBootstrapShareLinkService.kt`
+- `src/main/kotlin/com/docuhyphen/app/api/service/informationrequest/InformationRequestContactProofService.kt`
+- `src/main/kotlin/com/docuhyphen/app/api/service/informationrequest/InformationRequestErrorCatalog.kt`
+- `src/main/kotlin/com/docuhyphen/app/api/service/informationrequest/InformationRequestLifecycleService.kt`
+- `src/main/resources/db/migration/V119__share_link_contact_proof_challenge_limit.sql`
+- `src/test/kotlin/com/docuhyphen/app/api/migration/ShareLinkContactProofAttemptsContractTest.kt`
+- `src/test/kotlin/com/docuhyphen/app/api/service/informationrequest/InformationRequestContactProofServiceTest.kt`
+- `src/test/kotlin/com/docuhyphen/app/api/service/informationrequest/InformationRequestContactProofTransactionTest.kt`
+- `web-app/src/app/components/help-docs/sections/articles/informationRequestTemplatesArticle.tsx`
+- `plans/DOCUMENT-DRIVEN-INFORMATION-REQUESTS-IMPLEMENTATION-PLAN.md`
+- `plans/DOCUMENT-DRIVEN-INFORMATION-REQUESTS-COMPLETION-EVIDENCE.md`
+
+### 2026-09-13: Phases 1-5 recheck reopens P5-R-GATE
+
+- Request: independently reanalyze implementation phases 1-5 and all original P5-R remediations.
+- Outcome: not complete. Seven remaining gaps are documented, with source locations, reproduction
+  scenarios, evidence strength, closure requirements, and phase/original-remediation mapping in
+  `plans/DOCUMENT-DRIVEN-INFORMATION-REQUESTS-PHASES-1-5-RECHECK.md`.
+- Scope inspected: Fields Value Sets, sparse commands, audience projection, exact assignment and
+  provenance; Template ownership, validation, publication, capability recording and materialization;
+  runtime parties, receipt replay and parent lifecycle; both access surfaces, account/group facts,
+  frozen execution grants and recipient reservation callers; response batching, hidden policies,
+  condition ancestry, completeness, occurrence identity/authorization, and frontend save commands.
+- New unchecked work:
+  - P5-R21: OTP failed-attempt updates roll back with their runtime refusal; resends reset the budget.
+  - P5-R22: recipient workspace returns unfiltered author-facing Template configuration.
+  - P5-R23: nested Field edits render but are omitted by the save patch builder.
+  - P5-R24: new occurrences borrow authorization from arbitrary existing/removed Requirements.
+  - P5-R25: rejected saves leave the editor busy; explicit hidden-clear confirmation is absent.
+  - P5-R26: reassignment locks request before parent, opposing save/termination lock ordering.
+  - P5-R27: reassignment/revocation still lacks explicit bootstrap/session lifecycle hooks.
+- Transaction verification: inspected the installed Quarkus 3.17.5 sources JAR and its
+  `TransactionalInterceptorBase.handleExceptionNoThrow`; unexempted RuntimeException marks the
+  transaction rollback-only. InformationRequestLifecycleException has no exemption, and
+  InformationRequestContactProofService has no separate failure transaction. No live HTTP
+  brute-force or new deadlock stress test is claimed.
+- Full backend: `.\mvnw.cmd test` passed with 2554 tests, 0 failures, 0 errors, 0 skipped;
+  Docker/PostgreSQL available, duration 16:59. This run preceded compilation of temporary probes.
+- Full frontend: `npm test -- --run` in `web-app` failed with 118 files, 480 tests passed, 1 failed.
+  `OrganizationsTable > renders only restricted platform account summary fields` is outside
+  Information Requests. A focused rerun using
+  `npx vitest run src/app/platform-administration/organizations/organizations-table/OrganizationsTable.test.tsx`
+  reproduced the failure: 1 passed, 1 failed.
+- Meaningful typecheck: `npm run typecheck:app` failed correctly with 347 diagnostics, 0 Information
+  Request diagnostics, and 1 new unrelated diagnostic beyond the reviewed 346-entry baseline:
+  OrganizationsTable.tsx TS6133, unused entitlementSummary. The baseline was not expanded.
+- Root `npx tsc --noEmit` passed. It remains a root configuration check, not a clean app typecheck.
+- `npm run lint` failed with 110 problems, 62 errors and 48 warnings. `npm run buildWithTs` failed
+  on application TypeScript diagnostics. Filtered output from both had no Information Request
+  matches. The old gate recorded 109 lint problems and cannot be reused as the current result.
+- Temporary focused probes:
+  - `npx vitest run src/app/information-requests/structured-response-workspace/ReviewNestedSaveProbe.test.ts`:
+    2 existing tests passed, 1 new assertion failed; child edit produced no patch.
+  - `npx vitest run src/app/information-requests/structured-response-workspace/ReviewSaveRefusalProbe.test.tsx`:
+    6 existing tests passed, 1 new assertion failed, 1 unhandled rejection; Save stayed disabled.
+  - `.\mvnw.cmd "-Dtest=ReviewWorkspaceProjectionProbeTest" test -DskipFrontend=true`:
+    5 tests, 4 passed, 1 new assertion failed, 0 errors/skips; denied responses were filtered but
+    denied Template Requirement configuration was still returned.
+- Probes and logs were moved to `target/information-request-recheck/` after execution; temporary
+  sources and their compiled probe classes were removed from normal test discovery. No existing
+  production or test source was modified. Initial sandbox launch errors were resolved with approved
+  retries and were not counted as product failures.
+- Help: searched the help sections and read the full Information Request article. Its documented
+  lockout, nested responses, and confirmed clearing are not fully implemented, as recorded above.
+  Article 141 lines; registry 24 lines. No help copy was changed because the fixes should restore
+  documented behavior. No industry-specific naming, shipped configuration, or paid service was added.
+- Plan changes: added P5-R21 through P5-R27, reopened P5-R-GATE, corrected phase status/summary and
+  continuation instructions, replaced obsolete status prose with current handoff information, and
+  corrected P3-T11 missing-prerequisite descriptions. Original P5-R completion records and the prior
+  gate entry below remain historical evidence. No earlier finding was silently erased or waived.
+- Exact next task: P5-R21 with a real transactional failing test. Finish all seven follow-ups,
+  reconcile current unrelated verification failures, then rerun the full gate. Phase 6 remains
+  unstarted and blocked, including its separate scanner decision. No commit or push was made.
+
+Changed files:
+
+- `plans/DOCUMENT-DRIVEN-INFORMATION-REQUESTS-PHASES-1-5-RECHECK.md`
+- `plans/DOCUMENT-DRIVEN-INFORMATION-REQUESTS-IMPLEMENTATION-PLAN.md`
+- `plans/DOCUMENT-DRIVEN-INFORMATION-REQUESTS-COMPLETION-EVIDENCE.md`
+
 ### 2026-09-13: `P5-R-GATE` Complete pre-Phase 6 remediation gate
 
 - Current phase/task: Phase 5 remediation gate, `P5-R-GATE`.

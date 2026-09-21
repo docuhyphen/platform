@@ -40,16 +40,19 @@ describe("OrganizationsTable", () =>
         expect(screen.getByText("Registration number")).toBeTruthy();
         expect(screen.getByText("REG-1")).toBeTruthy();
         expect(screen.getByText("12 / 50")).toBeTruthy();
-        expect(screen.getByText("WORKFLOWS: On")).toBeTruthy();
+        expect(screen.queryByText("WORKFLOWS: On")).toBeNull();
         expect(screen.queryByText("Tenant Member")).toBeNull();
         expect(screen.queryByText("tenant-secret")).toBeNull();
         const headers = Array.from(
             document.querySelectorAll("#platform-organizations-header-row th"),
         ).map((header) => header.textContent);
-        expect(headers.slice(0, 3)).toEqual([
+        expect(headers).toEqual([
             "Organization",
             "Registration number",
             "Status",
+            "Tier",
+            "Usage",
+            "Actions",
         ]);
     });
 

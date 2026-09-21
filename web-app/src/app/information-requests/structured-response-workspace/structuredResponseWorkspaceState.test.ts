@@ -10,6 +10,7 @@ import {
     InformationRequestResponseDto,
     InformationRequestResponseMode,
     InformationRequestReviewPolicy,
+    InformationRequestTemplateGroupDto,
     InformationRequestTemplateRequirementDto,
     SchemaFieldBindingDto,
 } from "../../models/models.tsx";
@@ -28,6 +29,13 @@ const occurrence: InformationRequestGroupOccurrenceDto = {
     occurrenceIndex: 0,
     occurrencePath: "items[0]",
     createdAt: "2026-09-11T00:00:00Z",
+};
+
+const group: InformationRequestTemplateGroupDto = {
+    id: "group-1",
+    groupKey: "items",
+    minOccurrences: 0,
+    maxOccurrences: 3,
 };
 
 const binding = (
@@ -122,6 +130,7 @@ describe("structuredResponseWorkspaceState", () =>
 
         const patches = buildResponsePatches(
             [occurrence],
+            [group],
             [firstRequirement, secondRequirement],
             [firstBinding, secondBinding],
             [
@@ -162,6 +171,7 @@ describe("structuredResponseWorkspaceState", () =>
 
         const patches = buildResponsePatches(
             [occurrence],
+            [group],
             [firstRequirement, secondRequirement],
             [firstBinding, secondBinding],
             [

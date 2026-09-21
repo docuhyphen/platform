@@ -2,6 +2,7 @@
 import {cleanup, fireEvent, render, screen, waitFor} from "@testing-library/react";
 import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
 import {
+    CurrentSessionDto,
     FieldDataClassification,
     FieldLifecycleStatus,
     FieldScopeKind,
@@ -26,6 +27,13 @@ const fieldApi = vi.hoisted(() => ({
     listSchemas: vi.fn(),
 }));
 
+const authState = vi.hoisted(() => ({
+    currentSession: {
+        activeOrganizationId: "organization-1",
+    } as CurrentSessionDto,
+    canManageOrganization: true,
+}));
+
 vi.mock("../../../services/informationRequestTemplateService.ts", () => ({
     listInformationRequestTemplates: (...args: unknown[]) => templateApi.list(...args),
     getInformationRequestTemplate: (...args: unknown[]) => templateApi.get(...args),
@@ -40,13 +48,14 @@ vi.mock("../../../services/fieldsService.ts", () => ({
 
 vi.mock("../../../context/AuthContext.tsx", () => ({
     useAuth: () => ({
-        appUserPersonOrganization: {isActive: true},
+        currentSession: authState.currentSession,
+        hasCapability: () => authState.canManageOrganization,
     }),
 }));
 
 const templateSummary = {
     id: "template-1",
-    scopeKind: InformationRequestTemplateScopeKind.PERSONAL,
+    scopeKind: InformationRequestTemplateScopeKind.ORGANIZATION,
     namespace: "process",
     templateKey: "collection-pattern",
     displayName: "Collection pattern",
@@ -79,7 +88,7 @@ const draftTemplate = (): InformationRequestTemplateDto => ({
 
 const requestSchema = (): SchemaDefinitionDto => ({
     id: "schema-1",
-    scopeKind: FieldScopeKind.PERSONAL,
+    scopeKind: FieldScopeKind.ORGANIZATION,
     namespace: "process",
     schemaKey: "request-schema",
     displayName: "Request Schema",
@@ -127,6 +136,10 @@ describe("InformationRequestTemplatesTab", () =>
             status: InformationRequestTemplateStatus.PUBLISHED,
         });
         fieldApi.listSchemas.mockResolvedValue([requestSchema()]);
+        authState.currentSession = {
+            activeOrganizationId: "organization-1",
+        } as CurrentSessionDto;
+        authState.canManageOrganization = true;
     });
 
     it("lists Templates, saves one typed draft Requirement, and publishes", async () =>
@@ -135,7 +148,10 @@ describe("InformationRequestTemplatesTab", () =>
 
         expect(await screen.findByText("Collection pattern")).toBeTruthy();
         expect(templateApi.list).toHaveBeenCalledWith({
-            scopeKind: InformationRequestTemplateScopeKind.PERSONAL,
+            scopeKind: InformationRequestTemplateScopeKind.ORGANIZATION,
+        });
+        expect(fieldApi.listSchemas).toHaveBeenCalledWith({
+            scopeKind: FieldScopeKind.ORGANIZATION,
         });
 
         fireEvent.click(screen.getByRole("button", {name: "Open draft"}));
@@ -173,5 +189,66 @@ describe("InformationRequestTemplatesTab", () =>
         fireEvent.click(screen.getByRole("button", {name: "Publish draft"}));
 
         await waitFor(() => expect(templateApi.publish).toHaveBeenCalledWith("template-1"));
+    });
+
+    it("creates Templates for the active organization", async () =>
+    {
+        render(<InformationRequestTemplatesTab/>);
+
+        expect(await screen.findByText("Collection pattern")).toBeTruthy();
+        expect(screen.getByRole("tab", {name: "My Templates"})).toBeTruthy();
+        expect(screen.getByRole("tab", {name: "Organization"}).getAttribute("aria-selected")).toBe("true");
+        expect(screen.getByRole("tab", {name: "Platform"})).toBeTruthy();
+        fireEvent.click(screen.getByRole("button", {name: "New Template"}));
+
+        await waitFor(() => expect(templateApi.create).toHaveBeenCalledWith({
+            namespace: "process",
+            templateKey: expect.stringMatching(/^request-template-/),
+            displayName: "New Information Request Template",
+            scopeKind: InformationRequestTemplateScopeKind.ORGANIZATION,
+        }));
+    });
+
+    it("keeps Platform Templates visible and read-only", async () =>
+    {
+        render(<InformationRequestTemplatesTab/>);
+
+        expect(await screen.findByText("Collection pattern")).toBeTruthy();
+        fireEvent.click(screen.getByRole("tab", {name: "Platform"}));
+
+        await waitFor(() => expect(templateApi.list).toHaveBeenLastCalledWith({
+            scopeKind: InformationRequestTemplateScopeKind.PLATFORM,
+        }));
+        expect(screen.queryByRole("button", {name: "New Template"})).toBeNull();
+        expect(screen.queryByRole("button", {name: "Open draft"})).toBeNull();
+    });
+
+    it("keeps Personal Templates as a separate owner scope", async () =>
+    {
+        render(<InformationRequestTemplatesTab/>);
+
+        expect(await screen.findByText("Collection pattern")).toBeTruthy();
+        fireEvent.click(screen.getByRole("tab", {name: "My Templates"}));
+
+        await waitFor(() => expect(templateApi.list).toHaveBeenLastCalledWith({
+            scopeKind: InformationRequestTemplateScopeKind.PERSONAL,
+        }));
+        expect(fieldApi.listSchemas).toHaveBeenLastCalledWith({
+            scopeKind: FieldScopeKind.PERSONAL,
+        });
+        expect(screen.getByRole("button", {name: "New Template"})).toBeTruthy();
+    });
+
+    it("lets organization members read Templates without organization authoring controls", async () =>
+    {
+        authState.canManageOrganization = false;
+
+        render(<InformationRequestTemplatesTab/>);
+
+        expect(await screen.findByText("Collection pattern")).toBeTruthy();
+        expect(screen.getByRole("tab", {name: "Organization"})).toBeTruthy();
+        expect(screen.getByRole("tab", {name: "Platform"})).toBeTruthy();
+        expect(screen.queryByRole("button", {name: "New Template"})).toBeNull();
+        expect(screen.queryByRole("button", {name: "Open draft"})).toBeNull();
     });
 });

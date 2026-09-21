@@ -21,21 +21,21 @@ export interface SettingsMenuProps
 }
 
 const SettingsMenu = ({
-    selectedValue,
-    tabIds,
-    hasOrg,
-    canManageOrganization,
-    canSeeBillingTab,
-    canSeeOrganizationAdminTab,
-    canSeeAuditTab,
-    canUseDocumentLibrary,
-    canUseBlueprints,
-    canUseBusinessFields,
+                          selectedValue,
+                          tabIds,
+                          hasOrg,
+                          canManageOrganization,
+                          canSeeBillingTab,
+                          canSeeOrganizationAdminTab,
+                          canSeeAuditTab,
+                          canUseDocumentLibrary,
+                          canUseBlueprints,
+                          canUseBusinessFields,
                           canUseInformationRequests,
-    canUseWorkflows,
-    canUseVariables,
-    onTabSelect,
-}: SettingsMenuProps) =>
+                          canUseWorkflows,
+                          canUseVariables,
+                          onTabSelect,
+                      }: SettingsMenuProps) =>
 {
     return (
         <div id={"settings-menu-content"}>

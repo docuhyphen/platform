@@ -19,6 +19,7 @@ interface Props
     ) => Promise<OccurrenceCommandResult>;
     onResult: (result: OccurrenceCommandResult) => void;
     onCommandStart: () => void;
+    onCommandFailure: (error: unknown) => void;
 }
 
 const StructuredResponseToolbar = ({
@@ -30,6 +31,7 @@ const StructuredResponseToolbar = ({
     onAddOccurrence,
     onResult,
     onCommandStart,
+    onCommandFailure,
 }: Props) =>
 {
     const styles = useInformationRequestStructuredResponseWorkspaceStyles();
@@ -51,7 +53,9 @@ const StructuredResponseToolbar = ({
                             onClick={() =>
                             {
                                 onCommandStart();
-                                onAddOccurrence(requestId, group.groupKey, responseETag).then(onResult);
+                                onAddOccurrence(requestId, group.groupKey, responseETag)
+                                    .then(onResult)
+                                    .catch(onCommandFailure);
                             }}>
                         Add {group.groupKey}
                     </Button>

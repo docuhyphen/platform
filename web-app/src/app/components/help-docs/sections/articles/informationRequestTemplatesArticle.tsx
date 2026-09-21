@@ -9,8 +9,11 @@ export const informationRequestTemplatesArticle = (
         <h3>Opening the Template list</h3>
         <p>
             Open <b>Settings</b>, then select <b>Content - Information Requests</b>.
-            The tab is shown when Information Requests are included in the current plan.
-            It has a <b>My Templates</b> scope and, when an organization is active, an <b>Organization</b> scope.
+            The Personal plan includes Information Requests, and an active organization grant also
+            provides access without a separate user grant. Use <b>My Templates</b> for personally
+            owned Templates, <b>Organization</b> for the active organization, and <b>Platform</b>
+            for read-only platform Templates. Organization owners and administrators use the
+            organization&apos;s entitlement automatically.
         </p>
 
         <h3>Drafting and publishing</h3>
@@ -19,7 +22,7 @@ export const informationRequestTemplatesArticle = (
                 Select <b>New Template</b> to create a draft in the active scope.
             </li>
             <li>
-                Open a draft, choose a published Information Request schema, then choose
+                Open a draft, choose an available personal or platform Information Request schema, then choose
                 the Field that will collect the answer.
             </li>
             <li>
@@ -72,7 +75,7 @@ export const informationRequestTemplatesArticle = (
         <p>
             Once a request has been issued, existing response work uses the Exchange
             owner&apos;s frozen request grant. A signed-in respondent can open and save assigned
-            Requirements even when their own account is on Free. Later owner plan or rollout
+            Requirements even when their own account is on Free. Later owner entitlement
             changes do not hide that issued workspace, but an operational suspension or an
             explicit request grant revocation still stops access. Drafting and issuing new
             requests still require the owner&apos;s current Information Requests access.
@@ -89,7 +92,9 @@ export const informationRequestTemplatesArticle = (
         </p>
         <p>
             Repeated invalid contact codes temporarily lock verification for that access
-            link. When a link has a use limit, each successful verification that creates a
+            link. A link can send at most three contact codes; its owner must rotate the
+            link to allow another challenge. Resending never clears failed attempts.
+            When a link has a use limit, each successful verification that creates a
             respondent session consumes one link use; normal saves and reads use the
             verified session instead of consuming additional link uses.
         </p>
@@ -98,6 +103,8 @@ export const informationRequestTemplatesArticle = (
             account can read and respond to the assigned Requirements. When a Requirement is
             assigned to a group, only current active group members can act for that assignment;
             removed members and unrelated accounts cannot.
+            Reassigning or revoking a respondent ends their existing access links and sessions
+            while keeping the response history already recorded for the request.
         </p>
 
         <h3 id={"information-request-conditional-answers-heading"}>Conditional answers</h3>

@@ -129,6 +129,7 @@ class InformationRequestTemplateVersionReferenceTest
             InformationRequestTemplateScopeKind.PERSONAL,
             null,
             userId,
+            null,
         )
     }
 
@@ -140,7 +141,7 @@ class InformationRequestTemplateVersionReferenceTest
         val fixture = fixture(published to definition)
         doThrow(ForbiddenException("Denied in test"))
             .whenever(fixture.entitlementGuard)
-            .requireTemplateAccess(any(), anyOrNull(), anyOrNull())
+            .requireTemplateAccess(any(), anyOrNull(), anyOrNull(), anyOrNull())
 
         assertThrows<ForbiddenException> {
             fixture.service.requireSelectableVersion(published.id)

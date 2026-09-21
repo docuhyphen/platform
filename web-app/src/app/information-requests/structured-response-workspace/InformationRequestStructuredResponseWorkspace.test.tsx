@@ -4,6 +4,7 @@ import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
 import {
     FieldDataClassification,
     FieldValueType,
+    InformationRequestConditionHiddenDataPolicy,
     InformationRequestConditionEvaluationState,
     InformationRequestContributorRole,
     InformationRequestDto,
@@ -16,6 +17,7 @@ import {
     InformationRequestResponseMode,
     InformationRequestReviewPolicy,
     InformationRequestState,
+    InformationRequestTemplateConditionRuleDto,
     InformationRequestTemplateGroupDto,
     InformationRequestTemplateRequirementDto,
     SchemaFieldBindingDto,
@@ -70,6 +72,14 @@ const nestedGroup: InformationRequestTemplateGroupDto = {
     maxOccurrences: 4,
 };
 
+const clearWithConfirmationRule: InformationRequestTemplateConditionRuleDto = {
+    id: "condition-rule-1",
+    ruleKey: "collect-hidden-detail",
+    expressionVersion: 1,
+    hiddenDataPolicy: InformationRequestConditionHiddenDataPolicy.CLEAR_WITH_CONFIRMATION,
+    predicates: [],
+};
+
 const editableBinding: SchemaFieldBindingDto = {
     id: "binding-1",
     fieldContractId: "field-contract-1",
@@ -102,6 +112,7 @@ const requirement = (
     prompt: string,
     fieldDefinitionId: string,
     conditionalRuleKey?: string,
+    occurrenceAnchorKey = "reported-item",
 ): InformationRequestTemplateRequirementDto => ({
     id,
     templateRequirementId: id,
@@ -115,7 +126,7 @@ const requirement = (
     contributorRole: InformationRequestContributorRole.CONTRIBUTOR,
     reviewPolicy: InformationRequestReviewPolicy.NOT_REQUIRED,
     conditionalRuleKey,
-    occurrenceAnchorKey: "reported-item",
+    occurrenceAnchorKey,
     collectedFieldDefinitionId: fieldDefinitionId,
     permittedDispositions: [
         InformationRequestResponseDisposition.PROVIDED,
@@ -150,6 +161,37 @@ const responses: InformationRequestResponseDto[] = [
         updatedAt: "2026-09-08T00:00:00Z",
     },
 ];
+
+const responseFor = (
+    runtimeRequirementId: string,
+    sourceTemplateBindingId: string,
+    occurrencePath: string,
+    valueSetETag: string,
+    binding: SchemaFieldBindingDto,
+    value: unknown = null,
+): InformationRequestResponseDto => ({
+    informationRequestRequirementId: runtimeRequirementId,
+    sourceTemplateRequirementId: sourceTemplateBindingId,
+    sourceTemplateBindingId,
+    occurrencePath,
+    disposition: InformationRequestResponseDisposition.NOT_ANSWERED,
+    fieldValueSetId: `value-set-${runtimeRequirementId}`,
+    fieldValueSetETag: valueSetETag,
+    fieldValues: [
+        {
+            fieldContractId: binding.fieldContractId,
+            schemaFieldBindingId: binding.id,
+            namespace: binding.namespace,
+            fieldKey: binding.fieldKey,
+            label: binding.label,
+            valueType: binding.valueType,
+            isEmpty: value === null || value === undefined || value === "",
+            value,
+        },
+    ],
+    responseRevision: 1,
+    updatedAt: "2026-09-08T00:00:00Z",
+});
 
 const renderWorkspace = (enabled = true) => render(
     <InformationRequestStructuredResponseWorkspace request={request}
@@ -214,6 +256,39 @@ const nestedOccurrence = (
     occurrencePath: path,
     createdAt: "2026-09-08T00:00:00Z",
 });
+
+const nestedFieldBinding: SchemaFieldBindingDto = {
+    ...editableBinding,
+    id: "binding-entry",
+    fieldContractId: "field-contract-entry",
+    fieldDefinitionId: "field-definition-entry",
+    fieldKey: "entry-summary",
+    label: "Entry summary",
+};
+
+const deepGroup: InformationRequestTemplateGroupDto = {
+    id: "group-3",
+    groupKey: "detail",
+    parentGroupKey: "entry",
+    minOccurrences: 0,
+    maxOccurrences: 2,
+};
+
+const deepFieldBinding: SchemaFieldBindingDto = {
+    ...editableBinding,
+    id: "binding-detail",
+    fieldContractId: "field-contract-detail",
+    fieldDefinitionId: "field-definition-detail",
+    fieldKey: "detail-summary",
+    label: "Detail summary",
+};
+
+const changeRequirementValue = (requirementElementId: string, value: string) =>
+{
+    const input = document.getElementById(requirementElementId)?.querySelector("input") as HTMLInputElement | null;
+    if (!input) throw new Error(`Missing input for ${requirementElementId}`);
+    fireEvent.change(input, {target: {value}});
+};
 
 const renderTwoOccurrences = () => render(
     <InformationRequestStructuredResponseWorkspace request={{
@@ -463,6 +538,258 @@ describe("InformationRequestStructuredResponseWorkspace", () =>
         ));
     });
 
+    it("saves a child-only nested Field edit through the Save handler", async () =>
+    {
+        render(
+            <InformationRequestStructuredResponseWorkspace request={{
+                                                               ...request,
+                                                               conditionEvaluations: [],
+                                                           }}
+                                                           responseETag={"\"responses:1\""}
+                                                           enabled={true}
+                                                           groups={[group, nestedGroup]}
+                                                           occurrences={[
+                                                               occurrence("parent-1", 0, "reported-item[0]"),
+                                                               nestedOccurrence(
+                                                                   "child-1",
+                                                                   0,
+                                                                   "reported-item[0]/entry[0]",
+                                                                   "parent-1",
+                                                               ),
+                                                           ]}
+                                                           requirements={[
+                                                               requirement(
+                                                                   "requirement-entry",
+                                                                   "entry-summary",
+                                                                   "Provide the entry summary",
+                                                                   "field-definition-entry",
+                                                                   undefined,
+                                                                   "entry",
+                                                               ),
+                                                           ]}
+                                                           bindings={[nestedFieldBinding]}
+                                                           responses={[
+                                                               responseFor(
+                                                                   "runtime-entry-1",
+                                                                   "requirement-entry",
+                                                                   "reported-item[0]/entry[0]",
+                                                                   "\"field-set:entry-1\"",
+                                                                   nestedFieldBinding,
+                                                               ),
+                                                           ]}
+                                                           onSaveResponses={onSaveResponses}
+                                                           onAddOccurrence={onAddOccurrence}
+                                                           onRemoveOccurrence={onRemoveOccurrence}
+                                                           onReorderOccurrences={onReorderOccurrences}
+                                                           onRefresh={onRefresh}/>,
+        );
+
+        changeRequirementValue(
+            "information-request-response-requirement-reported-item-0-entry-0-entry-summary",
+            "Child entry",
+        );
+        fireEvent.click(screen.getByRole("button", {name: "Save responses"}));
+
+        await waitFor(() => expect(onSaveResponses).toHaveBeenCalledWith(
+            "request-1",
+            {
+                patches: [
+                    {
+                        requirementId: "runtime-entry-1",
+                        disposition: InformationRequestResponseDisposition.PROVIDED,
+                        fieldValues: {
+                            etag: "\"field-set:entry-1\"",
+                            values: [
+                                {
+                                    fieldContractId: "field-contract-entry",
+                                    value: "Child entry",
+                                },
+                            ],
+                        },
+                    },
+                ],
+                confirmedHiddenResponseClearRequirementIds: [],
+            },
+            "\"responses:1\"",
+        ));
+    });
+
+    it("saves parent, sibling child, and deeper nested Field edits with runtime Requirement identity", async () =>
+    {
+        render(
+            <InformationRequestStructuredResponseWorkspace request={{
+                                                               ...request,
+                                                               conditionEvaluations: [],
+                                                           }}
+                                                           responseETag={"\"responses:1\""}
+                                                           enabled={true}
+                                                           groups={[group, nestedGroup, deepGroup]}
+                                                           occurrences={[
+                                                               occurrence("parent-1", 0, "reported-item[0]"),
+                                                               occurrence("parent-2", 1, "reported-item[1]"),
+                                                               nestedOccurrence(
+                                                                   "child-1",
+                                                                   0,
+                                                                   "reported-item[0]/entry[0]",
+                                                                   "parent-1",
+                                                               ),
+                                                               nestedOccurrence(
+                                                                   "child-3",
+                                                                   0,
+                                                                   "reported-item[1]/entry[0]",
+                                                                   "parent-2",
+                                                               ),
+                                                               {
+                                                                   ...nestedOccurrence(
+                                                                       "detail-1",
+                                                                       0,
+                                                                       "reported-item[0]/entry[0]/detail[0]",
+                                                                       "child-1",
+                                                                   ),
+                                                                   sourceTemplateGroupId: "group-3",
+                                                               },
+                                                           ]}
+                                                           requirements={[
+                                                               requirement(
+                                                                   "requirement-parent",
+                                                                   "reported-summary",
+                                                                   "Provide the reported summary",
+                                                                   "field-definition-1",
+                                                               ),
+                                                               requirement(
+                                                                   "requirement-entry",
+                                                                   "entry-summary",
+                                                                   "Provide the entry summary",
+                                                                   "field-definition-entry",
+                                                                   undefined,
+                                                                   "entry",
+                                                               ),
+                                                               requirement(
+                                                                   "requirement-detail",
+                                                                   "detail-summary",
+                                                                   "Provide the detail summary",
+                                                                   "field-definition-detail",
+                                                                   undefined,
+                                                                   "detail",
+                                                               ),
+                                                           ]}
+                                                           bindings={[
+                                                               editableBinding,
+                                                               nestedFieldBinding,
+                                                               deepFieldBinding,
+                                                           ]}
+                                                           responses={[
+                                                               responseFor(
+                                                                   "runtime-parent-1",
+                                                                   "requirement-parent",
+                                                                   "reported-item[0]",
+                                                                   "\"field-set:parent-1\"",
+                                                                   editableBinding,
+                                                               ),
+                                                               responseFor(
+                                                                   "runtime-entry-1",
+                                                                   "requirement-entry",
+                                                                   "reported-item[0]/entry[0]",
+                                                                   "\"field-set:entry-1\"",
+                                                                   nestedFieldBinding,
+                                                               ),
+                                                               responseFor(
+                                                                   "runtime-entry-3",
+                                                                   "requirement-entry",
+                                                                   "reported-item[1]/entry[0]",
+                                                                   "\"field-set:entry-3\"",
+                                                                   nestedFieldBinding,
+                                                               ),
+                                                               responseFor(
+                                                                   "runtime-detail-1",
+                                                                   "requirement-detail",
+                                                                   "reported-item[0]/entry[0]/detail[0]",
+                                                                   "\"field-set:detail-1\"",
+                                                                   deepFieldBinding,
+                                                               ),
+                                                           ]}
+                                                           onSaveResponses={onSaveResponses}
+                                                           onAddOccurrence={onAddOccurrence}
+                                                           onRemoveOccurrence={onRemoveOccurrence}
+                                                           onReorderOccurrences={onReorderOccurrences}
+                                                           onRefresh={onRefresh}/>,
+        );
+
+        changeRequirementValue(
+            "information-request-response-requirement-reported-item-0-reported-summary",
+            "Parent summary",
+        );
+        changeRequirementValue(
+            "information-request-response-requirement-reported-item-0-entry-0-entry-summary",
+            "First branch child",
+        );
+        changeRequirementValue(
+            "information-request-response-requirement-reported-item-1-entry-0-entry-summary",
+            "Second branch child",
+        );
+        changeRequirementValue(
+            "information-request-response-requirement-reported-item-0-entry-0-detail-0-detail-summary",
+            "Deep detail",
+        );
+        fireEvent.click(screen.getByRole("button", {name: "Save responses"}));
+
+        await waitFor(() => expect(onSaveResponses).toHaveBeenCalledTimes(1));
+        expect(onSaveResponses.mock.calls[0][1].patches).toEqual([
+            {
+                requirementId: "runtime-parent-1",
+                disposition: InformationRequestResponseDisposition.PROVIDED,
+                fieldValues: {
+                    etag: "\"field-set:parent-1\"",
+                    values: [
+                        {
+                            fieldContractId: "field-contract-1",
+                            value: "Parent summary",
+                        },
+                    ],
+                },
+            },
+            {
+                requirementId: "runtime-entry-1",
+                disposition: InformationRequestResponseDisposition.PROVIDED,
+                fieldValues: {
+                    etag: "\"field-set:entry-1\"",
+                    values: [
+                        {
+                            fieldContractId: "field-contract-entry",
+                            value: "First branch child",
+                        },
+                    ],
+                },
+            },
+            {
+                requirementId: "runtime-entry-3",
+                disposition: InformationRequestResponseDisposition.PROVIDED,
+                fieldValues: {
+                    etag: "\"field-set:entry-3\"",
+                    values: [
+                        {
+                            fieldContractId: "field-contract-entry",
+                            value: "Second branch child",
+                        },
+                    ],
+                },
+            },
+            {
+                requirementId: "runtime-detail-1",
+                disposition: InformationRequestResponseDisposition.PROVIDED,
+                fieldValues: {
+                    etag: "\"field-set:detail-1\"",
+                    values: [
+                        {
+                            fieldContractId: "field-contract-detail",
+                            value: "Deep detail",
+                        },
+                    ],
+                },
+            },
+        ]);
+    });
+
     it("renders and saves a root Field Requirement without occurrence controls", async () =>
     {
         renderRootRequirement();
@@ -513,5 +840,209 @@ describe("InformationRequestStructuredResponseWorkspace", () =>
             .toBeTruthy();
         expect(onRefresh).toHaveBeenCalledTimes(1);
         expect(onSaveResponses).toHaveBeenCalledTimes(1);
+    });
+
+    it("recovers from a refused save and preserves the edit for retry", async () =>
+    {
+        onSaveResponses
+            .mockRejectedValueOnce({errorMessage: "Access denied to save responses"})
+            .mockResolvedValueOnce({
+                outcome: "SAVED",
+                responseETag: "\"responses:2\"",
+                responses: [],
+            });
+        renderWorkspace();
+
+        fireEvent.change(document.querySelector("#exchange-field-field-contract-1")!, {
+            target: {value: "Updated summary"},
+        });
+        fireEvent.click(screen.getByRole("button", {name: "Save responses"}));
+
+        expect(await screen.findByText("Access denied to save responses")).toBeTruthy();
+        expect((screen.getByRole("button", {name: "Save responses"}) as HTMLButtonElement).disabled).toBe(false);
+        expect((document.querySelector("#exchange-field-field-contract-1") as HTMLInputElement).value)
+            .toBe("Updated summary");
+
+        fireEvent.click(screen.getByRole("button", {name: "Save responses"}));
+
+        await waitFor(() => expect(onSaveResponses).toHaveBeenCalledTimes(2));
+        expect(onSaveResponses.mock.calls[1]).toEqual([
+            "request-1",
+            {
+                patches: [
+                    {
+                        requirementId: "requirement-1",
+                        disposition: InformationRequestResponseDisposition.PROVIDED,
+                        fieldValues: {
+                            etag: "\"field-set:1\"",
+                            values: [
+                                {
+                                    fieldContractId: "field-contract-1",
+                                    value: "Updated summary",
+                                },
+                            ],
+                        },
+                    },
+                ],
+                confirmedHiddenResponseClearRequirementIds: [],
+            },
+            "\"responses:1\"",
+        ]);
+    });
+
+    it("recovers when a group command is refused", async () =>
+    {
+        onAddOccurrence.mockRejectedValueOnce({errorMessage: "Access denied to add occurrence"});
+        renderWorkspace();
+
+        fireEvent.click(screen.getByRole("button", {name: "Add reported-item"}));
+
+        expect(await screen.findByText("Access denied to add occurrence")).toBeTruthy();
+        expect((screen.getByRole("button", {name: "Add reported-item"}) as HTMLButtonElement).disabled).toBe(false);
+    });
+
+    it("requires explicit confirmation before saving a clear for inactive hidden responses", async () =>
+    {
+        render(
+            <InformationRequestStructuredResponseWorkspace request={request}
+                                                           responseETag={"\"responses:1\""}
+                                                           enabled={true}
+                                                           groups={[group]}
+                                                           conditionRules={[clearWithConfirmationRule]}
+                                                           occurrences={[occurrence(
+                                                               "occurrence-1",
+                                                               0,
+                                                               "reported-item[0]",
+                                                           )]}
+                                                           requirements={[
+                                                               requirement(
+                                                                   "requirement-1",
+                                                                   "reported-summary",
+                                                                   "Provide the reported summary",
+                                                                   "field-definition-1",
+                                                                   "collect-detail",
+                                                               ),
+                                                               requirement(
+                                                                   "requirement-2",
+                                                                   "hidden-summary",
+                                                                   "Provide the hidden summary",
+                                                                   "field-definition-2",
+                                                                   "collect-hidden-detail",
+                                                               ),
+                                                           ]}
+                                                           bindings={[editableBinding, hiddenBinding]}
+                                                           responses={[
+                                                               responses[0],
+                                                               responseFor(
+                                                                   "hidden-runtime",
+                                                                   "requirement-2",
+                                                                   "reported-item[0]",
+                                                                   "\"field-set:hidden\"",
+                                                                   hiddenBinding,
+                                                                   "Hidden saved value",
+                                                               ),
+                                                           ]}
+                                                           onSaveResponses={onSaveResponses}
+                                                           onAddOccurrence={onAddOccurrence}
+                                                           onRemoveOccurrence={onRemoveOccurrence}
+                                                           onReorderOccurrences={onReorderOccurrences}
+                                                           onRefresh={onRefresh}/>,
+        );
+
+        fireEvent.change(document.querySelector("#exchange-field-field-contract-1")!, {
+            target: {value: "Updated summary"},
+        });
+        fireEvent.click(screen.getByRole("button", {name: "Save responses"}));
+
+        expect(await screen.findByText("Confirm clearing hidden response data before saving.")).toBeTruthy();
+        expect(onSaveResponses).not.toHaveBeenCalled();
+
+        fireEvent.click(document.getElementById("information-request-confirm-clear-requirement-hidden-runtime")!);
+        fireEvent.click(screen.getByRole("button", {name: "Save responses"}));
+
+        await waitFor(() => expect(onSaveResponses).toHaveBeenCalledWith(
+            "request-1",
+            {
+                patches: [
+                    {
+                        requirementId: "requirement-1",
+                        disposition: InformationRequestResponseDisposition.PROVIDED,
+                        fieldValues: {
+                            etag: "\"field-set:1\"",
+                            values: [
+                                {
+                                    fieldContractId: "field-contract-1",
+                                    value: "Updated summary",
+                                },
+                            ],
+                        },
+                    },
+                ],
+                confirmedHiddenResponseClearRequirementIds: ["hidden-runtime"],
+            },
+            "\"responses:1\"",
+        ));
+    });
+
+    it("cancels hidden response clear confirmation when the respondent unchecks it", async () =>
+    {
+        render(
+            <InformationRequestStructuredResponseWorkspace request={request}
+                                                           responseETag={"\"responses:1\""}
+                                                           enabled={true}
+                                                           groups={[group]}
+                                                           conditionRules={[clearWithConfirmationRule]}
+                                                           occurrences={[occurrence(
+                                                               "occurrence-1",
+                                                               0,
+                                                               "reported-item[0]",
+                                                           )]}
+                                                           requirements={[
+                                                               requirement(
+                                                                   "requirement-1",
+                                                                   "reported-summary",
+                                                                   "Provide the reported summary",
+                                                                   "field-definition-1",
+                                                                   "collect-detail",
+                                                               ),
+                                                               requirement(
+                                                                   "requirement-2",
+                                                                   "hidden-summary",
+                                                                   "Provide the hidden summary",
+                                                                   "field-definition-2",
+                                                                   "collect-hidden-detail",
+                                                               ),
+                                                           ]}
+                                                           bindings={[editableBinding, hiddenBinding]}
+                                                           responses={[
+                                                               responses[0],
+                                                               responseFor(
+                                                                   "hidden-runtime",
+                                                                   "requirement-2",
+                                                                   "reported-item[0]",
+                                                                   "\"field-set:hidden\"",
+                                                                   hiddenBinding,
+                                                                   "Hidden saved value",
+                                                               ),
+                                                           ]}
+                                                           onSaveResponses={onSaveResponses}
+                                                           onAddOccurrence={onAddOccurrence}
+                                                           onRemoveOccurrence={onRemoveOccurrence}
+                                                           onReorderOccurrences={onReorderOccurrences}
+                                                           onRefresh={onRefresh}/>,
+        );
+
+        fireEvent.change(document.querySelector("#exchange-field-field-contract-1")!, {
+            target: {value: "Updated summary"},
+        });
+        const checkbox = document.getElementById(
+            "information-request-confirm-clear-requirement-hidden-runtime",
+        )!;
+        fireEvent.click(checkbox);
+        fireEvent.click(checkbox);
+        fireEvent.click(screen.getByRole("button", {name: "Save responses"}));
+
+        expect(await screen.findByText("Confirm clearing hidden response data before saving.")).toBeTruthy();
+        expect(onSaveResponses).not.toHaveBeenCalled();
     });
 });

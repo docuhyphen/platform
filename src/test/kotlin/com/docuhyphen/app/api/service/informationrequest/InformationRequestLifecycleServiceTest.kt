@@ -41,7 +41,6 @@ import com.docuhyphen.app.api.service.command.CommandReceiptStore
 import com.docuhyphen.app.api.service.notification.DomainEvent
 import com.docuhyphen.app.api.service.notification.DomainEventPublisher
 import com.docuhyphen.app.api.service.subscription.ExchangeUsageCounter
-import com.docuhyphen.app.api.service.subscription.FeatureRolloutConfigService
 import com.docuhyphen.app.api.service.subscription.OrganizationSeatCounter
 import com.docuhyphen.app.api.service.subscription.PlanCode
 import com.docuhyphen.app.api.service.subscription.PlanFeature
@@ -68,7 +67,6 @@ import org.mockito.kotlin.mock
 import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
-import java.util.Optional
 import java.util.UUID
 
 class InformationRequestLifecycleServiceTest
@@ -509,7 +507,7 @@ class InformationRequestLifecycleServiceTest
         whenever(deniedGuard.requireRequestMutation(any())).thenThrow(
             SubscriptionDenialException(
                 SubscriptionDenial(
-                    reason = SubscriptionDenialReason.FEATURE_NOT_RELEASED,
+                    reason = SubscriptionDenialReason.FEATURE_NOT_INCLUDED,
                     planCode = PlanCode.BUSINESS,
                     ownerType = SubscriptionOwnerType.ORGANIZATION,
                     message = "This capability is not yet released.",
@@ -533,45 +531,29 @@ class InformationRequestLifecycleServiceTest
     }
 
     @Test
-    fun `holding only the rollout grant denies issuing a new request while an already-issued request remains cancellable`()
+    fun `base plan permits issuing and the issued request remains cancellable without an admin override`()
     {
         val fixture = Fixture(
-            entitlementGuardFactory = { organizationId -> realGuard(organizationId, commercialGrant = false, rolloutGranted = true) },
+            entitlementGuardFactory = { organizationId -> realGuard(organizationId, commercialGrant = false) },
         )
 
-        assertIssuanceDeniedButAlreadyIssuedWorkRemainsCancellable(fixture)
+        assertIssuanceAndCancellationAllowed(fixture)
     }
 
-    @Test
-    fun `holding only the commercial entitlement denies issuing a new request while an already-issued request remains cancellable`()
-    {
-        val fixture = Fixture(
-            entitlementGuardFactory = { organizationId -> realGuard(organizationId, commercialGrant = true, rolloutGranted = false) },
-        )
-
-        assertIssuanceDeniedButAlreadyIssuedWorkRemainsCancellable(fixture)
-    }
-
-    /**
-     * Drives the same request through both halves of a single-gate scenario: issuing it fresh is
-     * refused by the live two-gate decision, but once it already carries a frozen execution grant
-     * (as if issued earlier, while both gates were held), a continuation mutation answers to the
-     * grant instead and is not stranded by the same live gap.
-     */
-    private fun assertIssuanceDeniedButAlreadyIssuedWorkRemainsCancellable(fixture: Fixture)
+    private fun assertIssuanceAndCancellationAllowed(fixture: Fixture)
     {
         val issueCommand = IssueInformationRequestCommand(
             requestId = fixture.request.id,
             access = fixture.access,
             precondition = CommandPrecondition.ExpectedRevision(InformationRequestETag.aggregateOf(fixture.request)),
-            idempotencyKey = "issue-denied-single-gate",
+            idempotencyKey = "issue-without-admin-override",
         )
 
-        assertThrows(SubscriptionDenialException::class.java) { fixture.service.issue(issueCommand) }
-        assertEquals(InformationRequestState.DRAFT, fixture.request.state)
-        verify(fixture.executionGrantService, never()).issueGrant(any(), any())
+        val issueResult = fixture.service.issue(issueCommand)
 
-        fixture.request.state = InformationRequestState.ISSUED
+        assertEquals(InformationRequestState.ISSUED, issueResult.request.state)
+        verify(fixture.executionGrantService).issueGrant(fixture.request, fixture.exchange)
+
         whenever(fixture.executionGrantService.findForRequest(fixture.request.id)).thenReturn(
             RequestExecutionGrant().apply { requestId = fixture.request.id },
         )
@@ -579,7 +561,7 @@ class InformationRequestLifecycleServiceTest
             requestId = fixture.request.id,
             access = fixture.access,
             precondition = CommandPrecondition.ExpectedRevision(InformationRequestETag.aggregateOf(fixture.request)),
-            idempotencyKey = "cancel-already-issued-single-gate",
+            idempotencyKey = "cancel-issued-without-admin-override",
         )
 
         val result = fixture.service.cancel(cancelCommand)
@@ -587,15 +569,9 @@ class InformationRequestLifecycleServiceTest
         assertEquals(InformationRequestState.CANCELLED, result.request.state)
     }
 
-    /**
-     * Wires the real commercial-entitlement and rollout-grant decision chain against a mocked
-     * policy repository, rather than mocking [InformationRequestEntitlementGuard] itself, so a
-     * single-gate denial is proven through the same code the production guard runs.
-     */
     private fun realGuard(
         organizationId: UUID,
         commercialGrant: Boolean,
-        rolloutGranted: Boolean,
     ): InformationRequestEntitlementGuard
     {
         val policyService = mock<SubscriptionPolicyService>()
@@ -608,7 +584,6 @@ class InformationRequestLifecycleServiceTest
         whenever(policyService.featureOverrides(SubscriptionContext.forOrganization(organizationId))).thenReturn(
             if (commercialGrant) mapOf(PlanFeature.INFORMATION_REQUESTS to true) else emptyMap(),
         )
-        val grants = if (rolloutGranted) "${PlanFeature.INFORMATION_REQUESTS}:ORGANIZATION:$organizationId" else ""
         return InformationRequestEntitlementGuard(
             SubscriptionAccessService(
                 subscriptionPolicyService = policyService,
@@ -617,7 +592,6 @@ class InformationRequestLifecycleServiceTest
                     mock<OrganizationSeatCounter>(),
                 ),
                 enforcementConfigService = SubscriptionEnforcementConfigService(SubscriptionEnforcementMode.ENFORCE.name),
-                featureRolloutConfigService = FeatureRolloutConfigService(Optional.of(grants)),
             ),
         )
     }

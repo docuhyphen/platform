@@ -1,8 +1,11 @@
 import {
     FieldValueDto,
     InformationRequestConditionEvaluationDto,
+    InformationRequestConditionHiddenDataPolicy,
     InformationRequestConditionEvaluationState,
+    InformationRequestDto,
     InformationRequestGroupOccurrenceDto,
+    InformationRequestTemplateConditionRuleDto,
     InformationRequestTemplateGroupDto,
     InformationRequestRequirementType,
     InformationRequestResponseDisposition,
@@ -14,6 +17,13 @@ import {buildSparseFieldValuePayload} from "../../exchanges/components/exchange-
 import {storedFieldValues} from "../../exchanges/components/exchange-fields-tab/fieldEditorState.ts";
 
 export type ResponseEdits = Record<string, Record<string, unknown>>;
+
+export interface HiddenClearConfirmation
+{
+    requirementId: string;
+    prompt: string;
+    occurrencePath: string;
+}
 
 export const ROOT_OCCURRENCE_PATH = "root";
 
@@ -39,6 +49,17 @@ export const occurrenceGroupKeyFromTemplate = (
         ? ROOT_OCCURRENCE_PATH
         : groups.find(group => group.id === occurrence.sourceTemplateGroupId)?.groupKey ??
             occurrenceGroupKey(occurrence.occurrencePath);
+
+export const occurrencePresentation = (
+    occurrence: InformationRequestGroupOccurrenceDto,
+    groups: InformationRequestTemplateGroupDto[],
+) =>
+{
+    const groupKey = occurrenceGroupKeyFromTemplate(occurrence, groups);
+    const isRootOccurrence = occurrence.occurrencePath === ROOT_OCCURRENCE_PATH;
+    const childGroups = isRootOccurrence ? [] : groups.filter(group => group.parentGroupKey === groupKey);
+    return {groupKey, isRootOccurrence, childGroups};
+};
 
 export const requirementOccurrenceAnchorKey = (
     requirement: InformationRequestTemplateRequirementDto,
@@ -115,8 +136,31 @@ export const shownFieldValues = (
     };
 };
 
+export const workspaceOccurrences = (
+    request: InformationRequestDto,
+    occurrences: InformationRequestGroupOccurrenceDto[],
+    requirements: InformationRequestTemplateRequirementDto[],
+): InformationRequestGroupOccurrenceDto[] =>
+{
+    const hasRootRequirements = requirements.some(requirement =>
+        requirementOccurrenceAnchorKey(requirement) === ROOT_OCCURRENCE_PATH);
+    if (!hasRootRequirements) return occurrences;
+    return [
+        {
+            id: ROOT_OCCURRENCE_PATH,
+            informationRequestId: request.id,
+            sourceTemplateGroupId: ROOT_OCCURRENCE_PATH,
+            occurrenceIndex: 0,
+            occurrencePath: ROOT_OCCURRENCE_PATH,
+            createdAt: request.createdAt,
+        },
+        ...occurrences,
+    ];
+};
+
 export const buildResponsePatches = (
     occurrences: InformationRequestGroupOccurrenceDto[],
+    groups: InformationRequestTemplateGroupDto[],
     requirements: InformationRequestTemplateRequirementDto[],
     bindings: SchemaFieldBindingDto[],
     responses: InformationRequestResponseDto[],
@@ -127,7 +171,7 @@ export const buildResponsePatches = (
         requirements
             .filter(requirement => requirement.requirementType === InformationRequestRequirementType.FIELD)
             .filter(requirement =>
-                requirementOccurrenceAnchorKey(requirement) === occurrenceGroupKey(occurrence.occurrencePath))
+                requirementOccurrenceAnchorKey(requirement) === occurrenceGroupKeyFromTemplate(occurrence, groups))
             .filter(requirement => isRequirementActive(requirement, occurrence.occurrencePath, conditionByScope))
             .map(requirement =>
             {
@@ -151,3 +195,35 @@ export const buildResponsePatches = (
             })
             .filter(patch => patch !== null),
     );
+
+export const hiddenClearConfirmations = (
+    conditionRules: InformationRequestTemplateConditionRuleDto[],
+    evaluations: InformationRequestConditionEvaluationDto[],
+    requirements: InformationRequestTemplateRequirementDto[],
+    responses: InformationRequestResponseDto[],
+): HiddenClearConfirmation[] =>
+{
+    const clearRuleKeys = new Set(conditionRules
+        .filter(rule => rule.hiddenDataPolicy === InformationRequestConditionHiddenDataPolicy.CLEAR_WITH_CONFIRMATION)
+        .map(rule => rule.ruleKey));
+    const inactiveScopes = new Set(evaluations
+        .filter(evaluation => evaluation.state === InformationRequestConditionEvaluationState.FALSE)
+        .filter(evaluation => clearRuleKeys.has(evaluation.ruleKey))
+        .map(evaluation => `${evaluation.ruleKey}:${evaluation.occurrencePath}`));
+
+    return requirements.flatMap(requirement =>
+    {
+        if (!requirement.conditionalRuleKey || !clearRuleKeys.has(requirement.conditionalRuleKey)) return [];
+        return responses
+            .filter(response => response.sourceTemplateBindingId === requirement.id)
+            .filter(response => inactiveScopes.has(`${requirement.conditionalRuleKey}:${response.occurrencePath}`))
+            .filter(response =>
+                Boolean(response.narrative) ||
+                response.fieldValues.some(value => !value.isEmpty))
+            .map(response => ({
+                requirementId: response.informationRequestRequirementId,
+                prompt: requirement.prompt,
+                occurrencePath: response.occurrencePath,
+            }));
+    });
+};

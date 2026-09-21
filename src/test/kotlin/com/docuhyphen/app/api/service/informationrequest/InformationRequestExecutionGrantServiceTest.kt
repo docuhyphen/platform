@@ -138,6 +138,36 @@ class InformationRequestExecutionGrantServiceTest
     }
 
     @Test
+    fun `a Personal plan issues a Field-bound Information Request without the organization Fields feature`()
+    {
+        val userId = UUID.randomUUID()
+        val request = requestFor(UUID.randomUUID())
+        val exchange = personalExchange(userId)
+        whenever(grantRepository.findByRequestId(request.id)).thenReturn(null)
+        whenever(requirementBindingRepository.findOrdered(request.templateVersionId)).thenReturn(
+            listOf(fieldBoundBinding()),
+        )
+        whenever(subscriptionAccessService.resolve(SubscriptionContext.forUser(userId)))
+            .thenReturn(
+                subscription(
+                    ownerType = SubscriptionOwnerType.USER,
+                    ownerId = userId,
+                    status = SubscriptionStatus.ACTIVE,
+                ),
+            )
+        whenever(subscriptionAccessService.enforcementMode()).thenReturn(SubscriptionEnforcementMode.ENFORCE)
+        whenever(grantRepository.save(org.mockito.kotlin.any())).thenAnswer { it.getArgument(0) }
+
+        service.issueGrant(request, exchange)
+
+        verify(subscriptionAccessService, never()).requireFeature(
+            org.mockito.kotlin.any(),
+            org.mockito.kotlin.eq(PlanFeature.BUSINESS_FIELDS_AND_SCHEMAS),
+        )
+        verify(grantRepository).save(org.mockito.kotlin.any())
+    }
+
+    @Test
     fun `issuing a grant is refused when a Field-bound Requirement is present but the owner lacks the Business Fields feature`()
     {
         val organizationId = UUID.randomUUID()

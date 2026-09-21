@@ -76,6 +76,15 @@ export const useInformationRequestStructuredResponseWorkspaceStyles = makeStyles
     notice: {
         color: tokens.colorNeutralForeground3,
     },
+    clearConfirmations: {
+        display: "flex",
+        flexDirection: "column",
+        gap: tokens.spacingHorizontalS,
+        padding: tokens.spacingHorizontalM,
+        borderRadius: tokens.borderRadiusMedium,
+        border: `1px solid ${tokens.colorNeutralStroke2}`,
+        backgroundColor: tokens.colorNeutralBackground2,
+    },
     error: {
         color: tokens.colorPaletteRedForeground1,
     },

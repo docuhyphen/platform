@@ -233,7 +233,7 @@ class InformationRequestQueryServiceTest
         whenever(entitlementGuard.requireRequestAccess(exchange)).thenThrow(
             SubscriptionDenialException(
                 SubscriptionDenial(
-                    reason = SubscriptionDenialReason.FEATURE_NOT_RELEASED,
+                    reason = SubscriptionDenialReason.FEATURE_NOT_INCLUDED,
                     planCode = PlanCode.BUSINESS,
                     ownerType = SubscriptionOwnerType.ORGANIZATION,
                     message = "This capability is not yet released.",
@@ -306,7 +306,7 @@ class InformationRequestQueryServiceTest
         whenever(entitlementGuard.requireRequestAccess(exchange)).thenThrow(
             SubscriptionDenialException(
                 SubscriptionDenial(
-                    reason = SubscriptionDenialReason.FEATURE_NOT_RELEASED,
+                    reason = SubscriptionDenialReason.FEATURE_NOT_INCLUDED,
                     planCode = PlanCode.BUSINESS,
                     ownerType = SubscriptionOwnerType.ORGANIZATION,
                     message = "This capability is not yet released.",
@@ -424,7 +424,7 @@ class InformationRequestQueryServiceTest
         whenever(entitlementGuard.requireRequestAccess(exchange)).thenThrow(
             SubscriptionDenialException(
                 SubscriptionDenial(
-                    reason = SubscriptionDenialReason.FEATURE_NOT_RELEASED,
+                    reason = SubscriptionDenialReason.FEATURE_NOT_INCLUDED,
                     planCode = PlanCode.BUSINESS,
                     ownerType = SubscriptionOwnerType.ORGANIZATION,
                     message = "This capability is not yet released.",

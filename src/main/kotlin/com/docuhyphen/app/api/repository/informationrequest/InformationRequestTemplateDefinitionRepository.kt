@@ -55,7 +55,6 @@ class InformationRequestTemplateDefinitionRepository :
             InformationRequestTemplateDefinition::class.java,
         ).resultList
 
-    /** An organization's own definitions plus the platform-owned ones it may also use. */
     fun findAllForOrganization(organizationId: UUID): List<InformationRequestTemplateDefinition> =
         entityManager.createQuery(
             """
@@ -63,9 +62,9 @@ class InformationRequestTemplateDefinitionRepository :
             FROM InformationRequestTemplateDefinition definition
             WHERE definition.originKind =
                   com.docuhyphen.app.api.model.entity.InformationRequestTemplateOriginKind.REUSABLE
-              AND (definition.scopeKind = com.docuhyphen.app.api.model.entity.InformationRequestTemplateScopeKind.PLATFORM
-               OR (definition.scopeKind = com.docuhyphen.app.api.model.entity.InformationRequestTemplateScopeKind.ORGANIZATION
-                   AND definition.scopeOrgId = :orgId))
+              AND definition.scopeKind =
+                  com.docuhyphen.app.api.model.entity.InformationRequestTemplateScopeKind.ORGANIZATION
+              AND definition.scopeOrgId = :orgId
             ORDER BY definition.displayName
             """.trimIndent(),
             InformationRequestTemplateDefinition::class.java,

@@ -98,6 +98,7 @@ class InformationRequestTemplateReferenceService @Inject constructor(
             definition.scopeKind,
             definition.scopeOrgId,
             definition.scopeUserId,
+            null,
         )
         return version to definition
     }

@@ -91,6 +91,7 @@ const InformationRequestRespondentWorkspace = ({accessMode}: Props) =>
                             <InformationRequestStructuredResponsePanel request={workspace.request}
                                                                        responseETag={workspace.responseETag}
                                                                        groups={workspace.templateVersion.groups}
+                                                                       conditionRules={workspace.templateVersion.conditionRules}
                                                                        occurrences={workspace.occurrences}
                                                                        requirements={requirements}
                                                                        bindings={workspace.schemaAssignment?.bindings ?? []}

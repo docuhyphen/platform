@@ -5,7 +5,6 @@ import com.docuhyphen.app.api.model.entity.InformationRequestTemplateScopeKind
 import com.docuhyphen.app.api.model.entity.OrganizationSubscriptionPolicy
 import com.docuhyphen.app.api.model.entity.UserSubscriptionPolicy
 import com.docuhyphen.app.api.service.subscription.ExchangeUsageCounter
-import com.docuhyphen.app.api.service.subscription.FeatureRolloutConfigService
 import com.docuhyphen.app.api.service.subscription.OrganizationSeatCounter
 import com.docuhyphen.app.api.service.subscription.PlanCode
 import com.docuhyphen.app.api.service.subscription.PlanFeature
@@ -24,15 +23,13 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
-import java.util.Optional
 import java.util.UUID
 
 /**
  * Which owner answers for a piece of reusable request configuration.
  *
- * The two decisions this reaches, a commercial entitlement recorded against an owner and an
- * operational release grant made for that owner in this deployment, are covered on their own terms
- * elsewhere. What is covered here is the part specific to Templates: that a scope kind consults
+ * The entitlement decision is recorded against an owner. What is covered here is the part specific
+ * to Templates: that a scope kind consults
  * exactly the owner it names, that a person is a resolvable owner in their own right rather than
  * falling back to an organization or to the platform, and that a scope with no owner is refused
  * rather than reaching neither decision and passing by default.
@@ -46,27 +43,55 @@ class InformationRequestTemplateEntitlementGuardTest
     private val policyService: SubscriptionPolicyService = mock()
 
     @Test
-    fun `an organization owner that holds both grants reaches the capability`()
+    fun `an organization owner with an admin entitlement reaches the capability`()
     {
         givenOrganizationPlan(organizationId, commercialGrant = true)
-        val guard = guard(grants = organizationRolloutGrant(organizationId))
+        val guard = guard()
 
         assertDoesNotThrow {
             guard.requireTemplateMutation(
-                InformationRequestTemplateScopeKind.ORGANIZATION, organizationId, null,
+                InformationRequestTemplateScopeKind.ORGANIZATION, organizationId, null, null,
             )
         }
     }
 
     @Test
-    fun `a person that holds both grants reaches the capability without an organization`()
+    fun `a person with an admin entitlement reaches the capability without an organization`()
     {
         givenUserPlan(commercialGrant = true)
-        val guard = guard(grants = personalRolloutGrant())
+        val guard = guard()
 
         assertDoesNotThrow {
             guard.requireTemplateMutation(
-                InformationRequestTemplateScopeKind.PERSONAL, null, appUserId,
+                InformationRequestTemplateScopeKind.PERSONAL, null, appUserId, null,
+            )
+        }
+    }
+
+    @Test
+    fun `the Personal plan includes information requests without an override`()
+    {
+        givenUserPlan(commercialGrant = null)
+
+        assertDoesNotThrow {
+            guard().requireTemplateMutation(
+                InformationRequestTemplateScopeKind.PERSONAL, null, appUserId, null,
+            )
+        }
+    }
+
+    @Test
+    fun `an active organization entitlement covers a personal template`()
+    {
+        givenUserPlan(commercialGrant = false)
+        givenOrganizationPlan(organizationId, commercialGrant = true)
+
+        assertDoesNotThrow {
+            guard().requireTemplateMutation(
+                InformationRequestTemplateScopeKind.PERSONAL,
+                null,
+                appUserId,
+                organizationId,
             )
         }
     }
@@ -75,30 +100,28 @@ class InformationRequestTemplateEntitlementGuardTest
     fun `the owner consulted is the one the configuration names, not another`()
     {
         givenOrganizationPlan(organizationId, commercialGrant = true)
-        givenOrganizationPlan(otherOrganizationId, commercialGrant = true)
-        // Released to one organization only, so naming the other has to be refused even though both
-        // hold the commercial grant.
-        val guard = guard(grants = organizationRolloutGrant(organizationId))
+        givenOrganizationPlan(otherOrganizationId, commercialGrant = false)
+        val guard = guard()
 
         val refusal = assertThrows<SubscriptionDenialException> {
             guard.requireTemplateMutation(
-                InformationRequestTemplateScopeKind.ORGANIZATION, otherOrganizationId, null,
+                InformationRequestTemplateScopeKind.ORGANIZATION, otherOrganizationId, null, null,
             )
         }
 
-        assertEquals(SubscriptionDenialReason.FEATURE_NOT_RELEASED, refusal.denial.reason)
+        assertEquals(SubscriptionDenialReason.FEATURE_NOT_INCLUDED, refusal.denial.reason)
     }
 
     @Test
-    fun `a personal grant does not reach an organization that names the same person`()
+    fun `a personal entitlement does not reach an organization`()
     {
         givenUserPlan(commercialGrant = true)
-        givenOrganizationPlan(organizationId, commercialGrant = true)
-        val guard = guard(grants = personalRolloutGrant())
+        givenOrganizationPlan(organizationId, commercialGrant = false)
+        val guard = guard()
 
         assertThrows<SubscriptionDenialException> {
             guard.requireTemplateMutation(
-                InformationRequestTemplateScopeKind.ORGANIZATION, organizationId, null,
+                InformationRequestTemplateScopeKind.ORGANIZATION, organizationId, null, null,
             )
         }
     }
@@ -109,7 +132,7 @@ class InformationRequestTemplateEntitlementGuardTest
         val guard = guard()
 
         val refusal = assertThrows<InformationRequestTemplateValidationException> {
-            guard.requireTemplateMutation(InformationRequestTemplateScopeKind.PLATFORM, null, null)
+            guard.requireTemplateMutation(InformationRequestTemplateScopeKind.PLATFORM, null, null, null)
         }
 
         assertTrue(
@@ -119,34 +142,25 @@ class InformationRequestTemplateEntitlementGuardTest
     }
 
     @Test
-    fun `a read answers to the same two decisions as a write`()
+    fun `a read answers to the same entitlement as a write`()
     {
         givenUserPlan(commercialGrant = true)
-        val ungranted = guard()
-
-        assertThrows<SubscriptionDenialException> {
-            ungranted.requireTemplateAccess(
-                InformationRequestTemplateScopeKind.PERSONAL, null, appUserId,
-            )
-        }
-
-        val granted = guard(grants = personalRolloutGrant())
         assertDoesNotThrow {
-            granted.requireTemplateAccess(
-                InformationRequestTemplateScopeKind.PERSONAL, null, appUserId,
+            guard().requireTemplateAccess(
+                InformationRequestTemplateScopeKind.PERSONAL, null, appUserId, null,
             )
         }
     }
 
     @Test
-    fun `disabled enforcement does not open a capability that is still being released`()
+    fun `disabled enforcement allows an entitled capability`()
     {
         givenUserPlan(commercialGrant = true)
         val guard = guard(mode = SubscriptionEnforcementMode.OFF)
 
-        assertThrows<SubscriptionDenialException> {
+        assertDoesNotThrow {
             guard.requireTemplateMutation(
-                InformationRequestTemplateScopeKind.PERSONAL, null, appUserId,
+                InformationRequestTemplateScopeKind.PERSONAL, null, appUserId, null,
             )
         }
     }
@@ -154,7 +168,6 @@ class InformationRequestTemplateEntitlementGuardTest
     // ── Fixture ───────────────────────────────────────────────────────────────
 
     private fun guard(
-        grants: String = "",
         mode: SubscriptionEnforcementMode = SubscriptionEnforcementMode.ENFORCE,
     ) = InformationRequestTemplateEntitlementGuard(
         SubscriptionAccessService(
@@ -164,11 +177,10 @@ class InformationRequestTemplateEntitlementGuardTest
                 mock<OrganizationSeatCounter>(),
             ),
             enforcementConfigService = SubscriptionEnforcementConfigService(mode.name),
-            featureRolloutConfigService = FeatureRolloutConfigService(Optional.of(grants)),
         ),
     )
 
-    private fun givenUserPlan(commercialGrant: Boolean)
+    private fun givenUserPlan(commercialGrant: Boolean?)
     {
         whenever(policyService.findUserPolicy(appUserId)).thenReturn(
             UserSubscriptionPolicy().apply {
@@ -178,7 +190,7 @@ class InformationRequestTemplateEntitlementGuardTest
             },
         )
         whenever(policyService.featureOverrides(SubscriptionContext.forUser(appUserId)))
-            .thenReturn(if (commercialGrant) mapOf(GATED_FEATURE to true) else emptyMap())
+            .thenReturn(commercialGrant?.let { mapOf(GATED_FEATURE to it) } ?: emptyMap())
     }
 
     private fun givenOrganizationPlan(owner: UUID, commercialGrant: Boolean)
@@ -190,12 +202,8 @@ class InformationRequestTemplateEntitlementGuardTest
             },
         )
         whenever(policyService.featureOverrides(SubscriptionContext.forOrganization(owner)))
-            .thenReturn(if (commercialGrant) mapOf(GATED_FEATURE to true) else emptyMap())
+            .thenReturn(mapOf(GATED_FEATURE to commercialGrant))
     }
-
-    private fun personalRolloutGrant() = "$GATED_FEATURE:USER:$appUserId"
-
-    private fun organizationRolloutGrant(owner: UUID) = "$GATED_FEATURE:ORGANIZATION:$owner"
 
     private companion object
     {

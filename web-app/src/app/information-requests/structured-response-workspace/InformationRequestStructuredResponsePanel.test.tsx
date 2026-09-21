@@ -32,6 +32,7 @@ const renderPanel = (accessLinkToken?: string) => render(
     <InformationRequestStructuredResponsePanel request={request}
                                                responseETag={"\"responses:1\""}
                                                groups={[]}
+                                               conditionRules={[]}
                                                occurrences={[]}
                                                requirements={[]}
                                                bindings={[]}

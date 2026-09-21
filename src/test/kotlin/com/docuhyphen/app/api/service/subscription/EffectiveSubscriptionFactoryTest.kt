@@ -139,10 +139,10 @@ class EffectiveSubscriptionFactoryTest
 
         EffectiveSubscriptionFactory.fromUserPolicy(
             userPolicy(planCode = PlanCode.PERSONAL.name),
-            featureOverrides = mapOf(PlanFeature.INFORMATION_REQUESTS to true),
+            featureOverrides = mapOf(PlanFeature.INFORMATION_REQUESTS to false),
         )
 
-        assertFalse(
+        assertTrue(
             PlanCatalog.definitionOf(PlanCode.PERSONAL).includes(PlanFeature.INFORMATION_REQUESTS),
         )
     }

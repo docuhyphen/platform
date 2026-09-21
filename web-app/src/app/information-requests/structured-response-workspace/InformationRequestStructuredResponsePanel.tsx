@@ -3,6 +3,7 @@ import {
     InformationRequestDto,
     InformationRequestGroupOccurrenceDto,
     InformationRequestResponseDto,
+    InformationRequestTemplateConditionRuleDto,
     InformationRequestTemplateGroupDto,
     InformationRequestTemplateRequirementDto,
     SchemaFieldBindingDto,
@@ -15,6 +16,7 @@ interface Props
     request: InformationRequestDto;
     responseETag: string;
     groups: InformationRequestTemplateGroupDto[];
+    conditionRules: InformationRequestTemplateConditionRuleDto[];
     occurrences: InformationRequestGroupOccurrenceDto[];
     requirements: InformationRequestTemplateRequirementDto[];
     bindings: SchemaFieldBindingDto[];
@@ -27,6 +29,7 @@ const InformationRequestStructuredResponsePanel = ({
     request,
     responseETag,
     groups,
+    conditionRules,
     occurrences,
     requirements,
     bindings,
@@ -45,6 +48,7 @@ const InformationRequestStructuredResponsePanel = ({
                                                        responseETag={responseETag}
                                                        enabled={true}
                                                        groups={groups}
+                                                       conditionRules={conditionRules}
                                                        occurrences={occurrences}
                                                        requirements={requirements}
                                                        bindings={bindings}

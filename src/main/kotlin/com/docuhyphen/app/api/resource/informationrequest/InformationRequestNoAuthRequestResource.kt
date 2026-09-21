@@ -1,6 +1,5 @@
 package com.docuhyphen.app.api.resource.informationrequest
 
-import com.docuhyphen.app.api.model.InformationRequestDtoMapper
 import com.docuhyphen.app.api.model.InformationRequestGroupOccurrenceDtoMapper
 import com.docuhyphen.app.api.model.InformationRequestResponseDtoMapper
 import com.docuhyphen.app.api.model.InformationRequestResponsePatchRequestMapper
@@ -13,13 +12,11 @@ import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.service.command.CommandPreconditionException
 import com.docuhyphen.app.api.service.command.CommandReceiptConflictException
 import com.docuhyphen.app.api.service.informationrequest.AddInformationRequestGroupOccurrenceCommand
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestConditionEvaluationService
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestGroupOccurrenceResult
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestGroupOccurrenceService
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestLifecycleException
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestNoAuthReadAccessService
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestPartyQueryService
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestQueryService
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestResponseDraftResult
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestResponseDraftService
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestResponseWorkspaceService
@@ -59,11 +56,9 @@ import java.util.UUID
 @Consumes(APPLICATION_JSON)
 class InformationRequestNoAuthRequestResource @Inject constructor(
     private val readAccessService: InformationRequestNoAuthReadAccessService,
-    private val queryService: InformationRequestQueryService,
     private val partyQueryService: InformationRequestPartyQueryService,
     private val responseDraftService: InformationRequestResponseDraftService,
     private val occurrenceService: InformationRequestGroupOccurrenceService,
-    private val conditionEvaluationService: InformationRequestConditionEvaluationService,
     private val responseWorkspaceService: InformationRequestResponseWorkspaceService,
 )
 {
@@ -83,9 +78,7 @@ class InformationRequestNoAuthRequestResource @Inject constructor(
             {
                 return notFound()
             }
-            val request = queryService.findById(requestId, noAuthAccess.access)
-            val conditionEvaluations = conditionEvaluationService.evaluate(requestId)
-            Response.ok(InformationRequestDtoMapper.toDto(request, conditionEvaluations)).build()
+            Response.ok(responseWorkspaceService.loadRequest(requestId, noAuthAccess.access)).build()
         }
         catch (exception: Exception)
         {

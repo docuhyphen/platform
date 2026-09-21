@@ -36,7 +36,6 @@ class ExchangeFeatureSubscriptionGuardTest
                 mock<OrganizationSeatCounter>(),
             ),
             enforcementConfigService = SubscriptionEnforcementConfigService(mode.name),
-            featureRolloutConfigService = FeatureRolloutConfigService(Optional.empty()),
         )
 
         return ExchangeFeatureSubscriptionGuard(accessService)
@@ -193,6 +192,5 @@ class ExchangeFeatureSubscriptionGuardTest
         verifyNoInteractions(policyService)
     }
 }
-
 
 

@@ -72,7 +72,7 @@ class InformationRequestTemplateAuthoringServiceTest
         fixture.service.createTemplate(createRequest(InformationRequestTemplateScopeKind.ORGANIZATION))
 
         verify(fixture.entitlementGuard).requireTemplateMutation(
-            InformationRequestTemplateScopeKind.ORGANIZATION, organizationId, null,
+            InformationRequestTemplateScopeKind.ORGANIZATION, organizationId, null, null,
         )
         assertEquals(AuditOwnerScope.Organization(organizationId), fixture.capturedAuditOwner())
     }
@@ -90,9 +90,24 @@ class InformationRequestTemplateAuthoringServiceTest
         assertEquals(principalId, created.scopeUserId)
         assertNull(created.scopeOrgId)
         verify(fixture.entitlementGuard).requireTemplateMutation(
-            InformationRequestTemplateScopeKind.PERSONAL, null, principalId,
+            InformationRequestTemplateScopeKind.PERSONAL, null, principalId, null,
         )
         assertEquals(AuditOwnerScope.Personal(principalId), fixture.capturedAuditOwner())
+    }
+
+    @Test
+    fun `an active organization sponsors personal template access`()
+    {
+        val fixture = fixture()
+
+        fixture.service.createTemplate(createRequest(InformationRequestTemplateScopeKind.PERSONAL))
+
+        verify(fixture.entitlementGuard).requireTemplateMutation(
+            InformationRequestTemplateScopeKind.PERSONAL,
+            null,
+            principalId,
+            organizationId,
+        )
     }
 
     @Test
@@ -125,7 +140,7 @@ class InformationRequestTemplateAuthoringServiceTest
         doThrow(
             InformationRequestTemplateValidationException("A PLATFORM template has no owner"),
         ).whenever(fixture.entitlementGuard)
-            .requireTemplateMutation(any(), anyOrNull(), anyOrNull())
+            .requireTemplateMutation(any(), anyOrNull(), anyOrNull(), anyOrNull())
 
         assertThrows<InformationRequestTemplateValidationException> {
             fixture.service.createTemplate(createRequest(InformationRequestTemplateScopeKind.PLATFORM))
@@ -134,7 +149,7 @@ class InformationRequestTemplateAuthoringServiceTest
         // The scope reaches the gate rather than being special-cased into an allowance here, which
         // is what keeps one place answering the question for every owner.
         verify(fixture.entitlementGuard).requireTemplateMutation(
-            InformationRequestTemplateScopeKind.PLATFORM, null, null,
+            InformationRequestTemplateScopeKind.PLATFORM, null, null, null,
         )
         verify(fixture.definitionRepository, never()).save(any())
     }
@@ -149,6 +164,22 @@ class InformationRequestTemplateAuthoringServiceTest
         }
 
         verify(fixture.definitionRepository, never()).save(any())
+    }
+
+    @Test
+    fun `an organization member can list organization templates without managing them`()
+    {
+        val fixture = fixture(organizationRole = OrganizationRoleName.ORG_MEMBER)
+        val stored = organizationDefinition()
+        whenever(fixture.definitionRepository.findAllForOrganization(organizationId)).thenReturn(listOf(stored))
+        whenever(fixture.versionRepository.findForDefinitions(listOf(stored.id))).thenReturn(emptyList())
+
+        val listed = fixture.service.listTemplates(InformationRequestTemplateScopeKind.ORGANIZATION)
+
+        assertEquals(listOf(stored.id), listed.map { it.id })
+        verify(fixture.entitlementGuard).requireTemplateAccess(
+            InformationRequestTemplateScopeKind.ORGANIZATION, organizationId, null, null,
+        )
     }
 
     @Test
@@ -266,7 +297,7 @@ class InformationRequestTemplateAuthoringServiceTest
 
         verify(fixture.configurationWriter).replaceConfiguration(draft, document())
         verify(fixture.entitlementGuard).requireTemplateMutation(
-            InformationRequestTemplateScopeKind.ORGANIZATION, organizationId, null,
+            InformationRequestTemplateScopeKind.ORGANIZATION, organizationId, null, null,
         )
         assertEquals(AuditOwnerScope.Organization(organizationId), fixture.capturedAuditOwner())
         assertEquals(
@@ -339,6 +370,38 @@ class InformationRequestTemplateAuthoringServiceTest
     }
 
     @Test
+    fun `platform templates are listed without a customer entitlement`()
+    {
+        val fixture = fixture()
+        val stored = platformDefinition()
+        whenever(fixture.definitionRepository.findAllPlatform()).thenReturn(listOf(stored))
+        whenever(fixture.versionRepository.findForDefinitions(listOf(stored.id))).thenReturn(emptyList())
+
+        val listed = fixture.service.listTemplates(InformationRequestTemplateScopeKind.PLATFORM)
+
+        assertEquals(listOf(InformationRequestTemplateScopeKind.PLATFORM), listed.map { it.scopeKind })
+        verify(fixture.entitlementGuard, never()).requireTemplateAccess(
+            any(), anyOrNull(), anyOrNull(), anyOrNull(),
+        )
+    }
+
+    @Test
+    fun `platform template detail never exposes an editable version`()
+    {
+        val fixture = fixture()
+        val stored = platformDefinition()
+        whenever(fixture.definitionRepository.findById(stored.id)).thenReturn(stored)
+
+        val projected = fixture.service.getTemplate(stored.id)
+
+        assertNull(projected.draftVersion)
+        verify(fixture.versionRepository, never()).findDraft(any())
+        verify(fixture.entitlementGuard, never()).requireTemplateAccess(
+            any(), anyOrNull(), anyOrNull(), anyOrNull(),
+        )
+    }
+
+    @Test
     fun `reading a template still answers to both gates`()
     {
         val fixture = fixture()
@@ -348,7 +411,7 @@ class InformationRequestTemplateAuthoringServiceTest
         fixture.service.getTemplate(stored.id)
 
         verify(fixture.entitlementGuard).requireTemplateAccess(
-            InformationRequestTemplateScopeKind.ORGANIZATION, organizationId, null,
+            InformationRequestTemplateScopeKind.ORGANIZATION, organizationId, null, null,
         )
     }
 
@@ -359,7 +422,7 @@ class InformationRequestTemplateAuthoringServiceTest
         doThrow(
             SubscriptionDenialException(
                 SubscriptionDenial(
-                    reason = SubscriptionDenialReason.FEATURE_NOT_RELEASED,
+                    reason = SubscriptionDenialReason.FEATURE_NOT_INCLUDED,
                     planCode = PlanCode.BUSINESS,
                     ownerType = SubscriptionOwnerType.ORGANIZATION,
                     feature = PlanFeature.INFORMATION_REQUESTS,
@@ -367,7 +430,7 @@ class InformationRequestTemplateAuthoringServiceTest
                 ),
             ),
         ).whenever(fixture.entitlementGuard)
-            .requireTemplateMutation(any(), anyOrNull(), anyOrNull())
+            .requireTemplateMutation(any(), anyOrNull(), anyOrNull(), anyOrNull())
 
         assertThrows<SubscriptionDenialException> {
             fixture.service.createTemplate(createRequest(InformationRequestTemplateScopeKind.ORGANIZATION))
@@ -497,6 +560,13 @@ class InformationRequestTemplateAuthoringServiceTest
     private fun personalDefinition(owner: UUID) = InformationRequestTemplateDefinition().apply {
         scopeKind = InformationRequestTemplateScopeKind.PERSONAL
         scopeUserId = owner
+        namespace = "process"
+        templateKey = "collection-pattern"
+        displayName = "Collection pattern"
+    }
+
+    private fun platformDefinition() = InformationRequestTemplateDefinition().apply {
+        scopeKind = InformationRequestTemplateScopeKind.PLATFORM
         namespace = "process"
         templateKey = "collection-pattern"
         displayName = "Collection pattern"

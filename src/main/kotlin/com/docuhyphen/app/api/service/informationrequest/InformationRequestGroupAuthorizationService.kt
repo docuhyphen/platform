@@ -40,18 +40,8 @@ class InformationRequestGroupAuthorizationService @Inject constructor(
         bindings: Collection<InformationRequestTemplateRequirementBinding>,
     )
     {
-        val existingByBindingId = requirementRepository.findForRequest(request.id)
-            .associateBy { it.sourceTemplateBindingId }
         bindings.distinctBy { it.id }.forEach { binding ->
-            val existing = existingByBindingId[binding.id]
-            if (existing != null)
-            {
-                authorizeAgainstRequirement(access, existing.id)
-            }
-            else
-            {
-                authorizeAgainstAuthoredBinding(access, request, binding)
-            }
+            authorizeAgainstAuthoredBinding(access, request, binding)
         }
     }
 

@@ -18,9 +18,8 @@ import java.util.*
  * and capability contract first, and a missing commercial summary must never widen access or
  * lock a customer out of the application.
  *
- * The reported features are the ones the caller can actually reach, which excludes a capability
- * the owner is entitled to but that this deployment has not released to them. The client decides
- * what to offer from this list, so it must not name something every call site would refuse.
+ * The reported features are the ones the caller can reach from the owner's plan and
+ * platform-administered overrides.
  */
 @ApplicationScoped
 class SessionSubscriptionService @Inject constructor(

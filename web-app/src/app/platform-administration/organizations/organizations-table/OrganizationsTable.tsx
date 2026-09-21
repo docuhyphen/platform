@@ -19,13 +19,6 @@ interface OrganizationsTableProps
     onEdit: (organization: PlatformOrganizationSummary) => void;
 }
 
-const entitlementSummary = (organization: PlatformOrganizationSummary): string =>
-    organization.featureEntitlements.length === 0
-        ? "None"
-        : organization.featureEntitlements
-            .map((item) => `${item.featureCode}: ${item.enabled ? "On" : "Off"}`)
-            .join(", ");
-
 const OrganizationsTable = ({organizations, onEdit}: OrganizationsTableProps) =>
 {
     const styles = useOrganizationsTableStyles();

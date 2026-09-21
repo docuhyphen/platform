@@ -1,14 +1,17 @@
 import {
     CreateInformationRequestGroupOccurrenceRequest,
+    InformationRequestConditionEvaluationDto,
     InformationRequestDto,
     InformationRequestGroupOccurrenceDto,
     InformationRequestResponseDto,
     InformationRequestTemplateGroupDto,
+    InformationRequestTemplateConditionRuleDto,
     InformationRequestTemplateRequirementDto,
     PatchInformationRequestResponsesRequest,
     ReorderInformationRequestGroupOccurrencesRequest,
     SchemaFieldBindingDto,
 } from "../../models/models.tsx";
+import {ResponseEdits} from "./structuredResponseWorkspaceState.ts";
 
 export type SaveResponsesResult =
     | { outcome: "SAVED"; responseETag: string; responses: InformationRequestResponseDto[] }
@@ -24,6 +27,7 @@ export interface StructuredResponseWorkspaceProps
     responseETag: string;
     enabled: boolean;
     groups: InformationRequestTemplateGroupDto[];
+    conditionRules?: InformationRequestTemplateConditionRuleDto[];
     occurrences: InformationRequestGroupOccurrenceDto[];
     requirements: InformationRequestTemplateRequirementDto[];
     bindings: SchemaFieldBindingDto[];
@@ -49,4 +53,43 @@ export interface StructuredResponseWorkspaceProps
         responseETag: string,
     ) => Promise<OccurrenceCommandResult>;
     onRefresh: () => void;
+}
+
+export interface StructuredResponseOccurrenceProps
+{
+    occurrence: InformationRequestGroupOccurrenceDto;
+    occurrenceIndex: number;
+    occurrenceCount: number;
+    siblingOccurrenceIds: string[];
+    requestId: string;
+    responseETag: string;
+    busy: boolean;
+    groups: InformationRequestTemplateGroupDto[];
+    requirements: InformationRequestTemplateRequirementDto[];
+    bindings: SchemaFieldBindingDto[];
+    responses: InformationRequestResponseDto[];
+    conditionByScope: Map<string, InformationRequestConditionEvaluationDto>;
+    edits: ResponseEdits;
+    setEdits: (edits: (previous: ResponseEdits) => ResponseEdits) => void;
+    onAdd: (
+        requestId: string,
+        groupKey: string,
+        parentOccurrenceId: string | undefined,
+        responseETag: string,
+    ) => Promise<OccurrenceCommandResult>;
+    onRemove: (
+        requestId: string,
+        occurrenceId: string,
+        responseETag: string,
+    ) => Promise<OccurrenceCommandResult>;
+    onReorder: (
+        requestId: string,
+        groupKey: string,
+        parentOccurrenceId: string | undefined,
+        occurrenceIds: string[],
+        responseETag: string,
+    ) => Promise<OccurrenceCommandResult>;
+    onResult: (result: OccurrenceCommandResult) => void;
+    onCommandStart: () => void;
+    onCommandFailure: (error: unknown) => void;
 }

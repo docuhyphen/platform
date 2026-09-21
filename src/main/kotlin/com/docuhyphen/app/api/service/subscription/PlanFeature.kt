@@ -7,13 +7,8 @@ package com.docuhyphen.app.api.service.subscription
  * "is this caller authorized to perform this action". Role capabilities answer the second
  * question and remain entirely separate.
  *
- * [requiresRolloutGrant] marks a capability that is still being built. Owning it commercially is
- * then not enough on its own: the deployment must also have turned it on for that owner, which
- * [FeatureRolloutConfigService] answers. Whether a capability is finished is a property of the
- * code rather than of an environment, which is why it is declared here and cannot be switched off
- * by configuration.
  */
-enum class PlanFeature(val requiresRolloutGrant: Boolean = false)
+enum class PlanFeature
 {
     EXCHANGE_CREATE,
     MULTIPLE_PARTICIPANTS,
@@ -41,16 +36,7 @@ enum class PlanFeature(val requiresRolloutGrant: Boolean = false)
     AUDIT_GOVERNANCE,
     IDENTITY_AND_INTEGRATIONS,
 
-    /**
-     * Held back from every plan while the capability is built.
-     *
-     * A plan cannot sell it, so the only way an owner holds it commercially is an explicit
-     * platform-administered grant recorded against that owner. That grant alone still reaches
-     * nothing: the capability is under controlled release, so the deployment must have turned it on
-     * for the same owner as well. Do not add it to a plan or clear its rollout requirement until
-     * the capability is complete and released.
-     */
-    INFORMATION_REQUESTS(requiresRolloutGrant = true);
+    INFORMATION_REQUESTS;
 
     companion object
     {
@@ -61,5 +47,3 @@ enum class PlanFeature(val requiresRolloutGrant: Boolean = false)
         }
     }
 }
-
-

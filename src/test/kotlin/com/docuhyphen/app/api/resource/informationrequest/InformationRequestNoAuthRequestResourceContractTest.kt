@@ -1,10 +1,12 @@
 package com.docuhyphen.app.api.resource.informationrequest
 
 import com.docuhyphen.app.api.model.dto.FieldValueDto
+import com.docuhyphen.app.api.model.InformationRequestDtoMapper
 import com.docuhyphen.app.api.model.dto.InformationRequestDto
 import com.docuhyphen.app.api.model.dto.InformationRequestGroupOccurrenceDto
 import com.docuhyphen.app.api.model.dto.InformationRequestPartyDto
 import com.docuhyphen.app.api.model.dto.InformationRequestResponseDto
+import com.docuhyphen.app.api.model.dto.InformationRequestResponseWorkspaceDto
 import com.docuhyphen.app.api.model.dto.SchemaAssignmentDto
 import com.docuhyphen.app.api.model.entity.FieldValueType
 import com.docuhyphen.app.api.model.entity.InformationRequest
@@ -22,7 +24,6 @@ import com.docuhyphen.app.api.resource.model.ReorderInformationRequestGroupOccur
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestConditionEvaluationProjection
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestConditionEvaluationService
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestConditionEvaluationState
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestGroupOccurrenceResult
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestGroupOccurrenceService
@@ -31,7 +32,6 @@ import com.docuhyphen.app.api.service.informationrequest.InformationRequestLifec
 import com.docuhyphen.app.api.model.informationrequest.InformationRequestNoAuthAccess
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestNoAuthReadAccessService
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestPartyQueryService
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestQueryService
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestResponseDraftResult
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestResponseDraftService
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestResponseWorkspaceService
@@ -68,19 +68,15 @@ import java.util.UUID
 class InformationRequestNoAuthRequestResourceContractTest
 {
     private val readAccessService = mock<InformationRequestNoAuthReadAccessService>()
-    private val queryService = mock<InformationRequestQueryService>()
     private val partyQueryService = mock<InformationRequestPartyQueryService>()
     private val responseDraftService = mock<InformationRequestResponseDraftService>()
     private val occurrenceService = mock<InformationRequestGroupOccurrenceService>()
-    private val conditionEvaluationService = mock<InformationRequestConditionEvaluationService>()
     private val responseWorkspaceService = mock<InformationRequestResponseWorkspaceService>()
     private val resource = InformationRequestNoAuthRequestResource(
         readAccessService,
-        queryService,
         partyQueryService,
         responseDraftService,
         occurrenceService,
-        conditionEvaluationService,
         responseWorkspaceService,
     )
 
@@ -116,8 +112,7 @@ class InformationRequestNoAuthRequestResourceContractTest
     {
         val resolver = InformationRequestNoAuthReadAccessService(mock(), mock(), mock())
         val guarded = InformationRequestNoAuthRequestResource(
-            resolver, queryService, partyQueryService, responseDraftService, occurrenceService,
-            conditionEvaluationService, responseWorkspaceService,
+            resolver, partyQueryService, responseDraftService, occurrenceService, responseWorkspaceService,
         )
         val id = requestId.toString()
         val responses = listOf(
@@ -138,17 +133,31 @@ class InformationRequestNoAuthRequestResourceContractTest
             assertEquals(InformationRequestErrorCatalog.ACCESS_SESSION_REQUIRED,
                 (response.entity as com.docuhyphen.app.api.resource.model.ResponseError).reasonCode)
         }
-        org.mockito.kotlin.verifyNoInteractions(queryService, partyQueryService, responseDraftService,
-            occurrenceService, conditionEvaluationService, responseWorkspaceService)
+        org.mockito.kotlin.verifyNoInteractions(partyQueryService, responseDraftService,
+            occurrenceService, responseWorkspaceService)
     }
 
     @Test
     fun `content adapters pass the independent session credential to the resolver`()
     {
         whenever(readAccessService.resolve("bootstrap", "session-secret")).thenReturn(noAuthAccess)
-        whenever(queryService.findById(requestId, access)).thenReturn(request)
+        whenever(responseWorkspaceService.loadRequest(requestId, access)).thenReturn(InformationRequestDtoMapper.toDto(request))
         assertEquals(200, resource.get(requestId.toString(), "bootstrap", "session-secret").status)
         verify(readAccessService).resolve("bootstrap", "session-secret")
+    }
+
+    @Test
+    fun `response workspace delegates through the verified no-auth access context`()
+    {
+        val workspace = mock<InformationRequestResponseWorkspaceDto>()
+        whenever(readAccessService.resolve("bootstrap", "session-secret")).thenReturn(noAuthAccess)
+        whenever(responseWorkspaceService.load(requestId, access)).thenReturn(workspace)
+
+        val response = resource.responseWorkspace(requestId.toString(), "bootstrap", "session-secret")
+
+        assertEquals(Response.Status.OK.statusCode, response.status)
+        assertEquals(workspace, response.entity)
+        verify(responseWorkspaceService).load(requestId, access)
     }
 
     @Test
@@ -200,9 +209,7 @@ class InformationRequestNoAuthRequestResourceContractTest
     fun `get resolves the token then returns the same detail projection the authenticated surface uses`()
     {
         whenever(readAccessService.resolve("raw-token")).thenReturn(noAuthAccess)
-        whenever(queryService.findById(requestId, access)).thenReturn(request)
-        whenever(conditionEvaluationService.evaluate(requestId)).thenReturn(
-            listOf(
+        val projected = InformationRequestDtoMapper.toDto(request, listOf(
                 InformationRequestConditionEvaluationProjection(
                     ruleKey = "when-response-missing",
                     expressionVersion = 1,
@@ -210,8 +217,8 @@ class InformationRequestNoAuthRequestResourceContractTest
                     sourceRequirementKeys = setOf("prior-response"),
                     fieldDefinitionIds = emptySet(),
                 ),
-            ),
-        )
+            ))
+        whenever(responseWorkspaceService.loadRequest(requestId, access)).thenReturn(projected)
 
         val response = resource.get(requestId.toString(), "raw-token")
 
@@ -221,6 +228,7 @@ class InformationRequestNoAuthRequestResourceContractTest
         assertEquals(1, body.conditionEvaluations.size)
         assertEquals("when-response-missing", body.conditionEvaluations.single().ruleKey)
         assertEquals(InformationRequestConditionEvaluationState.UNKNOWN, body.conditionEvaluations.single().state)
+        verify(responseWorkspaceService).loadRequest(requestId, access)
     }
 
     @Test
@@ -231,7 +239,7 @@ class InformationRequestNoAuthRequestResourceContractTest
         val response = resource.get(UUID.randomUUID().toString(), "raw-token")
 
         assertEquals(Response.Status.NOT_FOUND.statusCode, response.status)
-        verify(queryService, never()).findById(any(), any())
+        verify(responseWorkspaceService, never()).loadRequest(any(), any())
     }
 
     @Test

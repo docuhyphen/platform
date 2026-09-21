@@ -2,340 +2,41 @@
 
 ## Status
 
-- Overall status: In progress
-- Review checkpoint: 2026-09-09. All 20 findings in
-  [the Phases 1-5 review](DOCUMENT-DRIVEN-INFORMATION-REQUESTS-PHASES-1-5-REVIEW.md)
-  are fixed and verified under `P5-R01` through `P5-R20`. `P5-R-GATE` passed on
-  2026-09-13 with recorded evidence. No finding was deferred to Phase 6 or later.
-- Current phase: Phase 6, Evidence and Secure Document Handling, is blocked and not started until
-  the required scanner approval decision is resolved. Phase 5, Structured Responses, Repeatable
-  Groups, and Conditions, is complete.
-  Phase 3, Runtime Requests, Parties, Lifecycle, and Command Safety, is complete apart from three
-  explicitly blocked subtasks. Phase 4, Authorization and Dual Access Surfaces: `P4-T1`
-  through `P4-T9` are all complete (`P4-T3`'s correction-allowlist slice is resolved as blocked, not implemented,
-  and `P4-T6b` is deferred, not blocked).
-  `P4-T4` is complete at the service layer: `ShareLinkMode` plus central-authorizer refusal, persisted
-  `RequestAccessSession` plus bootstrap `ShareLink` issuance, recipient contact-proof verification,
-  bootstrap-link rotation/replacement/revocation, and the verified-registration upgrade path
-  (`ParticipantAccountLink`) are all done. `P4-T5` (REST exposure) is complete: the authenticated
-  owner-facing bootstrap access-link admin resource (issue/rotate/replace/revoke), the no-auth
-  respondent adapter for contact-proof challenge issuance and session minting, the authenticated
-  participant registration-upgrade resource, the `EndpointAuthorizationFilter` no-auth allowlist entry,
-  and its look-alike-prefix rejection test are all implemented and passing. `P4-T6` is complete for its
-  `P4-T6a` slice (recipient-safe party projection); its `P4-T6b` slice (occurrence and response
-  projection) is deferred, not blocked, since occurrence entities carry no identity-bearing field today
-  and response/evidence content does not exist until Phase 5-7. `P4-T7` is now fully complete: it was
-  too large for one session and was split into `P4-T7a` through `P4-T7d`, all four of which are done.
-  `P4-T7a` froze `RequestExecutionGrant` issuance; `P4-T7b` added the idempotent
-  `RequestExecutionUsageReservation` capacity ledger (no caller yet); `P4-T7c` redirected continuation-path
-  subscription and Business-Fields checks to the frozen grant; `P4-T7d` added the commercial-entitlement
-  x rollout-grant truth-table tests, an emergency operational suspension check
-  (`InformationRequestEntitlementGuard.requireNotOperationallySuspended`, reusing the existing
-  `SubscriptionStatus.SUSPENDED` value, which still reaches a request even once its grant is frozen), and
-  explicit per-request grant revocation (`InformationRequestExecutionGrantService.revoke`, using the
-  existing `revokedAt`/`revokedReason` columns, enforced in `InformationRequestLifecycleService.mutate()`
-  via a new `EXECUTION_GRANT_REVOKED` catalog code). `P4-T8` is complete: both commercial and
-  rollout gates for `INFORMATION_REQUESTS` remain off by default (no plan in `PlanCatalog` includes the
-  feature; `app.subscription.rollout.grants` defaults to empty), and tests prove -- through the
-  actual `InformationRequestAdHocCreationService.createAdHoc` and `InformationRequestLifecycleService
-  .issue` call paths, not only the guard in isolation -- that holding the rollout grant alone or the
-  commercial entitlement alone still denies both creation and issuance, while a request that already
-  carries a frozen execution grant (as if issued earlier, while both gates were held) remains
-  cancellable regardless of which single gate is currently missing. `P4-T9` is now complete: the
-  minimal authenticated and no-auth runtime request read shell exists end to end.
-  `InformationRequestQueryService.findById` and the new `InformationRequestResource.get`
-  (`GET /information-requests/{id}`) expose owner-facing detail projection. The new
-  `InformationRequestPartyResource` (`GET /information-requests/{id}/parties`) is the first REST
-  caller of the `P4-T6a` party projection service, which was service-layer-complete but unreachable
-  until now. The new `InformationRequestNoAuthReadAccessService` turns a presented bootstrap
-  `X-Request-Access-Token` into the same `RequestAccessContext` shape the authenticated surface
-  builds -- reusing `InformationRequestContactProofService.resolveBootstrapLink` (made public) to
-  resolve the link, the new `RequestAccessSessionService.findUsableForShareLink` to find its usable
-  session, and `InformationRequestAccessContextFactory.fromBootstrapSession` (built in `P4-T4`, its
-  first production caller) to build the context -- refusing with a new `ACCESS_SESSION_REQUIRED`
-  catalog code when the link is valid but never verified. The new
-  `InformationRequestNoAuthRequestResource` (`no-auth/information-requests/{id}` and `.../parties`)
-  mirrors the authenticated resource's two reads against the identical application services, so both
-  surfaces project identical data for an equivalent caller; it is already covered by the existing
-  `/no-auth/information-requests/` allowlist prefix, confirmed by a new test rather than assumed.
-  Phase 4 exit criteria were reviewed at the start of the 2026-09-07 `P5-T1a` session and matched the
-  completed task set, with `P4-T6b` still intentionally deferred until response and evidence content
-  exists. `P5-T1a` is complete: the first response-draft persistence and service slice provides a
-  current `InformationRequestResponse` envelope, request-level `responseRevision`/ETag, sparse
-  disposition and narrative patching, explicit narrative clear, canonical principal/session
-  provenance, central Requirement response authorization, Command Receipt replay/conflict handling,
-  parent-state/frozen-grant checks, and `SAVE_RESPONSE` transition/audit routing. `P5-T1b` is also
-  complete: the new authenticated `InformationRequestResponseResource`
-  (`PATCH /information-requests/{id}/responses`) and a new `patchResponses` method on the no-auth
-  `InformationRequestNoAuthRequestResource` both require `If-Match` and an `Idempotency-Key`, build
-  the same explicit access context (`currentAuthenticated()` or the resolved bootstrap session)
-  on both surfaces, delegate to the identical `InformationRequestResponseDraftService.patch`, return
-  the response ETag, and map precondition/idempotency/domain/forbidden refusals to stable HTTP
-  responses via the same per-resource `CommandPreconditionResponse`/`ResponseError` pattern every
-  other Information Request resource uses. Both surfaces project only the requirement occurrences the
-  caller's own patch named, never another party's response on the same request, closing -- for this
-  response surface -- the Phase 4 exit criterion about cross-party response leakage that could not be
-  proven before response content existed. `P5-T1c` was found already complete -- Field Requirement
-  patches were already wired through the Fields engine (typed canonicalization, explicit clear,
-  canonical provenance, current Value Set identity, occurrence-scoped writes), uncommitted in the
-  working tree, with green unit and contract test coverage -- at the start of the 2026-09-07 `P5-T1d`
-  session; only the plan text had not been updated to reflect it. That session verified `P5-T1c`'s
-  exit criteria directly against the code and its tests (not assumed from the plan), then completed
-  `P5-T1d`: three new tests in `InformationRequestResponseDraftServiceTest` proving multi-occurrence
-  writes, field-patch replay without re-writing Fields, and a stale Field precondition aborting the
-  whole patch with no response/history side effects. All three passed immediately against the
-  existing generic per-patch-loop production code, so no production Kotlin changed. `P5-T1` is now
-  fully complete. `P5-T2` is now fully complete: `P5-T2a` added authored repeatable group
-  definitions, `P5-T2b` added runtime group occurrence instances at issuance, and `P5-T2c` added
-  authenticated and no-auth add, remove, and reorder commands with authored-cardinality checks,
-  response-shape ETag preconditions, idempotency, occurrence Field Value Set provisioning, and a
-  removed-marker model that preserves existing requirement history and stable occurrence paths.
-  `P5-T3` (a versioned condition expression model using stable Requirement and Field IDs) is now
-  fully complete: `P5-T3a` persists condition rule and predicate definitions, `P5-T3b` evaluates
-  them against a live runtime request, and `P5-T3c` exposes a client-safe rule-key/state projection
-  on the authenticated and no-auth runtime request detail read surfaces. `P5-T4` is complete:
-  condition rules now define, persist, copy, expose, and enforce per-condition hidden-response-data
-  policy. Response drafts now carry active or hidden state; hidden conditional responses are removed
-  from active response projections, retained or cleared according to the authored policy, and clear
-  policy requires an explicit response-patch confirmation. `P5-T5` is complete: runtime response
-  saves enforce the Template binding's platform disposition allowlist and now require a nonblank
-  narrative for exception-style dispositions (`PARTIALLY_PROVIDED`, `NOT_APPLICABLE`, `UNAVAILABLE`,
-  `EXCEPTION_REQUESTED`, `SATISFIED_BY_REFERENCE`, and `WAIVED`) while leaving `PROVIDED` narrative
-  optional. `P5-T6` is complete: structured response draft saves now run a dedicated validation
-  service before any Field write or response mutation, expose validator extension points for
-  cross-field, cross-row, unit, currency, date-range, period-coverage, and duplicate checks, and
-  reject duplicate Requirement patches or duplicate Field entries with a stable runtime error code.
-  `P5-T7` is complete: `InformationRequestCompletenessProgressService` now computes a deterministic
-  structured-response progress denominator and exposes a contribution contract that later evidence
-  and review evaluators can extend without double-counting a Requirement.
-  `P5-T8` is complete: the two test-only walking-skeleton fixtures now cover Phase 5 sparse draft
-  response, stress-fixture occurrence creation bounds, authored conditions, and structured-response
-  completeness progress. `P5-T9` is complete: the shared structured-response UI slice now exists end
-  to end behind the feature switch. The presentational workspace, its toolbar, its occurrence editor,
-  and its patch-building state were already green in the working tree, but nothing bound them to the
-  runtime API. `structuredResponseCommands` now builds the workspace's save, add, remove, and reorder
-  handlers over `informationRequestRuntimeService`, minting one idempotency key per command, passing
-  the expected response ETag as `If-Match`, threading an optional access-link token so the identical
-  handlers serve the authenticated and no-auth routes, and reporting a stale refusal without
-  inventing an ETag. `InformationRequestStructuredResponsePanel` gates the workspace on
-  `PlanFeature.INFORMATION_REQUESTS` for an authenticated caller and treats a presented access-link
-  token as server-gated access. Mounting the panel on a respondent route is Phase 10 integration
-  work, consistent with the walking-skeleton rule.
-  All nine original `P5-*` tasks are checked. The Phase 5 exit gate was run on 2026-09-08 and
-  failed, finding that condition evaluation was not occurrence-aware and failed open. That gap is
-  now closed by `P5-T10`, added to the phase and completed the same day: rules are evaluated once
-  per occurrence they govern, Field predicates resolve the occurrence's own Value Set laid over the
-  root set, disposition predicates resolve that occurrence's own answer and stay UNKNOWN rather than
-  picking an arbitrary sibling, and the occurrence path now travels through completeness,
-  hidden-response policy, the DTO read shape, and the respondent UI.
-- Next task: resolve the Phase 6 scanner approval decision, then start `P6-T1`.
-  `P5-R-GATE` is complete: all `P5-R01` through `P5-R20` tasks were checked with completion
-  evidence, the full Docker-backed backend suite passed with 2554 tests, the full frontend Vitest
-  suite passed with 118 files and 481 tests, `npm run typecheck:app` passed against the reviewed
-  346-diagnostic unrelated baseline with 0 Information Request diagnostics, root `npx tsc --noEmit`
-  passed, help docs were read and size-checked, and an integrated remediation review found no new
-  pre-Phase 6 defect. The remaining `npm run lint` and `npm run buildWithTs` failures are the
-  accepted broader frontend baseline with no Information Request matches in filtered reruns.
-  Phase 6 was not started.
-  `P5-R20` is complete: the Information Request Template tab test fixture now supplies the
-  required Template Version `groups` and `conditionRules` arrays and uses the real
-  `FieldValueType.SHORT_TEXT` value instead of nonexistent `FieldValueType.TEXT`. The new
-  `npm run typecheck:app` command runs the application project compiler and compares diagnostics
-  against a reviewed unrelated baseline, failing on any Information Request diagnostic or any new
-  unrelated diagnostic. The gate is backed by focused unit coverage and was proven to fail on a
-  temporary introduced Information Request type error, then pass after the probe was removed.
-  `P5-R19` is complete: the runtime persistence contract fixture now writes V102's required
-  delegated-authority grantor kind, grantor ID, and effective time. The positive contract path also
-  asserts those instrument fields round-trip, while the assigned-party, Requirement-scope, and
-  delegate-principal constraint refusals remain covered. The focused PostgreSQL case, full runtime
-  persistence contract class, and full Docker-backed backend suite are green.
-  `P5-R18` is complete: actual issuance and acting-party expansion paths now spend the frozen
-  `RequestExecutionGrant` additional-recipient capacity through the reservation ledger. Issuance
-  consumes one reservation per active acting party and skips the subject party. Issued acting-party
-  assignment reserves before creating the request Share, consumes after the party is saved, releases
-  an unconsumed reservation if the command fails, and command receipt replay does not double-spend.
-  Revoking an issued acting party rolls back that party's consumed reservation so the slot can be
-  reused. Regression coverage now includes production-caller rollback, replay idempotency,
-  assignment release, revocation reuse, and the PostgreSQL concurrency ledger contract.
-  `P5-R17` is complete: structured completeness now inspects the exact collected Field's current
-  canonical value for Field Requirements instead of treating the existence of a Value Set as an
-  answer. Empty first saves and cleared current Field values remain incomplete, field-only saves
-  with a non-empty collected value count complete, and neutral exception dispositions such as
-  waived continue to resolve the Requirement without requiring a Field value. The Phase 5 walking
-  skeleton fixtures now carry the authored collected Field identity and store real current Field
-  values for completed Field rows.
-  `P5-R16` is complete: hidden response policy enforcement now handles TRUE transitions as well as
-  false and unknown transitions. Retained and archived conditional responses reactivate with their
-  saved disposition, narrative, provenance, and history intact when their rule returns to TRUE.
-  Confirmed-clear responses reactivate as active empty response envelopes, without restoring cleared
-  Field or response data. Regression coverage now includes false to TRUE retained/archive
-  reactivation and unknown to TRUE clear-policy reactivation.
-  `P5-R15` is complete: condition evaluation now overlays root, ancestor, and exact occurrence
-  Field Value Sets in order, so a nested conditional Requirement can read the parent occurrence
-  answer for its own branch without crossing into a sibling branch. Disposition predicates now use
-  the same occurrence ancestry before falling back to root answers. The structured-response
-  workspace now uses immutable template group and occurrence identity for nested controls: root
-  add commands stay in the toolbar, child add controls are rendered within the selected parent
-  occurrence, sibling reorder is scoped to the same group and parent occurrence, and add/reorder
-  payloads include `parentOccurrenceId` for nested groups.
-  `P5-R14` is complete: runtime Information Request reads now use the same owner-funded frozen
-  execution grant rule already used by continuation mutations. When a request has a
-  `P5-R14` is complete: runtime Information Request reads now use the same owner-funded frozen
-  execution grant rule already used by continuation mutations. When a request has a
-  `RequestExecutionGrant`, detail and workspace reads skip live commercial entitlement and rollout
-  rechecks, but still enforce live operational suspension and explicit per-request grant revocation.
-  Draft or never-issued request reads still require live owner Information Requests access. Exchange
-  lists evaluate this per request, so issued work remains visible while gated drafts drop out. The
-  structured response panel no longer gates an authenticated respondent on the respondent account's
-  own `PlanFeature.INFORMATION_REQUESTS`; server-returned workspace access is authoritative for both
-  signed-in and recipient-session callers. Regression coverage now includes owner rollout or feature
-  withdrawal, mixed issued/draft lists, grant revocation, operational suspension, recipient-bound
-  session access, and a signed-in Free respondent UI path.
-  `P5-R13` is complete: receipt replay now locks and rechecks the current parent Exchange,
-  current request lifecycle, frozen continuation entitlement, operational suspension state,
-  request-level read access, Requirement response authorization, active occurrence state, and the
-  receipt's recorded revision before returning a replay representation. Replayed response and Field
-  projections are capped to the receipt revision, so a retry confirms only the result originally
-  saved and cannot disclose a later replacement response or later collected Field value.
-  `P5-R12` is complete: contact-proof challenge issuance and verification now lock the bootstrap
-  ShareLink row, enforce expiry and `maxUses`, bound failed OTP attempts with a temporary lockout,
-  reset attempt state on reissue, clear OTP state on success, and atomically advance the bootstrap
-  `ShareLink.usedCount` when a verified respondent session is minted. Session-authenticated reads
-  and writes continue to use the minted session credential without consuming additional link uses,
-  while new challenge and verification attempts fail closed after exhaustion, revocation, expiry,
-  failed proof lockout, or wrong binding.
-  `P5-R11` is complete: exact-party Requirement authorization now resolves assigned participant
-  parties through verified `ParticipantAccountLink` records and assigned group parties through
-  current active group membership while preserving the original assigned party principal,
-  assignment role, party ID, subject identity, Exchange recipient, and Share provenance. Registered
-  linked accounts and active group members can read and respond for the assigned party. Unrelated
-  accounts, removed members, unsupported nested group members, and callers without a current
-  assignment fact remain denied.
-  `P5-R10` is complete: group occurrence commands now separate display order from stable occurrence
-  identity. Add commands lock every sibling occurrence for the request, group, and parent path,
-  including removed rows, choose the next display index from active siblings, and choose the next
-  path identity from all existing sibling occurrence paths, so remove, reorder, then add cannot
-  reuse an earlier stable path. The regression suite now covers the duplicate-path probe,
-  occurrence Field Value Set path provisioning, and the same-request sibling lock that serializes
-  concurrent adds.
-  `P5-R09` is complete: response DTOs now carry explicit `sourceTemplateRequirementId` and
-  `sourceTemplateBindingId` correlation from runtime Requirement rows to the frozen Template
-  requirement and binding identities. Authenticated and no-auth response resources return the same
-  contract for saved and synthetic not-yet-answered responses, and the structured response workspace
-  now matches Field Requirements by the binding identity first, then the stable Template Requirement
-  identity, instead of guessing from whole Value Set Field presence. The regression proves editing
-  only the second Field and editing both Fields in one repeated occurrence both name the correct
-  distinct runtime Requirements.
-  `P5-R08` is complete: `InformationRequestResponseDraftService.mutate` now groups response patches
-  carrying Field values by the Value Set their Requirement's occurrence resolves to and submits one
-  merged `FieldValueWriteCommand` per group instead of one per Requirement, so two Requirements
-  collecting Fields in the same occurrence no longer make the second write see the first write's
-  already-advanced revision and fail its own precondition. A new `mergeFieldPreconditions` requires
-  every patch in a group to carry the identical precondition, failing closed with
-  `STRUCTURED_RESPONSE_VALIDATION_FAILED` rather than silently picking one on a mismatch.
-  `P5-R07` is complete: removed occurrence subtrees were already excluded from active completeness,
-  condition evaluation, the response workspace, and response-patch writes (`GROUP_OCCURRENCE_REMOVED`)
-  by prior working-tree code, each with its own passing regression test. The one remaining gap was
-  that `InformationRequestRequirementAuthorizationContextProvider.resolve` never considered occurrence
-  removal, so a caller reaching a removed occurrence's Requirement through the generic Fields engine
-  directly (`InformationRequestFieldResourceAdapter` / `InformationRequestFieldBindingPolicy`, which
-  authorizes per Field write against `ResourceRef.informationRequestRequirement(id)` rather than
-  through `InformationRequestResponseDraftService`) was never denied. Added an `occurrenceRemoved`
-  fact, computed from the same active-occurrence-path set used elsewhere, and a new
-  `InformationRequestRequirementPolicyEvaluator` check that denies every response-mutation action
-  (never view) for a Requirement whose occurrence has been removed, reusing `GROUP_OCCURRENCE_REMOVED`.
-  `P5-R06` is complete: `InformationRequestGroupOccurrenceService` now authorizes add, remove, and
-  reorder group-occurrence commands against the actual per-Requirement policy instead of only the
-  coarse aggregate `INFORMATION_REQUEST` grant. A new `InformationRequestGroupAuthorizationService`
-  authorizes every occurrence path a remove or reorder command touches (the target occurrence plus
-  its descendants, or every active sibling being reordered) against its already-materialized
-  Requirement, and authorizes every Template binding an add command would materialize (the group's
-  own anchored binding plus any descendant group whose authored minimum occurrences also
-  materialize) against either an existing Requirement instance sharing that binding or, when none
-  has been created yet, a new `InformationRequestRequirementAuthorizationContextProvider.authoredContextFor`
-  path that builds the same policy facts a materialized Requirement would carry and evaluates them
-  directly, so a zero-occurrence group's first occurrence can no longer be added by falling back to
-  aggregate contributor authority.
-  `P5-R05` is complete: `InformationRequestFieldBindingPolicy.isExternalCaller` now resolves whether
-  the caller is an active member of the request's owning organization (or its personal owner),
-  mirroring `ExchangeFieldBindingPolicy`, instead of always returning `false`; and `decide()` now
-  refuses an external caller outright when no Requirement collects the addressed Field, instead of
-  falling through to the shared audience rule, so an uncollected `INTERNAL`/`CONFIDENTIAL` Field can
-  no longer reach an external or registered respondent while an owner-side caller keeps its existing
-  access. Reads and writes both flow through this same `decide()` call, so the fix applies to
-  projections and writes consistently.
-  `P5-R04` is complete: `InformationRequestFieldBindingPolicy.requirementIdAnswering` now resolves the
-  Requirement occurrence the caller's `FieldValueSetRef` actually addresses (root or a named
-  occurrence) instead of the first Requirement anywhere on the request that happens to collect the
-  same Field Definition, so a repeated Field can no longer be authorized against a sibling
-  occurrence's Requirement in either direction. `InformationRequestResponseDraftService` now also
-  rejects, before any Fields write, a response Field patch entry whose Field Definition does not
-  match the named Requirement's own collected Field, closing the remaining gap where a patch naming
-  one Requirement could still smuggle in an entry answering a different Requirement sharing the same
-  occurrence.
-  `P5-R03` is complete: hidden current values are excluded from active projections, and confirmed
-  clearing writes empty current Fields through the revision-preserving Fields engine.
-  `P5-R01` is complete: independently authenticated recipient sessions, mandatory expiry,
-  request/link/recipient binding, both adapters, client transport, and migration regression checks.
-  `P5-R02` is complete: Exchange rejection, rescission, deletion, and ending now drive a
-  transactional child-request lifecycle service that cancels unfinished requests, revokes respondent
-  sessions, and retains owner read; the parent snapshot is now a resource policy fact that the
-  central authorizer applies on every request and Requirement read surface; and all request mutation
-  commands take the parent Exchange row lock before the request row so a concurrent termination
-  serializes instead of deadlocking.
-  All required remediation tasks and `P5-R-GATE` are complete; resolve the Phase 6 scanner approval
-  decision before Phase 6 implementation begins.
-  The review's Docker-backed run originally executed 2453 tests with zero assertion failures and one
-  fixture error tracked by `P5-R19`; `P5-R19` is now repaired, and the backend suite passes with
-  2554 tests. The 2026-09-13 `P5-R-GATE` rerun also passed with 2554 backend tests.
-  Neither `InformationRequestExecutionGrantService.revoke` nor `requireNotOperationallySuspended` has
-  a REST caller yet; an administrative surface for either has not been placed in the phase plan, so a
-  future session scoping owner or platform administration should decide where that belongs.
-  `P5-T10` implemented occurrence-scoped evaluation; `P5-R15` completed ancestor inheritance and
-  nested editor command identity; `P5-R16` completed hidden-response reactivation; `P5-R17`
-  completed exact Field-value completeness; `P5-R18` wired frozen recipient-capacity reservations
-  into issuance and issued acting-party changes; `P5-R19` repaired the delegated-authority
-  persistence fixture; `P5-R20` repaired the Information Request Template frontend fixtures and
-  established the baseline-aware app typecheck gate; and `P5-R-GATE` closed the complete
-  pre-Phase 6 remediation review.
-- Last implementation: 2026-09-13, `P5-R-GATE` completed. The complete remediation gate passed
-  with the full backend suite, full frontend Vitest suite, baseline-aware app typecheck, root
-  TypeScript command, help-doc review, and integrated remediation review. See the latest result and
-  companion evidence for exact commands, accepted baseline failures, and the Phase 6 handoff.
-- Plan structure updated: 2026-09-03, completion evidence split created
-- Completion evidence: `plans/DOCUMENT-DRIVEN-INFORMATION-REQUESTS-COMPLETION-EVIDENCE.md`
-- Implementation source of truth:
-  `plans/DOCUMENT-DRIVEN-INFORMATION-REQUESTS-IMPLEMENTATION-PLAN.md`
-- Design input: `plans/DOCUMENT-DRIVEN-INFORMATION-REQUESTS-PROPOSAL.md`
+- Overall status: In progress. Phases 1 through 5 and the repeated remediation gate are complete.
+- Review checkpoint: the 2026-09-13 [Phases 1-5 recheck](DOCUMENT-DRIVEN-INFORMATION-REQUESTS-PHASES-1-5-RECHECK.md)
+  found seven remaining gaps. The original P5-R01 through P5-R20 completion records remain
+  historical evidence; they do not establish that the integrated implementation is gap-free.
+- Current work: Phase 6 scanner-independent evidence groundwork. P5-R-GATE remains complete.
+- Exact next task: P6-T1b Artifact and append-only Version persistence with TDD. P6-T1a is complete.
+- Phase 6: in progress. On 2026-09-20 the user explicitly directed other work to continue while
+  deferring only the scanner deployment/signature-update decision. This supersedes the prior hold.
+  Production external evidence upload and file-safety claims remain gated; no new AWS service or
+  paid resource type is authorized.
+- Phases 1 and 2: no additional standalone defect identified in the inspected foundation and
+  Template paths. Their adapters and recipient-facing integration are included in the new findings.
+- Phase 3: complete. P3-T11b through P3-T11d existing-runtime credential hooks are complete through
+  P5-R26 through P5-R28. Future evidence/version/package preservation remains in later phases.
+- Phase 4: complete. Independent credentials, owner-funded grants, party authorization, transaction-safe
+  OTP limits, and recipient-safe workspace and request-detail projection are verified.
+- Phase 5: complete. Occurrence-level disclosure filtering, nested saves, group creation authorization, response
+  editor refusal/clear handling, party command lock ordering, PostgreSQL party concurrency
+  evidence and party credential lifecycle hooks are complete. The integrated gate passed.
+- Verification: use this recheck's current results and the newest evidence entry. The earlier
+  2026-09-13 passing gate is retained as history, not reused as current verification.
+- Entitlement decision: `INFORMATION_REQUESTS` is included in Personal and Business. Platform-admin
+  feature overrides are the only per-owner feature control. Subscription rollout grants and their
+  configuration were removed. An active organization grant also sponsors its members when they use
+  the Personal Information Request Settings scope. Older task text describing a second owner rollout
+  gate is historical and superseded by this decision.
+- Future-phase boundaries remain: evidence/upload/package behavior stays in Phases 6-7; item-level
+  correction allowlists remain with P8-T3 and currently fail closed. An administrative surface for
+  explicit execution-grant revocation remains a future scoping decision.
+- Completion evidence: `plans/DOCUMENT-DRIVEN-INFORMATION-REQUESTS-COMPLETION-EVIDENCE.md`.
+- Implementation source of truth: this plan. Design input:
+  `plans/DOCUMENT-DRIVEN-INFORMATION-REQUESTS-PROPOSAL.md`.
 
-This active plan keeps the original planning context, remaining tasks, exact next task, subsequent plans, and the latest
-implementation result. Historical completion results, test evidence, decisions, and older journal entries live in
-`plans/DOCUMENT-DRIVEN-INFORMATION-REQUESTS-COMPLETION-EVIDENCE.md`.
-
-Phase 1 and Phase 2 are complete. Phase 3 is complete apart from `P3-T11b` (ShareLink bootstrap rotation on
-request-party reassignment), `P3-T11c` (RequestAccessSession revocation on reassignment), and `P3-T11d`
-(completed-work preservation), which remain blocked: `P4-T4` now provides a bootstrap `ShareLink` issuance, rotation,
-replacement, and revocation service and a persisted `RequestAccessSession` with its own revocation, but nothing in the
-repository yet implements request-party reassignment itself to call them from, and no response/evidence content entity
-exists for `P3-T11d`. They depend on the rest of Phase 4 and Phase 5-7 respectively and are journaled under `P3-T11`
-rather than attempted early.
-
-Phase 4's task list (`P4-T1` through `P4-T9`) is now fully checked off. `P4-T3`'s correction-allowlist slice is resolved as blocked on `P8-T3` (no
-Review, Finding, or correction-request entity exists yet in the repository; the only related artifact,
-`InformationRequestMutation.REQUEST_CORRECTION` in
-`InformationRequestTransitionMatrix`, is a whole-request-state transition with no item parameter that nothing invokes),
-the same way `P3-T11b`/`c`/`d` are blocked on their own prerequisite subsystems. Until `P8-T3` lands, the existing
-binary `correctionScope` (`NORMAL_RESPONSE`/`OPEN_CORRECTION`)
-denies every answer mutation while a request is `CHANGES_REQUESTED` regardless of which item a reviewer actually
-flagged; that is a known, accepted limitation, not a bug.
-
-Full historical implementation detail for every completed `P3-*` and `P4-*` task (exact gaps found, files changed,
-migrations, and decisions) lives newest-first in the companion evidence file's
-`## Implementation Journal`.
-
-Existing working-tree changes belong to the user and must be preserved. In particular, do not rewrite or normalize the
-proposal while implementing this plan.
-
+Historical task results live in the companion evidence journal. Preserve unrelated working-tree
+changes and do not rewrite the proposal as part of this remediation.
 ## Plan and Evidence Update Protocol
 
 Future sessions must keep the active plan and completion evidence split.
@@ -536,7 +237,7 @@ test for the same failure modes:
 | Fields port | `FieldResourceAdapter` is whole-resource only, `setValues` has no Value Set or expected revision, and Field Value authorship is App User-only. | Generalize the Fields command and authorization ports for binding, occurrence, Value Set, canonical principal provenance, and concurrency. |
 | Fields caller reachability | Current authenticated Field resources can obtain `USER` or `APPLICATION` principals. An external registered User is reachable now, while `PARTICIPANT` and `PUBLIC_LINK` Field calls require a synthetic service or adapter test until the Phase 4 no-auth surface exists. | Test the service and adapter contracts with explicit synthetic participant and public-link principals in Phase 1, identify those tests as pre-exposure contract tests, and add real no-auth endpoint coverage when Phase 4 exposes the path. |
 | Fields scope vocabulary | `FieldScopeKind` and three V36 checks use `PLATFORM` and `ORGANIZATION`; other domains use differing persisted vocabularies such as `APP`, `ORG`, and `PERSONAL`. Personal scope is also blocked in code, not only in the schema: `ScopeReference` is `Platform` or `Organization` only while `OwnerContext` already has `Personal`, `ExchangeFieldResourceAdapter.ownerScope` returns null for a personally owned Exchange, `SchemaAssignmentService.assertSchemaVisibleToResource` casts to `ScopeReference.Organization` and rejects anything else, and `BusinessFieldsSubscriptionGuard.requireConfigurationMutation` calls `requireNotNull(organizationId)` for every non-`PLATFORM` scope. | Preserve the existing Fields spelling and extend it exactly to `PLATFORM`, `ORGANIZATION`, and `PERSONAL`. Use the same spelling for Information Request Templates while leaving unrelated existing domain enums unchanged. Rewrite all affected Fields checks explicitly. Extend `ScopeReference` with a personal owner and correct all four code sites in the same task; extending the enum alone yields a scope that throws on first use. |
-| Fields commercial guard | `SchemaAssignmentService.setValues` and every assignment mutation call `BusinessFieldsSubscriptionGuard.requireResourceMutation`, which resolves the resource's `SubscriptionContext` and re-checks the owner's live plan for `PlanFeature.BUSINESS_FIELDS_AND_SCHEMAS` on each write. | This live re-check contradicts the frozen execution grant. Route Information Request Field writes through the request's `RequestExecutionGrant` instead of a live owner-plan lookup, and state the entitlement composition rule explicitly: a Field-bearing request requires the owner to hold both `INFORMATION_REQUESTS` and `BUSINESS_FIELDS_AND_SCHEMAS` at issuance, after which the grant governs completion. |
+| Fields commercial guard | `SchemaAssignmentService.setValues` and every assignment mutation call `BusinessFieldsSubscriptionGuard.requireResourceMutation`, which resolves the resource's `SubscriptionContext` and re-checks the owner's live plan for `PlanFeature.BUSINESS_FIELDS_AND_SCHEMAS` on each write. | Route Information Request Field writes through the request's `RequestExecutionGrant` instead of a live owner-plan lookup. Organization-owned Field-bearing requests require both `INFORMATION_REQUESTS` and `BUSINESS_FIELDS_AND_SCHEMAS`; Personal Information Requests include their typed response data. |
 | Attribution foreign keys | `field_value.updated_by_app_user_id`, `schema_assignment.assigned_by_app_user_id`, and Share grant and revoke App User columns are nullable foreign keys to `app_user`. | Add parallel canonical principal kind and ID columns during expand, preserve valid legacy App User foreign keys while dual-writing, and state the later contract decision explicitly. Never place participant or public-link IDs into an App User foreign-key column. |
 | Document Versions | `DocumentVersion` has no content hash, its creator is nullable App User-shaped, and version bytes use a hardcoded local path with replacement semantics. The mutable Document row owns the current hash. | Add typed provider-neutral write-once locators, version-level hashing, and canonical principal provenance with truthful legacy states. |
 | End-to-end encryption | `DocumentEncryptionMode.END_TO_END` exists even though current frontend upload paths send `INTERNAL`. Server-side inspection and malware scanning cannot establish plaintext safety for opaque end-to-end ciphertext. | Keep end-to-end encrypted Document Versions ineligible to satisfy a file-backed Evidence Requirement until a separately approved inspectable representation and security contract exists. Do not claim ciphertext scanning establishes plaintext safety. |
@@ -547,8 +248,8 @@ test for the same failure modes:
 | Command safety | There is no reusable client-command idempotency receipt or `If-Match` infrastructure. | Add shared command-receipt and HTTP precondition foundations before retryable request mutations. |
 | Transactional events | `DomainEvent` and `DomainEventPublisher` are already neutral. Their durable implementation, qualifier, mapped entity, repository, dispatcher, scheduler, metrics, and physical table are Workflow-branded. The event outbox has only nullable `organization_id`, so it cannot distinguish platform from personal ownership, and `idempotency_key` is globally unique with no type or owner prefix. A separate `audit_outbox` exists for immutable audit intent. | Preserve the neutral public contract, generalize only the durable implementation vocabulary, add explicit event owner kind and ID, and reuse the existing physical event table. Define and test an explicit idempotency-key namespace for Information Request events so a request key can never collide with a Workflow key in the shared global unique index. Keep audit and domain-event intents distinct but correlated and transactional; do not create a request-specific event outbox. |
 | Audit | Audit event keys and categories are a closed catalog at version 14. `AuditRecorder` can accept an explicit actor but otherwise falls back to request authentication, and `AuditOwnerScope` is only platform or organization. `AuditActorKind` already includes `PUBLIC_LINK`. Roughly twenty existing call sites resolve owner as `organizationId?.let(AuditOwnerScope::Organization) ?: AuditOwnerScope.Platform`, so every personally owned Exchange already records its audit events under platform scope. | Add Information Request catalog entries and personal owner scope, and always pass explicit canonical actor data for request mutations, including no-auth actions. Enumerate and correct the existing organization-or-platform fallbacks that a request mutation can reach through Exchange, Document, Document Version, access-management, and hold services; otherwise a personal request inherits the same mislabelling through code the plan reuses rather than replaces. |
-| Entitlement | `PlanFeature` has no Information Requests value and persisted feature overrides are organization-only. | Add an owner-neutral commercial entitlement override and a separately persisted operational rollout gate. |
-| Subscription trials and enforcement | User and organization trial grants and requests exist, and subscription enforcement has global `OFF`, `REPORT_ONLY`, and `ENFORCE` modes. A trial may expire after a request is issued. | Resolve issuance through the existing effective-subscription and enforcement services, snapshot trial or paid entitlement provenance in the execution grant, and prove trial expiry does not strand reserved issued work. Keep the owner rollout gate separate from global subscription enforcement mode. |
+| Entitlement | `PlanFeature` has no Information Requests value and persisted feature overrides are organization-only. | Add an owner-neutral commercial entitlement override controlled by platform administration. Include Information Requests in Personal and Business without a second rollout gate. |
+| Subscription trials and enforcement | User and organization trial grants and requests exist, and subscription enforcement has global `OFF`, `REPORT_ONLY`, and `ENFORCE` modes. A trial may expire after a request is issued. | Resolve issuance through the existing effective-subscription and enforcement services, snapshot trial or paid entitlement provenance in the execution grant, and prove trial expiry does not strand reserved issued work. |
 | External participants | `ExternalParticipant` and `external_participant` exist with `owner_organization_id`, normalized email, and verification metadata, but no code path ever constructs or persists one. The repository exposes only `findById`, used by three read-only display paths, and `findByOwnerAndEmail` has no caller, so the table is empty in every environment. No production code emits a `PrincipalKind.PARTICIPANT` principal. | This is greenfield, not an extension. Build the owner-scoped participant identity lifecycle, including creation, contact verification, owner-scoped lookup, collision handling, and registration-upgrade lineage, and add personal ownership to the existing empty table as a forward-only schema change. Do not plan a data backfill, ambiguity report, or legacy-row resolution pass for a table with no rows. |
 | Email-only recipient identity today | The existing email recipient path does invent an App User: `ExchangeRecipientSelectionResolver.resolveExternalEmail` creates `AppUser(isTemporary = true, isActive = false)` for every `EXTERNAL_EMAIL` selection. `ExchangeRecipientService.recordExternalEmailPrimaryDecision` and `ExchangeAccessManagementService.resendNoAuthPrimaryRecipientInvitation` both require `share.principalKind == PrincipalKind.USER`, so acceptance, resend, and `ExternalEmailAcceptancePolicyService` are structurally bound to User-kind Shares. | Never invent an App User for Information Request access. Because the reusable Exchange acceptance, resend, and eligibility paths assume a User-kind Share, record an explicit decision for each one: reuse it only for User-backed request parties, or implement a participant-principal equivalent. A participant-principal request party cannot silently flow through the existing recipient decision paths. |
 | Exchange recipient binding | `exchange_recipient.direct_share_id` is `NOT NULL UNIQUE`, the V63 trigger `validate_exchange_recipient_share_binding` requires that Share to be a direct, non-owner Share whose `resource_type` is `EXCHANGE` and whose `resource_id` equals the recipient's Exchange, and `uq_exchange_recipient_primary` permits one `PRIMARY` recipient per Exchange. | A recipient's single Share is permanently pinned to its Exchange, so a request-party Share cannot be attached through `direct_share_id`. Reference an `ExchangeRecipient` by ID from the request party and bind the bootstrap `ShareLink` to the request-party Share, leaving the existing recipient invariant untouched. Do not model several request contributors as several primary recipients. |
@@ -630,15 +331,15 @@ These decisions replace the contradictory or unresolved alternatives in the prop
     available. Trial expiry is one commercial-lapse case: the grant records the effective paid or
     trial source and its issuance-time policy while reserved issued work remains finishable after
     the trial ends. Global subscription `OFF`, `REPORT_ONLY`, or `ENFORCE` behavior remains distinct
-    from the owner-specific rollout gate. Operational security suspension is a separate control and
-    may freeze mutations with an explicit reason.
+    from operational security suspension, which may freeze mutations with an explicit reason.
     The existing `BusinessFieldsSubscriptionGuard.requireResourceMutation` re-checks the owner's
     live plan for `BUSINESS_FIELDS_AND_SCHEMAS` on every Field write, which would strand an
     already-issued request after a lapse. Information Request Field operations therefore consult the
     frozen `RequestExecutionGrant` instead of that live guard. Issuance requires the owner to hold
-    both `INFORMATION_REQUESTS` and, when the Template has Field Requirements,
-    `BUSINESS_FIELDS_AND_SCHEMAS`; the grant snapshots both and governs completion thereafter. The
-    guard's existing Exchange behavior is unchanged.
+    `INFORMATION_REQUESTS`. Organization-owned requests with Field Requirements also require
+    `BUSINESS_FIELDS_AND_SCHEMAS`; Personal Information Requests include their typed response data.
+    The grant snapshots the applicable features and governs completion thereafter. The guard's
+    existing Exchange behavior is unchanged.
 15. Data classification, respondent response mode, confidentiality compartment, and reviewer access
     are separate policies and must be enforced on both reads and writes.
 16. Collection state, response disposition, evidence state, review disposition, and business
@@ -671,13 +372,10 @@ These decisions replace the contradictory or unresolved alternatives in the prop
 22. Persistence and ownership support `PERSONAL` scope before Template runtime work begins. Fields,
     Schemas, Schema Assignments, and Information Request Templates use the exact persisted scope
     vocabulary `PLATFORM`, `ORGANIZATION`, and `PERSONAL`; unrelated `APP` and `ORG` enums remain
-    unchanged. Add
-    `INFORMATION_REQUESTS` to backend and frontend plan features, but keep it absent from default
-    plans until rollout. Generalize the existing organization-only feature override into an
-    owner-scoped commercial entitlement that supports organization and user owners. Add a separate
-    owner-scoped operational rollout record. A controlled owner must pass both gates: an explicit
-    commercial entitlement for `INFORMATION_REQUESTS` and an enabled rollout. Neither gate may
-    silently stand in for the other.
+    unchanged. Add `INFORMATION_REQUESTS` to backend and frontend plan features and include it in
+    Personal and Business plans. Generalize the existing organization-only feature override into an
+    owner-scoped commercial entitlement that supports organization and user owners. Platform-admin
+    feature overrides remain the only per-owner feature control.
     Personal scope is a code change as well as a schema change. The same task extends
     `ScopeReference` with a personal owner, gives `FieldResourceAdapter.ownerScope` a personal
     result for personally owned resources, rewrites
@@ -995,10 +693,10 @@ reason summary.
 |-------|--------------------------------------------------------------|----------------------------------------|-------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | 1     | Business Fields foundation program                           | None                                   | Complete    | Current Fields are safe, principal-aware, version-aware, and deterministic enough to reuse.                                                                      |
 | 2     | Versioned Information Request Templates                      | Phase 1                                | Complete    | Published templates are immutable and referenceable by existing Blueprint Definitions.                                                                           |
-| 3     | Runtime requests, parties, lifecycle, and command safety     | Phase 2                                | In progress | Drafts, parties, exact assignments, parent-child lifecycle, audit, transactional events, idempotency, and concurrency are safe; issuance remains executor-gated. |
-| 4     | Authorization and dual access surfaces                       | Phase 3                                | Complete    | Registered and recipient-bound no-auth actors share the central capability model.                                                                                |
-| 5     | Structured responses, repeatable groups, and conditions      | Phase 4                                | Complete | All 20 review findings resolved, P5-R-GATE passed, safe drafts and authoritative completeness verified. |
-| 6     | Evidence and secure document handling                        | P5-R-GATE plus approved scanner decision | Blocked, not started | Versioned evidence is policy-validated, scanned fail-closed, and request-scoped. |
+| 3     | Runtime requests, parties, lifecycle, and command safety     | Phase 2                                | Complete    | Drafts, parties, exact assignments, parent-child lifecycle, audit, transactional events, idempotency, and concurrency are safe; issuance remains executor-gated. |
+| 4     | Authorization and dual access surfaces                       | Phase 3                                | Complete | Recipient workspace and request-detail occurrence and condition-result disclosure verified. |
+| 5     | Structured responses, repeatable groups, and conditions      | Phase 4                                | Complete | P5-R01 through P5-R30 and the repeated P5-R-GATE passed. |
+| 6     | Evidence and secure document handling                        | P5-R-GATE | In progress | Scanner-independent work proceeds; production uploads and safety claims still require a real approved scanner. |
 | 7     | Submission, response attestation, amendments, and recurrence | Phase 6                                | Not started | Immutable packages survive staged submission, amendments, supplements, and recurrence.                                                                           |
 | 8     | Review, findings, remediation, and decision separation       | Phase 7                                | Not started | Item-level and staged review is complete and auditable.                                                                                                          |
 | 9     | Time, Workflow, audit, retention, and export                 | Phase 8                                | Not started | Events, clocks, immutable notices, preservation holds, disposal, and downstream use are reliable.                                                                |
@@ -1741,10 +1439,10 @@ exist.
   no-review closure must be atomic with the final package in Phase 7, while review-required closure
   and correction commands must be atomic with records created in Phase 8. Scheduled expiry belongs
   to Phase 9.
-- [ ] `P3-T11` Define reassignment behavior for recipient replacement, revoked access, group
+- [x] `P3-T11` Define reassignment behavior for recipient replacement, revoked access, group
   membership changes, trust-policy revision or suspension, and work already completed by the previous contributor. Split
-  into dependency-ordered subtasks because the bootstrap-credential and no-auth session subsystems the full behavior
-  depends on do not exist yet in this repository.
+  into dependency-ordered subtasks. Existing bootstrap-credential, no-auth session, and structured-response
+  behavior is implemented and verified; future evidence and package preservation remains in Phases 6-7.
     - [x] `P3-T11a` Wire `InformationRequestPartyService.reassignMutation` through the same locked-parent-Exchange
       recheck, transition matrix, and request-party transition history/audit/domain-event mechanism the Phase 3
       lifecycle commands already use. Journal an explicit decision for each of the five `replacePrimaryRecipient`
@@ -1780,18 +1478,16 @@ exist.
            party-scoped history is queryable, and extended
            `InformationRequestTransitionHistoryCommand`/`InformationRequestTransitionHistoryService` to accept and
            persist it.
-    - [ ] `P3-T11b` ShareLink bootstrap rotation on reassignment. Blocked: no `ShareLink` creation or rotation service
-      exists yet anywhere in the repository (only read-only no-auth validation), and
-      `VERIFICATION_BOOTSTRAP` mode does not exist. This depends on the Phase 4 no-auth bootstrap credential work in
-      Architectural Decision 24, not on Phase 3.
-    - [ ] `P3-T11c` RequestAccessSession revocation on reassignment. Blocked: `RequestAccessSession`
-      has no entity, repository, or service anywhere in the repository yet; only the forward-looking
-      `RequestAccessContext` exists. This is first built by the Phase 4 no-auth surface.
-    - [ ] `P3-T11d` Completed-work preservation on reassignment. Blocked: no response or evidence content entity exists
-      yet (`RequestResponse`, `EvidenceArtifact`, `EvidenceVersion`, and
-      `SubmissionPackage` are Phase 5-7 scope). Preservation requires that storage to key off
-      `informationRequestPartyId` rather than `principalId`; record that requirement against the Phase 5-7 schema design
-      rather than inventing interim storage here.
+    - [x] `P3-T11b` Revoke active bootstrap ShareLinks and their RequestAccessSessions before the old
+      Share is revoked during reassignment or party revocation. Bind the replacement Share to the new
+      principal. A replacement bootstrap credential is minted only through the explicit issue command,
+      so the reassignment mutation never returns or silently distributes a raw secret.
+    - [x] `P3-T11c` Revoke persisted RequestAccessSessions for every revoked bootstrap ShareLink during
+      reassignment and party revocation. Service and transaction tests verify old credential cutoff.
+    - [x] `P3-T11d` Preserve completed work during reassignment. The stable party and Requirement
+      association, response record, content, revision, and original principal provenance remain
+      unchanged. Future evidence/version/package preservation remains in Phases 6-7 and must keep
+      stable party identity separate from the replacement principal.
 - [x] `P3-T12` Model delegated authority separately from party role. Record the
   authority instrument or evidence reference, grantor, grantee, scope, effective and expiry dates,
   revocation, and the exact requests or Requirements for which the delegate may act. Reconciled the pre-existing
@@ -2396,9 +2092,12 @@ the changed files, exact commands and results. A passing existing suite, a docum
 or a decision to defer the defect does not close a finding. Preserve the report as the original
 review record and record resolutions in the companion evidence journal using these stable IDs.
 
-All `P5-R01` through `P5-R20` remediation tasks and `P5-R-GATE` are complete. If a later review
-finds a defect in this remediation scope before Phase 6 starts, add it as a new unchecked
-pre-Phase 6 remediation task and retain the Phase 6 block until it is complete.
+The original `P5-R01` through `P5-R20` completion records are retained as history. The 2026-09-13
+[Phases 1-5 recheck](DOCUMENT-DRIVEN-INFORMATION-REQUESTS-PHASES-1-5-RECHECK.md) found remaining
+integration gaps, recorded below as `P5-R21` through `P5-R27`. This reopened `P5-R-GATE`; subsequent
+review added `P5-R28` through `P5-R30`. All remediations and the repeated gate passed on 2026-09-20.
+The user subsequently authorized scanner-independent Phase 6 work on 2026-09-20; the scanner
+decision gates production uploads and safety claims, not unrelated implementation tasks.
 Any earlier deferral that overlaps these findings is superseded for already implemented behavior.
 In particular, implement the session, reassignment, revocation, and structured-response preservation
 parts of `P3-T11b` through `P3-T11d` needed here; their old missing-prerequisite descriptions are not
@@ -2493,7 +2192,60 @@ original future phase. No Phase 6 implementation may proceed while a remediation
   and no new unrelated diagnostics. Demonstrate that an introduced feature type error fails the gate.
   A root `tsc --noEmit` success alone cannot close this finding or pass the Phase 5 exit gate.
 
+- [x] `P5-R21` (recheck, P1): Make failed OTP accounting survive the transactional refusal.
+  Add real CDI/PostgreSQL tests that reload attempt state after each failure, then preserve bounded
+  failure accounting with narrowly scoped transaction handling. Bound challenge resends without
+  resetting the attempt budget, cover concurrent verification/resend abuse, and retain atomic
+  successful session issuance and bootstrap use accounting. Completes the remaining `P5-R12` gap.
+- [x] `P5-R22` (recheck, P1): Apply recipient-safe projection to workspace configuration as well as
+  response values. Filter denied Requirement prompts, identifiers, policies, relationships,
+  conditions/literals, and occurrence metadata on authenticated and no-auth reads. Retain authorized
+  zero-occurrence group controls through authored-policy checks. Add mixed-party and NOT_DISCLOSED
+  JSON-disclosure regressions. Completes the current response/occurrence portion of `P4-T6`.
+- [x] `P5-R23` (recheck, P1): Save nested Field edits using the same Template group and runtime
+  Requirement identity as rendering. Cover child-only, parent-plus-child, sibling-parent, and deeper
+  nested saves through the actual UI handler. The current parser drops child patches. Completes the
+  remaining `P5-R15` save-path gap.
+- [x] `P5-R24` (recheck, P1): Authorize a new group occurrence against its intended creation scope.
+  Do not borrow an arbitrary existing or removed Requirement's authority. Prove exact-Requirement
+  delegates cannot expand into new scopes and assigned parties can recreate a minimum-zero group
+  after removing its final occurrence, including nested parents and descendant bindings.
+  Completes the remaining `P5-R06` creation-authorization gap.
+- [x] `P5-R25` (recheck, P2): Recover the response editor after ordinary command refusals and add
+  the explicit hidden-data clear-confirmation flow. Always release busy state, show the server
+  refusal, preserve drafts, and support retry or confirmation cancellation. Cover rejected save
+  and group commands, session loss, and accepted/cancelled clearing in UI interaction tests.
+- [x] `P5-R26` (recheck, P2): Standardize parent-before-request locking for party reassignment and
+  other existing request commands. Focused unit coverage and production lock-order changes are in
+  place for acting-party assignment, reassignment, external participant assignment, trusted
+  recipient assignment, and revocation. Deterministic real-service PostgreSQL concurrency coverage
+  passed for reassignment versus response save and parent termination through
+  `InformationRequestPartyConcurrencyTransactionTest`. Session authentication locks the parent
+  through `RequestAccessSessionRepository.lockParentForShare`.
+- [x] `P5-R27` (recheck, P2): Finish the existing-runtime portions of `P3-T11b` through `P3-T11d`.
+  Explicit bootstrap-link/session revocation now runs during party reassignment and revocation,
+  preserving replacement principal binding and existing structured response history. Focused unit
+  tests cover persisted old credential revocation and bootstrap session cutoff. Only future
+  evidence/package behavior stays deferred.
+- [x] `P5-R28` (gate review, P2): Prove that reassignment preserves the existing structured response
+  record, content, revision, and original principal provenance through transaction-backed service
+  entry coverage.
+- [x] `P5-R29` (gate review, P2): Split the modified structured-response occurrence component to the
+  repository size limit while preserving occurrence behavior. The component is 150 lines and its
+  extracted command hook and presentation helper pass focused lint, typecheck, and UI regressions.
+- [x] `P5-R30` (final gate review, P1): Restrict workspace occurrence metadata and condition results
+  by authorized runtime occurrence scope. Group IDs and rule keys alone are insufficient because
+  a caller can view one occurrence and be denied another sibling using the same group or rule.
+  Apply the same projection to authenticated and no-auth request-detail reads. Preserve necessary
+  authorized ancestor context and empty-parent optional-group controls. Keep original authored
+  conditions authoritative when redacting their configuration, and authorize condition sources in
+  the evaluated branch. Focused red regressions cover all of these boundaries; the final focused
+  run passed 40 tests and the full backend run passed 2,579 with no failures, errors, or skips.
 - [x] `P5-R-GATE` Close the complete review before authorizing Phase 6 entry.
+  Reopened by the 2026-09-13 recheck and closed again on 2026-09-20 with the evidence below.
+  Keep the completed `P5-R21` through `P5-R30` regressions green and reconcile
+  the current unrelated frontend test,
+  TypeScript, lint, and build failures without silently expanding an accepted baseline.
   Verify that all 20 parent tasks and any subtasks are checked with implementation and regression
   evidence; reconcile overlapping earlier tasks and all active handoff instructions. Rerun
   `.\mvnw.cmd test` with Docker and PostgreSQL available, `npm test -- --run` in `web-app`, the
@@ -2515,9 +2267,16 @@ Information Request Requirement rather than inherited blindly from ordinary Exch
 
 ### Entry gate
 
-Phase 6 is blocked until every `P5-R01` through `P5-R20` finding is fixed and verified and
+Phase 6 is blocked until every `P5-R01` through `P5-R30` finding is fixed and verified and
 `P5-R-GATE` is checked with recorded evidence. This applies before starting any Phase 6 task,
 including `P6-T1`, not merely before enabling uploads. Scanner approval does not waive remediation.
+
+The remediation gate is complete. On 2026-09-20 the user explicitly authorized continued work
+without resolving the scanner decision now. Proceed with scanner-independent tasks, starting with
+P6-T1. Keep the real scanner deployment and signature-update implementation deferred. Do not mark
+P6-T6 or the full Phase 6 exit gate complete without its evidence, enable production external
+uploads, or treat unscanned evidence as safe. A task with a genuine scanner dependency must remain
+unchecked, but that does not place the entire phase on hold.
 
 Content-type inspection is not malware scanning. Before external evidence upload can be enabled in
 any production scope, select and approve a concrete scanner deployment and signature-update model
@@ -2536,6 +2295,14 @@ design needs a new AWS service or paid resource type, stop for explicit user app
 - [ ] `P6-T1` Add logical Evidence Artifact and immutable Evidence Version records linked to runtime
   Requirement occurrences. File-backed evidence references an exact existing Document Version;
   external evidence uses a separate typed-reference subtype.
+    - [x] `P6-T1a` Define immutable, typed evidence-source values: exact Document Version identity
+      versus a nonblank external reference type and value. Validate both with neutral tests; this
+      is model groundwork only and grants no eligibility, scanner result, or access authority.
+    - [ ] `P6-T1b` Add PostgreSQL Artifact and append-only Version persistence bound to runtime
+      Requirement occurrences, with exact file-version and separate external-reference subtypes.
+      Prove foreign keys, source exclusivity, version ordering, and immutability with migration tests.
+    - [ ] `P6-T1c` Add domain-aligned entity/repository mappings and round-trip tests. Keep mutation
+      APIs disabled until command, audit, provenance, and Requirement authorization contracts exist.
 - [ ] `P6-T2` Make Document Version the authoritative owner of immutable storage identity and
   version-level content hash through an expand-contract migration. Replace the hardcoded local
   version-copy path with a provider-neutral version-storage port and a typed immutable locator that
@@ -2575,6 +2342,8 @@ design needs a new AWS service or paid resource type, stop for explicit user app
   access surface, or whether the Document Version already existed. Reuse a prior assessment only
   when the exact verified content hash, scanner engine and signature version, and configured
   freshness policy still match.
+  The concrete scanner deployment and signature-update decision is deferred by the user; other
+  independent tasks continue. This task and production upload enablement remain incomplete.
 - [ ] `P6-T7` Define replacement, withdrawal, deletion, retention, duplicate, corrupt, encrypted,
   and password-protected-file behavior. Replacement and withdrawal preserve bytes and only change
   eligibility for future packages. Reject an opaque `END_TO_END` Document Version as satisfying
@@ -3132,10 +2901,10 @@ operational and cost controls undefined.
   an optional exact Request Template Version reference affects only future instantiations, while
   created requests retain their pinned snapshot. Participant, Document, Field, and Document
   Library-derived defaults retain their existing meaning and use explicit request mappings.
-- [ ] `P12-T4` Add feature rollout controls, capability discovery, data backfill observability, and
+- [ ] `P12-T4` Add capability discovery, data backfill observability, and
   safe disable behavior. Paid lapse or trial expiry prevents new or expanding work but does not
-  strand already-issued respondents or reviewers. Owner rollout and global subscription enforcement
-  mode remain distinct. Emergency operational suspension and Trusted Organization suspension are
+  strand already-issued respondents or reviewers. Global subscription enforcement mode, emergency
+  operational suspension, and Trusted Organization suspension are
   separate, explicit, auditable states with tested effects visible in the UI. None silently hides
   retained records or permitted exports from authorized readers.
 - [ ] `P12-T5` Finalize plan-tier storage, upload, request-count, recipient, retention, and export
@@ -3144,12 +2913,12 @@ operational and cost controls undefined.
   withdrawing its reserved completion capacity. Include trial-sourced grants and trial-expiry
   continuation in final quota verification. Tune and operationalize the baseline request, upload,
   and retry abuse controls introduced in Phases 4 and 6.
-- [ ] `P12-T6` Decide whether to enable personal Template, Field, and Schema authoring for the first
-  release and, separately, whether personal owners may create and issue Information Requests. If
-  enabled, add plan-catalog entitlement, owner rollout, Settings exposure, support, and pricing
-  behavior using the personal-capable persistence, audit ownership, and tenant invariants created
-  in Phase 2, without redesigning them. Personal response-only access remains governed by assignment
-  and an issued execution grant, not by the respondent's plan.
+- [ ] `P12-T6` Complete Personal Information Request support. Personal owners may create Templates
+  from personal or platform Schemas and may create and issue Information Requests. The Personal plan
+  includes `INFORMATION_REQUESTS`, while an active organization entitlement may also sponsor the
+  Personal Settings scope without a separate user grant. Personal Field and Schema authoring remains
+  a separate incomplete decision. Personal response-only access remains governed by assignment and
+  an issued execution grant, not by the respondent's plan.
 - [ ] `P12-T7` Update plan catalog, pricing page, Settings discoverability, and respond-only messaging
   only when the implemented entitlement behavior is proven. Preserve the boundary between generic
   product capabilities and explanatory marketing examples; do not add or spread legacy non-neutral
@@ -3203,7 +2972,7 @@ Every applicable row must be expanded with concrete tests before its owning task
 | Submission | Completeness, multi-party Submission Attestation, naming separation from Exchange recipient attestation, exact snapshot, concurrency, idempotency, amendment carry-forward, supplement, recurrence, and supersession. |
 | Review | Item findings, all/any/quorum aggregation, stage order, separation of duties, correction allowlist, remediation, retest, appeal, and independent Business Decision. |
 | Command safety | Idempotency key and fingerprint, actor or RequestAccessSession scope, original-result replay, conflict, required If-Match, stale ETag, HTTP-authoritative multi-device recovery, and concurrent request, party, ShareLink bootstrap, response, evidence, submission, and review races. |
-| Entitlement | Organization and personal commercial override, separate operational rollout, global subscription enforcement mode, paid and trial entitlement source, trial expiry continuation, default-deny truth table, immutable execution grant, capacity reservation, lapse continuation, exhaustion, rollback, release, expiry, operational revocation, the `INFORMATION_REQUESTS` plus `BUSINESS_FIELDS_AND_SCHEMAS` composition at issuance, and grant-governed Field writes that bypass the live `BusinessFieldsSubscriptionGuard` re-check without changing its Exchange behavior. |
+| Entitlement | Organization and personal commercial override under platform-admin control, Personal and Business plan inclusion, global subscription enforcement mode, paid and trial entitlement source, trial expiry continuation, immutable execution grant, capacity reservation, lapse continuation, exhaustion, rollback, release, expiry, operational revocation, organization-owned Field composition at issuance, Personal typed-response inclusion, and grant-governed Field writes that bypass the live `BusinessFieldsSubscriptionGuard` re-check without changing its Exchange behavior. |
 | Workflow | Exact request and package scope, existing trigger-registry migration and subject-field descriptors, counterparty-wait characterization, neutral publisher over the compatible owner-aware outbox, rollback, retry, deduplication, ordering, and Exchange completion gates. |
 | Time | Instant storage, versioned calendar, working hours, holidays, business timezone, urgency, pause, resume, extension, reminder, escalation, and overdue deduplication. |
 | Records | Principal provenance, Notice Intent recovery, source and rendered hashes, exactly-once Sequence allocation, immutable notices, protected endpoints and content, sensitive-data minimization, privacy requests, one generalized hold lifecycle visible through compatible audit APIs, platform and organization and personal hold ownership, retention, live-reference safety, claimed disposal, database and object purge recovery, tombstones, access history, and reproducible export. |
@@ -3616,46 +3385,21 @@ Keep only the newest product implementation result in this section. Full histori
 in `plans/DOCUMENT-DRIVEN-INFORMATION-REQUESTS-COMPLETION-EVIDENCE.md`. When a newer implementation session finishes,
 make sure this result is present in the evidence file, then replace it here with the new latest result.
 
-### 2026-09-13: `P5-R-GATE` Complete pre-Phase 6 remediation gate
+### 2026-09-21: Personal and organization Information Request entitlement corrected
 
-- Status: complete. Read `AGENTS.md`, the active plan, the completion evidence, and the Phases 1-5
-  review before starting. Inspected the dirty working tree and preserved unrelated changes. No
-  production, migration, REST, frontend behavior, or help-doc content change was needed. Phase 6 was
-  not started. No commit or push was made.
-- Gate verification: all `P5-R01` through `P5-R20` parent tasks are checked with evidence, and no
-  unchecked P5-R subtasks remain. The remediation scope was re-reviewed across authenticated and
-  no-auth access, lifecycle and parent-state effects, Fields projection and writes, condition and
-  occurrence handling, frozen execution grants, idempotent receipt replay, reservation usage, and
-  persistence fixtures. No new pre-Phase 6 remediation defect was found.
-- Regression results: `.\mvnw.cmd test` passed with 2554 tests, 0 failures, 0 errors, and 0 skips
-  after rerunning with Docker and PostgreSQL available. `npm test -- --run` in `web-app` passed with
-  118 files and 481 tests. `npm run typecheck:app` passed with 346 total app-project diagnostics,
-  all 346 reviewed unrelated baseline diagnostics, and 0 Information Request diagnostics. Root
-  `npx tsc --noEmit` in `web-app` passed with no output.
-- Accepted existing frontend baseline: `npm run lint` still fails on the broad existing frontend
-  lint backlog with 109 problems, 61 errors and 48 warnings; a filtered rerun for Information
-  Request and gate-script terms returned no matches. `npm run buildWithTs` still fails on the known
-  broader app-project TypeScript baseline; a filtered rerun for Information Request, the P5-R20 gate
-  script, and stale fixture terms returned no matches. These are not clean gates.
-- Help documentation: searched the help-doc sections for Information Request, Template, Fields,
-  conditions, occurrence, entitlement, no-auth, access-link, and session terms. Read the matched
-  articles and section files in full. No help-doc content needed updating because this gate changed
-  no user-visible behavior. Article, section, and registry size checks passed.
-- Industry-neutrality and infrastructure check: no industry-specific production naming, shipped
-  default, test fixture, or behavior was introduced. No new AWS service or paid resource type was
-  added.
-- Exact next task: resolve the Phase 6 scanner approval decision, then start `P6-T1` without
-  enabling external evidence upload in any production scope until an approved scanner deployment and
-  signature-update model are recorded.
-- Full detail is in the companion completion evidence file's Implementation Journal entry for this
-  task.
-
-Changed files:
-- `plans/DOCUMENT-DRIVEN-INFORMATION-REQUESTS-IMPLEMENTATION-PLAN.md`
-- `plans/DOCUMENT-DRIVEN-INFORMATION-REQUESTS-COMPLETION-EVIDENCE.md`
-
-The displaced `P5-R20` result is preserved in full in
-`plans/DOCUMENT-DRIVEN-INFORMATION-REQUESTS-COMPLETION-EVIDENCE.md`.
+- `INFORMATION_REQUESTS` is included in Personal and Business. Platform-admin feature overrides are
+  the only per-owner feature control; subscription rollout grants remain removed.
+- Personal Template access accepts either the user's entitlement or the active organization's grant.
+  Organization and Platform tabs retain their own authorization behavior, and platform Templates are
+  read-only. No per-user organization grant is required.
+- The Personal Template editor resolves platform plus personally owned Schemas instead of using the
+  active organization's Schemas. Personal Field-backed Information Requests issue under the
+  Information Requests feature without requiring the organization-only Fields product.
+- Focused backend regressions passed 107 tests, the corrected entitlement lifecycle tests passed 31
+  tests, and the complete backend suite passed 2,569 tests with zero failures, errors, or skips.
+  Focused frontend regressions passed 13 tests, and `npx tsc --noEmit` passed.
+- No migration, AWS service, commit, or push was added. Phase 6 remains in progress and its next task
+  remains P6-T1b after this entitlement correction.
 
 ## Continuation Prompt
 
@@ -3666,10 +3410,14 @@ Use this instruction in a new implementation session:
 > full active plan, including `## Status`, `## Plan and Evidence Update Protocol`,
 > `## Mandatory Protocol for Every Implementation Session`, and `## Latest Implementation Result`. Use
 > `plans/DOCUMENT-DRIVEN-INFORMATION-REQUESTS-COMPLETION-EVIDENCE.md` for prior completion results,
-> evidence, and older decisions. Inspect the working tree and preserve unrelated changes. `P5-R01`
-> through `P5-R20` and `P5-R-GATE` are complete. Do not start Phase 6 until the scanner approval
-> decision required by the Phase 6 entry gate is resolved. After that decision, continue with
-> `P6-T1`. Follow the exact next task using TDD: add a focused failing test, confirm the intended
+> evidence, and older decisions. Also read the 2026-09-13 recheck at
+> `plans/DOCUMENT-DRIVEN-INFORMATION-REQUESTS-PHASES-1-5-RECHECK.md`. Inspect the working tree and
+> preserve unrelated changes. `P5-R01` through `P5-R30` and `P5-R-GATE` are complete. Phase 6 is
+> in progress. On 2026-09-20 the user explicitly clarified that only the scanner decision is deferred,
+> not the phase. Continue the next incomplete scanner-independent P6-T1 subtask. Keep production
+> external uploads disabled and never mark unscanned evidence safe. Do not assume permission for
+> a new AWS service or paid resource type. For implementation,
+> follow TDD: add a focused failing test, confirm the intended
 > failure, implement the smallest complete change, run focused and required regression tests, update
 > affected help documentation, then update the active plan and companion evidence file with the exact
 > next starting point. Do not commit or push without explicit permission.

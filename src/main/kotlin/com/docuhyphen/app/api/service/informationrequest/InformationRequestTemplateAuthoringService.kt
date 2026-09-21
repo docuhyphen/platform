@@ -72,6 +72,7 @@ class InformationRequestTemplateAuthoringService @Inject constructor(
         val principal = requireOwnerAccess(definition, Action.INFORMATION_REQUEST_TEMPLATE_EDIT)
         entitlementGuard.requireTemplateMutation(
             definition.scopeKind, definition.scopeOrgId, definition.scopeUserId,
+            entitlementOrganizationId(definition.scopeKind),
         )
         return InformationRequestTemplateMutationContext(definition, principal)
     }
@@ -99,17 +100,17 @@ class InformationRequestTemplateAuthoringService @Inject constructor(
                 val organizationId = requireSelectedOrganization(
                     principal, Action.INFORMATION_REQUEST_TEMPLATE_VIEW,
                 )
-                entitlementGuard.requireTemplateAccess(resolved, organizationId, null)
+                entitlementGuard.requireTemplateAccess(resolved, organizationId, null, null)
                 definitionRepository.findAllForOrganization(organizationId)
             }
             InformationRequestTemplateScopeKind.PERSONAL ->
             {
-                entitlementGuard.requireTemplateAccess(resolved, null, principal.id)
+                entitlementGuard.requireTemplateAccess(
+                    resolved, null, principal.id, entitlementOrganizationId(resolved),
+                )
                 definitionRepository.findAllForUser(principal.id)
             }
-            InformationRequestTemplateScopeKind.PLATFORM -> throw ForbiddenException(
-                "Platform-owned information request templates are not available",
-            )
+            InformationRequestTemplateScopeKind.PLATFORM -> definitionRepository.findAllPlatform()
         }
 
         // One read of every listed Template's versions. Asking each Template separately, and then
@@ -129,9 +130,15 @@ class InformationRequestTemplateAuthoringService @Inject constructor(
     fun getTemplate(id: UUID): InformationRequestTemplateDto
     {
         val definition = requireDefinition(id)
+        if (definition.scopeKind == InformationRequestTemplateScopeKind.PLATFORM)
+        {
+            requireUserPrincipal()
+            return toPublishedDto(definition)
+        }
         requireOwnerAccess(definition, Action.INFORMATION_REQUEST_TEMPLATE_VIEW)
         entitlementGuard.requireTemplateAccess(
             definition.scopeKind, definition.scopeOrgId, definition.scopeUserId,
+            entitlementOrganizationId(definition.scopeKind),
         )
         return toDto(definition)
     }
@@ -154,7 +161,9 @@ class InformationRequestTemplateAuthoringService @Inject constructor(
             null
         val userId = if (scopeKind == InformationRequestTemplateScopeKind.PERSONAL) principal.id else null
 
-        entitlementGuard.requireTemplateMutation(scopeKind, organizationId, userId)
+        entitlementGuard.requireTemplateMutation(
+            scopeKind, organizationId, userId, entitlementOrganizationId(scopeKind),
+        )
 
         val namespace = machineKey(request.namespace, "namespace")
         val templateKey = machineKey(request.templateKey, "templateKey")
@@ -328,6 +337,9 @@ class InformationRequestTemplateAuthoringService @Inject constructor(
 
     private fun currentContext(): AuthorizationContext = authorizationContextFactory.currentContext()
 
+    private fun entitlementOrganizationId(scopeKind: InformationRequestTemplateScopeKind): UUID? =
+        currentContext().activeOrgId.takeIf { scopeKind == InformationRequestTemplateScopeKind.PERSONAL }
+
     private fun machineKey(candidate: String, label: String): String =
         InformationRequestTemplateKey.normalizeOrNull(candidate)
             ?: throw InformationRequestTemplateValidationException(
@@ -408,6 +420,14 @@ class InformationRequestTemplateAuthoringService @Inject constructor(
         InformationRequestTemplateDtoMapper.toDto(
             definition = definition,
             draftVersion = versionRepository.findDraft(definition.id)?.let(projectionLoader::loadVersion),
+            latestPublishedVersion = versionRepository.findLatestPublished(definition.id)
+                ?.let(projectionLoader::loadVersion),
+        )
+
+    private fun toPublishedDto(definition: InformationRequestTemplateDefinition): InformationRequestTemplateDto =
+        InformationRequestTemplateDtoMapper.toDto(
+            definition = definition,
+            draftVersion = null,
             latestPublishedVersion = versionRepository.findLatestPublished(definition.id)
                 ?.let(projectionLoader::loadVersion),
         )

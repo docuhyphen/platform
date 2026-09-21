@@ -34,7 +34,6 @@ class VariableSubscriptionGuardTest
                 mock<OrganizationSeatCounter>(),
             ),
             enforcementConfigService = SubscriptionEnforcementConfigService(mode.name),
-            featureRolloutConfigService = FeatureRolloutConfigService(Optional.empty()),
         )
 
         return VariableSubscriptionGuard(accessService)
@@ -127,6 +126,5 @@ class VariableSubscriptionGuardTest
         verifyNoInteractions(policyService)
     }
 }
-
 
 

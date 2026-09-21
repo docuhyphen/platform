@@ -155,6 +155,7 @@ object RoleCapabilities
             Capability.COMMUNICATION_READ,
             Capability.COMMUNICATION_USE,
             Capability.FIELD_SCHEMA_READ,
+            Capability.INFORMATION_REQUEST_TEMPLATE_READ,
         ),
         OrganizationRoleName.ORG_GUEST to emptySet(),
     )

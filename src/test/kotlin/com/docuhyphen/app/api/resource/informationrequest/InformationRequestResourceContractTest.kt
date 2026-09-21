@@ -1,6 +1,8 @@
 package com.docuhyphen.app.api.resource.informationrequest
 
 import com.docuhyphen.app.api.model.dto.InformationRequestDto
+import com.docuhyphen.app.api.model.InformationRequestDtoMapper
+import com.docuhyphen.app.api.model.dto.InformationRequestResponseWorkspaceDto
 import com.docuhyphen.app.api.model.dto.InformationRequestTemplateConfigurationRequest
 import com.docuhyphen.app.api.model.entity.InformationRequest
 import com.docuhyphen.app.api.model.entity.InformationRequestOwnerType
@@ -16,7 +18,6 @@ import com.docuhyphen.app.api.service.informationrequest.CreateAdHocInformationR
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestAccessContextFactory
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestAdHocCreationService
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestConditionEvaluationProjection
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestConditionEvaluationService
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestConditionEvaluationState
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestCreationResult
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
@@ -54,14 +55,12 @@ class InformationRequestResourceContractTest
     private val creationService = mock<InformationRequestAdHocCreationService>()
     private val lifecycleService = mock<InformationRequestLifecycleService>()
     private val accessContextFactory = mock<InformationRequestAccessContextFactory>()
-    private val conditionEvaluationService = mock<InformationRequestConditionEvaluationService>()
     private val responseWorkspaceService = mock<InformationRequestResponseWorkspaceService>()
     private val resource = InformationRequestResource(
         queryService,
         creationService,
         lifecycleService,
         accessContextFactory,
-        conditionEvaluationService,
         responseWorkspaceService,
     )
 
@@ -126,9 +125,7 @@ class InformationRequestResourceContractTest
         assertTrue(methods.getValue("get").isAnnotationPresent(GET::class.java))
         assertEquals("/{id}", methods.getValue("get").getAnnotation(Path::class.java).value)
 
-        whenever(queryService.findById(requestId, access)).thenReturn(request)
-        whenever(conditionEvaluationService.evaluate(requestId)).thenReturn(
-            listOf(
+        val projected = InformationRequestDtoMapper.toDto(request, listOf(
                 InformationRequestConditionEvaluationProjection(
                     ruleKey = "when-response-provided",
                     expressionVersion = 1,
@@ -136,8 +133,8 @@ class InformationRequestResourceContractTest
                     sourceRequirementKeys = setOf("prior-response"),
                     fieldDefinitionIds = setOf(UUID.randomUUID()),
                 ),
-            ),
-        )
+            ))
+        whenever(responseWorkspaceService.loadRequest(requestId, access)).thenReturn(projected)
 
         val found = resource.get(requestId.toString())
         val invalid = resource.get("not-a-uuid")
@@ -149,6 +146,20 @@ class InformationRequestResourceContractTest
         assertEquals("when-response-provided", body.conditionEvaluations.single().ruleKey)
         assertEquals(InformationRequestConditionEvaluationState.TRUE, body.conditionEvaluations.single().state)
         assertEquals(Response.Status.BAD_REQUEST.statusCode, invalid.status)
+        verify(responseWorkspaceService).loadRequest(requestId, access)
+    }
+
+    @Test
+    fun `response workspace delegates through the authenticated access context`()
+    {
+        val workspace = mock<InformationRequestResponseWorkspaceDto>()
+        whenever(responseWorkspaceService.load(requestId, access)).thenReturn(workspace)
+
+        val response = resource.responseWorkspace(requestId.toString())
+
+        assertEquals(Response.Status.OK.statusCode, response.status)
+        assertEquals(workspace, response.entity)
+        verify(responseWorkspaceService).load(requestId, access)
     }
 
     @Test

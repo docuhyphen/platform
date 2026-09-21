@@ -10,10 +10,11 @@ interface Props
     templates: InformationRequestTemplateSummaryDto[];
     loading: boolean;
     error: string | null;
+    canManage: boolean;
     onOpenDraft: (template: InformationRequestTemplateSummaryDto) => void;
 }
 
-const InformationRequestTemplateList = ({templates, loading, error, onOpenDraft}: Props) =>
+const InformationRequestTemplateList = ({templates, loading, error, canManage, onOpenDraft}: Props) =>
 {
     const styles = useInformationRequestTemplatesTabStyles();
 
@@ -68,7 +69,7 @@ const InformationRequestTemplateList = ({templates, loading, error, onOpenDraft}
                             {template.status === InformationRequestTemplateStatus.PUBLISHED ? "Published" : "Draft"}
                         </Badge>
                     </div>
-                    {template.hasEditableVersion && (
+                    {canManage && template.hasEditableVersion && (
                         <Button
                             id={`information-request-template-open-draft-${template.id}`}
                             appearance={"subtle"}

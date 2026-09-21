@@ -16,7 +16,11 @@ export interface DraftSaveRequest
 }
 
 export const fieldScopeFor = (scope: InformationRequestTemplateScopeKind): FieldScopeKind =>
-    scope === InformationRequestTemplateScopeKind.ORGANIZATION ? FieldScopeKind.ORGANIZATION : FieldScopeKind.PERSONAL;
+{
+    if (scope === InformationRequestTemplateScopeKind.ORGANIZATION) return FieldScopeKind.ORGANIZATION;
+    if (scope === InformationRequestTemplateScopeKind.PLATFORM) return FieldScopeKind.PLATFORM;
+    return FieldScopeKind.PERSONAL;
+};
 
 export const informationRequestTemplateErrorText = (error: unknown): string =>
     typeof error === "string" ? error : "Information Request Template action failed";

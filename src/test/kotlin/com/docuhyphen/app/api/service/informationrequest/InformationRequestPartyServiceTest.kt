@@ -63,6 +63,7 @@ import org.mockito.kotlin.any
 import org.mockito.kotlin.anyOrNull
 import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.eq
+import org.mockito.kotlin.inOrder
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.never
 import org.mockito.kotlin.times
@@ -856,6 +857,7 @@ class InformationRequestPartyServiceTest
             revokedByPrincipal = eq(actor),
             resourceLabel = eq("Information Request"),
         )
+        verify(fixture.bootstrapShareLinkService).revokeAllForShare(fixture.share.id)
         val receipt = fixture.receiptStore.receipts.single()
         assertEquals("revoke-information-request-party", receipt.operationName)
         assertEquals(ResourceType.INFORMATION_REQUEST_PARTY, receipt.resultResourceType)
@@ -927,6 +929,7 @@ class InformationRequestPartyServiceTest
             revokedByPrincipal = eq(actor),
             resourceLabel = eq("Information Request"),
         )
+        verify(fixture.bootstrapShareLinkService).revokeAllForShare(fixture.share.id)
         verify(fixture.shareService).grantRoleKeyWithPrincipalProvenance(
             resourceType = eq(ResourceType.INFORMATION_REQUEST),
             resourceId = eq(fixture.request.id),
@@ -977,6 +980,72 @@ class InformationRequestPartyServiceTest
         assertEquals(AuditEventType.INFORMATION_REQUEST_PARTY_REASSIGN.key, audit.firstValue.eventTypeKey)
         assertEquals(1, fixture.events.size)
         assertEquals(AuditEventType.INFORMATION_REQUEST_PARTY_REASSIGN.key, fixture.events.single().type)
+    }
+
+    @Test
+    fun `assigning an acting party locks the parent Exchange before the request row`()
+    {
+        val fixture = Fixture()
+        val actor = PrincipalRef.user(UUID.randomUUID())
+        val contributor = PrincipalRef.participant(UUID.randomUUID())
+        val command = AssignInformationRequestPartyCommand(
+            requestId = fixture.request.id,
+            roleKey = InformationRequestShareRoleKey.CONTRIBUTOR,
+            principal = contributor,
+            access = RequestAccessContext(actor, fixture.authorizationContext),
+            precondition = CommandPrecondition.ExpectedRevision(InformationRequestETag.partiesOf(fixture.request)),
+            idempotencyKey = "assign-lock-order",
+        )
+
+        fixture.service.assign(command)
+
+        val locks = inOrder(fixture.exchangeRepository, fixture.requestRepository)
+        locks.verify(fixture.exchangeRepository).findByIdForUpdate(fixture.request.exchangeId)
+        locks.verify(fixture.requestRepository).findRequestByIdForUpdate(fixture.request.id)
+    }
+
+    @Test
+    fun `reassigning a party locks the parent Exchange before the request row`()
+    {
+        val fixture = Fixture()
+        val actor = PrincipalRef.user(UUID.randomUUID())
+        val existingParty = fixture.activeActingParty()
+        val newContributor = PrincipalRef.participant(UUID.randomUUID())
+        val command = ReassignInformationRequestPartyCommand(
+            requestId = fixture.request.id,
+            partyId = existingParty.id,
+            principal = newContributor,
+            access = RequestAccessContext(actor, fixture.authorizationContext),
+            precondition = CommandPrecondition.ExpectedRevision(InformationRequestETag.partiesOf(fixture.request)),
+            idempotencyKey = "reassign-lock-order",
+        )
+
+        fixture.service.reassign(command)
+
+        val locks = inOrder(fixture.exchangeRepository, fixture.requestRepository)
+        locks.verify(fixture.exchangeRepository).findByIdForUpdate(fixture.request.exchangeId)
+        locks.verify(fixture.requestRepository).findRequestByIdForUpdate(fixture.request.id)
+    }
+
+    @Test
+    fun `revoking a party locks the parent Exchange before the request row`()
+    {
+        val fixture = Fixture()
+        val actor = PrincipalRef.user(UUID.randomUUID())
+        val existingParty = fixture.activeActingParty()
+        val command = RevokeInformationRequestPartyCommand(
+            requestId = fixture.request.id,
+            partyId = existingParty.id,
+            access = RequestAccessContext(actor, fixture.authorizationContext),
+            precondition = CommandPrecondition.ExpectedRevision(InformationRequestETag.partiesOf(fixture.request)),
+            idempotencyKey = "revoke-lock-order",
+        )
+
+        fixture.service.revoke(command)
+
+        val locks = inOrder(fixture.exchangeRepository, fixture.requestRepository)
+        locks.verify(fixture.exchangeRepository).findByIdForUpdate(fixture.request.exchangeId)
+        locks.verify(fixture.requestRepository).findRequestByIdForUpdate(fixture.request.id)
     }
 
     @Test
@@ -1046,6 +1115,7 @@ class InformationRequestPartyServiceTest
         val exchangeRecipientService = mock<ExchangeRecipientService>()
         val exchangeRecipientSelectionResolver = mock<ExchangeRecipientSelectionResolver>()
         val shareService = mock<ShareService>()
+        val bootstrapShareLinkService = mock<InformationRequestBootstrapShareLinkService>()
         val authorizationService = mock<AuthorizationService>()
         val exchangeRepository = mock<ExchangeRepository>()
         val transitionRepository = mock<InformationRequestTransitionRepository>()
@@ -1074,6 +1144,7 @@ class InformationRequestPartyServiceTest
             exchangeRecipientService = exchangeRecipientService,
             exchangeRecipientSelectionResolver = exchangeRecipientSelectionResolver,
             shareService = shareService,
+            bootstrapShareLinkService = bootstrapShareLinkService,
             authorizationService = authorizationService,
             commandReceiptService = commandReceiptService,
             exchangeRepository = exchangeRepository,
@@ -1092,6 +1163,7 @@ class InformationRequestPartyServiceTest
             whenever(auditRecorder.record(any())).thenReturn(
                 AuditCaptureResult.Captured(UUID.randomUUID(), UUID.randomUUID()),
             )
+            whenever(requestRepository.findById(request.id)).thenReturn(request)
             whenever(requestRepository.findRequestByIdForUpdate(request.id)).thenReturn(request)
             whenever(requestRepository.update(any())).thenAnswer { it.getArgument(0) }
             whenever(partyRepository.save(any())).thenAnswer {

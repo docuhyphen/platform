@@ -1,61 +1,18 @@
 import {Text, Button} from "@fluentui/react-components";
 import {AddRegular, ArrowDownRegular, ArrowUpRegular, DeleteRegular} from "@fluentui/react-icons";
-import {
-    InformationRequestConditionEvaluationDto,
-    InformationRequestGroupOccurrenceDto,
-    InformationRequestTemplateGroupDto,
-    InformationRequestTemplateRequirementDto,
-    InformationRequestResponseDto,
-    SchemaFieldBindingDto,
-} from "../../models/models.tsx";
 import FieldValueEditor from "../../exchanges/components/exchange-fields-tab/FieldValueEditor.tsx";
 import {toFieldElementId} from "../../exchanges/components/exchange-fields-tab/fieldLayoutUtils.ts";
 import {useInformationRequestStructuredResponseWorkspaceStyles} from "./InformationRequestStructuredResponseWorkspaceStyles.tsx";
 import {
     isRequirementActive,
-    occurrenceGroupKeyFromTemplate,
+    occurrencePresentation,
     requirementOccurrenceAnchorKey,
-    ROOT_OCCURRENCE_PATH,
     responseForFieldRequirement,
-    ResponseEdits,
     responseKey,
     shownFieldValues,
 } from "./structuredResponseWorkspaceState.ts";
-import {OccurrenceCommandResult} from "./StructuredResponseWorkspaceTypes.ts";
-
-interface Props
-{
-    occurrence: InformationRequestGroupOccurrenceDto;
-    occurrenceIndex: number;
-    occurrenceCount: number;
-    siblingOccurrenceIds: string[];
-    requestId: string;
-    responseETag: string;
-    busy: boolean;
-    groups: InformationRequestTemplateGroupDto[];
-    requirements: InformationRequestTemplateRequirementDto[];
-    bindings: SchemaFieldBindingDto[];
-    responses: InformationRequestResponseDto[];
-    conditionByScope: Map<string, InformationRequestConditionEvaluationDto>;
-    edits: ResponseEdits;
-    setEdits: (edits: (previous: ResponseEdits) => ResponseEdits) => void;
-    onAdd: (
-        requestId: string,
-        groupKey: string,
-        parentOccurrenceId: string | undefined,
-        responseETag: string,
-    ) => Promise<OccurrenceCommandResult>;
-    onRemove: (requestId: string, occurrenceId: string, responseETag: string) => Promise<OccurrenceCommandResult>;
-    onReorder: (
-        requestId: string,
-        groupKey: string,
-        parentOccurrenceId: string | undefined,
-        occurrenceIds: string[],
-        responseETag: string,
-    ) => Promise<OccurrenceCommandResult>;
-    onResult: (result: OccurrenceCommandResult) => void;
-}
-
+import {StructuredResponseOccurrenceProps} from "./StructuredResponseWorkspaceTypes.ts";
+import {useStructuredResponseOccurrenceCommands} from "./useStructuredResponseOccurrenceCommands.ts";
 const StructuredResponseOccurrence = ({
     occurrence,
     occurrenceIndex,
@@ -75,17 +32,23 @@ const StructuredResponseOccurrence = ({
     onRemove,
     onReorder,
     onResult,
-}: Props) =>
+    onCommandStart,
+    onCommandFailure,
+}: StructuredResponseOccurrenceProps) =>
 {
     const styles = useInformationRequestStructuredResponseWorkspaceStyles();
-    const groupKey = occurrenceGroupKeyFromTemplate(occurrence, groups);
-    const isRootOccurrence = occurrence.occurrencePath === ROOT_OCCURRENCE_PATH;
-    const childGroups = isRootOccurrence
-        ? []
-        : groups.filter(group => group.parentGroupKey === groupKey);
+    const {groupKey, isRootOccurrence, childGroups} = occurrencePresentation(occurrence, groups);
 
-    const handleReorder = (orderedIds: string[]) =>
-        onReorder(requestId, groupKey, occurrence.parentOccurrenceId, orderedIds, responseETag).then(onResult);
+    const commands = useStructuredResponseOccurrenceCommands({
+        occurrence,
+        requestId,
+        responseETag,
+        groupKey,
+        onReorder,
+        onResult,
+        onCommandStart,
+        onCommandFailure,
+    });
 
     return (
         <div id={`information-request-occurrence-${toFieldElementId(occurrence.occurrencePath)}`}
@@ -104,7 +67,7 @@ const StructuredResponseOccurrence = ({
                                 icon={<ArrowUpRegular/>}
                                 disabled={busy || occurrenceIndex === 0}
                                 aria-label="Move occurrence up"
-                                onClick={() => handleReorder([
+                                onClick={() => commands.reorder([
                                     occurrence.id,
                                     ...siblingOccurrenceIds.filter(id => id !== occurrence.id),
                                 ])}/>
@@ -113,7 +76,7 @@ const StructuredResponseOccurrence = ({
                                 icon={<ArrowDownRegular/>}
                                 disabled={busy || occurrenceIndex === occurrenceCount - 1}
                                 aria-label="Move occurrence down"
-                                onClick={() => handleReorder([
+                                onClick={() => commands.reorder([
                                     ...siblingOccurrenceIds.filter(id => id !== occurrence.id),
                                     occurrence.id,
                                 ])}/>
@@ -122,20 +85,21 @@ const StructuredResponseOccurrence = ({
                                 icon={<DeleteRegular/>}
                                 disabled={busy}
                                 aria-label="Remove occurrence"
-                                onClick={() => onRemove(requestId, occurrence.id, responseETag).then(onResult)}/>
+                                onClick={() => commands.runCommand(() =>
+                                    onRemove(requestId, occurrence.id, responseETag))}/>
                         {childGroups.map(childGroup => (
                             <Button id={`information-request-add-child-occurrence-${occurrence.id}-${toFieldElementId(childGroup.groupKey)}`}
                                     key={childGroup.groupKey}
                                     shape="circular"
                                     icon={<AddRegular/>}
                                     disabled={busy}
-                                    onClick={() =>
+                                    onClick={() => commands.runCommand(() =>
                                         onAdd(
                                             requestId,
                                             childGroup.groupKey,
                                             occurrence.id,
                                             responseETag,
-                                        ).then(onResult)}>
+                                        ))}>
                                 Add {childGroup.groupKey}
                             </Button>
                         ))}

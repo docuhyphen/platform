@@ -26,8 +26,4 @@ export const useOrganizationsTableStyles = makeStyles({
     actions: {
         textAlign: "right",
     },
-    entitlements: {
-        maxWidth: "260px",
-        whiteSpace: "normal",
-    },
 });

@@ -49,6 +49,7 @@ object PlanCatalog
             PlanFeature.DOCUMENT_VERSION_HISTORY,
             PlanFeature.ADVANCED_ACCESS_CONTROLS,
             PlanFeature.VARIABLES_AND_SEQUENCES,
+            PlanFeature.INFORMATION_REQUESTS,
         ),
         limits = PlanLimits(
             maxNewExchangesPerCalendarMonth = null,

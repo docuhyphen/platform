@@ -60,7 +60,7 @@ data class InformationRequestLifecycleResult(
     val requestETag: String,
 )
 
-class InformationRequestLifecycleException(
+open class InformationRequestLifecycleException(
     val reasonCode: String,
     override val message: String,
 ) : RuntimeException(message)

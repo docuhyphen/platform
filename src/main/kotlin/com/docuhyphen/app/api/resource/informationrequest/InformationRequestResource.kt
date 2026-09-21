@@ -14,7 +14,6 @@ import com.docuhyphen.app.api.service.informationrequest.CancelInformationReques
 import com.docuhyphen.app.api.service.informationrequest.CreateAdHocInformationRequestCommand
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestAccessContextFactory
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestAdHocCreationService
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestConditionEvaluationService
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestCreationResult
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestLifecycleResult
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestLifecycleService
@@ -61,7 +60,6 @@ class InformationRequestResource @Inject constructor(
     private val creationService: InformationRequestAdHocCreationService,
     private val lifecycleService: InformationRequestLifecycleService,
     private val accessContextFactory: InformationRequestAccessContextFactory,
-    private val conditionEvaluationService: InformationRequestConditionEvaluationService,
     private val responseWorkspaceService: InformationRequestResponseWorkspaceService,
 )
 {
@@ -88,9 +86,7 @@ class InformationRequestResource @Inject constructor(
         return try
         {
             val requestId = parseUuid(id) ?: return badRequest("Invalid information request id")
-            val request = queryService.findById(requestId, accessContextFactory.currentAuthenticated())
-            val conditionEvaluations = conditionEvaluationService.evaluate(requestId)
-            Response.ok(InformationRequestDtoMapper.toDto(request, conditionEvaluations)).build()
+            Response.ok(responseWorkspaceService.loadRequest(requestId, accessContextFactory.currentAuthenticated())).build()
         }
         catch (exception: Exception)
         {

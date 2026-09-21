@@ -111,6 +111,7 @@ class InformationRequestPartyService @Inject constructor(
     private val exchangeRecipientService: ExchangeRecipientService,
     private val exchangeRecipientSelectionResolver: ExchangeRecipientSelectionResolver,
     private val shareService: ShareService,
+    private val bootstrapShareLinkService: InformationRequestBootstrapShareLinkService,
     private val authorizationService: AuthorizationService,
     private val commandReceiptService: CommandReceiptService,
     private val exchangeRepository: ExchangeRepository,
@@ -250,8 +251,7 @@ class InformationRequestPartyService @Inject constructor(
 
     private fun assignMutation(command: AssignInformationRequestPartyCommand): InformationRequestPartyAssignmentResult
     {
-        val request = requestRepository.findRequestByIdForUpdate(command.requestId)
-            ?: throw IllegalArgumentException("Information Request not found")
+        val (_, request) = lockPartyMutationRequest(command.requestId)
         command.precondition.requireSatisfiedBy(InformationRequestETag.partiesOf(request))
         authorize(command.access, request.id)
 
@@ -338,8 +338,7 @@ class InformationRequestPartyService @Inject constructor(
         command: AssignExternalParticipantInformationRequestPartyCommand,
     ): InformationRequestPartyAssignmentResult
     {
-        val request = requestRepository.findRequestByIdForUpdate(command.requestId)
-            ?: throw IllegalArgumentException("Information Request not found")
+        val (_, request) = lockPartyMutationRequest(command.requestId)
         command.precondition.requireSatisfiedBy(InformationRequestETag.partiesOf(request))
         authorize(command.access, request.id)
         require(command.roleKey != InformationRequestShareRoleKey.SUBJECT) {
@@ -404,8 +403,7 @@ class InformationRequestPartyService @Inject constructor(
         command: AssignTrustedRecipientInformationRequestPartyCommand,
     ): InformationRequestPartyAssignmentResult
     {
-        val request = requestRepository.findRequestByIdForUpdate(command.requestId)
-            ?: throw IllegalArgumentException("Information Request not found")
+        val (_, request) = lockPartyMutationRequest(command.requestId)
         command.precondition.requireSatisfiedBy(InformationRequestETag.partiesOf(request))
         authorize(command.access, request.id)
         require(command.roleKey != InformationRequestShareRoleKey.SUBJECT) {
@@ -442,17 +440,11 @@ class InformationRequestPartyService @Inject constructor(
 
     private fun reassignMutation(command: ReassignInformationRequestPartyCommand): InformationRequestPartyAssignmentResult
     {
-        val request = requestRepository.findRequestByIdForUpdate(command.requestId)
-            ?: throw IllegalArgumentException("Information Request not found")
+        val (exchange, request) = lockPartyMutationRequest(command.requestId)
         command.precondition.requireSatisfiedBy(InformationRequestETag.partiesOf(request))
         authorize(command.access, request.id)
         requireSupportedActingPrincipal(command.principal)
 
-        val exchange = exchangeRepository.findByIdForUpdate(request.exchangeId)
-            ?: throw InformationRequestLifecycleException(
-                InformationRequestErrorCatalog.PARENT_STATE_INVALID,
-                "Parent Exchange not found",
-            )
         requireReassignable(exchange, request.state)
 
         val party = partyRepository.findByIdForUpdate(command.partyId)
@@ -467,6 +459,7 @@ class InformationRequestPartyService @Inject constructor(
             exchangeRecipientService.requireAssignablePartyRecipient(it, request.exchangeId, command.principal)
         }
         party.shareId?.let { shareId ->
+            bootstrapShareLinkService.revokeAllForShare(shareId)
             shareService.revokeWithPrincipalProvenance(
                 shareId = shareId,
                 revokedByPrincipal = command.access.principal,
@@ -519,8 +512,7 @@ class InformationRequestPartyService @Inject constructor(
 
     private fun revokeMutation(command: RevokeInformationRequestPartyCommand): InformationRequestPartyAssignmentResult
     {
-        val request = requestRepository.findRequestByIdForUpdate(command.requestId)
-            ?: throw IllegalArgumentException("Information Request not found")
+        val (_, request) = lockPartyMutationRequest(command.requestId)
         command.precondition.requireSatisfiedBy(InformationRequestETag.partiesOf(request))
         authorize(command.access, request.id)
 
@@ -537,6 +529,7 @@ class InformationRequestPartyService @Inject constructor(
         val saved = partyRepository.update(party)
         rollbackRecipientCapacityIfIssued(request, party)
         party.shareId?.let { shareId ->
+            bootstrapShareLinkService.revokeAllForShare(shareId)
             shareService.revokeWithPrincipalProvenance(
                 shareId = shareId,
                 revokedByPrincipal = command.access.principal,
@@ -552,6 +545,17 @@ class InformationRequestPartyService @Inject constructor(
             partiesETag = InformationRequestETag.partiesOf(request),
             partyETag = InformationRequestETag.partyOf(saved),
         )
+    }
+
+    private fun lockPartyMutationRequest(requestId: UUID): Pair<Exchange, InformationRequest>
+    {
+        val exchange = lockParentExchangeOf(requestId, requestRepository, exchangeRepository)
+        val request = requestRepository.findRequestByIdForUpdate(requestId)
+            ?: throw InformationRequestLifecycleException(
+                InformationRequestErrorCatalog.NOT_FOUND,
+                "Information Request not found",
+            )
+        return exchange to request
     }
 
     private fun createActingParty(

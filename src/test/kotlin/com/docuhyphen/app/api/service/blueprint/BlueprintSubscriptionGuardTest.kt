@@ -37,7 +37,6 @@ class BlueprintSubscriptionGuardTest
                 mock<OrganizationSeatCounter>(),
             ),
             enforcementConfigService = SubscriptionEnforcementConfigService(mode.name),
-            featureRolloutConfigService = FeatureRolloutConfigService(Optional.empty()),
         )
 
         return BlueprintSubscriptionGuard(accessService, userRoleService)
@@ -246,6 +245,5 @@ class BlueprintSubscriptionGuardTest
         verifyNoInteractions(userRoleService)
     }
 }
-
 
 

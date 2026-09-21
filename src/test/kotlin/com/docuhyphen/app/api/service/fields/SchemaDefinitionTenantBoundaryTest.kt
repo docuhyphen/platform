@@ -124,6 +124,21 @@ class SchemaDefinitionTenantBoundaryTest
     }
 
     @Test
+    fun `personal schema scope lists platform and personally owned schemas regardless of active organization`()
+    {
+        val fixture = fixture(
+            appAdmin = false,
+            organizationRole = OrganizationRoleName.ORG_MEMBER,
+        )
+        whenever(fixture.schemaRepository.findAllForUser(principalId)).thenReturn(emptyList())
+
+        assertEquals(emptyList<Any>(), fixture.service.listSchemas(FieldScopeKind.PERSONAL))
+        verify(fixture.schemaRepository).findAllForUser(principalId)
+        verify(fixture.schemaRepository, never()).findAllForOrganization(any())
+        verify(fixture.schemaRepository, never()).findAllPlatform()
+    }
+
+    @Test
     fun `non APP_ADMIN cannot explicitly list platform schemas`()
     {
         val fixture = fixture(

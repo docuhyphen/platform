@@ -224,6 +224,7 @@ class InformationRequestBootstrapShareLinkService @Inject constructor(
         shareLink.contactOtpHash = null
         shareLink.contactOtpExpiresAt = null
         shareLink.contactOtpFailedAttempts = 0
+        shareLink.contactOtpChallengeCount = 0
         shareLink.contactOtpLockedUntil = null
         shareLink.rotatedAt = now
         shareLink.rotationCount += 1
@@ -322,6 +323,16 @@ class InformationRequestBootstrapShareLinkService @Inject constructor(
             is CommandReceiptDecision.Recorded -> decision.response
             is CommandReceiptDecision.Replayed -> shareLinkRepository.findById(decision.result.resourceId)
                 ?: throw IllegalArgumentException("Information Request access link not found")
+        }
+    }
+
+    @Transactional
+    fun revokeAllForShare(shareId: UUID): List<ShareLink>
+    {
+        return shareLinkRepository.findActiveBootstrapLinksForShare(shareId).map { shareLink ->
+            requestAccessSessionService.revokeAllForShareLink(shareLink.id)
+            shareLink.status = ShareLinkStatus.REVOKED
+            shareLinkRepository.update(shareLink)
         }
     }
 

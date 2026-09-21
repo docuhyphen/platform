@@ -30,7 +30,6 @@ class SubscriptionAccessServiceTest
             subscriptionPolicyService = policyService,
             subscriptionUsageService = usageService,
             enforcementConfigService = SubscriptionEnforcementConfigService(mode.name),
-            featureRolloutConfigService = FeatureRolloutConfigService(Optional.empty()),
         )
     }
 
@@ -153,6 +152,23 @@ class SubscriptionAccessServiceTest
     }
 
     @Test
+    fun `an admin information request entitlement is immediately available`()
+    {
+        givenOrganizationPlan(
+            overrides = mapOf(PlanFeature.INFORMATION_REQUESTS to true),
+        )
+
+        val service = service(SubscriptionEnforcementMode.ENFORCE)
+        val subscription = service.resolve(organizationContext())
+
+        assertTrue(service.isFeatureAvailable(organizationContext(), PlanFeature.INFORMATION_REQUESTS))
+        assertTrue(service.availableFeatures(subscription).contains(PlanFeature.INFORMATION_REQUESTS))
+        assertDoesNotThrow {
+            service.requireFeature(organizationContext(), PlanFeature.INFORMATION_REQUESTS)
+        }
+    }
+
+    @Test
     fun `an individual withdrawal removes a feature the plan grants`()
     {
         givenUserPlan(
@@ -169,20 +185,14 @@ class SubscriptionAccessServiceTest
     }
 
     @Test
-    fun `a feature no plan sells does not point an individual at an organization plan`()
+    fun `the Personal plan includes information requests`()
     {
         givenUserPlan(PlanCode.PERSONAL)
 
-        val denial = assertThrows<SubscriptionDenialException> {
+        assertDoesNotThrow {
             service(SubscriptionEnforcementMode.ENFORCE)
                 .requireFeature(userContext(), PlanFeature.INFORMATION_REQUESTS)
-        }.denial
-
-        assertEquals(
-            SubscriptionDenialReason.FEATURE_NOT_INCLUDED,
-            denial.reason,
-            "No organization plan sells this either, so selecting one would not help",
-        )
+        }
     }
 
     @Test
@@ -378,4 +388,3 @@ class SubscriptionAccessServiceTest
         )
     }
 }
-

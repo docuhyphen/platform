@@ -34,7 +34,6 @@ class ExchangeInitiationSubscriptionGuardTest
             subscriptionPolicyService = policyService,
             subscriptionUsageService = SubscriptionUsageService(exchangeUsageCounter, organizationSeatCounter),
             enforcementConfigService = SubscriptionEnforcementConfigService(mode.name),
-            featureRolloutConfigService = FeatureRolloutConfigService(Optional.empty()),
         )
 
         return ExchangeInitiationSubscriptionGuard(accessService, policyService)
@@ -234,5 +233,4 @@ class ExchangeInitiationSubscriptionGuardTest
         verifyNoInteractions(exchangeUsageCounter)
     }
 }
-
 

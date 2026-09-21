@@ -19,16 +19,12 @@ import java.util.*
  * decides whether a refusal is recorded and allowed through or raised to the caller, so a new
  * environment can be observed before anything is actually blocked.
  *
- * A capability still under controlled release is the one exception. It answers to a second,
- * independent decision as well, held in deployment configuration rather than against the owner, and
- * neither decision is softened by the enforcement mode.
  */
 @ApplicationScoped
 class SubscriptionAccessService @Inject constructor(
     private val subscriptionPolicyService: SubscriptionPolicyService,
     private val subscriptionUsageService: SubscriptionUsageService,
     private val enforcementConfigService: SubscriptionEnforcementConfigService,
-    private val featureRolloutConfigService: FeatureRolloutConfigService,
 )
 {
     companion object
@@ -92,34 +88,19 @@ class SubscriptionAccessService @Inject constructor(
      */
     fun isFeatureAvailable(context: SubscriptionContext, feature: PlanFeature): Boolean
     {
-        return isReleasedTo(context, feature) && resolve(context).hasFeature(feature)
+        return resolve(context).hasFeature(feature)
     }
 
     /**
-     * The features the owner can actually reach, which is a narrower answer than the features
-     * their plan and overrides resolve to. A capability under controlled release is entitled but
-     * unreachable until this deployment turns it on for that owner, and a contract that advertised
-     * it would promise something every call site then refuses.
+     * The features the owner can reach from their plan and platform-administered overrides.
      */
     fun availableFeatures(subscription: EffectiveSubscription): Set<PlanFeature>
     {
-        val context = SubscriptionContext(subscription.ownerType, subscription.ownerId)
-        return subscription.features.filterTo(mutableSetOf()) { isReleasedTo(context, it) }
-    }
-
-    private fun isReleasedTo(context: SubscriptionContext, feature: PlanFeature): Boolean
-    {
-        return !feature.requiresRolloutGrant || featureRolloutConfigService.isGranted(context, feature)
+        return subscription.features
     }
 
     fun requireFeature(context: SubscriptionContext, feature: PlanFeature)
     {
-        if (feature.requiresRolloutGrant)
-        {
-            requireReleasedFeature(context, feature)
-            return
-        }
-
         if (!enforcementMode().evaluatesDecisions)
         {
             return
@@ -276,30 +257,6 @@ class SubscriptionAccessService @Inject constructor(
         }
     }
 
-    /**
-     * Applies both decisions that govern a capability under controlled release: the commercial
-     * grant recorded against the owner, and this deployment having turned the capability on for
-     * that same owner. Holding one without the other is refused.
-     *
-     * Neither half observes the configured enforcement mode. That mode exists so an environment can
-     * watch what commercial policy would refuse before customers are blocked by it, and an
-     * unfinished capability must not become reachable by relaxing an unrelated commercial setting.
-     */
-    private fun requireReleasedFeature(context: SubscriptionContext, feature: PlanFeature)
-    {
-        val subscription = resolve(context)
-
-        if (!subscription.hasFeature(feature))
-        {
-            refuse(SubscriptionDenialFactory.featureNotIncluded(subscription, feature))
-        }
-
-        if (!featureRolloutConfigService.isGranted(context, feature))
-        {
-            refuse(SubscriptionDenialFactory.featureNotReleased(subscription, feature))
-        }
-    }
-
     private fun requireFeatureOn(subscription: EffectiveSubscription, feature: PlanFeature)
     {
         if (!subscription.hasFeature(feature))
@@ -352,7 +309,6 @@ class SubscriptionAccessService @Inject constructor(
     {
         SubscriptionDenialReason.PLAN_LIMIT_REACHED -> "USAGE_LIMIT"
         SubscriptionDenialReason.SEAT_LIMIT_REACHED -> "SEAT_LIMIT"
-        SubscriptionDenialReason.FEATURE_NOT_RELEASED -> "ROLLOUT"
         SubscriptionDenialReason.FEATURE_NOT_INCLUDED,
         SubscriptionDenialReason.ORGANIZATION_SUBSCRIPTION_REQUIRED,
         -> "FEATURE"

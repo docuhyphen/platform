@@ -5,13 +5,6 @@ import org.junit.jupiter.api.Test
 
 class PlanCatalogTest
 {
-    /**
-     * Features that exist as a code but are deliberately absent from every plan while the
-     * capability behind them is built. A capability that declares itself under controlled release
-     * is exactly that set, so the two statements cannot drift apart.
-     */
-    private val heldBackFeatures = PlanFeature.entries.filter { it.requiresRolloutGrant }.toSet()
-
     @Test
     fun `free is an individual plan limited to the basic sharing flow`()
     {
@@ -55,6 +48,7 @@ class PlanCatalogTest
                 PlanFeature.DOCUMENT_VERSION_HISTORY,
                 PlanFeature.ADVANCED_ACCESS_CONTROLS,
                 PlanFeature.VARIABLES_AND_SEQUENCES,
+                PlanFeature.INFORMATION_REQUESTS,
             ),
             personal.features,
         )
@@ -97,30 +91,22 @@ class PlanCatalogTest
     }
 
     @Test
-    fun `business is the organization plan and includes every released feature`()
+    fun `business is the organization plan with every commercial feature`()
     {
         val business = PlanCatalog.definitionOf(PlanCode.BUSINESS)
 
         assertEquals(SubscriptionOwnerType.ORGANIZATION, business.ownerType)
-        assertEquals(PlanFeature.entries.toSet() - heldBackFeatures, business.features)
+        assertEquals(PlanFeature.entries.toSet(), business.features)
         assertTrue(business.limits.seatsArePurchased)
         assertNull(business.limits.includedSeats)
         assertNull(business.upgradePlanCode)
     }
 
     @Test
-    fun `a feature held back for controlled release is sold by no plan`()
+    fun `information requests are included for personal and organization owners`()
     {
-        assertEquals(setOf(PlanFeature.INFORMATION_REQUESTS), heldBackFeatures)
-
-        heldBackFeatures.forEach { feature ->
-            PlanCatalog.all().forEach { plan ->
-                assertFalse(
-                    plan.includes(feature),
-                    "${plan.planCode} must not sell $feature while it is held back",
-                )
-            }
-        }
+        assertTrue(PlanCatalog.definitionOf(PlanCode.PERSONAL).includes(PlanFeature.INFORMATION_REQUESTS))
+        assertTrue(PlanCatalog.definitionOf(PlanCode.BUSINESS).includes(PlanFeature.INFORMATION_REQUESTS))
     }
 
     @Test

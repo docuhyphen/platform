@@ -91,6 +91,9 @@ class ShareLink
     @Column(name = "contact_otp_failed_attempts", nullable = false)
     var contactOtpFailedAttempts: Int = 0
 
+    @Column(name = "contact_otp_challenge_count", nullable = false)
+    var contactOtpChallengeCount: Int = 0
+
     @Column(name = "contact_otp_locked_until", nullable = true)
     @Serializable(with = TimestampSerializer::class)
     var contactOtpLockedUntil: Timestamp? = null

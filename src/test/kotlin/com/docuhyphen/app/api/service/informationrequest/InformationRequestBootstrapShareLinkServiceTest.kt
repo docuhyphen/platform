@@ -34,6 +34,7 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
 import org.mockito.kotlin.mock
+import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import java.security.MessageDigest
@@ -319,6 +320,24 @@ class InformationRequestBootstrapShareLinkServiceTest
     }
 
     @Test
+    fun `revoking all bootstrap links for a Share revokes every active link and its sessions`()
+    {
+        val fixture = Fixture()
+        val party = fixture.activeActingParty()
+        val first = fixture.activeBootstrapShareLink(party)
+        val second = fixture.activeBootstrapShareLink(party)
+
+        val revoked = fixture.service.revokeAllForShare(requireNotNull(party.shareId))
+
+        assertEquals(listOf(first.id, second.id), revoked.map { it.id })
+        assertEquals(ShareLinkStatus.REVOKED, first.status)
+        assertEquals(ShareLinkStatus.REVOKED, second.status)
+        verify(fixture.requestAccessSessionService).revokeAllForShareLink(first.id)
+        verify(fixture.requestAccessSessionService).revokeAllForShareLink(second.id)
+        verify(fixture.shareLinkRepository, times(2)).update(any())
+    }
+
+    @Test
     fun `revoking an already-revoked bootstrap link is a no-op`()
     {
         val fixture = Fixture()
@@ -408,6 +427,13 @@ class InformationRequestBootstrapShareLinkServiceTest
             }
             whenever(shareLinkRepository.findById(any())).thenAnswer { invocation ->
                 savedShareLinks.firstOrNull { it.id == invocation.getArgument<UUID>(0) }
+            }
+            whenever(shareLinkRepository.findActiveBootstrapLinksForShare(any())).thenAnswer { invocation ->
+                savedShareLinks.filter {
+                    it.shareId == invocation.getArgument<UUID>(0) &&
+                        it.linkMode == ShareLinkMode.VERIFICATION_BOOTSTRAP &&
+                        it.status != ShareLinkStatus.REVOKED
+                }
             }
             whenever(
                 authorizationService.authorize(any(), any(), any(), any()),

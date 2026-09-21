@@ -25,8 +25,9 @@ import java.util.UUID
  * wrote, never to the owner's plan as it happens to stand later. This is what lets a paid lapse or
  * trial expiry block new or expanding work while an already-issued request still lets its assigned
  * respondents and reviewers finish within what was already granted. A Template that records a typed
- * Field answer also requires the Business Fields feature at this same moment, since Field writes
- * against an issued request answer to this grant rather than to a live Fields subscription check.
+ * Field answer on an organization-owned request also requires the Business Fields feature at this
+ * same moment, since Field writes against an issued request answer to this grant rather than to a
+ * live Fields subscription check. Personal Information Requests include their typed response data.
  */
 @ApplicationScoped
 class InformationRequestExecutionGrantService @Inject constructor(
@@ -47,7 +48,8 @@ class InformationRequestExecutionGrantService @Inject constructor(
         grantRepository.findByRequestId(request.id)?.let { return it }
 
         val context = owner(exchange)
-        if (hasFieldBoundRequirements(request.templateVersionId))
+        if (context.ownerType == SubscriptionOwnerType.ORGANIZATION &&
+            hasFieldBoundRequirements(request.templateVersionId))
         {
             subscriptionAccessService.requireFeature(context, PlanFeature.BUSINESS_FIELDS_AND_SCHEMAS)
         }

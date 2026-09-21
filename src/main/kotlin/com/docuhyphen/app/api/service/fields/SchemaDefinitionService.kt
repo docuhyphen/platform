@@ -53,6 +53,10 @@ class SchemaDefinitionService @Inject constructor(
     fun listSchemas(scopeKind: FieldScopeKind? = null): List<SchemaDefinitionDto>
     {
         val principal = currentPrincipal()
+        if (scopeKind == FieldScopeKind.PERSONAL)
+        {
+            return schemaDefinitionRepository.findAllForUser(principal.id).map { it.toDto() }
+        }
         if (scopeKind == FieldScopeKind.PLATFORM)
         {
             if (!userRoleService.isAppAdmin(principal.id))

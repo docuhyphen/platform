@@ -60,13 +60,18 @@ describe("structuredResponseCommands", () =>
         );
     });
 
-    it("carries the access link token on every occurrence command of the shared no-auth surface", async () =>
+    it("carries the access link token on every shared no-auth command", async () =>
     {
         const savedOccurrences = {
             outcome: "SAVED",
             responseETag: "\"responses:3\"",
             data: [{id: "occurrence-1"}],
         };
+        patchInformationRequestResponses.mockResolvedValue({
+            outcome: "SAVED",
+            responseETag: "\"responses:3\"",
+            data: [{informationRequestRequirementId: "requirement-1"}],
+        });
         addInformationRequestGroupOccurrence.mockResolvedValue(savedOccurrences);
         removeInformationRequestGroupOccurrence.mockResolvedValue(savedOccurrences);
         reorderInformationRequestGroupOccurrences.mockResolvedValue(savedOccurrences);
@@ -75,6 +80,7 @@ describe("structuredResponseCommands", () =>
             newIdempotencyKey: () => "key-1",
         });
 
+        await commands.saveResponses("request-1", patchRequest, "\"responses:2\"");
         const added = await commands.addOccurrence("request-1", {groupKey: "reported-item"}, "\"responses:2\"");
         await commands.removeOccurrence("request-1", "occurrence-1", "\"responses:2\"");
         await commands.reorderOccurrences(
@@ -93,6 +99,8 @@ describe("structuredResponseCommands", () =>
             idempotencyKey: "key-1",
             accessLinkToken: "access-token",
         };
+        expect(patchInformationRequestResponses)
+            .toHaveBeenCalledWith("request-1", patchRequest, expectedOptions);
         expect(addInformationRequestGroupOccurrence)
             .toHaveBeenCalledWith("request-1", {groupKey: "reported-item"}, expectedOptions);
         expect(removeInformationRequestGroupOccurrence)

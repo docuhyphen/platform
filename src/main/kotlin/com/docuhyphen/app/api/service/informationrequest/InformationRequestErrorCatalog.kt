@@ -87,9 +87,6 @@ object InformationRequestErrorCatalog
     /** The owner does not hold the commercial entitlement the operation needs. */
     const val ENTITLEMENT_REQUIRED = "INFORMATION_REQUEST_ENTITLEMENT_REQUIRED"
 
-    /** The owner has not been named in this deployment's rollout configuration. */
-    const val ROLLOUT_DISABLED = "INFORMATION_REQUEST_ROLLOUT_DISABLED"
-
     /** This runtime cannot serve a capability the pinned Template Version requires. */
     const val CAPABILITY_NOT_INSTALLED = "INFORMATION_REQUEST_CAPABILITY_NOT_INSTALLED"
 
@@ -137,6 +134,8 @@ object InformationRequestErrorCatalog
 
     /** Too many invalid contact-proof codes have been presented for the outstanding challenge. */
     const val CONTACT_PROOF_LOCKED = "INFORMATION_REQUEST_CONTACT_PROOF_LOCKED"
+
+    const val CONTACT_PROOF_CHALLENGE_LIMIT = "INFORMATION_REQUEST_CONTACT_PROOF_CHALLENGE_LIMIT"
 
     /** The outstanding contact-proof code has expired. */
     const val CONTACT_PROOF_EXPIRED = "INFORMATION_REQUEST_CONTACT_PROOF_EXPIRED"
@@ -200,7 +199,6 @@ object InformationRequestErrorCatalog
         PRECONDITION_FAILED,
         IDEMPOTENCY_CONFLICT,
         ENTITLEMENT_REQUIRED,
-        ROLLOUT_DISABLED,
         CAPABILITY_NOT_INSTALLED,
         RECIPIENT_SIGN_IN_REQUIRED,
         ACCESS_LINK_ALREADY_ISSUED,
@@ -213,6 +211,7 @@ object InformationRequestErrorCatalog
         CONTACT_PROOF_REQUIRED,
         CONTACT_PROOF_INVALID,
         CONTACT_PROOF_LOCKED,
+        CONTACT_PROOF_CHALLENGE_LIMIT,
         CONTACT_PROOF_EXPIRED,
         ACCESS_SESSION_REVOKED,
         ACCESS_SESSION_EXPIRED,

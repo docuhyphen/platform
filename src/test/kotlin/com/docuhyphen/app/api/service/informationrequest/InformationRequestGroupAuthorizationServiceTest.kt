@@ -77,24 +77,49 @@ class InformationRequestGroupAuthorizationServiceTest
     }
 
     @Test
-    fun `authorizeMaterializedBindings delegates to the existing Requirement instance when one already exists`()
+    fun `authorizeMaterializedBindings evaluates authored creation policy even when the binding already exists`()
     {
         val fixture = Fixture()
         val existing = fixture.requirement("items[0]", bindingId = fixture.binding.id)
         whenever(fixture.requirementRepository.findForRequest(fixture.request.id)).thenReturn(listOf(existing))
         whenever(fixture.authorizationService.authorize(any(), any(), any(), any()))
             .thenReturn(Decision.Deny(InformationRequestErrorCatalog.PARTY_NOT_ASSIGNED, "denied"))
+        fixture.assignParty(InformationRequestShareRoleKey.PREPARER, fixture.access.principal)
+
+        fixture.service.authorizeMaterializedBindings(fixture.access, fixture.request, listOf(fixture.binding))
+
+        verify(fixture.authorizationService, never()).authorize(any(), any(), any(), any())
+    }
+
+    @Test
+    fun `authorizeMaterializedBindings refuses an exact Requirement delegate when creating a new occurrence`()
+    {
+        val fixture = Fixture()
+        val existing = fixture.requirement("items[0]", bindingId = fixture.binding.id)
+        whenever(fixture.requirementRepository.findForRequest(fixture.request.id)).thenReturn(listOf(existing))
+        whenever(fixture.authorizationService.authorize(any(), any(), any(), any())).thenReturn(Decision.Allow())
+        fixture.assignParty(InformationRequestShareRoleKey.PREPARER, PrincipalRef.user(UUID.randomUUID()))
 
         assertThrows<ForbiddenException> {
             fixture.service.authorizeMaterializedBindings(fixture.access, fixture.request, listOf(fixture.binding))
         }
 
-        verify(fixture.authorizationService).authorize(
-            fixture.access.principal,
-            Action.INFORMATION_REQUEST_REQUIREMENT_RESPOND,
-            ResourceRef.informationRequestRequirement(existing.id),
-            fixture.access.authorization,
-        )
+        verify(fixture.authorizationService, never()).authorize(any(), any(), any(), any())
+    }
+
+    @Test
+    fun `authorizeMaterializedBindings permits the assigned party to recreate a removed zero minimum occurrence`()
+    {
+        val fixture = Fixture()
+        val removed = fixture.requirement("items[0]", bindingId = fixture.binding.id)
+        whenever(fixture.requirementRepository.findForRequest(fixture.request.id)).thenReturn(listOf(removed))
+        whenever(fixture.authorizationService.authorize(any(), any(), any(), any()))
+            .thenReturn(Decision.Deny(InformationRequestErrorCatalog.GROUP_OCCURRENCE_REMOVED, "removed"))
+        fixture.assignParty(InformationRequestShareRoleKey.PREPARER, fixture.access.principal)
+
+        fixture.service.authorizeMaterializedBindings(fixture.access, fixture.request, listOf(fixture.binding))
+
+        verify(fixture.authorizationService, never()).authorize(any(), any(), any(), any())
     }
 
     @Test

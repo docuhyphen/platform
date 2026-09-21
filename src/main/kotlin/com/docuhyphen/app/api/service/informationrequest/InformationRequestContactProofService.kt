@@ -21,6 +21,11 @@ import java.security.MessageDigest
 import java.sql.Timestamp
 import java.time.Instant
 
+class ContactProofInvalidException : InformationRequestLifecycleException(
+    InformationRequestErrorCatalog.CONTACT_PROOF_INVALID,
+    "Invalid verification code",
+)
+
 @ApplicationScoped
 class InformationRequestContactProofService @Inject constructor(
     private val shareLinkRepository: ShareLinkRepository,
@@ -37,6 +42,13 @@ class InformationRequestContactProofService @Inject constructor(
     {
         val (shareLink, party) = resolveBootstrapLink(rawToken, lockLink = true, enforceUseLimit = true)
         throwIfOtpLocked(shareLink)
+        if (shareLink.contactOtpChallengeCount >= OTP_MAX_CHALLENGES)
+        {
+            throw InformationRequestLifecycleException(
+                InformationRequestErrorCatalog.CONTACT_PROOF_CHALLENGE_LIMIT,
+                "This access link has reached its verification code limit",
+            )
+        }
         val email = resolvePartyContactEmail(party)
             ?: throw InformationRequestLifecycleException(
                 InformationRequestErrorCatalog.CONTACT_PROOF_REQUIRED,
@@ -46,8 +58,7 @@ class InformationRequestContactProofService @Inject constructor(
         val otp = otpService.generateEmailOtp()
         shareLink.contactOtpHash = otpService.hashOtp(otp)
         shareLink.contactOtpExpiresAt = Timestamp.from(Instant.now().plusSeconds(OTP_VALIDITY_SECONDS))
-        shareLink.contactOtpFailedAttempts = 0
-        shareLink.contactOtpLockedUntil = null
+        shareLink.contactOtpChallengeCount += 1
         shareLinkRepository.update(shareLink)
 
         emailService.sendEmail(
@@ -57,7 +68,7 @@ class InformationRequestContactProofService @Inject constructor(
         )
     }
 
-    @Transactional
+    @Transactional(dontRollbackOn = [ContactProofInvalidException::class])
     fun verifyChallenge(
         rawToken: String,
         otp: String,
@@ -86,10 +97,7 @@ class InformationRequestContactProofService @Inject constructor(
         if (otp.isBlank() || !otpService.verifyEmailOtp(otp, storedHash))
         {
             registerOtpFailure(shareLink)
-            throw InformationRequestLifecycleException(
-                InformationRequestErrorCatalog.CONTACT_PROOF_INVALID,
-                "Invalid verification code",
-            )
+            throw ContactProofInvalidException()
         }
 
         shareLink.contactOtpHash = null
@@ -213,6 +221,7 @@ class InformationRequestContactProofService @Inject constructor(
     {
         const val OTP_VALIDITY_SECONDS: Long = 600
         const val OTP_MAX_FAILED_ATTEMPTS: Int = 5
+        const val OTP_MAX_CHALLENGES: Int = 3
         const val OTP_LOCKOUT_SECONDS: Long = 300
     }
 }

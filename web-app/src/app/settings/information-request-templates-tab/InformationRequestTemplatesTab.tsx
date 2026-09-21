@@ -1,4 +1,4 @@
-import {Button, Tab, TabList, TabValue} from "@fluentui/react-components";
+import {Button, Tab, TabList} from "@fluentui/react-components";
 import {AddIcon} from "../../components/IconBundles.tsx";
 import {InformationRequestTemplateScopeKind} from "../../models/models.tsx";
 import InformationRequestTemplateDraftPanel from "./InformationRequestTemplateDraftPanel.tsx";
@@ -20,8 +20,10 @@ const InformationRequestTemplatesTab = () =>
                 <div className={styles.headerRow}>
                     <TabList
                         id={"information-request-template-scope-tabs"}
-                        selectedValue={state.scope}
-                        onTabSelect={(_, data) => state.setScope(data.value as TabValue)}
+                        selectedValue={state.scope ?? undefined}
+                        onTabSelect={(_, data) => state.setScope(
+                            data.value as InformationRequestTemplateScopeKind,
+                        )}
                     >
                         <Tab
                             id={"information-request-template-personal-scope"}
@@ -37,16 +39,24 @@ const InformationRequestTemplatesTab = () =>
                                 Organization
                             </Tab>
                         )}
+                        <Tab
+                            id={"information-request-template-platform-scope"}
+                            value={InformationRequestTemplateScopeKind.PLATFORM}
+                        >
+                            Platform
+                        </Tab>
                     </TabList>
-                    <Button
-                        id={"information-request-template-create"}
-                        appearance={"subtle"}
-                        shape={"circular"}
-                        icon={<AddIcon/>}
-                        onClick={() => void state.createDraft()}
-                    >
-                        New Template
-                    </Button>
+                    {state.canManageScope && (
+                        <Button
+                            id={"information-request-template-create"}
+                            appearance={"subtle"}
+                            shape={"circular"}
+                            icon={<AddIcon/>}
+                            onClick={() => void state.createDraft()}
+                        >
+                            New Template
+                        </Button>
+                    )}
                 </div>
             </div>
             <div className={styles.content}>
@@ -54,6 +64,7 @@ const InformationRequestTemplatesTab = () =>
                     templates={state.templates}
                     loading={state.loading}
                     error={state.error}
+                    canManage={state.canManageScope}
                     onOpenDraft={template => void state.openDraft(template)}
                 />
                 <InformationRequestTemplateDraftPanel

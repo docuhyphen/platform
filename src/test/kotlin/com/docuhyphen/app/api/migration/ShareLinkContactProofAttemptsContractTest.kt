@@ -24,6 +24,9 @@ class ShareLinkContactProofAttemptsContractTest
                 connection.metaData.getColumns(null, null, "share_link", "contact_otp_locked_until").use {
                     assertTrue(it.next())
                 }
+                connection.metaData.getColumns(null, null, "share_link", "contact_otp_challenge_count").use {
+                    assertTrue(it.next())
+                }
             }
         }
     }

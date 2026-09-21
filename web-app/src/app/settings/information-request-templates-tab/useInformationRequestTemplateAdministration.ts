@@ -1,6 +1,6 @@
-import {Dispatch, SetStateAction, useCallback, useEffect, useState} from "react";
-import {TabValue} from "@fluentui/react-components";
+import {useCallback, useEffect, useState} from "react";
 import {
+    Capability,
     InformationRequestTemplateDto,
     InformationRequestTemplateScopeKind,
     InformationRequestTemplateSummaryDto,
@@ -25,8 +25,9 @@ import {
 interface TemplateAdministrationState
 {
     hasOrg: boolean;
-    scope: TabValue;
-    setScope: Dispatch<SetStateAction<TabValue>>;
+    scope: InformationRequestTemplateScopeKind | null;
+    setScope: (scope: InformationRequestTemplateScopeKind) => void;
+    canManageScope: boolean;
     templates: InformationRequestTemplateSummaryDto[];
     selectedTemplate: InformationRequestTemplateDto | null;
     schemas: SchemaDefinitionDto[];
@@ -40,23 +41,43 @@ interface TemplateAdministrationState
 
 export const useInformationRequestTemplateAdministration = (): TemplateAdministrationState =>
 {
-    const {appUserPersonOrganization} = useAuth();
-    const hasOrg = appUserPersonOrganization?.isActive === true;
-    const [scope, setScope] = useState<TabValue>(InformationRequestTemplateScopeKind.PERSONAL);
+    const {currentSession, hasCapability} = useAuth();
+    const activeOrganizationId = currentSession?.activeOrganizationId ?? null;
+    const contextKey = currentSession === null ? null : activeOrganizationId ?? "PERSONAL";
+    const defaultScope = activeOrganizationId
+        ? InformationRequestTemplateScopeKind.ORGANIZATION
+        : InformationRequestTemplateScopeKind.PERSONAL;
+    const [scopeSelection, setScopeSelection] = useState({
+        contextKey,
+        scope: defaultScope,
+    });
+    const scope = contextKey === null
+        ? null
+        : scopeSelection.contextKey === contextKey
+            ? scopeSelection.scope
+            : defaultScope;
+    const hasOrg = activeOrganizationId !== null;
+    const canManageScope = scope === InformationRequestTemplateScopeKind.PERSONAL
+        || scope === InformationRequestTemplateScopeKind.ORGANIZATION
+        && hasCapability(Capability.ORG_POLICY_MANAGE);
     const [templates, setTemplates] = useState<InformationRequestTemplateSummaryDto[]>([]);
     const [selectedTemplate, setSelectedTemplate] = useState<InformationRequestTemplateDto | null>(null);
     const [schemas, setSchemas] = useState<SchemaDefinitionDto[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const activeScope = scope as InformationRequestTemplateScopeKind;
 
     const loadTemplates = useCallback(async () =>
     {
+        if (scope === null)
+        {
+            setTemplates([]);
+            return;
+        }
         setLoading(true);
         setError(null);
         try
         {
-            setTemplates(await listInformationRequestTemplates({scopeKind: activeScope}));
+            setTemplates(await listInformationRequestTemplates({scopeKind: scope}));
         }
         catch
         {
@@ -66,19 +87,24 @@ export const useInformationRequestTemplateAdministration = (): TemplateAdministr
         {
             setLoading(false);
         }
-    }, [activeScope]);
+    }, [scope]);
 
     const loadSchemas = useCallback(async () =>
     {
+        if (scope === null || !canManageScope)
+        {
+            setSchemas([]);
+            return;
+        }
         try
         {
-            setSchemas(await listSchemas({scopeKind: fieldScopeFor(activeScope)}));
+            setSchemas(await listSchemas({scopeKind: fieldScopeFor(scope)}));
         }
         catch
         {
             setSchemas([]);
         }
-    }, [activeScope]);
+    }, [canManageScope, scope]);
 
     useEffect(() =>
     {
@@ -102,6 +128,7 @@ export const useInformationRequestTemplateAdministration = (): TemplateAdministr
 
     const createDraft = async () =>
     {
+        if (scope === null || !canManageScope) return;
         setError(null);
         try
         {
@@ -109,7 +136,7 @@ export const useInformationRequestTemplateAdministration = (): TemplateAdministr
                 namespace: "process",
                 templateKey: `request-template-${Date.now()}`,
                 displayName: "New Information Request Template",
-                scopeKind: activeScope,
+                scopeKind: scope,
             });
             setSelectedTemplate(created);
             void loadTemplates();
@@ -153,7 +180,8 @@ export const useInformationRequestTemplateAdministration = (): TemplateAdministr
     return {
         hasOrg,
         scope,
-        setScope,
+        setScope: nextScope => setScopeSelection({contextKey, scope: nextScope}),
+        canManageScope,
         templates,
         selectedTemplate,
         schemas,

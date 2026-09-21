@@ -34,7 +34,6 @@ import com.docuhyphen.app.api.service.command.CommandReceiptService
 import com.docuhyphen.app.api.service.command.CommandReceiptStore
 import com.docuhyphen.app.api.service.fields.FieldsAccessContext
 import com.docuhyphen.app.api.service.subscription.ExchangeUsageCounter
-import com.docuhyphen.app.api.service.subscription.FeatureRolloutConfigService
 import com.docuhyphen.app.api.service.subscription.OrganizationSeatCounter
 import com.docuhyphen.app.api.service.subscription.PlanCode
 import com.docuhyphen.app.api.service.subscription.PlanFeature
@@ -60,7 +59,6 @@ import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.verifyNoInteractions
 import org.mockito.kotlin.whenever
-import java.util.Optional
 import java.util.UUID
 
 class InformationRequestAdHocCreationServiceTest
@@ -150,7 +148,7 @@ class InformationRequestAdHocCreationServiceTest
         whenever(deniedGuard.requireRequestMutation(any())).thenThrow(
             SubscriptionDenialException(
                 SubscriptionDenial(
-                    reason = SubscriptionDenialReason.FEATURE_NOT_RELEASED,
+                    reason = SubscriptionDenialReason.FEATURE_NOT_INCLUDED,
                     planCode = PlanCode.BUSINESS,
                     ownerType = SubscriptionOwnerType.ORGANIZATION,
                     message = "This capability is not yet released.",
@@ -175,48 +173,26 @@ class InformationRequestAdHocCreationServiceTest
     }
 
     @Test
-    fun `creation is denied when only the rollout grant is held, without the commercial entitlement`()
+    fun `creation is allowed by the base plan without an admin override`()
     {
-        val fixture = fixture(entitlementGuard = realGuard(organizationId, commercialGrant = false, rolloutGranted = true))
+        val fixture = fixture(entitlementGuard = realGuard(organizationId, commercialGrant = false))
         val command = CreateAdHocInformationRequestCommand(
             exchangeId = exchangeId,
             displayName = "Current record request",
             configuration = configuration,
             access = access,
-            idempotencyKey = "create-denied-rollout-only",
+            idempotencyKey = "create-without-admin-override",
         )
 
-        assertThrows<SubscriptionDenialException> { fixture.service.createAdHoc(command) }
+        val result = fixture.service.createAdHoc(command)
 
-        verify(fixture.requestRepository, never()).save(any())
+        assertNotNull(result.request.id)
+        verify(fixture.requestRepository).save(any())
     }
 
-    @Test
-    fun `creation is denied when only the commercial entitlement is held, without the rollout grant`()
-    {
-        val fixture = fixture(entitlementGuard = realGuard(organizationId, commercialGrant = true, rolloutGranted = false))
-        val command = CreateAdHocInformationRequestCommand(
-            exchangeId = exchangeId,
-            displayName = "Current record request",
-            configuration = configuration,
-            access = access,
-            idempotencyKey = "create-denied-commercial-only",
-        )
-
-        assertThrows<SubscriptionDenialException> { fixture.service.createAdHoc(command) }
-
-        verify(fixture.requestRepository, never()).save(any())
-    }
-
-    /**
-     * Wires the real commercial-entitlement and rollout-grant decision chain against a mocked
-     * policy repository, rather than mocking [InformationRequestEntitlementGuard] itself, so a
-     * single-gate denial is proven through the same code the production guard runs.
-     */
     private fun realGuard(
         organizationId: UUID,
         commercialGrant: Boolean,
-        rolloutGranted: Boolean,
     ): InformationRequestEntitlementGuard
     {
         val policyService = mock<SubscriptionPolicyService>()
@@ -229,7 +205,6 @@ class InformationRequestAdHocCreationServiceTest
         whenever(policyService.featureOverrides(SubscriptionContext.forOrganization(organizationId))).thenReturn(
             if (commercialGrant) mapOf(PlanFeature.INFORMATION_REQUESTS to true) else emptyMap(),
         )
-        val grants = if (rolloutGranted) "${PlanFeature.INFORMATION_REQUESTS}:ORGANIZATION:$organizationId" else ""
         return InformationRequestEntitlementGuard(
             SubscriptionAccessService(
                 subscriptionPolicyService = policyService,
@@ -238,7 +213,6 @@ class InformationRequestAdHocCreationServiceTest
                     mock<OrganizationSeatCounter>(),
                 ),
                 enforcementConfigService = SubscriptionEnforcementConfigService(SubscriptionEnforcementMode.ENFORCE.name),
-                featureRolloutConfigService = FeatureRolloutConfigService(Optional.of(grants)),
             ),
         )
     }

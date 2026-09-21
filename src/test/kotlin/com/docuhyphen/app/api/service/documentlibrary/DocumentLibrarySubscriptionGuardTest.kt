@@ -38,7 +38,6 @@ class DocumentLibrarySubscriptionGuardTest
                 mock<OrganizationSeatCounter>(),
             ),
             enforcementConfigService = SubscriptionEnforcementConfigService(mode.name),
-            featureRolloutConfigService = FeatureRolloutConfigService(Optional.empty()),
         )
 
         return DocumentLibrarySubscriptionGuard(accessService, userRoleService)
@@ -200,6 +199,5 @@ class DocumentLibrarySubscriptionGuardTest
         verifyNoInteractions(userRoleService)
     }
 }
-
 
 
