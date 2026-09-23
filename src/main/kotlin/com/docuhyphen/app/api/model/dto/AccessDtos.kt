@@ -35,6 +35,9 @@ data class CurrentSessionDto(
     val capabilities: List<String>,
     val availableOrganizations: List<SessionOrganizationOptionDto>,
     val idleTimeoutMinutes: Long,
+    val serverTimeEpochMs: Long,
+    val idleExpiresAtEpochMs: Long,
+    val sessionExpiresAtEpochMs: Long?,
     val subscription: EffectiveSubscriptionDto? = null,
 )
 

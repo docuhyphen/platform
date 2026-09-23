@@ -22,8 +22,9 @@ export const deviceSessionsArticle = (
 
         <h3>Inactivity warning</h3>
         <ul>
-            <li>A warning dialog appears one minute before your session reaches its inactivity limit.</li>
-            <li>Select <b>Continue session</b> to remain signed in and restart the inactivity timer.</li>
+            <li>A warning dialog appears one minute before your session reaches its inactivity limit or maximum duration.</li>
+            <li>For inactivity warnings, select <b>Continue session</b> to remain signed in and restart the inactivity timer.</li>
+            <li>Maximum-duration warnings cannot be extended. Save your work before signing in again.</li>
             <li>Select <b>Sign out</b> to end the session immediately.</li>
             <li>If the countdown reaches zero, you are signed out automatically and must sign in again.</li>
         </ul>

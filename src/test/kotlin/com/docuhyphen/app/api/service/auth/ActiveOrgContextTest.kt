@@ -137,6 +137,7 @@ class ActiveOrgContextTest
             membershipRepo,
             orgRepo,
             mock<SessionSubscriptionService>(),
+            mock<UserSessionService>(),
         )
     }
 
@@ -535,6 +536,7 @@ class ActiveOrgContextTest
             membershipRepo,
             orgRepo,
             mock<SessionSubscriptionService>(),
+            mock<UserSessionService>(),
         )
 
         assertEquals("Unknown organization", svc.currentSession().availableOrganizations[0].name)

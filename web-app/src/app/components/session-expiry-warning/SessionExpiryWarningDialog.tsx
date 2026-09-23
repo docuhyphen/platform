@@ -11,10 +11,12 @@ import {
     Text,
 } from "@fluentui/react-components";
 import {useSessionExpiryWarningDialogStyles} from "./SessionExpiryWarningDialogStyles.tsx";
+import type {SessionExpiryReason} from "./useSessionInactivity.ts";
 
 interface SessionExpiryWarningDialogProps
 {
     isOpen: boolean;
+    expiryReason: SessionExpiryReason;
     secondsRemaining: number;
     isContinuing: boolean;
     errorMessage: string | null;
@@ -25,6 +27,7 @@ interface SessionExpiryWarningDialogProps
 const SessionExpiryWarningDialog: React.FC<SessionExpiryWarningDialogProps> = (
     {
         isOpen,
+        expiryReason,
         secondsRemaining,
         isContinuing,
         errorMessage,
@@ -35,6 +38,7 @@ const SessionExpiryWarningDialog: React.FC<SessionExpiryWarningDialogProps> = (
 {
     const styles = useSessionExpiryWarningDialogStyles();
     const remainingLabel = `${secondsRemaining} second${secondsRemaining === 1 ? "" : "s"}`;
+    const isInactivityWarning = expiryReason === "INACTIVITY_TIMEOUT";
 
     return (
         <Dialog
@@ -49,7 +53,9 @@ const SessionExpiryWarningDialog: React.FC<SessionExpiryWarningDialogProps> = (
                         id={"session-expiry-warning-dialog-content"}
                         className={styles.content}>
                         <Text id={"session-expiry-warning-message"}>
-                            You will be signed out due to inactivity unless you continue your session.
+                            {isInactivityWarning
+                                ? "You will be signed out due to inactivity unless you continue your session."
+                                : "Your session has reached its maximum duration. Save your work before signing in again."}
                         </Text>
                         <Text
                             id={"session-expiry-warning-countdown"}
@@ -64,7 +70,7 @@ const SessionExpiryWarningDialog: React.FC<SessionExpiryWarningDialogProps> = (
                         )}
                     </DialogContent>
                     <DialogActions id={"session-expiry-warning-actions"}>
-                        <Button
+                        {isInactivityWarning && <Button
                             id={"session-expiry-warning-continue"}
                             appearance={"primary"}
                             shape={"circular"}
@@ -72,10 +78,10 @@ const SessionExpiryWarningDialog: React.FC<SessionExpiryWarningDialogProps> = (
                             onClick={onContinue}>
                             {isContinuing && <Spinner size={"tiny"}/>}
                             Continue session
-                        </Button>
+                        </Button>}
                         <Button
                             id={"session-expiry-warning-sign-out"}
-                            appearance={"secondary"}
+                            appearance={isInactivityWarning ? "secondary" : "primary"}
                             shape={"circular"}
                             disabled={isContinuing}
                             onClick={onSignOut}>

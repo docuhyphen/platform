@@ -1,6 +1,7 @@
 ﻿import {jwtDecode} from "jwt-decode";
 import {NotificationDto} from '../app/models/models';
 import {getApiBaseUrl} from './apiBaseUrl.ts';
+import {issueRealtimeTicket} from './realtimeApi.ts';
 
 /**
  * Realtime client for the per-userSession WebSocket at /realtime/{userSessionId}.
@@ -10,7 +11,7 @@ import {getApiBaseUrl} from './apiBaseUrl.ts';
  *  - Indefinite reconnect with exponential backoff. The old 5-attempt cap dropped users
  *    permanently after a transient network blip; we never want that for the auth-event
  *    channel.
- *  - Heartbeat ping every 25s; the server replies PONG and touches the UserSession.
+ *  - Heartbeat ping every 25s; the server replies PONG without extending user activity.
  *  - Typed message dispatch via per-type handler sets, plus a wildcard `*` for the
  *    NotificationContext that wants every NOTIFICATION envelope.
  *
@@ -100,6 +101,8 @@ class RealtimeService
     private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
     private heartbeatTimer: ReturnType<typeof setInterval> | null = null;
     private explicitlyDisconnected = false;
+    private revocationHandled = false;
+    private connectionAttempt = 0;
 
     private typedHandlers = new Map<RealtimeMessageType | '*', Set<TypedHandler>>();
     private legacyNotificationHandlers = new Set<LegacyNotificationHandler>();
@@ -134,6 +137,7 @@ class RealtimeService
         }
 
         this.explicitlyDisconnected = false;
+        this.revocationHandled = false;
 
         // If a socket already exists for the same userSession, leave it alone.
         if (this.socket && this.userSessionId === sessionId && this.socket.readyState <= WebSocket.OPEN)
@@ -144,12 +148,14 @@ class RealtimeService
 
         this.teardownSocket();
         this.userSessionId = sessionId;
-        this.openSocket(token, sessionId);
+        const attempt = ++this.connectionAttempt;
+        void this.openSocketWithTicket(sessionId, attempt);
     }
 
     disconnect(): void
     {
         this.explicitlyDisconnected = true;
+        this.connectionAttempt += 1;
         if (this.reconnectTimer)
         {
             clearTimeout(this.reconnectTimer);
@@ -205,14 +211,35 @@ class RealtimeService
         this.send({type: 'UNSUBSCRIBE_EXCHANGE', exchangeId});
     }
 
-    private openSocket(token: string, userSessionId: string): void
+    private async openSocketWithTicket(userSessionId: string, attempt: number): Promise<void>
+    {
+        try
+        {
+            const {ticket} = await issueRealtimeTicket();
+            if (this.explicitlyDisconnected || attempt !== this.connectionAttempt || this.userSessionId !== userSessionId)
+            {
+                return;
+            }
+            this.openSocket(ticket, userSessionId);
+        }
+        catch (error: unknown)
+        {
+            console.warn('[Realtime] failed to issue connection ticket', error);
+            if (!this.explicitlyDisconnected && attempt === this.connectionAttempt)
+            {
+                this.scheduleReconnect();
+            }
+        }
+    }
+
+    private openSocket(ticket: string, userSessionId: string): void
     {
         const apiBase = getApiBaseUrl();
         // If env var is set, derive ws/wss from its scheme; otherwise default to localhost dev.
         const wsBase = apiBase
             ? apiBase.replace(/^https:\/\//, 'wss://').replace(/^http:\/\//, 'ws://')
             : 'ws://localhost:8080';
-        const url = `${wsBase}/realtime/${encodeURIComponent(userSessionId)}?token=${encodeURIComponent(token)}`;
+        const url = `${wsBase}/realtime/${encodeURIComponent(userSessionId)}?ticket=${encodeURIComponent(ticket)}`;
 
         let socket: WebSocket;
         try
@@ -263,7 +290,18 @@ class RealtimeService
             // the SESSION_REVOKED handler that already ran. No reconnect.
             if (event.code === CLOSE_CODE_SESSION_REVOKED)
             {
+                if (!this.explicitlyDisconnected && !this.revocationHandled)
+                {
+                    const reasonPrefix = 'session revoked: ';
+                    const reason = event.reason.startsWith(reasonPrefix)
+                        ? event.reason.slice(reasonPrefix.length)
+                        : undefined;
+                    window.dispatchEvent(new CustomEvent('auth-session-expired', {
+                        detail: reason ? {reason} : undefined,
+                    }));
+                }
                 this.userSessionId = null;
+                this.revocationHandled = false;
                 return;
             }
             if (!this.explicitlyDisconnected)
@@ -334,7 +372,8 @@ class RealtimeService
                 return;
             }
             this.userSessionId = sessionId;
-            this.openSocket(token, sessionId);
+            const attempt = ++this.connectionAttempt;
+            void this.openSocketWithTicket(sessionId, attempt);
         }, delay);
     }
 
@@ -344,6 +383,7 @@ class RealtimeService
         // auth-session-expired event. AuthContext already wires this to a redirect.
         if (msg.type === 'SESSION_REVOKED' || msg.type === 'PASSWORD_CHANGED')
         {
+            this.revocationHandled = true;
             const reason = msg.reason ?? msg.type;
             window.dispatchEvent(new CustomEvent('auth-session-expired', {detail: {reason}}));
         }

@@ -2,6 +2,7 @@
 
 import com.docuhyphen.app.api.model.entity.AppUser
 import com.docuhyphen.app.api.model.entity.UserSession
+import com.docuhyphen.app.api.model.auth.SessionDeadlines
 import com.docuhyphen.app.api.realtime.RealtimeEventService
 import com.docuhyphen.app.api.realtime.UserSessionInfo
 import com.docuhyphen.app.api.repository.auth.UserSessionRepository
@@ -72,6 +73,17 @@ class UserSessionService @Inject constructor(
         userSessionRepository.updateLastSeen(sessionId, Timestamp.from(Instant.now()))
     }
 
+    fun recordActivity(sessionId: UUID, minimumIntervalSeconds: Long): UserSession?
+    {
+        val now = Instant.now()
+        userSessionRepository.updateLastSeenIfBefore(
+            sessionId,
+            Timestamp.from(now),
+            Timestamp.from(now.minusSeconds(minimumIntervalSeconds.coerceAtLeast(1))),
+        )
+        return userSessionRepository.findBySessionId(sessionId)
+    }
+
     fun markFreshAuth(sessionId: UUID)
     {
         userSessionRepository.updateLastAuthTime(sessionId, Timestamp.from(Instant.now()))
@@ -80,6 +92,47 @@ class UserSessionService @Inject constructor(
     fun findSession(sessionId: UUID): UserSession?
     {
         return userSessionRepository.findBySessionId(sessionId)
+    }
+
+    fun endReason(sessionId: UUID): RevocationReasonCode?
+    {
+        sessionRevocationCache.reason(sessionId)?.let { return it }
+        val session = userSessionRepository.findBySessionId(sessionId) ?: return null
+        session.revocationReasonCode?.let { value ->
+            runCatching { RevocationReasonCode.valueOf(value) }.getOrNull()?.let { return it }
+        }
+        val expiresAt = session.expiresAt?.toInstant()
+        if (expiresAt != null && !expiresAt.isAfter(Instant.now())) return RevocationReasonCode.SESSION_EXPIRED
+        return if (!session.isActive || session.revokedAt != null) RevocationReasonCode.REFRESH_INVALID else null
+    }
+
+    fun accessEndReason(sessionId: UUID, appUserId: UUID, now: Instant = Instant.now()): RevocationReasonCode?
+    {
+        sessionRevocationCache.reason(sessionId)?.let { return it }
+        val session = userSessionRepository.findBySessionId(sessionId) ?: return RevocationReasonCode.REFRESH_INVALID
+        if (session.appUser?.id != appUserId) return RevocationReasonCode.REFRESH_INVALID
+        session.revocationReasonCode?.let { value ->
+            runCatching { RevocationReasonCode.valueOf(value) }.getOrNull()?.let { return it }
+        }
+        if (!session.isActive || session.revokedAt != null) return RevocationReasonCode.REFRESH_INVALID
+        val sessionExpiresAt = session.expiresAt?.toInstant()
+        if (sessionExpiresAt != null && !sessionExpiresAt.isAfter(now)) return RevocationReasonCode.SESSION_EXPIRED
+        val appUser = session.appUser ?: return RevocationReasonCode.REFRESH_INVALID
+        val idleTimeoutMinutes = authSessionPolicyService.resolveForAppUser(appUser).idleTimeoutMinutes
+        val idleExpiresAt = session.lastSeenAt.toInstant().plusSeconds(idleTimeoutMinutes * 60)
+        if (!idleExpiresAt.isAfter(now)) return RevocationReasonCode.INACTIVITY_TIMEOUT
+        return null
+    }
+
+    fun deadlines(sessionId: UUID): SessionDeadlines?
+    {
+        val session = userSessionRepository.findBySessionId(sessionId) ?: return null
+        val appUser = session.appUser ?: return null
+        val idleTimeoutMinutes = authSessionPolicyService.resolveForAppUser(appUser).idleTimeoutMinutes
+        return SessionDeadlines(
+            idleExpiresAt = session.lastSeenAt.toInstant().plusSeconds(idleTimeoutMinutes * 60),
+            sessionExpiresAt = session.expiresAt?.toInstant(),
+        )
     }
 
     /**
@@ -119,15 +172,7 @@ class UserSessionService @Inject constructor(
         if (expired.isEmpty()) return 0
 
         expired.forEach { session ->
-            userSessionRepository.revokeSession(
-                sessionId = session.sessionId,
-                revokedAt = now,
-                reasonCode = RevocationReasonCode.EXCHANGE_EXPIRED.name,
-            )
-            sessionRevocationCache.markRevoked(session.sessionId, RevocationReasonCode.EXCHANGE_EXPIRED)
-            realtimeEventService.closeSessionSocket(session.sessionId)
-            val appUserId = session.appUser?.id ?: return@forEach
-            realtimeEventService.notifySessionRemoved(appUserId, session.sessionId, exceptUserSessionId = session.sessionId)
+            revokeSession(session.sessionId, RevocationReasonCode.SESSION_EXPIRED)
         }
 
         return expired.size
@@ -151,7 +196,7 @@ class UserSessionService @Inject constructor(
             val idleSeconds = java.time.Duration.between(lastSeen, nowInstant).seconds
             if (idleSeconds <= idleLimitMinutes * 60) return@forEach
 
-            revokeSession(session.sessionId, RevocationReasonCode.SECURITY_POLICY)
+            revokeSession(session.sessionId, RevocationReasonCode.INACTIVITY_TIMEOUT)
             revokedCount++
         }
 

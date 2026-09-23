@@ -1,10 +1,12 @@
 import {useCallback, useEffect, useRef, useState} from "react";
 import {useIdleTimer} from "react-idle-timer";
 import type {EventsType} from "react-idle-timer";
+import type {CurrentSessionDto} from "../../models/models.tsx";
 
 const WARNING_DURATION_MS = 60_000;
 const ACTIVITY_HEARTBEAT_THROTTLE_MS = 15_000;
 const ACTIVITY_EVENT_THROTTLE_MS = 1_000;
+const ACTIVITY_DETECTION_TIMEOUT_MS = 2_147_483_646;
 const ACTIVITY_EVENTS: EventsType[] = [
     "keydown",
     "input",
@@ -15,21 +17,29 @@ const ACTIVITY_EVENTS: EventsType[] = [
     "scroll",
     "touchstart",
     "touchmove",
+    "focus",
     "focusin",
-    "visibilitychange",
 ];
+
+export type SessionExpiryReason = "INACTIVITY_TIMEOUT" | "SESSION_EXPIRED";
+
+interface SessionDeadlines
+{
+    idleExpiresAt: number;
+    sessionExpiresAt: number | null;
+}
 
 interface UseSessionInactivityOptions
 {
-    userId: string | null;
-    idleTimeoutMinutes: number | null;
-    onContinue: () => Promise<void>;
-    onExpire: () => Promise<void>;
+    currentSession: CurrentSessionDto | null;
+    onContinue: () => Promise<CurrentSessionDto>;
+    onExpire: (reason: SessionExpiryReason) => Promise<void>;
 }
 
 interface UseSessionInactivityResult
 {
     isWarningOpen: boolean;
+    warningReason: SessionExpiryReason;
     secondsRemaining: number;
     isContinuing: boolean;
     errorMessage: string | null;
@@ -37,25 +47,46 @@ interface UseSessionInactivityResult
     expireSession: () => Promise<void>;
 }
 
+function toLocalDeadlines(session: CurrentSessionDto): SessionDeadlines
+{
+    const localNow = Date.now();
+    const serverOffset = localNow - session.serverTimeEpochMs;
+    return {
+        idleExpiresAt: session.idleExpiresAtEpochMs + serverOffset,
+        sessionExpiresAt: session.sessionExpiresAtEpochMs === null
+            ? null
+            : session.sessionExpiresAtEpochMs + serverOffset,
+    };
+}
+
+function nextExpiry(deadlines: SessionDeadlines): {expiresAt: number; reason: SessionExpiryReason}
+{
+    if (deadlines.sessionExpiresAt !== null && deadlines.sessionExpiresAt <= deadlines.idleExpiresAt)
+    {
+        return {expiresAt: deadlines.sessionExpiresAt, reason: "SESSION_EXPIRED"};
+    }
+    return {expiresAt: deadlines.idleExpiresAt, reason: "INACTIVITY_TIMEOUT"};
+}
+
 export function useSessionInactivity(
     {
-        userId,
-        idleTimeoutMinutes,
+        currentSession,
         onContinue,
         onExpire,
     }: UseSessionInactivityOptions
 ): UseSessionInactivityResult
 {
-    const configuredTimeout = idleTimeoutMinutes ? idleTimeoutMinutes * 60_000 : 0;
-    const enabled = Boolean(userId) && configuredTimeout > 0;
-    const timeout = enabled ? configuredTimeout : WARNING_DURATION_MS;
-    const promptBeforeIdle = Math.min(WARNING_DURATION_MS, Math.max(0, timeout - 1));
+    const enabled = currentSession !== null && currentSession.idleTimeoutMinutes > 0;
+    const [deadlines, setDeadlines] = useState<SessionDeadlines | null>(() =>
+        currentSession ? toLocalDeadlines(currentSession) : null);
     const [isWarningOpen, setIsWarningOpen] = useState(false);
+    const [warningReason, setWarningReason] = useState<SessionExpiryReason>("INACTIVITY_TIMEOUT");
     const [secondsRemaining, setSecondsRemaining] = useState(60);
     const [isContinuing, setIsContinuing] = useState(false);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const expiredRef = useRef(false);
-    const lastHeartbeatRef = useRef(Date.now());
+    const warningReasonRef = useRef<SessionExpiryReason>("INACTIVITY_TIMEOUT");
+    const lastHeartbeatRef = useRef(0);
     const heartbeatInFlightRef = useRef(false);
     const onContinueRef = useRef(onContinue);
     const onExpireRef = useRef(onExpire);
@@ -66,13 +97,24 @@ export function useSessionInactivity(
         onExpireRef.current = onExpire;
     }, [onContinue, onExpire]);
 
-    const expireSession = useCallback(async () =>
+    const applySessionTiming = useCallback((session: CurrentSessionDto) =>
+    {
+        setDeadlines(toLocalDeadlines(session));
+        setErrorMessage(null);
+    }, []);
+
+    const expireWithReason = useCallback(async (reason: SessionExpiryReason) =>
     {
         if (expiredRef.current) return;
         expiredRef.current = true;
         setIsWarningOpen(false);
-        await onExpireRef.current();
+        await onExpireRef.current(reason);
     }, []);
+
+    const expireSession = useCallback(async () =>
+    {
+        await expireWithReason(warningReasonRef.current);
+    }, [expireWithReason]);
 
     const handleActivity = useCallback(() =>
     {
@@ -82,74 +124,101 @@ export function useSessionInactivity(
         if (now - lastHeartbeatRef.current < ACTIVITY_HEARTBEAT_THROTTLE_MS) return;
 
         heartbeatInFlightRef.current = true;
+        lastHeartbeatRef.current = now;
         void onContinueRef.current()
-            .catch(() => undefined)
+            .then(applySessionTiming)
+            .catch(() =>
+            {
+                lastHeartbeatRef.current = 0;
+            })
             .finally(() =>
             {
                 heartbeatInFlightRef.current = false;
-                lastHeartbeatRef.current = Date.now();
             });
-    }, [enabled]);
+    }, [applySessionTiming, enabled]);
 
-    const idleTimer = useIdleTimer({
-        timeout,
-        promptBeforeIdle,
+    useIdleTimer({
+        timeout: ACTIVITY_DETECTION_TIMEOUT_MS,
         events: ACTIVITY_EVENTS,
         eventsThrottle: ACTIVITY_EVENT_THROTTLE_MS,
         disabled: !enabled,
         crossTab: true,
         syncTimers: ACTIVITY_EVENT_THROTTLE_MS,
-        name: `docuhyphen-session-${userId ?? "anonymous"}`,
+        name: `docuhyphen-session-${currentSession?.userId ?? "anonymous"}`,
         onAction: handleActivity,
-        onPrompt: () =>
-        {
-            setIsWarningOpen(true);
-            setErrorMessage(null);
-        },
-        onActive: () =>
-        {
-            setIsWarningOpen(false);
-            setErrorMessage(null);
-        },
-        onIdle: () => void expireSession(),
     });
 
     useEffect(() =>
     {
         expiredRef.current = false;
-        lastHeartbeatRef.current = Date.now();
+        lastHeartbeatRef.current = 0;
         heartbeatInFlightRef.current = false;
+        setDeadlines(currentSession ? toLocalDeadlines(currentSession) : null);
         setIsWarningOpen(false);
         setErrorMessage(null);
         setSecondsRemaining(60);
-    }, [enabled, idleTimeoutMinutes, userId]);
+    }, [currentSession]);
 
     useEffect(() =>
     {
-        if (!isWarningOpen) return;
+        if (!enabled || deadlines === null) return;
 
+        const expiry = nextExpiry(deadlines);
+        const openWarning = () =>
+        {
+            warningReasonRef.current = expiry.reason;
+            setWarningReason(expiry.reason);
+            setIsWarningOpen(true);
+            setErrorMessage(null);
+        };
+        const warningDelay = expiry.expiresAt - WARNING_DURATION_MS - Date.now();
+        const expiryDelay = expiry.expiresAt - Date.now();
+
+        if (warningDelay <= 0) openWarning();
+        else setIsWarningOpen(false);
+
+        const warningTimer = warningDelay > 0
+            ? window.setTimeout(openWarning, warningDelay)
+            : null;
+        const expiryTimer = window.setTimeout(
+            () => void expireWithReason(expiry.reason),
+            Math.max(0, expiryDelay),
+        );
+
+        return () =>
+        {
+            if (warningTimer !== null) window.clearTimeout(warningTimer);
+            window.clearTimeout(expiryTimer);
+        };
+    }, [deadlines, enabled, expireWithReason]);
+
+    useEffect(() =>
+    {
+        if (!isWarningOpen || deadlines === null) return;
         const updateCountdown = () =>
         {
-            setSecondsRemaining(Math.max(0, Math.ceil(idleTimer.getRemainingTime() / 1_000)));
+            const expiry = nextExpiry(deadlines);
+            setSecondsRemaining(Math.max(0, Math.ceil((expiry.expiresAt - Date.now()) / 1_000)));
         };
 
         updateCountdown();
         const countdownTimer = window.setInterval(updateCountdown, 1_000);
         return () => window.clearInterval(countdownTimer);
-    }, [idleTimer, isWarningOpen]);
+    }, [deadlines, isWarningOpen]);
 
     const continueSession = useCallback(async () =>
     {
-        if (isContinuing || expiredRef.current) return;
+        if (isContinuing || expiredRef.current || warningReasonRef.current === "SESSION_EXPIRED") return;
         setIsContinuing(true);
         setErrorMessage(null);
         try
         {
-            await onContinueRef.current();
+            const session = await onContinueRef.current();
             expiredRef.current = false;
-            idleTimer.activate();
+            applySessionTiming(session);
             setIsWarningOpen(false);
             setSecondsRemaining(60);
+            lastHeartbeatRef.current = Date.now();
         }
         catch
         {
@@ -159,10 +228,11 @@ export function useSessionInactivity(
         {
             setIsContinuing(false);
         }
-    }, [idleTimer, isContinuing]);
+    }, [applySessionTiming, isContinuing]);
 
     return {
         isWarningOpen,
+        warningReason,
         secondsRemaining,
         isContinuing,
         errorMessage,

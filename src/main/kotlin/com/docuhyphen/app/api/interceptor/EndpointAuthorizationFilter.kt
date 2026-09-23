@@ -3,10 +3,12 @@
 import com.docuhyphen.app.api.model.entity.AuthToken
 import com.docuhyphen.app.api.model.entity.AuthTokenType.ACCESS
 import com.docuhyphen.app.api.repository.organization.OrganizationMembershipRepository
+import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.service.application.ApplicationService
 import com.docuhyphen.app.api.service.auth.ApplicationTokenBoundaryService
 import com.docuhyphen.app.api.service.auth.AuthenticationService
 import com.docuhyphen.app.api.service.auth.OrganizationMembershipValidationService
+import com.docuhyphen.app.api.service.auth.RevocationReasonCode
 import com.docuhyphen.app.api.service.config.ConfigurationService
 import com.docuhyphen.app.api.service.user.AppUserService
 import jakarta.enterprise.context.RequestScoped
@@ -288,7 +290,7 @@ class EndpointVerificationFilter @Inject constructor(
         if (!appUser.isActive || appUser.deprovisionedAt != null)
         {
             logger.warn("Inactive or deprovisioned user attempted access user={}", userId)
-            abortRequest(requestContext, "Unauthorized request")
+            abortRequest(requestContext, "User is inactive", RevocationReasonCode.DEPROVISIONED)
             return
         }
 
@@ -300,7 +302,11 @@ class EndpointVerificationFilter @Inject constructor(
                 userId,
                 membershipValidation.reasonCode,
             )
-            abortRequest(requestContext, "Unauthorized request")
+            abortRequest(
+                requestContext,
+                membershipValidation.message ?: "Organization membership is inactive",
+                membershipValidation.reasonCode ?: RevocationReasonCode.SECURITY_POLICY,
+            )
             return
         }
 
@@ -310,7 +316,11 @@ class EndpointVerificationFilter @Inject constructor(
             if (tokenSessionVersion != appUser.sessionVersion)
             {
                 logger.warn("Session version mismatch for user={} tokenVersion={} currentVersion={}", userId, tokenSessionVersion, appUser.sessionVersion)
-                abortRequest(requestContext, "Unauthorized request")
+                abortRequest(
+                    requestContext,
+                    "Session version is no longer current",
+                    RevocationReasonCode.EXCHANGE_VERSION_MISMATCH,
+                )
                 return
             }
         }
@@ -338,14 +348,22 @@ class EndpointVerificationFilter @Inject constructor(
         if (sessionRevocationCache.isRevoked(sessionId))
         {
             logger.warn("Revoked session (Redis) sessionId={} user={}", sessionId, userId)
-            abortRequest(requestContext, "Unauthorized request")
+            abortRequest(
+                requestContext,
+                "Session is no longer active",
+                sessionRevocationCache.reason(sessionId) ?: RevocationReasonCode.REFRESH_INVALID,
+            )
             return
         }
 
         if (!userSessionService.isActiveSession(sessionId, userId))
         {
             logger.warn("Inactive or missing user session sessionId={} user={}", sessionId, userId)
-            abortRequest(requestContext, "Unauthorized request")
+            abortRequest(
+                requestContext,
+                "Session is no longer active",
+                userSessionService.endReason(sessionId) ?: RevocationReasonCode.REFRESH_INVALID,
+            )
             return
         }
 
@@ -368,22 +386,25 @@ class EndpointVerificationFilter @Inject constructor(
                 )
                 userSessionService.revokeSession(
                     sessionId,
-                    com.docuhyphen.app.api.service.auth.RevocationReasonCode.SECURITY_POLICY,
+                    RevocationReasonCode.INACTIVITY_TIMEOUT,
                 )
                 authAuditService.emit(
                     action = "REQUEST_AUTH",
                     outcome = "DENY",
-                    reasonCode = com.docuhyphen.app.api.service.auth.RevocationReasonCode.SECURITY_POLICY,
+                    reasonCode = RevocationReasonCode.INACTIVITY_TIMEOUT,
                     actorId = userId,
                     sessionId = sessionId.toString(),
                     reason = "Idle timeout exceeded (idleSeconds=$idleSeconds, limit=${idleLimitMinutes * 60})",
                 )
-                abortRequest(requestContext, "Session timed out due to inactivity")
+                abortRequest(
+                    requestContext,
+                    "Session timed out due to inactivity",
+                    RevocationReasonCode.INACTIVITY_TIMEOUT,
+                )
                 return
             }
         }
 
-        userSessionService.touchSession(sessionId)
         authenticationContext.userSessionId = sessionId
 
         // DPoP (RFC 9449) sender-constraint check. Required when enabled and the access token
@@ -450,6 +471,19 @@ class EndpointVerificationFilter @Inject constructor(
         requestContext.abortWith(
             Response.status(Response.Status.UNAUTHORIZED)
                 .entity(message)
+                .build()
+        )
+    }
+
+    private fun abortRequest(
+        requestContext: ContainerRequestContext,
+        message: String,
+        reasonCode: RevocationReasonCode,
+    )
+    {
+        requestContext.abortWith(
+            Response.status(Response.Status.UNAUTHORIZED)
+                .entity(ResponseError(message, reasonCode.name))
                 .build()
         )
     }

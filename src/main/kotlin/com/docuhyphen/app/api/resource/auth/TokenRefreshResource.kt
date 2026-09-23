@@ -106,7 +106,7 @@ class TokenRefreshResource @Inject constructor(
                     requestId = requestId,
                 )
                 return Response.status(Response.Status.UNAUTHORIZED)
-                    .entity(ResponseError("CSRF validation failed"))
+                    .entity(ResponseError("CSRF validation failed", RevocationReasonCode.CSRF_VALIDATION_FAILED.name))
                     .build()
             }
 
@@ -114,7 +114,7 @@ class TokenRefreshResource @Inject constructor(
             if (refreshTokenValue.isNullOrBlank())
             {
                 return Response.status(Response.Status.UNAUTHORIZED)
-                    .entity(ResponseError("No refresh token provided"))
+                    .entity(ResponseError("No refresh token provided", RevocationReasonCode.REFRESH_INVALID.name))
                     .build()
             }
 
@@ -124,19 +124,19 @@ class TokenRefreshResource @Inject constructor(
             if (parts.size != 2 || parts[0].isBlank() || parts[1].isBlank())
             {
                 return Response.status(Response.Status.UNAUTHORIZED)
-                    .entity(ResponseError("Invalid refresh token format"))
+                    .entity(ResponseError("Invalid refresh token format", RevocationReasonCode.REFRESH_INVALID.name))
                     .build()
             }
             val jti = parts[0]
             val stored = authenticationService.findRefreshTokenByJti(jti)
                 ?: return Response.status(Response.Status.UNAUTHORIZED)
-                    .entity(ResponseError("Invalid or expired refresh token"))
+                    .entity(ResponseError("Invalid or expired refresh token", RevocationReasonCode.REFRESH_INVALID.name))
                     .build()
 
             // Constant-time hash comparison against the stored token hash.
             if (!authenticationService.verifyRefreshTokenSecret(refreshTokenValue, stored)) {
                 return Response.status(Response.Status.UNAUTHORIZED)
-                    .entity(ResponseError("Invalid refresh token"))
+                    .entity(ResponseError("Invalid refresh token", RevocationReasonCode.REFRESH_INVALID.name))
                     .build()
             }
 
@@ -147,14 +147,14 @@ class TokenRefreshResource @Inject constructor(
                     authenticationService.deleteRefreshTokenByJti(jti)
                     logger.warn("Refresh token has no session association; forcing re-authentication")
                     return Response.status(Response.Status.UNAUTHORIZED)
-                        .entity(ResponseError("EXCHANGE_EXPIRED"))
+                        .entity(ResponseError("Session is no longer active", RevocationReasonCode.REFRESH_INVALID.name))
                         .build()
                 }
 
             val userId = stored.userId
             val appUser = appUserService.getById(userId)
                 ?: return Response.status(Response.Status.UNAUTHORIZED)
-                    .entity(ResponseError("User not found"))
+                    .entity(ResponseError("User not found", RevocationReasonCode.DEPROVISIONED.name))
                     .build()
 
             if (!appUser.isActive || appUser.deprovisionedAt != null)
@@ -168,7 +168,7 @@ class TokenRefreshResource @Inject constructor(
                     requestId = requestId,
                 )
                 return Response.status(Response.Status.UNAUTHORIZED)
-                    .entity(ResponseError("User is inactive"))
+                    .entity(ResponseError("User is inactive", RevocationReasonCode.DEPROVISIONED.name))
                     .build()
             }
 
@@ -187,7 +187,10 @@ class TokenRefreshResource @Inject constructor(
                     reason = membershipValidation.message,
                 )
                 return Response.status(Response.Status.UNAUTHORIZED)
-                    .entity(ResponseError(membershipValidation.message ?: "Organization membership is inactive"))
+                    .entity(ResponseError(
+                        membershipValidation.message ?: "Organization membership is inactive",
+                        reasonCode.name,
+                    ))
                     .build()
             }
 
@@ -196,17 +199,18 @@ class TokenRefreshResource @Inject constructor(
             // The interceptor performs the same check on every authenticated request.
             if (!userSessionService.isActiveSession(sessionId, appUser.id))
             {
+                val reasonCode = userSessionService.endReason(sessionId) ?: RevocationReasonCode.REFRESH_INVALID
                 authenticationService.deleteAllRefreshTokensForUser(appUser.id)
                 authAuditService.emit(
                     action = "TOKEN_REFRESH",
                     outcome = "DENY",
-                    reasonCode = RevocationReasonCode.REFRESH_INVALID,
+                    reasonCode = reasonCode,
                     actorId = appUser.id,
                     sessionId = sessionId.toString(),
                     requestId = requestId,
                 )
                 return Response.status(Response.Status.UNAUTHORIZED)
-                    .entity(ResponseError("Session is no longer active"))
+                    .entity(ResponseError("Session is no longer active", reasonCode.name))
                     .build()
             }
 
@@ -230,7 +234,10 @@ class TokenRefreshResource @Inject constructor(
                         reason = "Risk signals: ${risk.reasons.joinToString(",")}",
                     )
                     return Response.status(Response.Status.UNAUTHORIZED)
-                        .entity(ResponseError("Session terminated for security reasons."))
+                        .entity(ResponseError(
+                            "Session terminated for security reasons.",
+                            RevocationReasonCode.RISK_SIGNAL_DETECTED.name,
+                        ))
                         .build()
                 }
             }
@@ -248,19 +255,22 @@ class TokenRefreshResource @Inject constructor(
                 val idleLimitSeconds = policy.idleTimeoutMinutes * 60
                 if (idleSeconds > idleLimitSeconds)
                 {
-                    authenticationService.deleteAllRefreshTokensForUser(appUser.id, RevocationReasonCode.SECURITY_POLICY)
-                    userSessionService.revokeSession(sessionId, RevocationReasonCode.SECURITY_POLICY)
+                    authenticationService.deleteAllRefreshTokensForUser(appUser.id, RevocationReasonCode.INACTIVITY_TIMEOUT)
+                    userSessionService.revokeSession(sessionId, RevocationReasonCode.INACTIVITY_TIMEOUT)
                     authAuditService.emit(
                         action = "TOKEN_REFRESH",
                         outcome = "DENY",
-                        reasonCode = RevocationReasonCode.SECURITY_POLICY,
+                        reasonCode = RevocationReasonCode.INACTIVITY_TIMEOUT,
                         actorId = appUser.id,
                         sessionId = sessionId.toString(),
                         requestId = requestId,
                         reason = "Idle timeout exceeded (idleSeconds=$idleSeconds, limit=$idleLimitSeconds)",
                     )
                     return Response.status(Response.Status.UNAUTHORIZED)
-                        .entity(ResponseError("Session timed out due to inactivity"))
+                        .entity(ResponseError(
+                            "Session timed out due to inactivity",
+                            RevocationReasonCode.INACTIVITY_TIMEOUT.name,
+                        ))
                         .build()
                 }
             }
@@ -308,7 +318,10 @@ class TokenRefreshResource @Inject constructor(
                     requestId = requestId,
                 )
                 return Response.status(Response.Status.UNAUTHORIZED)
-                    .entity(ResponseError("Refresh token has been revoked"))
+                    .entity(ResponseError(
+                        "Refresh token has been revoked",
+                        RevocationReasonCode.REFRESH_REUSE_DETECTED.name,
+                    ))
                     .build()
             }
 
@@ -322,7 +335,7 @@ class TokenRefreshResource @Inject constructor(
                     requestId = requestId,
                 )
                 return Response.status(Response.Status.UNAUTHORIZED)
-                    .entity(ResponseError("Invalid refresh token"))
+                    .entity(ResponseError("Invalid refresh token", RevocationReasonCode.REFRESH_INVALID.name))
                     .build()
             }
 
@@ -330,7 +343,7 @@ class TokenRefreshResource @Inject constructor(
             {
                 rotation?.successorToken
                     ?: return Response.status(Response.Status.UNAUTHORIZED)
-                        .entity(ResponseError("Invalid refresh token state"))
+                        .entity(ResponseError("Invalid refresh token state", RevocationReasonCode.REFRESH_INVALID.name))
                         .build()
             }
             else
@@ -346,7 +359,7 @@ class TokenRefreshResource @Inject constructor(
                         requestId = requestId,
                     )
                     return Response.status(Response.Status.UNAUTHORIZED)
-                        .entity(ResponseError("Invalid refresh token"))
+                        .entity(ResponseError("Invalid refresh token", RevocationReasonCode.REFRESH_INVALID.name))
                         .build()
                 }
                 refreshTokenValue
@@ -365,8 +378,6 @@ class TokenRefreshResource @Inject constructor(
             val refreshCookie = tokenIssuanceService.buildRefreshTokenCookieWithPolicy(successorToken, appUser)
             val csrfToken = tokenIssuanceService.generateCsrfToken()
             val csrfTokenCookie = tokenIssuanceService.buildCsrfTokenCookie(csrfToken)
-            userSessionService.touchSession(sessionId)
-
             Response.ok(TokenRefreshResponse(accessToken, idToken))
                 .cookie(refreshCookie, csrfTokenCookie)
                 .build()
@@ -385,7 +396,7 @@ class TokenRefreshResource @Inject constructor(
             logger.error("Error refreshing token", e)
 
             Response.status(Response.Status.UNAUTHORIZED)
-                .entity(ResponseError("Failed to refresh token"))
+                .entity(ResponseError("Failed to refresh token", RevocationReasonCode.REFRESH_INVALID.name))
                 .build()
         }
     }

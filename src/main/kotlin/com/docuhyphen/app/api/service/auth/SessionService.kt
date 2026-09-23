@@ -11,6 +11,7 @@ import com.docuhyphen.app.api.service.subscription.SessionSubscriptionService
 import io.quarkus.security.UnauthorizedException
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
+import java.time.Instant
 
 /**
  * Computes the effective session contract for the authenticated caller.
@@ -32,6 +33,7 @@ class SessionService @Inject constructor(
     private val organizationMembershipRepository: OrganizationMembershipRepository,
     private val organizationRepository: OrganizationRepository,
     private val sessionSubscriptionService: SessionSubscriptionService,
+    private val userSessionService: UserSessionService,
 )
 {
     fun currentSession(): CurrentSessionDto
@@ -64,6 +66,11 @@ class SessionService @Inject constructor(
             )
         }
 
+        val policy = authSessionPolicyService.resolveForAppUser(user)
+        val now = Instant.now()
+        val userSession = authTokenContext.userSessionId?.let(userSessionService::findSession)
+        val lastSeenAt = userSession?.lastSeenAt?.toInstant() ?: now
+
         return CurrentSessionDto(
             userId = user.id,
             email = user.email,
@@ -72,7 +79,10 @@ class SessionService @Inject constructor(
             organizationRoles = orgRoles.map { it.name },
             capabilities = capabilities.map { it.name }.sorted(),
             availableOrganizations = availableOrganizations,
-            idleTimeoutMinutes = authSessionPolicyService.resolveForAppUser(user).idleTimeoutMinutes,
+            idleTimeoutMinutes = policy.idleTimeoutMinutes,
+            serverTimeEpochMs = now.toEpochMilli(),
+            idleExpiresAtEpochMs = lastSeenAt.plusSeconds(policy.idleTimeoutMinutes * 60).toEpochMilli(),
+            sessionExpiresAtEpochMs = userSession?.expiresAt?.toInstant()?.toEpochMilli(),
             subscription = sessionSubscriptionService.describe(user.id, activeOrgId),
         )
     }

@@ -13,6 +13,13 @@ const AUTH_EVENT_STORAGE_KEY = 'docuhyphen:auth:event';
 const AUTH_USER_STORAGE_KEY = 'docuhyphen:auth:user-id';
 const AUTH_ACTIVE_ORG_STORAGE_KEY = 'docuhyphen:auth:active-org-id';
 
+function readSessionEndReason(error: unknown): string | undefined
+{
+    if (typeof error !== 'object' || error === null || !('reasonCode' in error)) return undefined;
+    const reasonCode = error.reasonCode;
+    return typeof reasonCode === 'string' && reasonCode.length > 0 ? reasonCode : undefined;
+}
+
 /**
  * Decides how the active organization should be resolved for a freshly fetched session.
  * Pure and side-effect free so it can be unit-tested independently of React state.
@@ -99,6 +106,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({children}) =>
     const tabIdRef = useRef<string>(`${Date.now()}-${Math.random().toString(36).slice(2)}`);
     const suppressNextLogoutBroadcastRef = useRef(false);
     const previousAccessTokenRef = useRef<string | null>(accessToken);
+    const sessionEndReasonRef = useRef<string | null>(null);
     const [appUser, setAppUser] = useState<AppUserDetailedDto | null>(null);
     const [appUserPersonOrganization, setAppUserPersonOrganization] = useState<OrganizationDetailedDto | null>(null);
     const [currentSession, setCurrentSession] = useState<CurrentSessionDto | null>(null);
@@ -197,13 +205,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({children}) =>
         navigate(path);
     }, [setAccessToken, setIdToken, navigate]);
 
-    const broadcastAuthEvent = useCallback((type: 'logout' | 'user-change', userId?: string | null) =>
+    const broadcastAuthEvent = useCallback((
+        type: 'logout' | 'user-change',
+        userId?: string | null,
+        reason?: string | null,
+    ) =>
     {
         localStorage.setItem(
             AUTH_EVENT_STORAGE_KEY,
             JSON.stringify({
                 type,
                 userId: userId ?? null,
+                reason: reason ?? null,
                 sourceTabId: tabIdRef.current,
                 ts: Date.now(),
             })
@@ -252,8 +265,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({children}) =>
 
         const handleSessionExpired = (e: Event) =>
         {
-            const reason: string | undefined = (e as CustomEvent).detail?.reason;
-            broadcastAuthEvent('logout');
+            const incomingReason: string | undefined = (e as CustomEvent).detail?.reason;
+            if (incomingReason) sessionEndReasonRef.current = incomingReason;
+            const reason = incomingReason ?? sessionEndReasonRef.current ?? undefined;
+            broadcastAuthEvent('logout', null, reason);
+            suppressNextLogoutBroadcastRef.current = true;
             setAccessToken(null);
             setIdToken(null);
             setAppUser(null);
@@ -261,10 +277,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({children}) =>
             setCurrentSession(null);
             localStorage.removeItem(AUTH_ACTIVE_ORG_STORAGE_KEY);
             setApiClientActiveOrganizationId(null);
-            // navigate is stable across renders (React Router v6 guarantee), so calling it
-            // directly avoids the stale-closure on redirectToSessionExpired which captures
-            // location.pathname from the first render and may suppress navigation if that
-            // snapshot happened to be "/app-session-expired".
             const path = reason
                 ? `/app-session-expired?reason=${encodeURIComponent(reason)}`
                 : '/app-session-expired';
@@ -274,6 +286,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({children}) =>
         const handleSignInRequired = () =>
         {
             broadcastAuthEvent('logout');
+            suppressNextLogoutBroadcastRef.current = true;
             clearAuthStateAndRedirect('/sign-in');
         };
 
@@ -287,7 +300,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({children}) =>
             window.removeEventListener('auth-session-expired', handleSessionExpired);
             window.removeEventListener('auth-sign-in-required', handleSignInRequired);
         };
-    }, [setAccessToken, setIdToken, broadcastAuthEvent, clearAuthStateAndRedirect]);
+    }, [setAccessToken, setIdToken, broadcastAuthEvent, clearAuthStateAndRedirect, navigate]);
 
     useEffect(() =>
     {
@@ -301,6 +314,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({children}) =>
                         type?: 'logout' | 'user-change';
                         userId?: string | null;
                         sourceTabId?: string;
+                        reason?: string | null;
                     };
 
                     if (payload.sourceTabId === tabIdRef.current)
@@ -311,7 +325,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({children}) =>
                     if (payload.type === 'logout')
                     {
                         suppressNextLogoutBroadcastRef.current = true;
-                        clearAuthStateAndRedirect('/sign-in');
+                        const path = payload.reason
+                            ? `/app-session-expired?reason=${encodeURIComponent(payload.reason)}`
+                            : '/sign-in';
+                        clearAuthStateAndRedirect(path);
                         return;
                     }
 
@@ -357,6 +374,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({children}) =>
 
     useEffect(() =>
     {
+        if (accessToken) sessionEndReasonRef.current = null;
         const previousToken = previousAccessTokenRef.current;
         previousAccessTokenRef.current = accessToken;
 
@@ -405,11 +423,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({children}) =>
                 {
                     await refreshTokens();
                 }
-                catch
+                catch (error: unknown)
                 {
-                    setAccessToken(null);
-                    setIdToken(null);
-                    redirectToSessionExpired();
+                    const reason = readSessionEndReason(error);
+                    window.dispatchEvent(new CustomEvent('auth-session-expired', {
+                        detail: reason ? {reason} : undefined,
+                    }));
                 }
             }
         }, 30000);
@@ -605,15 +624,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({children}) =>
             navigate("/sign-in");
         }
     };
-
-    const redirectToSessionExpired = (reason?: string) =>
-    {
-        if (!["/app-session-expired"].includes(location.pathname))
-        {
-            const path = reason ? `/app-session-expired?reason=${encodeURIComponent(reason)}` : "/app-session-expired";
-            navigate(path);
-        }
-    }
 
     return (
         <AuthContext.Provider

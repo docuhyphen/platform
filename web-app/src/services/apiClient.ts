@@ -20,6 +20,18 @@ let authToken: string | null = null;
 let activeOrganizationId: string | null = null;
 let refreshPromise: Promise<{data: {accessToken?: string}}> | null = null;
 
+interface AuthFailureResponse
+{
+    reasonCode?: string;
+}
+
+const readAuthFailureReason = (error: unknown): string | undefined =>
+{
+    if (!axios.isAxiosError<AuthFailureResponse>(error)) return undefined;
+    const reasonCode = error.response?.data?.reasonCode;
+    return typeof reasonCode === 'string' && reasonCode.length > 0 ? reasonCode : undefined;
+};
+
 export const setApiClientAuthToken = (token: string | null) =>
 {
     authToken = token;
@@ -114,8 +126,10 @@ apiClient.interceptors.response.use(
             }
             catch (refreshError)
             {
-                // Refresh failed,  redirect to session expired
-                window.dispatchEvent(new CustomEvent('auth-session-expired'));
+                const reason = readAuthFailureReason(refreshError) ?? readAuthFailureReason(error);
+                window.dispatchEvent(new CustomEvent('auth-session-expired', {
+                    detail: reason ? {reason} : undefined,
+                }));
                 return Promise.reject(refreshError);
             }
         }

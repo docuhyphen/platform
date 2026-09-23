@@ -808,7 +808,16 @@ export interface CurrentSessionDto
     capabilities: Capability[]
     availableOrganizations: SessionOrganizationOptionDto[]
     idleTimeoutMinutes: number
+    serverTimeEpochMs: number
+    idleExpiresAtEpochMs: number
+    sessionExpiresAtEpochMs: number | null
     subscription?: EffectiveSubscriptionDto | null
+}
+
+export interface RealtimeTicketDto
+{
+    ticket: string;
+    expiresInSeconds: number;
 }
 
 export type MfaMethod = 'EMAIL' | 'GOOGLE_AUTHENTICATOR' | 'MICROSOFT_AUTHENTICATOR';

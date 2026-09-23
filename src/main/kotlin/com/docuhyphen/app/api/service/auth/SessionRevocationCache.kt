@@ -36,6 +36,15 @@ class SessionRevocationCache @Inject constructor(
         return (response?.toLong() ?: 0L) > 0L
     }
 
+    fun reason(sessionId: UUID): RevocationReasonCode?
+    {
+        val response = redis.send(
+            Request.cmd(Command.GET).arg("$PREFIX$sessionId")
+        ).await().indefinitely()
+        val value = response?.toString() ?: return null
+        return runCatching { RevocationReasonCode.valueOf(value) }.getOrNull()
+    }
+
     fun markRevoked(sessionId: UUID, reasonCode: RevocationReasonCode, ttlSeconds: Long = DEFAULT_TTL_SECONDS)
     {
         redis.send(

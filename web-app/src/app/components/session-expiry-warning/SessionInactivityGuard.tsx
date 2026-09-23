@@ -1,11 +1,12 @@
 import React, {useCallback} from "react";
 import {useNavigate} from "react-router-dom";
-import {fetchCurrentSession} from "../../../services/appUserApi.ts";
+import {recordSessionActivity} from "../../../services/appUserApi.ts";
 import {signOut} from "../../../services/authApi.ts";
 import {realtimeService} from "../../../services/NotificationService.tsx";
-import {CurrentSessionDto} from "../../models/models.tsx";
+import type {CurrentSessionDto} from "../../models/models.tsx";
 import SessionExpiryWarningDialog from "./SessionExpiryWarningDialog.tsx";
 import {useSessionInactivity} from "./useSessionInactivity.ts";
+import type {SessionExpiryReason} from "./useSessionInactivity.ts";
 
 interface SessionInactivityGuardProps
 {
@@ -24,10 +25,7 @@ const SessionInactivityGuard: React.FC<SessionInactivityGuardProps> = (
 {
     const navigate = useNavigate();
 
-    const continueSession = useCallback(async () =>
-    {
-        await fetchCurrentSession();
-    }, []);
+    const continueSession = useCallback(() => recordSessionActivity(), []);
 
     const endServerSession = useCallback(async () =>
     {
@@ -44,11 +42,11 @@ const SessionInactivityGuard: React.FC<SessionInactivityGuardProps> = (
         }
     }, [token]);
 
-    const expireSession = useCallback(async () =>
+    const expireSession = useCallback(async (reason: SessionExpiryReason) =>
     {
         await endServerSession();
         window.dispatchEvent(new CustomEvent("auth-session-expired", {
-            detail: {reason: "INACTIVITY_TIMEOUT"},
+            detail: {reason},
         }));
     }, [endServerSession]);
 
@@ -60,8 +58,7 @@ const SessionInactivityGuard: React.FC<SessionInactivityGuardProps> = (
     }, [endServerSession, navigate, setToken]);
 
     const sessionInactivity = useSessionInactivity({
-        userId: currentSession?.userId ?? null,
-        idleTimeoutMinutes: currentSession?.idleTimeoutMinutes ?? null,
+        currentSession,
         onContinue: continueSession,
         onExpire: expireSession,
     });
@@ -69,6 +66,7 @@ const SessionInactivityGuard: React.FC<SessionInactivityGuardProps> = (
     return (
         <SessionExpiryWarningDialog
             isOpen={sessionInactivity.isWarningOpen}
+            expiryReason={sessionInactivity.warningReason}
             secondsRemaining={sessionInactivity.secondsRemaining}
             isContinuing={sessionInactivity.isContinuing}
             errorMessage={sessionInactivity.errorMessage}

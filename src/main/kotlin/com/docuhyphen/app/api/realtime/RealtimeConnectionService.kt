@@ -1,9 +1,10 @@
 package com.docuhyphen.app.api.realtime
 
-import com.docuhyphen.app.api.model.entity.AuthTokenType
-import com.docuhyphen.app.api.service.auth.AuthenticationService
+import com.docuhyphen.app.api.service.auth.RealtimeTicketService
+import com.docuhyphen.app.api.service.auth.RevocationReasonCode
 import com.docuhyphen.app.api.service.auth.SessionRevocationCache
 import com.docuhyphen.app.api.service.auth.UserSessionService
+import com.docuhyphen.app.api.service.exchange.RealtimeExchangeAccessService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.enterprise.context.control.ActivateRequestContext
 import jakarta.inject.Inject
@@ -20,9 +21,11 @@ class RealtimeConnectionService @Inject constructor(
     private val registry: RealtimeSessionRegistry,
     private val presence: PresenceRegistry,
     private val viewers: ExchangeViewerRegistry,
-    private val authenticationService: AuthenticationService,
     private val userSessionService: UserSessionService,
     private val sessionRevocationCache: SessionRevocationCache,
+    private val realtimeTicketService: RealtimeTicketService,
+    private val realtimeExchangeAccessService: RealtimeExchangeAccessService,
+    private val realtimeSessionDeadlineService: RealtimeSessionDeadlineService,
 )
 {
     companion object
@@ -36,43 +39,28 @@ class RealtimeConnectionService @Inject constructor(
 
     @ActivateRequestContext
     @Transactional
-    fun open(session: Session, userSessionIdValue: String, token: String?)
+    fun open(session: Session, userSessionIdValue: String, ticket: String?)
     {
         val userSessionId = parseUuid(userSessionIdValue) ?: run {
             close(session, CLOSE_CODE_BAD_REQUEST, "invalid userSessionId path")
             return
         }
 
-        if (token.isNullOrBlank())
+        if (ticket.isNullOrBlank())
         {
-            close(session, CLOSE_CODE_AUTH_FAILED, "missing token")
+            close(session, CLOSE_CODE_AUTH_FAILED, "missing ticket")
             return
         }
 
-        val claims = authenticationService.verifyAccessToken(token)
-        if (claims == null)
+        val identity = runCatching { realtimeTicketService.redeem(ticket) }.getOrNull()
+        if (identity == null)
         {
-            close(session, CLOSE_CODE_AUTH_FAILED, "invalid token")
+            close(session, CLOSE_CODE_AUTH_FAILED, "invalid ticket")
             return
         }
-
-        val tokenType = (claims["token_type"] as? String)?.trim()?.uppercase().orEmpty()
-        val tokenSessionId = parseUuid(claims["exchange_id"] as? String)
-        val appUserId = parseUuid(claims.subject)
-
-        if (tokenType != AuthTokenType.ACCESS.name)
+        if (identity.sessionId != userSessionId)
         {
-            close(session, CLOSE_CODE_AUTH_FAILED, "non-access token")
-            return
-        }
-        if (tokenSessionId != userSessionId)
-        {
-            close(session, CLOSE_CODE_AUTH_FAILED, "exchange_id mismatch")
-            return
-        }
-        if (appUserId == null)
-        {
-            close(session, CLOSE_CODE_AUTH_FAILED, "invalid subject")
+            close(session, CLOSE_CODE_AUTH_FAILED, "ticket session mismatch")
             return
         }
         if (sessionRevocationCache.isRevoked(userSessionId))
@@ -80,15 +68,20 @@ class RealtimeConnectionService @Inject constructor(
             close(session, CLOSE_CODE_AUTH_FAILED, "session revoked")
             return
         }
-        if (!userSessionService.isActiveSession(userSessionId, appUserId))
+        val endReason = userSessionService.accessEndReason(userSessionId, identity.appUserId)
+        if (endReason != null)
         {
-            close(session, CLOSE_CODE_AUTH_FAILED, "session inactive")
+            close(session, RealtimeEventService.CLOSE_CODE_SESSION_REVOKED, "session revoked: ${endReason.name}")
+            return
+        }
+        val deadlines = userSessionService.deadlines(userSessionId) ?: run {
+            close(session, CLOSE_CODE_AUTH_FAILED, "session unavailable")
             return
         }
 
-        registry.addSocket(userSessionId, appUserId, session)
-        presence.markOnline(appUserId)
-        userSessionService.touchSession(userSessionId)
+        registry.addSocket(userSessionId, identity.appUserId, session)
+        realtimeSessionDeadlineService.schedule(userSessionId, session, deadlines)
+        presence.markOnline(identity.appUserId)
         sendTo(
             userSessionId,
             RealtimeMessage(
@@ -97,7 +90,7 @@ class RealtimeConnectionService @Inject constructor(
                 serverTime = System.currentTimeMillis(),
             ),
         )
-        logger.info("Realtime connection opened userSessionId={} appUserId={}", userSessionId, appUserId)
+        logger.info("Realtime connection opened userSessionId={} appUserId={}", userSessionId, identity.appUserId)
     }
 
     @ActivateRequestContext
@@ -106,6 +99,12 @@ class RealtimeConnectionService @Inject constructor(
     {
         val userSessionId = parseUuid(userSessionIdValue) ?: return
         val appUserId = registry.getUserId(userSessionId) ?: return
+        val endReason = userSessionService.accessEndReason(userSessionId, appUserId)
+        if (endReason != null)
+        {
+            userSessionService.revokeSession(userSessionId, endReason)
+            return
+        }
         val message = runCatching { json.decodeFromString<RealtimeMessage>(text) }.getOrNull() ?: run {
             logger.warn("Unparseable realtime message userSessionId={}", userSessionId)
             return
@@ -115,7 +114,6 @@ class RealtimeConnectionService @Inject constructor(
         {
             RealtimeMessageType.PING ->
             {
-                userSessionService.touchSession(userSessionId)
                 sendTo(
                     userSessionId,
                     RealtimeMessage(
@@ -127,6 +125,18 @@ class RealtimeConnectionService @Inject constructor(
             RealtimeMessageType.SUBSCRIBE_EXCHANGE ->
             {
                 val exchangeId = parseUuid(message.exchangeId) ?: return
+                if (!realtimeExchangeAccessService.canSubscribe(appUserId, userSessionId, exchangeId))
+                {
+                    sendTo(
+                        userSessionId,
+                        RealtimeMessage(
+                            type = RealtimeMessageType.ERROR,
+                            code = "ACCESS_DENIED",
+                            message = "Exchange subscription denied",
+                        ),
+                    )
+                    return
+                }
                 registry.subscribeToExchange(userSessionId, exchangeId)
                 viewers.markViewing(exchangeId, appUserId, userSessionId)
                 sendTo(
@@ -153,6 +163,7 @@ class RealtimeConnectionService @Inject constructor(
         val userSessionId = parseUuid(userSessionIdValue) ?: return
         val appUserId = registry.getUserId(userSessionId)
         if (!registry.removeSocket(userSessionId, session)) return
+        realtimeSessionDeadlineService.cancel(userSessionId, session)
         viewers.cleanupUserSession(userSessionId)
         if (appUserId != null) presence.markOffline(appUserId)
         logger.info(
