@@ -48,6 +48,13 @@ class StepUpAuthService @Inject constructor(
         return (nowSeconds - authTime) <= maxAgeSeconds
     }
 
+    fun isFresh(sessionId: java.util.UUID, maxAgeSeconds: Long = DEFAULT_MAX_AGE_SECONDS): Boolean
+    {
+        val authTime = userSessionService.findSession(sessionId)?.lastAuthTime?.toInstant()?.epochSecond
+            ?: return false
+        return (System.currentTimeMillis() / 1000 - authTime) <= maxAgeSeconds
+    }
+
     /**
      * Marks the provided session id as fresh-authenticated.
      */

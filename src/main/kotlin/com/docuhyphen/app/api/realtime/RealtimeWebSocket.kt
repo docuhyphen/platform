@@ -15,7 +15,10 @@ import org.slf4j.LoggerFactory
  * Why per-userSession and not per-user: revocation and presence both want to act on one
  * device at a time. Two browsers for the same user need independent lifecycles.
  */
-@ServerEndpoint("/realtime/{userSessionId}")
+@ServerEndpoint(
+    value = "/realtime/{userSessionId}",
+    configurator = RealtimeOriginConfigurator::class,
+)
 @ApplicationScoped
 class RealtimeWebSocket
 {
@@ -33,9 +36,9 @@ class RealtimeWebSocket
     @OnOpen
     fun onOpen(session: Session, @PathParam("userSessionId") userSessionIdStr: String)
     {
-        val token = extractTokenFromQuery(session)
+        val ticket = extractTicketFromQuery(session)
         logger.info("Realtime opening userSessionId={}", userSessionIdStr)
-        executor.execute { connectionService.open(session, userSessionIdStr, token) }
+        executor.execute { connectionService.open(session, userSessionIdStr, ticket) }
     }
 
     @OnClose
@@ -56,14 +59,13 @@ class RealtimeWebSocket
         executor.execute { connectionService.handleMessage(text, userSessionIdStr) }
     }
 
-    private fun extractTokenFromQuery(session: Session): String?
+    private fun extractTicketFromQuery(session: Session): String?
     {
-        // Prefer the decoded parameter map; fall back to raw query string for safety.
-        session.requestParameterMap?.get("token")?.firstOrNull()?.let { return it }
+        session.requestParameterMap?.get("ticket")?.firstOrNull()?.let { return it }
         val raw = session.queryString ?: return null
         return raw.split("&")
             .map { it.split("=", limit = 2) }
-            .firstOrNull { it.size == 2 && it[0] == "token" }
+            .firstOrNull { it.size == 2 && it[0] == "ticket" }
             ?.let { java.net.URLDecoder.decode(it[1], Charsets.UTF_8) }
     }
 

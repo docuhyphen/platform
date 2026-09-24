@@ -32,6 +32,12 @@ export const fetchCurrentSession = async (): Promise<CurrentSessionDto> =>
     return response.data;
 };
 
+export const recordSessionActivity = async (): Promise<CurrentSessionDto> =>
+{
+    const response = await apiClient.post('/auth/session-activities');
+    return response.data;
+};
+
 export const fetchAppUserPersonOrganization = async (appUserId?: string, personId?: string, token?: string) =>
 {
     try

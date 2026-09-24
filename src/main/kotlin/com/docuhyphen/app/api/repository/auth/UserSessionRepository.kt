@@ -133,6 +133,20 @@ class UserSessionRepository : BaseRepository<UserSession>(UserSession::class.jav
             .setParameter("userId", userId)
             .executeUpdate()
     }
+
+    @Transactional
+    fun updateLastSeenIfBefore(sessionId: UUID, lastSeenAt: Timestamp, cutoff: Timestamp): Int
+    {
+        val updated = entityManager.createQuery(
+            "UPDATE UserSession s SET s.lastSeenAt = :lastSeenAt WHERE s.sessionId = :sessionId AND s.isActive = true AND s.revokedAt IS NULL AND s.lastSeenAt < :cutoff",
+        )
+            .setParameter("lastSeenAt", lastSeenAt)
+            .setParameter("sessionId", sessionId)
+            .setParameter("cutoff", cutoff)
+            .executeUpdate()
+        if (updated > 0) entityManager.clear()
+        return updated
+    }
 }
 
 
