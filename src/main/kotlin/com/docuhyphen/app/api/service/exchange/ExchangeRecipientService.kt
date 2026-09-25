@@ -305,7 +305,7 @@ class ExchangeRecipientService @Inject constructor(
         }
 
         val updated = recordDecision(recipient, appUserId, accepted = false)
-        shareService.revoke(share.id, appUserId)
+        shareService.revoke(share.id, PrincipalRef.user(appUserId))
         return updated
     }
 

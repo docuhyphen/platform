@@ -20,7 +20,7 @@ sealed interface FieldsPrecondition
      */
     fun requireSatisfiedBy(currentETag: String?)
 
-    /** The caller names no state and is not required to, which is the unconditioned legacy save. */
+    /** The change applies whatever state is stored, as an explicit `*` or an internal writer states. */
     data object Unconditioned : FieldsPrecondition
     {
         override fun requireSatisfiedBy(currentETag: String?) = Unit

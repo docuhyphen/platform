@@ -15,6 +15,7 @@ import com.docuhyphen.app.api.service.config.ConfigurationService
 import com.docuhyphen.app.api.service.organization.OrganizationExchangePolicyService
 import com.docuhyphen.app.api.service.organization.OrganizationGroupService
 import com.docuhyphen.app.api.service.user.AppUserService
+import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.*
 import java.util.*
@@ -78,7 +79,7 @@ class ExchangeAccessManagementRecipientBindingTest
                 principalKind = eq(PrincipalKind.USER),
                 principalId = eq(recipient.id),
                 roleName = eq(ExchangeShareRoleName.VIEWER),
-                grantedByAppUserId = eq(caller.id),
+                grantedBy = eq(PrincipalRef.user(caller.id)),
                 source = eq(ShareSource.DIRECT),
                 constraintsJson = isNull(),
                 expiresAt = isNull(),

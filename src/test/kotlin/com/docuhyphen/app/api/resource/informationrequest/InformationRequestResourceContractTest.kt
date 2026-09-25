@@ -17,6 +17,9 @@ import com.docuhyphen.app.api.service.informationrequest.CancelInformationReques
 import com.docuhyphen.app.api.service.informationrequest.CreateAdHocInformationRequestCommand
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestAccessContextFactory
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestAdHocCreationService
+import com.docuhyphen.app.api.service.informationrequest.InformationRequestCapability
+import com.docuhyphen.app.api.service.informationrequest.InformationRequestCapabilityNotInstalledException
+import com.docuhyphen.app.api.service.informationrequest.InformationRequestCapabilityRequirement
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestConditionEvaluationProjection
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestConditionEvaluationState
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestCreationResult
@@ -26,6 +29,7 @@ import com.docuhyphen.app.api.service.informationrequest.InformationRequestLifec
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestLifecycleService
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestQueryService
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestResponseWorkspaceService
+import com.docuhyphen.app.api.service.informationrequest.IssueInformationRequestCommand
 import com.docuhyphen.app.api.service.informationrequest.RequestAccessContext
 import com.docuhyphen.app.api.service.informationrequest.SupersedeInformationRequestCommand
 import io.quarkus.security.ForbiddenException
@@ -45,9 +49,9 @@ import org.mockito.kotlin.whenever
 import java.util.UUID
 
 /**
- * The owner-facing runtime request resource exposes only list, draft creation, cancellation, and
- * supersession. These tests pin the HTTP shape, header handling, and service delegation; issuance and
- * every respondent action must not appear here.
+ * The owner-facing runtime request resource exposes list, draft creation, issuance, cancellation, and
+ * supersession. These tests pin the HTTP shape, header handling, and service delegation; respondent
+ * actions have their own resources and must not appear here.
  */
 class InformationRequestResourceContractTest
 {
@@ -101,20 +105,47 @@ class InformationRequestResourceContractTest
         )
     }
 
-    /**
-     * Issuance and respondent behavior are not ready: no method on this resource may expose them
-     * before the dual-access authorization surface and runtime executors exist.
-     */
     @Test
-    fun `no issuance or respondent action is exposed`()
+    fun `issuance is a subordinate resource that needs a precondition and a key and no respondent action is exposed`()
     {
-        val paths = InformationRequestResource::class.java.declaredMethods
-            .mapNotNull { it.getAnnotation(Path::class.java)?.value }
-        val methodNames = InformationRequestResource::class.java.declaredMethods.map { it.name }
+        val methods = InformationRequestResource::class.java.declaredMethods.associateBy { it.name }
+        assertTrue(methods.getValue("issue").isAnnotationPresent(POST::class.java))
+        assertEquals("/{id}/issuance", methods.getValue("issue").getAnnotation(Path::class.java).value)
+        assertTrue(methods.keys.none { it.contains("respond", ignoreCase = true) })
+        whenever(lifecycleService.issue(any())).thenReturn(InformationRequestLifecycleResult(request, "etag-issued"))
 
-        assertTrue(paths.none { it.contains("issu", ignoreCase = true) })
-        assertTrue(methodNames.none { it.contains("issue", ignoreCase = true) })
-        assertTrue(methodNames.none { it.contains("respond", ignoreCase = true) })
+        val missingKey = resource.issue(requestId.toString(), "\"v1\"", " ")
+        val invalidId = resource.issue("not-a-uuid", "\"v1\"", "idem-issue")
+        val issued = resource.issue(requestId.toString(), "\"v1\"", "idem-issue")
+
+        assertEquals(Response.Status.BAD_REQUEST.statusCode, missingKey.status)
+        assertEquals(Response.Status.BAD_REQUEST.statusCode, invalidId.status)
+        assertEquals(Response.Status.OK.statusCode, issued.status)
+        assertEquals("etag-issued", issued.getHeaderString("ETag"))
+        verify(lifecycleService).issue(
+            IssueInformationRequestCommand(
+                requestId = requestId,
+                access = access,
+                precondition = CommandPrecondition.ExpectedRevision(setOf("\"v1\"")),
+                idempotencyKey = "idem-issue",
+            ),
+        )
+    }
+
+    @Test
+    fun `issuance of a Version this deployment cannot serve is refused with the capability reason`()
+    {
+        whenever(lifecycleService.issue(any())).thenThrow(
+            InformationRequestCapabilityNotInstalledException(
+                "This deployment does not serve RESPONSE_REVIEW v1",
+                listOf(InformationRequestCapabilityRequirement(InformationRequestCapability.RESPONSE_REVIEW, 1)),
+            ),
+        )
+
+        val refused = resource.issue(requestId.toString(), "\"v1\"", "idem-issue")
+
+        assertEquals(Response.Status.CONFLICT.statusCode, refused.status)
+        assertEquals(InformationRequestErrorCatalog.CAPABILITY_NOT_INSTALLED, (refused.entity as ResponseError).reasonCode)
     }
 
     @Test

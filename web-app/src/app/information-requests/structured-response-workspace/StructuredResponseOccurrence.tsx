@@ -1,15 +1,13 @@
 import {Text, Button} from "@fluentui/react-components";
 import {AddRegular, ArrowDownRegular, ArrowUpRegular, DeleteRegular} from "@fluentui/react-icons";
-import FieldValueEditor from "../../exchanges/components/exchange-fields-tab/FieldValueEditor.tsx";
 import {toFieldElementId} from "../../exchanges/components/exchange-fields-tab/fieldLayoutUtils.ts";
 import {useInformationRequestStructuredResponseWorkspaceStyles} from "./InformationRequestStructuredResponseWorkspaceStyles.tsx";
+import StructuredResponseRequirement from "./StructuredResponseRequirement.tsx";
 import {
     isRequirementActive,
     occurrencePresentation,
     requirementOccurrenceAnchorKey,
-    responseForFieldRequirement,
     responseKey,
-    shownFieldValues,
 } from "./structuredResponseWorkspaceState.ts";
 import {StructuredResponseOccurrenceProps} from "./StructuredResponseWorkspaceTypes.ts";
 import {useStructuredResponseOccurrenceCommands} from "./useStructuredResponseOccurrenceCommands.ts";
@@ -111,37 +109,16 @@ const StructuredResponseOccurrence = ({
                 {requirements
                     .filter(requirement => isRequirementActive(requirement, occurrence.occurrencePath, conditionByScope))
                     .filter(requirement => requirementOccurrenceAnchorKey(requirement) === groupKey)
-                    .map(requirement =>
-                    {
-                        const binding = bindings.find(candidate =>
-                            candidate.fieldDefinitionId === requirement.collectedFieldDefinitionId);
-                        if (!binding) return null;
-                        const response = responseForFieldRequirement(
-                            responses,
-                            requirement,
-                            occurrence.occurrencePath,
-                        );
-                        const key = responseKey(requirement.id, occurrence.occurrencePath);
-                        const shown = shownFieldValues(binding, occurrence.occurrencePath, requirement.id, response, edits);
-                        const elementId = toFieldElementId(`${occurrence.occurrencePath}-${requirement.requirementKey}`);
-                        return (
-                            <div id={`information-request-response-requirement-${elementId}`}
-                                 key={key}
-                                 className={styles.requirement}>
-                                <Text id={`information-request-response-prompt-${elementId}`}
-                                      className={styles.prompt}>
-                                    {requirement.prompt}
-                                </Text>
-                                <FieldValueEditor binding={binding}
-                                                  value={shown[binding.fieldContractId]}
-                                                  onChange={value => setEdits(previous => ({
-                                                      ...previous,
-                                                      [key]: {...previous[key], [binding.fieldContractId]: value},
-                                                  }))}
-                                                  showLabel={false}/>
-                            </div>
-                        );
-                    })}
+                    .map(requirement => (
+                        <StructuredResponseRequirement key={responseKey(requirement.id, occurrence.occurrencePath)}
+                                                       requestId={requestId}
+                                                       occurrencePath={occurrence.occurrencePath}
+                                                       requirement={requirement}
+                                                       bindings={bindings}
+                                                       responses={responses}
+                                                       edits={edits}
+                                                       setEdits={setEdits}/>
+                    ))}
             </div>
         </div>
     );

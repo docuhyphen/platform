@@ -22,12 +22,6 @@ object FieldsPreconditionHeader
     /** What a surface that requires the caller to state a version gets from [header]. */
     fun required(header: String?): FieldsPrecondition = stated(header) ?: FieldsPrecondition.Absent
 
-    /** What a surface that enforces a stated version only when one is supplied gets from [header]. */
-    fun optional(header: String?): FieldsPrecondition = stated(header) ?: FieldsPrecondition.Unconditioned
-
-    /** Whether [header] states a version at all, which is what a compatibility window measures. */
-    fun isStated(header: String?): Boolean = stated(header) != null
-
     /**
      * The condition [header] states, or null where it states none. Validators are separated by
      * commas and carried verbatim, because the format of a Fields validator is known to exactly one

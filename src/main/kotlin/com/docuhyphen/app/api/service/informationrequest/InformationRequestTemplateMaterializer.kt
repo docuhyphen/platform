@@ -19,6 +19,7 @@ import com.docuhyphen.app.api.model.entity.InformationRequestTemplateStatus
 import com.docuhyphen.app.api.model.entity.InformationRequestTemplateVersion
 import com.docuhyphen.app.api.model.entity.ResourceType
 import com.docuhyphen.app.api.model.entity.SchemaAssignmentSource
+import com.docuhyphen.app.api.model.informationrequest.InformationRequestRequirementAdvance
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestGroupOccurrenceRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRequirementCurrentRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRequirementRepository
@@ -71,6 +72,7 @@ class InformationRequestTemplateMaterializer @Inject constructor(
     private val revisionRepository: InformationRequestRequirementRevisionRepository,
     private val currentRepository: InformationRequestRequirementCurrentRepository,
     private val schemaAssignmentService: SchemaAssignmentService,
+    private val supportingEvidenceLinkService: InformationRequestSupportingEvidenceLinkService,
 )
 {
     @Transactional
@@ -148,8 +150,161 @@ class InformationRequestTemplateMaterializer @Inject constructor(
                 requirementCount++
             }
         }
+        supportingEvidenceLinkService.materialize(request)
 
         return InformationRequestMaterializationResult(requirementCount = requirementCount)
+    }
+
+    @Transactional
+    fun advance(
+        request: InformationRequest,
+        fromTemplateVersionId: UUID,
+        access: FieldsAccessContext,
+    ): InformationRequestRequirementAdvance
+    {
+        val version = templateVersionRepository.findById(request.templateVersionId)
+            ?.takeIf { it.status == InformationRequestTemplateStatus.PUBLISHED }
+            ?: throw InformationRequestTemplateVersionUnavailableException(
+                InformationRequestTemplateVersionUnavailableException.NOT_PUBLISHED,
+                "Information request template version ${request.templateVersionId} is not published",
+            )
+        val bindings = templateBindingRepository.findOrdered(version.id)
+        val requirementsById = templateRequirementRepository
+            .findAllByDefinition(version.templateDefinitionId)
+            .associateBy { it.id }
+        val configuration = loadConfiguration(version.id)
+        val hasFieldRequirements = bindings.any { binding ->
+            requirementsById[binding.templateRequirementId]?.requirementType == InformationRequestRequirementType.FIELD
+        }
+        val occurrencePathsByGroupKey = advanceGroupOccurrences(
+            request,
+            groupRepository.findForVersion(fromTemplateVersionId),
+            groupRepository.findForVersion(version.id),
+            hasFieldRequirements,
+        )
+        val existing = requirementRepository.findAllForRequest(request.id)
+            .associateBy { it.sourceTemplateRequirementId to it.occurrencePath }
+
+        val now = Timestamp.from(Instant.now())
+        val advanced = mutableListOf<UUID>()
+        val added = mutableListOf<UUID>()
+        bindings.forEach { binding ->
+            val templateRequirement = requirementsById[binding.templateRequirementId]
+                ?: throw IllegalStateException("Template requirement ${binding.templateRequirementId} is missing")
+            occurrencePathsForBinding(binding, occurrencePathsByGroupKey).forEach { occurrencePath ->
+                val runtime = existing[templateRequirement.id to occurrencePath]
+                when
+                {
+                    runtime == null ->
+                        added += materializeRequirement(
+                            request, version, binding, templateRequirement, configuration, now, occurrencePath,
+                        ).id
+                    runtime.sourceTemplateBindingId != binding.id ->
+                    {
+                        advanceRequirement(runtime, version, binding, templateRequirement, configuration, now)
+                        advanced += runtime.id
+                    }
+                }
+            }
+        }
+        supportingEvidenceLinkService.materialize(request)
+        return InformationRequestRequirementAdvance(advancedRequirementIds = advanced, addedRequirementIds = added)
+    }
+
+    private fun advanceGroupOccurrences(
+        request: InformationRequest,
+        earlierGroups: List<InformationRequestTemplateRequirementGroup>,
+        groups: List<InformationRequestTemplateRequirementGroup>,
+        hasFieldRequirements: Boolean,
+    ): Map<String, List<String>>
+    {
+        val earlierKeys = earlierGroups.associate { it.id to it.groupKey }
+        val groupsByKey = groups.associateBy { it.groupKey }
+        val occurrences = groupOccurrenceRepository.findForRequest(request.id)
+        occurrences.forEach { occurrence ->
+            val target = earlierKeys[occurrence.sourceTemplateGroupId]?.let(groupsByKey::get) ?: return@forEach
+            if (target.id != occurrence.sourceTemplateGroupId)
+            {
+                occurrence.sourceTemplateGroupId = target.id
+                groupOccurrenceRepository.update(occurrence)
+            }
+        }
+
+        val occurrencesByGroup = occurrences.groupBy { it.sourceTemplateGroupId }.mapValues { (_, grouped) ->
+            grouped.map { it.id to it.occurrencePath }
+        }.toMutableMap()
+        val started = groups.filter { it.groupKey !in earlierKeys.values && occurrencesByGroup[it.id].isNullOrEmpty() }
+        val childrenByParent = started.groupBy { it.parentGroupId }
+
+        fun start(group: InformationRequestTemplateRequirementGroup)
+        {
+            val parents: List<Pair<UUID?, String?>> = group.parentGroupId
+                ?.let { parent -> occurrencesByGroup[parent].orEmpty().map { (id, path) -> id to path } }
+                ?: listOf(null to null)
+            val created = parents.flatMap { (parentOccurrenceId, parentPath) ->
+                (0 until group.minOccurrences).map { index ->
+                    val path = groupOccurrencePath(group.groupKey, index, parentPath)
+                    val occurrence = groupOccurrenceRepository.save(
+                        InformationRequestGroupOccurrence().apply {
+                            informationRequestId = request.id
+                            sourceTemplateGroupId = group.id
+                            this.parentOccurrenceId = parentOccurrenceId
+                            occurrenceIndex = index
+                            occurrencePath = path
+                        },
+                    )
+                    if (hasFieldRequirements)
+                        schemaAssignmentService.createOccurrenceValueSet(
+                            FieldsResourceRef(ResourceType.INFORMATION_REQUEST.name, request.id),
+                            path,
+                        )
+                    occurrence.id to path
+                }
+            }
+            occurrencesByGroup[group.id] = created
+            childrenByParent[group.id].orEmpty().forEach(::start)
+        }
+
+        started.filter { group -> started.none { it.id == group.parentGroupId } }.forEach(::start)
+        val keysById = groups.associate { it.id to it.groupKey }
+        return occurrencesByGroup.entries
+            .mapNotNull { (groupId, created) -> keysById[groupId]?.let { it to created.map { (_, path) -> path } } }
+            .toMap()
+    }
+
+    private fun advanceRequirement(
+        requirement: InformationRequestRequirement,
+        version: InformationRequestTemplateVersion,
+        binding: InformationRequestTemplateRequirementBinding,
+        templateRequirement: InformationRequestTemplateRequirement,
+        configuration: TemplateBindingConfiguration,
+        now: Timestamp,
+    )
+    {
+        requirement.sourceTemplateVersionId = version.id
+        requirement.sourceTemplateBindingId = binding.id
+        requirementRepository.update(requirement)
+        requirementRepository.flushChanges()
+        val pointer = currentRepository.findForRequirement(requirement.id)
+            ?: throw IllegalStateException("Runtime requirement ${requirement.id} has no current revision")
+        val revision = revisionRepository.save(
+            InformationRequestRequirementRevision().apply {
+                informationRequestRequirementId = requirement.id
+                informationRequestId = requirement.informationRequestId
+                sourceTemplateVersionId = version.id
+                sourceTemplateRequirementId = templateRequirement.id
+                sourceTemplateBindingId = binding.id
+                revisionNumber = pointer.currentRevisionNumber + 1
+                occurrencePath = requirement.occurrencePath
+                effectiveFrom = now
+                configurationHashSha256 = configurationHash(binding, templateRequirement, configuration)
+                optimisticVersion = 1
+            },
+        )
+        pointer.currentRevisionId = revision.id
+        pointer.currentRevisionNumber = revision.revisionNumber
+        pointer.updatedAt = now
+        currentRepository.update(pointer)
     }
 
     /**
@@ -234,7 +389,7 @@ class InformationRequestTemplateMaterializer @Inject constructor(
         configuration: TemplateBindingConfiguration,
         now: Timestamp,
         occurrencePath: String,
-    )
+    ): InformationRequestRequirement
     {
         val requirement = requirementRepository.save(
             InformationRequestRequirement().apply {
@@ -267,6 +422,7 @@ class InformationRequestTemplateMaterializer @Inject constructor(
                 updatedAt = now
             },
         )
+        return requirement
     }
 
     private fun loadConfiguration(templateVersionId: UUID) = TemplateBindingConfiguration(

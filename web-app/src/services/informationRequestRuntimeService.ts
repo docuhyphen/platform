@@ -29,7 +29,7 @@ export interface RuntimeCommandOptions
     accessLinkToken?: string;
 }
 
-const commandHeaders = (requestId: string, options: RuntimeCommandOptions): Record<string, string> =>
+export const informationRequestCommandHeaders = (requestId: string, options: RuntimeCommandOptions): Record<string, string> =>
 {
     const headers: Record<string, string> = {
         [IF_MATCH_HEADER]: options.expectedETag,
@@ -45,7 +45,7 @@ const commandHeaders = (requestId: string, options: RuntimeCommandOptions): Reco
     return headers;
 };
 
-const basePath = (requestId: string, accessLinkToken?: string): string =>
+export const informationRequestBasePath = (requestId: string, accessLinkToken?: string): string =>
     accessLinkToken
         ? `/no-auth/information-requests/${requestId}`
         : `/information-requests/${requestId}`;
@@ -72,14 +72,14 @@ export const storeInformationRequestSessionToken = (requestId: string, token: st
 export const getInformationRequestSessionToken = (requestId: string): string =>
     window.sessionStorage.getItem(informationRequestSessionTokenKey(requestId)) ?? "";
 
-const staleRefusal = (error: unknown): boolean =>
+export const isStaleInformationRequestRefusal = (error: unknown): boolean =>
 {
     if (!axios.isAxiosError<ResponseError>(error) || error.response?.status !== 412) return false;
     const reasonCode = error.response.data?.reasonCode;
     return reasonCode === COMMAND_STALE_CODE || reasonCode === FIELDS_STALE_CODE;
 };
 
-const statedRefusal = (error: unknown): unknown =>
+export const statedInformationRequestRefusal = (error: unknown): unknown =>
 {
     if (axios.isAxiosError<ResponseError>(error)) return error.response?.data ?? error.message;
     return error instanceof Error ? error.message : error;
@@ -100,8 +100,8 @@ const executeRuntimeCommand = async <T>(
     }
     catch (error: unknown)
     {
-        if (staleRefusal(error)) return {outcome: "STALE"};
-        throw statedRefusal(error);
+        if (isStaleInformationRequestRefusal(error)) return {outcome: "STALE"};
+        throw statedInformationRequestRefusal(error);
     }
 };
 
@@ -116,7 +116,7 @@ const executeRequest = async <T>(
     }
     catch (error: unknown)
     {
-        throw statedRefusal(error);
+        throw statedInformationRequestRefusal(error);
     }
 };
 
@@ -124,16 +124,21 @@ const accessLinkHeaders = (accessLinkToken: string): Record<string, string> => (
     [ACCESS_LINK_TOKEN_HEADER]: accessLinkToken,
 });
 
+export const informationRequestReadHeaders = (
+    requestId: string,
+    accessLinkToken?: string,
+): Record<string, string> | undefined =>
+    accessLinkToken
+        ? {...accessLinkHeaders(accessLinkToken), [SESSION_TOKEN_HEADER]: getInformationRequestSessionToken(requestId)}
+        : undefined;
+
 export const getInformationRequestResponseWorkspace = (
     requestId: string,
     accessLinkToken?: string,
 ): Promise<InformationRequestResponseWorkspaceDto> =>
     executeRequest(() => apiClient.get(
-        `${basePath(requestId, accessLinkToken)}/response-workspace`,
-        accessLinkToken ? {headers: {
-            ...accessLinkHeaders(accessLinkToken),
-            [SESSION_TOKEN_HEADER]: getInformationRequestSessionToken(requestId),
-        }} : undefined,
+        `${informationRequestBasePath(requestId, accessLinkToken)}/response-workspace`,
+        accessLinkToken ? {headers: informationRequestReadHeaders(requestId, accessLinkToken)} : undefined,
     ));
 
 export const issueInformationRequestContactProofChallenge = (accessLinkToken: string): Promise<void> =>
@@ -159,9 +164,9 @@ export const patchInformationRequestResponses = (
     options: RuntimeCommandOptions,
 ): Promise<RuntimeCommandResult<InformationRequestResponseDto[]>> =>
     executeRuntimeCommand(() => apiClient.patch(
-        `${basePath(requestId, options.accessLinkToken)}/responses`,
+        `${informationRequestBasePath(requestId, options.accessLinkToken)}/responses`,
         request,
-        {headers: commandHeaders(requestId, options)},
+        {headers: informationRequestCommandHeaders(requestId, options)},
     ));
 
 export const addInformationRequestGroupOccurrence = (
@@ -170,9 +175,9 @@ export const addInformationRequestGroupOccurrence = (
     options: RuntimeCommandOptions,
 ): Promise<RuntimeCommandResult<InformationRequestGroupOccurrenceDto[]>> =>
     executeRuntimeCommand(() => apiClient.post(
-        `${basePath(requestId, options.accessLinkToken)}/group-occurrences`,
+        `${informationRequestBasePath(requestId, options.accessLinkToken)}/group-occurrences`,
         request,
-        {headers: commandHeaders(requestId, options)},
+        {headers: informationRequestCommandHeaders(requestId, options)},
     ));
 
 export const removeInformationRequestGroupOccurrence = (
@@ -181,8 +186,8 @@ export const removeInformationRequestGroupOccurrence = (
     options: RuntimeCommandOptions,
 ): Promise<RuntimeCommandResult<InformationRequestGroupOccurrenceDto[]>> =>
     executeRuntimeCommand(() => apiClient.delete(
-        `${basePath(requestId, options.accessLinkToken)}/group-occurrences/${occurrenceId}`,
-        {headers: commandHeaders(requestId, options)},
+        `${informationRequestBasePath(requestId, options.accessLinkToken)}/group-occurrences/${occurrenceId}`,
+        {headers: informationRequestCommandHeaders(requestId, options)},
     ));
 
 export const reorderInformationRequestGroupOccurrences = (
@@ -191,7 +196,7 @@ export const reorderInformationRequestGroupOccurrences = (
     options: RuntimeCommandOptions,
 ): Promise<RuntimeCommandResult<InformationRequestGroupOccurrenceDto[]>> =>
     executeRuntimeCommand(() => apiClient.patch(
-        `${basePath(requestId, options.accessLinkToken)}/group-occurrences/order`,
+        `${informationRequestBasePath(requestId, options.accessLinkToken)}/group-occurrences/order`,
         request,
-        {headers: commandHeaders(requestId, options)},
+        {headers: informationRequestCommandHeaders(requestId, options)},
     ));

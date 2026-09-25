@@ -125,7 +125,7 @@ class ExchangeAccessManagementService @Inject constructor(
             principalKind = kind,
             principalId = principalUuid,
             roleName = roleName,
-            grantedByAppUserId = callerAppUserId,
+            grantedBy = callerAppUserId?.let(PrincipalRef::user),
             constraintsJson = normalizedConstraints,
             expiresAt = expiresAtEpochMillis?.let { Timestamp(it) },
             resourceLabel = session.name,
@@ -208,7 +208,7 @@ class ExchangeAccessManagementService @Inject constructor(
             principalKind = resolved.principalKind,
             principalId = resolved.principalId,
             roleName = roleName,
-            grantedByAppUserId = caller.id,
+            grantedBy = PrincipalRef.user(caller.id),
             source = ShareSource.DIRECT,
             constraintsJson = normalizedConstraints,
             expiresAt = expiresAtEpochMillis?.let { Timestamp(it) },
@@ -269,7 +269,11 @@ class ExchangeAccessManagementService @Inject constructor(
     {
         val session = requireSessionOwnerAndReturn(exchangeId)
         requireMutableAccessShare(exchangeId, shareId)
-        shareService.revoke(shareId, authTokenContext.authToken.appUser?.id, resourceLabel = session.name)
+        shareService.revoke(
+            shareId,
+            authTokenContext.authToken.appUser?.id?.let(PrincipalRef::user),
+            resourceLabel = session.name,
+        )
     }
 
     /**
@@ -326,7 +330,7 @@ class ExchangeAccessManagementService @Inject constructor(
         // Remove the old binding and attestation first so the single-primary constraint is free,
         // then revoke the old Share, which cascades to any inherited group-member Shares.
         exchangeRecipientService.deleteBinding(currentPrimary)
-        shareService.revoke(previousShare.id, caller.id, resourceLabel = session.name)
+        shareService.revoke(previousShare.id, PrincipalRef.user(caller.id), resourceLabel = session.name)
 
         // Trusted selections always require sign-in and hold their Share until the attested recipient accepts.
         if (!session.requireRecipientSignIn)
@@ -341,7 +345,7 @@ class ExchangeAccessManagementService @Inject constructor(
             principalKind = resolved.principalKind,
             principalId = resolved.principalId,
             roleName = preservedRole,
-            grantedByAppUserId = caller.id,
+            grantedBy = PrincipalRef.user(caller.id),
             source = ShareSource.DIRECT,
             constraintsJson = preservedConstraints,
             status = ShareStatus.PENDING_APPROVAL,

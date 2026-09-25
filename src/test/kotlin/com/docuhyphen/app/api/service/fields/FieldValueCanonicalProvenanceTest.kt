@@ -3,7 +3,6 @@ package com.docuhyphen.app.api.service.fields
 import com.docuhyphen.app.api.model.entity.PrincipalKind
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
 import java.util.UUID
 
@@ -12,10 +11,6 @@ import java.util.UUID
  * platform can authenticate reaches the same Fields engine, so a participant, a link-verified
  * recipient, a registered application, and a service principal must all be recordable as the author
  * of an answer without being misfiled as a registered user.
- *
- * The retained registered-user column is a foreign key into the registered-user table, so it may only
- * ever name a real registered user. A participant or application answer that filled it in would
- * either name a row that is not a user or fail the key outright.
  *
  * The participant and public-link cases use explicit synthetic principals at the service boundary.
  * No endpoint issues either principal for a Fields call yet, so these are pre-exposure contract
@@ -26,7 +21,7 @@ class FieldValueCanonicalProvenanceTest
     private val sessionRef = UUID.randomUUID().toString()
 
     @Test
-    fun `an answer left by a registered user records the canonical principal and the legacy author`()
+    fun `an answer left by a registered user records the canonical principal`()
     {
         val userId = UUID.randomUUID()
         val fixture = SchemaAssignmentFieldsFixture(
@@ -39,10 +34,6 @@ class FieldValueCanonicalProvenanceTest
         val stored = requireNotNull(fixture.rootAnswer(fixture.noteContractId))
         assertEquals(PrincipalKind.USER, stored.updatedByPrincipalKind)
         assertEquals(userId, stored.updatedByPrincipalId)
-        assertEquals(
-            userId, stored.updatedByAppUserId,
-            "A registered user keeps the retained column filled while it exists",
-        )
         assertEquals(
             sessionRef, stored.updatedBySessionRef,
             "The session the change was made in is recorded as a non-secret reference",
@@ -60,10 +51,6 @@ class FieldValueCanonicalProvenanceTest
         val stored = requireNotNull(fixture.rootAnswer(fixture.noteContractId))
         assertEquals(PrincipalKind.PARTICIPANT, stored.updatedByPrincipalKind)
         assertEquals(participantId, stored.updatedByPrincipalId)
-        assertNull(
-            stored.updatedByAppUserId,
-            "A participant is not a registered user and must never occupy that key",
-        )
     }
 
     @Test
@@ -77,7 +64,6 @@ class FieldValueCanonicalProvenanceTest
         val stored = requireNotNull(fixture.rootAnswer(fixture.noteContractId))
         assertEquals(PrincipalKind.APPLICATION, stored.updatedByPrincipalKind)
         assertEquals(applicationId, stored.updatedByPrincipalId)
-        assertNull(stored.updatedByAppUserId)
     }
 
     @Test
@@ -91,7 +77,6 @@ class FieldValueCanonicalProvenanceTest
         val stored = requireNotNull(fixture.rootAnswer(fixture.noteContractId))
         assertEquals(PrincipalKind.PUBLIC_LINK, stored.updatedByPrincipalKind)
         assertEquals(linkId, stored.updatedByPrincipalId)
-        assertNull(stored.updatedByAppUserId)
     }
 
     @Test
@@ -110,12 +95,11 @@ class FieldValueCanonicalProvenanceTest
         val assignment = fixture.savedAssignments.single()
         assertEquals(PrincipalKind.USER, assignment.assignedByPrincipalKind)
         assertEquals(userId, assignment.assignedByPrincipalId)
-        assertEquals(userId, assignment.assignedByAppUserId)
         assertEquals(sessionRef, assignment.assignedBySessionRef)
     }
 
     @Test
-    fun `a schema chosen by a registered application leaves the legacy assigner unset`()
+    fun `a schema chosen by a registered application records the application principal`()
     {
         val applicationId = UUID.randomUUID()
         val fixture = SchemaAssignmentFieldsFixture(
@@ -129,7 +113,6 @@ class FieldValueCanonicalProvenanceTest
         val assignment = fixture.savedAssignments.single()
         assertEquals(PrincipalKind.APPLICATION, assignment.assignedByPrincipalKind)
         assertEquals(applicationId, assignment.assignedByPrincipalId)
-        assertNull(assignment.assignedByAppUserId)
     }
 
     @Test
@@ -151,6 +134,5 @@ class FieldValueCanonicalProvenanceTest
         )
         assertEquals(PrincipalKind.PARTICIPANT, stored.updatedByPrincipalKind)
         assertEquals(participantId, stored.updatedByPrincipalId)
-        assertNull(stored.updatedByAppUserId)
     }
 }

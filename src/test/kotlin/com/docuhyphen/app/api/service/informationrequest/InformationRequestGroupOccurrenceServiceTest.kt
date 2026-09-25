@@ -45,6 +45,7 @@ import com.docuhyphen.app.api.service.fields.SchemaAssignmentService
 import io.quarkus.security.ForbiddenException
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -102,6 +103,31 @@ class InformationRequestGroupOccurrenceServiceTest
             fixture.group.id,
             null,
         )
+    }
+
+    @Test
+    fun `a group whose stage was submitted refuses a new occurrence before creating one`()
+    {
+        val fixture = Fixture()
+        whenever(fixture.lockService.requireBindingsOpen(any(), any())).thenThrow(
+            InformationRequestLifecycleException(InformationRequestErrorCatalog.SUBMISSION_LOCKED, "submitted"),
+        )
+
+        val refusal = assertThrows(InformationRequestLifecycleException::class.java)
+        {
+            fixture.service.add(
+                AddInformationRequestGroupOccurrenceCommand(
+                    requestId = fixture.request.id,
+                    access = fixture.access,
+                    precondition = CommandPrecondition.ExpectedRevision(InformationRequestETag.responsesOf(fixture.request)),
+                    idempotencyKey = "add-to-submitted-group",
+                    groupKey = "items",
+                ),
+            )
+        }
+
+        assertEquals(InformationRequestErrorCatalog.SUBMISSION_LOCKED, refusal.reasonCode)
+        verify(fixture.groupOccurrenceRepository, never()).save(any())
     }
 
     @Test
@@ -167,6 +193,7 @@ class InformationRequestGroupOccurrenceServiceTest
             fixture.access.authorization,
         )
         verify(fixture.transitionHistory).record(any())
+        verify(fixture.supportingEvidenceLinkService).materialize(fixture.request)
     }
 
     @Test
@@ -800,6 +827,8 @@ class InformationRequestGroupOccurrenceServiceTest
         val executionGrantService = mock<InformationRequestExecutionGrantService>()
         val transitionHistory = mock<InformationRequestTransitionHistoryService>()
         val groupAuthorizationService = mock<InformationRequestGroupAuthorizationService>()
+        val supportingEvidenceLinkService = mock<InformationRequestSupportingEvidenceLinkService>()
+        val lockService = mock<InformationRequestSubmissionLockService>()
         val receiptStore = InMemoryGroupOccurrenceReceiptStore()
         val service = InformationRequestGroupOccurrenceService(
             requestRepository = requestRepository,
@@ -832,6 +861,8 @@ class InformationRequestGroupOccurrenceServiceTest
             executionGrantService = executionGrantService,
             transitionHistory = transitionHistory,
             groupAuthorizationService = groupAuthorizationService,
+            supportingEvidenceLinkService = supportingEvidenceLinkService,
+            lockService = lockService,
         )
 
         init

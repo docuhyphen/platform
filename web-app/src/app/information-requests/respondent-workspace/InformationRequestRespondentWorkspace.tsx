@@ -1,6 +1,7 @@
 import {FluentProvider, MessageBar, MessageBarBody, Spinner, Text, Title2} from "@fluentui/react-components";
 import {lightTheme} from "../../../context/theme.ts";
 import InformationRequestStructuredResponsePanel from "../structured-response-workspace/InformationRequestStructuredResponsePanel.tsx";
+import InformationRequestSubmissionSection from "../submission/follow-up-section/InformationRequestSubmissionSection.tsx";
 import ContactProofPanel from "./ContactProofPanel.tsx";
 import {useInformationRequestRespondentWorkspaceStyles} from "./InformationRequestRespondentWorkspaceStyles.tsx";
 import {
@@ -96,8 +97,14 @@ const InformationRequestRespondentWorkspace = ({accessMode}: Props) =>
                                                                        requirements={requirements}
                                                                        bindings={workspace.schemaAssignment?.bindings ?? []}
                                                                        responses={workspace.responses}
+                                                                       evidenceUploadAvailable={workspace.evidenceUploadAvailable}
+                                                                       evidenceMalwareScanning={workspace.evidenceMalwareScanning}
                                                                        accessLinkToken={accessLinkToken}
                                                                        onRefresh={loadWorkspace}/>
+                            <InformationRequestSubmissionSection workspace={workspace}
+                                                                 requirements={requirements}
+                                                                 accessLinkToken={accessLinkToken}
+                                                                 onChanged={loadWorkspace}/>
                         </div>
                     )}
                 </main>

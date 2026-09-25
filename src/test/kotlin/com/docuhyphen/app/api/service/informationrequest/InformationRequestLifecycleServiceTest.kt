@@ -482,7 +482,7 @@ class InformationRequestLifecycleServiceTest
     fun `issuing remains denied when the Template Version has unserved runtime capabilities`()
     {
         val fixture = Fixture()
-        fixture.unservedCapability(InformationRequestCapability.RESPONSE_SUBMISSION)
+        fixture.unservedCapability(InformationRequestCapability.RESPONSE_REVIEW)
         val command = IssueInformationRequestCommand(
             requestId = fixture.request.id,
             access = fixture.access,

@@ -37,9 +37,42 @@ class AuditEventTypeTest
     }
 
     @Test
+    fun `evidence content access is recorded as its own Information Request event`()
+    {
+        listOf("information_request.evidence.download", "information_request.evidence.preview").forEach { key ->
+            val eventType = AuditEventType.findByKey(key)
+            assertEquals(key, eventType?.key)
+            assertEquals(AuditCategory.INFORMATION_REQUEST, eventType?.category)
+        }
+    }
+
+    @Test
+    fun `an evidence malware scan result is recorded as its own Information Request event`()
+    {
+        val eventType = AuditEventType.findByKey("information_request.evidence.scan")
+        assertEquals("information_request.evidence.scan", eventType?.key)
+        assertEquals(AuditCategory.INFORMATION_REQUEST, eventType?.category)
+    }
+
+    @Test
+    fun `closing, withdrawing a submission, creating a successor, and scheduling a follow-up are their own events`()
+    {
+        listOf(
+            "information_request.request.close",
+            "information_request.submission.withdraw",
+            "information_request.request.successor",
+            "information_request.request.follow_up",
+        ).forEach { key ->
+            val eventType = AuditEventType.findByKey(key)
+            assertEquals(key, eventType?.key)
+            assertEquals(AuditCategory.INFORMATION_REQUEST, eventType?.category)
+        }
+    }
+
+    @Test
     fun `catalog version reflects the added runtime request vocabulary`()
     {
-        assertEquals(20, AuditEventType.CATALOG_VERSION)
+        assertEquals(23, AuditEventType.CATALOG_VERSION)
     }
 
     @Test

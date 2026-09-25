@@ -84,10 +84,12 @@ class ShareRoleCapabilityRegistryTest
     private val expectedCapabilitiesByRole: Map<InformationRequestShareRoleKey, Set<Capability>> = mapOf(
         InformationRequestShareRoleKey.SUBJECT to setOf(
             Capability.INFORMATION_REQUEST_READ,
+            Capability.INFORMATION_REQUEST_ATTEST,
         ),
         InformationRequestShareRoleKey.CONTRIBUTOR to setOf(
             Capability.INFORMATION_REQUEST_READ,
             Capability.INFORMATION_REQUEST_RESPOND,
+            Capability.INFORMATION_REQUEST_ATTEST,
             Capability.INFORMATION_REQUEST_SUBMIT,
             Capability.INFORMATION_REQUEST_EVIDENCE_READ,
             Capability.INFORMATION_REQUEST_EVIDENCE_WRITE,
@@ -95,6 +97,7 @@ class ShareRoleCapabilityRegistryTest
         InformationRequestShareRoleKey.PREPARER to setOf(
             Capability.INFORMATION_REQUEST_READ,
             Capability.INFORMATION_REQUEST_RESPOND,
+            Capability.INFORMATION_REQUEST_ATTEST,
             Capability.INFORMATION_REQUEST_SUBMIT,
             Capability.INFORMATION_REQUEST_EVIDENCE_READ,
             Capability.INFORMATION_REQUEST_EVIDENCE_WRITE,

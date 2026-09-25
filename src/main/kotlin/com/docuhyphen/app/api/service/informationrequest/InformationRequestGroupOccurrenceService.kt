@@ -114,6 +114,8 @@ class InformationRequestGroupOccurrenceService @Inject constructor(
     private val executionGrantService: InformationRequestExecutionGrantService,
     private val transitionHistory: InformationRequestTransitionHistoryService,
     private val groupAuthorizationService: InformationRequestGroupAuthorizationService,
+    private val supportingEvidenceLinkService: InformationRequestSupportingEvidenceLinkService,
+    private val lockService: InformationRequestSubmissionLockService,
 )
 {
     @Transactional
@@ -163,6 +165,7 @@ class InformationRequestGroupOccurrenceService @Inject constructor(
         request, _, now ->
         val template = templateData(request)
         val group = template.requireGroup(command.groupKey)
+        lockService.requireBindingsOpen(request, template.bindingsUnder(group).map { it.id })
         val parent = requireParent(request.id, group, command.parentOccurrenceId, template.groupsById)
         val allSiblings = groupOccurrenceRepository.findForGroupAndParentForUpdate(
             request.id,
@@ -188,6 +191,7 @@ class InformationRequestGroupOccurrenceService @Inject constructor(
         )
         materializeAnchoredRequirements(request, template, group, occurrence, now)
         materializeChildMinimums(request, template, group, occurrence, now)
+        supportingEvidenceLinkService.materialize(request)
         val siblings = (activeSiblings + occurrence).sortedBy { it.occurrenceIndex }
         InformationRequestGroupOccurrenceResult(request, InformationRequestETag.responsesOf(request), siblings)
     }
@@ -207,6 +211,7 @@ class InformationRequestGroupOccurrenceService @Inject constructor(
                 InformationRequestErrorCatalog.STATE_INVALID,
                 "Information Request group occurrence has no Template group",
             )
+        lockService.requireBindingsOpen(request, template.bindingsUnder(group).map { it.id })
         val activeSiblings = groupOccurrenceRepository.findActiveForGroupAndParentForUpdate(
             request.id,
             group.id,
@@ -243,6 +248,7 @@ class InformationRequestGroupOccurrenceService @Inject constructor(
         request, _, _ ->
         val template = templateData(request)
         val group = template.requireGroup(command.groupKey)
+        lockService.requireBindingsOpen(request, template.bindingsUnder(group).map { it.id })
         requireParent(request.id, group, command.parentOccurrenceId, template.groupsById)
         val activeSiblings = groupOccurrenceRepository.findActiveForGroupAndParentForUpdate(
             request.id,
@@ -526,6 +532,12 @@ class InformationRequestGroupOccurrenceService @Inject constructor(
             }
         }
     }
+
+    private fun TemplateData.bindingsUnder(
+        group: InformationRequestTemplateRequirementGroup,
+    ): List<InformationRequestTemplateRequirementBinding> =
+        bindings.filter { it.occurrenceAnchorKey == group.groupKey } +
+            childrenByParent[group.id].orEmpty().flatMap { bindingsUnder(it) }
 
     private fun TemplateData.materializedBindings(
         group: InformationRequestTemplateRequirementGroup,

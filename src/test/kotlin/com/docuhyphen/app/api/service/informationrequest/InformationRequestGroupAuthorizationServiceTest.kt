@@ -256,6 +256,7 @@ class InformationRequestGroupAuthorizationServiceTest
             principalGroupMemberRepository = mock<PrincipalGroupMemberRepository>().also {
                 whenever(it.findActiveMembers(any())).thenReturn(emptyList())
             },
+            attestationPolicies = mock<InformationRequestAttestationPolicyLoader>(),
         )
         private val requirementPolicyEvaluator = InformationRequestRequirementPolicyEvaluator()
         val service = InformationRequestGroupAuthorizationService(

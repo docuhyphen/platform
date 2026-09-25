@@ -45,7 +45,6 @@ class FieldsCommandContractTest
         assertEquals(PrincipalKind.PARTICIPANT, stored.updatedByPrincipalKind)
         assertEquals(participant.id, stored.updatedByPrincipalId)
         assertEquals("participant-session", stored.updatedBySessionRef)
-        assertNull(stored.updatedByAppUserId, "A participant never occupies the registered-user key")
     }
 
     @Test

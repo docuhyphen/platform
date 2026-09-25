@@ -215,6 +215,18 @@ enum class AuditEventType(val key: String, val category: AuditCategory)
     INFORMATION_REQUEST_PARTY_REASSIGN(
         "information_request.party.reassign", AuditCategory.INFORMATION_REQUEST,
     ),
+    INFORMATION_REQUEST_CLOSE(
+        "information_request.request.close", AuditCategory.INFORMATION_REQUEST,
+    ),
+    INFORMATION_REQUEST_SUBMISSION_WITHDRAW(
+        "information_request.submission.withdraw", AuditCategory.INFORMATION_REQUEST,
+    ),
+    INFORMATION_REQUEST_SUCCESSOR_CREATE(
+        "information_request.request.successor", AuditCategory.INFORMATION_REQUEST,
+    ),
+    INFORMATION_REQUEST_FOLLOW_UP_SCHEDULE(
+        "information_request.request.follow_up", AuditCategory.INFORMATION_REQUEST,
+    ),
 
     // Runtime Requirement occurrence actions.
     INFORMATION_REQUEST_REQUIREMENT_RESPOND(
@@ -228,6 +240,15 @@ enum class AuditEventType(val key: String, val category: AuditCategory)
     ),
     INFORMATION_REQUEST_EVIDENCE_ADMINISTER(
         "information_request.evidence.administer", AuditCategory.INFORMATION_REQUEST,
+    ),
+    INFORMATION_REQUEST_EVIDENCE_DOWNLOAD(
+        "information_request.evidence.download", AuditCategory.INFORMATION_REQUEST,
+    ),
+    INFORMATION_REQUEST_EVIDENCE_PREVIEW(
+        "information_request.evidence.preview", AuditCategory.INFORMATION_REQUEST,
+    ),
+    INFORMATION_REQUEST_EVIDENCE_SCAN(
+        "information_request.evidence.scan", AuditCategory.INFORMATION_REQUEST,
     ),
 
     // Organization membership and role changes.
@@ -273,7 +294,7 @@ enum class AuditEventType(val key: String, val category: AuditCategory)
          * consumers (ledger, exports, projections) can reason about which catalog shape produced
          * a given event.
          */
-        const val CATALOG_VERSION: Int = 20
+        const val CATALOG_VERSION: Int = 23
 
         private val byKey: Map<String, AuditEventType> = entries.associateBy { it.key }
 

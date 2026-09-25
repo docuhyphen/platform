@@ -45,8 +45,10 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.mockito.kotlin.any
 import org.mockito.kotlin.argumentCaptor
+import org.mockito.kotlin.inOrder
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.never
+import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import java.util.UUID
@@ -114,6 +116,19 @@ class InformationRequestTemplateMaterializerTest
     }
 
     @Test
+    fun `supporting evidence links are materialized once every Requirement of the request exists`()
+    {
+        val fixture = fixture()
+        val request = request()
+
+        fixture.service.materialize(request, access)
+
+        val order = inOrder(fixture.requirementRepository, fixture.supportingEvidenceLinkService)
+        order.verify(fixture.requirementRepository, times(fixture.savedRequirements.size)).save(any())
+        order.verify(fixture.supportingEvidenceLinkService).materialize(request)
+    }
+
+    @Test
     fun `unserved runtime capability prevents partial materialization`()
     {
         val fixture = fixture(
@@ -132,6 +147,7 @@ class InformationRequestTemplateMaterializerTest
         assertEquals(InformationRequestCapability.STRUCTURED_RESPONSE, refusal.unserved.single().capability)
         verify(fixture.requirementRepository, never()).save(any())
         verify(fixture.schemaAssignmentService, never()).assignPublishedSchemaVersion(any())
+        verify(fixture.supportingEvidenceLinkService, never()).materialize(any())
     }
 
     @Test
@@ -154,6 +170,7 @@ class InformationRequestTemplateMaterializerTest
         val savedRevisions: MutableList<com.docuhyphen.app.api.model.entity.InformationRequestRequirementRevision>,
         val savedCurrents: MutableList<com.docuhyphen.app.api.model.entity.InformationRequestRequirementCurrent>,
         val savedGroupOccurrences: MutableList<InformationRequestGroupOccurrence>,
+        val supportingEvidenceLinkService: InformationRequestSupportingEvidenceLinkService,
     )
 
     private fun fixture(
@@ -250,6 +267,7 @@ class InformationRequestTemplateMaterializerTest
         }
 
         val schemaAssignmentService = mock<SchemaAssignmentService>()
+        val supportingEvidenceLinkService = mock<InformationRequestSupportingEvidenceLinkService>()
 
         val savedGroupOccurrences = mutableListOf<InformationRequestGroupOccurrence>()
         val groupOccurrenceRepository = mock<InformationRequestGroupOccurrenceRepository>()
@@ -276,6 +294,7 @@ class InformationRequestTemplateMaterializerTest
                 revisionRepository = revisionRepository,
                 currentRepository = currentRepository,
                 schemaAssignmentService = schemaAssignmentService,
+                supportingEvidenceLinkService = supportingEvidenceLinkService,
             ),
             schemaAssignmentService = schemaAssignmentService,
             requirementRepository = requestRequirementRepository,
@@ -283,6 +302,7 @@ class InformationRequestTemplateMaterializerTest
             savedRevisions = savedRevisions,
             savedCurrents = savedCurrents,
             savedGroupOccurrences = savedGroupOccurrences,
+            supportingEvidenceLinkService = supportingEvidenceLinkService,
         )
     }
 

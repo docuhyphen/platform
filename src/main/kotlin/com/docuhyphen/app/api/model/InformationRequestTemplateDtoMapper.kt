@@ -1,6 +1,7 @@
 package com.docuhyphen.app.api.model
 
 import com.docuhyphen.app.api.model.dto.InformationRequestTemplateAcceptedValueDto
+import com.docuhyphen.app.api.model.dto.InformationRequestTemplateAttestationPolicyDto
 import com.docuhyphen.app.api.model.dto.InformationRequestTemplateCapabilityDto
 import com.docuhyphen.app.api.model.dto.InformationRequestTemplateConditionPredicateDto
 import com.docuhyphen.app.api.model.dto.InformationRequestTemplateConditionPredicateRequest
@@ -15,6 +16,8 @@ import com.docuhyphen.app.api.model.dto.InformationRequestTemplateSummaryDto
 import com.docuhyphen.app.api.model.dto.InformationRequestTemplateUnsupportedPolicyControlDto
 import com.docuhyphen.app.api.model.dto.InformationRequestTemplateVersionDto
 import com.docuhyphen.app.api.model.entity.InformationRequestResponseDisposition
+import com.docuhyphen.app.api.model.entity.InformationRequestTemplateAttestationPolicy
+import com.docuhyphen.app.api.model.entity.InformationRequestTemplateAttestationRole
 import com.docuhyphen.app.api.model.entity.InformationRequestTemplateConditionPredicate
 import com.docuhyphen.app.api.model.entity.InformationRequestTemplateConditionRule
 import com.docuhyphen.app.api.model.entity.InformationRequestTemplateDefinition
@@ -103,6 +106,8 @@ object InformationRequestTemplateDtoMapper
         versionNumber = version.versionNumber,
         status = version.status,
         schemaVersionId = version.schemaVersionId,
+        submissionMode = version.submissionMode,
+        submissionStageOrdering = version.submissionStageOrdering,
         sections = sections,
         groups = groups,
         conditionRules = conditionRules,
@@ -184,6 +189,7 @@ object InformationRequestTemplateDtoMapper
         sectionKey = section.sectionKey,
         title = section.title,
         helpText = section.helpText,
+        submissionStageKey = section.submissionStageKey,
         requirements = requirements,
     )
 
@@ -194,6 +200,7 @@ object InformationRequestTemplateDtoMapper
         evidencePolicy: InformationRequestTemplateEvidencePolicyDto?,
         substituteRequirementKeys: List<String>,
         supportingEvidenceRequirementKeys: List<String>,
+        attestationPolicy: InformationRequestTemplateAttestationPolicyDto? = null,
     ): InformationRequestTemplateRequirementDto = InformationRequestTemplateRequirementDto(
         id = binding.id,
         templateRequirementId = requirement.id,
@@ -213,6 +220,20 @@ object InformationRequestTemplateDtoMapper
         evidencePolicy = evidencePolicy,
         substituteRequirementKeys = substituteRequirementKeys,
         supportingEvidenceRequirementKeys = supportingEvidenceRequirementKeys,
+        attestationPolicy = attestationPolicy,
+    )
+
+    fun toDto(
+        policy: InformationRequestTemplateAttestationPolicy,
+        roles: List<InformationRequestTemplateAttestationRole>,
+    ): InformationRequestTemplateAttestationPolicyDto = InformationRequestTemplateAttestationPolicyDto(
+        id = policy.id,
+        requiredRoles = roles.sortedBy { it.position }.map { it.roleKey },
+        ordering = policy.ordering,
+        minimumAssentCount = policy.minimumAssentCount,
+        minimumAuthenticationStrength = policy.minimumAuthenticationStrength,
+        validityHours = policy.validityHours,
+        externalSignatureReference = policy.externalSignatureReference,
     )
 
     fun toDto(

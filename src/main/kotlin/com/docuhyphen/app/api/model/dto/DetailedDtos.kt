@@ -66,7 +66,6 @@ data class DocumentVersionDetailedDto(
     @Serializable(with = TimestampSerializer::class)
     val createdAt: Timestamp?,
     val version: String?,
-    val storagePath: String?,
     val createdByEmail: String?,
     val createdBy: String?,
 )

@@ -76,7 +76,9 @@ class InformationRequestTemplateConfigurationValidator
         requirements.forEach { validateOccurrenceAnchor(it, groupKeys) }
         validateConditionRules(requirements, conditionRules)
 
-        return request.copy(sections = sections, groups = groups, conditionRules = conditionRules)
+        return InformationRequestTemplateSubmissionPolicyValidator.normalize(
+            request.copy(sections = sections, groups = groups, conditionRules = conditionRules),
+        )
     }
 
     private fun normalizeConditionRules(

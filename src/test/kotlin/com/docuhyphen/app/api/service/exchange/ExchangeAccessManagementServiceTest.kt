@@ -20,6 +20,7 @@ import com.docuhyphen.app.api.service.identity.ExternalIdentityResolutionService
 import com.docuhyphen.app.api.service.organization.OrganizationExchangePolicyService
 import com.docuhyphen.app.api.service.organization.OrganizationGroupService
 import com.docuhyphen.app.api.service.user.AppUserService
+import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import io.quarkus.security.ForbiddenException
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
@@ -177,7 +178,7 @@ class ExchangeAccessManagementServiceTest
         service.replacePrimaryRecipient(exchangeId, selection)
 
         verify(exchangeRecipientService).deleteBinding(currentPrimary)
-        verify(shareService).revoke(eq(oldShare.id), eq(callerId), eq(session.name))
+        verify(shareService).revoke(eq(oldShare.id), eq(PrincipalRef.user(callerId)), eq(session.name))
 
         val statusCaptor = argumentCaptor<ShareStatus>()
         verify(shareService).grant(
@@ -496,7 +497,7 @@ class ExchangeAccessManagementServiceTest
         }
 
         verify(exchangeRecipientService).deleteBinding(currentPrimary)
-        verify(shareService).revoke(eq(oldShare.id), eq(callerId), eq(session.name))
+        verify(shareService).revoke(eq(oldShare.id), eq(PrincipalRef.user(callerId)), eq(session.name))
         verify(exchangeRecipientService).createBinding(
             eq(exchangeId), eq(newShare), eq(ExchangeRecipientPurpose.PRIMARY),
             eq(ExchangeRecipientSelectionType.TRUSTED_PERSON), eq(targetOrganizationId),
@@ -639,7 +640,7 @@ class ExchangeAccessManagementServiceTest
             eq(PrincipalKind.USER),
             eq(resolvedUser.id),
             eq(ExchangeShareRoleName.VIEWER),
-            eq(callerId),
+            eq(PrincipalRef.user(callerId)),
             eq(ShareSource.DIRECT),
             anyOrNull(),
             anyOrNull(),
@@ -890,7 +891,7 @@ class ExchangeAccessManagementServiceTest
             eq(PrincipalKind.USER),
             eq(createdUser.id),
             eq(ExchangeShareRoleName.VIEWER),
-            eq(callerId),
+            eq(PrincipalRef.user(callerId)),
             eq(ShareSource.DIRECT),
             anyOrNull(),
             anyOrNull(),

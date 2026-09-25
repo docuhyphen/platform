@@ -16,6 +16,7 @@ import com.docuhyphen.app.api.service.auth.RevocationReasonCode
 import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
+import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.auth.authz.ResourceRef
 import com.docuhyphen.app.api.service.communication.EmailTemplateService
 import com.docuhyphen.app.api.service.communication.OtpService
@@ -470,7 +471,7 @@ class ExchangeInitiationService @Inject constructor(
             principalKind = principalKind,
             principalId = principalId,
             roleName = recipientRoleFor(dto),
-            grantedByAppUserId = initiator.id,
+            grantedBy = PrincipalRef.user(initiator.id),
             source = ShareSource.DIRECT,
             constraintsJson = sessionConstraintsJson(dto),
             status = if (pendingApproval) ShareStatus.PENDING_APPROVAL else ShareStatus.ACTIVE,
@@ -487,7 +488,7 @@ class ExchangeInitiationService @Inject constructor(
             principalKind = PrincipalKind.USER,
             principalId = initiator.id,
             roleName = ExchangeShareRoleName.OWNER,
-            grantedByAppUserId = initiator.id,
+            grantedBy = PrincipalRef.user(initiator.id),
             source = ShareSource.DIRECT,
         )
     }
@@ -512,7 +513,7 @@ class ExchangeInitiationService @Inject constructor(
                 principalKind = selection.principalKind,
                 principalId = selection.principalId,
                 roleName = participant.role,
-                grantedByAppUserId = initiator.id,
+                grantedBy = PrincipalRef.user(initiator.id),
                 source = ShareSource.DIRECT,
                 status = if (trusted) ShareStatus.PENDING_APPROVAL else ShareStatus.ACTIVE,
             )

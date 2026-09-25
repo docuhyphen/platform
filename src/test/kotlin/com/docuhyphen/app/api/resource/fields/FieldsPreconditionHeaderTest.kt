@@ -3,8 +3,7 @@ package com.docuhyphen.app.api.resource.fields
 import com.docuhyphen.app.api.service.fields.FieldsPrecondition
 import com.docuhyphen.app.api.service.fields.FieldsPreconditionException
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
@@ -15,7 +14,7 @@ import java.util.UUID
  * engine's one idea of a stated version. A caller may name one validator, several, a validator it
  * marks as weak, or the wildcard that stands for whichever version is current, and a surface that
  * requires a stated version has to tell a caller that named none from a caller that named a version
- * the data has moved past. These are the shapes the two Fields write surfaces are reached with.
+ * the data has moved past. These are the shapes the Fields write surface is reached with.
  */
 class FieldsPreconditionHeaderTest
 {
@@ -31,15 +30,7 @@ class FieldsPreconditionHeaderTest
     fun `a header that carries nothing states no version`()
     {
         assertEquals(FieldsPrecondition.Absent, FieldsPreconditionHeader.required("   "))
-        assertFalse(FieldsPreconditionHeader.isStated("   "))
-        assertFalse(FieldsPreconditionHeader.isStated(null))
-    }
-
-    @Test
-    fun `a surface that only enforces a supplied version leaves a missing header unconditioned`()
-    {
-        assertEquals(FieldsPrecondition.Unconditioned, FieldsPreconditionHeader.optional(null))
-        assertEquals(FieldsPrecondition.Unconditioned, FieldsPreconditionHeader.optional(""))
+        assertEquals(FieldsPrecondition.Absent, FieldsPreconditionHeader.required(""))
     }
 
     @Test
@@ -48,7 +39,6 @@ class FieldsPreconditionHeaderTest
         val precondition = FieldsPreconditionHeader.required(current)
 
         assertEquals(FieldsPrecondition.ExpectedRevision(setOf(current)), precondition)
-        assertTrue(FieldsPreconditionHeader.isStated(current))
         assertDoesNotThrow { precondition.requireSatisfiedBy(current) }
     }
 
@@ -73,8 +63,8 @@ class FieldsPreconditionHeaderTest
     {
         val precondition = FieldsPreconditionHeader.required("*")
 
-        assertTrue(
-            FieldsPreconditionHeader.isStated("*"),
+        assertEquals(
+            FieldsPrecondition.Unconditioned, precondition,
             "The wildcard is a stated condition, even though it excludes no version",
         )
         assertDoesNotThrow { precondition.requireSatisfiedBy(current) }
@@ -85,19 +75,10 @@ class FieldsPreconditionHeaderTest
     {
         val precondition = FieldsPreconditionHeader.required("W/$current")
 
-        assertTrue(FieldsPreconditionHeader.isStated("W/$current"))
+        assertNotEquals(FieldsPrecondition.Absent, precondition, "A weak validator is still a stated condition")
         val refusal = assertThrows<FieldsPreconditionException> {
             precondition.requireSatisfiedBy(current)
         }
         assertEquals(FieldsPreconditionException.Kind.STALE, refusal.kind)
-    }
-
-    @Test
-    fun `both surfaces read a supplied version the same way`()
-    {
-        assertEquals(
-            FieldsPreconditionHeader.required(current), FieldsPreconditionHeader.optional(current),
-            "Which surface received the header cannot change which version it names",
-        )
     }
 }

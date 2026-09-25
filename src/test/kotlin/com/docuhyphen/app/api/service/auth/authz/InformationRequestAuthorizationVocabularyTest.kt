@@ -112,6 +112,7 @@ class InformationRequestAuthorizationVocabularyTest
             Action.INFORMATION_REQUEST_EVIDENCE_UPLOAD,
             Action.INFORMATION_REQUEST_EVIDENCE_WITHDRAW,
             Action.INFORMATION_REQUEST_EVIDENCE_MANAGE,
+            Action.INFORMATION_REQUEST_REQUEST_SUPPLEMENT,
         )
 
         val declared = Action.entries.filter { it.name.startsWith("INFORMATION_REQUEST_") }
@@ -127,6 +128,7 @@ class InformationRequestAuthorizationVocabularyTest
         assertEquals(Capability.INFORMATION_REQUEST_RESPOND, Action.INFORMATION_REQUEST_REQUIREMENT_RESPOND.required)
         assertEquals(Capability.INFORMATION_REQUEST_ATTEST, Action.INFORMATION_REQUEST_REQUIREMENT_ATTEST.required)
         assertEquals(Capability.INFORMATION_REQUEST_REVIEW, Action.INFORMATION_REQUEST_REQUIREMENT_REVIEW.required)
+        assertEquals(Capability.INFORMATION_REQUEST_REVIEW, Action.INFORMATION_REQUEST_REQUEST_SUPPLEMENT.required)
         assertEquals(Capability.INFORMATION_REQUEST_EVIDENCE_WRITE, Action.INFORMATION_REQUEST_EVIDENCE_UPLOAD.required)
         assertEquals(Capability.INFORMATION_REQUEST_EVIDENCE_ADMIN, Action.INFORMATION_REQUEST_EVIDENCE_MANAGE.required)
     }

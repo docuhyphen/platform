@@ -2,10 +2,14 @@ package com.docuhyphen.app.api.service.informationrequest
 
 import com.docuhyphen.app.api.model.dto.*
 import com.docuhyphen.app.api.model.entity.*
-import com.docuhyphen.app.api.repository.informationrequest.*
-import com.docuhyphen.app.api.resource.informationrequest.InformationRequestResource
-import com.docuhyphen.app.api.resource.informationrequest.InformationRequestNoAuthRequestResource
+import com.docuhyphen.app.api.model.entity.InformationRequestSupportingEvidenceLink
+import com.docuhyphen.app.api.model.entity.InformationRequestTemplateBindingEvidenceLink
 import com.docuhyphen.app.api.model.informationrequest.InformationRequestNoAuthAccess
+import com.docuhyphen.app.api.repository.informationrequest.*
+import com.docuhyphen.app.api.repository.informationrequest.InformationRequestSupportingEvidenceLinkRepository
+import com.docuhyphen.app.api.repository.informationrequest.InformationRequestTemplateBindingEvidenceLinkRepository
+import com.docuhyphen.app.api.resource.informationrequest.InformationRequestNoAuthRequestResource
+import com.docuhyphen.app.api.resource.informationrequest.InformationRequestResource
 import com.docuhyphen.app.api.service.auth.authz.*
 import com.docuhyphen.app.api.service.fields.*
 import kotlinx.serialization.json.JsonPrimitive
@@ -86,6 +90,61 @@ class InformationRequestResponseWorkspaceServiceTest
         assertTrue(result.occurrences.isEmpty())
         assertFalse(result.responses.any { it.informationRequestRequirementId == fixture.hidden.id })
         assertFalse(result.responses.any { it.informationRequestRequirementId == fixture.visible.id })
+    }
+
+    @Test
+    fun `the workspace states whether this deployment accepts evidence uploads and scans them for malware`()
+    {
+        val fixture = Fixture()
+        whenever(fixture.conditions.evaluate(fixture.request.id)).thenReturn(emptyList())
+
+        whenever(fixture.evidenceUpload.uploadAvailable()).thenReturn(true)
+        whenever(fixture.evidenceUpload.malwareScanningConfigured()).thenReturn(true)
+        val scanned = fixture.service.load(fixture.request.id, fixture.access)
+        assertTrue(scanned.evidenceUploadAvailable)
+        assertTrue(scanned.evidenceMalwareScanning)
+
+        whenever(fixture.evidenceUpload.uploadAvailable()).thenReturn(false)
+        whenever(fixture.evidenceUpload.malwareScanningConfigured()).thenReturn(false)
+        val unscanned = fixture.service.load(fixture.request.id, fixture.access)
+        assertFalse(unscanned.evidenceUploadAvailable)
+        assertFalse(unscanned.evidenceMalwareScanning)
+    }
+
+    @Test
+    fun `supporting evidence links are projected only between requirements the caller may see`()
+    {
+        val fixture = Fixture()
+        val templateLink = InformationRequestTemplateBindingEvidenceLink().apply {
+            templateBindingId = fixture.visible.sourceTemplateBindingId
+            supportingTemplateBindingId = fixture.hidden.sourceTemplateBindingId
+            templateVersionId = fixture.request.templateVersionId
+        }
+        whenever(fixture.templateLinks.findForVersion(fixture.request.templateVersionId)).thenReturn(listOf(templateLink))
+        fixture.storedLinks += InformationRequestSupportingEvidenceLink().apply {
+            informationRequestId = fixture.request.id
+            supportedRequirementId = fixture.visible.id
+            supportingRequirementId = fixture.hidden.id
+            templateEvidenceLinkId = templateLink.id
+        }
+        whenever(fixture.conditions.evaluate(fixture.request.id)).thenReturn(listOf(
+            InformationRequestConditionEvaluationProjection("conditional-data", 1, InformationRequestConditionEvaluationState.TRUE,
+                sourceRequirementKeys = emptySet(), fieldDefinitionIds = emptySet(), occurrencePath = "items[0]")))
+
+        val disclosed = fixture.service.load(fixture.request.id, fixture.access)
+
+        assertEquals(
+            listOf(fixture.visible.id to fixture.hidden.id),
+            disclosed.supportingEvidenceLinks.map { it.supportedRequirementId to it.supportingRequirementId },
+        )
+
+        whenever(fixture.authorization.authorize(any(), any(), any(), any())).thenAnswer {
+            val resource = it.getArgument<ResourceRef>(2)
+            if (resource.id == fixture.hidden.id) Decision.Deny(Decision.REASON_NO_GRANT, "Denied") else Decision.Allow()
+        }
+        val redacted = fixture.service.load(fixture.request.id, fixture.access)
+
+        assertTrue(redacted.supportingEvidenceLinks.isEmpty())
     }
 
     @Test
@@ -345,8 +404,15 @@ class InformationRequestResponseWorkspaceServiceTest
         val fields = mock<SchemaAssignmentService>()
         val authorization = mock<AuthorizationService>()
         val groupAuthorization = mock<InformationRequestGroupAuthorizationService>()
+        val storedLinks = mutableListOf<InformationRequestSupportingEvidenceLink>()
+        val linkRepository = mock<InformationRequestSupportingEvidenceLinkRepository> {
+            on { findForRequest(any()) }.thenAnswer { storedLinks.toList() }
+        }
+        val templateLinks = mock<InformationRequestTemplateBindingEvidenceLinkRepository>()
+        val supportingLinks = InformationRequestSupportingEvidenceLinkService(templateLinks, requirements, linkRepository)
+        val evidenceUpload = mock<InformationRequestEvidenceDeploymentPolicy>()
         val service = InformationRequestResponseWorkspaceService(query, versions, templates, occurrenceRepository, requirements,
-            responses, bindingRepository, fields, authorization, conditions, groupAuthorization)
+            responses, bindingRepository, fields, authorization, conditions, groupAuthorization, supportingLinks, evidenceUpload)
 
         fun updateTemplate(transform: (InformationRequestTemplateVersionDto) -> InformationRequestTemplateVersionDto)
         {

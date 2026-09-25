@@ -24,6 +24,7 @@ import com.docuhyphen.app.api.model.entity.InformationRequestTemplateStatus
 import com.docuhyphen.app.api.model.entity.InformationRequestTemplateVersion
 import com.docuhyphen.app.api.model.entity.InformationRequestTemplateVersionCapability
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestCapability
+import com.docuhyphen.app.api.service.informationrequest.InformationRequestCapabilityExecutorRegistry
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestCapabilityNotInstalledException
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestCapabilityRequirement
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestTemplateCapabilityGate
@@ -121,6 +122,9 @@ class InformationRequestTemplatePersistenceContractTest
 
     @Inject
     lateinit var capabilityGate: InformationRequestTemplateCapabilityGate
+
+    @Inject
+    lateinit var executorRegistry: InformationRequestCapabilityExecutorRegistry
 
     @Inject
     lateinit var dataSource: DataSource
@@ -624,7 +628,7 @@ class InformationRequestTemplatePersistenceContractTest
 
         QuarkusTransaction.requiringNew().run {
             capabilityRepository.save(
-                requiredCapability(version.id, InformationRequestCapability.RESPONSE_ATTESTATION, 1),
+                requiredCapability(version.id, InformationRequestCapability.RESPONSE_REVIEW, 1),
             )
             capabilityRepository.save(
                 requiredCapability(version.id, InformationRequestCapability.RESPONSE_SUBMISSION, 1),
@@ -639,7 +643,7 @@ class InformationRequestTemplatePersistenceContractTest
             // would issue one version against another version's runtime.
             assertEquals(
                 listOf(
-                    InformationRequestCapability.RESPONSE_ATTESTATION,
+                    InformationRequestCapability.RESPONSE_REVIEW,
                     InformationRequestCapability.RESPONSE_SUBMISSION,
                 ),
                 capabilityRepository.findForVersion(version.id).map { it.capabilityKey },
@@ -656,7 +660,7 @@ class InformationRequestTemplatePersistenceContractTest
             assertEquals(
                 listOf(
                     InformationRequestCapabilityRequirement(
-                        InformationRequestCapability.RESPONSE_ATTESTATION, 1,
+                        InformationRequestCapability.RESPONSE_REVIEW, 1,
                     ),
                     InformationRequestCapabilityRequirement(
                         InformationRequestCapability.RESPONSE_SUBMISSION, 1,
@@ -665,21 +669,30 @@ class InformationRequestTemplatePersistenceContractTest
                 capabilityGate.requirementsOf(version.id),
             )
 
-            // No executor is installed while the runtime is built, so the version is published and
-            // valid but cannot be issued, and the refusal names every capability that is missing
-            // rather than the first one found.
+            // Every capability but reviewer disposition is installed, so a version that needs review
+            // is published and valid but cannot be issued, and the refusal names only what is missing.
             assertEquals(
-                capabilityGate.requirementsOf(version.id),
-                capabilityGate.unservedRequirements(version.id),
+                InformationRequestCapability.entries.toSet() - InformationRequestCapability.RESPONSE_REVIEW,
+                executorRegistry.installedCapabilities(),
             )
+            val unserved = listOf(
+                InformationRequestCapabilityRequirement(InformationRequestCapability.RESPONSE_REVIEW, 1),
+            )
+            assertEquals(unserved, capabilityGate.unservedRequirements(version.id))
             val refusal = assertThrows<InformationRequestCapabilityNotInstalledException> {
                 capabilityGate.requireInstalledCapabilities(version.id)
             }
-            assertEquals(capabilityGate.requirementsOf(version.id), refusal.unserved)
+            assertEquals(unserved, refusal.unserved)
             assertTrue(
-                refusal.message.contains("RESPONSE_ATTESTATION v1") &&
-                    refusal.message.contains("RESPONSE_SUBMISSION v1"),
-                "The refusal should name every unserved capability: ${refusal.message}",
+                refusal.message.contains("RESPONSE_REVIEW v1") && !refusal.message.contains("RESPONSE_SUBMISSION"),
+                "The refusal should name only the unserved capability: ${refusal.message}",
+            )
+            capabilityGate.requireInstalledCapabilities(otherVersion.id)
+            assertEquals(
+                listOf(InformationRequestCapabilityRequirement(InformationRequestCapability.RESPONSE_SUBMISSION, 2)),
+                executorRegistry.unserved(
+                    listOf(InformationRequestCapabilityRequirement(InformationRequestCapability.RESPONSE_SUBMISSION, 2)),
+                ),
             )
 
             // A version that recorded nothing needs nothing, so nothing stands in the way of it.

@@ -1,16 +1,21 @@
 package com.docuhyphen.app.api.model.dto
 
+import com.docuhyphen.app.api.model.entity.InformationRequestAttestationOrdering
+import com.docuhyphen.app.api.model.entity.InformationRequestAuthenticationStrength
 import com.docuhyphen.app.api.model.entity.InformationRequestContributorRole
 import com.docuhyphen.app.api.model.entity.InformationRequestConditionHiddenDataPolicy
 import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceAttribute
 import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceAttributeRequirement
 import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceConformancePolicy
 import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceWaiverPolicy
+import com.docuhyphen.app.api.model.entity.InformationRequestExternalSignatureReferencePolicy
 import com.docuhyphen.app.api.model.entity.InformationRequestRequiredness
 import com.docuhyphen.app.api.model.entity.InformationRequestRequirementType
 import com.docuhyphen.app.api.model.entity.InformationRequestResponseDisposition
 import com.docuhyphen.app.api.model.entity.InformationRequestResponseMode
 import com.docuhyphen.app.api.model.entity.InformationRequestReviewPolicy
+import com.docuhyphen.app.api.model.entity.InformationRequestSubmissionMode
+import com.docuhyphen.app.api.model.entity.InformationRequestSubmissionStageOrdering
 import com.docuhyphen.app.api.model.entity.InformationRequestTemplateScopeKind
 import com.docuhyphen.app.api.model.entity.InformationRequestTemplateStatus
 import com.docuhyphen.app.api.model.entity.FieldValueType
@@ -93,6 +98,9 @@ data class InformationRequestTemplateVersionDto(
     val status: InformationRequestTemplateStatus,
     /** The exact published Schema Version typed requirements resolve against, when any are asked. */
     @Serializable(with = UUIDSerializer::class) val schemaVersionId: UUID? = null,
+    val submissionMode: InformationRequestSubmissionMode = InformationRequestSubmissionMode.WHOLE_PACKAGE,
+    val submissionStageOrdering: InformationRequestSubmissionStageOrdering =
+        InformationRequestSubmissionStageOrdering.ANY_ORDER,
     val sections: List<InformationRequestTemplateSectionDto> = emptyList(),
     /** The repeatable and nested groups an occurrence-anchored requirement may answer once per. */
     val groups: List<InformationRequestTemplateGroupDto> = emptyList(),
@@ -153,6 +161,7 @@ data class InformationRequestTemplateSectionDto(
     val sectionKey: String,
     val title: String,
     val helpText: String? = null,
+    val submissionStageKey: String? = null,
     val requirements: List<InformationRequestTemplateRequirementDto> = emptyList(),
 )
 
@@ -181,6 +190,18 @@ data class InformationRequestTemplateRequirementDto(
     val substituteRequirementKeys: List<String> = emptyList(),
     /** Requirement keys of requested Documents that support the answer given here. */
     val supportingEvidenceRequirementKeys: List<String> = emptyList(),
+    val attestationPolicy: InformationRequestTemplateAttestationPolicyDto? = null,
+)
+
+@Serializable
+data class InformationRequestTemplateAttestationPolicyDto(
+    @Serializable(with = UUIDSerializer::class) val id: UUID,
+    val requiredRoles: List<InformationRequestContributorRole>,
+    val ordering: InformationRequestAttestationOrdering,
+    val minimumAssentCount: Int,
+    val minimumAuthenticationStrength: InformationRequestAuthenticationStrength,
+    val validityHours: Int? = null,
+    val externalSignatureReference: InformationRequestExternalSignatureReferencePolicy,
 )
 
 @Serializable
@@ -239,6 +260,9 @@ data class InformationRequestTemplateConfigurationRequest(
     val sections: List<InformationRequestTemplateSectionRequest> = emptyList(),
     val groups: List<InformationRequestTemplateGroupRequest> = emptyList(),
     val conditionRules: List<InformationRequestTemplateConditionRuleRequest> = emptyList(),
+    val submissionMode: InformationRequestSubmissionMode = InformationRequestSubmissionMode.WHOLE_PACKAGE,
+    val submissionStageOrdering: InformationRequestSubmissionStageOrdering =
+        InformationRequestSubmissionStageOrdering.ANY_ORDER,
 )
 
 @Serializable
@@ -275,6 +299,7 @@ data class InformationRequestTemplateSectionRequest(
     val title: String,
     val helpText: String? = null,
     val requirements: List<InformationRequestTemplateRequirementRequest> = emptyList(),
+    val submissionStageKey: String? = null,
 )
 
 @Serializable
@@ -299,6 +324,19 @@ data class InformationRequestTemplateRequirementRequest(
     val evidencePolicy: InformationRequestTemplateEvidencePolicyRequest? = null,
     val substituteRequirementKeys: List<String> = emptyList(),
     val supportingEvidenceRequirementKeys: List<String> = emptyList(),
+    val attestationPolicy: InformationRequestTemplateAttestationPolicyRequest? = null,
+)
+
+@Serializable
+data class InformationRequestTemplateAttestationPolicyRequest(
+    val requiredRoles: List<InformationRequestContributorRole> = emptyList(),
+    val ordering: InformationRequestAttestationOrdering = InformationRequestAttestationOrdering.ANY_ORDER,
+    val minimumAssentCount: Int? = null,
+    val minimumAuthenticationStrength: InformationRequestAuthenticationStrength =
+        InformationRequestAuthenticationStrength.VERIFIED_CONTACT,
+    val validityHours: Int? = null,
+    val externalSignatureReference: InformationRequestExternalSignatureReferencePolicy =
+        InformationRequestExternalSignatureReferencePolicy.NOT_ACCEPTED,
 )
 
 @Serializable

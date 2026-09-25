@@ -224,6 +224,7 @@ class InformationRequestDelegatedAuthorityAuthorizationTest
                 principalGroupMemberRepository = mock<PrincipalGroupMemberRepository>().also {
                     whenever(it.findActiveMembers(any())).thenReturn(emptyList())
                 },
+                attestationPolicies = mock<InformationRequestAttestationPolicyLoader>(),
             )
             val requestProvider = InformationRequestAuthorizationContextProvider(requestRepository, parentState)
 

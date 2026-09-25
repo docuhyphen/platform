@@ -1,31 +1,22 @@
 ﻿package com.docuhyphen.app.api.service.exchange
 
 import com.docuhyphen.app.api.model.dto.SessionAccessEntryDto
-import com.docuhyphen.app.api.model.entity.PrincipalKind
 import com.docuhyphen.app.api.model.entity.ResourceType
 import com.docuhyphen.app.api.model.entity.Share
 import com.docuhyphen.app.api.model.entity.ShareSource
-import com.docuhyphen.app.api.repository.exchange.ExternalParticipantRepository
 import com.docuhyphen.app.api.repository.exchange.ShareRepository
-import com.docuhyphen.app.api.repository.organization.PrincipalGroupRepository
-import com.docuhyphen.app.api.repository.user.AppUserRepository
+import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.service.identity.PrincipalDisplayService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.inject.Provider
 import java.util.*
 
-/**
- * Read-side over the unified [Share] model that powers the "manage access" view.
- * Additive, it does not change existing authorization; it surfaces the access list the new
- * model already maintains via dual-write, so the redesigned access-management UX can be built
- * before the legacy read paths are retired at cutover.
- */
+/** Read-side over the unified [Share] model that powers the "manage access" view. */
 @ApplicationScoped
 class ShareQueryService @Inject constructor(
     private val shareRepository: ShareRepository,
-    private val appUserRepository: AppUserRepository,
-    private val principalGroupRepository: PrincipalGroupRepository,
-    private val externalParticipantRepository: ExternalParticipantRepository,
+    private val principalDisplayService: PrincipalDisplayService,
     private val exchangeRecipientServiceProvider: Provider<ExchangeRecipientService>,
 )
 {
@@ -46,29 +37,15 @@ class ShareQueryService @Inject constructor(
             shareId = id,
             principalKind = principalKind.name,
             principalId = principalId,
-            displayName = resolveDisplayName(principalKind, principalId),
+            displayName = principalDisplayService.display(PrincipalRef(principalKind, principalId)).name,
             roleName = exchangeRoleName(),
             source = source.name,
             status = status.name,
             recipientPurpose = recipientPurpose,
-            grantedByAppUserId = grantedByAppUserId,
+            grantedByPrincipalKind = grantedByPrincipalKind?.name,
+            grantedByPrincipalId = grantedByPrincipalId,
             grantedAt = grantedAt,
             expiresAt = expiresAt,
             constraintsJson = constraintsJson,
         )
-
-    private fun resolveDisplayName(kind: PrincipalKind, id: UUID): String? =
-        when (kind)
-        {
-            PrincipalKind.USER ->
-            {
-                val user = appUserRepository.findById(id)
-                val fullName = "${user?.person?.firstName.orEmpty()} ${user?.person?.lastName.orEmpty()}".trim()
-                fullName.ifBlank { user?.email }
-            }
-
-            PrincipalKind.PRINCIPAL_GROUP -> principalGroupRepository.findById(id)?.name
-            PrincipalKind.PARTICIPANT -> externalParticipantRepository.findById(id)?.email
-            else -> null
-        }
 }

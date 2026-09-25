@@ -262,6 +262,7 @@ class InformationRequestPartyConcurrencyTransactionTest
             history,
             conditionEvaluationService,
             mock<InformationRequestStructuredResponseValidationService>(),
+            mock<InformationRequestSubmissionLockService>(),
         )
         val parentLifecycle = InformationRequestParentLifecycleService(
             requestRepository,

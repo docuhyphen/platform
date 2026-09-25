@@ -35,10 +35,7 @@ internal val ALL_SCHEMA_TARGETS: Set<String> = setOf(
 @ApplicationScoped
 class SchemaTargetRegistry
 {
-    /**
-     * The target a caller that names none is written for. Every Schema stored before a second
-     * target existed names this one, so it is also what an older client keeps meaning.
-     */
+    /** The target a Schema is written for when its author names none. */
     fun defaultTarget(): String = EXCHANGE_SCHEMA_TARGET
 
     fun supportedTargets(): Set<String> = ALL_SCHEMA_TARGETS

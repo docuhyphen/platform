@@ -1,9 +1,11 @@
 package com.docuhyphen.app.api.service.informationrequest
 
 import com.docuhyphen.app.api.model.entity.InformationRequest
+import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceArtifact
 import com.docuhyphen.app.api.model.entity.InformationRequestParty
 import com.docuhyphen.app.api.model.entity.InformationRequestRequirementRevision
 import com.docuhyphen.app.api.service.command.RevisionETag
+import java.util.UUID
 
 /**
  * Strong validators for request runtime rows. They are based only on persisted revision counters,
@@ -25,4 +27,15 @@ object InformationRequestETag
 
     fun requirementOf(revision: InformationRequestRequirementRevision): String =
         RevisionETag.of(revision.informationRequestRequirementId, revision.optimisticVersion)
+
+    fun evidenceOf(requirementId: UUID, artifacts: List<InformationRequestEvidenceArtifact>): String =
+        RevisionETag.of(requirementId, artifacts.sumOf { it.artifactRevision })
+
+    fun artifactOf(artifact: InformationRequestEvidenceArtifact): String =
+        RevisionETag.of(artifact.id, artifact.artifactRevision)
+
+    fun submissionOf(stageKey: String?, contentHash: String): String =
+        "\"submission:${stageKey ?: WHOLE_REQUEST}:$contentHash\""
+
+    private const val WHOLE_REQUEST = "whole"
 }

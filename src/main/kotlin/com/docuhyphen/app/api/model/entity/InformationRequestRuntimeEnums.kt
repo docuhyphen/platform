@@ -25,3 +25,26 @@ enum class InformationRequestTransitionActorKind
     PUBLIC_LINK,
     ACCESS_SESSION,
 }
+
+/**
+ * How one recorded evidence version names its content. A file-backed version names an exact
+ * Document Version; an external version names a typed reference held outside this platform.
+ */
+enum class InformationRequestEvidenceSourceKind
+{
+    DOCUMENT_VERSION,
+    EXTERNAL_REFERENCE,
+}
+
+enum class InformationRequestEvidenceCollectionState
+{
+    ACTIVE,
+    WITHDRAWN,
+    REMOVED,
+}
+
+enum class InformationRequestEvidenceAssessmentKind
+{
+    CONTENT_INSPECTION,
+    MALWARE_SCAN,
+}

@@ -85,10 +85,6 @@ class Share
     @Enumerated(EnumType.STRING)
     var status: ShareStatus = ShareStatus.ACTIVE
 
-    @Column(name = "granted_by_app_user_id", nullable = true)
-    @Serializable(with = UUIDSerializer::class)
-    var grantedByAppUserId: UUID? = null
-
     @Column(name = "granted_by_principal_kind", nullable = true, length = 32)
     @Enumerated(EnumType.STRING)
     var grantedByPrincipalKind: PrincipalKind? = null
@@ -108,10 +104,6 @@ class Share
     @Column(name = "revoked_at", nullable = true)
     @Serializable(with = TimestampSerializer::class)
     var revokedAt: Timestamp? = null
-
-    @Column(name = "revoked_by_app_user_id", nullable = true)
-    @Serializable(with = UUIDSerializer::class)
-    var revokedByAppUserId: UUID? = null
 
     @Column(name = "revoked_by_principal_kind", nullable = true, length = 32)
     @Enumerated(EnumType.STRING)

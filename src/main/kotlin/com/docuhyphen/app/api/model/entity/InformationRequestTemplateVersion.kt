@@ -42,6 +42,15 @@ class InformationRequestTemplateVersion
     @Column(name = "schema_version_id", nullable = true)
     var schemaVersionId: UUID? = null
 
+    @Column(name = "submission_mode", nullable = false, length = 32)
+    @Enumerated(EnumType.STRING)
+    var submissionMode: InformationRequestSubmissionMode = InformationRequestSubmissionMode.WHOLE_PACKAGE
+
+    @Column(name = "submission_stage_ordering", nullable = false, length = 32)
+    @Enumerated(EnumType.STRING)
+    var submissionStageOrdering: InformationRequestSubmissionStageOrdering =
+        InformationRequestSubmissionStageOrdering.ANY_ORDER
+
     @Column(name = "published_at", nullable = true)
     var publishedAt: Timestamp? = null
 

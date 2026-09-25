@@ -1032,7 +1032,6 @@ export interface DocumentVersion
     id: string;
     version: string;
     fileName: string;
-    storagePath: string;
     createdAt: string;
     createdByEmail: string | null;
     createdBy: string | null;
@@ -2121,6 +2120,8 @@ export interface InformationRequestTemplateVersionDto
     versionNumber: number;
     status: InformationRequestTemplateStatus;
     schemaVersionId?: string;
+    submissionMode?: InformationRequestSubmissionMode;
+    submissionStageOrdering?: InformationRequestSubmissionStageOrdering;
     sections: InformationRequestTemplateSectionDto[];
     groups: InformationRequestTemplateGroupDto[];
     conditionRules: InformationRequestTemplateConditionRuleDto[];
@@ -2165,6 +2166,7 @@ export interface InformationRequestTemplateSectionDto
     sectionKey: string;
     title: string;
     helpText?: string;
+    submissionStageKey?: string;
     requirements: InformationRequestTemplateRequirementDto[];
 }
 
@@ -2188,6 +2190,18 @@ export interface InformationRequestTemplateRequirementDto
     evidencePolicy?: InformationRequestTemplateEvidencePolicyDto;
     substituteRequirementKeys: string[];
     supportingEvidenceRequirementKeys: string[];
+    attestationPolicy?: InformationRequestTemplateAttestationPolicyDto;
+}
+
+export interface InformationRequestTemplateAttestationPolicyDto
+{
+    id: string;
+    requiredRoles: InformationRequestContributorRole[];
+    ordering: InformationRequestAttestationOrdering;
+    minimumAssentCount: number;
+    minimumAuthenticationStrength: InformationRequestAuthenticationStrength;
+    validityHours?: number;
+    externalSignatureReference: InformationRequestExternalSignatureReferencePolicy;
 }
 
 export interface InformationRequestTemplateEvidencePolicyDto
@@ -2423,6 +2437,7 @@ export interface InformationRequestResponseDto
     fieldValues: FieldValueDto[];
     responseRevision: number;
     updatedAt: string;
+    reconfirmationRequired?: boolean;
 }
 
 export enum RequestAccessSessionVerificationStrength
@@ -2447,6 +2462,153 @@ export interface InformationRequestResponseWorkspaceDto
     occurrences: InformationRequestGroupOccurrenceDto[];
     schemaAssignment?: SchemaAssignmentDto;
     responses: InformationRequestResponseDto[];
+    supportingEvidenceLinks: InformationRequestSupportingEvidenceLinkDto[];
+    evidenceUploadAvailable: boolean;
+    evidenceMalwareScanning: boolean;
+}
+
+export interface InformationRequestSupportingEvidenceLinkDto
+{
+    supportedRequirementId: string;
+    supportingRequirementId: string;
+}
+
+export enum InformationRequestEvidenceSourceKind
+{
+    DOCUMENT_VERSION = 'DOCUMENT_VERSION',
+    EXTERNAL_REFERENCE = 'EXTERNAL_REFERENCE',
+}
+
+export enum InformationRequestEvidenceCollectionState
+{
+    ACTIVE = 'ACTIVE',
+    WITHDRAWN = 'WITHDRAWN',
+    REMOVED = 'REMOVED',
+}
+
+export enum InformationRequestEvidenceConformance
+{
+    PENDING = 'PENDING',
+    CONFORMING = 'CONFORMING',
+    DEFICIENT = 'DEFICIENT',
+    QUARANTINED = 'QUARANTINED',
+    CORRUPT = 'CORRUPT',
+    EXPIRED = 'EXPIRED',
+}
+
+export enum InformationRequestEvidenceRequirementState
+{
+    NOT_PROVIDED = 'NOT_PROVIDED',
+    PENDING_ASSESSMENT = 'PENDING_ASSESSMENT',
+    INCOMPLETE = 'INCOMPLETE',
+    DEFICIENT = 'DEFICIENT',
+    REVIEWABLE = 'REVIEWABLE',
+    SATISFIED = 'SATISFIED',
+    WAIVED = 'WAIVED',
+    WAIVER_REQUESTED = 'WAIVER_REQUESTED',
+}
+
+export enum InformationRequestEvidenceFindingCode
+{
+    NOT_INSPECTED = 'NOT_INSPECTED',
+    NOT_SCANNED = 'NOT_SCANNED',
+    SCAN_INCOMPLETE = 'SCAN_INCOMPLETE',
+    SCAN_NOT_PRODUCTION_ELIGIBLE = 'SCAN_NOT_PRODUCTION_ELIGIBLE',
+    MALWARE_DETECTED = 'MALWARE_DETECTED',
+    CONTENT_OPAQUE = 'CONTENT_OPAQUE',
+    CONTENT_CORRUPT = 'CONTENT_CORRUPT',
+    CONTENT_ENCRYPTED = 'CONTENT_ENCRYPTED',
+    FILE_TOO_LARGE = 'FILE_TOO_LARGE',
+    CONTENT_TYPE_NOT_ACCEPTED = 'CONTENT_TYPE_NOT_ACCEPTED',
+    CONTENT_TYPE_MISMATCH = 'CONTENT_TYPE_MISMATCH',
+    PAGE_COUNT_UNKNOWN = 'PAGE_COUNT_UNKNOWN',
+    PAGE_COUNT_OUT_OF_RANGE = 'PAGE_COUNT_OUT_OF_RANGE',
+    ATTRIBUTE_MISSING = 'ATTRIBUTE_MISSING',
+    ATTRIBUTE_NOT_ACCEPTED = 'ATTRIBUTE_NOT_ACCEPTED',
+    ISSUED_IN_FUTURE = 'ISSUED_IN_FUTURE',
+    ISSUE_TOO_OLD = 'ISSUE_TOO_OLD',
+    EXPIRED = 'EXPIRED',
+    VALIDITY_TOO_SHORT = 'VALIDITY_TOO_SHORT',
+    FILE_COUNT_BELOW_MINIMUM = 'FILE_COUNT_BELOW_MINIMUM',
+    FILE_COUNT_ABOVE_MAXIMUM = 'FILE_COUNT_ABOVE_MAXIMUM',
+    TOTAL_SIZE_ABOVE_MAXIMUM = 'TOTAL_SIZE_ABOVE_MAXIMUM',
+    COVERAGE_TOO_SHORT = 'COVERAGE_TOO_SHORT',
+    COVERAGE_NOT_CONTINUOUS = 'COVERAGE_NOT_CONTINUOUS',
+    WAIVER_NOT_PERMITTED = 'WAIVER_NOT_PERMITTED',
+}
+
+export interface InformationRequestEvidenceFindingDto
+{
+    code: InformationRequestEvidenceFindingCode;
+    blocking: boolean;
+    detail?: string;
+}
+
+export interface InformationRequestEvidenceVersionDto
+{
+    id: string;
+    versionNumber: number;
+    sourceKind: InformationRequestEvidenceSourceKind;
+    declaredFileName?: string;
+    declaredMediaType?: string;
+    contentLength?: number;
+    contentHashAlgorithm?: string;
+    contentHash?: string;
+    contentVerification?: string;
+    externalReferenceType?: string;
+    externalReferenceValue?: string;
+    issuer?: string;
+    jurisdiction?: string;
+    language?: string;
+    issuedOn?: string;
+    expiresOn?: string;
+    coverageStartsOn?: string;
+    coverageEndsOn?: string;
+    certificationReference?: string;
+    signatureReference?: string;
+    createdByCaller: boolean;
+    createdAt: string;
+    conformance?: InformationRequestEvidenceConformance;
+    findings: InformationRequestEvidenceFindingDto[];
+}
+
+export interface InformationRequestEvidenceArtifactDto
+{
+    id: string;
+    requirementId: string;
+    artifactKey: string;
+    collectionState: InformationRequestEvidenceCollectionState;
+    artifactRevision: number;
+    etag: string;
+    createdByCaller: boolean;
+    stateReason?: string;
+    stateChangedAt?: string;
+    createdAt: string;
+    updatedAt: string;
+    versions: InformationRequestEvidenceVersionDto[];
+}
+
+export interface InformationRequestEvidenceEvaluationDto
+{
+    state: InformationRequestEvidenceRequirementState;
+    completesWork: boolean;
+    satisfiedBySubstitute: boolean;
+    findings: InformationRequestEvidenceFindingDto[];
+}
+
+export interface InformationRequestEvidenceListDto
+{
+    requirementId: string;
+    evidenceETag: string;
+    artifacts: InformationRequestEvidenceArtifactDto[];
+    evaluation?: InformationRequestEvidenceEvaluationDto;
+}
+
+export interface InformationRequestEvidenceCommandResultDto
+{
+    artifact: InformationRequestEvidenceArtifactDto;
+    evidenceETag: string;
+    artifactETag: string;
 }
 
 export interface InformationRequestResponseFieldValuesPatchRequest
@@ -2481,6 +2643,342 @@ export interface ReorderInformationRequestGroupOccurrencesRequest
     groupKey: string;
     parentOccurrenceId?: string;
     occurrenceIds: string[];
+}
+
+export enum InformationRequestSubmissionMode
+{
+    WHOLE_PACKAGE = "WHOLE_PACKAGE",
+    STAGED = "STAGED",
+}
+
+export enum InformationRequestSubmissionStageOrdering
+{
+    ANY_ORDER = "ANY_ORDER",
+    SEQUENTIAL = "SEQUENTIAL",
+}
+
+export enum InformationRequestAttestationOrdering
+{
+    ANY_ORDER = "ANY_ORDER",
+    ROLE_SEQUENCE = "ROLE_SEQUENCE",
+}
+
+export enum InformationRequestAuthenticationStrength
+{
+    VERIFIED_CONTACT = "VERIFIED_CONTACT",
+    ACCOUNT_SIGN_IN = "ACCOUNT_SIGN_IN",
+    MULTI_FACTOR = "MULTI_FACTOR",
+}
+
+export enum InformationRequestExternalSignatureReferencePolicy
+{
+    NOT_ACCEPTED = "NOT_ACCEPTED",
+    OPTIONAL = "OPTIONAL",
+    REQUIRED = "REQUIRED",
+}
+
+export enum InformationRequestAttestationDecision
+{
+    ASSENTED = "ASSENTED",
+    REFUSED = "REFUSED",
+}
+
+export enum InformationRequestAttestationState
+{
+    SATISFIED = "SATISFIED",
+    PENDING = "PENDING",
+    REFUSED = "REFUSED",
+}
+
+export enum InformationRequestSubmissionProblemCode
+{
+    REQUIREMENT_INCOMPLETE = "REQUIREMENT_INCOMPLETE",
+    EVIDENCE_NOT_CONFORMING = "EVIDENCE_NOT_CONFORMING",
+    ATTESTATION_MISSING = "ATTESTATION_MISSING",
+    ATTESTATION_REFUSED = "ATTESTATION_REFUSED",
+    RECONFIRMATION_REQUIRED = "RECONFIRMATION_REQUIRED",
+}
+
+export enum InformationRequestCompletenessItemState
+{
+    COMPLETE = "COMPLETE",
+    INCOMPLETE = "INCOMPLETE",
+    OPTIONAL_UNANSWERED = "OPTIONAL_UNANSWERED",
+    HIDDEN = "HIDDEN",
+    REJECTED = "REJECTED",
+}
+
+export interface InformationRequestSubmissionEvidenceDto
+{
+    artifactId: string;
+    evidenceVersionId: string;
+    versionNumber: number;
+    documentVersionId?: string;
+    contentHashAlgorithm?: string;
+    contentHash?: string;
+    contentLength?: number;
+    conformance: string;
+}
+
+export interface InformationRequestSubmissionItemDto
+{
+    requirementId: string;
+    requirementKey: string;
+    requirementType: InformationRequestRequirementType;
+    occurrencePath: string;
+    completenessState: InformationRequestCompletenessItemState;
+    disposition: InformationRequestResponseDisposition;
+    narrative?: string;
+    fieldValue?: unknown;
+    fieldValueCleared: boolean;
+    evidenceState?: string;
+    attestationState?: string;
+    evidence: InformationRequestSubmissionEvidenceDto[];
+}
+
+export interface InformationRequestSubmissionAttestationDto
+{
+    id: string;
+    requirementId: string;
+    stageKey?: string;
+    partyRole: InformationRequestContributorRole;
+    decision: InformationRequestAttestationDecision;
+    refusalReason?: string;
+    authenticationStrength: InformationRequestAuthenticationStrength;
+    externalSignatureReference?: string;
+    attestedAt: string;
+    expiresAt?: string;
+    attestedByCaller: boolean;
+    madeUnderDelegatedAuthority: boolean;
+}
+
+export interface InformationRequestSubmissionPackageDto
+{
+    id: string;
+    informationRequestId: string;
+    packageNumber: number;
+    stageKey?: string;
+    templateVersionId: string;
+    schemaVersionId?: string;
+    contentHash: string;
+    manifestHash: string;
+    reviewRequired: boolean;
+    completesRequest: boolean;
+    previousPackageId?: string;
+    submittedAt: string;
+    submittedByCaller: boolean;
+    withdrawn: boolean;
+    withdrawnAt?: string;
+    withdrawalReasonCode?: string;
+    items: InformationRequestSubmissionItemDto[];
+    attestations: InformationRequestSubmissionAttestationDto[];
+    supportingEvidenceLinks: InformationRequestSupportingEvidenceLinkDto[];
+    undisclosedItemCount: number;
+}
+
+export interface InformationRequestSubmissionProblemDto
+{
+    requirementId: string;
+    requirementKey: string;
+    occurrencePath: string;
+    code: InformationRequestSubmissionProblemCode;
+}
+
+export interface InformationRequestAttestationStatusDto
+{
+    requirementId: string;
+    requirementKey: string;
+    prompt: string;
+    state: InformationRequestAttestationState;
+    requiredRoles: InformationRequestContributorRole[];
+    missingRoles: InformationRequestContributorRole[];
+    ordering: InformationRequestAttestationOrdering;
+    assentCount: number;
+    requiredAssentCount: number;
+    minimumAuthenticationStrength: InformationRequestAuthenticationStrength;
+    externalSignatureReference: InformationRequestExternalSignatureReferencePolicy;
+    validityHours?: number;
+    callerCanAttest: boolean;
+    callerDecision?: InformationRequestAttestationDecision;
+    attestations: InformationRequestSubmissionAttestationDto[];
+}
+
+export interface InformationRequestSubmissionStageDto
+{
+    stageKey: string;
+    submittedPackageId?: string;
+    submittedPackageNumber?: number;
+    submitted: boolean;
+}
+
+export interface InformationRequestSubmissionPreviewDto
+{
+    informationRequestId: string;
+    stageKey?: string;
+    submissionMode: InformationRequestSubmissionMode;
+    submissionStageOrdering: InformationRequestSubmissionStageOrdering;
+    submissionETag: string;
+    ready: boolean;
+    problems: InformationRequestSubmissionProblemDto[];
+    undisclosedProblemCount: number;
+    attestations: InformationRequestAttestationStatusDto[];
+    stages: InformationRequestSubmissionStageDto[];
+    canSubmit: boolean;
+    packages: InformationRequestSubmissionPackageDto[];
+}
+
+export interface InformationRequestSubmissionRefusalDto
+{
+    errorMessage: string;
+    reasonCode: string;
+    problems: InformationRequestSubmissionProblemDto[];
+    undisclosedProblemCount: number;
+}
+
+export interface InformationRequestSubmissionAttestationResultDto
+{
+    attestation: InformationRequestSubmissionAttestationDto;
+    state?: InformationRequestAttestationState;
+    submissionETag: string;
+}
+
+export interface InformationRequestSubmissionResultDto
+{
+    requestState: InformationRequestState;
+    requestETag: string;
+    responseETag: string;
+    submission: InformationRequestSubmissionPackageDto;
+}
+
+export interface SubmitInformationRequestPackageRequest
+{
+    stageKey?: string;
+}
+
+export interface WithdrawInformationRequestPackageRequest
+{
+    reasonCode?: string;
+}
+
+export interface RecordInformationRequestAttestationRequest
+{
+    decision: InformationRequestAttestationDecision;
+    refusalReason?: string;
+    externalSignatureReference?: string;
+    partyId?: string;
+}
+
+export enum InformationRequestAmendmentChangeKind
+{
+    ADDED = "ADDED",
+    REMOVED = "REMOVED",
+    PRESENTATION_CHANGED = "PRESENTATION_CHANGED",
+    MEANING_CHANGED = "MEANING_CHANGED",
+}
+
+export enum InformationRequestNoticeKind
+{
+    REQUIREMENTS_AMENDED = "REQUIREMENTS_AMENDED",
+}
+
+export enum InformationRequestNoticeDeliveryState
+{
+    PENDING = "PENDING",
+}
+
+export interface InformationRequestAmendmentChangeDto
+{
+    requirementKey: string;
+    changeKind: InformationRequestAmendmentChangeKind;
+    reconfirmationRequired: boolean;
+}
+
+export interface InformationRequestNoticeIntentDto
+{
+    id: string;
+    partyId: string;
+    noticeKind: InformationRequestNoticeKind;
+    deliveryState: InformationRequestNoticeDeliveryState;
+    createdAt: string;
+}
+
+export interface InformationRequestAmendmentDto
+{
+    id: string;
+    amendmentNumber: number;
+    fromTemplateVersionId: string;
+    toTemplateVersionId: string;
+    reasonCode?: string;
+    amendedAt: string;
+    amendedByCaller: boolean;
+    changes: InformationRequestAmendmentChangeDto[];
+    undisclosedChangeCount: number;
+    notices: InformationRequestNoticeIntentDto[];
+}
+
+export enum InformationRequestLineageKind
+{
+    SUPPLEMENT = "SUPPLEMENT",
+    RECURRENCE = "RECURRENCE",
+    REFRESH = "REFRESH",
+    SUPERSEDING = "SUPERSEDING",
+}
+
+export enum InformationRequestCarryForwardDecision
+{
+    OFFERED = "OFFERED",
+    INVALIDATED = "INVALIDATED",
+}
+
+export interface InformationRequestLineageDto
+{
+    id: string;
+    lineageKind: InformationRequestLineageKind;
+    sourceRequestId: string;
+    successorRequestId: string;
+    sourcePackageId?: string;
+    recurrenceId?: string;
+    recurrenceSequence?: number;
+    refreshRuleId?: string;
+    reasonCode?: string;
+    createdAt: string;
+}
+
+export interface InformationRequestLineageViewDto
+{
+    informationRequestId: string;
+    source?: InformationRequestLineageDto;
+    successors: InformationRequestLineageDto[];
+}
+
+export interface InformationRequestCarryForwardDto
+{
+    requirementId: string;
+    decision: InformationRequestCarryForwardDecision;
+    reasonCode?: string;
+    sourcePackageId: string;
+    priorDisposition?: InformationRequestResponseDisposition;
+    priorNarrative?: string;
+    priorFieldValue?: unknown;
+}
+
+export interface InformationRequestSuccessorResultDto
+{
+    sourceRequestId: string;
+    sourceState: InformationRequestState;
+    successor: InformationRequestDto;
+    successorETag: string;
+    lineage: InformationRequestLineageDto;
+    offeredCount: number;
+    invalidatedCount: number;
+}
+
+export interface CreateInformationRequestSuccessorRequest
+{
+    kind: InformationRequestLineageKind;
+    targetTemplateVersionId?: string;
+    sourcePackageId?: string;
+    reasonCode?: string;
 }
 
 // ── Audit projection, exports, and integrity ──────────────────────────────────

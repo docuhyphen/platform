@@ -59,6 +59,9 @@ class InformationRequestResponse
     @Column(name = "hidden_at")
     var hiddenAt: Timestamp? = null
 
+    @Column(name = "reconfirmation_required_by_amendment_id")
+    var reconfirmationRequiredByAmendmentId: UUID? = null
+
     @Column(name = "response_revision", nullable = false)
     var responseRevision: Long = 1
 

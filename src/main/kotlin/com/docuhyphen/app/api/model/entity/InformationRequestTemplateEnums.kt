@@ -192,3 +192,35 @@ enum class InformationRequestResponseDisposition
     SATISFIED_BY_REFERENCE,
     WAIVED,
 }
+
+enum class InformationRequestSubmissionMode
+{
+    WHOLE_PACKAGE,
+    STAGED,
+}
+
+enum class InformationRequestSubmissionStageOrdering
+{
+    ANY_ORDER,
+    SEQUENTIAL,
+}
+
+enum class InformationRequestAttestationOrdering
+{
+    ANY_ORDER,
+    ROLE_SEQUENCE,
+}
+
+enum class InformationRequestAuthenticationStrength(val rank: Int)
+{
+    VERIFIED_CONTACT(1),
+    ACCOUNT_SIGN_IN(2),
+    MULTI_FACTOR(3),
+}
+
+enum class InformationRequestExternalSignatureReferencePolicy
+{
+    NOT_ACCEPTED,
+    OPTIONAL,
+    REQUIRED,
+}

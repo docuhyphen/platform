@@ -47,6 +47,8 @@ class InformationRequestResponseWorkspaceService @Inject constructor(
     private val authorizationService: AuthorizationService,
     private val conditionEvaluationService: InformationRequestConditionEvaluationService,
     private val groupAuthorizationService: InformationRequestGroupAuthorizationService,
+    private val supportingEvidenceLinkService: InformationRequestSupportingEvidenceLinkService,
+    private val evidenceDeploymentPolicy: InformationRequestEvidenceDeploymentPolicy,
 )
 {
     fun loadRequest(requestId: UUID, access: RequestAccessContext): InformationRequestDto
@@ -116,6 +118,11 @@ class InformationRequestResponseWorkspaceService @Inject constructor(
                     updatedAt = request.updatedAt,
                 )
             },
+            supportingEvidenceLinks = supportingEvidenceLinkService
+                .visibleLinks(request, authorizedRequirements.map { it.id }.toSet())
+                .map(InformationRequestResponseWorkspaceDtoMapper::linkDto),
+            evidenceUploadAvailable = evidenceDeploymentPolicy.uploadAvailable(),
+            evidenceMalwareScanning = evidenceDeploymentPolicy.malwareScanningConfigured(),
         )
     }
 

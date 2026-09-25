@@ -54,7 +54,7 @@ class InformationRequestRequirementPolicyEvaluator : ResourcePolicyEvaluator
             )
         }
 
-        if (request.action in exactPartyActions && !facts.canActAsAssignedParty(request.principal))
+        if (request.action in exactPartyActions && !facts.canActAsAssignedParty(request.principal, request.action))
         {
             return deny(
                 InformationRequestErrorCatalog.PARTY_NOT_ASSIGNED,
@@ -101,15 +101,19 @@ class InformationRequestRequirementPolicyEvaluator : ResourcePolicyEvaluator
 
     private fun InformationRequestRequirementPolicyFacts.canActAsAssignedParty(
         principal: PrincipalRef,
-    ): Boolean =
-        assignedParties.any { party ->
-            party.roleKey == assignedRoleKey &&
+        action: Action,
+    ): Boolean
+    {
+        val roles = if (action in attestationActions) attestingRoleKeys + assignedRoleKey else setOf(assignedRoleKey)
+        return assignedParties.any { party ->
+            party.roleKey in roles &&
                 (
                     party.principal == principal ||
                         principal in party.equivalentPrincipals ||
                         hasActiveAuthorityFor(principal, party.partyId)
                     )
         }
+    }
 
     private fun InformationRequestRequirementPolicyFacts.hasActiveAuthorityFor(
         principal: PrincipalRef,
@@ -141,6 +145,12 @@ class InformationRequestRequirementPolicyEvaluator : ResourcePolicyEvaluator
         )
 
         val exactPartyActions = partyDisclosureActions + answerMutationActions
+
+        val attestationActions = setOf(
+            Action.INFORMATION_REQUEST_REQUIREMENT_VIEW,
+            Action.INFORMATION_REQUEST_REQUIREMENT_ATTEST,
+            Action.INFORMATION_REQUEST_EVIDENCE_VIEW,
+        )
 
         val answerableResponseModes = setOf(
             InformationRequestResponseMode.PROVIDE,

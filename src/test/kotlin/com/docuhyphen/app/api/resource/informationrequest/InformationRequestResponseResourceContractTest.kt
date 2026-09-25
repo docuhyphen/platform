@@ -146,7 +146,7 @@ class InformationRequestResponseResourceContractTest
             informationRequestId = requestId
             informationRequestRequirementId = requirementId
             requirementRevisionId = UUID.randomUUID()
-            occurrencePath = "$"
+            occurrencePath = "root"
             disposition = InformationRequestResponseDisposition.PROVIDED
             narrative = "Done."
             fieldValueSetId = UUID.randomUUID()
@@ -168,7 +168,7 @@ class InformationRequestResponseResourceContractTest
             informationRequestId = requestId
             informationRequestRequirementId = otherRequirementId
             requirementRevisionId = UUID.randomUUID()
-            occurrencePath = "$"
+            occurrencePath = "root"
             disposition = InformationRequestResponseDisposition.UNAVAILABLE
             responseRevision = 1
             recordedByPrincipalKind = PrincipalKind.PARTICIPANT
@@ -258,7 +258,7 @@ class InformationRequestResponseResourceContractTest
             informationRequestId = requestId
             sourceTemplateRequirementId = sourceRequirementId
             sourceTemplateBindingId = sourceBindingId
-            occurrencePath = "$"
+            occurrencePath = "root"
         }
 
     @Test

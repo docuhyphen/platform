@@ -16,9 +16,8 @@ import {
     Text
 } from "@fluentui/react-components";
 import {useGlobalStyles} from "../../../../GlobalStyles.tsx";
-import {uploadDocumentVersion, uploadExchangeDocument} from "../../../../services/exchangeApi.ts";
+import {uploadExchangeDocument} from "../../../../services/exchangeApi.ts";
 import useToken from "../../../../context/useToken.tsx";
-import {useAuth} from "../../../../context/AuthContext.tsx";
 import {DocumentDetailedDto, DocumentType} from "../../../models/models.tsx";
 import {useDocumentDialogStyles} from "./UploadDocumentDialogStyles.tsx";
 
@@ -41,7 +40,6 @@ const ExchangeDocumentUploadDialog: React.FC<UploadDocumentDialogProps> = (
     }) =>
 {
     const token = useToken();
-    const {appUser} = useAuth();
     const fileInputRef = useRef<HTMLInputElement | null>(null);
     const [file, setFile] = useState<File | null>(null);
     const [uploading, setUploading] = useState<boolean>(false);
@@ -158,19 +156,6 @@ const ExchangeDocumentUploadDialog: React.FC<UploadDocumentDialogProps> = (
                     setIsServerProcessing(true);
                 }
             });
-
-            // Also create a version entry so the upload registers as a new version.
-            try
-            {
-                const versionFormData = new FormData();
-                versionFormData.append("file", file, fileName);
-                versionFormData.append("userEmail", appUser?.email || "");
-                await uploadDocumentVersion(exchangeId, exchangeDocument.id, versionFormData, token);
-            }
-            catch (versionErr)
-            {
-                console.error("Could not record version entry after upload:", versionErr);
-            }
 
             // Mark complete only after the API request has fully finished server-side.
             setIsServerProcessing(false);

@@ -4,6 +4,7 @@ import com.docuhyphen.app.api.exception.ExchangeDocumentNotFoundException
 import com.docuhyphen.app.api.exception.ExchangeNotFoundException
 import com.docuhyphen.app.api.exception.SubscriptionDenialException
 import com.docuhyphen.app.api.model.DetailedEntityToDtoTransformer
+import com.docuhyphen.app.api.model.entity.DocumentEncryptionMode
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.service.exchange.ExchangeDocumentVersionService
 import jakarta.inject.Inject
@@ -38,7 +39,7 @@ class ExchangeDocumentVersionResource @Inject constructor(
         {
             val versions = exchangeDocumentVersionService.getDocumentVersions(exchangeId, documentId)
 
-            val versionDtos = versions.map { DetailedEntityToDtoTransformer.toDto(it) }.toTypedArray()
+            val versionDtos = versions.map(DetailedEntityToDtoTransformer::toDto).toTypedArray()
 
             Response.ok(versionDtos).build()
         }
@@ -75,19 +76,14 @@ class ExchangeDocumentVersionResource @Inject constructor(
     @Consumes(MediaType.MULTIPART_FORM_DATA)
     fun createVersion(
         @RestForm("file") file: File?,
+        @RestForm("encryptionMode") encryptionMode: DocumentEncryptionMode?,
         @PathParam("exchangeId") exchangeId: String,
         @PathParam("documentId") documentId: String,
-        @RestForm("userEmail") userEmail: String?
     ): Response
     {
         return try
         {
-            val version = exchangeDocumentVersionService.createVersion(
-                exchangeId,
-                documentId,
-                file,
-                userEmail
-            )
+            val version = exchangeDocumentVersionService.createVersion(exchangeId, documentId, file, encryptionMode)
 
             status(CREATED).entity(DetailedEntityToDtoTransformer.toDto(version)).build()
         }
@@ -139,10 +135,10 @@ class ExchangeDocumentVersionResource @Inject constructor(
     {
         return try
         {
-            val file = exchangeDocumentVersionService.getVersionFile(exchangeId, documentId, versionId)
-            Response.ok(file.inputStream())
-                .header("Content-Disposition", "attachment; filename=\"${file.name}\"")
-                .header("Content-Length", file.length())
+            val content = exchangeDocumentVersionService.getVersionContent(exchangeId, documentId, versionId)
+            Response.ok(content.file.inputStream())
+                .header("Content-Disposition", "attachment; filename=\"${content.fileName}\"")
+                .header("Content-Length", content.file.length())
                 .build()
         }
         catch (exception: Exception)
@@ -187,7 +183,7 @@ class ExchangeDocumentVersionResource @Inject constructor(
             val version = exchangeDocumentVersionService.getLatestVersion(exchangeId, documentId)
             if (version != null)
             {
-                Response.ok(version).build()
+                Response.ok(DetailedEntityToDtoTransformer.toDto(version)).build()
             }
             else
             {

@@ -56,7 +56,7 @@ export const informationRequestTemplatesArticle = (
         <h3>Responding</h3>
         <p>
             A respondent opens the Information Request link, verifies their contact code,
-            then fills the requested Fields in the response workspace. Saving writes the
+            then fills the requested Fields and files in the response workspace. Saving writes the
             current response draft and reloads the saved request state. Retrying the same
             save confirms that saved revision only when the respondent still has access; it
             does not reveal answers recorded later by another participant.

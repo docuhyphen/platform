@@ -2,6 +2,7 @@ package com.docuhyphen.app.api.migration
 
 import org.flywaydb.core.Flyway
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -23,6 +24,21 @@ class SharePrincipalProvenanceContractTest
         "USER", "PARTICIPANT", "PRINCIPAL_GROUP", "ORGANIZATION", "APPLICATION",
         "SERVICE_ACCOUNT", "PUBLIC_LINK",
     )
+
+    @Test
+    fun `canonical grantor and revoker are the only Share provenance`()
+    {
+        withPostgres { postgres ->
+            flyway(postgres).migrate()
+
+            postgres.createConnection("").use { connection ->
+                assertFalse(hasColumn(connection, "granted_by_app_user_id"))
+                assertFalse(hasColumn(connection, "revoked_by_app_user_id"))
+                assertTrue(hasColumn(connection, "granted_by_principal_id"))
+                assertTrue(hasColumn(connection, "revoked_by_principal_id"))
+            }
+        }
+    }
 
     @Test
     fun `legacy Share grantor and revoker are carried into canonical principal columns`()
@@ -49,10 +65,8 @@ class SharePrincipalProvenanceContractTest
             postgres.createConnection("").use { connection ->
                 assertEquals("USER", stringColumn(connection, "granted_by_principal_kind", shareId))
                 assertEquals(grantorId, uuidColumn(connection, "granted_by_principal_id", shareId))
-                assertEquals(grantorId, uuidColumn(connection, "granted_by_app_user_id", shareId))
                 assertEquals("USER", stringColumn(connection, "revoked_by_principal_kind", shareId))
                 assertEquals(revokerId, uuidColumn(connection, "revoked_by_principal_id", shareId))
-                assertEquals(revokerId, uuidColumn(connection, "revoked_by_app_user_id", shareId))
             }
         }
     }
@@ -94,7 +108,6 @@ class SharePrincipalProvenanceContractTest
                     insertShare(
                         connection = connection,
                         shareId = UUID.randomUUID(),
-                        grantedByAppUserId = if (kind == "USER") userId else null,
                         grantedByPrincipalKind = kind,
                         grantedByPrincipalId = principalId,
                         revokedByPrincipalKind = kind,
@@ -106,7 +119,7 @@ class SharePrincipalProvenanceContractTest
     }
 
     @Test
-    fun `canonical Share provenance refuses half principals and legacy drift`()
+    fun `canonical Share provenance refuses half principals`()
     {
         withPostgres { postgres ->
             flyway(postgres).migrate()
@@ -123,24 +136,6 @@ class SharePrincipalProvenanceContractTest
                         shareId = UUID.randomUUID(),
                         grantedByPrincipalKind = "PARTICIPANT",
                         grantedByPrincipalId = null,
-                    )
-                }
-                refused(connection, "ck_share_grantor_principal_legacy") {
-                    insertShare(
-                        connection = connection,
-                        shareId = UUID.randomUUID(),
-                        grantedByAppUserId = userId,
-                        grantedByPrincipalKind = "USER",
-                        grantedByPrincipalId = otherUserId,
-                    )
-                }
-                refused(connection, "ck_share_revoker_principal_legacy") {
-                    insertShare(
-                        connection = connection,
-                        shareId = UUID.randomUUID(),
-                        revokedByAppUserId = userId,
-                        revokedByPrincipalKind = "PARTICIPANT",
-                        revokedByPrincipalId = userId,
                     )
                 }
             }
@@ -181,26 +176,32 @@ class SharePrincipalProvenanceContractTest
             "revoked_by_principal_kind" to revokedByPrincipalKind,
             "revoked_by_principal_id" to revokedByPrincipalId,
         ).filter { it.second != null }
+        val legacyShape = hasColumn(connection, "granted_by_app_user_id")
+        val legacyColumns = if (legacyShape) ", granted_by_app_user_id, revoked_by_app_user_id" else ""
+        val legacyPlaceholders = if (legacyShape) ", ?, ?" else ""
         val columnSql = canonicalColumns.joinToString("") { ", ${it.first}" }
         val placeholderSql = canonicalColumns.joinToString("") { ", ?" }
+        val revoked = revokedByAppUserId != null || revokedByPrincipalId != null
 
         connection.prepareStatement(
             """
             INSERT INTO share
                 (id, resource_type, resource_id, principal_kind, principal_id, role_name,
-                 source, status, granted_by_app_user_id, granted_at, revoked_at,
-                 revoked_by_app_user_id$columnSql)
-            VALUES (?, 'EXCHANGE', ?, 'USER', ?, 'VIEWER', 'DIRECT', 'ACTIVE', ?, ?, ?, ?$placeholderSql)
+                 source, status, granted_at, revoked_at$legacyColumns$columnSql)
+            VALUES (?, 'EXCHANGE', ?, 'USER', ?, 'VIEWER', 'DIRECT', 'ACTIVE', ?, ?$legacyPlaceholders$placeholderSql)
             """.trimIndent(),
         ).use { statement ->
             var index = 1
             statement.setObject(index++, shareId)
             statement.setObject(index++, UUID.randomUUID())
             statement.setObject(index++, UUID.randomUUID())
-            statement.setObject(index++, grantedByAppUserId)
             statement.setTimestamp(index++, Timestamp.from(Instant.now()))
-            statement.setTimestamp(index++, revokedByAppUserId?.let { Timestamp.from(Instant.now()) })
-            statement.setObject(index++, revokedByAppUserId)
+            statement.setTimestamp(index++, if (revoked) Timestamp.from(Instant.now()) else null)
+            if (legacyShape)
+            {
+                statement.setObject(index++, grantedByAppUserId)
+                statement.setObject(index++, revokedByAppUserId)
+            }
             canonicalColumns.forEach { (_, value) ->
                 statement.setObject(index++, value)
             }
@@ -246,6 +247,14 @@ class SharePrincipalProvenanceContractTest
             "Expected $expected to refuse this statement: ${refusal.message}",
         )
     }
+
+    private fun hasColumn(connection: Connection, column: String): Boolean =
+        connection.prepareStatement(
+            "SELECT 1 FROM information_schema.columns WHERE table_name = 'share' AND column_name = ?",
+        ).use { statement ->
+            statement.setString(1, column)
+            statement.executeQuery().use { rows -> rows.next() }
+        }
 
     private fun withPostgres(block: (SharePrincipalProvenancePostgreSQLContainer) -> Unit)
     {

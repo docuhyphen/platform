@@ -121,6 +121,7 @@ class InformationRequestResponseDraftService @Inject constructor(
     private val transitionHistory: InformationRequestTransitionHistoryService,
     private val conditionEvaluationService: InformationRequestConditionEvaluationService,
     private val structuredResponseValidationService: InformationRequestStructuredResponseValidationService,
+    private val lockService: InformationRequestSubmissionLockService,
 )
 {
     @Transactional
@@ -185,6 +186,7 @@ class InformationRequestResponseDraftService @Inject constructor(
                 )
             }
         }
+        lockService.requireUnlocked(request.id, command.patches.map { it.requirementId })
         structuredResponseValidationService.validate(
             InformationRequestStructuredResponseValidationContext(
                 request = request,
@@ -394,6 +396,7 @@ class InformationRequestResponseDraftService @Inject constructor(
             current.hiddenByConditionRuleKey == null &&
             current.hiddenDataPolicy == null &&
             current.hiddenAt == null &&
+            current.reconfirmationRequiredByAmendmentId == null &&
             !fieldValuesChanged)
         {
             return null
@@ -414,6 +417,7 @@ class InformationRequestResponseDraftService @Inject constructor(
         response.hiddenByConditionRuleKey = null
         response.hiddenDataPolicy = null
         response.hiddenAt = null
+        response.reconfirmationRequiredByAmendmentId = null
         response.responseRevision = revisionNumber
         response.recordedByPrincipalKind = access.principal.kind
         response.recordedByPrincipalId = access.principal.id
@@ -817,7 +821,7 @@ class InformationRequestResponseDraftService @Inject constructor(
     }
 
     private fun valueSetRef(occurrencePath: String): FieldValueSetRef =
-        if (occurrencePath == ROOT_OCCURRENCE_PATH || occurrencePath == LEGACY_ROOT_OCCURRENCE_PATH)
+        if (occurrencePath == ROOT_OCCURRENCE_PATH)
             FieldValueSetRef.Root
         else
             FieldValueSetRef.Occurrence(occurrencePath)
@@ -836,7 +840,6 @@ class InformationRequestResponseDraftService @Inject constructor(
     {
         const val PATCH_RESPONSES_OPERATION = "patch-information-request-responses"
         const val ROOT_OCCURRENCE_PATH = "root"
-        const val LEGACY_ROOT_OCCURRENCE_PATH = "\$"
         val NARRATIVE_REQUIRED_DISPOSITIONS = setOf(
             InformationRequestResponseDisposition.PARTIALLY_PROVIDED,
             InformationRequestResponseDisposition.NOT_APPLICABLE,

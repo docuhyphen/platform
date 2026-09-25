@@ -525,6 +525,5 @@ internal class SchemaAssignmentFieldsFixture(
         updatedByPrincipalKind = answer.principal.kind
         updatedByPrincipalId = answer.principal.id
         updatedBySessionRef = answer.sessionRef
-        updatedByAppUserId = FieldPrincipalProvenance(answer.principal, answer.sessionRef).legacyAppUserId
     }
 }

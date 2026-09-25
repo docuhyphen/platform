@@ -24,7 +24,7 @@ class InformationRequestResponseDtoMapperTest
             informationRequestId = UUID.randomUUID()
             informationRequestRequirementId = UUID.randomUUID()
             requirementRevisionId = UUID.randomUUID()
-            occurrencePath = "$"
+            occurrencePath = "root"
             disposition = InformationRequestResponseDisposition.PROVIDED
             narrative = "Complete."
             responseRevision = 2
@@ -38,7 +38,7 @@ class InformationRequestResponseDtoMapperTest
         assertEquals(response.informationRequestRequirementId, dto.informationRequestRequirementId)
         assertEquals(requirement.sourceTemplateRequirementId, dto.sourceTemplateRequirementId)
         assertEquals(requirement.sourceTemplateBindingId, dto.sourceTemplateBindingId)
-        assertEquals("$", dto.occurrencePath)
+        assertEquals("root", dto.occurrencePath)
         assertEquals(InformationRequestResponseDisposition.PROVIDED, dto.disposition)
         assertEquals("Complete.", dto.narrative)
         assertEquals(2, dto.responseRevision)

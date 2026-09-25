@@ -4,6 +4,7 @@ import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.repository.exchange.ShareRepository
 import com.docuhyphen.app.api.repository.organization.PrincipalGroupMemberRepository
 import com.docuhyphen.app.api.service.audit.AuditRecorder
+import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.auth.authz.ResourceAuthorizationContextRegistry
 import com.docuhyphen.app.api.service.organization.TrustedRecipientValidationService
 import jakarta.inject.Provider
@@ -59,6 +60,33 @@ class ShareServicePrimaryRecipientTest
 
         assertEquals(primaryShare.principalId, service.primaryRecipientGroupIdForDisplay(exchangeId))
         assertEquals(primaryShare.principalId, service.primaryRecipientGroupId(exchangeId))
+    }
+
+    @Test
+    fun `the primary recipient principal is the active primary Share's principal of either kind`()
+    {
+        val exchangeId = UUID.randomUUID()
+        val groupExchangeId = UUID.randomUUID()
+        val userShare = recipientShare(exchangeId, PrincipalKind.USER, ShareStatus.ACTIVE)
+        val groupShare = recipientShare(groupExchangeId, PrincipalKind.PRINCIPAL_GROUP, ShareStatus.ACTIVE)
+        whenever(recipientService.findPrimary(exchangeId)).thenReturn(primaryBinding(exchangeId, userShare.id))
+        whenever(recipientService.findPrimary(groupExchangeId)).thenReturn(primaryBinding(groupExchangeId, groupShare.id))
+        whenever(shareRepository.findById(userShare.id)).thenReturn(userShare)
+        whenever(shareRepository.findById(groupShare.id)).thenReturn(groupShare)
+
+        assertEquals(PrincipalRef.user(userShare.principalId), service.primaryRecipientPrincipal(exchangeId))
+        assertEquals(PrincipalRef.group(groupShare.principalId), service.primaryRecipientPrincipal(groupExchangeId))
+    }
+
+    @Test
+    fun `an inactive primary Share names no primary recipient principal`()
+    {
+        val exchangeId = UUID.randomUUID()
+        val primaryShare = recipientShare(exchangeId, PrincipalKind.USER, ShareStatus.PENDING_APPROVAL)
+        whenever(recipientService.findPrimary(exchangeId)).thenReturn(primaryBinding(exchangeId, primaryShare.id))
+        whenever(shareRepository.findById(primaryShare.id)).thenReturn(primaryShare)
+
+        assertNull(service.primaryRecipientPrincipal(exchangeId))
     }
 
     private fun primaryBinding(exchangeId: UUID, shareId: UUID): ExchangeRecipient = ExchangeRecipient().apply {

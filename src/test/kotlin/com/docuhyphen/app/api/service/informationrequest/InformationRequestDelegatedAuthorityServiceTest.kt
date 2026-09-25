@@ -418,7 +418,7 @@ class InformationRequestDelegatedAuthorityServiceTest
                 sourceTemplateVersionId = UUID.randomUUID()
                 sourceTemplateRequirementId = UUID.randomUUID()
                 sourceTemplateBindingId = UUID.randomUUID()
-                occurrencePath = "$"
+                occurrencePath = "root"
             }.also { requirement -> savedRequirements[requirement.id] = requirement }
 
         fun activeAuthority(party: InformationRequestParty): InformationRequestDelegatedAuthority =

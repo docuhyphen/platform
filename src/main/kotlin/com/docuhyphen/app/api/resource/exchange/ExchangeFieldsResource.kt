@@ -26,7 +26,6 @@ import java.util.*
  *   PUT    /exchanges/{id}/schema  - assign a published schema to the exchange
  *   DELETE /exchanges/{id}/schema  - remove the assignment and its values
  *   PATCH  /exchanges/{id}/fields  - sparse update of typed field values, conditioned on `If-Match`
- *   PUT    /exchanges/{id}/fields  - superseded spelling of the same sparse update
  *
  * The read and every successful mutation carry an `ETag` naming the exact state of the exchange's
  * answers, which is what a client sends back to condition its next write on what it read.
@@ -38,7 +37,6 @@ class ExchangeFieldsResource @Inject constructor(
     private val authTokenContext: AuthTokenContext,
     private val schemaAssignmentService: SchemaAssignmentService,
     private val fieldsAccessContextFactory: FieldsAccessContextFactory,
-    private val deprecatedWriteUsage: DeprecatedFieldsWriteUsage,
 )
 {
     companion object
@@ -116,47 +114,6 @@ class ExchangeFieldsResource @Inject constructor(
         )
     }
 
-    /**
-     * The superseded spelling of the same sparse change, kept for clients written before the
-     * canonical one existed. It stores exactly what the canonical surface stores, and differs only in
-     * what it demands of the caller: a stated version is enforced, and a caller that states none
-     * keeps the last-write behavior it has always had. Every call is recorded so the point at which
-     * this surface can start demanding a version, or be withdrawn, is a measurement rather than a
-     * guess.
-     */
-    @PUT
-    @Path("/{id}/fields")
-    fun setValues(
-        @PathParam("id") id: String,
-        request: SetFieldValuesRequest,
-        @HeaderParam(IF_MATCH) ifMatch: String?,
-    ): Response
-    {
-        val exchangeId = parseUuid(id)
-        return superseded(
-            exchangeId,
-            guard {
-                if (exchangeId == null)
-                    return@guard Response.status(BAD_REQUEST)
-                        .entity(ResponseError("Invalid exchange id")).build()
-                val access = fieldsAccessContextFactory.current()
-                deprecatedWriteUsage.record(
-                    resource(exchangeId), access.principal, FieldsPreconditionHeader.isStated(ifMatch),
-                )
-                validated(
-                    schemaAssignmentService.setValues(
-                        FieldValueWriteCommand(
-                            resource = resource(exchangeId),
-                            access = access,
-                            entries = request.values,
-                            precondition = FieldsPreconditionHeader.optional(ifMatch),
-                        ),
-                    ),
-                )
-            },
-        )
-    }
-
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private fun resource(exchangeId: UUID) = FieldsResourceRef(RESOURCE_TYPE, exchangeId)
@@ -170,20 +127,6 @@ class ExchangeFieldsResource @Inject constructor(
     {
         val builder = Response.ok(assignment)
         assignment.etag?.let { builder.header("ETag", it) }
-        return builder.build()
-    }
-
-    /**
-     * A response from the superseded write surface, marked so a client can see that it is calling
-     * something scheduled to change and be pointed at the same resource under its canonical verb.
-     * The successor is named from the identifier the request actually resolved to, so nothing a
-     * caller sent is reflected back in a header. No withdrawal date is stated, because the surface
-     * stays until the recorded usage says it can go.
-     */
-    private fun superseded(exchangeId: UUID?, response: Response): Response
-    {
-        val builder = Response.fromResponse(response).header("Deprecation", "true")
-        exchangeId?.let { builder.header("Link", "</exchanges/$it/fields>; rel=\"successor-version\"") }
         return builder.build()
     }
 

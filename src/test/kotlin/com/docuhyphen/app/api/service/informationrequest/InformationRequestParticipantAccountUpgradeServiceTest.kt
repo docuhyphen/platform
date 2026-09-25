@@ -115,7 +115,7 @@ class InformationRequestParticipantAccountUpgradeServiceTest
 
         fixture.service.upgrade(fixture.command(party, session))
 
-        verify(fixture.shareService, never()).revokeWithPrincipalProvenance(any(), anyOrNull(), anyOrNull())
+        verify(fixture.shareService, never()).revoke(any(), anyOrNull(), anyOrNull())
     }
 
     @Test

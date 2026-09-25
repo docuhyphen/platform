@@ -852,9 +852,9 @@ class InformationRequestPartyServiceTest
         assertEquals(2, existingParty.partyRevision)
         assertEquals(2, fixture.request.partyRevision)
         assertEquals(InformationRequestETag.partiesOf(fixture.request), result.partiesETag)
-        verify(fixture.shareService).revokeWithPrincipalProvenance(
+        verify(fixture.shareService).revoke(
             shareId = eq(fixture.share.id),
-            revokedByPrincipal = eq(actor),
+            revokedBy = eq(actor),
             resourceLabel = eq("Information Request"),
         )
         verify(fixture.bootstrapShareLinkService).revokeAllForShare(fixture.share.id)
@@ -924,9 +924,9 @@ class InformationRequestPartyServiceTest
         assertEquals(2, existingParty.partyRevision)
         assertEquals(2, fixture.request.partyRevision)
         assertEquals(InformationRequestETag.partiesOf(fixture.request), result.partiesETag)
-        verify(fixture.shareService).revokeWithPrincipalProvenance(
+        verify(fixture.shareService).revoke(
             shareId = eq(fixture.share.id),
-            revokedByPrincipal = eq(actor),
+            revokedBy = eq(actor),
             resourceLabel = eq("Information Request"),
         )
         verify(fixture.bootstrapShareLinkService).revokeAllForShare(fixture.share.id)
@@ -1073,9 +1073,9 @@ class InformationRequestPartyServiceTest
         assertEquals(originalPrincipalId, existingParty.principalId)
         assertEquals(1, existingParty.partyRevision)
         assertTrue(fixture.savedTransitions.isEmpty())
-        verify(fixture.shareService, never()).revokeWithPrincipalProvenance(
+        verify(fixture.shareService, never()).revoke(
             shareId = any(),
-            revokedByPrincipal = anyOrNull(),
+            revokedBy = anyOrNull(),
             resourceLabel = anyOrNull(),
         )
     }

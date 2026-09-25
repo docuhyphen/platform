@@ -42,6 +42,9 @@ enum class InformationRequestMutation
     CANCEL,
     SUPERSEDE,
     EXPIRE,
+    WITHDRAW_SUBMISSION,
+    CREATE_SUCCESSOR,
+    SCHEDULE_FOLLOW_UP,
 }
 
 enum class InformationRequestReadActor
@@ -108,6 +111,19 @@ object InformationRequestTransitionMatrix
         InformationRequestMutation.ATTEST_RESPONSE,
         InformationRequestMutation.ADMINISTER_EVIDENCE,
         InformationRequestMutation.SUBMIT,
+        InformationRequestMutation.WITHDRAW_SUBMISSION,
+    )
+
+    private val SUCCESSOR_SOURCE_STATES = InformationRequestState.entries.toSet() - setOf(
+        InformationRequestState.DRAFT,
+        InformationRequestState.CANCELLED,
+        InformationRequestState.SUPERSEDED,
+    )
+
+    private val FOLLOW_UP_STATES = InformationRequestState.entries.toSet() - setOf(
+        InformationRequestState.CANCELLED,
+        InformationRequestState.SUPERSEDED,
+        InformationRequestState.EXPIRED,
     )
 
     private val REVIEW_MUTATIONS = setOf(
@@ -207,6 +223,16 @@ object InformationRequestTransitionMatrix
             return if (currentState == null) allow(InformationRequestState.DRAFT)
             else deny(InformationRequestErrorCatalog.STATE_INVALID)
         }
+        if (mutation == InformationRequestMutation.CREATE_SUCCESSOR)
+        {
+            return if (currentState != null && currentState in SUCCESSOR_SOURCE_STATES) allow()
+            else deny(InformationRequestErrorCatalog.STATE_INVALID)
+        }
+        if (mutation == InformationRequestMutation.SCHEDULE_FOLLOW_UP)
+        {
+            return if (currentState != null && currentState in FOLLOW_UP_STATES) allow()
+            else deny(InformationRequestErrorCatalog.STATE_INVALID)
+        }
         if (currentState == null || currentState.isTerminal)
         {
             return deny(InformationRequestErrorCatalog.STATE_INVALID)
@@ -229,8 +255,9 @@ object InformationRequestTransitionMatrix
             InformationRequestMutation.ATTEST_RESPONSE,
             InformationRequestMutation.ADMINISTER_EVIDENCE,
             -> allowSameFrom(currentState, ACTIVE_RESPONSE_STATES)
-            InformationRequestMutation.SUBMIT ->
-                allowFromAny(currentState, ACTIVE_RESPONSE_STATES, InformationRequestState.SUBMITTED)
+            InformationRequestMutation.SUBMIT,
+            InformationRequestMutation.WITHDRAW_SUBMISSION,
+            -> allowSameFrom(currentState, ACTIVE_RESPONSE_STATES)
             InformationRequestMutation.START_REVIEW -> allowFrom(
                 currentState,
                 InformationRequestState.SUBMITTED,
@@ -243,7 +270,7 @@ object InformationRequestTransitionMatrix
             )
             InformationRequestMutation.CLOSE -> allowFromAny(
                 currentState,
-                setOf(InformationRequestState.SUBMITTED, InformationRequestState.UNDER_REVIEW),
+                ACTIVE_RESPONSE_STATES + setOf(InformationRequestState.SUBMITTED, InformationRequestState.UNDER_REVIEW),
                 InformationRequestState.CLOSED,
             )
             InformationRequestMutation.AMEND,
@@ -255,6 +282,9 @@ object InformationRequestTransitionMatrix
                 allowFromAny(currentState, nonTerminalStates(), InformationRequestState.SUPERSEDED)
             InformationRequestMutation.EXPIRE ->
                 allowFromAny(currentState, nonTerminalStates(), InformationRequestState.EXPIRED)
+            InformationRequestMutation.CREATE_SUCCESSOR,
+            InformationRequestMutation.SCHEDULE_FOLLOW_UP,
+            -> deny(InformationRequestErrorCatalog.STATE_INVALID)
         }
     }
 

@@ -139,6 +139,7 @@ enum class Action(val required: Capability)
     INFORMATION_REQUEST_MANAGE_PARTIES(Capability.INFORMATION_REQUEST_ADMIN),
     INFORMATION_REQUEST_REASSIGN_PARTY(Capability.INFORMATION_REQUEST_ADMIN),
     INFORMATION_REQUEST_EXPORT(Capability.INFORMATION_REQUEST_EXPORT),
+    INFORMATION_REQUEST_REQUEST_SUPPLEMENT(Capability.INFORMATION_REQUEST_REVIEW),
 
     // Runtime Requirement occurrence. Submission is named on the request because a package
     // covers the occurrences of one request rather than a single occurrence.

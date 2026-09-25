@@ -678,7 +678,7 @@ class ExchangeRecipientServiceTest
 
         assertEquals(ExchangeRecipientAcceptanceStatus.REJECTED, updated.acceptanceStatus)
         verify(validationService, never()).validateGroupAttestation(any(), any())
-        verify(shareService).revoke(share.id, managerId)
+        verify(shareService).revoke(share.id, PrincipalRef.user(managerId))
         verify(shareService, never()).activate(any())
     }
 

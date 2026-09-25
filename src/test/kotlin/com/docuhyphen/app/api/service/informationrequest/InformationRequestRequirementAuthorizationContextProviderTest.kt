@@ -3,6 +3,7 @@ package com.docuhyphen.app.api.service.informationrequest
 import com.docuhyphen.app.api.model.entity.InformationRequest
 import com.docuhyphen.app.api.model.entity.InformationRequestOwnerType
 import com.docuhyphen.app.api.model.entity.InformationRequestParty
+import com.docuhyphen.app.api.model.informationrequest.InformationRequestActingParty
 import com.docuhyphen.app.api.model.entity.InformationRequestRequirement
 import com.docuhyphen.app.api.model.entity.InformationRequestRequirementRevision
 import com.docuhyphen.app.api.model.entity.InformationRequestResponseMode
@@ -108,6 +109,42 @@ class InformationRequestRequirementAuthorizationContextProviderTest
             eq(fixture.requirement.id),
             eq(setOf(fixture.assignedParty.id)),
         )
+    }
+
+    @Test
+    fun `a party acts for itself and a delegate acts for it only under active authority over that Requirement`()
+    {
+        val fixture = Fixture()
+        val delegate = PrincipalRef.user(UUID.randomUUID())
+        val elsewhere = PrincipalRef.user(UUID.randomUUID())
+        val authorityId = UUID.randomUUID()
+        whenever(
+            fixture.delegatedAuthorityFactSource.factsFor(
+                eq(fixture.request.id),
+                eq(fixture.requirement.id),
+                eq(setOf(fixture.assignedParty.id)),
+            ),
+        ).thenReturn(
+            listOf(
+                InformationRequestRequirementDelegatedAuthorityFact(
+                    authorityId, fixture.assignedParty.id, delegate, fixture.request.id, fixture.requirement.id, active = true,
+                ),
+                InformationRequestRequirementDelegatedAuthorityFact(
+                    UUID.randomUUID(), fixture.assignedParty.id, elsewhere, fixture.request.id, UUID.randomUUID(), active = true,
+                ),
+            ),
+        )
+        val roles = setOf(com.docuhyphen.app.api.model.entity.InformationRequestContributorRole.PREPARER)
+        val party = PrincipalRef(PrincipalKind.USER, fixture.assignedParty.principalId!!)
+
+        val itself = fixture.provider.actingPartiesFor(fixture.request, roles, party, fixture.requirement.id).single()
+        val delegated = fixture.provider.actingPartiesFor(fixture.request, roles, delegate, fixture.requirement.id).single()
+
+        assertEquals(null, itself.delegatedAuthorityId)
+        assertEquals(authorityId, delegated.delegatedAuthorityId)
+        assertEquals(fixture.assignedParty.id, delegated.party.id)
+        assertEquals(emptyList<InformationRequestActingParty>(),
+            fixture.provider.actingPartiesFor(fixture.request, roles, elsewhere, fixture.requirement.id))
     }
 
     @Test
@@ -346,6 +383,7 @@ class InformationRequestRequirementAuthorizationContextProviderTest
             occurrenceRepository,
             participantAccountLinkRepository,
             principalGroupMemberRepository,
+            mock<InformationRequestAttestationPolicyLoader>(),
         )
 
         init

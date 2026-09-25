@@ -10,7 +10,6 @@ import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.resource.model.SetFieldValuesRequest
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import com.docuhyphen.app.api.service.fields.DeprecatedFieldsWriteUsage
 import com.docuhyphen.app.api.service.fields.FieldsAccessContext
 import com.docuhyphen.app.api.service.fields.FieldsAccessContextFactory
 import com.docuhyphen.app.api.service.fields.FieldsPreconditionException
@@ -45,7 +44,6 @@ class ExchangeFieldsResourceETagTest
         fieldsAccessContextFactory = mock<FieldsAccessContextFactory>().also {
             whenever(it.current()).thenReturn(access)
         },
-        deprecatedWriteUsage = mock<DeprecatedFieldsWriteUsage>(),
     )
 
     @Test
@@ -64,7 +62,7 @@ class ExchangeFieldsResourceETagTest
     {
         whenever(schemaAssignmentService.setValues(any())).thenReturn(assignment(etag))
 
-        val response = resource.setValues(exchangeId.toString(), SetFieldValuesRequest(), null)
+        val response = resource.patchValues(exchangeId.toString(), SetFieldValuesRequest(), etag)
 
         assertEquals(Response.Status.OK.statusCode, response.status)
         assertEquals(etag, response.getHeaderString("ETag"))
@@ -100,7 +98,7 @@ class ExchangeFieldsResourceETagTest
         whenever(schemaAssignmentService.setValues(any()))
             .thenThrow(FieldsPreconditionException.stale(etag))
 
-        val response = resource.setValues(exchangeId.toString(), SetFieldValuesRequest(), null)
+        val response = resource.patchValues(exchangeId.toString(), SetFieldValuesRequest(), etag)
 
         assertEquals(Response.Status.PRECONDITION_FAILED.statusCode, response.status)
         assertEquals("FIELDS_PRECONDITION_STALE", (response.entity as ResponseError).reasonCode)
@@ -116,7 +114,7 @@ class ExchangeFieldsResourceETagTest
         whenever(schemaAssignmentService.setValues(any()))
             .thenThrow(FieldsPreconditionException.required(etag))
 
-        val response = resource.setValues(exchangeId.toString(), SetFieldValuesRequest(), null)
+        val response = resource.patchValues(exchangeId.toString(), SetFieldValuesRequest(), etag)
 
         assertEquals(428, response.status, "A missing precondition is not the same answer as a stale one")
         assertEquals("FIELDS_PRECONDITION_REQUIRED", (response.entity as ResponseError).reasonCode)

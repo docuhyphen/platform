@@ -53,13 +53,6 @@ class SchemaAssignment
     @Column(name = "assigned_by_session_ref", nullable = true, length = 64)
     var assignedBySessionRef: String? = null
 
-    /**
-     * Retained alongside the canonical pair and written only for a [PrincipalKind.USER] principal,
-     * because this column is a foreign key into the registered-user table.
-     */
-    @Column(name = "assigned_by_app_user_id", nullable = true)
-    var assignedByAppUserId: UUID? = null
-
     @Column(name = "assigned_at", nullable = false)
     var assignedAt: Timestamp = Timestamp.from(Instant.now())
 

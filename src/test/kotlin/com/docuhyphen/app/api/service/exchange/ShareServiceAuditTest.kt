@@ -25,7 +25,7 @@ class ShareServiceAuditTest
     private val exchangeId = UUID.randomUUID()
     private val shareId = UUID.randomUUID()
     private val sharePrincipalId = UUID.randomUUID()
-    private val revokedByAppUserId = UUID.randomUUID()
+    private val revokerId = UUID.randomUUID()
 
     private fun share() = Share().apply {
         id = shareId
@@ -67,7 +67,7 @@ class ShareServiceAuditTest
             ResourceAuthorizationContext(OwnerContext.Organization(organizationId))
         )
 
-        service(auditRecorder, shareRepository, contextRegistry).revoke(shareId, revokedByAppUserId)
+        service(auditRecorder, shareRepository, contextRegistry).revoke(shareId, PrincipalRef.user(revokerId))
 
         val captor = argumentCaptor<AuditEventDraft>()
         verify(auditRecorder).record(captor.capture())
@@ -99,7 +99,7 @@ class ShareServiceAuditTest
             ResourceAuthorizationContext(OwnerContext.Organization(organizationId))
         )
 
-        service(auditRecorder, shareRepository, contextRegistry).revoke(shareId, revokedByAppUserId)
+        service(auditRecorder, shareRepository, contextRegistry).revoke(shareId, PrincipalRef.user(revokerId))
 
         val captor = argumentCaptor<AuditEventDraft>()
         verify(auditRecorder).record(captor.capture())
@@ -140,18 +140,17 @@ class ShareServiceAuditTest
             ResourceAuthorizationContext(OwnerContext.Organization(UUID.randomUUID()))
         )
 
-        val granted = service(auditRecorder, shareRepository, contextRegistry).grantWithPrincipalProvenance(
+        val granted = service(auditRecorder, shareRepository, contextRegistry).grant(
             resourceType = ResourceType.EXCHANGE,
             resourceId = exchangeId,
             principalKind = PrincipalKind.USER,
             principalId = sharePrincipalId,
             roleName = ExchangeShareRoleName.VIEWER,
-            grantedByPrincipal = PrincipalRef.application(applicationId),
+            grantedBy = PrincipalRef.application(applicationId),
         )
 
         assertEquals(PrincipalKind.APPLICATION, granted.grantedByPrincipalKind)
         assertEquals(applicationId, granted.grantedByPrincipalId)
-        assertEquals(null, granted.grantedByAppUserId)
     }
 
     @Test
@@ -168,7 +167,7 @@ class ShareServiceAuditTest
 
         val service = service(auditRecorder, shareRepository)
 
-        service.revoke(shareId, revokedByAppUserId)
+        service.revoke(shareId, PrincipalRef.user(revokerId))
 
         val captor = argumentCaptor<AuditEventDraft>()
         verify(auditRecorder).record(captor.capture())
@@ -176,10 +175,9 @@ class ShareServiceAuditTest
         assertEquals(ResourceType.EXCHANGE.name, captor.firstValue.targetType)
         assertEquals(exchangeId.toString(), captor.firstValue.targetId)
         assertEquals(AuditActorKind.HUMAN, captor.firstValue.actorKind)
-        assertEquals(revokedByAppUserId, captor.firstValue.actorId)
+        assertEquals(revokerId, captor.firstValue.actorId)
         assertEquals(PrincipalKind.USER, targetShare.revokedByPrincipalKind)
-        assertEquals(revokedByAppUserId, targetShare.revokedByPrincipalId)
-        assertEquals(revokedByAppUserId, targetShare.revokedByAppUserId)
+        assertEquals(revokerId, targetShare.revokedByPrincipalId)
     }
 
     @Test
@@ -195,7 +193,7 @@ class ShareServiceAuditTest
 
         val service = service(auditRecorder, shareRepository)
 
-        service.revoke(shareId, revokedByAppUserId)
+        service.revoke(shareId, PrincipalRef.user(revokerId))
 
         verify(auditRecorder, org.mockito.kotlin.never()).record(any())
     }
@@ -214,7 +212,7 @@ class ShareServiceAuditTest
         val service = service(auditRecorder, shareRepository)
 
         // Must not throw despite the AuditRecorder failure.
-        service.revoke(shareId, revokedByAppUserId)
+        service.revoke(shareId, PrincipalRef.user(revokerId))
 
         verify(auditRecorder).record(any())
     }

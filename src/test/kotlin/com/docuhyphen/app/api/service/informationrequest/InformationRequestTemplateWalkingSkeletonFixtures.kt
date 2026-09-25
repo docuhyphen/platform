@@ -1,6 +1,7 @@
 package com.docuhyphen.app.api.service.informationrequest
 
 import com.docuhyphen.app.api.model.dto.InformationRequestTemplateAcceptedValueRequest
+import com.docuhyphen.app.api.model.dto.InformationRequestTemplateAttestationPolicyRequest
 import com.docuhyphen.app.api.model.dto.InformationRequestTemplateConditionPredicateRequest
 import com.docuhyphen.app.api.model.dto.InformationRequestTemplateConditionRuleRequest
 import com.docuhyphen.app.api.model.dto.InformationRequestTemplateConfigurationRequest
@@ -8,16 +9,21 @@ import com.docuhyphen.app.api.model.dto.InformationRequestTemplateEvidencePolicy
 import com.docuhyphen.app.api.model.dto.InformationRequestTemplateGroupRequest
 import com.docuhyphen.app.api.model.dto.InformationRequestTemplateRequirementRequest
 import com.docuhyphen.app.api.model.dto.InformationRequestTemplateSectionRequest
+import com.docuhyphen.app.api.model.entity.InformationRequestAttestationOrdering
+import com.docuhyphen.app.api.model.entity.InformationRequestAuthenticationStrength
 import com.docuhyphen.app.api.model.entity.InformationRequestContributorRole
 import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceAttribute
 import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceAttributeRequirement
 import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceConformancePolicy
 import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceWaiverPolicy
+import com.docuhyphen.app.api.model.entity.InformationRequestExternalSignatureReferencePolicy
 import com.docuhyphen.app.api.model.entity.InformationRequestRequiredness
 import com.docuhyphen.app.api.model.entity.InformationRequestRequirementType
 import com.docuhyphen.app.api.model.entity.InformationRequestResponseDisposition
 import com.docuhyphen.app.api.model.entity.InformationRequestResponseMode
 import com.docuhyphen.app.api.model.entity.InformationRequestReviewPolicy
+import com.docuhyphen.app.api.model.entity.InformationRequestSubmissionMode
+import com.docuhyphen.app.api.model.entity.InformationRequestSubmissionStageOrdering
 import com.docuhyphen.app.api.service.fields.FieldOperator
 import java.util.UUID
 
@@ -93,6 +99,8 @@ object InformationRequestTemplateWalkingSkeletonFixtures
     {
         val configuration = InformationRequestTemplateConfigurationRequest(
             schemaVersionId = schemaVersionId,
+            submissionMode = InformationRequestSubmissionMode.STAGED,
+            submissionStageOrdering = InformationRequestSubmissionStageOrdering.SEQUENTIAL,
             groups = listOf(
                 InformationRequestTemplateGroupRequest(
                     groupKey = "reported-item",
@@ -115,6 +123,7 @@ object InformationRequestTemplateWalkingSkeletonFixtures
                     sectionKey = "participant-responses",
                     title = "Participant responses",
                     helpText = "Responses gathered from the nominated parties",
+                    submissionStageKey = "response-stage",
                     requirements = listOf(
                         fieldRequirement(
                             key = "subject-status",
@@ -149,6 +158,7 @@ object InformationRequestTemplateWalkingSkeletonFixtures
                 InformationRequestTemplateSectionRequest(
                     sectionKey = "evidence-package",
                     title = "Evidence package",
+                    submissionStageKey = "evidence-stage",
                     requirements = listOf(
                         documentRequirement(
                             key = "primary-evidence-record",
@@ -170,6 +180,7 @@ object InformationRequestTemplateWalkingSkeletonFixtures
                 InformationRequestTemplateSectionRequest(
                     sectionKey = "response-confirmations",
                     title = "Response confirmations",
+                    submissionStageKey = "confirmation-stage",
                     requirements = listOf(
                         attestationRequirement(
                             key = "submitter-attestation",
@@ -179,6 +190,17 @@ object InformationRequestTemplateWalkingSkeletonFixtures
                             permittedDispositions = listOf(
                                 InformationRequestResponseDisposition.PROVIDED,
                                 InformationRequestResponseDisposition.EXCEPTION_REQUESTED,
+                            ),
+                            attestationPolicy = InformationRequestTemplateAttestationPolicyRequest(
+                                requiredRoles = listOf(
+                                    InformationRequestContributorRole.SUBJECT,
+                                    InformationRequestContributorRole.ATTESTOR,
+                                ),
+                                ordering = InformationRequestAttestationOrdering.ROLE_SEQUENCE,
+                                minimumAssentCount = 2,
+                                minimumAuthenticationStrength = InformationRequestAuthenticationStrength.ACCOUNT_SIGN_IN,
+                                validityHours = 72,
+                                externalSignatureReference = InformationRequestExternalSignatureReferencePolicy.OPTIONAL,
                             ),
                         ),
                     ),
@@ -256,6 +278,7 @@ object InformationRequestTemplateWalkingSkeletonFixtures
         reviewPolicy: InformationRequestReviewPolicy = InformationRequestReviewPolicy.NOT_REQUIRED,
         permittedDispositions: List<InformationRequestResponseDisposition> =
             listOf(InformationRequestResponseDisposition.PROVIDED),
+        attestationPolicy: InformationRequestTemplateAttestationPolicyRequest? = null,
     ) = InformationRequestTemplateRequirementRequest(
         requirementKey = key,
         requirementType = InformationRequestRequirementType.RESPONSE_ATTESTATION,
@@ -265,6 +288,7 @@ object InformationRequestTemplateWalkingSkeletonFixtures
         contributorRole = contributorRole,
         reviewPolicy = reviewPolicy,
         permittedDispositions = permittedDispositions,
+        attestationPolicy = attestationPolicy,
     )
 
     private fun basicEvidencePolicy() = InformationRequestTemplateEvidencePolicyRequest(

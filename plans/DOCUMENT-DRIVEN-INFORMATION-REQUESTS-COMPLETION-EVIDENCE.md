@@ -311,6 +311,1744 @@ particular, do not rewrite or normalize the proposal while implementing this pla
 
 ## Implementation Journal
 
+### 2026-09-25: Phase 7 implementation session
+
+This entry is written progressively so an interruption leaves an exact resume point. The user asked
+for the whole of Phase 7 in one session.
+
+- Starting state: working tree carries the uncommitted Phase 6 work (last commit `beb2937f`); no
+  Phase 7 file existed (`SubmissionPackage`, `SubmissionAttestation`, and `NoticeIntent` searched
+  across `src`, none found). Flyway head V131.
+- Design decisions 1 through 9 are recorded under `### Phase 7 design decisions` in the active plan,
+  with the subtask split and the V132 through V135 allocations in the migration ledger.
+- Pre-existing facts the design rests on, verified in code: the materializer refuses creation when a
+  capability is not installed and no executor is installed, so no request with any capability can be
+  created outside tests today; the Exchange owner holds `INFORMATION_REQUEST_CREATE`, `READ`,
+  `CANCEL`, and `ADMIN` only, and issuance needs a request-scoped `DECISION_MAKER`; `RECORD_FIRST_VIEW`
+  has no caller, so an issued request stays `ISSUED` while it is answered; the transition matrix
+  moved `SUBMIT` to `SUBMITTED`, which decision 5 removes; the Requirement authorization provider
+  already resolves the effective binding from the current revision, which decision 7 builds on.
+- V132 (`P7-T4a`, `P7-T7a`), tests first: `InformationRequestTemplateSubmissionPolicyContractTest`
+  (5 cases) was red for the intended reasons (missing `submission_mode` and `submission_stage_key`
+  columns, missing attestation policy table, RESPONSE_REVIEW not derived for review-routed evidence,
+  no upgrade correction), then green at 5 of 5. During implementation the publication contract test
+  showed a Version frozen from a raw draft carried no attestation policy, so V132 also records the
+  default policy when a Version freezes and backfills it for released Versions; V132 had only been
+  applied to disposable test containers, so it was edited rather than superseded.
+- Authoring layer, tests first: `InformationRequestTemplateSubmissionPolicyValidationTest` (7 cases)
+  red at 6 failures and 1 error, then green; `InformationRequestTemplateSubmissionPolicyValidator`
+  holds the stage containment and attestation policy rules and is called at the end of the existing
+  validator. The writer, loader, DTO mapper, and configuration copy mapper carry the new values; the
+  round-trip case added to `InformationRequestTemplateConfigurationWriterContractTest` was written
+  with that wiring, so it was not observed red. Template family regression: 197 tests, 1 error that
+  the V132 default-at-freeze change fixed; rerun of the affected classes green.
+- V133 (`P7-T1a`, `P7-T4b` persistence, `P7-T7b` withdrawal): `InformationRequestSubmissionPackageContractTest`
+  (6 cases) observed red with the migration moved aside (missing tables, mutations, and guards), then
+  green at 6 of 6 after one expectation change: a repeated package number is refused by the numbering
+  guard before the unique index.
+- Attestation policy evaluation, test first: `InformationRequestAttestationPolicyEvaluatorTest`
+  (5 cases) red at 5 failures against a stub that always answered PENDING, then green.
+- Audit catalog and transition matrix, tests first: `AuditEventTypeTest` gained the four new events
+  and catalog version 23; `InformationRequestTransitionMatrixTest` gained the submission, withdrawal,
+  closure, successor, and follow-up rules and replaced the old `SUBMIT` to `SUBMITTED` expectation.
+  Red at 5 failures (after fixing a compile error from the new mutations), then 16 of 16 green.
+- Submission services (`InformationRequestSubmissionContentCollector`, `InformationRequestAttestationEvaluationService`,
+  `InformationRequestAttestationCompletenessEvaluator`, `InformationRequestSubmissionAttestationService`,
+  `InformationRequestSubmissionReadinessEvaluator`, `InformationRequestSubmissionService`,
+  `InformationRequestSubmissionPackageReader`, `InformationRequestSubmissionLockService`,
+  `InformationRequestSubmissionStages`, `InformationRequestMutationGate`) were written before their
+  PostgreSQL-backed test, so the first seven cases of `InformationRequestSubmissionTransactionTest`
+  were not observed red; the first run exposed a field-injected `EntityManager` (moved to the
+  constructor) and a missing request context on executor threads (the parallel case uses a stub
+  history, as the Phase 6 concurrency test does). The two lock cases were observed red first:
+  evidence withdrawal on a submitted Requirement succeeded, and a response patch succeeded, before
+  `InformationRequestEvidenceGate.requireEvidenceOpen` and the response draft lock were wired. The
+  group occurrence lock was written together with its unit case. Results: submission transaction
+  test 9 of 9, group occurrence service 19 of 19, evidence and response family 233 of 233.
+- Submission read and REST surface: `InformationRequestSubmissionQueryService` returns read models
+  (`InformationRequestSubmissionPreview`, `InformationRequestReadableSubmissionPackage`) and
+  `InformationRequestSubmissionDtoMapper` owns every DTO shape. Six thin resources delegate through
+  `InformationRequestSubmissionEndpoint` and `InformationRequestAttestationEndpoint`:
+  `/information-requests/{id}/submissions` (list, detail, `POST` submit, `POST /{packageId}/withdrawal`),
+  `/information-requests/{id}/submission-preview`, `/information-requests/{id}/requirements/{requirementId}/attestations`,
+  and the same three under `no-auth/`. An incomplete scope answers `422` with only the problems the
+  caller may see and an undisclosed count. `InformationRequestSubmissionResourceContractTest` (10 cases)
+  was written before the resource classes but compiled with them, so its red state was a compile
+  failure only; green at 10 of 10. The review-before-submit query case added to
+  `InformationRequestSubmissionTransactionTest` was written after the query service and passed on its
+  first run; the class is 10 of 10.
+- `P7-T10` executors and issuance, tests first: the capability case of
+  `InformationRequestTemplatePersistenceContractTest` now records `RESPONSE_REVIEW` and
+  `RESPONSE_SUBMISSION` and expects only `RESPONSE_REVIEW` refused, every other capability installed,
+  and an unimplemented contract version refused; it was observed red (installed set empty). The
+  request resource test replaced "no issuance is exposed" with the `POST /information-requests/{id}/issuance`
+  contract and the capability refusal mapping (`409`, `INFORMATION_REQUEST_CAPABILITY_NOT_INSTALLED`);
+  it was red at compile (no `issue` method). `InformationRequestCapabilityExecutors.kt` installs ten
+  first-contract executors (every capability except `RESPONSE_REVIEW`). Green: persistence contract
+  9 of 9, request resource 10 of 10, capability executor 7 of 7, lifecycle service 17 of 17.
+- V134 (`P7-T5a`, `P7-T5b`), test first: `InformationRequestAmendmentContractTest` (3 cases) observed
+  red with the migration moved aside (append-only requirement guard, missing amendment relation, no
+  stable-occurrence uniqueness), then green at 3 of 3. V134 replaces the requirement append-only
+  trigger with a guard that lets only the effective binding advance to a later Version of the same
+  Template, re-keys the revision foreign key to `(requirement, request)` with a guard that a revision
+  records its requirement's effective binding, adds one occurrence per stable Template Requirement
+  and path, and adds the append-only amendment, amendment change, and Notice Intent tables
+  (`delivery_state` admits only `PENDING`) plus `information_request_response.reconfirmation_required_by_amendment_id`.
+  The whole Information Request migration contract family ran green with V134: 86 of 86.
+- Amendment services: `InformationRequestAmendmentClassifier` (presentation versus meaning, by
+  Requirement key over the Version projections), `InformationRequestAmendmentGuard` (schema,
+  occurrence structure, submitted scope refusals), `InformationRequestAmendmentTargetResolver`
+  (later published Version of the same Definition, or a new private Version of the request's own
+  ad hoc Definition through `InformationRequestPrivateVersionPublisher`, which ad hoc creation now
+  shares), `InformationRequestTemplateMaterializer.advance` (effective binding advance with an
+  appended revision, group occurrence re-pointing and new-group minimums, added and revived
+  occurrences), `InformationRequestAmendmentRecorder`, `InformationRequestAmendmentService`, and the
+  recipient-safe `InformationRequestAmendmentQueryService`. `findForRequest` now returns only
+  Requirements on the pinned Version; `findAllForRequest` keeps every one. Supporting links read
+  only the pairs the pinned Version still links. Readiness reports `RECONFIRMATION_REQUIRED`, and a
+  save of that answer clears it. These were written before their tests: the classifier (4) and
+  guard (4) unit tests and `InformationRequestAmendmentTransactionTest` (4, PostgreSQL) passed on
+  their first run; a mutation that skipped reconfirmation made the reconfirmation case fail, and the
+  recorder was restored. `InformationRequestAmendmentResourceContractTest` 4 of 4. Two existing
+  tests changed with the link projection: `InformationRequestSupportingEvidenceLinkServiceTest`
+  (now 4 cases, one new) and one workspace case that now stubs the pinned Version's link.
+- V135 (`P7-T6`, `P7-T7c`), test first: `InformationRequestLineageContractTest` (2 cases) observed red
+  with the migration moved aside (missing lineage and recurrence relations), then red once more on a
+  wrong constraint name in the test itself, then green at 2 of 2. V135 adds append-only recurrence
+  definitions, refresh rules, lineage (successor, source, preserved package, kind, recurrence
+  sequence, refresh rule, same Exchange and owner guard), and carry-forward decisions (`OFFERED` or
+  `INVALIDATED` with a stable reason, guarded to an item of the preserved package).
+- Lineage services: `InformationRequestCarryForwardPlanner` (evidence and attestations always
+  invalidated, answers offered, unanswered invalidated; never writes an answer),
+  `InformationRequestDraftFactory`, `InformationRequestSuccessorService` (supplement and superseding
+  follow-ups, acting parties carried forward, superseding moves the open source to `SUPERSEDED` in
+  the same transaction), `InformationRequestFollowUpService` (recurrence definition, next occurrence
+  only when due and under its maximum, refresh rule naming a requested document, refresh), and the
+  recipient-safe `InformationRequestLineageQueryService`. New request action
+  `INFORMATION_REQUEST_REQUEST_SUPPLEMENT` (review capability), added together with its vocabulary
+  test expectation. REST: `/information-requests/{id}/successors`, `/recurrences`,
+  `/recurrences/{id}/occurrences`, `/refresh-rules`, `/refresh-rules/{id}/refreshes`,
+  `/carry-forwards`, and `no-auth/.../carry-forwards`. Written before their tests; the planner unit
+  test (1) and `InformationRequestLineageTransactionTest` (4, PostgreSQL: supplement, superseding and
+  cancellation with packages kept readable, recurrence due and maximum, refresh rule and refresh)
+  passed on their first run.
+- Service, resource, repository, and authorization regression while lineage was written: 998 tests,
+  1 failure: `ShareRoleCapabilityRegistryTest` still expected the pre-Phase-7 answering-role
+  capabilities. The expectation now includes the attest capability for `SUBJECT`, `CONTRIBUTOR`, and
+  `PREPARER` that Phase 7 grants on purpose; rerun 5 of 5.
+- `P7-T8` walking skeletons: the stress fixture now submits in three sequential stages and its
+  assertion needs a subject then an attestor under a role sequence, quorum two, account sign-in, 72
+  hours, optional external reference. `InformationRequestTemplateWalkingSkeletonStore` holds the
+  publish helpers the contract test used privately. `InformationRequestTemplateWalkingSkeletonPhase7Test`
+  (5, PostgreSQL) proves the basic fixture is fully served and the stress fixture waits only on
+  `RESPONSE_REVIEW`, the stress stages and policy round-trip and count assents only in role order and
+  strength, a reworded basic Version amends as presentation while a relaxed one changes meaning, a
+  supplement offers the Field answer and invalidates evidence and assent, and a monthly recurrence
+  falls due by calendar month. All walking tests 17 of 17.
+- `P7-T9` UI: `informationRequestSubmissionService.ts` and the `submission/` components
+  (`InformationRequestSubmissionPanel`, `SubmissionReadinessList`, `SubmissionAttestationCard`,
+  `SubmissionPackageList`, `InformationRequestAmendmentSummary` showing each owed notice as
+  "Notice pending" and never as delivered, `InformationRequestCarryForwardList`,
+  `InformationRequestSupplementDialog`, and `InformationRequestSubmissionSection` mounted in the
+  respondent workspace; the supplement action appears only to a signed-in caller whose plan includes
+  Information Requests). The transport test (4) was written with its module; the panel (3),
+  amendment summary (1), and section (2) tests were written after their components; the panel's
+  first run failed only for a missing `ResizeObserver` stub. Information Request frontend tests
+  39 of 39; `npm run typecheck:app` reports 0 Information Request diagnostics.
+- Help documentation: new article `informationRequestSubmissionArticle.tsx` (82 lines) registered
+  in `fieldsSection.tsx` (18 lines) covers review and submit, confirmations, submitting in parts,
+  amendments with pending notices, and follow-ups; `informationRequestEvidenceArticle.tsx` (109
+  lines) now says a submitted part's files cannot change until its submission is withdrawn;
+  `helpDocsRegistry.tsx` is unchanged at 24 lines. Help-doc tests 9 of 9. The Templates article was
+  read in full and nothing in it became inaccurate.
+- Comment rule: the class, method, and field KDoc added in this phase, and the SQL comments of V132
+  and V133 (applied only to disposable test containers), were removed so the code carries no
+  descriptive comments; V134 and V135 were written without comments.
+- Neutrality and cost checks: every new identifier, route, table, column, enum, event detail, test
+  fixture value, and help text uses neutral process vocabulary (submission, stage, attestation,
+  amendment, notice, lineage, supplement, recurrence, refresh, carry-forward). No AWS service or
+  paid resource type was added.
+- After that run: the next-occurrence command now reads its series under the origin request's lock; the shared command HTTP helper maps a missing resource to 404, a conflicting state to 409, an invalid ad hoc configuration to 400, and an unserved capability or unavailable Version to 409 with its reason; new cases cover controlled-scope issuance (`InformationRequestControlledIssuanceTest`, 2), a delegate acting for a party only under active authority over that exact Requirement (provider test), the amendment refusal statuses (resource test), and a package that keeps its frozen answer after the respondent changes the draft (submission transaction test). The new immutability check first failed because its save made a later step's precondition stale; it was moved after that step. The affected classes then passed: resource and service classes 126 run with that one failure, submission transaction 10 of 10 after the reorder, amendment transaction 4 of 4, controlled issuance 2 of 2, lineage transaction 4 of 4.
+- Final verification: the full backend suite passed 2,964 tests, 0 failures, 0 errors, 0 skipped (BUILD SUCCESS in 27:46). Frontend: `npx vitest run` 525 of 525 in 127 files,
+  `npx tsc --noEmit` clean, `npm run typecheck:app` 346 diagnostics all in the reviewed unrelated
+  baseline and 0 Information Request, ESLint clean on every changed frontend file, `npm run build`
+  succeeded (the existing chunk-size warning only).
+- Browser check: not performed. The respondent submission UI renders only for an issued request
+  served by a running backend with parties and an access session; its behavior is covered by the
+  component tests above.
+- Result: Phase 7 complete. No commit or push was made. Next task: `P8-T1`, only when the user asks
+  for Phase 8.
+
+### 2026-09-25: malware scanning made optional; Phase 6 closed without a scanner
+
+- User direction: "For now, i want you to create a separate plan that i will implement some time in
+  future and the other features and the InformationRequest feature must fully work without a
+  scanner and be production ready." This supersedes the rule that production evidence upload waits
+  for an approved scanner and that an unscanned file can never satisfy a Requirement.
+- Separate plan: `plans/INFORMATION-REQUEST-EVIDENCE-MALWARE-SCANNING-PLAN.md` records what already
+  exists, the engine, deployment, signature-update, alerting, rollout, and cost decisions, tasks
+  `MS-T1` through `MS-T9`, acceptance criteria, and risks. `P6-T6d` is marked as moved there.
+- Scope note: "production ready" was implemented as removing the scanner dependency from everything
+  built through Phase 6. Template authoring for Document Requirements (`P10-T1`), request dispatch
+  (`P10-T2`), submission (Phase 7), and review (Phase 8) remain later program phases and were not
+  started.
+- Evaluator, tests first: three new `InformationRequestEvidencePolicyEvaluatorTest` cases (an
+  unscanned, failed, unavailable, or non-production scan does not block a file where scanning is not
+  required, while a missing inspection still does; a detection still quarantines; unscanned
+  conforming files satisfy the Requirement, and the default remains fail-closed). Red after adding
+  the `malwareScanRequired` parameter with no behavior: 21 tests, 2 failures (`PENDING` and
+  `PENDING_ASSESSMENT` were returned). Green: 21 tests, 0 failures.
+- Deployment policy, tests first: `InformationRequestEvidenceDeploymentPolicyTest` (4 cases) replaces
+  `InformationRequestEvidenceUploadAvailabilityTest`, and `InformationRequestEvidenceConfigurationTest`
+  (2 cases) pins the shipped defaults (upload on, scanning not required, scanner `none`, and no
+  profile overriding them). Red: 3 `NotImplementedError` errors from the stubbed policy methods, and
+  after correcting a test defect (the class loader of `Properties` is the bootstrap loader) 2
+  failures showing upload off by default and in production. `InformationRequestEvidenceUploadAvailability`
+  was removed and its orphaned compiled classes deleted; `InformationRequestEvidenceDeploymentPolicy`
+  owns `upload.enabled` (default `true`) and `malware-scan.required` (default `false`), which
+  replaces `upload.require-production-scanner`. The evaluation service passes the setting to the
+  evaluator, content release reads it, and the workspace DTO gains `evidenceMalwareScanning`. The
+  profile overrides were removed so every profile inherits the base defaults, each overridable by an
+  environment variable. The evaluation-service, workspace, and release wiring was written together
+  with its test cases, so those cases were not observed red.
+- Real stack: a new `InformationRequestEvidenceCommandTransactionTest` case uploads a PDF through the
+  shipped configuration with no scanner and proves the Requirement is `SATISFIED` and a different
+  reader may open the file (4 tests, 0 failures). Focused green set: 87 tests, 0 failures.
+- Frontend, test first for the note: the panel shows "Files are not scanned for malware." while no
+  scanner is configured; red at 1 failure of 9, green at 33 Information Request tests.
+- Help documentation: `informationRequestEvidenceArticle.tsx` (105 lines) now says files are not
+  scanned unless the deployment adds a scanner, describes the stricter behavior where scanning is
+  required, and says upload is on by default. `helpDocs.test.tsx` passed 9 tests.
+- Industry-neutrality check: the new plan, policy, configuration, and UI text use only neutral terms.
+- Frontend gate after the change: `npx tsc --noEmit` exit 0; `npm run typecheck:app` 346 total,
+  346 unrelated, 0 Information Request; ESLint on the changed paths exit 0; `npm test` 123 files,
+  515 tests passed; `npm run build` succeeded.
+- First full backend run after the change failed for an environmental reason, recorded plainly:
+  `.\mvnw.cmd test -DskipFrontend=true` ran 2,883 tests with 2 failures and 136 errors, all in 28
+  classes unrelated to this change that finished between 13:58:56 and 14:02:18. In that window
+  3,218 files under `target/classes` were rewritten by a concurrent recompile outside this session
+  (the migration directory was recreated at 13:59:32 and class files were rewritten until
+  14:02:56), so migration contract tests found no migrations ("relation does not exist") and other
+  classes failed with "Could not initialize class". The Vite build writes only to `web-app/dist`.
+  The suite was rerun with no source edits during the run: 2,883 tests, 0 failures, 0 errors,
+  0 skipped, across 402 test classes, BUILD SUCCESS in 23:10, finished 2026-09-25T14:26:59+02:00.
+  Phase 6 is complete under the revised exit criteria. No commit or push was made.
+- Plan-wide unblock sweep: every scanner reference in the active plan was checked so no phase waits on
+  a scanner. Revised: `## Status`, the repository baseline table, architectural decision 30, the
+  Phase 5 authorization note, the Phase 6 entry gate (the 2026-09-20 paragraph is marked historical),
+  `P6-T6`, `P6-T6c`, `P6-T6d`, `P6-T11`, the Phase 6 exit criteria, `P11-T6` (quarantine uses a test
+  scanner adapter), the cross-phase test matrix, the Security and Privacy Gates, the program
+  acceptance criteria, the phase summary, `## Latest Implementation Result`, and the continuation
+  prompt. What remains is conditional on `malware-scan.required=true`, historical, or the permanent
+  rule that no file is described as scanned or safe without a real scan.
+
+### 2026-09-25: Phase 6 continuation, every scanner-independent task complete
+
+This entry is written progressively during the session so an interruption leaves an exact resume
+point. The user asked for the rest of Phase 6 in one session.
+
+- Starting point verified against code and tests, not checkboxes. `git status` matched the DS-T4
+  entry below (all of this program's Phase 6 and DS work uncommitted), the migration directory head
+  was V127 in both `src/main/resources/db/migration` and the plan ledger, and the full backend suite
+  was rerun before any change: `.\mvnw.cmd test -DskipFrontend=true` passed 2,651 tests, 0 failures,
+  0 errors, 0 skipped, BUILD SUCCESS in 19:07, finished 2026-09-24T23:01:45+02:00, exactly the total
+  the DS-T4 entry recorded. The user's `quarkus:dev` session was running (so no `clean` was used).
+- Task split recorded in the plan before implementation: `P6-T2d` (evidence record shape),
+  `P6-T3a` through `P6-T3f`, and `P6-T6a` through `P6-T6d` (the last one deferred by the user).
+
+#### `P6-T2c` content hash and verification state: complete
+
+- Tests added first. `DocumentVersionContentIdentityColumnContractTest` (11 Testcontainers
+  PostgreSQL cases): the four columns are required with their types; a stated identity is stored; an
+  opaque version is stored as `UNVERIFIED`; each missing part is refused by its column; only
+  `SHA_256` is admitted; an uppercase, short, or non-hex digest is refused by
+  `ck_document_version_content_hash_value`; a negative length is refused; only `VERIFIED` and
+  `UNVERIFIED` are admitted (`PENDING` and `BACKFILL_FAILED` refused); storage and content identity
+  cannot be rewritten while descriptive fields stay writable; and a version written before V128 is
+  removed. `DocumentVersionContentDigestTest` (7 cases, including the `abc` and empty-input SHA-256
+  vectors, copy-while-digest, and the base64 checksum form), `DocumentVersionContentServiceTest`
+  (5 cases with the real local port: digest of the written bytes, matching content opened, changed
+  bytes refused, changed length refused, missing content refused), one new
+  `LocalDocumentVersionStorageServiceTest` case (a write whose bytes do not match the expected
+  digest is refused and leaves nothing at the key), and two new `ExchangeDocumentVersionStorageContractTest`
+  `@QuarkusTest` cases (a recorded version states the digest and length of exactly the bytes written;
+  declared `END_TO_END` content keeps its digest but is `UNVERIFIED`).
+- Red, in two rounds with compiling stubs. Round one:
+  `.\mvnw.cmd "-Dtest=DocumentVersionContentDigestTest,DocumentVersionContentServiceTest,LocalDocumentVersionStorageServiceTest,DocumentVersionContentIdentityColumnContractTest" test -DskipFrontend=true`
+  ran 28 tests, 9 failures, 18 errors, 0 skipped: every contract case reported the missing
+  `content_length` column or an unremoved row, and every unit case a `NotImplementedError` or a
+  missing refusal. Round two, after V128 existed:
+  `.\mvnw.cmd "-Dtest=DocumentVersionContentIdentityColumnContractTest,ExchangeDocumentVersionStorageContractTest,ExchangeDocumentVersionCreatorContractTest" test -DskipFrontend=true`
+  ran 20 tests, 0 failures, 8 errors: the contract test was green (11) and Quarkus booted against the
+  new schema, while every version-creating case failed with `NotImplementedError` from the stubbed
+  content service.
+- Implementation: `V128__document_version_content_identity.sql` adds `content_length`,
+  `content_hash_algorithm`, `content_hash`, and `content_verification`, removes every version that
+  never stated them (no row could), makes them `NOT NULL` with four checks, and adds
+  `document_version_content_identity_guard`, which refuses any update of the storage provider,
+  locator kind, locator, or any content identity column. `model/document/DocumentVersionContentIdentity.kt`
+  holds the algorithm and verification vocabularies, the validated digest, the stored-content
+  result, the digest computation, and the entity mapper. `DocumentVersionStorageService.writeNewVersion`
+  now takes the expected digest: the local implementation opens the target with `CREATE_NEW`,
+  digests exactly the bytes it copies, and deletes its own partial or mismatched object (never an
+  object that already existed); the object-store implementation sends `checksumSHA256` so the store
+  refuses mismatched bytes, mapped from `BadDigest` to `DocumentVersionContentDigestMismatchException`.
+  `DocumentVersionContentService.store` returns the locator and digest, and `open` re-digests the
+  stored bytes and refuses a mismatch with `DocumentVersionContentIntegrityException`.
+  `ExchangeDocumentVersionService.createVersion` and `recordUploadedFileAsVersion` take the upload's
+  encryption mode, which `ExchangeDocumentService` and the version resource already received and
+  previously dropped, and record `VERIFIED` for `INTERNAL` and `UNVERIFIED` for `END_TO_END`.
+- Existing tests updated with the new shape: the raw inserts in the locator, creator, and two
+  evidence contract tests state content identity; the locator and creator upgrade cases now stop at
+  the migration they prove (V123 and V124) because V128 removes versions without a digest; entity
+  fixtures state content identity; the upload version-creator verifications name the encryption mode.
+- Green: the focused and affected set of 20 classes passed 101 tests, 0 failures, 0 errors,
+  0 skipped, BUILD SUCCESS.
+- Help documentation: no article states a version's size, hash, or verification state, and the
+  version payload is unchanged, so none changed.
+
+#### `P6-T2d` evidence record shape: complete, so `P6-T2` is checked
+
+- Tests added first. Seven new Testcontainers cases in `InformationRequestEvidenceArtifactContractTest`
+  (creator stated and refused when missing or unrecognised; an Artifact starts `ACTIVE` with no
+  recorded change; a state change must state who and when, a blank reason and an unknown state are
+  refused by their named checks; an Artifact never returns to `ACTIVE` and a removal is final; its
+  identity, creator, and creation time are immutable, its revision never moves backwards, and it is
+  never deleted; a Version states its uploader and a file-backed Version its declared file name while
+  an external Version states none; captured attributes are ordered and never blank; a Version is
+  appended only to an `ACTIVE` Artifact), one new `InformationRequestEvidencePersistenceContractTest`
+  round trip, and `InformationRequestEvidenceAttributesTest` (6 cases).
+- Red: the contract test ran 12 tests, 12 errors, every one reporting that
+  `created_by_principal_kind` did not exist. After V129, with the attributes model stubbed:
+  `.\mvnw.cmd "-Dtest=InformationRequestEvidenceAttributesTest,InformationRequestEvidenceArtifactContractTest,InformationRequestEvidencePersistenceContractTest" test -DskipFrontend=true`
+  ran 24 tests, 4 failures, 3 errors, all missing refusals or `NotImplementedError`.
+- Implementation: `V129__information_request_evidence_record_shape.sql`,
+  `InformationRequestEvidenceCollectionState`, the Artifact and Version entity fields, and
+  `model/informationrequest/InformationRequestEvidenceAttributes.kt` (coverage period, attributes,
+  mapper). Existing contract helpers now state an Artifact creator and a Version uploader and
+  declared file name. PostgreSQL checks run alphabetically by name, so each new check was written to
+  pass for every row an older case expects a different check to refuse; the state-movement trigger
+  leaves an unknown state to the value check so each refusal stays deterministic.
+- Green: 5 classes, 41 tests, 0 failures, 0 errors, 0 skipped.
+
+#### `P6-T3a` ordinary Document Version bypass closed: complete
+
+- Defect found by inspection: `getDocumentVersions` and `getLatestVersion` checked no permission,
+  every version path found the Document by identifier alone rather than inside the Exchange, and
+  `getVersionContent` served any version identifier without checking it belonged to the Document.
+  A caller permitted on one Exchange could therefore list or download any Document Version, which
+  would include every evidence file once evidence is stored as Document Versions.
+- Test added first: `ExchangeDocumentVersionAccessTest` (8 plain JUnit cases with mocks). Red with
+  the Document resolution stubbed: 8 tests, 7 failures, 1 error, each an unexpected
+  `NotImplementedError` in place of the expected refusal.
+- Implementation: Document resolution uses `ExchangeRepository.findDocumentBySessionIdAndDocumentId`
+  on all four paths, the download requires the version to belong to the Document, and the list and
+  latest reads require `DOCUMENT_VIEW` on the Exchange. `ExchangeDocumentRepository`, whose only
+  method was the unscoped lookup (and which threw instead of returning null), lost its last caller.
+- Green: `ExchangeDocumentVersionAccessTest`, `ExchangeDocumentUploadVersionCreatorTest`, and
+  `ExchangeDocumentServiceAuditTest` passed 14 tests. In the same run the two Quarkus classes failed
+  to start because a Testcontainers `postgres:17` container did not publish its port within five
+  seconds (environmental; every `@QuarkusTestResource` in the module starts globally). A rerun of
+  `ExchangeDocumentVersionStorageContractTest,ExchangeDocumentVersionCreatorContractTest` passed
+  9 tests, 0 failures, 0 errors.
+- Every other ordinary Document read (`ExchangeDocumentService` download, preview, thumbnail, zip,
+  no-auth download and thumbnail, and the comments service) already resolves the Document inside
+  its Exchange.
+
+#### `P6-T3b` evidence upload and `P6-T3c` replacement and withdrawal: complete at the service layer
+
+- Storage dependency first. `DocumentVersionRecordingContractTest` (3 `@QuarkusTest` cases: a
+  standalone Document with its first version belongs to no Exchange and states its creator, digest,
+  and verification; a later version is numbered after the latest one; content that does not match
+  the caller's expected digest is refused and nothing is recorded) was red at 3 tests, 1 failure,
+  2 errors against a stubbed `DocumentVersionRecordingService`, then green. `ExchangeDocumentVersionService`
+  now delegates version row creation to it, so every Document Version is created in one place, and
+  the unused `ExchangeDocumentRepository` was replaced by `repository/document/DocumentRepository`
+  (its orphaned compiled class was deleted from `target/classes` so Quarkus could not load it).
+  `DocumentVersionContentService.store` accepts the caller's expected digest, so the digest in the
+  command fingerprint is the one the storage port must confirm.
+- Upload tests first: `InformationRequestEvidenceUploadServiceTest` (13 cases) over the new shared
+  `InformationRequestEvidenceServiceFixture` (in-memory repositories, a real `CommandReceiptService`,
+  a real gate). Red against the stub: 13 tests, 7 failures, 6 errors, all `NotImplementedError`.
+  Green after implementation.
+- Replacement and withdrawal tests: `InformationRequestEvidenceReplacementAndWithdrawalTest`
+  (9 cases). Recorded honestly: replacement was implemented together with upload before its five
+  cases were written, so those five passed on their first run and were not observed red; the four
+  withdrawal cases were red (1 failure, 3 errors) against the stubbed collection service, then
+  green. Upload and replacement together: 22 tests, 0 failures, 0 errors.
+- Real PostgreSQL verification: `InformationRequestEvidenceCommandTransactionTest` (3 `@QuarkusTest`
+  cases over real repositories and the real recording service, with authorization, entitlement,
+  grant, and history mocked) proves upload, replacement, and withdrawal persist under the V128 and
+  V129 invariants with one standalone Document and two stored versions; a failure after storage
+  rolls back every evidence, document, and receipt row so the same key can be retried; and a
+  concurrent retry of the same upload blocks on the parent lock held by the first and then replays
+  it, leaving exactly one artifact. This test was written after the implementation as integration
+  verification, not as a TDD red. Its first run failed on the fixture (`issued_at` is required for
+  an issued request by `ck_information_request_terminal_dates`); after the fixture was corrected it
+  passed 3 tests, 0 failures.
+- Implementation: `InformationRequestEvidenceGate` (parent then request lock, DOCUMENT-only
+  occurrence resolution with removed-occurrence refusal, `ADMINISTER_EVIDENCE` lifecycle check,
+  frozen-grant continuation, and per-occurrence authorization), `InformationRequestEvidenceUploadService`
+  (upload and replacement), `InformationRequestEvidenceCollectionService` (withdrawal and logical
+  removal), `InformationRequestEvidenceViewLoader`, `model/informationrequest/InformationRequestEvidenceCommands.kt`,
+  `InformationRequestETag.evidenceOf` (the sum of the occurrence's artifact revisions, which only
+  grows because artifacts are never deleted and their revisions never fall) and `artifactOf`,
+  three catalog codes (`EVIDENCE_NOT_COLLECTED`, `EVIDENCE_ARTIFACT_INACTIVE`,
+  `EVIDENCE_CONTENT_UNAVAILABLE`), the receipt-only `ResourceType.INFORMATION_REQUEST_EVIDENCE_ARTIFACT`,
+  and evidence facts in the transition history payload (`requirementId`, `evidenceArtifactId`,
+  `evidenceAction`, `evidenceVersionNumber`; no file name or content).
+- Decisions: evidence mutations reuse the existing `ADMINISTER_EVIDENCE` mutation and its classified
+  `information_request.evidence.administer` audit event, with the action in the payload; authorization
+  runs before the precondition so an unauthorized caller never learns an evidence ETag; the audit
+  idempotency key includes the actor so two respondents reusing one key cannot collapse into one
+  audit event; an artifact's revision equals its version count while it is active, so a receipt's
+  revision names the version a replay may show.
+- Resume point after this checkpoint: `P6-T3d` evidence reads.
+
+#### `P6-T3d` reads, `P6-T3e` resources, `P6-T3f` matrix: complete, so `P6-T3` is checked
+
+- Reads, tests first: `InformationRequestEvidenceQueryServiceTest` (9 cases: the assigned party
+  lists every Version and the evidence ETag; an evidence administrator lists through the manage
+  permission; a caller who may neither view nor manage is refused; the request read gate refuses
+  before any evidence is read; removed evidence is listed only to an evidence administrator; a
+  verified download is audited; preview is inline only for content a browser shows safely; a
+  Version opens only through its own Artifact and occurrence; content that no longer matches its
+  digest is refused with a stable reason) and the catalog case in `AuditEventTypeTest`. Red against the stubbed query service
+  and the unchanged catalog: 13 tests, 5 failures, 5 errors. Green: the query, upload, replacement,
+  and catalog classes passed 35 tests, 0 failures, 0 errors. The history payload change was then
+  verified by `InformationRequestLifecycleServiceTest,InformationRequestPartyServiceTest`: 40 tests,
+  0 failures.
+- Resources, tests first: `InformationRequestEvidenceResourceContractTest` (11 cases over both the
+  authenticated and the no-auth resource: routing under the exact Requirement occurrence on both
+  surfaces; an upload delegating the parsed file, attributes, precondition, and key; an upload
+  without its key, file, or valid attributes refused before the service runs; a missing
+  precondition answered 428 with the current evidence ETag; replacement, withdrawal, and removal
+  delegation; the list with the occurrence evidence ETag; download as an attachment a browser will
+  not run; inline preview; stable refusal statuses; and a no-auth call that resolves its own
+  credentials and never reaches another request). Red against stub resources: 11 tests, 9 failures, 1 error.
+  Green together with `EndpointVerificationFilterExclusionTest` (the no-auth prefix stays in the
+  existing allowlist): 16 tests, 0 failures. `x-evidence-etag` and `content-disposition` were added
+  to the exposed CORS headers in every profile.
+- Matrix: `InformationRequestEvidenceAuthorizationMatrixTest` (7 cases) runs every evidence action
+  through the real `DefaultAuthorizationService` and Requirement policy evaluator. This is
+  verification of behavior that already existed, not a TDD red: its first run failed 6 of 7 on the
+  fixture (the Share lookup the central evaluator performs was not stubbed and every decision
+  returned `NO_GRANT`); after the fixture stubbed it, 7 tests passed, 0 failures.
+- Full backend regression at this checkpoint: `.\mvnw.cmd test -DskipFrontend=true` passed
+  2,755 tests, 0 failures, 0 errors, 0 skipped, BUILD SUCCESS in 21:36, finished
+  2026-09-25T03:52:39+02:00. `P6-T3` is checked.
+- Help documentation: no article describes Requirement evidence yet; the evidence UI and its article
+  arrive with `P6-T11`.
+- Resume point after this checkpoint: the evidence evaluation vocabulary for `P6-T4` and `P6-T5`.
+
+#### Evidence evaluation, `P6-T6a` assessments, `P6-T6b` inspection, `P6-T6c` scanning
+
+- Evaluation vocabulary and pure evaluator, tests first:
+  `InformationRequestEvidencePolicyEvaluatorTest` (17 cases at first) against a stubbed
+  `InformationRequestEvidencePolicyEvaluator` ran 17 tests, 0 failures, 16 errors, every error a
+  `NotImplementedError`; the one pass was the `completesWork` vocabulary case, which reads the
+  already-declared enum. Two review findings were then written as cases before the drafted
+  implementation was installed: a deficient file that is also expired must never be offered for
+  review, and a quarantined, deficient, or pending current file beside enough conforming files must
+  keep the Requirement unsatisfied, including when a substitute is satisfied. Against the draft,
+  18 tests ran with exactly those 2 failures (`REVIEWABLE` and `SATISFIED` were returned). The
+  evaluator now requires every current file to conform before the Requirement or its substitute
+  satisfies it, and excludes blocking, pending, and expiry findings from review. Green: 18 tests,
+  0 failures.
+- Test-tree note: the inspector, scan, and intake tests written earlier reference types that did
+  not exist yet, so the test tree did not compile. They were copied byte-for-byte to the session
+  scratchpad (`cmp` verified), removed from `src/test`, and restored one at a time as their task
+  started.
+- `P6-T6a`: the V130 ledger row was recorded as allocated first. Two contract cases were added to
+  the seven already written (a reused scan must repeat the settled outcome, engine, and signatures
+  it reuses; opaque content is never inspected or scanned clean, while a skip is stored). Red with
+  the classpath head at V129: `InformationRequestEvidenceArtifactContractTest` ran 21 tests,
+  5 failures, 4 errors, every one reporting that `information_request_evidence_assessment` did not
+  exist, and the 12 earlier cases passed. `V130__information_request_evidence_assessment.sql` was
+  then written once. Green: 21 tests, 0 failures. The entity, the kind enum, and the repository
+  followed with one new `InformationRequestEvidencePersistenceContractTest` round trip; red with
+  the two repository queries stubbed (7 tests, 1 error, `NotImplementedError`, with Quarkus booted
+  so Hibernate validation accepted the mapping against V130), green at 7 tests, 0 failures.
+- `P6-T6b` inspector: `InformationRequestEvidenceContentInspectorTest` (5 cases: detected type and
+  page count, detection from bytes rather than the file name, a user-password PDF reported
+  encrypted with no page count, an unparsable PDF reported corrupt, an image with no page count).
+  Red against the stub: 5 tests, 5 errors. Green: 5 tests, 0 failures. Only PDF structure and
+  encryption are inspected; other formats are identified by magic bytes. Recording the inspection
+  as an assessment happens at intake, so `P6-T6b` stays open until the intake is integrated.
+- `P6-T6c` scanning, tests first: `InformationRequestEvidenceMalwareAssessmentServiceTest`
+  (11 cases) and `InformationRequestEvidenceAssessmentSelectionTest` (4 cases: the latest settled
+  scan governs over a later incomplete attempt; a detection governs even when a later scan reports
+  clean; with no settled scan the latest attempt governs; the latest inspection describes the
+  version). Red against stubs: 15 tests, 15 errors, all `NotImplementedError`. Green: 15 tests,
+  0 failures. A reuse copies the prior row's signature publication time and eligibility so it always
+  satisfies the V130 reuse guard.
+- Release, rescan, and scheduling, tests first: `InformationRequestEvidenceContentReleaseTest`
+  (4 cases), one new `InformationRequestEvidenceQueryServiceTest` case (quarantined content is
+  refused before its bytes are read and is not audited as access), `InformationRequestEvidenceScanSchedulerTest`
+  (2 cases), and one new persistence case for the due-for-scan query (never scanned, an old
+  incomplete scan, and an old clean scan are due; a recent failure, a recent clean scan, a
+  detection, a skip, and an external reference are not; the limit applies). Red against stubs:
+  46 tests, 6 failures, 5 errors, all from the stubs; the unchanged upload and replacement classes
+  passed. Green together with `InformationRequestAuthorizationVocabularyTest` (the catalog gained
+  six codes): 54 tests, 0 failures.
+- Configuration: every evidence key is in `application.properties` with fail-closed defaults
+  (upload disabled, production scanner required, `malware-scanner=none`), `%test` enables upload
+  without a production scanner, `application-local.properties` does the same for local development,
+  and the production and staging profiles state the fail-closed values explicitly. No new cloud
+  service is used.
+
+#### `P6-T4`, `P6-T5`, `P6-T9` evaluation, intake, and limits; `P6-T7` file behavior; `P6-T8` links
+
+- Evaluation service, tests first: `InformationRequestEvidenceEvaluationServiceTest` (7 cases, with
+  the real policy loader over mocked repositories: no policy means no evaluation; version standings;
+  facts from stored content, captured attributes, latest inspection, and governing scan; an unscanned
+  file pending and a scanned one satisfying; accepted values loaded with the policy; a satisfied
+  substitute at the root satisfying a group occurrence; validity judged as of the configured clock).
+  Red against stubs: 7 errors, all `NotImplementedError`. Green: 7 tests, 0 failures.
+- Intake and limits, tests first: `InformationRequestEvidenceIntakeTest` (10 cases), a new
+  persistence case for the stored-usage queries, five new upload cases (duplicate bytes, an intake
+  refusal stores nothing, the stricter no-auth file limit, the inspection recorded against the
+  stored bytes, opaque content never inspected), and one replacement case. The upload service now
+  calls the intake, so every upload test was red with the intake stubbed: 47 tests, 7 failures,
+  25 errors, every one from the stubs. Green together with the query and real-PostgreSQL
+  transaction tests: 60 tests, 0 failures. The existing "second upload" case now uploads different
+  bytes, because identical bytes at one occurrence are refused by design.
+- Completeness, tests first: `InformationRequestEvidenceCompletenessEvaluatorTest` (6 cases). Red:
+  6 errors. Green together with the progress service and Phase 5 walking tests: 13 tests. Decision
+  recorded: dispositions that claim provision (`PROVIDED`, `PARTIALLY_PROVIDED`) are judged by the
+  evidence, and `PARTIALLY_PROVIDED` completes once some evidence conforms; `NOT_APPLICABLE`,
+  `UNAVAILABLE`, `EXCEPTION_REQUESTED`, and `SATISFIED_BY_REFERENCE` complete without files;
+  `WAIVED` completes only when the evidence policy accepts the waiver.
+- List evaluation: one new query-service case, red on the missing evaluation (`expected
+  PENDING_ASSESSMENT but was null`). Its first green run exposed a wrong expectation, not a defect:
+  the fixture uploads plain text declared as `application/pdf`, so the correct state is `DEFICIENT`
+  with a `CONTENT_TYPE_MISMATCH` finding. After correcting the expectation, 29 tests passed.
+- `P6-T7`: `InformationRequestEvidenceFileBehaviorTest` (4 cases: opaque content kept, recorded
+  `SKIPPED`, and deficient with `CONTENT_OPAQUE`; a password-protected PDF deficient with
+  `CONTENT_ENCRYPTED` even under a reviewable policy; an unparsable PDF `CORRUPT`; duplicate bytes
+  refused while the first file is kept). This verifies behavior built by the tasks above and was
+  not a TDD red; it passed 4 of 4 on its first run.
+- `P6-T8`: the V131 ledger row was recorded first; three contract cases were red at V130 with every
+  statement reporting the missing relation, then green with V131 (the whole class, 24 tests).
+  `InformationRequestSupportingEvidenceLinkResolverTest` (5 cases), `InformationRequestSupportingEvidenceLinkServiceTest`
+  (3 cases), and one persistence round trip were red against stubs (9 errors) and green at
+  18 tests. The materializer and group-occurrence hooks were each red on a "wanted but not
+  invoked" verification and green at 27 tests; the workspace projection was red on an empty list
+  and green at 14 tests.
+- Real-stack link materialization: one more persistence case runs the real
+  `InformationRequestSupportingEvidenceLinkService` twice against the fixture's actual Template link
+  and runtime Requirements and finds exactly the two resolved links, both accepted by the V131
+  guard (11 tests, 0 failures).
+
+#### `P6-T10` walking fixtures: complete
+
+- `InformationRequestTemplateWalkingSkeletonPhase6Test` (8 cases) drives both fixtures' authored
+  policies through the Phase 6 services. It verifies behavior built by the earlier tasks and was not
+  a TDD red; it passed 7 of 7 on its first run and 8 of 8 after the ACL case was added. The
+  Phase 5 walking test's basic fixture now records `PROVIDED` for `supporting-record`, the only
+  disposition that fixture permits, instead of `WAIVED`; that test drives only the structured
+  contribution, and the evidence contribution for the same fixture is covered by the Phase 6 test.
+  `InformationRequestTemplateWalkingSkeletonPhase5Test,InformationRequestTemplateWalkingSkeletonContractTest`
+  passed 4 tests, 0 failures.
+- Resume point after this checkpoint: `P6-T11` frontend evidence UI.
+- Intermediate full backend regression, run after `P6-T10` and before the frontend work:
+  `.\mvnw.cmd test -DskipFrontend=true` passed 2,869 tests, 0 failures, 0 errors, 0 skipped,
+  BUILD SUCCESS in 24:32, finished 2026-09-25T12:13:05+02:00.
+
+#### `P6-T11` respondent evidence UI, the upload switch, and the scan audit event
+
+- Frontend, written before its tests and recorded as such: `informationRequestEvidenceService.ts`
+  (list, multipart upload and replacement with progress, withdrawal, content and preview as a
+  blob; the runtime service now exports its header, path, and refusal helpers instead of
+  duplicating them), `requirement-evidence/` with `requirementEvidenceCommands.ts`,
+  `RequirementEvidenceContext.ts`, `useRequirementEvidence.ts`, `requirementEvidenceLabels.ts`, and
+  the component folders `requirement-evidence-panel`, `evidence-artifact-row`, `evidence-file-button`,
+  and `evidence-withdraw-dialog`, each with its `*Styles.tsx`. `StructuredResponseOccurrence.tsx`
+  (150 lines, at the limit) now delegates each Requirement to the new `StructuredResponseRequirement.tsx`
+  and is 127 lines. Document Requirements were not rendered to respondents at all before this.
+- Frontend tests: `informationRequestEvidenceService.test.ts` (5 cases),
+  `RequirementEvidencePanel.test.tsx` (7 cases), and `StructuredResponseRequirement.test.tsx`
+  (2 cases). They passed on their first run; they verify the components rather than drive them.
+- Backend switch and audit, tests first: `InformationRequestEvidenceUploadAvailabilityTest` (3 cases),
+  one new `InformationRequestResponseWorkspaceServiceTest` case (the workspace states whether upload
+  is available), one new `InformationRequestEvidenceMalwareAssessmentServiceTest` case (every scan is
+  a system audit event naming outcome and engine but never the threat), and the catalog case in
+  `AuditEventTypeTest`. Red against stubs: 35 tests, 2 failures, 15 errors, all from the stubs and
+  the unchanged catalog version. The first green run had one failure that was a test defect: its
+  second scan reused the first scan's settled detection, as designed, so the failed scan now runs
+  first. Green: the focused set of 49 tests and then 17 tests passed; `AuditEventDraftValidatorTest`
+  passed 5 tests.
+- Frontend gate: `npx tsc --noEmit` exit 0; `npm run typecheck:app` 346 total, 346 unrelated,
+  0 Information Request diagnostics; `npm test` 123 files, 513 tests passed; `npm run build`
+  succeeded (the existing chunk-size warning only); `npx eslint` on every changed and added file
+  exit 0.
+- Typecheck baseline refresh, stated plainly: the first `typecheck:app` run reported two "new
+  unrelated" diagnostics in `TrustActionDialog.tsx` and `TrustedOrganizationRequestDialog.tsx`,
+  files this program did not touch. Their file, code, and count are unchanged; only the printed
+  Fluent `Dialog` prop type differs, because `package-lock.json` was updated on 2026-09-21 and
+  2026-09-24 (commits `15f3f584` and `beb2937f`) after the baseline was recorded on 2026-09-13
+  (commit `459e64ed`), and the newer Fluent Dialog type adds `unmountOnClose`. The two baseline
+  messages were replaced with the current text and nothing else in the baseline changed.
+- Browser verification: not performed. The respondent workspace requires either a password sign-in
+  or an emailed one-time code, which the agent may not enter; the component tests cover rendering,
+  commands, refusals, and the switch.
+- Help documentation: new article `informationRequestEvidenceArticle.tsx` (104 lines) registered as
+  "Information Request evidence files" in `fieldsSection.tsx` (16 lines); the existing Template
+  article's respondent paragraph now says respondents fill the requested Fields and files, and it
+  stays at 148 lines. `helpDocs.test.tsx` passed 9 tests. Every statement in the new article was
+  checked against the code: default limits, refusal at upload, statuses, review exclusion,
+  substitutes, release rules, access recording, link resolution, and the upload switch.
+- Industry-neutrality check: every changed and added backend file, migration, and frontend file was
+  searched for process- or industry-specific vocabulary; the only matches were substrings such as
+  "Please" and the existing OAuth `tenant` setting. Fixtures and tests use neutral terms such as
+  process record, supporting record, recording party, and reported item.
+- Final full backend regression, after every change above: `.\mvnw.cmd test -DskipFrontend=true`
+  passed 2,875 tests, 0 failures, 0 errors, 0 skipped, across 401 test classes, BUILD SUCCESS in
+  22:10, finished 2026-09-25T12:45:47+02:00. `P6-T11` is checked.
+
+#### Closeout
+
+- Checked this session: `P6-T2c`, `P6-T2d`, `P6-T2`, `P6-T3a` through `P6-T3f`, `P6-T3`, `P6-T4`,
+  `P6-T5`, `P6-T6a`, `P6-T6b`, `P6-T6c`, `P6-T7`, `P6-T8`, `P6-T9`, `P6-T10`, and `P6-T11`.
+- Unchecked by design: `P6-T6d` (the approved real scanner, its deployment, and its signature-update
+  model, deferred by the user on 2026-09-20), therefore `P6-T6` and the Phase 6 exit gate.
+  Production external evidence upload stays disabled, and no unscanned file can satisfy a
+  Requirement or be released as scanned.
+- Migrations created this session, each written once after a genuine red: V128, V129, V130, V131.
+  Flyway head is V131 and V132 through V139 remain. The user's `quarkus:dev` applies them to the
+  local database on its next reload.
+- Carried forward: rechecking Submission Package membership before evidence replacement,
+  withdrawal, or removal, and freezing supporting-evidence links in packages, are recorded on
+  `P7-T1`.
+- Risks: the scanner port has only the fail-closed unconfigured implementation, so no file can
+  complete a Document Requirement anywhere until `P6-T6d`; local and test profiles admit uploads
+  but still report them as awaiting checks. Only PDF structure and encryption are inspected;
+  other types are identified by magic bytes alone.
+- Nothing was committed or pushed.
+- Exact next task: ask the user to decide `P6-T6d`, the scanner implementation, deployment, and
+  signature-update model. Phase 7 depends on the Phase 6 exit gate, so `P7-T1` starts only when
+  that gate passes or the user explicitly scopes scanner-independent Phase 7 work.
+- Files to read first next session: `AGENTS.md`, the plan's `## Status` and Phase 6 section, this
+  entry, `InformationRequestEvidenceMalwareScanner.kt`, `InformationRequestEvidenceScanProducer.kt`,
+  and `InformationRequestEvidenceUploadAvailability.kt`.
+
+### 2026-09-24: DS-T4 program-wide compatibility sweep, and final verification of DS-T1 through DS-T4
+
+- Current phase and task: development-stage compatibility removal is complete. `P6-T2c` is next.
+- Session note: the session was interrupted by a usage limit after DS-T2 and resumed. On resuming,
+  the working tree was checked against the plan: V125 was present, the DS-T3 red test existed, and
+  the Share legacy fields were still in place, which matched the last recorded state; the unapplied
+  DS-T1b and DS-T2 checkpoint was then written. Each scripted edit was dry-run against the current
+  sources before being applied. One dry run caught a mixed-newline anchor in `dtos.ts`, which was
+  corrected before anything was written.
+- Sweep method: searched this program's backend packages and the frontend for legacy, fallback,
+  superseded, deprecated, older-client, compatibility, and dual-write markers, then read each hit.
+- Tests added first, all behaviorally red: `ExchangeFieldsResourceRouteContractTest` (the Fields
+  values route is `PATCH` only; red because `PUT` was also routed), `InformationRequestOccurrencePathTest`
+  (3 cases; red because `$` still read as root), `InformationRequestRootOccurrencePathContractTest`
+  (2 PostgreSQL cases; red because stored `$` rows stayed `$` and a new `$` row was accepted), and
+  `ExchangeDocumentUploadDialog.test.tsx` (red because the dialog called the version endpoint after
+  the upload). Backend red: 6 tests, 5 failures, 0 errors. Frontend red: 1 test, 1 failure.
+- Removed: the `PUT /exchanges/{id}/fields` alias, its `Deprecation` and `Link` headers,
+  `DeprecatedFieldsWriteUsage`, and `FieldsPreconditionHeader.optional` and `isStated`;
+  `InformationRequestOccurrencePath.LEGACY_ROOT` and the draft service's private copy, with
+  `V127__information_request_root_occurrence_path.sql` normalising stored rows and refusing `$`; the
+  dialog's second request and the now-unused frontend `uploadDocumentVersion`. The five test files
+  that modelled the root occurrence as `$` now use `root`. The PUT-surface cases in
+  `ExchangeFieldsConditionalWriteTest` were removed with the surface; the three `ExchangeFieldsResourceETagTest`
+  cases that covered response mapping moved to `PATCH`; the header tests now express the same
+  parsing through `required`.
+- Kept as current behavior, wording corrected only: `SchemaTargetRegistry.defaultTarget`, because
+  the first-party Schema create request names no target, and `FieldsPrecondition.Unconditioned`,
+  because `If-Match: *` and internal writers state it.
+- Compatibility code found outside this program and not changed: the frontend sign-in token
+  fallback in `SignIn.tsx`, the legacy boolean notification settings in
+  `notificationPreferenceDefinitions.ts` and `AppSettingsTab.tsx`, the legacy commenter parsing in
+  `notificationPresentation.ts`, `PrincipalGroupService.GroupMemberSpec.appUserId`, described as a
+  backwards-compat convenience, and stale dual-write wording on `PrincipalGroup` and
+  `PrincipalGroupService`. No organization-group dual-write remains: `OrganizationGroupService`
+  writes only through `PrincipalGroupService`, and no legacy group entity exists.
+- Also noted, not a compatibility shim: `InformationRequestParty.assigned_by_app_user_id` is a
+  registered-user-only attribution column on a table this program created, with no canonical pair,
+  which is inconsistent with architectural decision 39 and is a modelling question for the user.
+- Focused and affected DS-T4 backend tests: 16 classes, 154 tests, 0 failures, 0 errors, 0 skipped.
+- Full validation: `.\mvnw.cmd test -DskipFrontend=true` passed 2,651 tests, 0 failures, 0 errors, 0 skipped, BUILD SUCCESS, with the orphaned compiled classes of deleted sources removed first so none could run against the new code. Frontend: `npx vitest run` passed 120 files and 499 tests;
+  `npx eslint` on the five changed frontend files passed; root `npx tsc --noEmit` passed;
+  `npm run build` passed; `npm run typecheck:app` reported 346 diagnostics against the 346-entry
+  baseline with 0 Information Request diagnostics, listing the same two Trusted Organizations
+  dialog messages as new only because a newer Fluent UI type renders them differently.
+- Help documentation: `exchangeDocumentCardsArticle.tsx` says Re-upload adds another file version,
+  which is now true once per upload instead of twice on plans with version history; no article
+  describes the removed Fields `PUT`, the `$` spelling, stored locators, or attribution columns. No
+  article changed. The article is 105 lines and the registry is 24.
+- Industry-neutrality check: the new identifiers are principal display, document version view,
+  document version creator mapper, route contract, root occurrence path, and the V122 through V127
+  migration names; fixtures use `Process record`, `Record Author`, `Review team`,
+  `author@process.test`, `Collection Process Owner`, and similar neutral values. A scan of every
+  changed file found no forbidden glyphs, emojis, or industry vocabulary.
+- Database migrations added across DS-T1 through DS-T4: V123 through V127. Flyway head is V127 and
+  the remaining program range is V128 through V139.
+- Exact next task: `P6-T2c` content hash and verification state, against the canonical-only
+  Document Version: store byte length, hash algorithm, hash value, and a truthful `VERIFIED` or
+  `UNVERIFIED` state from the bytes the storage port actually wrote, with no backfill state and no
+  historical-row handling. Start with a failing migration contract test for the new required
+  columns and a failing service test proving a stored version records the hash of the bytes written.
+- Files the next agent should read first: `AGENTS.md`; the active plan `## Status`,
+  `## Development-Stage Constraint`, the `P6-T2` task text, and `## Latest Implementation Result`;
+  this entry; `service/storage/DocumentVersionContentService.kt` with the storage port and its two
+  implementations; `service/exchange/ExchangeDocumentVersionService.kt`; `model/entity/DocumentVersion.kt`;
+  `service/exchange/DocumentContentHashService.kt`; and V123 and V124 as the current Document
+  Version shape.
+
+### 2026-09-24: DS-T3 Share provenance compatibility removal
+
+- Current phase and task: development-stage compatibility removal. `DS-T3` is complete. `DS-T4` is
+  next.
+- Test added first: `canonical grantor and revoker are the only Share provenance` in
+  `SharePrincipalProvenanceContractTest`, red at 5 tests, 1 failure because
+  `granted_by_app_user_id` still existed; the other 4 cases passed as regression guards.
+- Implementation: `V126__share_canonical_provenance.sql` drops both legacy columns with
+  `ck_share_grantor_principal_legacy` and `ck_share_revoker_principal_legacy`. `Share` no longer maps
+  them. `ShareService` keeps one form of each provenance-bearing operation, each taking a
+  `PrincipalRef`: `grant` absorbs `grantWithPrincipalProvenance`, `revoke` absorbs
+  `revokeWithPrincipalProvenance`, `revokePendingForResource` absorbs its provenance twin, and
+  `revokeAllForResource` absorbs its provenance twin. Group inheritance copies the canonical grantor
+  only, and `legacyAppUserId` is gone. Callers in `ExchangeAccessManagementService`,
+  `ExchangeInitiationService`, `ExchangeRecipientService`, and `InformationRequestPartyService` pass
+  principals. `ShareQueryService` and `SessionAccessEntryDto` expose `grantedByPrincipalKind` and
+  `grantedByPrincipalId` instead of `grantedByAppUserId`; the frontend type changed to match and no
+  frontend code read the old field. The stale dual-write paragraph on `ShareQueryService` was
+  removed.
+- Tests updated with the removed behavior: the Share contract test's inserts write whichever shape
+  the migrated schema has and its legacy-drift refusals were removed with the constraints they
+  covered; Mockito verifications and calls in `ExchangeAccessManagementRecipientBindingTest`,
+  `ExchangeAccessManagementMutationTest`, `ExchangeAccessManagementServiceTest`,
+  `ExchangeRecipientServiceTest`, `ShareServiceAuditTest`, `InformationRequestPartyServiceTest`, and
+  `InformationRequestParticipantAccountUpgradeServiceTest` use the canonical API.
+- Focused and affected tests: every test class under `service/exchange` plus the Share contract,
+  Information Request party, participant upgrade, and recipient and published-group resource tests
+  passed 535 tests, 0 failures, 0 errors, 0 skipped, BUILD SUCCESS. The full backend suite runs after
+  `DS-T4`.
+- Left in place deliberately: `grantRoleKeyWithPrincipalProvenance` already takes a `PrincipalRef`
+  and has no legacy twin, so only its name carries the old suffix. `app_role_assignment` and
+  `subscription_trial_grant` keep their own `granted_by_app_user_id` columns; they are separate
+  tables that never had a canonical pair and are not compatibility shims.
+- Database migrations added: V126. Flyway head is V126 and the remaining range is V127 through V139.
+- Exact next task: `DS-T4`.
+
+### 2026-09-24: DS-T1b Document Version creator and DS-T2 Fields attribution compatibility removal
+
+- Current phase and task: development-stage compatibility removal. `DS-T1b` is complete, so `DS-T1`
+  is complete. `DS-T2` is complete. `DS-T3` is next.
+- DS-T1b tests added first, in two red rounds with compiling stubs. Round one:
+  `PrincipalDisplayServiceTest` (5 cases, behavior extracted from `ShareQueryService`) and two new
+  `ShareServicePrimaryRecipientTest` cases for `primaryRecipientPrincipal`; red at 9 tests, 7 errors,
+  every one `NotImplementedError`, with the 2 existing cases passing; then green at 21 tests with
+  `ExchangeAccessObservabilityPermutationTest`, whose `ShareQueryService` construction changed.
+  Round two: `DocumentVersionCreatorPrincipalColumnContractTest` rewritten to the final shape
+  (7 cases), `DocumentVersionCreatorMapperTest` rewritten (2 cases),
+  `ExchangeDocumentVersionCreatorContractTest` rewritten (2 cases),
+  `DocumentVersionDetailedDtoContractTest` extended (2 creator cases), and the new
+  `ExchangeDocumentUploadVersionCreatorTest` (3 cases). Red was behavioral: the contract test failed
+  4 of 7 because the legacy columns and the pair constraint still existed, an email-only row
+  survived, and a legacy-key-only row was not carried to its user; the other new tests failed with
+  `NotImplementedError` from the stubs. One upload fixture first failed on the 100-byte minimum file
+  size, which also made the refusal case pass for the wrong reason; the fixture was corrected and
+  the refusal case then failed as intended with `NotImplementedError` instead of the refusal.
+- DS-T1b implementation: `V124__document_version_canonical_creator.sql`; `DocumentVersion` maps only
+  the required canonical pair; `DocumentVersionCreatorMapper` reads and records a `PrincipalRef`;
+  `DocumentVersionCreatorResolver`, `DocumentVersionCreatorProvenance`, the `DocumentVersionCreator`
+  data class, and the resolver test were deleted; `ExchangeDocumentVersionService.createVersion`
+  takes no email and attributes to the authenticated user, `recordUploadedFileAsVersion` takes the
+  creator principal, and list, latest, and create return a `DocumentVersionView` whose creator label
+  comes from `PrincipalDisplayService`; `ExchangeDocumentService.uploadDocument` passes the
+  principal `validateUserPermissions` authorized, and `uploadNoAuthDocument` passes
+  `ShareService.primaryRecipientPrincipal` and refuses before storing content when there is none;
+  `ExchangeDocumentVersionResource` drops the `userEmail` form field and maps the latest version
+  through the same payload instead of returning the entity; the frontend upload dialog no longer
+  sends `userEmail`.
+- DS-T1b decision: the no-auth upload is authorized by the Exchange no-auth access token under the
+  primary recipient's Share, not by a ShareLink, so the truthful creator is that Share's principal,
+  which may be a user or a group. The plan text that said "the participant or link that presented
+  itself" was written before the path was inspected and was corrected.
+- DS-T2 test added first: `canonical authorship is the only authorship a Fields row carries` in
+  `FieldValueCanonicalProvenanceContractTest`, red at 5 tests, 1 failure because the three legacy
+  columns still existed.
+- DS-T2 implementation: `V125__fields_canonical_attribution.sql`; the three legacy entity fields and
+  `FieldPrincipalProvenance.legacyAppUserId` with its three writes are gone; the V80 contract test's
+  inserts now write whichever shape the migrated schema has and its legacy-drift assertions were
+  removed with the constraints they covered; the legacy assertions in
+  `FieldValueRevisionPersistenceContractTest`, `FieldsCommandContractTest`,
+  `FieldValueCanonicalProvenanceTest`, and `SchemaAssignmentFieldsFixture` were removed.
+- Tests: DS-T1 focused and affected, 19 classes, 95 tests run; after the DS-T1a fixtures were given a
+  creator, all passed. The DS-T1 full backend suite ran 2,654 tests: 2,649 passed and 5 errored, all
+  in `DocumentVersionCreatorResolverTest`, whose source had been deleted but whose compiled class was
+  still in `target/test-classes`, where it ran against the new classes. The orphaned test class and
+  the four orphaned main classes were removed. DS-T2 focused and affected, 10 classes: 83 tests,
+  0 failures, 0 errors, 0 skipped. The next full backend suite runs after `DS-T3`.
+- Frontend gate at the DS-T1 checkpoint: `npx vitest run` passed 119 files and 498 tests;
+  `npx eslint` on the two changed frontend files passed; root `npx tsc --noEmit` passed;
+  `npm run build` passed; `npm run typecheck:app` reported 346 diagnostics against the 346-entry
+  baseline with 0 Information Request diagnostics, and listed 2 Trusted Organizations dialog errors
+  as new only because their messages now render a newer Fluent UI type with `unmountOnClose`. Those
+  files were not touched.
+- Environment note: the user's `quarkus:dev` session is running and holds `target/docuhyphen-dev.jar`.
+  An attempted `mvnw.cmd clean` therefore failed partway, after it had already removed
+  `target/test-classes` and `target/quarkus`, including the dev bootstrap model. Later test runs
+  recompiled the test classes; the running dev server may need a restart. Dev mode live reload
+  applies new migrations to the local dev database, and V123 and V124 remove versions that cannot
+  satisfy the final shape.
+- Help documentation: no article states who a version is attributed to or where its content is
+  stored; the displayed creator email is unchanged; none changed.
+- Database migrations added: V124 and V125. Flyway head is V125.
+- Exact next task: `DS-T3`.
+
+### 2026-09-24: DS-T1a Document Version storage locator compatibility removal
+
+- Current phase and task: development-stage compatibility removal. `DS-T1a` is complete. `DS-T1`
+  stays unchecked until `DS-T1b` is done, and `DS-T1b` is next. The user chose to run the whole
+  `DS-T1` through `DS-T4` backlog in this session.
+- Tests added first. `DocumentVersionStorageLocatorColumnContractTest` was rewritten to the final
+  shape: the local path column is gone and the three canonical columns are `NOT NULL`; an
+  object-store locator is stored; a version missing any locator part is refused by the named
+  column; a local filesystem provider or legacy kind is refused by
+  `ck_document_version_storage_locator_provider_kind`; an unrecognised provider or kind is refused;
+  a blank locator is refused; and a version that could only be located through the retired local
+  path, either by path alone or by a stated legacy local locator, is removed by the migration while
+  an object-store version survives. `DocumentVersionStorageLocatorTest` gained two vocabulary cases
+  stating that `OBJECT_STORE` and `OBJECT_KEY` are the only values. The new
+  `DocumentVersionDetailedDtoContractTest` pins the serialized version payload fields and proves no
+  storage location is sent to a client. All three compiled against the previous shape and were
+  behaviorally red: 28 tests, 9 failures, 1 error, 0 skipped, reporting that `storage_path` was still
+  required, that the path-only row survived, that both enums still carried legacy values, and that
+  the payload still contained `storagePath`.
+- Implementation completed. `V123__document_version_canonical_storage_locator.sql` deletes every
+  version without an object-store locator, drops the V121 stated-or-absent and provider-kind checks,
+  drops `storage_path`, makes the canonical columns `NOT NULL`, and adds a provider-kind check that
+  admits only `OBJECT_STORE` with `OBJECT_KEY`. `LOCAL_FILESYSTEM`, `LEGACY_LOCAL_PATH`, and
+  `LegacyLocalDocumentVersionLocator` are gone; `DocumentVersionStorageLocators.resolve` takes a
+  non-null kind; `DocumentVersionStorageLocatorMapper.read` has no fallback;
+  `DocumentVersionContentService.open` has no local-path branch; `DocumentVersion` maps the three
+  locator columns as required and no longer maps `storage_path`;
+  `ExchangeDocumentVersionService.persistVersion` no longer dual-writes; and
+  `DocumentVersionDetailedDto`, `DetailedEntityToDtoTransformer`, and the frontend `DocumentVersion`
+  model no longer carry `storagePath`.
+- Existing tests updated with the removed behavior: the legacy cases in
+  `DocumentVersionStorageLocatorTest`, `DocumentVersionStorageLocatorMapperTest`, and
+  `DocumentVersionStorageLocatorPersistenceContractTest` were removed, the legacy-path case in
+  `ExchangeDocumentVersionStorageContractTest` was removed, and the raw `document_version` inserts in
+  `DocumentVersionCreatorPrincipalColumnContractTest`, `InformationRequestEvidenceArtifactContractTest`,
+  and `InformationRequestEvidencePersistenceContractTest` now state the canonical locator.
+- Focused and affected tests: 15 classes covering the locator, storage port, content service,
+  creator provenance, evidence persistence, and version comments passed 77 tests, 0 failures,
+  0 errors, 0 skipped, BUILD SUCCESS. The full backend suite and the frontend gate run at the
+  `DS-T1` checkpoint after `DS-T1b`, because both subtasks change the same table and files.
+- Database migrations added: `V123__document_version_canonical_storage_locator.sql`. Flyway head is
+  V123 and the remaining range is V124 through V139.
+- Help documentation: no article states where version content is stored or exposes a storage path,
+  so none changed.
+- Observation, not changed: the frontend `DocumentVersion` model declares `fileName`, which the
+  backend version payload has never sent. `ExchangeDocumentVersions.tsx` guards it, so nothing
+  breaks, but the file name is never displayed. This predates the program and is not a
+  compatibility mechanism.
+- Exact next task: `DS-T1b` creator provenance removal.
+
+### 2026-09-24: Development-stage constraint, no backwards-compatibility code
+
+- Current phase and task: planning change. Phase 6 stays in progress. `DS-T1a` is now the exact next
+  task and `P6-T2c` follows the `DS-T1` removals.
+- Instruction: the user directed that the plan ensure no backwards-compatibility code is
+  implemented, and that the platform be treated as active development with no production users yet.
+  This supersedes the program's earlier rolling expand-contract assumption.
+- Tests added first: none. This was a documentation-only planning session. No production code,
+  migration, API contract, configuration behavior, or user-facing behavior changed, so the TDD
+  sequence did not apply and no test command was run.
+- What the plan now says.
+    - New `## Development-Stage Constraint` section: one supported shape of every column, contract,
+      payload, and identity; no dual-write, no legacy read fallback, no retained legacy column,
+      field, endpoint, alias, or enum value; a shape is replaced in one forward-only migration that
+      also transforms or removes the rows that cannot satisfy the final constraints; no rolling
+      deployment, mixed application versions, old-writer drain, later contract release, catch-up
+      backfill, or deprecation window; no history label for an unresolvable legacy value and no
+      state that exists only to describe rows an older release wrote.
+    - The same section draws two boundaries. Removing compatibility with older releases is not
+      permission to regress current behavior, so shipped features and their tests must keep working.
+      Flyway files that may already have been applied are still never edited, renamed, reused, or
+      squashed; replacement happens in a new forward migration.
+    - New `## Development-Stage Compatibility Removal` section with `DS-T1` through `DS-T4`, the
+      work created by the constraint. `DS-T1` is split into `DS-T1a` storage locator and `DS-T1b`
+      creator provenance because it is larger than one session.
+- Scope of the removal backlog, verified against the code rather than against the plan text.
+    - `DS-T1a`: `document_version.storage_path` dual-write, the legacy branch in
+      `DocumentVersionStorageLocatorMapper` and `DocumentVersionContentService`, the
+      `LEGACY_LOCAL_PATH` kind and `LegacyLocalDocumentVersionLocator`, and
+      `DocumentVersionDetailedDto.storagePath` with the frontend field that declares it.
+    - `DS-T1b`: `document_version.created_by` and `createdbyemail`, the legacy branch in
+      `DocumentVersionCreatorMapper`, the legacy field in `DocumentVersionCreatorProvenance`, and
+      the V122 rolling-deployment allowance. It also has real new work: every creation path must
+      name a principal, including the link-verified no-auth upload that currently records a
+      server-resolved primary recipient email, and the creator display in
+      `DetailedEntityToDtoTransformer` must resolve from the canonical principal once the
+      registered-user association disappears.
+    - `DS-T2`: `field_value.updated_by_app_user_id`, `schema_assignment.assigned_by_app_user_id`,
+      `field_value_revision.recorded_by_app_user_id`, and `FieldPrincipalProvenance.legacyAppUserId`
+      with its three writes.
+    - `DS-T3`: `share.granted_by_app_user_id`, `share.revoked_by_app_user_id`, and the `ShareService`
+      dual-write. Readers are checked first, including the access-management DTOs.
+    - `DS-T4`: a program-wide sweep for any remaining compatibility mechanism, replacing the
+      compatibility half of `P12-T1`.
+- Other plan sections changed: `## Status` records the development stage and the new next task;
+  `### Compatibility rules` became `### Schema and behavior change rules` and no longer mandates
+  expand-contract, dual-write, old-writer drain, or later contract releases; architectural decision
+  39 now states the canonical principal pair is the only attribution any row carries; the migration
+  allocation rule drops rolling-version compatibility recording; `P6-T2` and `P6-T2c` are rewritten
+  against the canonical-only shape and `BACKFILL_FAILED` is gone; Phase 6 `### Tests to write first`
+  drops rolling old-writer and catch-up-backfill coverage; Phase 12 is renamed
+  `Packaging, Rollout, and Final Hardening` and `P12-T1` drops rolling-deployment and rollback
+  coverage; the Cross-Phase Test Matrix migration row states canonical-only attribution and no
+  mixed-version coverage; Program Acceptance Criteria gains a criterion that no production code path
+  reads or writes a compatibility shape; the migration ledger notes that `DS-T1b` supersedes the
+  V122 rolling allowance; and the continuation prompt points at `DS-T1a`.
+- Completed task text was deliberately left unrewritten. `P1-T3`, `P1-T5`, `P1-T6`, `P3-T1c`,
+  `P3-T1d`, `P6-T2a`, and `P6-T2b` describe what was actually built and remain the historical
+  record; the constraint states that they are superseded rather than editing them into a shape they
+  never had.
+- Files changed: `plans/DOCUMENT-DRIVEN-INFORMATION-REQUESTS-IMPLEMENTATION-PLAN.md` and this file.
+- Database migrations added: none. Flyway head stays V122 and the remaining unallocated program
+  range is V123 through V139.
+- Focused tests run and results: not run, because no production code changed.
+- Full validation commands and results: structural checks on the plan only. Task identifiers are
+  164 and all unique with no duplicates, the six Markdown fences are unchanged and balanced, there
+  are no trailing-whitespace lines, and a scan for forbidden glyphs and non-ASCII punctuation
+  returned none. `git diff --check` passed with only the repository's usual LF-to-CRLF warnings.
+- Help documentation reviewed or updated: not required. No production behavior or user-visible
+  behavior changed in this session, and no frontend file was touched.
+- Decisions made:
+    - The removals are tracked as their own `DS-Tn` backlog rather than by editing the completed
+      tasks that produced the shims, so the plan keeps an honest record of what was built and why it
+      is being removed.
+    - `DS-T1` runs before `P6-T2c`, so the hash and verification work is written once, against the
+      final Document Version shape, rather than against a shape that is about to lose columns.
+    - Forward-only Flyway discipline is kept. A shape is replaced by a new migration, never by
+      editing an applied one, because dev and CI databases still apply the whole history in order.
+    - Feature-level preservation rules stay: existing Exchange metadata, Blueprint defaults,
+      `exchange_recipient` and its V63 trigger, and existing direct-grant ShareLink behavior are
+      current features, not backwards compatibility.
+- Industry-neutrality check: this session added no production identifier, fixture, seed value, or
+  shipped configuration. The new task text names only platform-neutral storage, attribution, and
+  principal concepts.
+- Assumptions: no deployed environment holds data that must survive, so a migration may transform or
+  remove rows that cannot satisfy a final constraint. This is the user's stated position and should
+  be rechecked with the user before the first destructive migration runs against any shared
+  environment.
+- Known risks or blockers: no blocker to `DS-T1a`.
+    - `DS-T1b` is larger than a pure removal because naming a real principal on the link-verified
+      no-auth upload path needs the resolved link or participant identity that `P6-T3` was expected
+      to supply. If that identity cannot be reached from the upload service, stop and rescope rather
+      than inventing a principal.
+    - `DS-T2` and `DS-T3` touch Fields and Share, which are shipped features used outside this
+      program. Their full regression suites must run before either is checked.
+    - `InformationRequestParty.assignedByAppUserId` is a registered-user-only attribution column on
+      a table this program created, with no canonical pair beside it. It is not a compatibility
+      shim, so it is out of scope for `DS-Tn`, but it is inconsistent with architectural decision 39
+      and should be raised with the user as a separate modelling question.
+    - Production external evidence upload stays disabled and the scanner deployment and
+      signature-update decision remains deferred by the user. No commit or push was made.
+- Exact next task: `DS-T1a`. Start with a failing PostgreSQL migration contract test proving
+  `storage_path` is gone and that `storage_provider`, `storage_locator_kind`, and `storage_locator`
+  are `NOT NULL`, plus a failing service test proving a version resolves its content only through
+  the canonical locator. Then write the migration, delete the dual-write in
+  `ExchangeDocumentVersionService.persistVersion`, remove the legacy branches from
+  `DocumentVersionStorageLocatorMapper` and `DocumentVersionContentService`, delete
+  `LEGACY_LOCAL_PATH` and `LegacyLocalDocumentVersionLocator`, and remove
+  `DocumentVersionDetailedDto.storagePath` with the frontend field that declares it. The existing
+  `ExchangeDocumentVersionStorageContractTest` case that opens a pre-canonical row from its legacy
+  local path is removed with the behavior it covers.
+- Files the next agent should read first: `AGENTS.md`, the active plan `## Status`,
+  `## Development-Stage Constraint`, `## Development-Stage Compatibility Removal`,
+  `## Mandatory Protocol for Every Implementation Session`, and `## Latest Implementation Result`,
+  this entry, `model/document/DocumentVersionStorageLocator.kt`,
+  `model/document/DocumentVersionStorageLocatorMapper.kt`,
+  `service/storage/DocumentVersionContentService.kt`,
+  `service/exchange/ExchangeDocumentVersionService.kt`, `model/entity/DocumentVersion.kt`, and
+  `V121__document_version_storage_locator.sql` with `V122__document_version_creator_principal.sql`.
+
+### 2026-09-24: P6-T2b canonical document version creator provenance
+
+- Current phase and task: Phase 6. `P6-T2b` is complete. `P6-T2` and Phase 6 remain unchecked, and
+  `P6-T2c` content hash and verification state is next.
+- Working tree inspected first. The pre-existing changes were this program's own uncommitted Phase 6
+  work: V120 and V121, the two evidence entities, the runtime enum addition, the evidence source
+  mapper, the two evidence repositories, the `P6-T2a1` locator model, the `P6-T2a2` mapper, the
+  `P6-T2a3` storage port with its producer, exceptions, content service and tests, and the modified
+  plan and evidence files. All were preserved. No unrelated user change was staged, reverted, or
+  edited.
+- Verified the starting point against the code rather than checkboxes. `git status` matched the
+  previous entry, the plan's recorded next task was `P6-T2b`, `document_version` still named its
+  creator only through the `created_by` foreign key and the `createdbyemail` column, and
+  `ExchangeDocumentVersionService.persistVersion` still resolved both from the `currentUserEmail`
+  argument. The `createVersion` REST path takes that argument from a `userEmail` multipart form
+  field, so the creator of an authenticated version upload was decided by the client rather than by
+  the authenticated principal. That is the provenance hole this task closes.
+- Tests added first, in two red rounds.
+    - Round one, `DocumentVersionCreatorPrincipalColumnContractTest`, eight Flyway plus
+      Testcontainers PostgreSQL cases: column optionality and type with the legacy creator columns
+      retained, a pre-release row with a trusted registered-user key backfilled to the same user, a
+      pre-release row naming only an email keeping its label and gaining no principal, two
+      half-stated refusals, an unrecognised kind refusal, two legacy-disagreement refusals, a
+      legacy-key-only row still accepted for a rolling deployment, and a participant and a
+      public-link creator stored as the canonical pair alone. This test names no new Kotlin symbol,
+      so it compiled and was behaviorally red: 8 tests, 4 failures, 4 errors, 0 skipped, every one
+      reporting `column "created_by_principal_kind" of relation "document_version" does not exist`.
+      Green after V122 and the entity mapping: 8 tests, 0 failures, 0 errors, 0 skipped.
+    - Round two, `DocumentVersionCreatorMapperTest` (7 plain JUnit cases),
+      `DocumentVersionCreatorResolverTest` (5 plain JUnit cases with a real `AuthTokenContext` and a
+      real `AuthorizationContextFactory`), and `ExchangeDocumentVersionCreatorContractTest`
+      (2 `@QuarkusTest` cases against real PostgreSQL). Because brand-new symbols cannot be
+      referenced before they exist and the protocol forbids accepting a compilation error as the red
+      state, compiling stubs were added first and the resolver was wired into the version service so
+      CDI could resolve it. The focused run was behaviorally red: 14 tests, 2 failures, 12 errors,
+      0 skipped, every one a `NotImplementedError` or an assertion reporting `NotImplementedError`
+      in place of the expected refusal.
+- Implementation completed.
+    - `V122__document_version_creator_principal.sql` adds `created_by_principal_kind` and
+      `created_by_principal_id` as optional columns, backfills `USER` plus the same identifier only
+      where the `created_by` foreign key is non-null, and reports by `RAISE NOTICE` how many rows
+      name a creator by email alone and therefore keep no canonical principal. Three check
+      constraints hold the vocabulary, keep the kind and the identifier together, and stop the
+      canonical pair and the retained foreign key from naming different creators.
+    - The legacy consistency constraint deliberately still accepts a row that states the foreign key
+      alone. V80 and V93 required the canonical pair whenever the legacy key was present; doing the
+      same here would make an instance that predates this release fail to create versions for the
+      length of a rolling deployment, which is exactly the window this task has to keep open. Drift
+      is still refused, so contracting the old column later cannot change what any row says.
+    - `DocumentVersion` maps the two columns, and its legacy association is documented as the
+      registered-user half that only a `USER` principal can occupy.
+    - `DocumentVersionCreatorMapper.read` is the read path: the canonical pair when stated,
+      otherwise the registered-user key a pre-canonical writer left, and never a principal derived
+      from an email. A half-stated pair and a pair that contradicts the foreign key are both
+      refused.
+    - `DocumentVersionCreatorResolver` decides the creator of a new version. The authenticated
+      principal of the request wins whenever the platform has one, so the `userEmail` form field can
+      no longer decide attribution; the retained foreign key and the email label then come from that
+      same authenticated user. An authenticated application is recorded as an `APPLICATION`
+      principal with no foreign key, because the column cannot hold one. Without an authenticated
+      principal the caller passes the email the platform itself resolved for the upload, and that
+      email names a principal only when it belongs to a registered user record.
+    - `DocumentVersionCreatorProvenance` writes both shapes together and refuses at construction to
+      hold a foreign key that names anyone but the canonical `USER` principal.
+    - `ExchangeDocumentVersionService.persistVersion` records the resolved provenance instead of
+      resolving a user from the supplied email itself, so `AppUserRepository` left that service. The
+      document audit label for a version creation now uses the recorded creator email rather than
+      the supplied one, so the audit trail and the stored row state the same creator.
+- Files changed: new `src/main/resources/db/migration/V122__document_version_creator_principal.sql`,
+  `model/document/DocumentVersionCreator.kt`, `model/document/DocumentVersionCreatorProvenance.kt`,
+  `service/exchange/DocumentVersionCreatorResolver.kt`; modified
+  `model/entity/DocumentVersion.kt` and `service/exchange/ExchangeDocumentVersionService.kt`; new
+  tests `migration/DocumentVersionCreatorPrincipalColumnContractTest.kt`,
+  `model/document/DocumentVersionCreatorMapperTest.kt`,
+  `service/exchange/DocumentVersionCreatorResolverTest.kt`,
+  `service/exchange/ExchangeDocumentVersionCreatorContractTest.kt`; plus the active plan and this
+  file.
+- Database migrations added: `V122__document_version_creator_principal.sql`. Flyway head moves from
+  V121 to V122 and the remaining unallocated program range is V123 through V139. No new AWS service
+  or paid resource type was added, and no configuration key changed.
+- Focused tests run and results:
+  `.\mvnw.cmd "-Dtest=DocumentVersionCreatorPrincipalColumnContractTest" test -DskipFrontend=true`
+  was red at 8 tests, 4 failures, 4 errors, 0 skipped, then green at 8 tests, 0 failures, 0 errors,
+  0 skipped.
+  `.\mvnw.cmd "-Dtest=DocumentVersionCreatorMapperTest,DocumentVersionCreatorResolverTest,ExchangeDocumentVersionCreatorContractTest" test -DskipFrontend=true`
+  was red at 14 tests, 2 failures, 12 errors, 0 skipped.
+  All four new tests together then passed 22 tests, 0 failures, 0 errors, 0 skipped, BUILD SUCCESS.
+- Full validation commands and results: `.\mvnw.cmd test -DskipFrontend=true` passed 2,656 tests, 0 failures, 0
+  errors, 0 skipped, BUILD SUCCESS, which is the previous 2,634 plus exactly the 22 tests added
+  here. `git diff --check` passed with only the
+  repository's usual LF-to-CRLF warnings. No frontend file changed, so no `web-app` command was
+  required or run.
+- Help documentation reviewed or updated: searched the help sections for version, creator, uploaded
+  by, and attribution. `exchangeDocumentCardsArticle.tsx` is the only article that mentions document
+  versions, and it states only that Re-upload adds another file version and that the Versions tab
+  appears on plans including document version history. No help article states who a version is
+  attributed to, and the first-party client already sends the signed-in user's own email with a
+  version upload, so the displayed creator is unchanged for it. No article was edited and no
+  `web-app` command was required. The article is 105 lines and the registry is 24, within their
+  limits.
+- Decisions made:
+    - The authenticated principal of the request, not a request field, decides the creator of a new
+      version. The `userEmail` multipart field stays on the endpoint because the no-auth recipient
+      upload path still supplies a server-resolved email through the same service method, but it can
+      no longer set the attribution of an authenticated upload.
+    - The retained foreign key is written only for a `USER` principal, the same rule
+      `FieldPrincipalProvenance` already applies, because the column is a foreign key into the
+      registered-user table.
+    - The email label of an authenticated upload is the authenticated user's own email rather than
+      the supplied one, so the label, the foreign key, and the canonical pair cannot disagree inside
+      one row.
+    - An email is never resolved into a principal for a row that has no foreign key. Backfill
+      therefore touches only foreign-key rows, and the migration reports the email-only remainder
+      instead of guessing at it.
+    - A legacy-key-only write stays valid so a rolling deployment does not break, which is a
+      deliberate divergence from the stricter V80 and V93 constraints.
+- Industry-neutrality check: the added identifiers are document version creator, document version
+  creator mapper, document version creator provenance, document version creator resolver, and the
+  `created_by_principal_kind` and `created_by_principal_id` columns. Test content uses neutral
+  synthetic values such as `Process record`, `author@process.test`, `responder@process.test`,
+  `recipient@process.test`, and `reviewer@process.test`. No production branch reads a customer
+  label, and no shipped configuration, seed data, or fixture names an industry.
+- Assumptions: the `fk_document_version_creator` foreign key into `app_user` is trustworthy, which
+  the baseline schema enforces, so it is the only legacy statement the backfill converts.
+- Known risks or blockers: no blocker to `P6-T2c`.
+    - Rows whose only creator statement is an email keep no canonical principal. The migration
+      reports how many exist rather than resolving them, and a later catch-up backfill cannot
+      resolve them either without inventing an identity.
+    - A link-verified no-auth upload is still attributed through the server-resolved primary
+      recipient email rather than to the share link that was actually presented. Naming a
+      `PUBLIC_LINK` or `PARTICIPANT` creator there needs the request to carry a resolved link or
+      participant identity into this service, which belongs with the `P6-T3` upload endpoints rather
+      than with this expand-stage column work. The schema and the mapper already accept those kinds.
+    - `storage_path` is still `VARCHAR(255)` while `storage_locator` is `VARCHAR(1024)`. A long
+      document title can therefore make the dual-written canonical key longer than the legacy
+      column allows. The same overflow existed for the old local version path, so this is not a new
+      regression, but it should be resolved when `storage_path` is contracted.
+    - Production external evidence upload stays disabled and the concrete scanner deployment and
+      signature-update decision remains deferred by the user, which continues to gate `P6-T6` and
+      the Phase 6 exit criteria but not the remaining scanner-independent tasks. No commit or push
+      was made.
+- Exact next task: `P6-T2c` content hash and verification state. Add byte length, hash algorithm,
+  hash value, and a `VERIFIED`, `UNVERIFIED`, or `BACKFILL_FAILED` state to `document_version` in a
+  new expand-stage migration allocated V123, bound to the exact locator and bytes that were read.
+  Never copy a hash from the mutable `Document` row. Hash a legacy version from its own resolved
+  locator on use or through a retryable backfill, and keep unreadable, missing, or `END_TO_END`
+  content unverified so it cannot satisfy a Requirement. Start with a failing migration contract
+  test for the new columns and their truthful-state constraints, then a failing service test
+  asserting that a newly stored version records the hash of the bytes the storage port actually
+  wrote while a legacy row stays `UNVERIFIED` until it is hashed.
+- Files the next agent should read first: `AGENTS.md`, the active plan `## Status`,
+  `## Mandatory Protocol for Every Implementation Session`, the `P6-T2` task text with its subtasks,
+  and `## Latest Implementation Result`, this entry,
+  `service/storage/DocumentVersionContentService.kt` with the port and its two implementations,
+  `service/exchange/ExchangeDocumentVersionService.kt`, `model/entity/DocumentVersion.kt`,
+  `model/document/DocumentVersionStorageLocatorMapper.kt`,
+  `service/exchange/DocumentContentHashService.kt` as the existing document hashing behavior, and
+  `V122__document_version_creator_principal.sql` as the newest migration.
+
+### 2026-09-24: P6-T2a3 provider-neutral version storage port, write-once keys, and dual-write
+
+- Current phase and task: Phase 6. `P6-T2a3` is complete, so `P6-T2a` is complete. `P6-T2` and
+  Phase 6 remain unchecked, and `P6-T2b` creator provenance is next.
+- Working tree inspected first. The pre-existing changes were this program's own uncommitted Phase 6
+  work: V120 and V121, the two evidence entities, the runtime enum addition, the evidence source
+  mapper, the two evidence repositories, the `P6-T2a1` locator model and `P6-T2a2` mapper with their
+  tests, and the modified plan and evidence files. All were preserved. No unrelated user change was
+  staged, reverted, or edited.
+- Verified the starting point against the code rather than checkboxes. `git status` matched the
+  previous entry, the plan's recorded next task was `P6-T2a3`, and
+  `ExchangeDocumentVersionService.persistVersion` was still copying into the hardcoded
+  `local-development-resources/document-versions` directory with `REPLACE_EXISTING`, while
+  `getVersionFile` still returned `File(version.storagePath)`. Nothing wrote the canonical columns.
+- Tests added first, in two red rounds.
+    - Round one, `DocumentVersionObjectKeysTest` (6 plain JUnit cases) and
+      `LocalDocumentVersionStorageServiceTest` (4 plain JUnit cases against a real temporary
+      directory): key shape, per-version key uniqueness, separator, drive-marker and whitespace
+      reduction, unusable-name fallback, object-key validity, write-then-read byte identity,
+      overwrite refusal with the first bytes preserved, opened file naming, and missing-key refusal.
+      A brand-new symbol cannot be referenced before it exists and the protocol forbids accepting a
+      compilation error as the red state, so compiling stubs were added first. The focused run was
+      behaviorally red: 10 tests, 1 failure, 9 errors, 0 skipped, every one a `NotImplementedError`
+      or an assertion reporting `NotImplementedError` in place of the expected refusal.
+    - Round two, `ExchangeDocumentVersionStorageContractTest`, 6 `@QuarkusTest` cases against real
+      PostgreSQL with `file.storage.service=local` and a temporary version-storage root: canonical
+      object key recorded beside the legacy path, a second version stored under its own key with the
+      first still readable, opened content named by the recorded version file name, a pre-canonical
+      row opened from its legacy local path, a canonical row whose object is missing refused rather
+      than served, and content written where the configured storage holds it. The wiring (port
+      implementations and producer) had to exist for CDI to resolve, so only the content service was
+      stubbed. The focused run was behaviorally red: 6 tests, 0 failures, 6 errors, 0 skipped, three
+      `NotImplementedError` reads and three `expected: <OBJECT_STORE> but was: <null>` dual-write
+      assertions.
+- Implementation completed.
+    - `DocumentVersionStorageService` is the provider-neutral port: `writeNewVersion(key, file)`
+      returns the object-store locator actually written, and `openVersion(locator)` returns the
+      content. `LocalDocumentVersionStorageService` and `AwsS3DocumentVersionStorageService` are
+      selected by `DocumentVersionStorageServiceProducer` from
+      `document.version.storage.service`, which defaults to `file.storage.service`, exactly the way
+      the existing file, thumbnail, and profile-picture storage implementations are selected.
+    - Write-once is enforced by each implementation rather than by convention. The local
+      implementation copies without `REPLACE_EXISTING` and converts `FileAlreadyExistsException`
+      into `DocumentVersionObjectKeyInUseException`. The AWS implementation sends
+      `PutObject` with `If-None-Match: *` and converts the `412` refusal into the same exception, so
+      a repeated key fails instead of overwriting stored bytes.
+    - `DocumentVersionObjectKeys.allocate` derives a unique key per version,
+      `document-versions/<documentId>/<versionId>/<reduced file name>`. The file name is reduced to
+      one key segment by replacing every character outside `A-Za-z0-9._-`, and a name with no
+      naming character at all falls back to `version-content`, so a title made only of separators or
+      traversal segments cannot produce an invalid key.
+    - `DocumentVersionContentService` owns key allocation and provider routing. `store` allocates
+      the key and writes through the configured port. `open` reads the canonical locator first
+      through `DocumentVersionStorageLocatorMapper`, sends an `OBJECT_KEY` to the port, and resolves
+      a `LEGACY_LOCAL_PATH` through the local filesystem, which is the only implementation that ever
+      wrote one. Missing content is refused with `DocumentVersionContentNotFoundException` on both
+      paths rather than served as an empty or absent file.
+    - `ExchangeDocumentVersionService.persistVersion` now records the returned locator in the
+      canonical columns and dual-writes the same value into the legacy `storage_path`, which stays
+      `NOT NULL`. `getVersionFile` became `getVersionContent` and returns
+      `DocumentVersionContent`, a file plus the recorded version file name, so the download name
+      comes from the version record rather than from the stored object. The value is identical to
+      the name the old local copy carried, and it stays correct when an object-store implementation
+      serves the content from a temporary file.
+- Files changed: new `service/storage/DocumentVersionStorageService.kt`,
+  `service/storage/LocalDocumentVersionStorageService.kt`,
+  `service/storage/AwsS3DocumentVersionStorageService.kt`,
+  `service/storage/DocumentVersionContentService.kt`,
+  `config/DocumentVersionStorageServiceProducer.kt`,
+  `model/document/DocumentVersionObjectKeys.kt`, `model/document/DocumentVersionContent.kt`,
+  `exception/DocumentVersionStorageExceptions.kt`; modified
+  `service/exchange/ExchangeDocumentVersionService.kt`,
+  `resource/exchange/ExchangeDocumentVersionResource.kt`, and `application.properties`; new tests
+  `model/document/DocumentVersionObjectKeysTest.kt`,
+  `service/storage/LocalDocumentVersionStorageServiceTest.kt`,
+  `service/exchange/ExchangeDocumentVersionStorageContractTest.kt`; plus the active plan and this
+  file.
+- Database migrations added: none. This subtask writes the V121 columns that already exist. Flyway
+  head stays V121 and the remaining unallocated program range is V122 through V139.
+- Configuration added: `document.version.storage.service`, `document.version.storage.aws.bucket`,
+  `document.version.storage.aws.region`, and `document.version.storage.local.root-directory`. Each
+  defaults to the existing document storage setting, so no deployment changes behavior without
+  being reconfigured, and the object bucket defaults to the existing documents bucket. No new AWS
+  service or paid resource type was added.
+- Focused tests run and results:
+  `.\mvnw.cmd "-Dtest=DocumentVersionObjectKeysTest,LocalDocumentVersionStorageServiceTest" test -DskipFrontend=true`
+  was red at 10 tests, 1 failure, 9 errors, 0 skipped, then green at 10 tests, 0 failures, 0 errors,
+  0 skipped.
+  `.\mvnw.cmd "-Dtest=ExchangeDocumentVersionStorageContractTest" test -DskipFrontend=true` was red
+  at 6 tests, 0 failures, 6 errors, 0 skipped, then green at 6 tests, 0 failures, 0 errors,
+  0 skipped.
+  After the refactor that moved key allocation out of the Exchange service,
+  `.\mvnw.cmd "-Dtest=ExchangeDocumentVersionStorageContractTest,LocalDocumentVersionStorageServiceTest,DocumentVersionObjectKeysTest,DocumentVersionStorageLocatorTest,DocumentVersionStorageLocatorMapperTest,DocumentVersionStorageLocatorPersistenceContractTest,DocumentVersionStorageLocatorColumnContractTest" test -DskipFrontend=true`
+  passed 51 tests, 0 failures, 0 errors, 0 skipped, BUILD SUCCESS.
+- Full validation commands and results: `.\mvnw.cmd test -DskipFrontend=true` passed 2,634 tests,
+  0 failures, 0 errors, 0 skipped, BUILD SUCCESS, which is the previous 2,618 plus exactly the 16
+  tests added here. The suite was run twice, once before and once after the refactor that moved key allocation into the content service, and both runs reported the same 2,634 green tests. `git diff --check` passed with only the repository's usual LF-to-CRLF warnings. No frontend file changed, so no `web-app` command was required or run.
+- Help documentation reviewed or updated: searched the help sections for version, storage, download,
+  and file name. `exchangeDocumentCardsArticle.tsx` is the only match and states that Re-upload adds
+  another file version and that the Versions tab appears only on plans including document version
+  history. Neither statement changed: the same versions are created, listed, and downloaded under
+  the same plan gate and the same download file name. No help section states where version content
+  is stored, so no article was edited and no `web-app` command was required. The article is 105
+  lines and the registry is 24, within their limits. No frontend file changed.
+- Decisions made:
+    - A new version records `OBJECT_STORE` with an `OBJECT_KEY` in every deployment, and
+      `LOCAL_FILESYSTEM` with `LEGACY_LOCAL_PATH` now belongs exclusively to rows written before
+      this change. The provider states the key space the value belongs to, and which implementation
+      serves that key space is deployment configuration, exactly as the existing document upload
+      path already treats `FileStorageService` keys. V121's check constraints already pair provider
+      and kind this way, so no migration was needed.
+    - The legacy `storage_path` receives the same canonical value rather than a fabricated local
+      path, because inventing a path that holds no bytes would be untruthful. During a rolling
+      deployment an instance that predates this change therefore cannot read a version created by a
+      new instance. That is not a regression: the old writer copied to the local disk of whichever
+      container served the upload, so in a multi-instance deployment those versions were already
+      unreadable elsewhere.
+    - Key allocation and provider routing live in `DocumentVersionContentService`, not in
+      `ExchangeDocumentVersionService`, so the Exchange service records a locator it was given and
+      does not know how keys are shaped. This refactor was made while the focused tests were green
+      and they were rerun afterwards.
+    - The download file name now comes from `DocumentVersion.fileName` rather than from the stored
+      file. The value is identical today, and it keeps the header correct once content is served
+      from an object store through a temporary file.
+    - The AWS implementation uses a conditional `PutObject` rather than a `HeadObject` check
+      followed by a write, because the check-then-write pair can still overwrite a key written
+      between the two calls.
+- Industry-neutrality check: the added identifiers are document version storage service, local and
+  object-store version storage, document version object keys, document version content, object key
+  in use, and content not found. Test content uses neutral synthetic values such as
+  `Process record`, `record_v1.pdf`, `document-versions/a/b/record_v1.pdf`, and
+  `author@process.test`. No production branch reads a customer label, and no shipped configuration,
+  seed data, or fixture names an industry.
+- Assumptions: every `document_version` row written before this change is a legacy local path. This
+  was reconfirmed against the single previous writer. Rows written from now on state their canonical
+  locator, so the assumption is not extended to new data.
+- Known risks or blockers: no blocker to `P6-T2b`.
+    - Existing rows are not backfilled. They keep resolving through the legacy local path, which in
+      an object-store deployment still means the local disk of whichever container wrote them. A
+      catch-up backfill belongs with the later contract stage and with `P6-T2c` hashing.
+    - In an object-store deployment every uploaded document now also stores a version object, so
+      stored bytes per upload roughly double compared with the previous local-disk copy. This is
+      the intended durability fix and it stays inside the existing S3 bucket, so no new service or
+      resource type is involved.
+    - The object is written inside the version transaction, so a rollback after a successful write
+      leaves an unreferenced object behind. It cannot corrupt anything, because a retry allocates a
+      new version identifier and therefore a new key, but orphan cleanup belongs with the later
+      disposal pipeline in Phase 9.
+    - `AwsS3DocumentVersionStorageService.openVersion` writes to a temporary file that nothing
+      deletes, matching the existing `AwsS3FileStorageService` download behavior. A release hook
+      belongs with the download path work rather than here, where it would be unused production
+      code.
+    - `DocumentVersionDetailedDto.storagePath` still carries the stored value to the client, which
+      is now an object key instead of a server path. The frontend declares the field and never reads
+      it. Removing it is an API contract change that belongs with the `P6-T3` endpoint work.
+    - The write-once refusal of the AWS implementation is covered by construction and by the local
+      implementation's contract test only. Proving it against a real object store needs infrastructure
+      that is not authorized here.
+    - Production external evidence upload stays disabled and the concrete scanner deployment and
+      signature-update decision remains deferred by the user, which continues to gate `P6-T6` and
+      the Phase 6 exit criteria but not the remaining scanner-independent tasks. No commit or push
+      was made.
+- Exact next task: `P6-T2b` creator provenance. Add a canonical creator principal kind and ID to
+  `document_version` in a new expand-stage migration, dual-write it beside the legacy
+  `created_by` and `created_by_email` columns, and read canonical first with a history-only legacy
+  fallback. Backfill `USER` only where the legacy App User foreign key is non-null and trusted; an
+  email-only row keeps its history label and gets no fabricated principal ID, and ambiguous rows are
+  reported rather than guessed. Start with a failing migration contract test for the new columns and
+  a failing service test asserting that a version created by a known user states its canonical
+  principal while an email-only creation states none.
+- Files the next agent should read first: `AGENTS.md`, the active plan `## Status`,
+  `## Mandatory Protocol for Every Implementation Session`, the `P6-T2` task text with its subtasks,
+  and `## Latest Implementation Result`, this entry,
+  `service/storage/DocumentVersionContentService.kt` with the port and its two implementations,
+  `service/exchange/ExchangeDocumentVersionService.kt`, `model/entity/DocumentVersion.kt`,
+  `model/document/DocumentVersionStorageLocatorMapper.kt`, and
+  `V121__document_version_storage_locator.sql` as the newest migration.
+
+### 2026-09-24: P6-T2a2 expand-stage document version locator columns and mapping
+
+- Current phase and task: Phase 6. `P6-T2a2` is complete. `P6-T2a`, `P6-T2`, and Phase 6 remain
+  unchecked, and `P6-T2a3` is next.
+- Working tree inspected first. The pre-existing changes were this program's own uncommitted Phase 6
+  work: the V120 migration, the two evidence entities, the runtime enum addition, the evidence
+  source mapper, the two evidence repositories, the two evidence contract tests, the `P6-T2a1`
+  locator model with its test, and the modified plan and evidence files. All were preserved. No
+  unrelated user change was staged, reverted, or edited.
+- Verified the starting point against the code rather than checkboxes. `git status` matched the
+  previous entry exactly, with no partially finished work, and the plan's recorded next task was
+  `P6-T2a2`. The `P6-T2a1` assumption that every existing `storage_path` row is a legacy local path
+  was reconfirmed as that entry required: `ExchangeDocumentVersionService.createVersion` is the only
+  writer of `DocumentVersion.storagePath`, and it writes `Files.copy` destination paths under a
+  hardcoded local versions directory. The other `storagePath` hits in the repository belong to
+  `DocumentLibraryEntry`, a different table.
+- Tests added first, in two red rounds.
+    - Round one,
+      `src/test/kotlin/com/docuhyphen/app/api/migration/DocumentVersionStorageLocatorColumnContractTest.kt`,
+      seven Flyway plus Testcontainers PostgreSQL cases: column optionality and type, the legacy path
+      staying `NOT NULL`, a pre-release row keeping its path and stating no canonical locator, a
+      fully stated object-store and a fully stated local locator stored beside the retained path,
+      four partly stated refusals, two provider/kind disagreement refusals, two unrecognised
+      vocabulary refusals, and a blank locator refusal. This test names no new Kotlin symbol, so it
+      compiled and was behaviorally red: 7 tests, 5 failures, 2 errors, 0 skipped, with every
+      failure reporting `column "storage_provider" of relation "document_version" does not exist`.
+    - Round two, `DocumentVersionStorageLocatorMapperTest` (7 plain JUnit cases) and
+      `DocumentVersionStorageLocatorPersistenceContractTest` (3 `@QuarkusTest` cases against real
+      PostgreSQL). Because a brand-new mapper cannot be referenced before it exists and the protocol
+      forbids accepting a compilation error as the red state, the entity columns and a compiling
+      mapper stub whose `read` was unimplemented were added first. The focused run was then
+      behaviorally red: 10 tests, 3 failures, 7 errors, 0 skipped, every one a `NotImplementedError`
+      or an `Unexpected exception type thrown, expected: <java.lang.IllegalArgumentException> but
+      was: <kotlin.NotImplementedError>`. Recorded honestly: that red round also established the
+      entity mapping itself, because Hibernate `validate` accepted the new columns and the
+      persistence cases reached the mapper call rather than failing at schema validation.
+- Implementation completed. `V121__document_version_storage_locator.sql` adds
+  `storage_provider VARCHAR(32)`, `storage_locator_kind VARCHAR(32)`, and
+  `storage_locator VARCHAR(1024)`, all nullable, and leaves `storage_path` required and
+  authoritative. Three CHECK constraints state the rules:
+  `ck_document_version_storage_locator_stated` admits only all three absent or all three present,
+  `ck_document_version_storage_locator_provider_kind` admits only `LOCAL_FILESYSTEM` with
+  `LEGACY_LOCAL_PATH` and `OBJECT_STORE` with `OBJECT_KEY` once both are stated, and
+  `ck_document_version_storage_locator_value` refuses a blank locator. `DocumentVersion` maps the
+  three columns as a nullable `@Enumerated(EnumType.STRING)` provider and kind plus a nullable
+  value. `DocumentVersionStorageLocatorMapper.read` answers from the canonical statement when one
+  exists and otherwise resolves `storagePath` with no recorded kind, which is how an existing path
+  that happens to read like an object key stays a legacy local path.
+- Files changed: `src/main/resources/db/migration/V121__document_version_storage_locator.sql` (new),
+  `src/main/kotlin/com/docuhyphen/app/api/model/document/DocumentVersionStorageLocatorMapper.kt`
+  (new), `src/main/kotlin/com/docuhyphen/app/api/model/entity/DocumentVersion.kt` (three mapped
+  columns and two imports),
+  `src/test/kotlin/com/docuhyphen/app/api/migration/DocumentVersionStorageLocatorColumnContractTest.kt`
+  (new),
+  `src/test/kotlin/com/docuhyphen/app/api/model/document/DocumentVersionStorageLocatorMapperTest.kt`
+  (new),
+  `src/test/kotlin/com/docuhyphen/app/api/repository/exchange/DocumentVersionStorageLocatorPersistenceContractTest.kt`
+  (new), `plans/DOCUMENT-DRIVEN-INFORMATION-REQUESTS-IMPLEMENTATION-PLAN.md`, and this file.
+- Database migrations added: V121, after a collision check confirmed no existing V121 and V120 as
+  the head. Flyway head is now V121 and the remaining unallocated program range is V122 through
+  V139.
+- Focused tests run and results:
+  `.\mvnw.cmd "-Dtest=DocumentVersionStorageLocatorColumnContractTest" test -DskipFrontend=true` was
+  red at 7 tests, 5 failures, 2 errors, 0 skipped, then green at 7 tests, 0 failures, 0 errors,
+  0 skipped after V121.
+  `.\mvnw.cmd "-Dtest=DocumentVersionStorageLocatorMapperTest,DocumentVersionStorageLocatorPersistenceContractTest" test -DskipFrontend=true`
+  was red at 10 tests, 3 failures, 7 errors, 0 skipped.
+  `.\mvnw.cmd "-Dtest=DocumentVersionStorageLocatorMapperTest,DocumentVersionStorageLocatorPersistenceContractTest,DocumentVersionStorageLocatorColumnContractTest,DocumentVersionStorageLocatorTest" test -DskipFrontend=true`
+  then passed 35 tests, 0 failures, 0 errors, 0 skipped, BUILD SUCCESS.
+- Full validation commands and results: `.\mvnw.cmd test -DskipFrontend=true` passed 2,618 tests,
+  0 failures, 0 errors, 0 skipped, BUILD SUCCESS in 17:31, finished 2026-09-24T16:19:39+02:00. That
+  equals the previous session's 2,601 plus exactly the 17 tests added here, so the total reconciles
+  against the immediately preceding full-suite run. `git diff --check` passed with only Git's
+  LF-to-CRLF warnings, and an ASCII scan of the migration, the mapper, the entity, and the three
+  test files returned no matches. No frontend file changed, so no `web-app` command was required or
+  run.
+- Help documentation reviewed or updated: searched the help sections for storage, locator, version,
+  and document version. The only match is `exchangeDocumentCardsArticle.tsx`, which states that
+  Re-upload adds another file version and that the Versions tab appears only on plans including
+  document version history. Neither statement is affected, because no upload path, no version
+  listing, and no plan gate changed. The article is 105 lines and the registry is 24, within their
+  limits. No article was edited, so no `npx tsc --noEmit` run was required.
+- Structural defect repaired in this file. The previous session's `P6-T2a1` entry had been inserted
+  inside the `## Update Protocol` sentence, between the words `## Implementation Journal` and
+  `. When the active`, rather than under the `## Implementation Journal` heading. The entry was
+  moved verbatim to the top of the journal and the broken protocol sentence was restored. No entry
+  content was altered.
+- Decisions made: keep the three CHECK constraints non-overlapping, because PostgreSQL evaluates a
+  relation's check constraints in constraint-name order, so an overlapping set would report an
+  arbitrary constraint name and a refusal test could not state which rule it exercised. Keep the
+  provider column even though the locator kind already implies today's provider, so a later provider
+  serving object keys does not require a column change. Add only `read` to the mapper and no
+  `write`, because nothing may write the canonical columns until the storage port exists in
+  `P6-T2a3`, and an unused writer would be dead production code. Refuse a partly stated or
+  disagreeing canonical locator in the mapper as well as in the database, so an in-memory entity
+  built by a future writer cannot be read as a valid locator before it is persisted. Leave the
+  write-once unique object-key index to `P6-T2a3`, where the task text places write-once key
+  allocation, rather than adding an index nothing can yet violate.
+- Industry-neutrality check: the added identifiers are storage provider, storage locator kind,
+  storage locator, local filesystem, object store, legacy local path, and object key. Test content
+  uses neutral synthetic values such as `document-versions/9f1/record-1`,
+  `storage/versions/<id>/record_v1.pdf`, and a `Process record` document title. No production branch
+  reads a customer label, and no shipped configuration or seed data was added.
+- Assumptions: every existing `document_version.storage_path` row is a legacy local path. This was
+  reconfirmed this session against the single writer in `ExchangeDocumentVersionService`, and V121
+  encodes it by leaving every existing row's canonical columns null, which the mapper reads as a
+  legacy local locator.
+- Known risks or blockers: no blocker to `P6-T2a3`. The canonical columns grant no eligibility, no
+  hash, no verification, no malware assessment, and no access authority. Nothing writes them, so
+  every row in every environment is still legacy local and `ExchangeDocumentVersionService` still
+  copies into the hardcoded local versions directory. Production external evidence upload stays
+  disabled and the concrete scanner deployment and signature-update decision remains deferred by the
+  user, which continues to gate `P6-T6` and the Phase 6 exit criteria but not the remaining
+  scanner-independent tasks. No commit or push was made.
+- Exact next task: `P6-T2a3`. Replace the hardcoded local version-copy path in
+  `ExchangeDocumentVersionService` with a provider-neutral version-storage port selected the same
+  way the existing file storage implementations are selected, allocate a unique write-once object
+  key per new version whose write fails rather than overwriting an existing key, dual-write the
+  canonical locator beside the legacy `storage_path`, and read canonical first with a history-only
+  legacy fallback. Start with a failing port-contract test for overwrite denial and a failing
+  dual-write test asserting both shapes on a newly created version. Contracting `storage_path` stays
+  in a later release and is not part of this subtask.
+- Files the next agent should read first: `AGENTS.md`, the active plan `## Status`,
+  `## Mandatory Protocol for Every Implementation Session`, the `P6-T2` task text with its subtasks,
+  and `## Latest Implementation Result`, this entry,
+  `model/document/DocumentVersionStorageLocator.kt` and
+  `model/document/DocumentVersionStorageLocatorMapper.kt` with their tests,
+  `model/entity/DocumentVersion.kt`, `service/exchange/ExchangeDocumentVersionService.kt`,
+  `service/storage/FileStorageService.kt` with `config/FileStorageServiceProducer.kt`, and
+  `V121__document_version_storage_locator.sql` as the newest migration.
+
+### 2026-09-24: P6-T2 split and P6-T2a1 typed Document Version storage locator
+
+- Current phase and task: Phase 6. `P6-T2` was split as required and `P6-T2a1` completed. `P6-T2`,
+  `P6-T2a`, and Phase 6 remain unchecked, and `P6-T2a2` is next.
+- Working tree inspected first. The pre-existing changes were this program's own uncommitted
+  `P6-T1c` and `P6-T1b` work: `V120__information_request_evidence_artifact.sql`, the two evidence
+  entities, the runtime enum addition, `InformationRequestEvidenceVersionSourceMapper`, the two
+  evidence repositories, the two evidence contract tests, and the modified plan and evidence files.
+  All were preserved. No unrelated user change was staged, reverted, or edited.
+- Verified the starting point against a test run rather than checkboxes:
+  `.\mvnw.cmd "-Dtest=InformationRequestEvidencePersistenceContractTest,InformationRequestEvidenceArtifactContractTest,InformationRequestEvidenceSourceTest" test -DskipFrontend=true`
+  passed 19 tests, 0 failures, 0 errors, 0 skipped, BUILD SUCCESS in 03:15, with Flyway applying 117
+  migrations and reaching V120. The inherited `P6-T1c` green is therefore real, and `P6-T2` was the
+  first incomplete unblocked task with no partially finished work in the tree.
+- Task split recorded before implementation, because `P6-T2` explicitly requires it. `P6-T2a`
+  storage identity, `P6-T2b` creator provenance, and `P6-T2c` content hash and verification state.
+  `P6-T2a` is plainly larger than one session, so it follows the `P6-T1` precedent and is split into
+  `P6-T2a1` locator value model, `P6-T2a2` expand-stage `document_version` columns and entity
+  mapping, and `P6-T2a3` provider-neutral storage port, write-once object keys, and dual-write with
+  a history-only legacy fallback. Contracting `storage_path` stays in a later release.
+- Test added first:
+  `src/test/kotlin/com/docuhyphen/app/api/model/document/DocumentVersionStorageLocatorTest.kt`,
+  a plain JUnit test following the `InformationRequestEvidenceSourceTest` pattern. Eighteen cases
+  across nine methods: provider, kind, and value identity for both locator kinds, blank rejection
+  for both, eight object-key syntax rejections, copy-cannot-bypass-validation, resolution of a value
+  with no recorded kind, resolution of a legacy value that reads like an object key, resolution of
+  each recorded kind, and object-key validation applied to a value recorded as an object key.
+- Failure observed before implementation: a brand-new model cannot be referenced by a test without
+  existing, and the mandatory protocol forbids accepting a compilation error as the red state, so
+  the production file was first added as a compiling stub whose locators carried no validation and
+  whose resolution was unimplemented. The focused run was then behaviorally red: 18 tests,
+  13 failures, 3 errors, 0 skipped. Thirteen `Expected java.lang.IllegalArgumentException to be
+  thrown, but nothing was thrown` assertions and three `NotImplementedError` resolution errors.
+  Recorded honestly: the two provider and kind identity assertions passed in the red run, so those
+  two declarations are established by the green round trip rather than by a prior failing assertion.
+- Implementation completed: `DocumentVersionStorageLocator` is a sealed interface stating provider,
+  locator kind, and value. `LegacyLocalDocumentVersionLocator` is `LOCAL_FILESYSTEM` plus
+  `LEGACY_LOCAL_PATH` and only refuses a blank value, because a historical path is whatever was
+  recorded. `ObjectStoreDocumentVersionLocator` is `OBJECT_STORE` plus `OBJECT_KEY` and refuses a
+  blank value, surrounding whitespace, a leading or trailing separator, a backslash, a drive marker,
+  an empty segment, and a current or parent traversal segment, so a key can never be a filesystem
+  path or escape its prefix. `DocumentVersionStorageLocators.resolve` maps a recorded kind to its
+  own typed locator and maps a missing kind to a legacy local locator, which is how an existing
+  `storage_path` value is never reinterpreted as an object-store key.
+- Files changed: `src/main/kotlin/com/docuhyphen/app/api/model/document/DocumentVersionStorageLocator.kt`
+  (new), `src/test/kotlin/com/docuhyphen/app/api/model/document/DocumentVersionStorageLocatorTest.kt`
+  (new), `plans/DOCUMENT-DRIVEN-INFORMATION-REQUESTS-IMPLEMENTATION-PLAN.md`, and this file.
+- Database migrations added: none. `P6-T2a1` is model groundwork only. Flyway head remains V120 and
+  the remaining unallocated program range stays V121 through V139. `P6-T2a2` is expected to take
+  V121 after a collision check.
+- Focused tests run and results:
+  `.\mvnw.cmd "-Dtest=DocumentVersionStorageLocatorTest" test -DskipFrontend=true` was red at the
+  stub stage with 18 tests, 13 failures, 3 errors, 0 skipped, then green after implementation with
+  18 tests, 0 failures, 0 errors, 0 skipped.
+- Full validation commands and results: `.\mvnw.cmd test -DskipFrontend=true` passed 2,601 tests,
+  0 failures, 0 errors, 0 skipped, BUILD SUCCESS in 16:18, finished 2026-09-24T15:09:01+02:00. This
+  equals the previous session's 2,583 plus exactly the 18 tests added here, so the total reconciles
+  against the immediately preceding full-suite run. `git diff --check` passed with only Git's
+  LF-to-CRLF warnings, and an ASCII scan of both new files returned no matches. No frontend file
+  changed, so no `web-app` command was required or run.
+- Help documentation reviewed or updated: searched the help sections for storage, locator, evidence,
+  document version, and version history. Storage has no match at all; the evidence matches are audit
+  export and administration articles, and the one version match states which tiers keep version
+  history. Nothing reads or writes the new model, so no documented behavior changed and no article
+  or registry size limit was approached.
+- Decisions made: keep provider and locator kind as separate declarations, so a later provider can
+  be added without changing what kind of identifier the value is. Validate an object key as a key
+  rather than as a path, so a legacy path can never be accepted as one by mistake. Treat a missing
+  recorded kind as legacy rather than inferring from the value shape, because that inference is
+  exactly the reinterpretation the task forbids. Keep resolution in a dedicated object rather than
+  on the entity, matching the evidence source mapper precedent. Place the model in a new
+  `model/document` package rather than in the Information Request packages, because Document Version
+  storage identity is a platform concern that this program consumes.
+- Industry-neutrality check: the added identifiers are document version, storage locator, storage
+  provider, locator kind, object key, and legacy local path. Test content uses neutral synthetic
+  values such as `document-versions/9f1/record-1` and `uploads/versions/9f1/record_v1.pdf`. No
+  production branch reads a customer label, and no shipped configuration or seed data was added.
+- Assumptions: every existing `document_version.storage_path` row is a legacy local path, which is
+  consistent with the single hardcoded local copy path in `ExchangeDocumentVersionService` being the
+  only writer. `P6-T2a2` must reconfirm this against the database before mapping the columns.
+- Known risks or blockers: no blocker to `P6-T2a2`. A typed locator grants no eligibility, no hash,
+  no verification, no malware assessment, and no access authority, and nothing uses it yet.
+  Production external evidence upload stays disabled and the concrete scanner deployment and
+  signature-update decision remains deferred by the user, which continues to gate `P6-T6` and the
+  Phase 6 exit criteria but not the remaining scanner-independent tasks. No commit or push was made.
+- Exact next task: `P6-T2a2`. Collision-check the migration range, then write a failing PostgreSQL
+  migration contract test and a failing `DocumentVersion` round-trip mapping test for nullable
+  locator kind, provider, and canonical locator columns on `document_version`. Keep `storage_path`
+  authoritative, write nothing into the new columns, and change no storage behavior.
+- Files the next agent should read first: `AGENTS.md`, the active plan `## Status`,
+  `## Mandatory Protocol for Every Implementation Session`, the `P6-T2` task text with its new
+  subtasks, and `## Latest Implementation Result`, this entry,
+  `model/document/DocumentVersionStorageLocator.kt` and its test,
+  `model/entity/DocumentVersion.kt`, `service/exchange/ExchangeDocumentVersionService.kt`,
+  `service/storage/FileStorageService.kt` with `config/FileStorageServiceProducer.kt`, and
+  `V120__information_request_evidence_artifact.sql` as the newest migration.
+
+### 2026-09-24: P6-T1c evidence entity and repository mappings
+
+- Current phase and task: Phase 6, `P6-T1c` completed, so `P6-T1` is checked. Phase 6 remains
+  unchecked and `P6-T2` is next.
+- Working tree inspected first. The pre-existing changes were this program's own uncommitted
+  `P6-T1b` work: the untracked `V120__information_request_evidence_artifact.sql`, the untracked
+  `InformationRequestEvidenceArtifactContractTest.kt`, and the modified plan and evidence files.
+  They were preserved. No unrelated user change was staged, reverted, or edited.
+- Verified the starting point against code and a test run rather than checkboxes: reran
+  `.\mvnw.cmd "-Dtest=InformationRequestEvidenceArtifactContractTest" test -DskipFrontend=true`,
+  which passed 5 tests, 0 failures, 0 errors, 0 skipped, confirming the claimed `P6-T1b` green.
+  The migration directory head was confirmed as V120 in both `src/main/resources/db/migration` and
+  `target/classes/db/migration`. `P6-T1c` was therefore the first incomplete unblocked task and no
+  partially finished `P6-T1c` work existed.
+- Test added first:
+  `src/test/kotlin/com/docuhyphen/app/api/repository/informationrequest/InformationRequestEvidencePersistenceContractTest.kt`,
+  a `@QuarkusTest` with its own PostgreSQL Testcontainers resource, following the existing
+  `InformationRequestTemplatePersistenceContractTest` pattern. Five tests: file-backed and external
+  round trip with typed source identity, artifact lookup scoping across a sibling Requirement
+  occurrence and a second request, version ordering and latest-version reads under their own
+  artifact, append-only refusal through the mapped repository, and refusal of a repeated or skipped
+  version number through the mapped save path. Its fixture inserts organization, user, Exchange,
+  Template Definition, Version, Section, Requirement, Binding, publication, two requests, three
+  runtime Requirement occurrences, a Document, and a Document Version.
+- Failure observed before implementation: because brand-new entities and repositories cannot be
+  referenced by a test without existing, and the mandatory protocol forbids accepting a compilation
+  error as the red state, the production classes were first added as compiling stubs: both entities
+  and the mapper write path were real, the mapper read path was unimplemented, the repository
+  finders returned empty lists and nulls, and no append-only override existed. The focused run was
+  then behaviorally red: 5 tests, 1 failure, 4 errors, 0 skipped. `NotImplementedError` from the
+  source read, `expected: <[...]> but was: <[]>` from three scoping and ordering assertions, and
+  `Unexpected exception type thrown, expected: <UnsupportedOperationException> but was:
+  <RollbackException>` because only the database, not the repository, refused the rewrite. This is
+  recorded honestly: the entity column mappings themselves could not be made red without a
+  compilation error, so their correctness is established by the green round trip rather than by a
+  prior failing assertion.
+- Implementation completed: `InformationRequestEvidenceArtifact` maps `information_request_id`,
+  `information_request_requirement_id`, `artifact_key`, `artifact_revision`, and timestamps.
+  `InformationRequestEvidenceVersion` maps `evidence_artifact_id`, `information_request_id`,
+  `version_number`, the `source_kind` enum, `document_version_id`, `external_reference_type`,
+  `external_reference_value`, and `created_at`. `InformationRequestEvidenceSourceKind` was added to
+  the existing runtime enum file. `InformationRequestEvidenceVersionSourceMapper` converts between
+  the stored columns and the P6-T1a sealed source values in both directions, so a file-backed
+  version always names a Document Version and an external version always names a nonblank typed
+  reference. `InformationRequestEvidenceArtifactRepository` reads by request, by Requirement
+  occurrence, and by the unique per-occurrence key. `InformationRequestEvidenceVersionRepository`
+  reads one artifact's versions in recorded order and its latest version, and overrides `update`,
+  `delete`, and `deleteById` to refuse with `UnsupportedOperationException` before any database
+  work.
+- Files changed: `model/entity/InformationRequestEvidenceArtifact.kt` (new),
+  `model/entity/InformationRequestEvidenceVersion.kt` (new),
+  `model/entity/InformationRequestRuntimeEnums.kt` (enum appended),
+  `model/informationrequest/InformationRequestEvidenceVersionSourceMapper.kt` (new),
+  `repository/informationrequest/InformationRequestEvidenceArtifactRepository.kt` (new),
+  `repository/informationrequest/InformationRequestEvidenceVersionRepository.kt` (new),
+  `src/test/kotlin/com/docuhyphen/app/api/repository/informationrequest/InformationRequestEvidencePersistenceContractTest.kt`
+  (new), `plans/DOCUMENT-DRIVEN-INFORMATION-REQUESTS-IMPLEMENTATION-PLAN.md`, and this file.
+- Database migrations added: none. V120 from the previous session already provides this storage, so
+  the remaining unallocated program range stays V121 through V139.
+- Focused tests run and results:
+  `.\mvnw.cmd "-Dtest=InformationRequestEvidenceArtifactContractTest" test -DskipFrontend=true`
+  passed 5 tests before any change was made.
+  `.\mvnw.cmd "-Dtest=InformationRequestEvidencePersistenceContractTest" test -DskipFrontend=true`
+  was red at the stub stage with 5 tests, 1 failure, 4 errors, then green with 5 tests, 0 failures,
+  0 errors, 0 skipped.
+  `.\mvnw.cmd "-Dtest=InformationRequestEvidencePersistenceContractTest,InformationRequestEvidenceArtifactContractTest,InformationRequestEvidenceSourceTest,InformationRequestRuntimePersistenceContractTest,InformationRequestTemplatePersistenceContractTest" test -DskipFrontend=true`
+  passed 36 tests, 0 failures, 0 errors, 0 skipped.
+- Full validation commands and results: `.\mvnw.cmd test -DskipFrontend=true` passed 2,583 tests,
+  0 failures, 0 errors, 0 skipped, BUILD SUCCESS in 17:08, finished 2026-09-24T11:50:44+02:00, with
+  Docker 26.0.0 available. This equals the previous session's 2,578 plus exactly the 5 tests added
+  here, so the total reconciles against the immediately preceding full-suite run. `git diff --check`
+  passed and an ASCII scan of all six new or changed source files returned no matches. No frontend
+  file changed, so no `web-app` command was required or run.
+- Help documentation reviewed or updated: searched the help docs again for evidence coverage. The
+  only matches remain unrelated audit and administration articles. The Information Request article
+  still contains no evidence, upload, or file statement, so nothing became inaccurate and no article
+  or registry size limit was approached.
+- Decisions made: keep the typed source conversion in a dedicated mapper object rather than on the
+  entity or in a service, so the entity stays a mapping and the sealed model stays the single source
+  of truth. Refuse rewrite and removal in the repository as well as in the database, so a future
+  caller is refused deterministically at the layer it calls rather than through a rollback exception
+  that hides the reason. Expose save and the scoped reads only; no service, resource, DTO, or UI was
+  added, which is how mutation APIs stay disabled until the P6-T3 command, audit, provenance, and
+  Requirement authorization contracts exist. Order artifact reads by creation time and key, and
+  version reads by version number, so a caller never depends on insertion order.
+- Industry-neutrality check: the added identifiers are evidence artifact, evidence version, evidence
+  source kind, document version, and external reference. Test content uses neutral synthetic values
+  such as `collected-record`, `supporting-record`, `process-register`, `REG-4821`,
+  `recorded-assertion`, and `Process record`. No production branch reads a customer label, and no
+  shipped configuration or seed data was added.
+- Assumptions: nothing writes these tables yet, so no backfill or dual-write shim is needed. The
+  artifact revision column is mapped but is not yet enforced as an optimistic lock, because the
+  command safety contract that would use it belongs to P6-T3.
+- Known risks or blockers: no blocker to `P6-T2`. Persistence and mapping alone grant no eligibility,
+  no verification, no malware assessment, and no access authority. Production external evidence
+  upload stays disabled, and the concrete scanner deployment and signature-update decision remains
+  deferred by the user, which continues to gate `P6-T6` and the Phase 6 exit criteria but not the
+  remaining scanner-independent tasks.
+- Exact next task: `P6-T2`. Its own text requires splitting it into journaled storage, provenance,
+  and hash subtasks before implementation, so do that split first, record it in the plan, then start
+  the first subtask with a failing test. P6-T2 changes existing Document Version behavior under an
+  expand-contract migration, so expect a migration allocation from V121 and plan the dual-write,
+  backfill, and legacy-locator handling the task text describes.
+- Files the next agent should read first: `AGENTS.md`, the active plan's `## Status`,
+  `## Mandatory Protocol for Every Implementation Session`, the `P6-T2` task text, and
+  `## Latest Implementation Result`, this entry, `V120__information_request_evidence_artifact.sql`,
+  the two new entities and two new repositories,
+  `model/informationrequest/InformationRequestEvidenceSource.kt` and its mapper,
+  `InformationRequestEvidencePersistenceContractTest.kt`, and the existing `DocumentVersion` entity
+  with its storage path handling.
+
+### 2026-09-24: P6-T1b evidence Artifact and append-only Version persistence
+
+- Current phase and task: Phase 6, `P6-T1b` completed. `P6-T1` and Phase 6 remain unchecked.
+- Working tree inspected first. The only pre-existing changes are the user's unrelated realtime
+  ticket, session deadline, and web-app dependency work. They were preserved and never staged,
+  reverted, or edited by this session.
+- Verified the starting point against code rather than checkboxes: `P6-T1a` genuinely exists as
+  `model/informationrequest/InformationRequestEvidenceSource.kt` with its nine passing model tests,
+  so `P6-T1b` was the first incomplete unblocked task. No partially finished `P6-T1b` work existed.
+- Tests added first: `src/test/kotlin/com/docuhyphen/app/api/migration/InformationRequestEvidenceArtifactContractTest.kt`,
+  five Testcontainers PostgreSQL contract tests covering Requirement binding, multi-artifact
+  aggregation, source exclusivity, contiguous version ordering, and immutability.
+- Failure observed before implementation: at 10:49 the focused selector ran 5 tests, 0 failures,
+  5 errors, 0 skipped. Every error was `PSQL ERROR: relation "information_request_evidence_artifact"
+  does not exist`. The fixture chain (organization, user, Exchange, Template Definition, Version,
+  Section, Requirement, Binding, publication, request, runtime Requirement, Document Version) all
+  inserted successfully first, so this was the intended missing-persistence failure and not a
+  compilation error or broken fixture.
+- Implementation completed: `V120__information_request_evidence_artifact.sql`.
+  `information_request_evidence_artifact` holds `id`, `information_request_id`,
+  `information_request_requirement_id`, a non-blank `artifact_key`, an `artifact_revision` of at
+  least one, and timestamps. Its composite foreign key
+  `(information_request_requirement_id, information_request_id)` resolves against a new
+  `(id, information_request_id)` unique key on `information_request_requirement`, so an occurrence
+  belonging to another request is refused. `artifact_key` is unique per Requirement occurrence, and
+  several artifacts may share one occurrence.
+  `information_request_evidence_version` holds `evidence_artifact_id`, `information_request_id`,
+  `version_number`, `source_kind`, `document_version_id`, `external_reference_type`, and
+  `external_reference_value`. A composite foreign key holds a Version to an Artifact of the same
+  request; `document_version_id` references `document_version`. One check restricts the source kind
+  to `DOCUMENT_VERSION` or `EXTERNAL_REFERENCE`; a separate check enforces exclusivity, requiring a
+  Document Version with no external values for the first kind and both nonblank external values with
+  no Document Version for the second, while deliberately deferring an unknown kind to the kind check
+  so both refusals stay deterministic. `version_number` is unique per Artifact and at least one, a
+  BEFORE INSERT trigger refuses any number above the next contiguous one, and the shared
+  `information_request_append_only_guard` refuses update and delete.
+- Files changed: `src/main/resources/db/migration/V120__information_request_evidence_artifact.sql`
+  (new), `src/test/kotlin/com/docuhyphen/app/api/migration/InformationRequestEvidenceArtifactContractTest.kt`
+  (new), `plans/DOCUMENT-DRIVEN-INFORMATION-REQUESTS-IMPLEMENTATION-PLAN.md`, and this file.
+- Database migrations added: V120. The directory was listed and the head rechecked immediately
+  before allocation; V119 was the head and V120 was unused. V118 and V119 had already been consumed
+  by prior P5 remediation work without a ledger row, so the remaining unallocated range is now
+  V121 through V139 and the ledger records that correction.
+- Focused tests run and results:
+  `.\mvnw.cmd "-Dtest=InformationRequestEvidenceArtifactContractTest" test -DskipFrontend=true`
+  passed 5 tests, 0 failures, 0 errors, 0 skipped.
+  `.\mvnw.cmd "-Dtest=InformationRequestRuntimePersistenceContractTest,InformationRequestEvidenceArtifactContractTest,InformationRequestEvidenceSourceTest" test -DskipFrontend=true`
+  passed 22 tests (8 runtime persistence, 5 new evidence, 9 evidence source), 0 failures, 0 errors,
+  0 skipped. The runtime persistence contract was rerun because V120 alters
+  `information_request_requirement`.
+- Full validation commands and results: `.\mvnw.cmd test -DskipFrontend=true` passed 2,578 tests,
+  0 failures, 0 errors, 0 skipped, BUILD SUCCESS in 16:39, finished 2026-09-24T11:13:19+02:00, with
+  Docker 26.0.0 available. The `ERROR` and `FAILED` lines in that log belong to intentional
+  fail-closed audit and workflow scenarios inside passing tests. This session adds exactly 5 tests;
+  the two most recent recorded full-suite totals, 2,579 on 2026-09-20 and 2,569 on 2026-09-21, are
+  not equal to each other, so the new total is not reconciled against a single prior baseline and no
+  claim is made that the difference is fully explained. Zero failures, errors, and skips is the
+  result being relied on. `git diff --check` passed and a non-ASCII scan of both new files returned
+  no matches. No frontend file changed, so no `web-app` command was required or run.
+- Help documentation reviewed or updated: searched the help docs for evidence coverage. Only
+  `adminOperationsSection.tsx`, `auditWorkspaceOverviewArticle.tsx`,
+  `platformAdministrationOverviewArticle.tsx`, and `trustedOrganizationsAdministrationArticle.tsx`
+  mention evidence, all in unrelated audit and administration contexts. The Information Request
+  article contains no evidence, upload, or file statement, so nothing became inaccurate. The article
+  remains 148 lines and `helpDocsRegistry.tsx` remains 24 lines, both within their limits.
+- Decisions made: give an Artifact a stable per-Requirement `artifact_key` so several independently
+  versioned artifacts can aggregate under one Requirement occurrence with provable uniqueness, which
+  the later multi-file task needs. Carry `information_request_id` on both tables so every scope check
+  is a composite foreign key rather than an application-level join. Let the unique constraint refuse a
+  repeated or lower version number and let the trigger refuse only a gap, so each refusal is
+  deterministic and reports its own contract. Reuse the existing append-only guard function instead of
+  adding a second identical one. Defer uploader `PrincipalRef`, issuer, coverage, and hash ownership
+  to P6-T2, and defer entities, repositories, and any mutation surface to P6-T1c and P6-T3.
+- Industry-neutrality check: the new identifiers are evidence artifact, evidence version, document
+  version, and external reference. Test content uses neutral synthetic values such as
+  `record_reference`, `external:record/1`, `recorded-assertion`, and `Process record`. No customer
+  vocabulary drives any production branch, and no shipped configuration or seed data was added.
+- Assumptions: nothing writes these tables yet, so no backfill, rolling-deployment dual write, or
+  compatibility shim is needed for V120. Existence of a referenced Document Version is proven by the
+  foreign key, but eligibility, verification, and malware assessment remain unproven and are owned by
+  P6-T2 and P6-T6.
+- Known risks or blockers: no blocker to `P6-T1c`. Storage alone grants no eligibility, safety claim,
+  or access authority. Production external evidence upload stays disabled and the concrete scanner
+  deployment and signature-update decision remains deferred by the user, which continues to gate
+  `P6-T6` and the Phase 6 exit criteria but not the remaining scanner-independent tasks. No AWS
+  service or paid resource type was added, and no commit or push was made.
+- Exact next task: `P6-T1c`. Add domain-aligned JPA entities for both new tables under the existing
+  entity package with repositories in `repository/informationrequest/`, plus round-trip persistence
+  tests. Keep every mutation API disabled until the command, audit, provenance, and Requirement
+  authorization contracts of `P6-T3` exist. Start with a failing round-trip test, confirm the
+  intended failure, implement the smallest change, rerun the focused tests, then the affected
+  regressions and the full backend suite because persistence is involved.
+- Files the next agent should read first: `AGENTS.md`, the active plan's `## Status`,
+  `## Mandatory Protocol for Every Implementation Session`, and `## Latest Implementation Result`,
+  this entry, `V120__information_request_evidence_artifact.sql`,
+  `InformationRequestEvidenceArtifactContractTest.kt`,
+  `model/informationrequest/InformationRequestEvidenceSource.kt`, the existing runtime Requirement
+  entity and repository under `model/entity` and `repository/informationrequest/`, and
+  `InformationRequestRuntimePersistenceContractTest.kt`.
+
 ### 2026-09-21: Personal and organization Information Request entitlement corrected
 
 - Corrected the denial that reported Information Requests were excluded from Personal. The fixed

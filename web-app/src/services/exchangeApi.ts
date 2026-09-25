@@ -320,20 +320,6 @@ export const getDocumentVersions = (exchangeId: string, documentId: string) =>
         apiClient.get(`/exchanges/${exchangeId}/documents/${documentId}/versions`)
     );
 
-export const uploadDocumentVersion = (
-    exchangeId: string,
-    documentId: string,
-    formData?: FormData,
-    token?: string | null,
-    onUploadProgress?: (progressEvent: AxiosProgressEvent) => void
-) =>
-    executeRequest(() =>
-        apiClient.post(`/exchanges/${exchangeId}/documents/${documentId}/versions`, formData, {
-            headers: getAuthHeaders(token || null, {'Content-Type': 'multipart/form-data'}),
-            onUploadProgress
-        })
-    );
-
 export const downloadDocumentVersion = (exchangeId: string, documentId: string, versionId: string) =>
     executeRequest(() =>
         apiClient.get(`/exchanges/${exchangeId}/documents/${documentId}/versions/${versionId}/file`, blobRequest)

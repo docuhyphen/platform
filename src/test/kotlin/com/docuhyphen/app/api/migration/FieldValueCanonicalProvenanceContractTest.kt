@@ -25,9 +25,9 @@ private class CanonicalProvenancePostgreSQLContainer(imageName: String) :
  * wrong table or fails that foreign key outright.
  *
  * A stored answer also has no history: the row is overwritten in place. These contract tests prove
- * that the canonical pair is filled from the trustworthy legacy key, that the legacy key keeps its
- * meaning and can never disagree with it, that authorship nobody recorded stays unrecorded, and that
- * every stored answer becomes addressable through an append-only revision that cannot be rewritten.
+ * that the canonical pair is filled from the trustworthy legacy key and then becomes the only
+ * authorship a row carries, that authorship nobody recorded stays unrecorded, and that every stored
+ * answer becomes addressable through an append-only revision that cannot be rewritten.
  */
 class FieldValueCanonicalProvenanceContractTest
 {
@@ -37,6 +37,24 @@ class FieldValueCanonicalProvenanceContractTest
         "USER", "PARTICIPANT", "PRINCIPAL_GROUP", "ORGANIZATION", "APPLICATION",
         "SERVICE_ACCOUNT", "PUBLIC_LINK",
     )
+
+    @Test
+    fun `canonical authorship is the only authorship a Fields row carries`()
+    {
+        withPostgres { postgres ->
+            flyway(postgres).migrate()
+
+            postgres.createConnection("").use { connection ->
+                assertFalse(hasColumn(connection, "field_value", "updated_by_app_user_id"))
+                assertFalse(hasColumn(connection, "schema_assignment", "assigned_by_app_user_id"))
+                assertFalse(hasColumn(connection, "field_value_revision", "recorded_by_app_user_id"))
+
+                assertTrue(hasColumn(connection, "field_value", "updated_by_principal_id"))
+                assertTrue(hasColumn(connection, "schema_assignment", "assigned_by_principal_id"))
+                assertTrue(hasColumn(connection, "field_value_revision", "recorded_by_principal_id"))
+            }
+        }
+    }
 
     @Test
     fun `recorded authorship is carried into the canonical principal columns`()
@@ -62,10 +80,6 @@ class FieldValueCanonicalProvenanceContractTest
             postgres.createConnection("").use { connection ->
                 assertEquals("USER", principalKindOf(connection, fixture.firstValueId))
                 assertEquals(fixture.appUserId, principalIdOf(connection, fixture.firstValueId))
-                assertEquals(
-                    fixture.appUserId, legacyAuthorOf(connection, fixture.firstValueId),
-                    "The legacy key keeps its meaning while it exists",
-                )
 
                 // Authorship nobody recorded must stay unrecorded rather than be invented.
                 assertNull(principalKindOf(connection, fixture.secondValueId))
@@ -73,7 +87,6 @@ class FieldValueCanonicalProvenanceContractTest
 
                 assertEquals("USER", assignerKindOf(connection, fixture.assignmentId))
                 assertEquals(fixture.appUserId, assignerIdOf(connection, fixture.assignmentId))
-                assertEquals(fixture.appUserId, legacyAssignerOf(connection, fixture.assignmentId))
 
                 assertNull(assignerKindOf(connection, fixture.otherAssignmentId))
                 assertNull(assignerIdOf(connection, fixture.otherAssignmentId))
@@ -152,8 +165,6 @@ class FieldValueCanonicalProvenanceContractTest
                 assertAcceptsEveryCanonicalPrincipalKind(connection, fixture)
                 assertRefusesAnUnknownPrincipalKind(connection, fixture)
                 assertRefusesHalfAPrincipal(connection, fixture)
-                assertRefusesALegacyAuthorThatDisagrees(connection, fixture)
-                assertRefusesALegacyAuthorForANonUserPrincipal(connection, fixture)
             }
         }
     }
@@ -247,36 +258,6 @@ class FieldValueCanonicalProvenanceContractTest
         )
     }
 
-    private fun assertRefusesALegacyAuthorThatDisagrees(connection: Connection, fixture: Fixture)
-    {
-        val refused = assertThrows<SQLException> {
-            insertSetValue(
-                connection, fixture, UUID.randomUUID(), fixture.rootSetId, fixture.textContractId,
-                "Answer with two authors", appUserId = fixture.appUserId,
-                principalKind = "USER", principalId = fixture.otherAppUserId,
-            )
-        }
-        assertTrue(
-            refused.message?.contains("ck_field_value_principal_legacy") == true,
-            "Expected the two authorship columns to be held to the same user: ${refused.message}",
-        )
-    }
-
-    private fun assertRefusesALegacyAuthorForANonUserPrincipal(connection: Connection, fixture: Fixture)
-    {
-        val refused = assertThrows<SQLException> {
-            insertSetValue(
-                connection, fixture, UUID.randomUUID(), fixture.rootSetId, fixture.textContractId,
-                "Answer of a participant named as a user", appUserId = fixture.appUserId,
-                principalKind = "PARTICIPANT", principalId = fixture.appUserId,
-            )
-        }
-        assertTrue(
-            refused.message?.contains("ck_field_value_principal_legacy") == true,
-            "Expected a non-user principal to be refused the legacy user key: ${refused.message}",
-        )
-    }
-
     private class Fixture
     {
         val organizationId: UUID = UUID.randomUUID()
@@ -321,6 +302,17 @@ class FieldValueCanonicalProvenanceContractTest
         val principalId: UUID?,
         val recordedAt: Timestamp,
     )
+
+    private fun hasColumn(connection: Connection, table: String, column: String): Boolean
+    {
+        connection.prepareStatement(
+            "SELECT 1 FROM information_schema.columns WHERE table_name = ? AND column_name = ?",
+        ).use { statement ->
+            statement.setString(1, table)
+            statement.setString(2, column)
+            statement.executeQuery().use { rows -> return rows.next() }
+        }
+    }
 
     private fun withPostgres(block: (CanonicalProvenancePostgreSQLContainer) -> Unit)
     {
@@ -523,19 +515,36 @@ class FieldValueCanonicalProvenanceContractTest
             """
             INSERT INTO schema_assignment (id, resource_type, resource_id, schema_version_id,
                                            scope_kind, scope_org_id, assignment_source,
-                                           assigned_by_app_user_id, assigned_at)
-            VALUES (?, 'EXCHANGE', ?, ?, 'ORGANIZATION', ?, 'MANUAL', ?, ?)
+                                           ${assignerColumns(connection)}, assigned_at)
+            VALUES (?, 'EXCHANGE', ?, ?, 'ORGANIZATION', ?, 'MANUAL', ${assignerPlaceholders(connection)}, ?)
             """.trimIndent(),
         ).use { statement ->
             statement.setObject(1, assignmentId)
             statement.setObject(2, resourceId)
             statement.setObject(3, fixture.schemaVersionId)
             statement.setObject(4, fixture.organizationId)
-            statement.setObject(5, assignedByAppUserId)
-            statement.setTimestamp(6, Timestamp.from(Instant.now()))
+            val next = if (hasColumn(connection, "schema_assignment", "assigned_by_app_user_id"))
+            {
+                statement.setObject(5, assignedByAppUserId)
+                6
+            }
+            else
+            {
+                statement.setString(5, assignedByAppUserId?.let { "USER" })
+                statement.setObject(6, assignedByAppUserId)
+                7
+            }
+            statement.setTimestamp(next, Timestamp.from(Instant.now()))
             statement.executeUpdate()
         }
     }
+
+    private fun assignerColumns(connection: Connection): String =
+        if (hasColumn(connection, "schema_assignment", "assigned_by_app_user_id")) "assigned_by_app_user_id"
+        else "assigned_by_principal_kind, assigned_by_principal_id"
+
+    private fun assignerPlaceholders(connection: Connection): String =
+        if (hasColumn(connection, "schema_assignment", "assigned_by_app_user_id")) "?" else "?, ?"
 
     private fun insertSetValue(
         connection: Connection,
@@ -554,7 +563,12 @@ class FieldValueCanonicalProvenanceContractTest
         val bindingId = fixture.bindingFor(contractId)
         val assignmentId = valueSetOwner(connection, valueSetId)
         val resourceId = if (assignmentId == fixture.assignmentId) fixture.resourceId else fixture.otherResourceId
-        val canonicalColumns = if (principalKind != null || principalId != null)
+        val legacyShape = hasColumn(connection, "field_value", "updated_by_app_user_id")
+        val statedKind = principalKind ?: appUserId?.takeUnless { legacyShape }?.let { "USER" }
+        val statedId = principalId ?: appUserId?.takeUnless { legacyShape }
+        val legacyColumn = if (legacyShape) ", updated_by_app_user_id" else ""
+        val legacyPlaceholder = if (legacyShape) ", ?" else ""
+        val canonicalColumns = if (statedKind != null || statedId != null)
             ", updated_by_principal_kind, updated_by_principal_id" else ""
         val canonicalPlaceholders = if (canonicalColumns.isEmpty()) "" else ", ?, ?"
 
@@ -563,8 +577,8 @@ class FieldValueCanonicalProvenanceContractTest
             INSERT INTO field_value (id, field_value_set_id, schema_assignment_id,
                                      schema_field_binding_id, field_contract_id, resource_type,
                                      resource_id, value_type, text_value, provenance, created_at,
-                                     updated_at, updated_by_app_user_id$canonicalColumns)
-            VALUES (?, ?, ?, ?, ?, 'EXCHANGE', ?, ?, ?, 'USER', ?, ?, ?$canonicalPlaceholders)
+                                     updated_at$legacyColumn$canonicalColumns)
+            VALUES (?, ?, ?, ?, ?, 'EXCHANGE', ?, ?, ?, 'USER', ?, ?$legacyPlaceholder$canonicalPlaceholders)
             """.trimIndent(),
         ).use { statement ->
             statement.setObject(1, valueId)
@@ -577,11 +591,15 @@ class FieldValueCanonicalProvenanceContractTest
             statement.setString(8, text)
             statement.setTimestamp(9, updatedAt)
             statement.setTimestamp(10, updatedAt)
-            statement.setObject(11, appUserId)
+            var next = 11
+            if (legacyShape)
+            {
+                statement.setObject(next++, appUserId)
+            }
             if (canonicalColumns.isNotEmpty())
             {
-                statement.setString(12, principalKind)
-                statement.setObject(13, principalId)
+                statement.setString(next++, statedKind)
+                statement.setObject(next, statedId)
             }
             statement.executeUpdate()
         }
@@ -619,8 +637,8 @@ class FieldValueCanonicalProvenanceContractTest
                                               field_contract_id, revision_number, value_type,
                                               text_value, is_cleared, provenance,
                                               recorded_by_principal_kind, recorded_by_principal_id,
-                                              recorded_by_app_user_id, recorded_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, 'SHORT_TEXT', 'Recorded answer', false, 'USER', 'USER', ?, ?, ?)
+                                              recorded_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, 'SHORT_TEXT', 'Recorded answer', false, 'USER', 'USER', ?, ?)
             """.trimIndent(),
         ).use { statement ->
             statement.setObject(1, id)
@@ -631,8 +649,7 @@ class FieldValueCanonicalProvenanceContractTest
             statement.setObject(6, fixture.textContractId)
             statement.setInt(7, revisionNumber)
             statement.setObject(8, fixture.appUserId)
-            statement.setObject(9, fixture.appUserId)
-            statement.setTimestamp(10, Timestamp.from(Instant.now()))
+            statement.setTimestamp(9, Timestamp.from(Instant.now()))
             statement.executeUpdate()
         }
         return id
@@ -691,9 +708,6 @@ class FieldValueCanonicalProvenanceContractTest
     private fun principalIdOf(connection: Connection, valueId: UUID): UUID? =
         uuidColumn(connection, "SELECT updated_by_principal_id FROM field_value WHERE id = ?", valueId)
 
-    private fun legacyAuthorOf(connection: Connection, valueId: UUID): UUID? =
-        uuidColumn(connection, "SELECT updated_by_app_user_id FROM field_value WHERE id = ?", valueId)
-
     private fun assignerKindOf(connection: Connection, assignmentId: UUID): String? =
         stringColumn(
             connection,
@@ -703,9 +717,6 @@ class FieldValueCanonicalProvenanceContractTest
 
     private fun assignerIdOf(connection: Connection, assignmentId: UUID): UUID? =
         uuidColumn(connection, "SELECT assigned_by_principal_id FROM schema_assignment WHERE id = ?", assignmentId)
-
-    private fun legacyAssignerOf(connection: Connection, assignmentId: UUID): UUID? =
-        uuidColumn(connection, "SELECT assigned_by_app_user_id FROM schema_assignment WHERE id = ?", assignmentId)
 
     private fun stringColumn(connection: Connection, sql: String, id: UUID): String? =
         connection.prepareStatement(sql).use { statement ->

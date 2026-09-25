@@ -130,10 +130,6 @@ class FieldValueRevisionPersistenceContractTest
             "A participant is expressible as an author",
         )
         assertEquals(participantId, stored.recordedByPrincipalId)
-        assertNull(
-            stored.recordedByAppUserId,
-            "A participant never occupies the registered-user key",
-        )
         assertEquals(recordedAt.toInstant(), stored.recordedAt.toInstant())
         assertEquals(
             listOf("chosen-option"),

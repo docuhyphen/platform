@@ -102,7 +102,7 @@ class InformationRequestResponseDraftServiceTest
         assertEquals(fixture.request.id, response.informationRequestId)
         assertEquals(fixture.requirement.id, response.informationRequestRequirementId)
         assertEquals(fixture.currentRevision.id, response.requirementRevisionId)
-        assertEquals("$", response.occurrencePath)
+        assertEquals("root", response.occurrencePath)
         assertEquals(InformationRequestResponseDisposition.PROVIDED, response.disposition)
         assertEquals("First complete response.", response.narrative)
         assertEquals(PrincipalKind.PARTICIPANT, response.recordedByPrincipalKind)
@@ -1497,7 +1497,7 @@ class InformationRequestResponseDraftServiceTest
         assertTrue(result.responses.none { it.informationRequestRequirementId == removedRequirement.id })
     }
 
-    private class Fixture(responseRevision: Long = 1, occurrencePath: String = "$",
+    private class Fixture(responseRevision: Long = 1, occurrencePath: String = "root",
                           requestId: UUID = UUID.randomUUID(),
                           val schemaAssignmentService: SchemaAssignmentService = mock())
     {
@@ -1580,6 +1580,7 @@ class InformationRequestResponseDraftServiceTest
             transitionHistory = transitionHistory,
             conditionEvaluationService = conditionEvaluationService,
             structuredResponseValidationService = structuredValidationService,
+            lockService = mock(),
         )
 
         init

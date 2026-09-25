@@ -72,8 +72,9 @@ data class SessionAccessEntryDto(
     val source: String,
     val status: String,
     val recipientPurpose: String? = null,
+    val grantedByPrincipalKind: String? = null,
     @Serializable(with = UUIDSerializer::class)
-    val grantedByAppUserId: UUID? = null,
+    val grantedByPrincipalId: UUID? = null,
     @Serializable(with = TimestampSerializer::class)
     val grantedAt: Timestamp,
     @Serializable(with = TimestampSerializer::class)

@@ -85,10 +85,6 @@ class FieldValueRevision
     @Column(name = "recorded_by_session_ref", nullable = true, length = 64)
     var recordedBySessionRef: String? = null
 
-    /** Written only for a [PrincipalKind.USER] principal, alongside the canonical pair. */
-    @Column(name = "recorded_by_app_user_id", nullable = true)
-    var recordedByAppUserId: UUID? = null
-
     @Column(name = "recorded_at", nullable = false)
     var recordedAt: Timestamp = Timestamp.from(Instant.now())
 

@@ -22,6 +22,7 @@ data class InformationRequestRequirementPolicyFacts(
     val parent: InformationRequestParentSnapshot,
     val delegatedAuthorityFacts: List<InformationRequestRequirementDelegatedAuthorityFact> = emptyList(),
     val occurrenceRemoved: Boolean = false,
+    val attestingRoleKeys: Set<InformationRequestShareRoleKey> = emptySet(),
 ) : ResourcePolicyFacts
 
 data class InformationRequestRequirementAssignedPartyFact(

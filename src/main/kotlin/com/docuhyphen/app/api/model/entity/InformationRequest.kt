@@ -64,6 +64,12 @@ class InformationRequest
     @Column(name = "closed_at")
     var closedAt: Timestamp? = null
 
+    @Column(name = "satisfied_at")
+    var satisfiedAt: Timestamp? = null
+
+    @Column(name = "satisfied_by_package_id")
+    var satisfiedByPackageId: UUID? = null
+
     @Column(name = "cancelled_at")
     var cancelledAt: Timestamp? = null
 

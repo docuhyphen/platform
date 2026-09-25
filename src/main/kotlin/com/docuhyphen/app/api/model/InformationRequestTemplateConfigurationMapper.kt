@@ -1,6 +1,8 @@
 package com.docuhyphen.app.api.model
 
 import com.docuhyphen.app.api.model.dto.InformationRequestTemplateAcceptedValueRequest
+import com.docuhyphen.app.api.model.dto.InformationRequestTemplateAttestationPolicyDto
+import com.docuhyphen.app.api.model.dto.InformationRequestTemplateAttestationPolicyRequest
 import com.docuhyphen.app.api.model.dto.InformationRequestTemplateConditionPredicateDto
 import com.docuhyphen.app.api.model.dto.InformationRequestTemplateConditionPredicateRequest
 import com.docuhyphen.app.api.model.dto.InformationRequestTemplateConditionRuleDto
@@ -27,10 +29,13 @@ object InformationRequestTemplateConfigurationMapper
                     title = section.title,
                     helpText = section.helpText,
                     requirements = section.requirements.map(::toRequest),
+                    submissionStageKey = section.submissionStageKey,
                 )
             },
             groups = version.groups.map(::toRequest),
             conditionRules = version.conditionRules.map(::toRequest),
+            submissionMode = version.submissionMode,
+            submissionStageOrdering = version.submissionStageOrdering,
         )
 
     private fun toRequest(rule: InformationRequestTemplateConditionRuleDto) =
@@ -77,6 +82,17 @@ object InformationRequestTemplateConfigurationMapper
             evidencePolicy = requirement.evidencePolicy?.let(::toRequest),
             substituteRequirementKeys = requirement.substituteRequirementKeys,
             supportingEvidenceRequirementKeys = requirement.supportingEvidenceRequirementKeys,
+            attestationPolicy = requirement.attestationPolicy?.let(::toRequest),
+        )
+
+    private fun toRequest(policy: InformationRequestTemplateAttestationPolicyDto) =
+        InformationRequestTemplateAttestationPolicyRequest(
+            requiredRoles = policy.requiredRoles,
+            ordering = policy.ordering,
+            minimumAssentCount = policy.minimumAssentCount,
+            minimumAuthenticationStrength = policy.minimumAuthenticationStrength,
+            validityHours = policy.validityHours,
+            externalSignatureReference = policy.externalSignatureReference,
         )
 
     private fun toRequest(policy: InformationRequestTemplateEvidencePolicyDto) =

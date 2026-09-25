@@ -37,6 +37,7 @@ import org.mockito.kotlin.verify
 import org.mockito.kotlin.verifyNoInteractions
 import org.mockito.kotlin.whenever
 import java.util.UUID
+import com.docuhyphen.app.api.service.identity.PrincipalDisplayService
 
 class ExchangeAccessObservabilityPermutationTest
 {
@@ -213,9 +214,11 @@ class ExchangeAccessObservabilityPermutationTest
         )
         val service = ShareQueryService(
             shareRepository,
-            mock<AppUserRepository>(),
-            mock<PrincipalGroupRepository>(),
-            mock<ExternalParticipantRepository>(),
+            PrincipalDisplayService(
+                mock<AppUserRepository>(),
+                mock<PrincipalGroupRepository>(),
+                mock<ExternalParticipantRepository>(),
+            ),
             provider,
         )
         val purposes = service.getSessionAccessView(exchangeId).mapNotNull { it.recipientPurpose }.toSet()

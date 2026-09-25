@@ -15,12 +15,35 @@ class InformationRequestRequirementRepository :
             SELECT requirement
             FROM InformationRequestRequirement requirement
             WHERE requirement.informationRequestId = :requestId
+              AND requirement.sourceTemplateVersionId = (
+                  SELECT request.templateVersionId
+                  FROM InformationRequest request
+                  WHERE request.id = :requestId
+              )
             ORDER BY requirement.occurrencePath, requirement.id
             """.trimIndent(),
             InformationRequestRequirement::class.java,
         )
             .setParameter("requestId", requestId)
             .resultList
+
+    fun findAllForRequest(requestId: UUID): List<InformationRequestRequirement> =
+        entityManager.createQuery(
+            """
+            SELECT requirement
+            FROM InformationRequestRequirement requirement
+            WHERE requirement.informationRequestId = :requestId
+            ORDER BY requirement.occurrencePath, requirement.id
+            """.trimIndent(),
+            InformationRequestRequirement::class.java,
+        )
+            .setParameter("requestId", requestId)
+            .resultList
+
+    fun flushChanges()
+    {
+        entityManager.flush()
+    }
 
     fun findOccurrence(
         requestId: UUID,

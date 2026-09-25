@@ -460,9 +460,9 @@ class InformationRequestPartyService @Inject constructor(
         }
         party.shareId?.let { shareId ->
             bootstrapShareLinkService.revokeAllForShare(shareId)
-            shareService.revokeWithPrincipalProvenance(
+            shareService.revoke(
                 shareId = shareId,
-                revokedByPrincipal = command.access.principal,
+                revokedBy = command.access.principal,
                 resourceLabel = RESOURCE_LABEL,
             )
         }
@@ -530,9 +530,9 @@ class InformationRequestPartyService @Inject constructor(
         rollbackRecipientCapacityIfIssued(request, party)
         party.shareId?.let { shareId ->
             bootstrapShareLinkService.revokeAllForShare(shareId)
-            shareService.revokeWithPrincipalProvenance(
+            shareService.revoke(
                 shareId = shareId,
-                revokedByPrincipal = command.access.principal,
+                revokedBy = command.access.principal,
                 resourceLabel = RESOURCE_LABEL,
             )
         }

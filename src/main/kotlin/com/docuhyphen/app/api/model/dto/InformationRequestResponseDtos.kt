@@ -25,4 +25,5 @@ data class InformationRequestResponseDto(
     val fieldValues: List<FieldValueDto> = emptyList(),
     val responseRevision: Long,
     @Serializable(with = TimestampSerializer::class) val updatedAt: Timestamp,
+    val reconfirmationRequired: Boolean = false,
 )

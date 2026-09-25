@@ -37,6 +37,8 @@ const renderPanel = (accessLinkToken?: string) => render(
                                                requirements={[]}
                                                bindings={[]}
                                                responses={[]}
+                                               evidenceUploadAvailable={true}
+                                               evidenceMalwareScanning={false}
                                                accessLinkToken={accessLinkToken}
                                                onRefresh={vi.fn()}/>
 );

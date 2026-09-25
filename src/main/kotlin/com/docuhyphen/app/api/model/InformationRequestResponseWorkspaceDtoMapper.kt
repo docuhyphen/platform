@@ -4,12 +4,14 @@ import com.docuhyphen.app.api.model.dto.InformationRequestDto
 import com.docuhyphen.app.api.model.dto.InformationRequestGroupOccurrenceDto
 import com.docuhyphen.app.api.model.dto.InformationRequestResponseDto
 import com.docuhyphen.app.api.model.dto.InformationRequestResponseWorkspaceDto
+import com.docuhyphen.app.api.model.dto.InformationRequestSupportingEvidenceLinkDto
 import com.docuhyphen.app.api.model.dto.InformationRequestTemplateVersionDto
 import com.docuhyphen.app.api.model.dto.SchemaAssignmentDto
 import com.docuhyphen.app.api.model.entity.InformationRequest
 import com.docuhyphen.app.api.model.entity.InformationRequestRequirement
 import com.docuhyphen.app.api.model.entity.InformationRequestResponse
 import com.docuhyphen.app.api.model.entity.InformationRequestResponseDisposition
+import com.docuhyphen.app.api.model.entity.InformationRequestSupportingEvidenceLink
 import java.sql.Timestamp
 
 object InformationRequestResponseWorkspaceDtoMapper
@@ -21,6 +23,9 @@ object InformationRequestResponseWorkspaceDtoMapper
         occurrences: List<InformationRequestGroupOccurrenceDto>,
         schemaAssignment: SchemaAssignmentDto?,
         responses: List<InformationRequestResponseDto>,
+        supportingEvidenceLinks: List<InformationRequestSupportingEvidenceLinkDto> = emptyList(),
+        evidenceUploadAvailable: Boolean = false,
+        evidenceMalwareScanning: Boolean = false,
     ): InformationRequestResponseWorkspaceDto =
         InformationRequestResponseWorkspaceDto(
             request = request,
@@ -29,7 +34,13 @@ object InformationRequestResponseWorkspaceDtoMapper
             occurrences = occurrences,
             schemaAssignment = schemaAssignment,
             responses = responses,
+            supportingEvidenceLinks = supportingEvidenceLinks,
+            evidenceUploadAvailable = evidenceUploadAvailable,
+            evidenceMalwareScanning = evidenceMalwareScanning,
         )
+
+    fun linkDto(link: InformationRequestSupportingEvidenceLink): InformationRequestSupportingEvidenceLinkDto =
+        InformationRequestSupportingEvidenceLinkDto(link.supportedRequirementId, link.supportingRequirementId)
 
     fun responseDto(
         request: InformationRequest,

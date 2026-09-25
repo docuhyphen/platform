@@ -1,13 +1,12 @@
 package com.docuhyphen.app.api.service.informationrequest
 
 import com.docuhyphen.app.api.model.entity.InformationRequest
-import com.docuhyphen.app.api.model.entity.InformationRequestOwnerType
 import com.docuhyphen.app.api.model.entity.InformationRequestTransition
 import com.docuhyphen.app.api.model.entity.InformationRequestTransitionActorKind
 import com.docuhyphen.app.api.model.entity.PrincipalKind
+import com.docuhyphen.app.api.model.informationrequest.InformationRequestEvidenceTransition
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestTransitionRepository
 import com.docuhyphen.app.api.service.audit.AuditEventDraft
-import com.docuhyphen.app.api.service.audit.AuditOwnerScope
 import com.docuhyphen.app.api.service.audit.AuditRecorder
 import com.docuhyphen.app.api.service.audit.catalog.AuditActorKind
 import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
@@ -32,6 +31,8 @@ data class InformationRequestTransitionHistoryCommand(
     val partyId: UUID? = null,
     val commandReceiptId: UUID? = null,
     val idempotencyKey: String? = null,
+    val evidence: InformationRequestEvidenceTransition? = null,
+    val details: Map<String, String> = emptyMap(),
 )
 
 @ApplicationScoped
@@ -61,7 +62,7 @@ class InformationRequestTransitionHistoryService @Inject constructor(
         )
 
         val eventType = auditEventTypeFor(command.mutation) ?: return transition
-        val owner = ownerScopeOf(command.request)
+        val owner = informationRequestAuditOwner(command.request)
         val eventId = UUID.randomUUID()
         val payload = buildPayload(command, transition)
         auditRecorder.record(
@@ -109,17 +110,14 @@ class InformationRequestTransitionHistoryService @Inject constructor(
         command.request.supersededByRequestId?.let { fields["supersededByRequestId"] = it.toString() }
         command.reasonCode?.trim()?.ifBlank { null }?.let { fields["reasonCode"] = it }
         command.partyId?.let { fields["partyId"] = it.toString() }
+        command.evidence?.let { evidence ->
+            fields["requirementId"] = evidence.requirementId.toString()
+            fields["evidenceArtifactId"] = evidence.artifactId.toString()
+            fields["evidenceAction"] = evidence.action.name
+            evidence.versionNumber?.let { fields["evidenceVersionNumber"] = it.toString() }
+        }
+        command.details.forEach { (key, value) -> fields.putIfAbsent(key, value) }
         return fields
-    }
-
-    private fun ownerScopeOf(request: InformationRequest): AuditOwnerScope = when (request.ownerType)
-    {
-        InformationRequestOwnerType.ORGANIZATION -> AuditOwnerScope.Organization(
-            requireNotNull(request.ownerOrganizationId) { "Organization owned Information Request has no owner id" },
-        )
-        InformationRequestOwnerType.USER -> AuditOwnerScope.Personal(
-            requireNotNull(request.ownerUserId) { "User owned Information Request has no owner id" },
-        )
     }
 
     private fun auditEventTypeFor(mutation: InformationRequestMutation): AuditEventType? = when (mutation)
@@ -134,6 +132,10 @@ class InformationRequestTransitionHistoryService @Inject constructor(
         InformationRequestMutation.SAVE_RESPONSE -> AuditEventType.INFORMATION_REQUEST_REQUIREMENT_RESPOND
         InformationRequestMutation.ATTEST_RESPONSE -> AuditEventType.INFORMATION_REQUEST_REQUIREMENT_ATTEST
         InformationRequestMutation.ADMINISTER_EVIDENCE -> AuditEventType.INFORMATION_REQUEST_EVIDENCE_ADMINISTER
+        InformationRequestMutation.CLOSE -> AuditEventType.INFORMATION_REQUEST_CLOSE
+        InformationRequestMutation.WITHDRAW_SUBMISSION -> AuditEventType.INFORMATION_REQUEST_SUBMISSION_WITHDRAW
+        InformationRequestMutation.CREATE_SUCCESSOR -> AuditEventType.INFORMATION_REQUEST_SUCCESSOR_CREATE
+        InformationRequestMutation.SCHEDULE_FOLLOW_UP -> AuditEventType.INFORMATION_REQUEST_FOLLOW_UP_SCHEDULE
         else -> null
     }
 

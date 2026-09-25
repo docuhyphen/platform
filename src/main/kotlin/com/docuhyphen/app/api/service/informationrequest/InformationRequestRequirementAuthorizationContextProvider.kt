@@ -7,6 +7,7 @@ import com.docuhyphen.app.api.model.entity.InformationRequestRequirement
 import com.docuhyphen.app.api.model.entity.InformationRequestShareRoleKey
 import com.docuhyphen.app.api.model.entity.InformationRequestTemplateRequirementBinding
 import com.docuhyphen.app.api.model.entity.PrincipalKind
+import com.docuhyphen.app.api.model.informationrequest.InformationRequestActingParty
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestGroupOccurrenceRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestPartyRepository
@@ -37,6 +38,7 @@ class InformationRequestRequirementAuthorizationContextProvider @Inject construc
     private val occurrenceRepository: InformationRequestGroupOccurrenceRepository,
     private val participantAccountLinkRepository: ParticipantAccountLinkRepository,
     private val principalGroupMemberRepository: PrincipalGroupMemberRepository,
+    private val attestationPolicies: InformationRequestAttestationPolicyLoader,
 ) : ResourceAuthorizationContextProvider
 {
     override val supportedKind: ResourceKind = ResourceKind.INFORMATION_REQUEST_REQUIREMENT
@@ -132,8 +134,14 @@ class InformationRequestRequirementAuthorizationContextProvider @Inject construc
     ): InformationRequestRequirementPolicyFacts?
     {
         val assignedRoleKey = binding.contributorRole.toShareRoleKey()
-        val assignedParties = partyRepository
-            .findActiveForRequestRole(request.id, assignedRoleKey)
+        val attestingRoleKeys = attestationPolicies.forBinding(binding.id)
+            ?.requiredRoles
+            ?.map { it.toShareRoleKey() }
+            ?.toSet()
+            .orEmpty()
+        val assignedParties = (setOf(assignedRoleKey) + attestingRoleKeys)
+            .flatMap { role -> partyRepository.findActiveForRequestRole(request.id, role) }
+            .distinctBy { it.id }
             .map { it.toAssignedPartyFact() }
         val delegatedAuthorityFacts = delegatedAuthorityFactSource.factsFor(
             requestId = request.id,
@@ -160,8 +168,53 @@ class InformationRequestRequirementAuthorizationContextProvider @Inject construc
             parent = parentState.snapshot(request.exchangeId) ?: return null,
             delegatedAuthorityFacts = delegatedAuthorityFacts,
             occurrenceRemoved = occurrenceRemoved,
+            attestingRoleKeys = attestingRoleKeys,
         )
     }
+
+    fun actingPartiesFor(
+        request: InformationRequest,
+        roles: Set<InformationRequestContributorRole>,
+        principal: PrincipalRef,
+        requirementId: UUID,
+    ): List<InformationRequestActingParty>
+    {
+        val parties = roles.map { it.toShareRoleKey() }
+            .flatMap { role -> partyRepository.findActiveForRequestRole(request.id, role) }
+            .distinctBy { it.id }
+        val authorities = delegatedAuthorityFactSource.factsFor(
+            requestId = request.id,
+            requirementId = requirementId,
+            assignedPartyIds = parties.map { it.id }.toSet(),
+        )
+        return parties.mapNotNull { party ->
+            val partyPrincipal = party.principalRef()
+            val role = party.roleKey.toContributorRole() ?: return@mapNotNull null
+            when
+            {
+                partyPrincipal == principal ||
+                    principal in equivalentPrincipalsFor(partyPrincipal) -> InformationRequestActingParty(party, role, null)
+                else -> authorities
+                    .firstOrNull {
+                        it.active && it.assignedPartyId == party.id && it.delegatePrincipal == principal &&
+                            (it.requirementId == null || it.requirementId == requirementId)
+                    }
+                    ?.let { InformationRequestActingParty(party, role, it.authorityId) }
+            }
+        }
+    }
+
+    private fun InformationRequestShareRoleKey.toContributorRole(): InformationRequestContributorRole? =
+        when (this)
+        {
+            InformationRequestShareRoleKey.SUBJECT -> InformationRequestContributorRole.SUBJECT
+            InformationRequestShareRoleKey.CONTRIBUTOR -> InformationRequestContributorRole.CONTRIBUTOR
+            InformationRequestShareRoleKey.PREPARER -> InformationRequestContributorRole.PREPARER
+            InformationRequestShareRoleKey.ATTESTOR -> InformationRequestContributorRole.ATTESTOR
+            InformationRequestShareRoleKey.REVIEWER,
+            InformationRequestShareRoleKey.DECISION_MAKER,
+            -> null
+        }
 
     private fun InformationRequestContributorRole.toShareRoleKey() =
         when (this)

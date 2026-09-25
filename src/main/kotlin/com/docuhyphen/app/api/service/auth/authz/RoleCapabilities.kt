@@ -241,13 +241,18 @@ object RoleCapabilities
         ),
     )
 
+    // Every answering role may attest, because an assertion's attestation policy names which of
+    // them must: the Requirement policy evaluator admits an attestation only from a role the
+    // policy of that exact assertion names.
     private val INFORMATION_REQUEST_SHARE: Map<InformationRequestShareRoleKey, Set<Capability>> = mapOf(
         InformationRequestShareRoleKey.SUBJECT to setOf(
             Capability.INFORMATION_REQUEST_READ,
+            Capability.INFORMATION_REQUEST_ATTEST,
         ),
         InformationRequestShareRoleKey.CONTRIBUTOR to setOf(
             Capability.INFORMATION_REQUEST_READ,
             Capability.INFORMATION_REQUEST_RESPOND,
+            Capability.INFORMATION_REQUEST_ATTEST,
             Capability.INFORMATION_REQUEST_SUBMIT,
             Capability.INFORMATION_REQUEST_EVIDENCE_READ,
             Capability.INFORMATION_REQUEST_EVIDENCE_WRITE,
@@ -255,6 +260,7 @@ object RoleCapabilities
         InformationRequestShareRoleKey.PREPARER to setOf(
             Capability.INFORMATION_REQUEST_READ,
             Capability.INFORMATION_REQUEST_RESPOND,
+            Capability.INFORMATION_REQUEST_ATTEST,
             Capability.INFORMATION_REQUEST_SUBMIT,
             Capability.INFORMATION_REQUEST_EVIDENCE_READ,
             Capability.INFORMATION_REQUEST_EVIDENCE_WRITE,

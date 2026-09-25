@@ -6,6 +6,8 @@ import com.docuhyphen.app.api.model.dto.InformationRequestTemplateGroupDto
 import com.docuhyphen.app.api.model.dto.InformationRequestTemplateRequirementDto
 import com.docuhyphen.app.api.model.dto.InformationRequestTemplateSectionDto
 import com.docuhyphen.app.api.model.dto.InformationRequestTemplateVersionDto
+import com.docuhyphen.app.api.model.entity.InformationRequestTemplateAttestationPolicy
+import com.docuhyphen.app.api.model.entity.InformationRequestTemplateAttestationRole
 import com.docuhyphen.app.api.model.entity.InformationRequestTemplateBindingDisposition
 import com.docuhyphen.app.api.model.entity.InformationRequestTemplateBindingEvidenceLink
 import com.docuhyphen.app.api.model.entity.InformationRequestTemplateBindingSubstitute
@@ -14,6 +16,8 @@ import com.docuhyphen.app.api.model.entity.InformationRequestTemplateEvidencePol
 import com.docuhyphen.app.api.model.entity.InformationRequestTemplateRequirement
 import com.docuhyphen.app.api.model.entity.InformationRequestTemplateRequirementBinding
 import com.docuhyphen.app.api.model.entity.InformationRequestTemplateVersion
+import com.docuhyphen.app.api.repository.informationrequest.InformationRequestTemplateAttestationPolicyRepository
+import com.docuhyphen.app.api.repository.informationrequest.InformationRequestTemplateAttestationRoleRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestTemplateBindingDispositionRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestTemplateBindingEvidenceLinkRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestTemplateBindingSubstituteRepository
@@ -58,6 +62,8 @@ class InformationRequestTemplateProjectionLoader @Inject constructor(
     private val conditionRuleRepository: InformationRequestTemplateConditionRuleRepository,
     private val conditionPredicateRepository: InformationRequestTemplateConditionPredicateRepository,
     private val conditionPredicateLiteralRepository: InformationRequestTemplateConditionPredicateLiteralRepository,
+    private val attestationPolicyRepository: InformationRequestTemplateAttestationPolicyRepository,
+    private val attestationRoleRepository: InformationRequestTemplateAttestationRoleRepository,
 )
 {
     fun loadVersion(version: InformationRequestTemplateVersion): InformationRequestTemplateVersionDto
@@ -157,6 +163,12 @@ class InformationRequestTemplateProjectionLoader @Inject constructor(
             supportingEvidenceRequirementKeys = configuration.evidenceLinksByBinding[binding.id]
                 .orEmpty()
                 .mapNotNull { keyByBindingId[it.supportingTemplateBindingId] },
+            attestationPolicy = configuration.attestationPoliciesByBinding[binding.id]?.let { attestation ->
+                InformationRequestTemplateDtoMapper.toDto(
+                    attestation,
+                    configuration.attestationRolesByPolicy[attestation.id].orEmpty(),
+                )
+            },
         )
     }
 
@@ -171,6 +183,10 @@ class InformationRequestTemplateProjectionLoader @Inject constructor(
             .groupBy { it.templateBindingId },
         evidenceLinksByBinding = evidenceLinkRepository.findForVersion(templateVersionId)
             .groupBy { it.templateBindingId },
+        attestationPoliciesByBinding = attestationPolicyRepository.findForVersion(templateVersionId)
+            .associateBy { it.templateBindingId },
+        attestationRolesByPolicy = attestationRoleRepository.findForVersion(templateVersionId)
+            .groupBy { it.attestationPolicyId },
     )
 
     /** Everything one version states about its requirements, indexed by the row it belongs to. */
@@ -180,5 +196,7 @@ class InformationRequestTemplateProjectionLoader @Inject constructor(
         val acceptedValuesByPolicy: Map<UUID, List<InformationRequestTemplateEvidenceAcceptedValue>>,
         val substitutesByBinding: Map<UUID, List<InformationRequestTemplateBindingSubstitute>>,
         val evidenceLinksByBinding: Map<UUID, List<InformationRequestTemplateBindingEvidenceLink>>,
+        val attestationPoliciesByBinding: Map<UUID, InformationRequestTemplateAttestationPolicy>,
+        val attestationRolesByPolicy: Map<UUID, List<InformationRequestTemplateAttestationRole>>,
     )
 }

@@ -24,5 +24,6 @@ object InformationRequestResponseDtoMapper
             fieldValues = fieldProjection?.fields.orEmpty(),
             responseRevision = response.responseRevision,
             updatedAt = response.updatedAt,
+            reconfirmationRequired = response.reconfirmationRequiredByAmendmentId != null,
         )
 }

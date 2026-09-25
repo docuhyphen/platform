@@ -225,7 +225,7 @@ class ExchangeDocumentService @Inject constructor(
 
         validateFileAndExtension(file, extension, document.restrictedType)
 
-        validateUserPermissions(exchange, DocumentAction.UPLOAD)
+        val creator = validateUserPermissions(exchange, DocumentAction.UPLOAD)
         val appUser = authTokenContext.authToken.appUser
 
         document.hash = documentContentHashService.sha256(file!!)
@@ -239,7 +239,12 @@ class ExchangeDocumentService @Inject constructor(
         documentThumbnailService.scheduleGeneration(document)
 
         // Record the uploaded file as a version so it appears in the document's version history.
-        documentVersionService.recordUploadedFileAsVersion(document, file, appUser?.email)
+        documentVersionService.recordUploadedFileAsVersion(
+            document,
+            file,
+            creator,
+            encryptionMode ?: DocumentEncryptionMode.INTERNAL,
+        )
 
         appUser
             ?.let { auditService.logAction(document, DocumentAuditAction.UPLOAD, it) }
@@ -312,6 +317,9 @@ class ExchangeDocumentService @Inject constructor(
 
         validateFileAndExtension(file, extension, document.restrictedType)
 
+        val creator = shareService.primaryRecipientPrincipal(exchange.id)
+            ?: throw IllegalArgumentException("Permission to upload document not granted")
+
 
         document.hash = documentContentHashService.sha256(file!!)
         document.type = DocumentType.fromFileExtension(extension!!)
@@ -325,7 +333,12 @@ class ExchangeDocumentService @Inject constructor(
 //        sendUploadNotification(exchange, appUser, document.title)
 
         // Record the uploaded file as a version so it appears in the document's version history.
-        documentVersionService.recordUploadedFileAsVersion(document, file, resolveRecipientEmail(exchange.id))
+        documentVersionService.recordUploadedFileAsVersion(
+            document,
+            file,
+            creator,
+            encryptionMode ?: DocumentEncryptionMode.INTERNAL,
+        )
 
         broadcastDocumentEvent(exchange.id, RealtimeMessageType.EXCHANGE_DOCUMENT_UPDATED, document.id)
         publishDocumentNotification(
@@ -622,7 +635,7 @@ class ExchangeDocumentService @Inject constructor(
     private fun resolveRecipientEmail(exchangeId: UUID): String? =
         shareService.primaryRecipientUserId(exchangeId)?.let { appUserService.getById(it)?.email }
 
-    private fun validateUserPermissions(exchange: Exchange, action: DocumentAction)
+    private fun validateUserPermissions(exchange: Exchange, action: DocumentAction): PrincipalRef
     {
         val required = when (action)
         {
@@ -645,6 +658,8 @@ class ExchangeDocumentService @Inject constructor(
         {
             throw IllegalArgumentException("Permission to perform document action not granted")
         }
+
+        return principal
     }
 
     private fun actorEmail(): String

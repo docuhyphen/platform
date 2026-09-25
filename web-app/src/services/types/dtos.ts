@@ -16,7 +16,8 @@ export interface ExchangeAccessEntryDto
     source: string;           // 'DIRECT' | 'WORKFLOW' etc.
     status: string;           // 'ACTIVE' | 'REVOKED' etc.
     recipientPurpose?: 'PRIMARY' | 'PARTICIPANT';
-    grantedByAppUserId?: string;
+    grantedByPrincipalKind?: string;
+    grantedByPrincipalId?: string;
     grantedAt: string;        // ISO timestamp
     expiresAt?: string;
     constraintsJson?: string;

@@ -33,5 +33,8 @@ class InformationRequestTemplateSection
     @Column(name = "help_text", nullable = true, length = 2048)
     var helpText: String? = null
 
+    @Column(name = "submission_stage_key", nullable = true, length = 128)
+    var submissionStageKey: String? = null
+
     constructor()
 }

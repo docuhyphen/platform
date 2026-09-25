@@ -1,6 +1,8 @@
 package com.docuhyphen.app.api.service.informationrequest
 
+import com.docuhyphen.app.api.model.InformationRequestTemplateConfigurationMapper
 import com.docuhyphen.app.api.model.dto.InformationRequestTemplateAcceptedValueRequest
+import com.docuhyphen.app.api.model.dto.InformationRequestTemplateAttestationPolicyRequest
 import com.docuhyphen.app.api.model.dto.InformationRequestTemplateConditionPredicateRequest
 import com.docuhyphen.app.api.model.dto.InformationRequestTemplateConditionRuleRequest
 import com.docuhyphen.app.api.model.dto.InformationRequestTemplateConfigurationRequest
@@ -8,7 +10,12 @@ import com.docuhyphen.app.api.model.dto.InformationRequestTemplateEvidencePolicy
 import com.docuhyphen.app.api.model.dto.InformationRequestTemplateGroupRequest
 import com.docuhyphen.app.api.model.dto.InformationRequestTemplateRequirementRequest
 import com.docuhyphen.app.api.model.dto.InformationRequestTemplateSectionRequest
+import com.docuhyphen.app.api.model.entity.InformationRequestAttestationOrdering
+import com.docuhyphen.app.api.model.entity.InformationRequestAuthenticationStrength
 import com.docuhyphen.app.api.model.entity.InformationRequestContributorRole
+import com.docuhyphen.app.api.model.entity.InformationRequestExternalSignatureReferencePolicy
+import com.docuhyphen.app.api.model.entity.InformationRequestSubmissionMode
+import com.docuhyphen.app.api.model.entity.InformationRequestSubmissionStageOrdering
 import com.docuhyphen.app.api.service.fields.FieldOperator
 import com.docuhyphen.app.api.model.entity.InformationRequestConditionHiddenDataPolicy
 import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceAttribute
@@ -304,6 +311,101 @@ class InformationRequestTemplateConfigurationWriterContractTest
             projectionLoader.loadVersion(versionRepository.findById(draft.id)!!)
         }
         assertEquals(listOf("collected-data", "supporting-data"), stillAuthored.sections.map { it.sectionKey })
+    }
+
+    @Test
+    fun `stages and attestation policies survive the write and read back as authored`()
+    {
+        val draft = draftTemplate()
+        val staged = InformationRequestTemplateConfigurationRequest(
+            submissionMode = InformationRequestSubmissionMode.STAGED,
+            submissionStageOrdering = InformationRequestSubmissionStageOrdering.SEQUENTIAL,
+            sections = listOf(
+                InformationRequestTemplateSectionRequest(
+                    sectionKey = "supporting-data",
+                    title = "Supporting data",
+                    submissionStageKey = "record-stage",
+                    requirements = listOf(
+                        requirement("supporting-record", InformationRequestRequirementType.DOCUMENT).copy(
+                            evidencePolicy = InformationRequestTemplateEvidencePolicyRequest(),
+                        ),
+                    ),
+                ),
+                InformationRequestTemplateSectionRequest(
+                    sectionKey = "confirmations",
+                    title = "Confirmations",
+                    submissionStageKey = "confirmation-stage",
+                    requirements = listOf(
+                        requirement("recorded-assertion", InformationRequestRequirementType.RESPONSE_ATTESTATION).copy(
+                            attestationPolicy = InformationRequestTemplateAttestationPolicyRequest(
+                                requiredRoles = listOf(
+                                    InformationRequestContributorRole.PREPARER,
+                                    InformationRequestContributorRole.ATTESTOR,
+                                ),
+                                ordering = InformationRequestAttestationOrdering.ROLE_SEQUENCE,
+                                minimumAssentCount = 3,
+                                minimumAuthenticationStrength = InformationRequestAuthenticationStrength.MULTI_FACTOR,
+                                validityHours = 24,
+                                externalSignatureReference = InformationRequestExternalSignatureReferencePolicy.REQUIRED,
+                            ),
+                        ),
+                        requirement("plain-assertion", InformationRequestRequirementType.RESPONSE_ATTESTATION),
+                    ),
+                ),
+            ),
+        )
+
+        QuarkusTransaction.requiringNew().run { writer.replaceConfiguration(draft, staged) }
+        val version = QuarkusTransaction.requiringNew().call {
+            projectionLoader.loadVersion(versionRepository.findById(draft.id)!!)
+        }
+
+        assertEquals(InformationRequestSubmissionMode.STAGED, version.submissionMode)
+        assertEquals(InformationRequestSubmissionStageOrdering.SEQUENTIAL, version.submissionStageOrdering)
+        assertEquals(listOf("record-stage", "confirmation-stage"), version.sections.map { it.submissionStageKey })
+        val assertions = version.sections.last().requirements.associateBy { it.requirementKey }
+        val stated = assertions.getValue("recorded-assertion").attestationPolicy!!
+        assertEquals(
+            listOf(InformationRequestContributorRole.PREPARER, InformationRequestContributorRole.ATTESTOR),
+            stated.requiredRoles,
+        )
+        assertEquals(InformationRequestAttestationOrdering.ROLE_SEQUENCE, stated.ordering)
+        assertEquals(3, stated.minimumAssentCount)
+        assertEquals(InformationRequestAuthenticationStrength.MULTI_FACTOR, stated.minimumAuthenticationStrength)
+        assertEquals(24, stated.validityHours)
+        assertEquals(InformationRequestExternalSignatureReferencePolicy.REQUIRED, stated.externalSignatureReference)
+        val defaulted = assertions.getValue("plain-assertion").attestationPolicy!!
+        assertEquals(listOf(InformationRequestContributorRole.CONTRIBUTOR), defaulted.requiredRoles)
+        assertEquals(1, defaulted.minimumAssentCount)
+        assertNull(version.sections.first().requirements.single().attestationPolicy)
+
+        val copied = InformationRequestTemplateConfigurationMapper.toRequest(version)
+        assertEquals(staged.submissionMode, copied.submissionMode)
+        assertEquals(stated.requiredRoles, copied.sections.last().requirements.first().attestationPolicy!!.requiredRoles)
+
+        QuarkusTransaction.requiringNew().run {
+            writer.replaceConfiguration(
+                versionRepository.findById(draft.id)!!,
+                InformationRequestTemplateConfigurationRequest(
+                    sections = listOf(
+                        InformationRequestTemplateSectionRequest(
+                            sectionKey = "supporting-data",
+                            title = "Supporting data",
+                            requirements = listOf(
+                                requirement("supporting-record", InformationRequestRequirementType.DOCUMENT).copy(
+                                    evidencePolicy = InformationRequestTemplateEvidencePolicyRequest(),
+                                ),
+                            ),
+                        ),
+                    ),
+                ),
+            )
+        }
+        val rewritten = QuarkusTransaction.requiringNew().call {
+            projectionLoader.loadVersion(versionRepository.findById(draft.id)!!)
+        }
+        assertEquals(InformationRequestSubmissionMode.WHOLE_PACKAGE, rewritten.submissionMode)
+        assertNull(rewritten.sections.single().submissionStageKey)
     }
 
     @Test

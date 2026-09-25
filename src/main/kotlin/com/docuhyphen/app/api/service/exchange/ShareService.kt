@@ -68,7 +68,7 @@ class ShareService @Inject constructor(
         principalKind: PrincipalKind,
         principalId: UUID,
         roleName: ExchangeShareRoleName,
-        grantedByAppUserId: UUID? = null,
+        grantedBy: PrincipalRef? = null,
         source: ShareSource = ShareSource.DIRECT,
         constraintsJson: String? = null,
         expiresAt: Timestamp? = null,
@@ -81,34 +81,7 @@ class ShareService @Inject constructor(
             principalKind = principalKind,
             principalId = principalId,
             roleName = roleName.name,
-            grantor = grantedByAppUserId?.let(PrincipalRef::user),
-            source = source,
-            constraintsJson = constraintsJson,
-            expiresAt = expiresAt,
-            status = status,
-            resourceLabel = resourceLabel,
-        )
-
-    fun grantWithPrincipalProvenance(
-        resourceType: ResourceType,
-        resourceId: UUID,
-        principalKind: PrincipalKind,
-        principalId: UUID,
-        roleName: ExchangeShareRoleName,
-        grantedByPrincipal: PrincipalRef? = null,
-        source: ShareSource = ShareSource.DIRECT,
-        constraintsJson: String? = null,
-        expiresAt: Timestamp? = null,
-        status: ShareStatus = ShareStatus.ACTIVE,
-        resourceLabel: String? = null,
-    ): Share =
-        grantInternal(
-            resourceType = resourceType,
-            resourceId = resourceId,
-            principalKind = principalKind,
-            principalId = principalId,
-            roleName = roleName.name,
-            grantor = grantedByPrincipal,
+            grantor = grantedBy,
             source = source,
             constraintsJson = constraintsJson,
             expiresAt = expiresAt,
@@ -185,7 +158,6 @@ class ShareService @Inject constructor(
                 this.grantedAt = Timestamp.from(Instant.now())
             }
             this.revokedAt = null
-            this.revokedByAppUserId = null
             this.revokedByPrincipalKind = null
             this.revokedByPrincipalId = null
         }
@@ -279,13 +251,11 @@ class ShareService @Inject constructor(
             source = ShareSource.INHERITED_FROM_GROUP
             sourceShareId = parentShare.id
             status = ShareStatus.ACTIVE
-            grantedByAppUserId = parentShare.grantedByAppUserId
             grantedByPrincipalKind = parentShare.grantedByPrincipalKind
             grantedByPrincipalId = parentShare.grantedByPrincipalId
             constraintsJson = parentShare.constraintsJson
             expiresAt = parentShare.expiresAt
             revokedAt = null
-            revokedByAppUserId = null
             revokedByPrincipalKind = null
             revokedByPrincipalId = null
         }
@@ -355,28 +325,13 @@ class ShareService @Inject constructor(
     fun revokePendingForResource(
         resourceType: ResourceType,
         resourceId: UUID,
-        revokedByAppUserId: UUID? = null,
-        resourceLabel: String? = null,
-    )
-    {
-        revokePendingForResourceWithPrincipalProvenance(
-            resourceType = resourceType,
-            resourceId = resourceId,
-            revokedByPrincipal = revokedByAppUserId?.let(PrincipalRef::user),
-            resourceLabel = resourceLabel,
-        )
-    }
-
-    fun revokePendingForResourceWithPrincipalProvenance(
-        resourceType: ResourceType,
-        resourceId: UUID,
-        revokedByPrincipal: PrincipalRef? = null,
+        revokedBy: PrincipalRef? = null,
         resourceLabel: String? = null,
     )
     {
         val now = Timestamp.from(Instant.now())
         shareRepository.findByResourceAndStatus(resourceType, resourceId, ShareStatus.PENDING_APPROVAL)
-            .forEach { markRevoked(it, revokedByPrincipal, now, resourceLabel) }
+            .forEach { markRevoked(it, revokedBy, now, resourceLabel) }
     }
 
     /**
@@ -473,6 +428,9 @@ class ShareService @Inject constructor(
             ?.takeIf { it.principalKind == PrincipalKind.USER }
             ?.principalId
 
+    fun primaryRecipientPrincipal(exchangeId: UUID): PrincipalRef? =
+        primaryDirectRecipientShare(exchangeId)?.let { PrincipalRef(it.principalKind, it.principalId) }
+
     /** Returns the group ID of the primary PRINCIPAL_GROUP recipient share, or null if none. */
     fun primaryRecipientGroupId(exchangeId: UUID): UUID? =
         primaryDirectRecipientShare(exchangeId)
@@ -544,28 +502,15 @@ class ShareService @Inject constructor(
     /** Revoke a single share and any inherited children that point at it. */
     fun revoke(
         shareId: UUID,
-        revokedByAppUserId: UUID? = null,
-        resourceLabel: String? = null,
-    )
-    {
-        revokeWithPrincipalProvenance(
-            shareId = shareId,
-            revokedByPrincipal = revokedByAppUserId?.let(PrincipalRef::user),
-            resourceLabel = resourceLabel,
-        )
-    }
-
-    fun revokeWithPrincipalProvenance(
-        shareId: UUID,
-        revokedByPrincipal: PrincipalRef? = null,
+        revokedBy: PrincipalRef? = null,
         resourceLabel: String? = null,
     )
     {
         val now = Timestamp.from(Instant.now())
         shareRepository.findById(shareId)?.let { share ->
-            markRevoked(share, revokedByPrincipal, now, resourceLabel)
+            markRevoked(share, revokedBy, now, resourceLabel)
             shareRepository.findBySourceShareId(shareId).forEach { child ->
-                markRevoked(child, revokedByPrincipal, now, resourceLabel)
+                markRevoked(child, revokedBy, now, resourceLabel)
             }
         }
     }
@@ -582,28 +527,13 @@ class ShareService @Inject constructor(
     fun revokeAllForResource(
         resourceType: ResourceType,
         resourceId: UUID,
-        revokedByAppUserId: UUID? = null,
-        resourceLabel: String? = null,
-    )
-    {
-        revokeAllForResourceWithPrincipalProvenance(
-            resourceType = resourceType,
-            resourceId = resourceId,
-            revokedByPrincipal = revokedByAppUserId?.let(PrincipalRef::user),
-            resourceLabel = resourceLabel,
-        )
-    }
-
-    fun revokeAllForResourceWithPrincipalProvenance(
-        resourceType: ResourceType,
-        resourceId: UUID,
-        revokedByPrincipal: PrincipalRef? = null,
+        revokedBy: PrincipalRef? = null,
         resourceLabel: String? = null,
     )
     {
         val now = Timestamp.from(Instant.now())
         shareRepository.findActiveByResource(resourceType, resourceId).forEach {
-            markRevoked(it, revokedByPrincipal, now, resourceLabel)
+            markRevoked(it, revokedBy, now, resourceLabel)
         }
     }
 
@@ -697,16 +627,11 @@ class ShareService @Inject constructor(
     {
         share.grantedByPrincipalKind = grantor?.kind
         share.grantedByPrincipalId = grantor?.id
-        share.grantedByAppUserId = legacyAppUserId(grantor)
     }
 
     private fun recordRevoker(share: Share, revoker: PrincipalRef?)
     {
         share.revokedByPrincipalKind = revoker?.kind
         share.revokedByPrincipalId = revoker?.id
-        share.revokedByAppUserId = legacyAppUserId(revoker)
     }
-
-    private fun legacyAppUserId(principal: PrincipalRef?): UUID? =
-        principal?.id?.takeIf { principal.kind == PrincipalKind.USER }
 }

@@ -67,7 +67,6 @@ class InformationRequestTransitionMatrixTest
                 InformationRequestState.IN_PROGRESS,
                 InformationRequestMutation.SUBMIT,
             ),
-            InformationRequestState.SUBMITTED,
         )
         assertAllowed(
             InformationRequestTransitionMatrix.canMutate(
@@ -106,13 +105,87 @@ class InformationRequestTransitionMatrixTest
         InformationRequestState.entries
             .filter { it.isTerminal }
             .forEach { state ->
-                InformationRequestMutation.entries.forEach { mutation ->
+                (InformationRequestMutation.entries - LINEAGE_MUTATIONS).forEach { mutation ->
                     assertDenied(
                         InformationRequestErrorCatalog.STATE_INVALID,
                         InformationRequestTransitionMatrix.canMutate(parent, state, mutation),
                     )
                 }
             }
+    }
+
+    @Test
+    fun `a submission and its withdrawal keep the collection state and a no-review closure closes an active request`()
+    {
+        val parent = InformationRequestParentSnapshot(status = ExchangeStatus.ACCEPTED_STARTED, lockedForUpdate = true)
+        listOf(
+            InformationRequestState.ISSUED,
+            InformationRequestState.IN_PROGRESS,
+            InformationRequestState.CHANGES_REQUESTED,
+        ).forEach { state ->
+            assertAllowed(InformationRequestTransitionMatrix.canMutate(parent, state, InformationRequestMutation.SUBMIT))
+            assertAllowed(
+                InformationRequestTransitionMatrix.canMutate(parent, state, InformationRequestMutation.WITHDRAW_SUBMISSION),
+            )
+            assertAllowed(
+                InformationRequestTransitionMatrix.canMutate(parent, state, InformationRequestMutation.CLOSE),
+                InformationRequestState.CLOSED,
+            )
+        }
+        assertDenied(
+            InformationRequestErrorCatalog.STATE_INVALID,
+            InformationRequestTransitionMatrix.canMutate(parent, InformationRequestState.DRAFT, InformationRequestMutation.SUBMIT),
+        )
+        val initiated = InformationRequestParentSnapshot(status = ExchangeStatus.INITIATED, lockedForUpdate = true)
+        assertDenied(
+            InformationRequestErrorCatalog.PARENT_STATE_INVALID,
+            InformationRequestTransitionMatrix.canMutate(
+                initiated,
+                InformationRequestState.ISSUED,
+                InformationRequestMutation.WITHDRAW_SUBMISSION,
+            ),
+        )
+    }
+
+    @Test
+    fun `a successor and a follow-up are recorded against issued or finished work but never a draft or abandoned one`()
+    {
+        val parent = InformationRequestParentSnapshot(status = ExchangeStatus.ACCEPTED_STARTED, lockedForUpdate = true)
+        listOf(
+            InformationRequestState.ISSUED,
+            InformationRequestState.IN_PROGRESS,
+            InformationRequestState.CLOSED,
+            InformationRequestState.EXPIRED,
+        ).forEach { state ->
+            assertAllowed(InformationRequestTransitionMatrix.canMutate(parent, state, InformationRequestMutation.CREATE_SUCCESSOR))
+        }
+        listOf(InformationRequestState.DRAFT, InformationRequestState.CANCELLED, InformationRequestState.SUPERSEDED)
+            .forEach { state ->
+                assertDenied(
+                    InformationRequestErrorCatalog.STATE_INVALID,
+                    InformationRequestTransitionMatrix.canMutate(parent, state, InformationRequestMutation.CREATE_SUCCESSOR),
+                )
+            }
+        listOf(
+            InformationRequestState.DRAFT,
+            InformationRequestState.ISSUED,
+            InformationRequestState.IN_PROGRESS,
+            InformationRequestState.CLOSED,
+        ).forEach { state ->
+            assertAllowed(InformationRequestTransitionMatrix.canMutate(parent, state, InformationRequestMutation.SCHEDULE_FOLLOW_UP))
+        }
+        listOf(InformationRequestState.CANCELLED, InformationRequestState.SUPERSEDED, InformationRequestState.EXPIRED)
+            .forEach { state ->
+                assertDenied(
+                    InformationRequestErrorCatalog.STATE_INVALID,
+                    InformationRequestTransitionMatrix.canMutate(parent, state, InformationRequestMutation.SCHEDULE_FOLLOW_UP),
+                )
+            }
+        val deleted = InformationRequestParentSnapshot(status = ExchangeStatus.ACCEPTED_STARTED, deleted = true, lockedForUpdate = true)
+        assertDenied(
+            InformationRequestErrorCatalog.PARENT_STATE_INVALID,
+            InformationRequestTransitionMatrix.canMutate(deleted, InformationRequestState.CLOSED, InformationRequestMutation.CREATE_SUCCESSOR),
+        )
     }
 
     @Test
@@ -255,6 +328,14 @@ class InformationRequestTransitionMatrixTest
     }
 
     private fun parent(status: ExchangeStatus) = InformationRequestParentSnapshot(status = status)
+
+    private companion object
+    {
+        val LINEAGE_MUTATIONS = setOf(
+            InformationRequestMutation.CREATE_SUCCESSOR,
+            InformationRequestMutation.SCHEDULE_FOLLOW_UP,
+        )
+    }
 
     private fun assertAllowed(
         decision: InformationRequestPolicyDecision,

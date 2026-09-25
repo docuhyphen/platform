@@ -10,9 +10,6 @@ import jakarta.inject.Inject
  * Discovers every installed [InformationRequestCapabilityExecutor] at startup and answers what this
  * deployment can serve. An incoherent set of executors fails startup rather than being narrowed,
  * because a deployment that cannot say which executor serves a capability cannot serve it safely.
- *
- * No executor is installed while the runtime is being built, so the answer is currently that
- * nothing is served, and every Template Version that requires anything is refused at issuance.
  */
 @ApplicationScoped
 class InformationRequestCapabilityExecutorRegistry

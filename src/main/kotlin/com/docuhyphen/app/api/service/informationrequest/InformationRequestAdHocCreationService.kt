@@ -9,7 +9,6 @@ import com.docuhyphen.app.api.model.entity.InformationRequestTemplateOriginKind
 import com.docuhyphen.app.api.model.entity.InformationRequestTemplateScopeKind
 import com.docuhyphen.app.api.model.entity.InformationRequestTemplateStatus
 import com.docuhyphen.app.api.model.entity.InformationRequestTemplateVersion
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateVersionCapability
 import com.docuhyphen.app.api.model.entity.PrincipalKind
 import com.docuhyphen.app.api.model.entity.ResourceType
 import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
@@ -69,6 +68,14 @@ class InformationRequestAdHocCreationService @Inject constructor(
     private val entitlementGuard: InformationRequestEntitlementGuard,
 )
 {
+    private val versionPublisher = InformationRequestPrivateVersionPublisher(
+        definitionRepository,
+        versionRepository,
+        capabilityRepository,
+        configurationWriter,
+        schemaCompatibility,
+    )
+
     @Transactional
     fun createAdHoc(command: CreateAdHocInformationRequestCommand): InformationRequestCreationResult
     {
@@ -152,52 +159,8 @@ class InformationRequestAdHocCreationService @Inject constructor(
     private fun createVersion(
         definition: InformationRequestTemplateDefinition,
         command: CreateAdHocInformationRequestCommand,
-    ): InformationRequestTemplateVersion
-    {
-        val draft = versionRepository.save(
-            InformationRequestTemplateVersion().apply {
-                templateDefinitionId = definition.id
-                versionNumber = FIRST_VERSION_NUMBER
-                createdByAppUserId = command.access.principal.id.takeIf {
-                    command.access.principal.kind == PrincipalKind.USER
-                }
-            },
-        )
-
-        schemaCompatibility.requireUsable(definition, command.configuration.schemaVersionId)
-        configurationWriter.replaceConfiguration(draft, command.configuration)
-
-        val required = capabilityRepository.findRequiredCapabilities(draft.id)
-        if (required.isEmpty())
-        {
-            throw InformationRequestTemplateValidationException(
-                "Information request template version $FIRST_VERSION_NUMBER configures no requirements",
-            )
-        }
-        required.forEach { capability ->
-            capabilityRepository.save(
-                InformationRequestTemplateVersionCapability().apply {
-                    templateVersionId = draft.id
-                    capabilityKey = capability
-                    requiredContractVersion = capability.contractVersion
-                },
-            )
-        }
-        capabilityRepository.flushChanges()
-
-        val publishedAt = Timestamp.from(Instant.now())
-        draft.status = InformationRequestTemplateStatus.PUBLISHED
-        draft.publishedAt = publishedAt
-        draft.publishedByAppUserId = command.access.principal.id.takeIf {
-            command.access.principal.kind == PrincipalKind.USER
-        }
-        versionRepository.update(draft)
-
-        definition.status = InformationRequestTemplateStatus.PUBLISHED
-        definition.updatedAt = publishedAt
-        definitionRepository.update(definition)
-        return draft
-    }
+    ): InformationRequestTemplateVersion =
+        versionPublisher.publish(definition, FIRST_VERSION_NUMBER, command.configuration, command.access.principal)
 
     private fun createRequest(
         command: CreateAdHocInformationRequestCommand,

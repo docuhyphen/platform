@@ -119,6 +119,10 @@ class ResourceAuthorizationContextRegistry
             ResourceType.INFORMATION_REQUEST_REQUIREMENT -> ResourceKind.INFORMATION_REQUEST_REQUIREMENT
             ResourceType.INFORMATION_REQUEST_ACCESS_LINK -> null
             ResourceType.INFORMATION_REQUEST_PARTICIPANT_ACCOUNT_LINK -> null
+            ResourceType.INFORMATION_REQUEST_EVIDENCE_ARTIFACT -> null
+            ResourceType.INFORMATION_REQUEST_SUBMISSION_PACKAGE -> null
+            ResourceType.INFORMATION_REQUEST_SUBMISSION_ATTESTATION -> null
+            ResourceType.INFORMATION_REQUEST_AMENDMENT -> null
         }
     }
 }

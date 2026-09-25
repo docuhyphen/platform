@@ -936,12 +936,12 @@
     {
       "file": "src/app/settings/trusted-organizations-tab/action-dialog/TrustActionDialog.tsx",
       "code": "TS2322",
-      "message": "Type '{ children: Element; id: string; open: true; onOpenChange: (_: KeyboardEvent<HTMLElement> | MouseEvent<HTMLElement, MouseEvent>, data: DialogOpenChangeData) => void; }' is not assignable to type 'IntrinsicAttributes & Omit<Partial<DialogSlots>, \"root\"> & { modalType?: DialogModalType; open?: boolean; defaultOpen?: boolean; onOpenChange?: DialogOpenChangeEventHandler; children: Element | [...]; inertTrapFocus?: boolean; }'."
+      "message": "Type '{ children: Element; id: string; open: true; onOpenChange: (_: KeyboardEvent<HTMLElement> | MouseEvent<HTMLElement, MouseEvent>, data: DialogOpenChangeData) => void; }' is not assignable to type 'IntrinsicAttributes & Omit<Partial<DialogSlots>, \"root\"> & { modalType?: DialogModalType; open?: boolean; ... 4 more ...; unmountOnClose?: boolean; }'."
     },
     {
       "file": "src/app/settings/trusted-organizations-tab/request-dialog/TrustedOrganizationRequestDialog.tsx",
       "code": "TS2322",
-      "message": "Type '{ children: Element; id: string; open: boolean; onOpenChange: (_: KeyboardEvent<HTMLElement> | MouseEvent<HTMLElement, MouseEvent>, data: DialogOpenChangeData) => void; }' is not assignable to type 'IntrinsicAttributes & Omit<Partial<DialogSlots>, \"root\"> & { modalType?: DialogModalType; open?: boolean; defaultOpen?: boolean; onOpenChange?: DialogOpenChangeEventHandler; children: Element | [...]; inertTrapFocus?: boolean; }'."
+      "message": "Type '{ children: Element; id: string; open: boolean; onOpenChange: (_: KeyboardEvent<HTMLElement> | MouseEvent<HTMLElement, MouseEvent>, data: DialogOpenChangeData) => void; }' is not assignable to type 'IntrinsicAttributes & Omit<Partial<DialogSlots>, \"root\"> & { modalType?: DialogModalType; open?: boolean; ... 4 more ...; unmountOnClose?: boolean; }'."
     },
     {
       "file": "src/app/settings/trusted-organizations-tab/useTrustedOrganizationDialogs.test.ts",

@@ -17,6 +17,9 @@ import com.docuhyphen.app.api.service.informationrequest.InformationRequestAdHoc
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestCreationResult
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestLifecycleResult
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestLifecycleService
+import com.docuhyphen.app.api.service.informationrequest.IssueInformationRequestCommand
+import com.docuhyphen.app.api.service.informationrequest.InformationRequestCapabilityNotInstalledException
+import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestLifecycleException
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestQueryService
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestResponseWorkspaceService
@@ -142,6 +145,36 @@ class InformationRequestResource @Inject constructor(
     }
 
     @POST
+    @Path("/{id}/issuance")
+    fun issue(
+        @PathParam("id") id: String,
+        @HeaderParam(IF_MATCH) ifMatch: String?,
+        @HeaderParam(IDEMPOTENCY_KEY_HEADER) idempotencyKey: String?,
+    ): Response
+    {
+        return try
+        {
+            val requestId = parseUuid(id) ?: return badRequest("Invalid information request id")
+            val commandKey = requiredIdempotencyKey(idempotencyKey)
+                ?: return badRequest("Idempotency-Key is required")
+            ok(
+                lifecycleService.issue(
+                    IssueInformationRequestCommand(
+                        requestId = requestId,
+                        access = accessContextFactory.currentAuthenticated(),
+                        precondition = CommandPreconditionHeader.required(ifMatch),
+                        idempotencyKey = commandKey,
+                    ),
+                ),
+            )
+        }
+        catch (exception: Exception)
+        {
+            handleException("Information Request issuance failed", exception)
+        }
+    }
+
+    @POST
     @Path("/{id}/cancellation")
     fun cancel(
         @PathParam("id") id: String,
@@ -235,6 +268,8 @@ class InformationRequestResource @Inject constructor(
             is CommandPreconditionException -> CommandPreconditionResponse.refused(exception)
             is CommandReceiptConflictException -> Response.status(CONFLICT)
                 .entity(ResponseError(exception.message, exception.reasonCode)).build()
+            is InformationRequestCapabilityNotInstalledException -> Response.status(CONFLICT)
+                .entity(ResponseError(exception.message, InformationRequestErrorCatalog.CAPABILITY_NOT_INSTALLED)).build()
             is InformationRequestLifecycleException -> Response.status(CONFLICT)
                 .entity(ResponseError(exception.message, exception.reasonCode)).build()
             is IllegalStateException -> Response.status(CONFLICT)

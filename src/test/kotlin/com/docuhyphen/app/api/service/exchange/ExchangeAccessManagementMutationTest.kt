@@ -15,6 +15,7 @@ import com.docuhyphen.app.api.service.identity.ExternalIdentityResolutionService
 import com.docuhyphen.app.api.service.organization.OrganizationExchangePolicyService
 import com.docuhyphen.app.api.service.organization.OrganizationGroupService
 import com.docuhyphen.app.api.service.user.AppUserService
+import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import io.quarkus.security.ForbiddenException
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Test
@@ -76,7 +77,7 @@ class ExchangeAccessManagementMutationTest
 
         verify(fixture.shareService).revoke(
             fixture.share.id,
-            fixture.caller.id,
+            PrincipalRef.user(fixture.caller.id),
             fixture.exchange.name,
         )
     }

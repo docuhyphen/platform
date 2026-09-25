@@ -90,13 +90,5 @@ class FieldValue
     @Column(name = "updated_by_session_ref", nullable = true, length = 64)
     var updatedBySessionRef: String? = null
 
-    /**
-     * Retained alongside the canonical pair and written only for a [PrincipalKind.USER] principal.
-     * A participant, public-link, application, or service principal populates the canonical columns
-     * only, because this column is a foreign key into the registered-user table.
-     */
-    @Column(name = "updated_by_app_user_id", nullable = true)
-    var updatedByAppUserId: UUID? = null
-
     constructor()
 }

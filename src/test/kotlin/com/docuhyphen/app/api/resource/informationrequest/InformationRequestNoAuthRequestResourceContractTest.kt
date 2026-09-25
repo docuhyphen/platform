@@ -308,7 +308,7 @@ class InformationRequestNoAuthRequestResourceContractTest
             informationRequestId = requestId
             informationRequestRequirementId = requirementId
             requirementRevisionId = UUID.randomUUID()
-            occurrencePath = "$"
+            occurrencePath = "root"
             disposition = InformationRequestResponseDisposition.PROVIDED
             fieldValueSetId = UUID.randomUUID()
             responseRevision = 2
@@ -371,7 +371,7 @@ class InformationRequestNoAuthRequestResourceContractTest
             informationRequestId = requestId
             sourceTemplateRequirementId = sourceRequirementId
             sourceTemplateBindingId = sourceBindingId
-            occurrencePath = "$"
+            occurrencePath = "root"
         }
 
     @Test

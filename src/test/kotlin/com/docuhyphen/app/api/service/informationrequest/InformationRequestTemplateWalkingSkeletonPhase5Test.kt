@@ -42,7 +42,7 @@ class InformationRequestTemplateWalkingSkeletonPhase5Test
             fieldValueSetId = UUID.randomUUID(),
             fieldTextValue = "Recorded summary",
         )
-        progress.respondByKey("supporting-record", InformationRequestResponseDisposition.WAIVED)
+        progress.respondByKey("supporting-record", InformationRequestResponseDisposition.PROVIDED)
         progress.respondByKey("response-confirmation", InformationRequestResponseDisposition.PROVIDED)
 
         val projection = progress.service.evaluate(progress.request.id)

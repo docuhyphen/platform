@@ -1,6 +1,7 @@
 ﻿package com.docuhyphen.app.api.model
 
 import com.docuhyphen.app.api.model.dto.*
+import com.docuhyphen.app.api.model.document.DocumentVersionView
 import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.service.application.SettingsService
 import org.hibernate.Hibernate
@@ -57,27 +58,18 @@ class DetailedEntityToDtoTransformer
             }
         }
 
-        fun toDto(documentVersion: DocumentVersion?): DocumentVersionDetailedDto?
-        {
-            return documentVersion?.let {
-                with(documentVersion)
-                {
-                    DocumentVersionDetailedDto(
-                        id,
-                        document.id.toString(),
-                        createdDate,
-                        version,
-                        storagePath,
-                        createdByEmail,
-                        createdBy?.person?.let {
-                            listOfNotNull(it.firstName, it.lastName)
-                                .joinToString(" ")
-                                .takeIf { name -> name.isNotBlank() }
-                        } ?: createdByEmail
-                    )
-                }
+        fun toDto(view: DocumentVersionView): DocumentVersionDetailedDto =
+            with(view.version)
+            {
+                DocumentVersionDetailedDto(
+                    id,
+                    document.id.toString(),
+                    createdDate,
+                    version,
+                    view.creator.email,
+                    view.creator.name,
+                )
             }
-        }
 
         fun toDto(exchange: Exchange?): ExchangeDetailedDto?
         {

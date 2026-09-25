@@ -2,16 +2,39 @@
 
 ## Status
 
-- Overall status: In progress. Phases 1 through 5 and the repeated remediation gate are complete.
+- Overall status: In progress. Phases 1 through 7 and the repeated remediation gate are complete.
+- Scanner decision (user, 2026-09-25): the Information Request feature and every other feature must
+  work in production without a malware scanner. Malware scanning moved out of this program into
+  `plans/INFORMATION-REQUEST-EVIDENCE-MALWARE-SCANNING-PLAN.md`, which the user will implement later.
+  Evidence upload is on by default, `app.information-request.evidence.malware-scan.required`
+  defaults to `false`, an unscanned file can satisfy a Requirement, and no file is ever described as
+  scanned or safe without a real scan. This supersedes the earlier rule that production evidence
+  upload waits for an approved scanner.
 - Review checkpoint: the 2026-09-13 [Phases 1-5 recheck](DOCUMENT-DRIVEN-INFORMATION-REQUESTS-PHASES-1-5-RECHECK.md)
   found seven remaining gaps. The original P5-R01 through P5-R20 completion records remain
   historical evidence; they do not establish that the integrated implementation is gap-free.
-- Current work: Phase 6 scanner-independent evidence groundwork. P5-R-GATE remains complete.
-- Exact next task: P6-T1b Artifact and append-only Version persistence with TDD. P6-T1a is complete.
-- Phase 6: in progress. On 2026-09-20 the user explicitly directed other work to continue while
-  deferring only the scanner deployment/signature-update decision. This supersedes the prior hold.
-  Production external evidence upload and file-safety claims remain gated; no new AWS service or
-  paid resource type is authorized.
+- Current work: none in progress. Phase 7 was completed on 2026-09-25 in the session the user asked
+  to implement the whole phase; its design decisions are recorded under `## Phase 7`.
+- Development stage: the platform has no production users and is in active development. No
+  backwards-compatibility code may be written, and the compatibility mechanisms already shipped are
+  now defect work. See `## Development-Stage Constraint` and
+  `## Development-Stage Compatibility Removal`.
+- Exact next task: `P8-T1`. It is dependency-ready; start it only when the user asks for Phase 8.
+  Flyway head is V135 and the remaining program range is V136 through V139.
+- Phase 8 handoff from Phase 7: no transition reaches `SUBMITTED`, `UNDER_REVIEW`, or
+  `CHANGES_REQUESTED` yet, so `START_REVIEW` from `SUBMITTED` is unreachable until Phase 8 decides
+  how a review-required package moves the request; `RESPONSE_REVIEW` has no executor, so every
+  Template Version that can route work to a reviewer is still refused at creation and issuance;
+  packages already record `review_required`.
+- Phase 7: complete. Staged and whole-package submission with frozen packages, multi-party
+  Submission Attestation, amendments with effective-binding advance, reconfirmation, and pending
+  Notice Intents, supplement, superseding, recurrence, and refresh follow-ups, the walking
+  fixtures, the respondent submission UI, and executor registration with issuance are done.
+- Phase 6: complete. Evidence persistence, storage and content identity, Requirement-scoped access,
+  upload, replacement, withdrawal, reads, evaluation, policy validation, intake limits, content
+  inspection, the optional scanner port, quarantine release rules, supporting-evidence links, the
+  walking fixtures, and the respondent evidence UI are done and verified. No new AWS service or paid
+  resource type is authorized.
 - Phases 1 and 2: no additional standalone defect identified in the inspected foundation and
   Template paths. Their adapters and recipient-facing integration are included in the new findings.
 - Phase 3: complete. P3-T11b through P3-T11d existing-runtime credential hooks are complete through
@@ -125,6 +148,104 @@ plan.
 - Before checking a task, audit all changed artifacts for industry-specific naming and embedded process rules. Record
   the result in the companion completion evidence file.
 
+## Development-Stage Constraint
+
+DocuHyphen has no production users yet and is in active development. This constraint governs every
+task, migration, contract, fixture, and test in this plan, and it overrides any older text here that
+assumes deployed data or an older deployed application version must be accommodated.
+
+- Do not write backwards-compatibility code. There is exactly one supported shape of every column,
+  contract, payload, and identity, and production code reads and writes only that shape.
+- Do not dual-write a new shape beside a legacy one, do not read a legacy shape as a fallback, and
+  do not keep a legacy column, field, endpoint, alias, or enum value alive for an older reader or
+  writer.
+- Replace a shape in one forward-only migration: add what is new, transform what is there, remove
+  what it replaces, and enforce the final constraints in the same file. A destructive change to
+  existing rows is acceptable because no row belongs to a customer.
+- Do not plan for rolling deployment, mixed application versions, old-writer drain, later contract
+  releases, catch-up backfills, or deprecation windows. A deployment replaces the running version.
+- Historical rows carry no special status. Do not keep an unresolvable legacy value as a history
+  label, and do not introduce a state whose only purpose is to describe rows an older release wrote.
+- This constraint removes compatibility with older releases. It is not permission to regress current
+  behavior: shipped features, their tests, and their user-visible behavior must keep working unless a
+  task explicitly changes them. Flyway files that may already have been applied are still never
+  edited, renamed, reused, or squashed; replacement happens in a new forward migration.
+- Where a completed task already shipped a compatibility shim under the previous assumption, that
+  shim is now defect work. Completed task text below is left as the historical record of what was
+  built and is not rewritten; the removals are tracked under
+  `## Development-Stage Compatibility Removal`.
+
+## Development-Stage Compatibility Removal
+
+These tasks remove compatibility mechanisms this program already shipped. They are ordinary
+implementation tasks and follow the mandatory TDD sequence. Allocate each migration from the current
+unallocated range immediately before creating it, and record it in the migration ledger.
+
+- [x] `DS-T1` Remove the Document Version compatibility shims added by `P6-T2a` and `P6-T2b`. Too
+  large for one session, so it is split below. Do not check `DS-T1` until both subtasks are complete.
+    - [x] `DS-T1a` Storage locator. Drop `document_version.storage_path` and the dual-write that
+      fills it, make `storage_provider`, `storage_locator_kind`, and `storage_locator` `NOT NULL`,
+      and remove the legacy branch from `DocumentVersionStorageLocatorMapper` and
+      `DocumentVersionContentService` so a stored version resolves only through its canonical
+      locator. Remove `LEGACY_LOCAL_PATH` and `LegacyLocalDocumentVersionLocator` once nothing
+      resolves one. Rows written before the canonical columns are transformed or removed by the
+      migration rather than left readable through a fallback. Remove
+      `DocumentVersionDetailedDto.storagePath` and the frontend field that declares it, since no
+      client reads it and an object key is not client data.
+      Done by V123, which removes every version that could only be located through the retired local
+      path, drops `storage_path`, makes the three canonical locator columns `NOT NULL`, and admits
+      only `OBJECT_STORE` with `OBJECT_KEY`. The locator vocabulary, mapper, content service, entity,
+      version service, DTO, transformer, and frontend model now carry the canonical shape alone.
+    - [x] `DS-T1b` Creator provenance. Make every version-creation path name a real principal,
+      including the no-auth upload, which records a server-resolved primary recipient email instead
+      of a principal. That upload is authorized by the Exchange no-auth access token under the
+      primary recipient's Share rather than by a ShareLink, so the principal it names is that Share's
+      principal. Then drop
+      `document_version.created_by` and `document_version.createdbyemail`, make
+      `created_by_principal_kind` and `created_by_principal_id` `NOT NULL`, remove the legacy branch
+      from `DocumentVersionCreatorMapper` and the legacy field from
+      `DocumentVersionCreatorProvenance`, and remove the rolling-deployment allowance in the V122
+      legacy consistency constraint by dropping that constraint with the columns it guarded. Replace
+      the creator display in `DetailedEntityToDtoTransformer` with a resolution from the canonical
+      principal, because the registered-user association it reads today disappears.
+      Done by V124, which carries a version still named only by the registered-user key to that
+      user, removes a version whose creator could only be stated by an email or not at all, drops
+      `created_by`, `createdbyemail`, and their constraints, and makes the canonical pair `NOT NULL`.
+      Each upload path passes the principal it authorized: the authenticated principal, or the
+      primary recipient Share's principal for the no-auth token path, which is refused before any
+      content is stored when there is no active primary recipient. `PrincipalDisplayService`,
+      extracted from `ShareQueryService`, resolves the creator label the payload carries, and the
+      `userEmail` form field and `DocumentVersionCreatorResolver` are gone.
+- [x] `DS-T2` Remove the Fields attribution shims added by `P1-T6`. Drop
+  `field_value.updated_by_app_user_id`, `schema_assignment.assigned_by_app_user_id`, and
+  `field_value_revision.recorded_by_app_user_id` with their legacy consistency constraints, and
+  remove `FieldPrincipalProvenance.legacyAppUserId` and the three writes that set them. The canonical
+  pair already carries every value those columns hold, so nothing is lost.
+  Done by V125, which drops the three columns with their consistency constraints.
+- [x] `DS-T3` Remove the Share provenance shims added by `P3-T1d`. Drop
+  `share.granted_by_app_user_id` and `share.revoked_by_app_user_id` with their legacy consistency
+  constraints, and remove the dual-write in `ShareService`. Check every reader first, including
+  access-management DTOs, and move any that still reads a legacy column onto the canonical pair.
+  Done by V126, which drops both columns with their consistency constraints. `ShareService` now
+  has one `grant`, `revoke`, `revokePendingForResource`, and `revokeAllForResource`, each taking the
+  canonical `PrincipalRef`; the app-user-keyed wrappers and their `WithPrincipalProvenance` twins are
+  gone, and every caller passes a principal. The access view exposes the grantor as
+  `grantedByPrincipalKind` and `grantedByPrincipalId`.
+- [x] `DS-T4` Sweep the program for any remaining compatibility mechanism: a retained legacy column,
+  a legacy read fallback, a dual-write, a tolerated older payload shape, an endpoint alias kept for
+  an unknown client, or a test that asserts mixed-version behavior. Remove what is found and record
+  the search. This gate replaces the compatibility half of `P12-T1`.
+  Found and removed: the superseded `PUT /exchanges/{id}/fields` alias with its deprecation headers,
+  `DeprecatedFieldsWriteUsage` telemetry, and the `optional` and `isStated` header helpers that only
+  it used; the earlier `$` spelling of the root occurrence, which reads still accepted, with V127
+  carrying stored `$` rows to `root` and refusing `$` from then on; and the upload dialog's second
+  request to the version endpoint, which recorded a duplicate version for every upload because the
+  upload already records one. Kept, because they are current behavior rather than compatibility:
+  the Schema target default, which the first-party client relies on, and `FieldsPrecondition.Unconditioned`,
+  which an explicit `If-Match: *` and internal writers state; only their stale compatibility wording
+  changed. Compatibility code outside this program is reported in the completion evidence rather
+  than removed here.
+
 ## Objective
 
 Build a reusable Information Request capability for DocuHyphen that allows an Exchange owner to
@@ -232,7 +353,7 @@ test for the same failure modes:
 | Schema Assignment | `SchemaAssignmentService` accepts a Schema Definition and resolves the latest published version. `schema_definition.target_resource_type` is `VARCHAR(48) NOT NULL DEFAULT 'EXCHANGE'` with no CHECK constraint, so a new target value needs no migration. The `@Transactional` annotation sits on the three-argument `assignSchema` overload only; the four-argument overload relies on its caller's transaction, currently `ExchangeInitiationService.initiateExchange`. | Add an internal assign-exact-published-version path for Information Requests while preserving the legacy assign-latest path. Register `INFORMATION_REQUEST` as a Schema target through the service and adapter, not a database migration. Give every new assignment entry point its own explicit transaction boundary instead of inheriting one. |
 | No-auth access | The legacy Exchange stores one Exchange-wide token hash and verified window plus `recipientOtpHash`, `recipientOtpExpiry`, and `noAuthAccessValidityDays`; the emailed OTP is the gate that issues the token. `Exchange.requireRecipientSignIn` is an existing per-Exchange owner choice that disables the no-auth path, and `resendNoAuthPrimaryRecipientInvitation` refuses when it is true. A separate `ShareLink` model hashes a token for one Share and is partially wired through no-auth Exchange metadata retrieval and the central authorizer, but it currently represents direct `PUBLIC_LINK` access rather than recipient contact proof, has no request-party session or rotation lineage, does not enforce every stored password or domain field, and has no production creation or atomic use-count path. | Keep the Exchange credential for the legacy shell. Extend `ShareLink` into a bootstrap-only mode bound through a request-party Share, enforce every configured constraint, and add request-bound verified sessions. Treat `requireRecipientSignIn` as an authoritative owner policy that blocks bootstrap-link issuance for that Exchange; never silently override it. Do not add a duplicate request-credential table unless implementation proves the compatible `ShareLink` extension cannot satisfy the contract. |
 | Caller identity | `AuthorizationContextFactory` resolves only authenticated users and applications, while `PrincipalRef` already supports participants and public links. | Keep `PrincipalRef` canonical and build the no-auth request context at the adapter boundary without changing the global authentication pipeline. |
-| Authorization | `Action`, `Capability`, `RoleCapabilities`, `Share`, `ShareConstraints`, `ResourceType`, and `DefaultAuthorizationService` are the central stack. `Action` has 105 values, each mapping to exactly one `Capability`. `ResourceType` names twelve values but only three are Share-bearing: `share_resource_type_check` in the V1 baseline restricts `share.resource_type` to `EXCHANGE`, `DOCUMENT`, and `PRINCIPAL_GROUP`, no later migration widens it, and `ShareService.grant` is only ever called with `ResourceType.EXCHANGE`. Every Share is Exchange-role-typed, capability derivation always calls `forExchangeShareRole`, `share_role_name_check` restricts `role_name` to the seven Exchange roles, and `parentRef` is not enforced. `ShareService` maps any non-Exchange Share audit event to `AuditOwnerScope.Platform`. | Add resource-scoped Share roles, explicit parent-grant inheritance, and a central resource-policy evaluator. Widen `share_resource_type_check` and `share_role_name_check` in the same expand-contract migration that introduces request resource types and role keys; without the resource-type change every request-party Share insert fails a check constraint. Characterize and regress the three resource types that can actually hold a Share, and treat the other nine as enum-only values that need no Share migration. Correct the non-Exchange Share audit owner before request-party Shares exist. Do not create a second authorization system. |
+| Authorization | `Action`, `Capability`, `RoleCapabilities`, `Share`, `ShareConstraints`, `ResourceType`, and `DefaultAuthorizationService` are the central stack. `Action` has 105 values, each mapping to exactly one `Capability`. `ResourceType` names twelve values but only three are Share-bearing: `share_resource_type_check` in the V1 baseline restricts `share.resource_type` to `EXCHANGE`, `DOCUMENT`, and `PRINCIPAL_GROUP`, no later migration widens it, and `ShareService.grant` is only ever called with `ResourceType.EXCHANGE`. Every Share is Exchange-role-typed, capability derivation always calls `forExchangeShareRole`, `share_role_name_check` restricts `role_name` to the seven Exchange roles, and `parentRef` is not enforced. `ShareService` maps any non-Exchange Share audit event to `AuditOwnerScope.Platform`. | Add resource-scoped Share roles, explicit parent-grant inheritance, and a central resource-policy evaluator. Widen `share_resource_type_check` and `share_role_name_check` in the same migration that introduces request resource types and role keys; without the resource-type change every request-party Share insert fails a check constraint. Characterize and regress the three resource types that can actually hold a Share, and treat the other nine as enum-only values that need no Share migration. Correct the non-Exchange Share audit owner before request-party Shares exist. Do not create a second authorization system. |
 | Resource authorization context | `ResourceAuthorizationContextRegistry.resolve` returns null when a `ResourceType` has no `ResourceKind` mapping or no registered provider, and `DefaultAuthorizationService` treats null as permission to skip the archived and suspended denies. `collectOrgMembershipGrants` then falls back to `AuthorizationContext.activeOrgId`, so an unresolvable resource derives organization-role capabilities from the caller's active organization rather than the resource owner. `ResourceKind` has eleven values against twelve `ResourceType` values: `APPLICATION` and `WORKFLOW_WEBHOOK_ENDPOINT` map to null deliberately, and `DOCUMENT` maps to a kind that has no registered provider. | The existing generic path fails open, so fail-closed is a correction to current behavior rather than a property new types inherit. Add an explicit unresolved-context deny policy, remove the `activeOrgId` fallback for mapped resource kinds, and characterize the present behavior of `DOCUMENT`, `APPLICATION`, and `WORKFLOW_WEBHOOK_ENDPOINT` before changing it. Register the request kinds only after their providers exist. |
 | Fields port | `FieldResourceAdapter` is whole-resource only, `setValues` has no Value Set or expected revision, and Field Value authorship is App User-only. | Generalize the Fields command and authorization ports for binding, occurrence, Value Set, canonical principal provenance, and concurrency. |
 | Fields caller reachability | Current authenticated Field resources can obtain `USER` or `APPLICATION` principals. An external registered User is reachable now, while `PARTICIPANT` and `PUBLIC_LINK` Field calls require a synthetic service or adapter test until the Phase 4 no-auth surface exists. | Test the service and adapter contracts with explicit synthetic participant and public-link principals in Phase 1, identify those tests as pre-exposure contract tests, and add real no-auth endpoint coverage when Phase 4 exposes the path. |
@@ -244,7 +365,7 @@ test for the same failure modes:
 | Record preservation | `AuditLegalHold` already stores a generic organization plus resource type and resource ID reference and has place and release behavior, but its authorization, subscription guard, owner model, history, and only disposal consumer are audit-specific. It cannot represent a personal owner safely, and no business-record purge pipeline exists. | Generalize the existing hold persistence and service behind a neutral record-preservation contract, preserve compatible audit APIs and the physical table during rollout, add personal ownership and append-only lifecycle history, and avoid a second active hold table for the same resource. Build reference-aware disposal before claiming evidence is purge-eligible. |
 | Outbound notices | Communications are mutable and delivery logs do not retain recipient endpoints, rendered content, or content hashes. | Build immutable notice and append-only delivery-attempt records rather than describing them as existing. |
 | Variables and Sequences | `{{TOKEN}}` and side-effecting `{{SEQ:KEY}}` interpolation are live in Exchange naming and Communication rendering. Sequence interpolation increments persisted state. | Claim each Notice Intent before rendering, render once, consume each configured sequence occurrence under the same idempotent transaction, and persist rendered content and hashes so retries never increment a Sequence again. |
-| Content safety | Content-type tooling exists, but malware scanning does not. | Select and implement a real fail-closed scanner before external evidence upload can be enabled. |
+| Content safety | Content-type tooling exists, but malware scanning does not. | Resolved on 2026-09-25: scanning is optional, evidence upload works without it, and the scanner is planned in `plans/INFORMATION-REQUEST-EVIDENCE-MALWARE-SCANNING-PLAN.md`. |
 | Command safety | There is no reusable client-command idempotency receipt or `If-Match` infrastructure. | Add shared command-receipt and HTTP precondition foundations before retryable request mutations. |
 | Transactional events | `DomainEvent` and `DomainEventPublisher` are already neutral. Their durable implementation, qualifier, mapped entity, repository, dispatcher, scheduler, metrics, and physical table are Workflow-branded. The event outbox has only nullable `organization_id`, so it cannot distinguish platform from personal ownership, and `idempotency_key` is globally unique with no type or owner prefix. A separate `audit_outbox` exists for immutable audit intent. | Preserve the neutral public contract, generalize only the durable implementation vocabulary, add explicit event owner kind and ID, and reuse the existing physical event table. Define and test an explicit idempotency-key namespace for Information Request events so a request key can never collide with a Workflow key in the shared global unique index. Keep audit and domain-event intents distinct but correlated and transactional; do not create a request-specific event outbox. |
 | Audit | Audit event keys and categories are a closed catalog at version 14. `AuditRecorder` can accept an explicit actor but otherwise falls back to request authentication, and `AuditOwnerScope` is only platform or organization. `AuditActorKind` already includes `PUBLIC_LINK`. Roughly twenty existing call sites resolve owner as `organizationId?.let(AuditOwnerScope::Organization) ?: AuditOwnerScope.Platform`, so every personally owned Exchange already records its audit events under platform scope. | Add Information Request catalog entries and personal owner scope, and always pass explicit canonical actor data for request mutations, including no-auth actions. Enumerate and correct the existing organization-or-platform fallbacks that a request mutation can reach through Exchange, Document, Document Version, access-management, and hold services; otherwise a personal request inherits the same mislabelling through code the plan reuses rather than replaces. |
@@ -420,7 +541,7 @@ These decisions replace the contradictory or unresolved alternatives in the prop
     `EXCHANGE`, `DOCUMENT`, and `PRINCIPAL_GROUP`. The remaining nine ResourceType values are
     enum-only and carry no Share rows, so they need no Share migration or capability
     characterization; asserting otherwise both invents work and hides the change that matters. The
-    same expand-contract migration widens `share_resource_type_check` for the request aggregate and
+    same migration widens `share_resource_type_check` for the request aggregate and
     Requirement-occurrence types and widens `share_role_name_check` for the new role keys. Without
     the resource-type widening every request-party Share insert fails a check constraint. It also
     corrects `ShareService`, which currently records any non-Exchange Share audit event under
@@ -475,9 +596,13 @@ These decisions replace the contradictory or unresolved alternatives in the prop
     stored render and never increments a Sequence again.
 30. Content-type detection and malware scanning are different controls. Evidence is never marked
     safe unless a real configured scanner returns a successful result. Timeout, error, unavailable,
-    stale-signature, and skipped states fail closed. External evidence upload remains disabled until
-    the scanner deployment and signature-update model are approved on existing infrastructure or a
-    new service receives explicit user approval. An opaque `END_TO_END` encrypted Document Version
+    stale-signature, and skipped states never produce a clean result. By the user's decision on
+    2026-09-25, a deployment does not need a scanner: evidence upload is on by default, and
+    `app.information-request.evidence.malware-scan.required` (default `false`) decides whether a
+    production-eligible clean scan is a condition for upload, for counting toward a Requirement, and
+    for release to other parties. The scanner itself is planned separately in
+    `plans/INFORMATION-REQUEST-EVIDENCE-MALWARE-SCANNING-PLAN.md`. A detected infection always
+    quarantines the file. An opaque `END_TO_END` encrypted Document Version
     is ineligible to satisfy a file-backed Evidence Requirement because scanning ciphertext does not
     establish plaintext safety. Supporting it requires separately approved inspectable content and
     threat-model contracts; the current program does not invent such a bypass.
@@ -529,11 +654,11 @@ These decisions replace the contradictory or unresolved alternatives in the prop
     Workflow webhook endpoint, destination-policy, signing, delivery, and retry components where
     their semantics match. Connector contracts remain distinct when they require request, polling,
     imported-value, reconciliation, or verification state rather than outbound event delivery.
-39. Canonical polymorphic principal columns are additive during expand. Existing nullable App User
-    attribution columns keep their foreign keys and are dual-written only for `USER` principals.
-    Participant, public-link, application, and service principals populate only canonical columns.
-    A later contract migration may remove a legacy column only after old writers drain and verified
-    readers no longer require it.
+39. A canonical polymorphic principal pair is the only attribution any row carries. Every principal
+    the platform can authenticate, including participant, public-link, application, and service
+    principals, is named through it. The App User-only attribution columns that earlier tasks kept
+    beside it were compatibility shims; the development-stage constraint removes them, and a
+    migration that introduces the canonical pair drops the column it replaces in the same file.
 40. External Participant identity is built, not extended. `ExternalParticipant` and
     `external_participant` exist, but nothing constructs or persists a row, `findByOwnerAndEmail`
     has no caller, and the table is empty in every environment. This program owns the whole
@@ -696,8 +821,8 @@ reason summary.
 | 3     | Runtime requests, parties, lifecycle, and command safety     | Phase 2                                | Complete    | Drafts, parties, exact assignments, parent-child lifecycle, audit, transactional events, idempotency, and concurrency are safe; issuance remains executor-gated. |
 | 4     | Authorization and dual access surfaces                       | Phase 3                                | Complete | Recipient workspace and request-detail occurrence and condition-result disclosure verified. |
 | 5     | Structured responses, repeatable groups, and conditions      | Phase 4                                | Complete | P5-R01 through P5-R30 and the repeated P5-R-GATE passed. |
-| 6     | Evidence and secure document handling                        | P5-R-GATE | In progress | Scanner-independent work proceeds; production uploads and safety claims still require a real approved scanner. |
-| 7     | Submission, response attestation, amendments, and recurrence | Phase 6                                | Not started | Immutable packages survive staged submission, amendments, supplements, and recurrence.                                                                           |
+| 6     | Evidence and secure document handling                        | P5-R-GATE | Complete | Evidence collection works in production without a scanner; scanning is planned separately. |
+| 7     | Submission, response attestation, amendments, and recurrence | Phase 6                                | Complete    | Immutable packages survive staged submission, amendments, supplements, and recurrence.                                                                           |
 | 8     | Review, findings, remediation, and decision separation       | Phase 7                                | Not started | Item-level and staged review is complete and auditable.                                                                                                          |
 | 9     | Time, Workflow, audit, retention, and export                 | Phase 8                                | Not started | Events, clocks, immutable notices, preservation holds, disposal, and downstream use are reliable.                                                                |
 | 10    | Author, respondent, reviewer, and operations UX              | Phases 2-9                             | Not started | All primary journeys are responsive, accessible, and documented.                                                                                                 |
@@ -2096,8 +2221,9 @@ The original `P5-R01` through `P5-R20` completion records are retained as histor
 [Phases 1-5 recheck](DOCUMENT-DRIVEN-INFORMATION-REQUESTS-PHASES-1-5-RECHECK.md) found remaining
 integration gaps, recorded below as `P5-R21` through `P5-R27`. This reopened `P5-R-GATE`; subsequent
 review added `P5-R28` through `P5-R30`. All remediations and the repeated gate passed on 2026-09-20.
-The user subsequently authorized scanner-independent Phase 6 work on 2026-09-20; the scanner
-decision gates production uploads and safety claims, not unrelated implementation tasks.
+The user subsequently authorized scanner-independent Phase 6 work on 2026-09-20. Since
+2026-09-25 the scanner gates nothing: production uploads work without it, and it is planned in
+`plans/INFORMATION-REQUEST-EVIDENCE-MALWARE-SCANNING-PLAN.md`.
 Any earlier deferral that overlaps these findings is superseded for already implemented behavior.
 In particular, implement the session, reassignment, revocation, and structured-response preservation
 parts of `P3-T11b` through `P3-T11d` needed here; their old missing-prerequisite descriptions are not
@@ -2271,12 +2397,17 @@ Phase 6 is blocked until every `P5-R01` through `P5-R30` finding is fixed and ve
 `P5-R-GATE` is checked with recorded evidence. This applies before starting any Phase 6 task,
 including `P6-T1`, not merely before enabling uploads. Scanner approval does not waive remediation.
 
-The remediation gate is complete. On 2026-09-20 the user explicitly authorized continued work
-without resolving the scanner decision now. Proceed with scanner-independent tasks, starting with
+Historical, superseded on 2026-09-25 by the next paragraph: the remediation gate is complete. On
+2026-09-20 the user explicitly authorized continued work without resolving the scanner decision now. Proceed with scanner-independent tasks, starting with
 P6-T1. Keep the real scanner deployment and signature-update implementation deferred. Do not mark
 P6-T6 or the full Phase 6 exit gate complete without its evidence, enable production external
 uploads, or treat unscanned evidence as safe. A task with a genuine scanner dependency must remain
 unchecked, but that does not place the entire phase on hold.
+
+Superseded on 2026-09-25 by the user's decision recorded in `## Status`: Phase 6 closes without a
+malware scanner, evidence upload is available in production without one, and the scanner moves to
+`plans/INFORMATION-REQUEST-EVIDENCE-MALWARE-SCANNING-PLAN.md`. The rules below apply only to a
+deployment that sets `app.information-request.evidence.malware-scan.required=true`.
 
 Content-type inspection is not malware scanning. Before external evidence upload can be enabled in
 any production scope, select and approve a concrete scanner deployment and signature-update model
@@ -2292,48 +2423,209 @@ design needs a new AWS service or paid resource type, stop for explicit user app
 
 ### Tasks
 
-- [ ] `P6-T1` Add logical Evidence Artifact and immutable Evidence Version records linked to runtime
+- [x] `P6-T1` Add logical Evidence Artifact and immutable Evidence Version records linked to runtime
   Requirement occurrences. File-backed evidence references an exact existing Document Version;
   external evidence uses a separate typed-reference subtype.
     - [x] `P6-T1a` Define immutable, typed evidence-source values: exact Document Version identity
       versus a nonblank external reference type and value. Validate both with neutral tests; this
       is model groundwork only and grants no eligibility, scanner result, or access authority.
-    - [ ] `P6-T1b` Add PostgreSQL Artifact and append-only Version persistence bound to runtime
+    - [x] `P6-T1b` Add PostgreSQL Artifact and append-only Version persistence bound to runtime
       Requirement occurrences, with exact file-version and separate external-reference subtypes.
       Prove foreign keys, source exclusivity, version ordering, and immutability with migration tests.
-    - [ ] `P6-T1c` Add domain-aligned entity/repository mappings and round-trip tests. Keep mutation
+      V120 adds `information_request_evidence_artifact` and `information_request_evidence_version`.
+      Storage grants no eligibility, safety claim, or access authority; nothing writes these tables yet.
+    - [x] `P6-T1c` Add domain-aligned entity/repository mappings and round-trip tests. Keep mutation
       APIs disabled until command, audit, provenance, and Requirement authorization contracts exist.
-- [ ] `P6-T2` Make Document Version the authoritative owner of immutable storage identity and
-  version-level content hash through an expand-contract migration. Replace the hardcoded local
+      `InformationRequestEvidenceArtifact` and `InformationRequestEvidenceVersion` entities,
+      `InformationRequestEvidenceVersionSourceMapper`, and the two repositories exist. The Version
+      repository refuses update and delete, and no service, resource, DTO, or UI reaches either table.
+- [x] `P6-T2` Make Document Version the authoritative owner of immutable storage identity and
+  version-level content hash. Replace the hardcoded local
   version-copy path with a provider-neutral version-storage port and a typed immutable locator that
   distinguishes provider and locator kind. New versions use unique write-once object keys and must
   fail rather than overwrite an existing key. Classify existing `storagePath` values as legacy
   local locators and never reinterpret them as object-store keys. Store byte length, hash algorithm,
-  and a truthful `VERIFIED`, `UNVERIFIED`, or `BACKFILL_FAILED` state. Bind hash and scan results to
-  the exact locator and bytes. Never copy a historical hash from the mutable Document row. For a
-  legacy version, resolve its own typed locator through the matching storage implementation and
-  hash those bytes on use or through a retryable backfill; unreadable or missing content remains
-  unverified and cannot satisfy a Requirement. Add canonical creator principal kind and ID for all
-  new versions. Backfill `USER` only when the legacy App User foreign key is non-null and trusted;
-  an email-only row keeps its history label but has no fabricated principal ID. During rolling
-  deployment, dual-write the new and legacy creator/locator shapes, read canonical data first with
-  a history-only legacy fallback, drain old writers, run a catch-up backfill, and verify eligibility
-  before contracting any old column in a later release. Evidence Version owns request-specific
+  and a truthful `VERIFIED` or `UNVERIFIED` state. Bind hash and scan results to the exact locator
+  and bytes. Never copy a historical hash from the mutable Document row. Unreadable or missing
+  content remains unverified and cannot satisfy a Requirement. Make the canonical creator principal
+  kind and ID the only creator a version states. The dual-write, legacy fallback, retained legacy
+  column, rolling-deployment, old-writer-drain, and catch-up-backfill parts of this task were
+  written before the development-stage constraint and are superseded by it: `P6-T2a` and `P6-T2b`
+  shipped them and `DS-T1` removes them. Evidence Version owns request-specific
   issuer, coverage, uploader `PrincipalRef`, and source metadata. Append-only Evidence Assessments
   own conformance, verification, expiry, quarantine, and policy results. Submission later stores all
   applicable IDs and the frozen hash. Split this task into journaled storage, provenance, and hash
-  subtasks before implementation.
-- [ ] `P6-T3` Enforce Requirement ACLs on list, preview, download, upload, replace, withdraw, and
+  subtasks before implementation. That split is recorded below as `P6-T2a` storage identity,
+  `P6-T2b` creator provenance, and `P6-T2c` content hash and verification state. `P6-T2a` is itself
+  larger than one session, so it is further split into `P6-T2a1` through `P6-T2a3`. Do not check
+  `P6-T2` until every subtask is complete and `DS-T1` has removed the compatibility shims that
+  `P6-T2a` and `P6-T2b` shipped.
+    - [x] `P6-T2a` Storage identity. Make an immutable typed locator, rather than a bare filesystem
+      string, the thing a Document Version stores, and route reads and writes through a
+      provider-neutral port.
+        - [x] `P6-T2a1` Define the typed immutable locator value model: a locator states its
+          provider and its locator kind, an object key is validated as a key rather than a path,
+          and a value with no recorded kind resolves as a legacy local locator and is never
+          reinterpreted as an object-store key. Model groundwork only, with neutral tests; no
+          migration, no storage call, and nothing reads or writes it yet.
+        - [x] `P6-T2a2` Expand-stage migration and entity mapping. Add nullable locator kind,
+          provider, and canonical locator columns to `document_version`, keep `storage_path` for
+          legacy rows, and map them so an existing row still resolves through
+          `P6-T2a1` classification. Prove with a PostgreSQL migration contract test and a
+          round-trip persistence test. Nothing writes the new columns yet, and no behavior changes.
+          V121 adds `storage_provider`, `storage_locator_kind`, and `storage_locator` as optional
+          columns that are either fully stated or absent, and `DocumentVersionStorageLocatorMapper`
+          reads a canonical locator first with a legacy `storage_path` fallback. No production
+          writer set the columns at the time this subtask closed; `P6-T2a3` added the writer, so
+          rows created from then on state a canonical locator and older rows stay legacy local.
+        - [x] `P6-T2a3` Provider-neutral version-storage port and write-once keys. Replace the
+          hardcoded local version-copy path with a port whose implementations are selected the same
+          way the existing file storage implementations are. New versions allocate a unique
+          write-once object key and the write fails rather than overwriting an existing key.
+          Dual-write the canonical locator and the legacy `storage_path`, read canonical first with
+          a history-only legacy fallback, and resolve a legacy version through the matching legacy
+          implementation. Contracting `storage_path` stays in a later release and is not part of
+          this subtask.
+          `DocumentVersionStorageService` is the port, `DocumentVersionStorageServiceProducer`
+          selects its local or object-store implementation from `document.version.storage.service`,
+          which defaults to `file.storage.service`, and `DocumentVersionContentService` owns key
+          allocation and provider routing. Each new version is written once at
+          `document-versions/<documentId>/<versionId>/<reduced file name>`, the local implementation
+          refuses an existing target and the object-store implementation uses a conditional write,
+          and reads resolve the canonical locator first with a legacy local path fallback. Existing
+          rows are not backfilled, and no hash, verification state, or evidence eligibility is
+          granted here.
+    - [x] `P6-T2b` Creator provenance. Add a canonical creator principal kind and ID for every new
+      Document Version, dual-write it beside the legacy creator columns during rolling deployment,
+      and read canonical first with a history-only legacy fallback. Backfill `USER` only where the
+      legacy App User foreign key is non-null and trusted; an email-only row keeps its history label
+      and gets no fabricated principal ID. Report ambiguous rows rather than guessing.
+      V122 adds `created_by_principal_kind` and `created_by_principal_id` as optional columns,
+      backfills `USER` from the `created_by` foreign key alone, and reports the email-only remainder
+      by notice instead of resolving an address into an identity. `DocumentVersionCreatorMapper`
+      reads the canonical pair first and falls back to the retained foreign key a pre-canonical
+      writer left, and a row that states that foreign key alone stays valid so an instance which
+      predates this release keeps serving during a rolling deployment.
+      `DocumentVersionCreatorResolver` makes the authenticated principal of the request the creator,
+      so the `userEmail` form field can no longer decide who an uploaded version is attributed to;
+      an application is recorded through the canonical pair alone, and an unauthenticated upload
+      names a principal only when the email the platform resolved belongs to a registered user.
+      Naming a link or participant principal on the no-auth upload path needs the resolved link
+      identity that arrives with the `P6-T3` endpoints; the schema and mapper already accept it.
+    - [x] `P6-T2c` Content hash and verification state. Runs after `DS-T1`, so it is written against
+      the canonical-only Document Version shape. Store byte length, hash algorithm, hash value, and a
+      truthful `VERIFIED` or `UNVERIFIED` state bound to the exact locator and bytes that were read.
+      Never copy a hash from the mutable Document row. Hash the bytes the storage port actually
+      wrote, at the moment they are written. Unreadable, missing, or `END_TO_END` content stays
+      unverified and cannot satisfy a Requirement. Do not add a state that exists only to describe a
+      row an older release wrote, and do not build a retryable backfill for historical rows: any row
+      that cannot state a hash under the final shape is transformed or removed by the migration.
+      Evidence eligibility consumes this state; it is not granted here.
+      Done by V128 and `DocumentVersionContentIdentity`. The storage port writes each version once
+      and confirms the SHA-256 digest of exactly the bytes it wrote: the local store digests while
+      copying and removes a mismatched object, and the object store is sent the checksum so it
+      refuses bytes that do not match. A version states `VERIFIED` for server-readable content and
+      `UNVERIFIED` for declared `END_TO_END` ciphertext, whose digest names the stored bytes only.
+      Every read re-digests the stored bytes and refuses content that no longer matches.
+    - [x] `P6-T2d` Evidence record shape. The Evidence Version owns its request-specific uploader
+      `PrincipalRef` and session reference, the declared file name and media type, and the captured
+      issuer, jurisdiction, language, issue date, expiry date, coverage period, certification
+      reference, and signature reference. The Artifact owns its creator and a collection state of
+      `ACTIVE`, `WITHDRAWN`, or `REMOVED` with the principal, time, and reason of the last change.
+      One forward migration, contract-tested, with no writer until `P6-T3`. This subtask delivers the
+      "Evidence Version owns request-specific issuer, coverage, uploader `PrincipalRef`, and source
+      metadata" clause of `P6-T2`.
+      Done by V129, the two entity mappings, and `InformationRequestEvidenceAttributes` with its
+      mapper, which validates the captured attributes the same way the database checks do. A guard
+      keeps an Artifact's identity and creator, never lowers its revision, allows only `ACTIVE` to
+      `WITHDRAWN` or `REMOVED` and `WITHDRAWN` to `REMOVED`, never rewrites a recorded change, and
+      refuses deletion; a second guard appends a Version only to an `ACTIVE` Artifact.
+- [x] `P6-T3` Enforce Requirement ACLs on list, preview, download, upload, replace, withdraw, and
   version endpoints. Ordinary Exchange Document access must not bypass these controls. Upload
   initiation and completion use scoped Command Receipts, canonical content fingerprints, and the
   expected Requirement or Evidence Artifact revision so retry cannot create duplicate immutable
-  versions.
-- [ ] `P6-T4` Implement multi-file aggregation with independent file state. Accepted, rejected,
+  versions. Too large for one session, so it is split below. Do not check `P6-T3` until every
+  subtask is complete.
+  Done: every subtask below is complete and the full backend suite passed at this checkpoint with
+  2,755 tests, 0 failures, 0 errors, and 0 skipped.
+    - [x] `P6-T3a` Close the ordinary Exchange Document Version bypass. The version list, latest,
+      download, and create paths resolve the Document inside its Exchange and the version inside its
+      Document, and the list and latest reads are authorized, so a Document that is not one of the
+      Exchange's Documents, including every evidence Document, is unreachable through them.
+      Done: `ExchangeDocumentVersionService` resolves every Document through the Exchange's own
+      Document collection, refuses a version of another Document, and authorizes the list and latest
+      reads with `DOCUMENT_VIEW`; before this, the list and latest reads checked no permission and
+      the download served any version of any Document to a caller permitted on any Exchange.
+    - [x] `P6-T3b` Evidence upload command. One upload creates an Artifact and its first Version
+      under one runtime Requirement occurrence, stored as a write-once Document Version of a
+      request-owned Document that is never attached to the Exchange. The command takes the parent
+      then request lock, requires the occurrence evidence ETag through `If-Match`, runs once per
+      Command Receipt whose fingerprint includes the content digest, is authorized by
+      `INFORMATION_REQUEST_EVIDENCE_UPLOAD` on the exact occurrence, honors the frozen execution
+      grant, and records transition history, audit, and a domain event in the same transaction.
+      Done: `InformationRequestEvidenceUploadService.upload` with `InformationRequestEvidenceGate` and
+      the neutral `DocumentVersionRecordingService`, which records a Document that belongs to no
+      Exchange. Upload is one multipart request: the parent and request locks are taken before the
+      Command Receipt is claimed, so a retried or parallel duplicate waits for the first and replays
+      it rather than recording a second immutable version, and the content digest in the receipt
+      fingerprint is the digest the storage port must confirm.
+    - [x] `P6-T3c` Replacement and withdrawal commands. Replacement appends the next Version to an
+      Artifact under its `If-Match` artifact revision; withdrawal moves the Artifact to `WITHDRAWN`.
+      Both keep every stored byte and every earlier Version.
+      Done: `InformationRequestEvidenceUploadService.replace` and
+      `InformationRequestEvidenceCollectionService.withdraw`. Submission membership cannot be
+      rechecked yet because no Submission Package exists; that check belongs with `P7-T1`.
+    - [x] `P6-T3d` Evidence reads. The occurrence evidence list, an Artifact's Version list, and
+      Version content download and preview are authorized per occurrence, by
+      `INFORMATION_REQUEST_EVIDENCE_VIEW` for an assigned party and `INFORMATION_REQUEST_EVIDENCE_MANAGE`
+      for an evidence administrator, with download audit and a recipient-safe projection.
+      Done: `InformationRequestEvidenceQueryService` behind the request read gate; removed evidence
+      is listed only to an evidence administrator; content is re-verified against its recorded
+      digest, served as an attachment with `nosniff`, a sandbox Content-Security-Policy, and
+      `no-store`, and offered inline only for PDF and raster images; every content read records
+      `information_request.evidence.download` or `.preview` (catalog version 21). The payload
+      carries no uploader identity, only whether the caller created the item.
+    - [x] `P6-T3e` Authenticated and no-auth REST resources that build the same access context and
+      delegate to the same services, with resource contract tests.
+      Done: `InformationRequestEvidenceResource` at
+      `/information-requests/{id}/requirements/{requirementId}/evidence-artifacts` and
+      `InformationRequestNoAuthEvidenceResource` under the existing `/no-auth/information-requests/`
+      allowlist prefix, both over `InformationRequestEvidenceEndpoint`. Upload and replacement are
+      multipart; withdrawal is `POST .../withdrawals`; logical removal is `DELETE`.
+    - [x] `P6-T3f` Requirement-scoped evidence authorization matrix, including cross-party list,
+      preview, and download denial and an unassigned Exchange participant refused on both the
+      evidence and the ordinary Document surfaces.
+      Done: `InformationRequestEvidenceAuthorizationMatrixTest` runs every evidence action through
+      the real central authorization stack. Only the assigned party views, uploads, and withdraws;
+      a co-party holding evidence capabilities is refused as unassigned; a decision maker reads
+      through the manage permission only; confidential and not-disclosed occurrences refuse their
+      respondent. The evidence Document is never one of the Exchange's Documents, so the ordinary
+      Document surfaces cannot resolve it.
+- [x] `P6-T4` Implement multi-file aggregation with independent file state. Accepted, rejected,
   quarantined, expired, and replacement versions may coexist without corrupting Requirement status.
-- [ ] `P6-T5` Implement generic evidence-policy validation for counts, MIME and detected content,
+  Done: `InformationRequestEvidencePolicyEvaluator` gives every Evidence Version its own standing
+  (`CURRENT`, `SUPERSEDED`, `WITHDRAWN`, `REMOVED`), conformance (`PENDING`, `CONFORMING`,
+  `DEFICIENT`, `QUARANTINED`, `CORRUPT`, `EXPIRED`), and findings, and derives the Requirement state
+  (`NOT_PROVIDED`, `PENDING_ASSESSMENT`, `INCOMPLETE`, `DEFICIENT`, `REVIEWABLE`, `SATISFIED`, `WAIVED`,
+  `WAIVER_REQUESTED`) from current files only; superseded, withdrawn, and removed versions keep their
+  own state and never count, and every current file must conform before the Requirement is satisfied.
+  `InformationRequestEvidenceEvaluationService` reads the facts from storage and assessments,
+  `InformationRequestEvidenceCompletenessEvaluator` makes a Document Requirement complete only when
+  its evidence completes the work or its disposition needs no evidence, and the evidence list carries
+  the Requirement evaluation and each version's conformance and findings. Reviewer acceptance and
+  rejection arrive with review in Phase 8 and add to these states rather than replacing them.
+- [x] `P6-T5` Implement generic evidence-policy validation for counts, MIME and detected content,
   size, pages, issuer, issue date, expiry, freshness, coverage periods, language, jurisdiction,
   certification, signature, alternatives, and waivers.
-- [ ] `P6-T6` Separate detected-content inspection from malware scanning. Add a provider-neutral
+  Done: the evaluator checks every dimension against the versioned Template evidence policy, as of
+  the configured clock's date: file count, per-file and total size, detected and declared content
+  type, page bounds, required captured attributes and accepted issuer, jurisdiction, and language
+  values, issue age, remaining validity, expiry, multi-period coverage length and continuity across
+  files, substitutes (a satisfied substitute at the same occurrence, else at the root), and the
+  waiver rule. `InformationRequestEvidenceIntake` refuses before storage what can never conform: a
+  file above the policy's size, a file past its count or total, a detected type the policy does not
+  accept, and bytes already provided for the occurrence.
+- [x] `P6-T6` Separate detected-content inspection from malware scanning. Add a provider-neutral
   scanner port and the approved real implementation, signature-version metadata, timeout and
   unavailable handling, quarantine access rules, rescan policy, observability, and append-only
   Evidence Assessments. Scanner error, timeout, unavailable, stale signatures, skipped execution,
@@ -2343,8 +2635,61 @@ design needs a new AWS service or paid resource type, stop for explicit user app
   when the exact verified content hash, scanner engine and signature version, and configured
   freshness policy still match.
   The concrete scanner deployment and signature-update decision is deferred by the user; other
-  independent tasks continue. This task and production upload enablement remain incomplete.
-- [ ] `P6-T7` Define replacement, withdrawal, deletion, retention, duplicate, corrupt, encrypted,
+  independent tasks continue. This task and production upload enablement remained incomplete until
+  the user's 2026-09-25 decision recorded below.
+  Split so the scanner-independent parts proceed. Do not check `P6-T6` until every subtask,
+  including the deferred `P6-T6d`, is complete.
+  Done for this program on 2026-09-25: the user moved the approved real implementation out of the
+  program (`P6-T6d`) and made scanning optional, so `P6-T6` is complete with `P6-T6a` through
+  `P6-T6c` and `InformationRequestEvidenceDeploymentPolicy`. With scanning not required, a missing
+  or incomplete scan never blocks a file and a detection still quarantines it; with
+  `malware-scan.required=true` every rule above applies unchanged.
+    - [x] `P6-T6a` Append-only Evidence Assessment persistence bound to the exact Evidence Version
+      and the content digest that was assessed, for content inspection and malware scan results.
+      Done by V130, `InformationRequestEvidenceAssessment`, `InformationRequestEvidenceAssessmentKind`,
+      and `InformationRequestEvidenceAssessmentRepository`. An assessment names one file-backed
+      Evidence Version of its own request and must state exactly that version's digest and length;
+      opaque content is never inspected or recorded as scanned clean; a settled scan names its engine
+      and signature version; a reuse must repeat a settled scan of the same bytes by the same engine
+      and signatures; rows are append-only in the database and through the repository.
+    - [x] `P6-T6b` Detected-content inspection from the stored bytes: magic-byte media type,
+      declared-versus-detected mismatch, PDF page count, and encrypted or corrupt content, recorded
+      as a content-inspection assessment. Inspection is never a malware result.
+      Done: `InformationRequestEvidenceContentInspector` detects the type from the bytes and reads a
+      PDF's page count, password protection, and structure; the intake records the result as a
+      `CONTENT_INSPECTION` assessment of the exact stored digest for every new file-backed version,
+      and opaque content is never inspected.
+    - [x] `P6-T6c` Provider-neutral malware scanner port with a fail-closed result vocabulary,
+      timeout, unavailable, error, stale-signature, and skipped handling, signature-version
+      metadata, production-eligibility of the engine, exact-digest assessment reuse, rescan policy,
+      quarantine access rules, and observability. The default configuration names no scanner, so
+      every file-backed Evidence Version stays unscanned and cannot satisfy a Requirement.
+      That last sentence is superseded on 2026-09-25: an unscanned file can satisfy a Requirement
+      unless `malware-scan.required=true`.
+      Done: `InformationRequestEvidenceMalwareScanner` is the port and
+      `UnconfiguredInformationRequestEvidenceMalwareScanner` the default (`malware-scanner=none`),
+      selected by `InformationRequestEvidenceScanProducer`; any other value refuses to start the
+      scanner. `InformationRequestEvidenceMalwareAssessmentService.assess` records `SKIPPED` for
+      opaque content, `UNAVAILABLE` with no engine or signatures, `STALE_SIGNATURES` past the
+      maximum signature age, `ERROR` for changed or missing bytes or a failed scan, `TIMEOUT` after
+      the configured timeout, and otherwise the verdict with the engine and signatures that produced
+      it; a settled result of the same bytes by the same engine, engine version, signatures, and
+      eligibility inside the reuse window is reused by reference. `InformationRequestEvidenceScanScheduler`
+      runs only when an engine is configured and scans versions never scanned, retries an
+      incomplete scan after `retry-after`, and rescans a clean result after `rescan-after`; a
+      detection or a skip is final. `InformationRequestEvidenceContentRelease` refuses detected
+      content to everyone and, where only production-scanned content is released (the default),
+      releases other content only after a production-eligible clean scan or to its own uploader.
+      Detections and scan failures log the greppable `INFORMATION_REQUEST_EVIDENCE_MALWARE_DETECTED`
+      and `INFORMATION_REQUEST_EVIDENCE_SCAN_FAILED` markers for a log metric filter, so no new
+      service is needed. Every recorded scan is also a classified `information_request.evidence.scan`
+      system audit event (catalog version 22) naming the outcome, engine, signatures, and reuse, and
+      never the threat name.
+    - [x] `P6-T6d` The approved real scanner implementation, deployment, and signature-update model.
+      Moved out of this program on 2026-09-25 by user direction to
+      `plans/INFORMATION-REQUEST-EVIDENCE-MALWARE-SCANNING-PLAN.md`; nothing is implemented here.
+      Deferred by the user on 2026-09-20; blocked until that decision is made.
+- [x] `P6-T7` Define replacement, withdrawal, deletion, retention, duplicate, corrupt, encrypted,
   and password-protected-file behavior. Replacement and withdrawal preserve bytes and only change
   eligibility for future packages. Reject an opaque `END_TO_END` Document Version as satisfying
   evidence with a stable reason; never mark it safe from a ciphertext scan. There is no existing
@@ -2353,16 +2698,61 @@ design needs a new AWS service or paid resource type, stop for explicit user app
   eligibility, tombstones, and physical object deletion. Replacement, withdrawal, and logical
   deletion use Command Receipts plus required `If-Match` and recheck submission membership before
   committing.
-- [ ] `P6-T8` Materialize supporting-evidence links from a Field response occurrence to one or more
+  Done, with one clause carried: replacement appends a version and withdrawal and logical removal
+  change only the collection state, so every stored byte and earlier version is kept (the database
+  refuses deleting either); duplicate bytes for one occurrence are refused before storage; a corrupt
+  file is kept and marked `CORRUPT`; a password-protected file is kept with the blocking
+  `CONTENT_ENCRYPTED` finding and is never offered for review; opaque `END_TO_END` content is kept,
+  never inspected, recorded `SKIPPED` rather than scanned, carries the blocking `CONTENT_OPAQUE`
+  finding, and can never be recorded as clean; no purge exists. Every mutation uses a Command Receipt
+  and a required `If-Match`. Rechecking Submission Package membership is carried to `P7-T1`, because
+  no Submission Package exists before it.
+- [x] `P6-T8` Materialize supporting-evidence links from a Field response occurrence to one or more
   Document Requirement occurrences. Preserve those links in runtime projections and later
   Submission Packages without turning a file into a Field value.
-- [ ] `P6-T9` Enforce baseline per-file, per-request, per-recipient, and no-auth upload limits before
+  Done by V131, `InformationRequestSupportingEvidenceLink`, and `InformationRequestSupportingEvidenceLinkService`.
+  Each Template evidence link is resolved to exact runtime occurrences: the Document at the supported
+  occurrence, else at its nearest enclosing occurrence, else at the root, else every descendant
+  occurrence. Links are written once when the request is materialized and again whenever a group
+  occurrence is added, and the database refuses a link that does not follow its Template link
+  between the exact bindings of its request. The response workspace projects
+  `supportingEvidenceLinks` only between Requirements the caller may see. Submission Packages will
+  freeze these rows in `P7-T1`.
+- [x] `P6-T9` Enforce baseline per-file, per-request, per-recipient, and no-auth upload limits before
   accepting content. Phase 12 may tune limits by plan but must not introduce the first abuse guard.
-- [ ] `P6-T10` Extend `basic_field_document_response_attestation_request` and
+  Done: `InformationRequestEvidenceIntake` refuses with `INFORMATION_REQUEST_EVIDENCE_UPLOAD_LIMIT_EXCEEDED`
+  before anything is stored: 25 MiB per file, 10 MiB per file without sign-in, 200 files and 500 MiB
+  per request, and 100 files and 250 MiB per uploading party, counting every retained file-backed
+  version (withdrawn and removed bytes are still held). Each limit is configurable.
+- [x] `P6-T10` Extend `basic_field_document_response_attestation_request` and
   `multi_party_staged_evidence_request` through multi-file upload, occurrence-scoped evidence,
   policy validation, ACL, quarantine, and supporting-evidence links.
-- [ ] `P6-T11` Add the minimal shared evidence upload, progress, preview, replace, withdraw, and
+  Done: `InformationRequestTemplateWalkingSkeletonPhase6Test` drives each fixture's own authored
+  evidence policy through the real upload, intake, scan, evaluation, query, and link services. The
+  basic fixture collects two independent files, is satisfied only after production-eligible clean
+  scans, refuses a non-PDF and a third file by its policy, quarantines detected content, and links
+  its recorded summary to its supporting record. The staged fixture needs two continuous, attributed
+  files, becomes reviewable when a replacement loses its certification, turns a waiver into a
+  review-approval request, is satisfied by its alternate record as a substitute, links each reported
+  item to the root primary evidence, and refuses a caller who may neither view nor manage it. The
+  Phase 5 walking test now records the disposition the basic fixture permits for its supporting
+  record (`PROVIDED`, not the unpermitted `WAIVED`).
+- [x] `P6-T11` Add the minimal shared evidence upload, progress, preview, replace, withdraw, and
   conformance UI behind the feature switch.
+  Done; the final backend regression passed 2,875 tests with 0 failures. The response workspace now renders
+  each Document Requirement occurrence through `RequirementEvidencePanel`, reached from the new
+  `StructuredResponseRequirement` child of `StructuredResponseOccurrence`, on both the signed-in and
+  access-link surfaces. It shows the Requirement status and findings, every item with its latest
+  version, conformance, and findings, and offers upload with progress, preview for PDF and images,
+  download, replacement, and withdrawal with a reason. Each command sends the evidence or artifact
+  ETag as `If-Match` with a fresh `Idempotency-Key` through `informationRequestEvidenceService.ts`,
+  and a stale refusal reloads the list and explains it. The switch is the backend: the workspace
+  DTO's `evidenceUploadAvailable` reports whether `InformationRequestEvidenceUploadAvailability`
+  admits uploads (on by default; refused only where a deployment switches upload off or requires
+  scanning without a production-eligible scanner), and `evidenceMalwareScanning` shows the
+  "Files are not scanned for malware." note while no scanner is configured,
+  and the evidence UI is provided only by the response panel's context. The help article
+  "Information Request evidence files" is registered in the Fields and Schemas section.
 
 ### Tests to write first
 
@@ -2371,16 +2761,16 @@ design needs a new AWS service or paid resource type, stop for explicit user app
 - Evidence replacement and immutable-version tests.
 - Duplicate and parallel upload completion, replacement, withdrawal, logical deletion, command
   replay, fingerprint conflict, missing or stale precondition, and submission race tests.
-- Typed legacy-locator classification, provider routing, unique write-once version key,
-  overwrite-denial, byte identity, and rolling old-writer compatibility tests.
-- New-version hash, algorithm, canonical creator principal, trusted-FK backfill, email-only unknown
-  principal, catch-up backfill, missing-object, unverified-state, and submission-membership tests.
+- Typed locator classification, provider routing, unique write-once version key, overwrite-denial,
+  and byte identity tests, plus proof that a version cannot be stored without a canonical locator.
+- New-version hash, algorithm, canonical creator principal for every creation path including the
+  link-verified no-auth upload, missing-object, unverified-state, and submission-membership tests.
 - Coverage period, freshness, expiry, issuer, and substitute-evidence tests.
 - Field-response to exact supporting Requirement and Evidence Version traceability tests.
 - MIME spoofing, size, corrupt, password-protected, quarantine, malware-detected, scanner timeout,
   scanner unavailable, stale-signature, fail-closed, rescan, and no-op-adapter denial tests.
 - Explicit `END_TO_END` Evidence ineligibility and no-ciphertext-safety-claim tests.
-- Existing and legacy Document linking, exact-hash assessment reuse, changed-bytes denial, scanner
+- Existing Document linking, exact-hash assessment reuse, changed-bytes denial, scanner
   engine or signature change, and assessment-freshness tests.
 - Cross-recipient list, preview, and download denial tests.
 
@@ -2390,7 +2780,8 @@ design needs a new AWS service or paid resource type, stop for explicit user app
 - Every reviewed or submitted file is identified by immutable Evidence and Document Version IDs and
   a typed write-once storage locator, byte length, and version-level hash.
 - Another Exchange participant cannot access evidence without Requirement-specific authorization.
-- Technically unsafe, unscanned, unverified, or expired evidence cannot satisfy submission policy,
+- Technically unsafe, unverified, or expired evidence cannot satisfy submission policy, and unscanned
+  evidence cannot satisfy it where a deployment requires malware scanning,
   including evidence linked from an existing Document Version.
 - Opaque `END_TO_END` ciphertext cannot satisfy a file-backed Evidence Requirement or receive a
   plaintext-safety claim from server-side ciphertext inspection.
@@ -2398,7 +2789,8 @@ design needs a new AWS service or paid resource type, stop for explicit user app
   alternatives without process-specific database columns.
 - Replacement, withdrawal, or logical deletion cannot remove retained bytes before Phase 9 provides
   a tested record-preservation and disposal pipeline.
-- Production external upload remains disabled unless a real scanner is configured, healthy, and
+- Superseded on 2026-09-25: production external upload is available without a scanner. Where a
+  deployment requires scanning, upload stays refused unless a real scanner is configured, healthy, and
   fail-closed.
 - Baseline upload and storage abuse limits apply before no-auth evidence collection is enabled.
 
@@ -2409,9 +2801,61 @@ design needs a new AWS service or paid resource type, stop for explicit user app
 Create immutable evidentiary submissions and support the repeated, supplemental, and recurring
 cycles found in real document-driven processes.
 
+### Phase 7 design decisions (2026-09-25)
+
+Recorded before implementation so every subtask below states against one design.
+
+1. A submission scope is the whole request (`WHOLE_PACKAGE`) or one stage (`STAGED`). A Template
+   Version states its submission mode and stage ordering (`ANY_ORDER` or `SEQUENTIAL`); in staged
+   mode every section names a stage key and a stage is the set of sections naming it. A condition
+   rule, a repeatable group, and every Requirement anchored to that group stay inside one stage, so
+   an editable stage can never change what a submitted stage holds.
+2. The submission content hash is a SHA-256 over the canonical, sorted facts of one scope: the
+   pinned Template and Schema Versions, each active runtime Requirement occurrence with its current
+   revision, response envelope and revision, exact Field Value Revision, current Evidence Versions
+   with their document hashes and governing assessments, and the materialized supporting-evidence
+   links. It is the strong submission ETag a client reads in review-before-submit and states as
+   `If-Match` when it attests or submits, so a submitter can only submit exactly what was reviewed.
+3. A Submission Attestation binds to the content hash it was given against. A later change to the
+   scope changes the hash, so earlier attestations stop counting without being rewritten. The
+   package freezes the attestations that satisfied each Response Attestation Requirement's policy.
+4. A Response Attestation Requirement's binding states its attestation policy: required party roles
+   (ordered), ordering (`ANY_ORDER` or `ROLE_SEQUENCE`), minimum assent count, minimum
+   authentication strength (`VERIFIED_CONTACT` < `ACCOUNT_SIGN_IN` < `MULTI_FACTOR`), optional
+   validity hours, and whether an external signature reference is not accepted, optional, or
+   required. An authored Requirement that states none stores the explicit default: its nominated
+   role, any order, one assent, verified contact, no expiry, no external reference. A recorded
+   external signature reference is an opaque reference and never a qualified electronic signature.
+   The attestation Requirement is complete when its policy is satisfied or when a permitted
+   exception disposition with a narrative is recorded; a plain `PROVIDED` draft disposition no
+   longer stands in for an attestation.
+5. Submission is a package operation, not a request state. `SUBMIT` keeps the request's collection
+   state; the final package of a request whose packages need no review records satisfaction and the
+   `CLOSED` transition in the same transaction. `SUBMITTED`, `UNDER_REVIEW`, and `CHANGES_REQUESTED`
+   stay in the vocabulary for Phase 8 to settle; nothing in Phase 7 reaches them.
+6. Every Template capability that can route work to a reviewer, a binding review policy other than
+   `NOT_REQUIRED`, a `DEFICIENCY_REVIEWABLE` conformance policy, and a `REVIEW_APPROVAL_REQUIRED`
+   waiver, derives `RESPONSE_REVIEW`. Phase 7 installs every other capability, so only Template
+   Versions that can never need a reviewer are issuable until Phase 8.
+7. An amendment re-pins an issued request to a later published Version of the same Template
+   Definition, or to a new private Version of its own ad hoc Definition. Each runtime Requirement
+   keeps its stable identity: its effective binding advances with an appended revision. A Requirement
+   the new Version no longer names stays on the earlier Version and leaves the active request. A
+   presentation-only change is compatible; any change of meaning is incompatible and requires the
+   respondent to reconfirm an existing response. A different Schema Version, a changed occurrence
+   anchor under existing occurrences, or a change to a Requirement inside a submitted stage refuses
+   the amendment by stable reason; those need a supplemental or superseding request.
+8. Carry-forward never writes an answer on a respondent's behalf. A successor request (supplement,
+   recurrence, refresh, or superseding request) records, per Requirement occurrence matching an
+   item of its source package, whether the prior submitted answer is offered for reconfirmation or
+   invalidated with a stable reason. Evidence and attestations are always invalidated because
+   freshness is their point. The respondent sees the offered prior answer and confirms by saving.
+9. Notice Intents are append-only and authoritative. Materializing and delivering a notice is Phase
+   9, so every Phase 7 intent stays pending and is presented as pending, never as delivered.
+
 ### Tasks
 
-- [ ] `P7-T1` Implement atomic Submission Package or stage-package creation without introducing a
+- [x] `P7-T1` Implement atomic Submission Package or stage-package creation without introducing a
   request-wide submitted state. Freeze
   Template and Schema versions,
   runtime Requirement revisions, canonical responses, dispositions, Evidence Version IDs and
@@ -2419,17 +2863,37 @@ cycles found in real document-driven processes.
   results, actors, time, and every required `SubmissionAttestation` record. When the final required
   package or stage satisfies a `NOT_REQUIRED` review policy, atomically record satisfaction, the `CLOSED`
   transition, classified audit history, and the transactional domain event.
-- [ ] `P7-T2` Require server-side completeness and conformance validation immediately before the
+  Carried from `P6-T7`: evidence replacement, withdrawal, and logical removal must recheck
+  Submission Package membership before committing once packages exist, and packages freeze the
+  materialized supporting-evidence link rows.
+  Done: `InformationRequestSubmissionService` freezes one scope in one transaction and closes a
+  no-review request with its final package; evidence replacement, withdrawal, and removal recheck
+  package membership through `InformationRequestEvidenceGate.requireEvidenceOpen`.
+    - [x] `P7-T1a` Submission Package persistence (V133): package, item, evidence member, supporting
+      link member, package attestation member, and withdrawal tables, all append-only, with composite
+      keys holding every member to its own request.
+    - [x] `P7-T1b` Deterministic scope and content-hash manifest builder and the submission ETag.
+    - [x] `P7-T1c` Package creation with atomic `SUBMIT` history, audit, and event, no-review
+      satisfaction and `CLOSED` closure, and the evidence membership recheck.
+- [x] `P7-T2` Require server-side completeness and conformance validation immediately before the
   transaction creates the package. Return structured item errors without partial submission.
-- [ ] `P7-T3` Make submission idempotent and concurrency-safe when save, upload, expiry, or duplicate
+  Done: `InformationRequestSubmissionReadinessEvaluator`; a refused scope answers `422` with the
+  problems the caller may see and an undisclosed count.
+- [x] `P7-T3` Make submission idempotent and concurrency-safe when save, upload, expiry, or duplicate
   submission requests race. Use the Phase 3 Command Receipt and `If-Match` contracts rather than a
   submission-only deduplication mechanism.
-- [ ] `P7-T4` Add versioned response-attestation policy and one immutable
+  Done: receipts claimed after the parent and request locks, the submission ETag as `If-Match`, and
+  a parallel duplicate test recording exactly one package.
+- [x] `P7-T4` Add versioned response-attestation policy and one immutable
   `SubmissionAttestation` record per acting party. Keep these names distinct from
   `ExchangeRecipientAttestation`. Support required roles, order, quorum, explicit assent or refusal,
   authentication strength, expiry, and external signature references without claiming qualified
   electronic signature.
-- [ ] `P7-T5` Implement append-only request amendments and changed-requirement notices. An issued
+    - [x] `P7-T4a` Template attestation policy (V132): binding policy columns and ordered role set,
+      freeze guards, publication rules, authoring validation, writer, loader, DTOs, and copy.
+    - [x] `P7-T4b` Submission Attestation persistence (V133), recording service, policy evaluation,
+      attestation completeness contribution, and the authorization facts for attesting roles.
+- [x] `P7-T5` Implement append-only request amendments and changed-requirement notices. An issued
   Template Version is never edited in place. Define compatibility and explicit carry-forward rules
   for responses, occurrences, evidence, conditions, and Submission Attestations when Requirements are
   unchanged, changed incompatibly, removed, or added. Persist an append-only `NoticeIntent`
@@ -2440,21 +2904,49 @@ cycles found in real document-driven processes.
   disabled until that capability is installed. Any added or changed Field Requirement that needs a
   different Schema Version must create a supplemental or superseding Information Request with its
   own Schema Assignment; it cannot amend the issued request's assignment.
-- [ ] `P7-T6` Implement supplemental request lineage so a reviewer can request additional
+  Done: `InformationRequestAmendmentService` with its classifier, guard, target resolver, recorder,
+  and the materializer's effective-binding advance; each active party is owed a `PENDING` Notice
+  Intent (V134 admits no other delivery state until Phase 9 installs delivery), a changed meaning
+  marks existing answers for reconfirmation until they are saved again, and a schema change,
+  occurrence-structure change, or change reaching a submitted scope is refused by stable reason.
+    - [x] `P7-T5a` Runtime effective binding (V134): a runtime Requirement's binding may advance
+      to a later Version's binding of the same stable Template Requirement, recorded by an appended
+      revision; the active request reads only Requirements of its pinned Version.
+    - [x] `P7-T5b` Amendment, change classification, reconfirmation, group and occurrence
+      carry-forward, refusals, and append-only amendment, change, and Notice Intent records (V134).
+- [x] `P7-T6` Implement supplemental request lineage so a reviewer can request additional
   information while preserving the original request and package.
-- [ ] `P7-T7` Implement configurable whole-package or staged submission, withdrawal before review,
+  Done: `InformationRequestSuccessorService` (V135 lineage and carry-forward decisions); a
+  supplement is a draft on the same Exchange for the same acting parties, open to a reviewer through
+  `INFORMATION_REQUEST_REQUEST_SUPPLEMENT` or to the request administrator.
+- [x] `P7-T7` Implement configurable whole-package or staged submission, withdrawal before review,
   active-request cancellation, supersession, recurrence definitions, and expiry-triggered refresh
   rules. Phase 9 owns the clock calculation and scheduler that executes expiry and refresh.
-- [ ] `P7-T8` Extend `basic_field_document_response_attestation_request` and
+    - [x] `P7-T7a` Template submission mode, stage ordering, and section stage keys (V132) with
+      stage containment validation.
+    - [x] `P7-T7b` Stage-scoped packages, stage locks on every response, evidence, group, and
+      attestation command, sequential stage order, and withdrawal before review.
+    - [x] `P7-T7c` Cancellation and supersession with packages, superseding successors, recurrence
+      definitions and next-occurrence command, and expiry refresh rules and refresh command (V135).
+- [x] `P7-T8` Extend `basic_field_document_response_attestation_request` and
   `multi_party_staged_evidence_request` through multi-party response attestation, immutable package
   submission, compatible and incompatible amendment, supplemental request, and recurrence.
-- [ ] `P7-T9` Add the minimal review-before-submit, multi-party response-attestation, submission result,
+  Done: `InformationRequestTemplateWalkingSkeletonPhase7Test`; the stress fixture now submits in three
+  sequential stages with a subject-then-attestor assertion policy.
+- [x] `P7-T9` Add the minimal review-before-submit, multi-party response-attestation, submission result,
   amendment change summary with pending-notice state, and supplemental-request UI behind the
   feature switch. Do not present an intent as a delivered notice.
-- [ ] `P7-T10` Register the structured-response, condition, evidence, response-attestation, and submission
+  Done: `web-app/src/app/information-requests/submission/` mounted in the respondent workspace;
+  notices read "Notice pending"; the supplement action needs a signed-in caller whose plan includes
+  Information Requests.
+- [x] `P7-T10` Register the structured-response, condition, evidence, response-attestation, and submission
   executor capability versions. Enable successful issuance in controlled test scopes only for
   Template Versions whose review policy is `NOT_REQUIRED` and whose complete capability set is
   installed.
+  Done: `InformationRequestCapabilityExecutors.kt` installs every capability except `RESPONSE_REVIEW`;
+  `POST /information-requests/{id}/issuance`; `InformationRequestControlledIssuanceTest` issues a
+  fully served Version and refuses one that routes work to a reviewer. Entitlement and owner plan
+  gates are unchanged.
 
 ### Tests to write first
 
@@ -2815,7 +3307,8 @@ vocabulary, branch, identifier, or fixture may encode a particular industry or c
   occurrence-scoped evidence and findings.
 - [ ] `P11-T6` Complete the test-only `multi_file_evidence_policy_request` conformance scenario:
   multiple files, coverage, issuer, freshness, expiry, certification, configured alternatives,
-  waiver, quarantine, replacement, and immutable version membership.
+  waiver, quarantine, replacement, and immutable version membership. Quarantine is exercised with a
+  test scanner adapter; the scenario does not need a real scanner.
 - [ ] `P11-T7` Complete the test-only `itemized_staged_submission_request` conformance scenario:
   item-specific provided, partial, unavailable, exception-requested, referenced, and waived
   dispositions; stage locks; later-stage edits; and an exact package manifest.
@@ -2872,7 +3365,7 @@ vocabulary, branch, identifier, or fixture may encode a particular industry or c
 - Connector contracts preserve source, confidence, verification time, expiry, and provenance.
 - No live external integration or new AWS service is introduced without separate approval.
 
-## Phase 12: Compatibility, Packaging, Rollout, and Final Hardening
+## Phase 12: Packaging, Rollout, and Final Hardening
 
 ### Goal
 
@@ -2881,18 +3374,17 @@ operational and cost controls undefined.
 
 ### Tasks
 
-- [ ] `P12-T1` Aggregate the expand-contract and populated-baseline migration tests already added by
-  each owning phase across Fields and their exact scope checks, Blueprints and existing defaults,
-  Documents, every Exchange state, the three Share-bearing ResourceTypes and the widened Share
-  resource-type and role-name checks, ShareLink direct and
-  bootstrap modes, the forward-only External Participant owner column, the unchanged
-  `exchange_recipient` binding trigger, personal event and hold owners, the generalized
-  existing hold table, and existing Workflow Field conditions and trigger registry. Verify
-  rolling-deployment and application-version rollback
-  compatibility without attempting to reverse applied Flyway migrations. Use legacy Field `PUT`
-  telemetry and published compatibility notice to decide whether to require `If-Match` on the alias
-  or remove it; otherwise retain the measured fallback and document it rather than breaking unknown
-  clients.
+- [ ] `P12-T1` Aggregate the clean-schema migration tests already added by each owning phase across
+  Fields and their exact scope checks, Blueprints and existing defaults, Documents, every Exchange
+  state, the three Share-bearing ResourceTypes and the widened Share resource-type and role-name
+  checks, ShareLink direct and bootstrap modes, the External Participant owner column, the unchanged
+  `exchange_recipient` binding trigger, personal event and hold owners, the generalized existing
+  hold table, and existing Workflow Field conditions and trigger registry. Prove the whole migration
+  set applies to an empty database in one pass and that the final constraints refuse every shape
+  they replaced. Do not add rolling-deployment or application-version rollback coverage; the
+  development-stage constraint removes both, and `DS-T4` owns the sweep that proves no compatibility
+  mechanism survives. Require `If-Match` on every Field mutation path rather than measuring an
+  unknown client's use of a tolerated alias.
 - [ ] `P12-T2` Keep legacy Exchange Schema Assignments as Exchange metadata. Do not create synthetic
   satisfied requests or fabricated review decisions. Allow explicit owner-driven conversion only if
   a later product requirement defines its meaning.
@@ -2968,7 +3460,7 @@ Every applicable row must be expanded with concrete tests before its owning task
 | Capability | Canonical PrincipalRef, resource-scoped Share roles and unchanged capability behavior for the three Share-bearing ResourceTypes, proof that the other nine hold no Share rows, widened `share_resource_type_check` and `share_role_name_check`, corrected non-Exchange Share audit owner, unresolved-resource-context fail-closed behavior and the removed `activeOrgId` organization-role fallback, parent-grant inheritance, central Requirement policy facts, owner, org admin, author, reviewer, registered contributor, recipient-bound participant, trusted person and group, suspended trust relationship, group member, removed member, replacement recipient, application, unrelated same-org user, and cross-org user. |
 | Field policy | Classification, response mode, correction scope, request state, read projection, write eligibility, and mutation response filtering. |
 | Structured data | Sparse updates, explicit clear, root and occurrence Value Sets, repeatable groups, cross-row rules, condition unknowns, cycles, and hidden-data policy. |
-| Evidence | Occurrence anchoring, supporting-response links, counts, typed write-once locators, byte identity, hashes, every-inspectable-source scanning, explicit `END_TO_END` ineligibility, mixed findings, replacement, withdrawal, command replay, preconditions, quarantine, expiry, duplication, and cross-party ACL. |
+| Evidence | Occurrence anchoring, supporting-response links, counts, typed write-once locators, byte identity, hashes, every-inspectable-source inspection, malware scanning where a deployment requires it, explicit `END_TO_END` ineligibility, mixed findings, replacement, withdrawal, command replay, preconditions, quarantine, expiry, duplication, and cross-party ACL. |
 | Submission | Completeness, multi-party Submission Attestation, naming separation from Exchange recipient attestation, exact snapshot, concurrency, idempotency, amendment carry-forward, supplement, recurrence, and supersession. |
 | Review | Item findings, all/any/quorum aggregation, stage order, separation of duties, correction allowlist, remediation, retest, appeal, and independent Business Decision. |
 | Command safety | Idempotency key and fingerprint, actor or RequestAccessSession scope, original-result replay, conflict, required If-Match, stale ETag, HTTP-authoritative multi-device recovery, and concurrent request, party, ShareLink bootstrap, response, evidence, submission, and review races. |
@@ -2976,8 +3468,8 @@ Every applicable row must be expanded with concrete tests before its owning task
 | Workflow | Exact request and package scope, existing trigger-registry migration and subject-field descriptors, counterparty-wait characterization, neutral publisher over the compatible owner-aware outbox, rollback, retry, deduplication, ordering, and Exchange completion gates. |
 | Time | Instant storage, versioned calendar, working hours, holidays, business timezone, urgency, pause, resume, extension, reminder, escalation, and overdue deduplication. |
 | Records | Principal provenance, Notice Intent recovery, source and rendered hashes, exactly-once Sequence allocation, immutable notices, protected endpoints and content, sensitive-data minimization, privacy requests, one generalized hold lifecycle visible through compatible audit APIs, platform and organization and personal hold ownership, retention, live-reference safety, claimed disposal, database and object purge recovery, tombstones, access history, and reproducible export. |
-| No-auth | Existing direct-grant ShareLink compatibility, bootstrap-mode recipient binding by recipient ID rather than `direct_share_id`, `requireRecipientSignIn` refusal, `EndpointAuthorizationFilter` allowlist enforcement, stable participant principal, no temporary App User, Exchange-token and Exchange-OTP rejection, bootstrap-only denial in the central authorizer, enforced constraints, atomic use count, contact proof, expiry, revocation, rotation, replay, forwarding, rate limiting, replacement, registration upgrade, and RequestAccessSession expiry. |
-| Migration | Every Exchange state, empty and populated assignments, all classifications, exact `PLATFORM` or `ORGANIZATION` or `PERSONAL` scope checks and their rewritten unique-index expressions, read-only values, personal audit owners, event-outbox owner kind and ID plus request key namespace, owner entitlements and rollout, the widened `share_resource_type_check` and `share_role_name_check`, the three Share-bearing resource roles, preserved legacy App User attribution foreign keys during expand, the forward-only personal owner column on the empty `external_participant` table, the unchanged `exchange_recipient` binding trigger, mutable Blueprint Definition links and existing defaults, typed Document Version locators, hash and creator states, execution grants, ShareLink bootstrap extension, command receipts, notice intents and notices, generalized existing hold persistence, disposal claims, Document placeholders, Workflow trigger registry descriptors, and Workflow Field references. |
+| No-auth | Existing direct-grant ShareLink behavior, bootstrap-mode recipient binding by recipient ID rather than `direct_share_id`, `requireRecipientSignIn` refusal, `EndpointAuthorizationFilter` allowlist enforcement, stable participant principal, no temporary App User, Exchange-token and Exchange-OTP rejection, bootstrap-only denial in the central authorizer, enforced constraints, atomic use count, contact proof, expiry, revocation, rotation, replay, forwarding, rate limiting, replacement, registration upgrade, and RequestAccessSession expiry. |
+| Migration | Every Exchange state, empty and populated assignments, all classifications, exact `PLATFORM` or `ORGANIZATION` or `PERSONAL` scope checks and their rewritten unique-index expressions, read-only values, personal audit owners, event-outbox owner kind and ID plus request key namespace, owner entitlements and rollout, the widened `share_resource_type_check` and `share_role_name_check`, the three Share-bearing resource roles, canonical-only principal attribution with the replaced shape proven refused, the personal owner column on the empty `external_participant` table, the unchanged `exchange_recipient` binding trigger, mutable Blueprint Definition links and existing defaults, typed Document Version locators, hash and creator states, execution grants, ShareLink bootstrap extension, command receipts, notice intents and notices, generalized existing hold persistence, disposal claims, Document placeholders, Workflow trigger registry descriptors, and Workflow Field references. No mixed or rolling application-version coverage: the development-stage constraint removes it. |
 
 ## Security and Privacy Gates
 
@@ -2999,10 +3491,12 @@ No phase is complete unless its applicable gates pass.
   sensitive response values into unrestricted audit payloads.
 - Freeze typed storage locator identity, byte length, version-level content hashes, and evidence
   membership for every submission.
-- Require detected-content inspection, a real fail-closed malware scan, and quarantine handling
-  for every eligible inspectable file-backed Evidence Version before it can satisfy a Requirement.
-  Tika or a no-op adapter is not malware scanning, and linking an existing Document does not bypass
-  assessment.
+- Require detected-content inspection for every eligible inspectable file-backed Evidence Version
+  before it can satisfy a Requirement. Malware scanning is optional (user decision, 2026-09-25):
+  where a deployment sets `app.information-request.evidence.malware-scan.required=true`, also require
+  a real fail-closed malware scan; wherever a scan detects malware, quarantine the file. Tika or a
+  no-op adapter is not malware scanning and never produces a clean result, no file is described as
+  scanned or safe without a real scan, and linking an existing Document does not bypass assessment.
 - Reject opaque `END_TO_END` ciphertext as satisfying file-backed Evidence; scanning ciphertext
   cannot create a plaintext-safety claim.
 - Enforce record-preservation holds, retention eligibility, and all-live-reference reachability
@@ -3034,8 +3528,8 @@ No phase is complete unless its applicable gates pass.
   before implementation. One number belongs to one immutable migration file. Never rename, edit,
   reuse, or squash a migration that may have been applied.
 - Migration allocation does not replace TDD. Each migration task starts with a failing clean-schema
-  or populated-baseline PostgreSQL contract test and records rolling-version compatibility where
-  applicable.
+  PostgreSQL contract test. A migration that replaces an existing shape also proves the final
+  constraints refuse the shape it replaced, so the old shape cannot be written again.
 
 | Task    | Migration filename                                     | Allocated  | Status                                                                                                                                                                                                                                                                                                                                                                                                       |
 |---------|--------------------------------------------------------|------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -3171,18 +3665,106 @@ this environment, so the updated Testcontainers runtime-persistence contract cou
 
 | `P5-R01` | `V117__request_access_session_credential.sql` | 2026-09-09 | Created and PostgreSQL contract-tested. Adds hashed independent session credentials, enforces expiry for credential-bearing sessions, freezes binding identity, and revokes legacy token-only sessions. |
 
-Remaining unallocated program range after these allocations and prior P4/P5 allocations: V118 through V139.
+| `P6-T1b` | `V120__information_request_evidence_artifact.sql` | 2026-09-24 | Created and PostgreSQL
+contract-tested. Adds the logical evidence Artifact bound by composite foreign key to a runtime
+Requirement occurrence of its own request, its non-blank per-Requirement artifact key and optimistic
+revision, and the append-only evidence Version whose source is either one exact `document_version`
+row or a typed nonblank external reference, never both and never neither. A trigger refuses a gap in
+per-Artifact version numbers while the unique constraint refuses a repeated or lower number, and the
+shared append-only guard refuses every update and delete. Also adds the
+`(id, information_request_id)` unique key on `information_request_requirement` that the Artifact
+composite foreign key resolves against. |
+
+| `P6-T2a2` | `V121__document_version_storage_locator.sql` | 2026-09-24 | Created and PostgreSQL
+contract-tested. Adds the optional `storage_provider`, `storage_locator_kind`, and `storage_locator`
+columns beside the retained `storage_path`, so a stored version states which provider holds its
+content and what kind of identifier the value is. A locator is either fully stated or absent, a
+stated one cannot claim a kind its provider does not serve, and a blank value is refused. |
+
+| `P6-T2b` | `V122__document_version_creator_principal.sql` | 2026-09-24 | Created and PostgreSQL
+contract-tested. Adds the optional `created_by_principal_kind` and `created_by_principal_id` columns
+beside the retained `created_by` foreign key and `createdbyemail` label, backfills `USER` only where
+that trusted foreign key is non-null, and reports by notice how many rows name a creator by email
+alone. Constraints hold the principal vocabulary, keep the kind and identifier together, and stop
+the canonical pair and the retained foreign key from naming different creators, while still
+accepting a row that states the foreign key alone so a rolling deployment does not break. The
+development-stage constraint supersedes that allowance; `DS-T1b` drops the constraint together with
+the legacy columns it guards. |
+
+| `DS-T1a` | `V123__document_version_canonical_storage_locator.sql` | 2026-09-24 | Created and PostgreSQL
+contract-tested. Removes every document version that could only be located through the retired local
+path, drops `storage_path`, makes `storage_provider`, `storage_locator_kind`, and `storage_locator`
+`NOT NULL`, and replaces the provider and kind check with one that admits only `OBJECT_STORE` with
+`OBJECT_KEY`. |
+
+| `DS-T1b` | `V124__document_version_canonical_creator.sql` | 2026-09-24 | Created and PostgreSQL
+contract-tested. Carries a version still named only by `created_by` to that registered user as a
+canonical principal, removes a version whose creator could only be stated by an email or not at all,
+drops `created_by`, `createdbyemail`, the legacy and pair constraints, and the creator foreign key,
+and makes `created_by_principal_kind` and `created_by_principal_id` `NOT NULL`. |
+
+| `DS-T2` | `V125__fields_canonical_attribution.sql` | 2026-09-24 | Created and PostgreSQL
+contract-tested. Drops `field_value.updated_by_app_user_id`, `schema_assignment.assigned_by_app_user_id`,
+and `field_value_revision.recorded_by_app_user_id` with their legacy consistency constraints. |
+
+| `DS-T3` | `V126__share_canonical_provenance.sql` | 2026-09-24 | Created and PostgreSQL
+contract-tested. Drops `share.granted_by_app_user_id` and `share.revoked_by_app_user_id` with their
+legacy consistency constraints. |
+
+| `DS-T4` | `V127__information_request_root_occurrence_path.sql` | 2026-09-24 | Created and PostgreSQL
+contract-tested. Carries Requirement, Requirement revision, and response rows stored under the earlier
+`$` root occurrence spelling to `root`, holding the append-only guards off only for that
+normalisation, and adds checks that refuse `$` as an occurrence path on all three tables. |
+
+| `P6-T2c` | `V128__document_version_content_identity.sql` | 2026-09-25 | Created and PostgreSQL contract-tested. Adds the required
+content length, hash algorithm, SHA-256 hash, and `VERIFIED` or `UNVERIFIED` state to `document_version`,
+removes every version that never stated them, and refuses any rewrite of a version's storage or content
+identity. |
+
+| `P6-T2d` | `V129__information_request_evidence_record_shape.sql` | 2026-09-25 | Created and PostgreSQL contract-tested. Adds the
+Artifact creator and collection state with its last change, the Version uploader, declared file name and
+media type, and captured attributes, and guards Artifact identity, revision, and state movement. |
+
+| `P6-T6a` | `V130__information_request_evidence_assessment.sql` | 2026-09-25 | Created and PostgreSQL contract-tested. Adds the
+append-only `information_request_evidence_assessment` table for content inspection and malware scan
+results, bound to one file-backed Evidence Version and the exact digest of its bytes, refusing any
+inspection or clean scan of opaque content and any reuse that does not repeat a settled scan of the
+same bytes by the same engine and signatures. |
+
+| `P6-T8` | `V131__information_request_supporting_evidence_link.sql` | 2026-09-25 | Created and PostgreSQL contract-tested. Adds the
+append-only `information_request_supporting_evidence_link` table joining one runtime Requirement
+occurrence to one Document Requirement occurrence of the same request through the Template evidence
+link it follows. |
+
+| `P7-T4a`, `P7-T7a` | `V132__information_request_template_submission_policy.sql` | 2026-09-25 | Created and PostgreSQL contract-tested. Version submission mode and stage ordering, section stage keys, binding attestation policy and ordered role set, restated freeze guard, publication rules, and review-routed capability derivation. |
+
+| `P7-T1a`, `P7-T4b`, `P7-T7b` | `V133__information_request_submission_package.sql` | 2026-09-25 | Created and PostgreSQL contract-tested. Submission Packages with items, evidence and link members, Submission Attestations and package membership, withdrawals, request satisfaction, and the widened transition mutations. |
+
+| `P7-T5a`, `P7-T5b` | `V134__information_request_amendment.sql` | 2026-09-25 | Created and PostgreSQL contract-tested. Runtime Requirement effective binding, relaxed revision key, amendment, change, and Notice Intent records, and response reconfirmation. |
+
+| `P7-T6`, `P7-T7c` | `V135__information_request_lineage.sql` | 2026-09-25 | Created and PostgreSQL contract-tested. Successor lineage, carry-forward decisions, recurrence definitions, and refresh rules. |
+
+Remaining unallocated program range after these allocations and prior P4/P5 allocations: V136 through V139. Flyway head is V135.
+V118 and V119 were taken by prior P5 remediation work before this row was written.
 
 When verifying that a migration contract test is genuinely red, remove the migration from
 `target/classes/db/migration` as well as from `src/main/resources/db/migration`. Flyway resolves migrations from the
 compiled classpath copy, so deleting only the source file leaves the test green and produces a false red observation.
 
-### Compatibility rules
+### Schema and behavior change rules
 
-- Add new structures through forward-only Flyway migrations with PostgreSQL contract tests.
-- Never edit a previously applied migration.
-- In the same phase as every migration, test clean creation, populated supported-baseline upgrade,
-  mixed or rolling application-version compatibility, and feature-disable backout. Do not defer
+The platform has no production users, so these rules are about keeping current features correct
+while a shape is replaced, not about tolerating an older reader or writer. See
+`## Development-Stage Constraint`.
+
+- Add and replace structures through forward-only Flyway migrations with PostgreSQL contract tests.
+- Never edit, rename, reuse, or squash a migration that may already have been applied. Replace what
+  it created in a new forward migration instead.
+- One migration takes a shape all the way to its final form: add the new columns, transform or
+  remove the rows that cannot satisfy it, drop what it replaces, and enforce the final constraints
+  in the same file. Do not leave a column alive for a later contract release.
+- In the same phase as every migration, test clean creation and prove the final constraints refuse
+  the shape that was replaced. Do not test mixed or rolling application versions, and do not defer
   migration discovery to Phase 12.
 - Preserve `UNIQUE(resource_type, resource_id)` on Schema Assignment.
 - Preserve the Fields persisted scope spellings and extend all affected Field, Schema, Assignment,
@@ -3194,38 +3776,20 @@ compiled classpath copy, so deleting only the source file leaves the test green 
 - Add `INFORMATION_REQUEST` as a supported Schema target and resource adapter in code only.
   `schema_definition.target_resource_type` is an unconstrained `VARCHAR(48)`, so this needs no
   migration and must not consume a migration number.
-- Add one root Field Value Set per existing Schema Assignment, backfill current Field Values into
-  that set, and change Field Value uniqueness to include the set. Existing Exchange queries always address the root set;
-  repeatable occurrence sets are Information Request behavior. `V79` completes both stages in one file: a Field Value
-  written after it applies must name its set, so an application version older than `V79` cannot insert a Field Value
-  once it has run. The service runs one task with `MinimumHealthyPercent: 100` and migrates at start, so the old task
-  serves until the new one is healthy. Drain the old task before or while `V79` applies, or accept that a Field-value
-  save issued by the old task in that window is refused. Reads and every other write path are unaffected.
-- Add immutable Field Value Revisions after the Value Set key exists, so every historical response resolves the exact
-  canonical value and occurrence it recorded. `V80` does this and adds canonical principal provenance in the same file.
-  Its consistency rule refuses a legacy App User key that is not accompanied by the matching canonical `USER` pair, so
-  an application version older than `V80`
-  can neither write a Field Value nor create a Schema Assignment once it has applied. This is the same rolling-deploy
-  consequence `V79` already carries for Field Values, extended to Schema Assignment, and both files ship in the same
-  release, so the single drain requirement stated for
-  `V79` covers both. The alternative, a check that tolerates a legacy key with no canonical pair, was rejected because
-  it readmits exactly the state the backfill removed and would make a later drop of the legacy column lose authorship
-  silently.
-- Keep `field_value.updated_by_app_user_id` and `schema_assignment.assigned_by_app_user_id` for the whole program. After
-  `V80` they are write-only: `FieldPrincipalProvenance` is the only writer, no DTO, projection, query, or frontend reads
-  either column, and the consistency rule guarantees every value in them is duplicated in the canonical pair. Dropping
-  them is therefore information preserving and belongs to a separate later task, which may only run once no deployed
-  application version still writes them. Do not drop them while `FieldPrincipalProvenance.recordOn` sets them.
-- Generalize the organization-only feature-entitlement rows into owner type and ID through rolling
-  expand-contract, preserving all existing organization decisions. Add operational rollout in a
-  separate owner-scoped table and resolver so no migration or fallback can confuse commercial and
-  operational gates.
+- Keep every Field Value in a Value Set and keep Field Value uniqueness set-aware. Existing Exchange
+  queries always address the root set; repeatable occurrence sets are Information Request behavior.
+- Keep immutable Field Value Revisions so every recorded response resolves the exact canonical value
+  and occurrence it recorded.
+- Canonical `(kind, id)` principal provenance is the only attribution any row carries. The
+  App User-only foreign keys that `P1-T6` and `P3-T1d` kept beside it are compatibility shims and are
+  removed by `DS-T2` and `DS-T3`. Do not add another one.
+- Generalize the organization-only feature-entitlement rows into owner type and ID in one migration.
+  Add operational rollout in a separate owner-scoped table and resolver so no migration or fallback
+  can confuse commercial and operational gates.
 - Extend audit owner persistence from platform or organization to an explicit owner kind and ID,
-  including personal users. Backfill existing rows only from trustworthy platform or organization
-  ownership and test personal tenant filtering, export, retention, and rolling readers. Historical
-  rows written by the existing `?: AuditOwnerScope.Platform` fallbacks stay platform-scoped, so
-  correct the writers before the feature ships and record which call sites were changed. Do not
-  describe those historical rows as personally owned.
+  including personal users, and test personal tenant filtering, export, and retention. Correct the
+  reachable `?: AuditOwnerScope.Platform` writers rather than describing the rows they wrote as
+  personally owned.
 - Introduce `SubjectIdentityRef` before runtime request recurrence, Accepted Facts, or reusable
   information profiles, keep mutable PII outside its primary identity, and do not reuse the
   existing `DomainEvent.SubjectRef` name for this persisted tenant identity.
@@ -3234,20 +3798,16 @@ compiled classpath copy, so deleting only the source file leaves the test green 
   aggregate and Requirement-occurrence types; without it every request-party Share insert fails.
   `share_role_name_check` currently admits only the seven Exchange role names and must admit the new
   resource-scoped role keys. Replace the Exchange-only enum mapping with resource-scoped role keys
-  and a resource-kind capability registry while preserving every existing Share row and characterized
-  behavior for the three ResourceTypes that hold Share rows. Prove the other nine hold none rather
-  than migrating them. Expand Share grant and revocation
-  provenance to canonical principal data with trusted-FK-only backfill. Keep nullable legacy App
-  User grantor and revoker foreign keys during expand and dual-write them only for User actors.
-- Add a personal owner column and owner check to the empty `external_participant` table as a
-  forward-only change. There are no rows to map, no personal owner to derive, and no ambiguous
-  legacy rows to resolve, so claim none of that work. Enforce organization and personal email
-  uniqueness separately from the first write.
+  and a resource-kind capability registry while keeping characterized behavior for the three
+  ResourceTypes that hold Share rows. Prove the other nine hold none rather than migrating them.
+- Add a personal owner column and owner check to the empty `external_participant` table. There are
+  no rows to map and no personal owner to derive, so claim none of that work. Enforce organization
+  and personal email uniqueness separately from the first write.
 - Leave `exchange_recipient` and its V63 binding trigger unchanged. A request party references an
   `ExchangeRecipient` by ID; no request-party Share is written to `direct_share_id`, and
   `uq_exchange_recipient_primary` keeps its single-primary meaning.
 - Leave all current `EXCHANGE` assignments and values attached to their Exchanges.
-- Do not label legacy metadata as submitted, reviewed, or satisfied.
+- Do not label existing metadata as submitted, reviewed, or satisfied.
 - Detect and resolve ambiguous duplicate stable-Field bindings before adding the database invariant.
 - Preserve existing mutable Blueprint Definitions and their stable Schema Definition and Field
   default behavior. Preserve and explicitly map existing participant, Document, Field, and Document
@@ -3255,38 +3815,28 @@ compiled classpath copy, so deleting only the source file leaves the test green 
   Information Request Template Version reference for future instantiations. Changing that reference
   never rewrites an already-created request and does not fabricate Blueprint history.
 - Add the assign-exact-published-Schema-Version operation before an Information Request can
-  materialize a Template Version's Schema reference. Keep the legacy assign-latest-by-definition
-  operation for current Exchange behavior.
-- Expand Field Value, Schema Assignment, and Document Version attribution from App User-only
-  references to canonical principal kind and ID through compatible nullable columns. Backfill
-  `USER` only for a non-null trusted App User foreign key. An email-only or otherwise unresolvable
-  historical row retains a history label but gets no fabricated principal ID. Preserve nullable
-  legacy App User foreign keys during expand, dual-write them only for User principals, and remove
-  one later only after old-writer drain and verified reader migration.
-- Use rolling expand-contract for attribution and Document Version locators: new application
-  versions dual-write new and legacy shapes, reads prefer canonical data with a safe legacy
-  fallback, old writers drain, a catch-up backfill closes eligible gaps, and verification proves no
-  supported writer can recreate the gap before a later release contracts legacy columns.
-- Add a typed Document Version locator kind and provider identity, classify existing
-  `storagePath` values as legacy local paths, and use unique write-once keys for new versions. Never
-  reinterpret a legacy path as an object key or overwrite a prior version.
-- Add Document Version byte length, hash algorithm, and verification status without copying the
-  mutable Document hash into historical rows. Hash each legacy version's own located bytes on use
-  or through a retryable backfill; missing or unreadable objects remain unverified.
+  materialize a Template Version's Schema reference. Keep the assign-latest-by-definition operation
+  only while current Exchange behavior still needs it as a feature, not as a compatibility shim.
+- A Document Version states one typed storage locator, with a provider and a locator kind, and
+  nothing else. New versions use unique write-once keys, a write never overwrites a prior version,
+  and there is no second path by which content can be located.
+- A Document Version states its byte length, hash algorithm, and verification status from the bytes
+  that were actually written or read. Never copy the mutable Document hash onto a version. Missing
+  or unreadable content remains unverified.
 - Keep opaque `END_TO_END` Document Versions ineligible for file-backed Evidence satisfaction; no
-  migration or backfill may translate a ciphertext hash or scan into a plaintext-safety claim.
-- Extend `workflow_event_outbox` compatibly with explicit owner kind and owner ID while preserving
-  its physical name. Keep the existing neutral event envelope and publisher contracts and the
-  separate audit outbox. Its `idempotency_key` unique index is global with no type or owner prefix,
-  so define and test an Information Request key namespace that cannot collide with a Workflow key.
+  migration may translate a ciphertext hash or scan into a plaintext-safety claim.
+- Extend `workflow_event_outbox` with explicit owner kind and owner ID while preserving its physical
+  name. Keep the existing neutral event envelope and publisher contracts and the separate audit
+  outbox. Its `idempotency_key` unique index is global with no type or owner prefix, so define and
+  test an Information Request key namespace that cannot collide with a Workflow key.
 - Extend existing `ShareLink` persistence with bootstrap mode and add RequestAccessSession records,
   Command Receipts, Notice Intents, immutable outbound notices and delivery attempts, disposal
   claims, tombstones, and purge records through their owning phase migrations. Never treat the
-  Exchange-wide legacy secret as request authorization or create a second request-credential table
-  without a journaled incompatibility proof.
+  Exchange-wide secret as request authorization or create a second request-credential table without
+  a journaled incompatibility proof.
 - Generalize the existing `audit_legal_hold` persistence with owner kind and ID plus append-only
-  lifecycle support behind the neutral Record Preservation service. Preserve compatible audit APIs
-  and do not create a parallel active hold table whose state can disagree.
+  lifecycle support behind the neutral Record Preservation service. Keep one hold model and do not
+  create a parallel active hold table whose state can disagree.
 - Register Information Request Workflow trigger events through a Flyway migration that supplies
   versioned `subject_fields_json` descriptors for the existing registry and designer.
 - Add immutable Request Execution Grants and idempotent usage reservations before issuance is
@@ -3294,9 +3844,7 @@ compiled classpath copy, so deleting only the source file leaves the test green 
   conservative per-request completion capacity transactionally; later plan or trial changes affect
   only new grants and never rewrite issued commitments.
 - Preserve ordinary Exchange Documents that are not linked to Request Requirements.
-- Provide rollback-safe feature disablement through capability and UI gates, not destructive data
-  reversal.
-
+- Provide feature disablement through capability and UI gates, not destructive data reversal.
 ## Help Documentation Requirements
 
 After every user-visible feature change:
@@ -3327,7 +3875,7 @@ recipient access, no-auth access, Documents, Workflows, audit, subscriptions, an
   bootstrap mode and uses canonical participant principals produced by a newly built External
   Participant lifecycle. Every configured constraint is enforced
   or rejected. A bootstrap link alone cannot read request content; verified contact proof creates
-  the scoped RequestAccessSession. Existing direct-grant ShareLinks retain compatible behavior, and
+  the scoped RequestAccessSession. Existing direct-grant ShareLinks keep their current behavior, and
   `exchange_recipient` keeps its Exchange-typed Share binding.
   Registration upgrade preserves participant history and grants the linked App User access without
   a temporary App User identity, and no request path creates one even though the legacy
@@ -3347,12 +3895,17 @@ recipient access, no-auth access, Documents, Workflows, audit, subscriptions, an
   lapse and operational suspension.
 - Subject, contributor, preparer, attestor, reviewer, and decision maker can be distinct.
 - Repeatable groups and conditional Requirements are server-authoritative and versioned.
+- No production code path reads or writes a compatibility shape. Every row states its canonical
+  storage locator, creator principal, and attribution, and no legacy column, fallback read,
+  dual-write, or mixed-version allowance survives.
 - Evidence supports multiple immutable versions, typed write-once storage locators, byte identity,
   policy metadata, hashes, technical conformance, confidentiality compartments, and
   Requirement-specific authorization.
-- A real, healthy, fail-closed malware scanner is required before production external evidence
-  upload is enabled or any file-backed evidence can satisfy a Requirement; content detection,
-  existing Document linkage, and test adapters cannot satisfy that gate.
+- Malware scanning is optional by the user's decision on 2026-09-25 and planned in
+  `plans/INFORMATION-REQUEST-EVIDENCE-MALWARE-SCANNING-PLAN.md`. Where a deployment requires it, a
+  real, healthy, fail-closed scanner is required before evidence upload or before any file-backed
+  evidence can satisfy a Requirement; content detection, existing Document linkage, and test
+  adapters cannot satisfy that gate. No file is ever described as scanned or safe without a scan.
 - Opaque `END_TO_END` ciphertext cannot satisfy file-backed Evidence or receive a plaintext-safety
   claim in this program.
 - Submission Packages are immutable, atomic, idempotent, and reproducible.
@@ -3385,21 +3938,30 @@ Keep only the newest product implementation result in this section. Full histori
 in `plans/DOCUMENT-DRIVEN-INFORMATION-REQUESTS-COMPLETION-EVIDENCE.md`. When a newer implementation session finishes,
 make sure this result is present in the evidence file, then replace it here with the new latest result.
 
-### 2026-09-21: Personal and organization Information Request entitlement corrected
+### 2026-09-25: Phase 7 complete
 
-- `INFORMATION_REQUESTS` is included in Personal and Business. Platform-admin feature overrides are
-  the only per-owner feature control; subscription rollout grants remain removed.
-- Personal Template access accepts either the user's entitlement or the active organization's grant.
-  Organization and Platform tabs retain their own authorization behavior, and platform Templates are
-  read-only. No per-user organization grant is required.
-- The Personal Template editor resolves platform plus personally owned Schemas instead of using the
-  active organization's Schemas. Personal Field-backed Information Requests issue under the
-  Information Requests feature without requiring the organization-only Fields product.
-- Focused backend regressions passed 107 tests, the corrected entitlement lifecycle tests passed 31
-  tests, and the complete backend suite passed 2,569 tests with zero failures, errors, or skips.
-  Focused frontend regressions passed 13 tests, and `npx tsc --noEmit` passed.
-- No migration, AWS service, commit, or push was added. Phase 6 remains in progress and its next task
-  remains P6-T1b after this entitlement correction.
+- Phase 7 is complete: every task `P7-T1` through `P7-T10` and each subtask, with V132 through V135
+  created once each. The journal entry "2026-09-25: Phase 7 implementation session" records which
+  parts were observed red first and which tests were written after their code.
+- Submission freezes one scope, the whole request or one stage, into an append-only package in one
+  transaction under the reviewed submission ETag, closes a no-review request with its final
+  package, locks a submitted scope until its package is withdrawn, and answers an incomplete scope
+  with `422` and recipient-safe problems. Response attestation policies (roles, order, quorum,
+  strength, validity, external reference) are evaluated against the exact content hash.
+- Amendments re-pin an issued request to a later Version of its own Template, advance each runtime
+  Requirement's effective binding with an appended revision, require reconfirmation of answers to a
+  changed meaning, and owe every active party a `PENDING` Notice Intent; they refuse a schema
+  change, an occurrence-structure change, and any change reaching a submitted scope.
+- Follow-ups (supplement, superseding, recurrence, refresh) preserve the source request and package,
+  carry the acting parties forward, and record carry-forward decisions that only offer earlier
+  answers; evidence and assent are always collected again.
+- Every capability except `RESPONSE_REVIEW` has an executor, and
+  `POST /information-requests/{id}/issuance` issues a fully served Version.
+- Verification: the full backend suite passed 2,964 tests, 0 failures, 0 errors, 0 skipped (BUILD SUCCESS in 27:46), and the affected classes passed again after the last small changes listed in the evidence journal; the frontend gate passed with 525 tests in 127 files,
+  `npx tsc --noEmit`, `npm run typecheck:app` (0 Information Request diagnostics), ESLint on the
+  changed files, and `npm run build`.
+- No commit or push was made.
+- Next task: `P8-T1`, only when the user asks for Phase 8.
 
 ## Continuation Prompt
 
@@ -3412,10 +3974,14 @@ Use this instruction in a new implementation session:
 > `plans/DOCUMENT-DRIVEN-INFORMATION-REQUESTS-COMPLETION-EVIDENCE.md` for prior completion results,
 > evidence, and older decisions. Also read the 2026-09-13 recheck at
 > `plans/DOCUMENT-DRIVEN-INFORMATION-REQUESTS-PHASES-1-5-RECHECK.md`. Inspect the working tree and
-> preserve unrelated changes. `P5-R01` through `P5-R30` and `P5-R-GATE` are complete. Phase 6 is
-> in progress. On 2026-09-20 the user explicitly clarified that only the scanner decision is deferred,
-> not the phase. Continue the next incomplete scanner-independent P6-T1 subtask. Keep production
-> external uploads disabled and never mark unscanned evidence safe. Do not assume permission for
+> preserve unrelated changes. `P5-R01` through `P5-R30`, `P5-R-GATE`, Phase 6, and Phase 7 are complete.
+> On 2026-09-25 the user made malware scanning optional and moved it to
+> `plans/INFORMATION-REQUEST-EVIDENCE-MALWARE-SCANNING-PLAN.md`; evidence collection works in
+> production without a scanner, and no file is ever described as scanned or safe without a scan.
+> The platform has no production users and is in active development: read
+> `## Development-Stage Constraint` and `## Development-Stage Compatibility Removal`, write no
+> backwards-compatibility code, and continue with the next incomplete task, which is P8-T1, when
+> the user asks for Phase 8; read the Phase 8 handoff in `## Status` first. Do not assume permission for
 > a new AWS service or paid resource type. For implementation,
 > follow TDD: add a focused failing test, confirm the intended
 > failure, implement the smallest complete change, run focused and required regression tests, update
