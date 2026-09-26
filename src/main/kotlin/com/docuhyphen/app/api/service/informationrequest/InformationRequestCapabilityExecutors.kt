@@ -49,3 +49,7 @@ class InformationRequestSupportingEvidenceExecutor :
 @ApplicationScoped
 class InformationRequestResponseSubmissionExecutor :
     InformationRequestFirstContractExecutor(InformationRequestCapability.RESPONSE_SUBMISSION)
+
+@ApplicationScoped
+class InformationRequestResponseReviewExecutor :
+    InformationRequestFirstContractExecutor(InformationRequestCapability.RESPONSE_REVIEW)

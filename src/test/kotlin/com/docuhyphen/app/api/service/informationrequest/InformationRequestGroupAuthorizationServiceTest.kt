@@ -257,6 +257,9 @@ class InformationRequestGroupAuthorizationServiceTest
                 whenever(it.findActiveMembers(any())).thenReturn(emptyList())
             },
             attestationPolicies = mock<InformationRequestAttestationPolicyLoader>(),
+            lockService = mock<InformationRequestSubmissionLockService>().also {
+                whenever(it.correctionScopeOf(any(), any())).thenReturn(InformationRequestRequirementCorrectionScope.NORMAL_RESPONSE)
+            },
         )
         private val requirementPolicyEvaluator = InformationRequestRequirementPolicyEvaluator()
         val service = InformationRequestGroupAuthorizationService(

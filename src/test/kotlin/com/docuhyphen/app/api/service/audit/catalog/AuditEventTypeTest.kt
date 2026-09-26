@@ -70,9 +70,30 @@ class AuditEventTypeTest
     }
 
     @Test
+    fun `review, correction, accepted fact, and business decision records are their own events`()
+    {
+        listOf(
+            "information_request.review.start",
+            "information_request.review.assign",
+            "information_request.review.draft",
+            "information_request.review.finding",
+            "information_request.review.comment",
+            "information_request.review.settle",
+            "information_request.request.correction",
+            "information_request.fact.promote",
+            "information_request.fact.revoke",
+            "information_request.decision.record",
+        ).forEach { key ->
+            val eventType = AuditEventType.findByKey(key)
+            assertEquals(key, eventType?.key)
+            assertEquals(AuditCategory.INFORMATION_REQUEST, eventType?.category)
+        }
+    }
+
+    @Test
     fun `catalog version reflects the added runtime request vocabulary`()
     {
-        assertEquals(23, AuditEventType.CATALOG_VERSION)
+        assertEquals(24, AuditEventType.CATALOG_VERSION)
     }
 
     @Test

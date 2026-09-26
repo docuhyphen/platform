@@ -1,5 +1,13 @@
 package com.docuhyphen.app.api.service.informationrequest
 
+import com.docuhyphen.app.api.repository.informationrequest.InformationRequestCorrectionRepository
+import com.docuhyphen.app.api.repository.informationrequest.InformationRequestReviewAssignmentRepository
+import com.docuhyphen.app.api.repository.informationrequest.InformationRequestReviewCommentRepository
+import com.docuhyphen.app.api.repository.informationrequest.InformationRequestReviewDecisionRepository
+import com.docuhyphen.app.api.repository.informationrequest.InformationRequestReviewDraftItemRepository
+import com.docuhyphen.app.api.repository.informationrequest.InformationRequestReviewFindingRepository
+import com.docuhyphen.app.api.repository.informationrequest.InformationRequestReviewRepository
+import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.model.entity.InformationRequest
 import com.docuhyphen.app.api.model.entity.RequestExecutionGrant
 import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
@@ -104,19 +112,43 @@ class InformationRequestRuntimeTestServices
     @Inject lateinit var recurrenceRepository: InformationRequestRecurrenceRepository
     @Inject lateinit var refreshRuleRepository: InformationRequestRefreshRuleRepository
     @Inject lateinit var executionUsageReservationService: InformationRequestExecutionUsageReservationService
+    @Inject lateinit var reviewOpening: InformationRequestReviewOpeningService
+    @Inject lateinit var satisfaction: InformationRequestSatisfactionService
+    @Inject lateinit var reviewLoader: InformationRequestReviewLoader
+    @Inject lateinit var reviewSeparation: InformationRequestReviewSeparationPolicy
+    @Inject lateinit var reviewSettlement: InformationRequestReviewSettlement
+    @Inject lateinit var reviewRepository: InformationRequestReviewRepository
+    @Inject lateinit var reviewAssignmentRepository: InformationRequestReviewAssignmentRepository
+    @Inject lateinit var reviewDraftRepository: InformationRequestReviewDraftItemRepository
+    @Inject lateinit var reviewDecisionRepository: InformationRequestReviewDecisionRepository
+    @Inject lateinit var reviewFindingRepository: InformationRequestReviewFindingRepository
+    @Inject lateinit var reviewCommentRepository: InformationRequestReviewCommentRepository
+    @Inject lateinit var correctionRepository: InformationRequestCorrectionRepository
+    @Inject lateinit var correctionItemRepository: com.docuhyphen.app.api.repository.informationrequest.InformationRequestCorrectionItemRepository
+    @Inject lateinit var correctionEvidenceRepository: com.docuhyphen.app.api.repository.informationrequest.InformationRequestCorrectionEvidenceRepository
+    @Inject lateinit var remediationRepository: com.docuhyphen.app.api.repository.informationrequest.InformationRequestReviewRemediationRepository
+    @Inject lateinit var groupMemberRepository: com.docuhyphen.app.api.repository.organization.PrincipalGroupMemberRepository
+    @Inject lateinit var factRepository: com.docuhyphen.app.api.repository.informationrequest.InformationRequestAcceptedFactRepository
+    @Inject lateinit var factRevocationRepository: com.docuhyphen.app.api.repository.informationrequest.InformationRequestAcceptedFactRevocationRepository
+    @Inject lateinit var factStanding: InformationRequestAcceptedFactStanding
+    @Inject lateinit var businessDecisionRepository: com.docuhyphen.app.api.repository.informationrequest.InformationRequestBusinessDecisionRepository
 
     fun build(
         requestId: UUID,
         history: InformationRequestTransitionHistoryService = transitionHistory,
         hiddenRequirementId: UUID? = null,
+        denies: (PrincipalRef, Action) -> Boolean = { _, _ -> false },
     ): InformationRequestRuntimeServices
     {
         val authorization = mock<AuthorizationService>()
         whenever(authorization.authorize(any(), any(), any(), any())).thenAnswer { invocation ->
+            val principal = invocation.getArgument<PrincipalRef>(0)
             val action = invocation.getArgument<Action>(1)
             val resource = invocation.getArgument<ResourceRef>(2)
             if (action == Action.INFORMATION_REQUEST_REQUIREMENT_VIEW && resource.id == hiddenRequirementId)
                 Decision.Deny("HIDDEN", "Hidden from this caller")
+            else if (denies(principal, action))
+                Decision.Deny("DENIED", "Denied to this caller")
             else
                 Decision.Allow()
         }
@@ -154,13 +186,50 @@ class InformationRequestRuntimeTestServices
             partyRepository, partyService, packageReader, lockService, requirementRepository, templateRequirementRepository,
             lineageRepository, carryForwardRepository, requestRepository, lifecycle, commandReceiptService, history, clock,
         )
+        val reviewAccess = InformationRequestReviewAccess(gate, partyRepository, reviewAssignmentRepository, requirementContext)
         return InformationRequestRuntimeServices(
+            reviewAssignments = InformationRequestReviewAssignmentService(
+                gate, reviewAccess, reviewLoader, reviewSeparation, reviewSettlement, reviewRepository,
+                reviewAssignmentRepository, requestRepository, commandReceiptService, history, clock, entityManager,
+            ),
+            reviewDecisions = InformationRequestReviewDecisionService(
+                gate, reviewAccess, reviewLoader, reviewSeparation, reviewSettlement, reviewRepository,
+                reviewAssignmentRepository, reviewDraftRepository, reviewDecisionRepository, dispositionRepository,
+                commandReceiptService, history, clock, entityManager,
+            ),
+            reviewFindings = InformationRequestReviewFindingService(
+                gate, reviewAccess, reviewLoader, reviewRepository, reviewFindingRepository, commandReceiptService, history, clock,
+            ),
+            reviewComments = InformationRequestReviewCommentService(
+                gate, reviewAccess, reviewLoader, reviewCommentRepository, commandReceiptService, history, clock,
+            ),
+            reviewQueries = InformationRequestReviewQueryService(
+                queries, gate, reviewAccess, reviewLoader, lockService, reviewRepository, reviewAssignmentRepository,
+                reviewDraftRepository, reviewFindingRepository, reviewCommentRepository, correctionRepository,
+                correctionItemRepository, correctionEvidenceRepository, remediationRepository, requestRepository,
+                groupMemberRepository, fieldValueRevisionQueryService,
+            ),
+            acceptedFacts = InformationRequestAcceptedFactService(
+                gate, reviewLoader, lockService, packageReader, factRepository, factRevocationRepository, partyRepository,
+                bindingRepository, fieldValueRevisionQueryService, factStanding, commandReceiptService, history, clock,
+            ),
+            acceptedFactQueries = InformationRequestAcceptedFactQueryService(
+                queries, gate, factStanding, factRepository, partyRepository, requirementRepository, bindingRepository,
+                templateRequirementRepository, templateVersionRepository,
+            ),
+            businessDecisions = InformationRequestBusinessDecisionService(
+                gate, queries, businessDecisionRepository, commandReceiptService, history, clock,
+            ),
+            reviewCycles = InformationRequestReviewCycleService(
+                gate, reviewLoader, reviewOpening, lockService, reviewRepository, correctionRepository, requestRepository,
+                commandReceiptService, clock, entityManager,
+            ),
             gate = gate,
             readiness = readiness,
             submissions = InformationRequestSubmissionService(
                 gate, contentCollector, readiness, lockService, requestRepository, packageRepository, itemRepository,
                 evidenceRepository, linkRepository, packageAttestationRepository, withdrawalRepository, packageReader,
-                commandReceiptService, history, clock, entityManager,
+                commandReceiptService, history, reviewOpening, satisfaction, clock, entityManager,
             ),
             attestations = InformationRequestSubmissionAttestationService(
                 gate, requirementRepository, revisionRepository, occurrenceRepository, templateVersionRepository,
@@ -223,6 +292,15 @@ class InformationRequestRuntimeTestServices
 }
 
 data class InformationRequestRuntimeServices(
+    val reviewAssignments: InformationRequestReviewAssignmentService,
+    val reviewDecisions: InformationRequestReviewDecisionService,
+    val reviewFindings: InformationRequestReviewFindingService,
+    val reviewComments: InformationRequestReviewCommentService,
+    val reviewCycles: InformationRequestReviewCycleService,
+    val reviewQueries: InformationRequestReviewQueryService,
+    val acceptedFacts: InformationRequestAcceptedFactService,
+    val acceptedFactQueries: InformationRequestAcceptedFactQueryService,
+    val businessDecisions: InformationRequestBusinessDecisionService,
     val gate: InformationRequestMutationGate,
     val readiness: InformationRequestSubmissionReadinessEvaluator,
     val submissions: InformationRequestSubmissionService,

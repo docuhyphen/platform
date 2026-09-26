@@ -113,6 +113,12 @@ class InformationRequestAuthorizationVocabularyTest
             Action.INFORMATION_REQUEST_EVIDENCE_WITHDRAW,
             Action.INFORMATION_REQUEST_EVIDENCE_MANAGE,
             Action.INFORMATION_REQUEST_REQUEST_SUPPLEMENT,
+            Action.INFORMATION_REQUEST_REVIEW,
+            Action.INFORMATION_REQUEST_MANAGE_REVIEWS,
+            Action.INFORMATION_REQUEST_APPEAL_REVIEW,
+            Action.INFORMATION_REQUEST_COMMENT_ON_REVIEW,
+            Action.INFORMATION_REQUEST_PROMOTE_FACT,
+            Action.INFORMATION_REQUEST_RECORD_DECISION,
         )
 
         val declared = Action.entries.filter { it.name.startsWith("INFORMATION_REQUEST_") }
@@ -131,6 +137,12 @@ class InformationRequestAuthorizationVocabularyTest
         assertEquals(Capability.INFORMATION_REQUEST_REVIEW, Action.INFORMATION_REQUEST_REQUEST_SUPPLEMENT.required)
         assertEquals(Capability.INFORMATION_REQUEST_EVIDENCE_WRITE, Action.INFORMATION_REQUEST_EVIDENCE_UPLOAD.required)
         assertEquals(Capability.INFORMATION_REQUEST_EVIDENCE_ADMIN, Action.INFORMATION_REQUEST_EVIDENCE_MANAGE.required)
+        assertEquals(Capability.INFORMATION_REQUEST_REVIEW, Action.INFORMATION_REQUEST_REVIEW.required)
+        assertEquals(Capability.INFORMATION_REQUEST_ADMIN, Action.INFORMATION_REQUEST_MANAGE_REVIEWS.required)
+        assertEquals(Capability.INFORMATION_REQUEST_SUBMIT, Action.INFORMATION_REQUEST_APPEAL_REVIEW.required)
+        assertEquals(Capability.INFORMATION_REQUEST_RESPOND, Action.INFORMATION_REQUEST_COMMENT_ON_REVIEW.required)
+        assertEquals(Capability.INFORMATION_REQUEST_ADMIN, Action.INFORMATION_REQUEST_PROMOTE_FACT.required)
+        assertEquals(Capability.INFORMATION_REQUEST_ADMIN, Action.INFORMATION_REQUEST_RECORD_DECISION.required)
     }
 
     // --- default deny, narrowed to the Exchange owner's authoring grant ---

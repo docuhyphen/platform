@@ -1,5 +1,6 @@
 package com.docuhyphen.app.api.service.informationrequest
 
+import com.docuhyphen.app.api.migration.NextSubmissionVersion
 import com.docuhyphen.app.api.migration.SubmissionRuntimeSqlFixture
 import com.docuhyphen.app.api.migration.execute
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
@@ -38,16 +39,38 @@ class InformationRequestControlledIssuanceTest
     }
 
     @Test
-    fun `a Version that routes work to a reviewer is refused at issuance until review is installed`()
+    fun `a Version that routes work to a reviewer issues now that review is installed`()
     {
         val (fixture, draftId) = draftOn { fixture, connection ->
-            fixture.publishNextVersion { next ->
-                execute(
-                    connection,
-                    "UPDATE information_request_template_requirement_binding SET review_policy = 'REQUIRED' WHERE id = ?",
-                    next.documentBindingId,
-                )
-            }.versionId
+            fixture.publishNextVersion(adjust = { next -> requireReview(connection, next) }).versionId
+        }
+        val services = runtime.build(draftId)
+
+        val issued = QuarkusTransaction.requiringNew().call { services.lifecycle.issue(issue(fixture, draftId)) }
+
+        assertEquals(InformationRequestState.ISSUED, issued.request.state)
+    }
+
+    @Test
+    fun `a Version frozen against a review contract no installed executor honours is refused at issuance`()
+    {
+        val unservedContract = InformationRequestCapability.RESPONSE_REVIEW.contractVersion + 1
+        val (fixture, draftId) = draftOn { fixture, connection ->
+            fixture.publishNextVersion(
+                adjust = { next -> requireReview(connection, next) },
+                adjustCapabilities = { next ->
+                    execute(
+                        connection,
+                        """
+                        UPDATE information_request_template_version_capability
+                        SET required_contract_version = ?
+                        WHERE template_version_id = ? AND capability_key = 'RESPONSE_REVIEW'
+                        """.trimIndent(),
+                        unservedContract,
+                        next.versionId,
+                    )
+                },
+            ).versionId
         }
         val services = runtime.build(draftId)
 
@@ -56,10 +79,22 @@ class InformationRequestControlledIssuanceTest
             QuarkusTransaction.requiringNew().call { services.lifecycle.issue(issue(fixture, draftId)) }
         }
 
-        assertEquals(listOf(InformationRequestCapability.RESPONSE_REVIEW), refusal.unserved.map { it.capability })
+        assertEquals(
+            listOf(InformationRequestCapabilityRequirement(InformationRequestCapability.RESPONSE_REVIEW, unservedContract)),
+            refusal.unserved,
+        )
         QuarkusTransaction.requiringNew().run {
             assertEquals(InformationRequestState.DRAFT, requestRepository.findById(draftId)?.state)
         }
+    }
+
+    private fun requireReview(connection: Connection, next: NextSubmissionVersion)
+    {
+        execute(
+            connection,
+            "UPDATE information_request_template_requirement_binding SET review_policy = 'REQUIRED' WHERE id = ?",
+            next.documentBindingId,
+        )
     }
 
     private fun draftOn(

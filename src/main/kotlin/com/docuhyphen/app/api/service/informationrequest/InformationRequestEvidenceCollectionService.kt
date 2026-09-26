@@ -111,7 +111,7 @@ class InformationRequestEvidenceCollectionService @Inject constructor(
         val requirement = gate.requireEvidenceOccurrence(locked.request, command.requirementId)
         val artifact = ownedArtifact(command, forUpdate = true)
         gate.requireMutationAllowed(locked)
-        gate.requireEvidenceOpen(locked, requirement)
+        gate.requireArtifactOpen(locked, requirement, artifact.id)
         gate.requireContinuationEntitlement(locked)
         gate.authorizeAny(command.access, permittingActions, requirement.id)
         command.precondition.requireSatisfiedBy(InformationRequestETag.artifactOf(artifact))

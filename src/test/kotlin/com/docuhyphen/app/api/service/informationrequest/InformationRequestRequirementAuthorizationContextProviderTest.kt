@@ -69,15 +69,16 @@ class InformationRequestRequirementAuthorizationContextProviderTest
     }
 
     @Test
-    fun `changes requested request marks Requirement policy facts as open correction scope`()
+    fun `a requirement's correction scope is the one its open correction states`()
     {
         val fixture = Fixture()
-        fixture.request.state = InformationRequestState.CHANGES_REQUESTED
+        whenever(fixture.lockService.correctionScopeOf(fixture.request.id, fixture.requirement.id))
+            .thenReturn(InformationRequestRequirementCorrectionScope.CORRECTION_EXCLUDED)
 
         val context = fixture.provider.resolve(fixture.requirement.id)
 
         val facts = context!!.policyFacts as InformationRequestRequirementPolicyFacts
-        assertEquals(InformationRequestRequirementCorrectionScope.OPEN_CORRECTION, facts.correctionScope)
+        assertEquals(InformationRequestRequirementCorrectionScope.CORRECTION_EXCLUDED, facts.correctionScope)
     }
 
     @Test
@@ -372,6 +373,10 @@ class InformationRequestRequirementAuthorizationContextProviderTest
             on { snapshot(org.mockito.kotlin.any()) }.thenReturn(InformationRequestParentSnapshot(com.docuhyphen.app.api.model.entity.ExchangeStatus.ACCEPTED_STARTED))
         }
         val occurrenceRepository = mock<InformationRequestGroupOccurrenceRepository>()
+        val lockService = mock<InformationRequestSubmissionLockService> {
+            on { correctionScopeOf(org.mockito.kotlin.any(), org.mockito.kotlin.any()) }
+                .thenReturn(InformationRequestRequirementCorrectionScope.NORMAL_RESPONSE)
+        }
         val provider = InformationRequestRequirementAuthorizationContextProvider(
             requirementRepository,
             requestRepository,
@@ -384,6 +389,7 @@ class InformationRequestRequirementAuthorizationContextProviderTest
             participantAccountLinkRepository,
             principalGroupMemberRepository,
             mock<InformationRequestAttestationPolicyLoader>(),
+            lockService,
         )
 
         init

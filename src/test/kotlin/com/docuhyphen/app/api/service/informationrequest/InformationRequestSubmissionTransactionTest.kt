@@ -114,6 +114,8 @@ class InformationRequestSubmissionTransactionTest
     @Inject lateinit var conditionEvaluationService: InformationRequestConditionEvaluationService
     @Inject lateinit var structuredResponseValidationService: InformationRequestStructuredResponseValidationService
     @Inject lateinit var fieldValueRevisionQueryService: FieldValueRevisionQueryService
+    @Inject lateinit var reviewOpening: InformationRequestReviewOpeningService
+    @Inject lateinit var satisfaction: InformationRequestSatisfactionService
 
     @Test
     fun `a ready whole-package submission freezes the scope and closes a request that needs no review`()
@@ -211,7 +213,7 @@ class InformationRequestSubmissionTransactionTest
         assertEquals("record-stage", first.submission.submissionPackage.stageKey)
         assertEquals(InformationRequestState.ISSUED, first.request.state)
         QuarkusTransaction.requiringNew().run {
-            assertEquals(setOf(fixture.documentRequirementId), lockService.lockedRequirementIds(fixture.requestId))
+            assertEquals(setOf(fixture.documentRequirementId), lockService.submittedRequirementIds(fixture.requestId))
         }
 
         val duplicate = assertThrows(InformationRequestLifecycleException::class.java)
@@ -256,7 +258,7 @@ class InformationRequestSubmissionTransactionTest
         }
         assertEquals("records-to-add", withdrawn.submission.withdrawal?.reasonCode)
         QuarkusTransaction.requiringNew().run {
-            assertTrue(lockService.lockedRequirementIds(fixture.requestId).isEmpty())
+            assertTrue(lockService.submittedRequirementIds(fixture.requestId).isEmpty())
         }
 
         val again = assertThrows(InformationRequestLifecycleException::class.java)
@@ -535,6 +537,8 @@ class InformationRequestSubmissionTransactionTest
                 packageReader = packageReader,
                 commandReceiptService = commandReceiptService,
                 transitionHistory = history,
+                reviewOpening = reviewOpening,
+                satisfaction = satisfaction,
                 clock = clock,
                 entityManager = entityManager,
             ),

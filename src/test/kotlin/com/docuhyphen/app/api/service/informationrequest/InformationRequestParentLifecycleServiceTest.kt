@@ -47,11 +47,11 @@ class InformationRequestParentLifecycleServiceTest
     @Test
     fun `deletion retains request history and state while revoking sessions`()
     {
-        val request = InformationRequest().apply { state = InformationRequestState.SUBMITTED }
+        val request = InformationRequest().apply { state = InformationRequestState.IN_PROGRESS }
         whenever(repository.findForExchange(exchangeId)).thenReturn(listOf(request))
         whenever(repository.findRequestByIdForUpdate(request.id)).thenReturn(request)
         service.apply(exchangeId, ExchangeStatus.ACCEPTED_STARTED, true, actor)
-        assertEquals(InformationRequestState.SUBMITTED, request.state)
+        assertEquals(InformationRequestState.IN_PROGRESS, request.state)
         assertEquals(1L, request.aggregateRevision)
         verify(sessions).revokeAllForRequest(request.id)
         verifyNoInteractions(history)

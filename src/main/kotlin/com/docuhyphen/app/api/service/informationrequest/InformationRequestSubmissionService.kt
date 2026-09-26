@@ -1,9 +1,7 @@
 package com.docuhyphen.app.api.service.informationrequest
 
 import com.docuhyphen.app.api.model.entity.InformationRequest
-import com.docuhyphen.app.api.model.entity.InformationRequestRequirementType
 import com.docuhyphen.app.api.model.entity.InformationRequestResponseDisposition
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewPolicy
 import com.docuhyphen.app.api.model.entity.InformationRequestSubmissionStageOrdering
 import com.docuhyphen.app.api.model.entity.InformationRequestSubmissionEvidence
 import com.docuhyphen.app.api.model.entity.InformationRequestSubmissionItem
@@ -12,7 +10,6 @@ import com.docuhyphen.app.api.model.entity.InformationRequestSubmissionPackageAt
 import com.docuhyphen.app.api.model.entity.InformationRequestSubmissionSupportingLink
 import com.docuhyphen.app.api.model.entity.InformationRequestSubmissionWithdrawal
 import com.docuhyphen.app.api.model.entity.ResourceType
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestEvidenceRequirementState
 import com.docuhyphen.app.api.model.informationrequest.InformationRequestSubmissionContent
 import com.docuhyphen.app.api.model.informationrequest.InformationRequestSubmissionContentItem
 import com.docuhyphen.app.api.model.informationrequest.InformationRequestSubmissionResult
@@ -62,6 +59,8 @@ class InformationRequestSubmissionService @Inject constructor(
     private val packageReader: InformationRequestSubmissionPackageReader,
     private val commandReceiptService: CommandReceiptService,
     private val transitionHistory: InformationRequestTransitionHistoryService,
+    private val reviewOpening: InformationRequestReviewOpeningService,
+    private val satisfaction: InformationRequestSatisfactionService,
     private val clock: Clock,
     private val entityManager: EntityManager,
 )
@@ -129,7 +128,8 @@ class InformationRequestSubmissionService @Inject constructor(
         val content = contentCollector.collect(request, stageKey)
         command.precondition.requireSatisfiedBy(InformationRequestETag.submissionOf(stageKey, content.contentHash))
         val submittedStages = lockService.submittedStages(request.id)
-        if (stageKey in submittedStages)
+        val corrected = lockService.openCorrectionForStage(request.id, stageKey)
+        if (stageKey in submittedStages && corrected == null)
         {
             throw InformationRequestLifecycleException(
                 InformationRequestErrorCatalog.SUBMISSION_ALREADY_SUBMITTED,
@@ -144,7 +144,7 @@ class InformationRequestSubmissionService @Inject constructor(
         val now = Timestamp.from(clock.instant())
         val counted = assessment.attestations.values.flatMap { it.evaluation.counted }
         val itemHashes = content.items.associate { it.requirement.id to itemHash(it) }
-        val reviewRequired = content.items.any { requiresReview(it) }
+        val reviewRequired = content.items.any { requiresReview(it, assessment.stateByRequirement.getValue(it.requirement.id)) }
         val stagesAfter = submittedStages + stageKey
         val completesRequest = content.stageOrder.isEmpty() || stagesAfter.containsAll(content.stageOrder)
         val withdrawnIds = withdrawalRepository.findForRequest(request.id).map { it.packageId }.toSet()
@@ -164,7 +164,7 @@ class InformationRequestSubmissionService @Inject constructor(
                 )
                 this.reviewRequired = reviewRequired
                 this.completesRequest = completesRequest
-                previousPackageId = earlierPackages
+                previousPackageId = corrected?.packageId ?: earlierPackages
                     .filter { it.stageKey == stageKey && it.id in withdrawnIds }
                     .maxByOrNull { it.packageNumber }
                     ?.id
@@ -198,44 +198,9 @@ class InformationRequestSubmissionService @Inject constructor(
             ),
         )
 
-        val anyActiveReview = lockService.activePackages(request.id).any { it.reviewRequired }
-        if (completesRequest && !anyActiveReview)
-        {
-            closeSatisfied(locked, submission, command, now)
-        }
+        reviewOpening.onSubmitted(locked, submission, corrected, command.access.principal, command.idempotencyKey)
+        satisfaction.closeIfSatisfied(locked, submission.id, command.access.principal, command.idempotencyKey)
         return result(request, submission.id)
-    }
-
-    private fun closeSatisfied(
-        locked: LockedInformationRequest,
-        submission: InformationRequestSubmissionPackage,
-        command: SubmitInformationRequestPackageCommand,
-        now: Timestamp,
-    )
-    {
-        val request = locked.request
-        val previousState = request.state
-        val nextState = requireNotNull(gate.requireMutation(locked, InformationRequestMutation.CLOSE)) {
-            "Closing an Information Request names the closed state"
-        }
-        request.state = nextState
-        request.closedAt = now
-        request.satisfiedAt = now
-        request.satisfiedByPackageId = submission.id
-        request.aggregateRevision += 1
-        request.updatedAt = now
-        requestRepository.update(request)
-        transitionHistory.record(
-            InformationRequestTransitionHistoryCommand(
-                request = request,
-                fromState = previousState,
-                toState = nextState,
-                mutation = InformationRequestMutation.CLOSE,
-                actor = command.access.principal,
-                idempotencyKey = "information_request.closure|${request.id}|${command.idempotencyKey}",
-                details = mapOf("satisfiedByPackageId" to submission.id.toString()),
-            ),
-        )
     }
 
     private fun writeMembers(
@@ -345,6 +310,7 @@ class InformationRequestSubmissionService @Inject constructor(
                 "This Submission Package was already withdrawn",
             )
         }
+        reviewOpening.requireWithdrawable(submission, command.access.principal)
 
         val now = Timestamp.from(clock.instant())
         withdrawalRepository.save(
@@ -422,22 +388,17 @@ class InformationRequestSubmissionService @Inject constructor(
         }
     }
 
-    private fun requiresReview(item: InformationRequestSubmissionContentItem): Boolean
-    {
-        val disposition = item.response?.disposition
-        return when (item.binding.reviewPolicy)
-        {
-            InformationRequestReviewPolicy.REQUIRED -> true
-            InformationRequestReviewPolicy.REQUIRED_ON_EXCEPTION ->
-                disposition != null &&
-                    disposition != InformationRequestResponseDisposition.PROVIDED &&
-                    disposition != InformationRequestResponseDisposition.NOT_ANSWERED
-            InformationRequestReviewPolicy.NOT_REQUIRED -> false
-        } || (
-            item.requirementType == InformationRequestRequirementType.DOCUMENT &&
-                item.evidence?.state in REVIEW_ROUTED_EVIDENCE_STATES
-            )
-    }
+    private fun requiresReview(
+        item: InformationRequestSubmissionContentItem,
+        state: InformationRequestCompletenessItemState,
+    ): Boolean =
+        InformationRequestReviewRouting.routes(
+            reviewPolicy = item.binding.reviewPolicy,
+            requirementType = item.requirementType,
+            completenessState = state,
+            disposition = item.response?.takeIf { state != InformationRequestCompletenessItemState.HIDDEN }?.disposition,
+            evidenceState = item.evidence?.state?.name,
+        )
 
     private fun itemHash(item: InformationRequestSubmissionContentItem): String =
         sha256Hex(
@@ -464,9 +425,5 @@ class InformationRequestSubmissionService @Inject constructor(
     {
         const val SUBMIT_OPERATION = "submit-information-request-package"
         const val WITHDRAW_OPERATION = "withdraw-information-request-package"
-        val REVIEW_ROUTED_EVIDENCE_STATES = setOf(
-            InformationRequestEvidenceRequirementState.REVIEWABLE,
-            InformationRequestEvidenceRequirementState.WAIVER_REQUESTED,
-        )
     }
 }

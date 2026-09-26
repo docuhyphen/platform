@@ -8,6 +8,7 @@ import com.docuhyphen.app.api.model.dto.InformationRequestTemplateConfigurationR
 import com.docuhyphen.app.api.model.dto.InformationRequestTemplateEvidencePolicyRequest
 import com.docuhyphen.app.api.model.dto.InformationRequestTemplateGroupRequest
 import com.docuhyphen.app.api.model.dto.InformationRequestTemplateRequirementRequest
+import com.docuhyphen.app.api.model.dto.InformationRequestTemplateReviewStageRequest
 import com.docuhyphen.app.api.model.dto.InformationRequestTemplateSectionRequest
 import com.docuhyphen.app.api.model.entity.InformationRequestAttestationOrdering
 import com.docuhyphen.app.api.model.entity.InformationRequestAuthenticationStrength
@@ -21,7 +22,10 @@ import com.docuhyphen.app.api.model.entity.InformationRequestRequiredness
 import com.docuhyphen.app.api.model.entity.InformationRequestRequirementType
 import com.docuhyphen.app.api.model.entity.InformationRequestResponseDisposition
 import com.docuhyphen.app.api.model.entity.InformationRequestResponseMode
+import com.docuhyphen.app.api.model.entity.InformationRequestReviewAggregation
 import com.docuhyphen.app.api.model.entity.InformationRequestReviewPolicy
+import com.docuhyphen.app.api.model.entity.InformationRequestReviewStageOrdering
+import com.docuhyphen.app.api.model.entity.InformationRequestReviewTieResolution
 import com.docuhyphen.app.api.model.entity.InformationRequestSubmissionMode
 import com.docuhyphen.app.api.model.entity.InformationRequestSubmissionStageOrdering
 import com.docuhyphen.app.api.service.fields.FieldOperator
@@ -45,6 +49,7 @@ object InformationRequestTemplateWalkingSkeletonFixtures
     {
         val configuration = InformationRequestTemplateConfigurationRequest(
             schemaVersionId = schemaVersionId,
+            factReusePurposeKey = "recorded-summary.reuse",
             sections = listOf(
                 InformationRequestTemplateSectionRequest(
                     sectionKey = "requested-data",
@@ -101,6 +106,29 @@ object InformationRequestTemplateWalkingSkeletonFixtures
             schemaVersionId = schemaVersionId,
             submissionMode = InformationRequestSubmissionMode.STAGED,
             submissionStageOrdering = InformationRequestSubmissionStageOrdering.SEQUENTIAL,
+            reviewStageOrdering = InformationRequestReviewStageOrdering.SEQUENTIAL,
+            reviewStages = listOf(
+                InformationRequestTemplateReviewStageRequest(
+                    stageKey = "content-review",
+                    title = "Content review",
+                    aggregation = InformationRequestReviewAggregation.QUORUM,
+                    quorumCount = 2,
+                    minimumReviewerCount = 3,
+                    excludesResponseParties = true,
+                    sectionKeys = listOf("participant-responses", "evidence-package"),
+                ),
+                InformationRequestTemplateReviewStageRequest(
+                    stageKey = "confirmation-review",
+                    title = "Confirmation review",
+                    aggregation = InformationRequestReviewAggregation.CONSENSUS,
+                    minimumReviewerCount = 2,
+                    tieResolution = InformationRequestReviewTieResolution.REQUIRE_OVERRIDE,
+                    overridePermitted = true,
+                    excludesPriorReviewers = true,
+                    sectionKeys = listOf("response-confirmations"),
+                ),
+            ),
+            factReusePurposeKey = "subject-status.reuse",
             groups = listOf(
                 InformationRequestTemplateGroupRequest(
                     groupKey = "reported-item",

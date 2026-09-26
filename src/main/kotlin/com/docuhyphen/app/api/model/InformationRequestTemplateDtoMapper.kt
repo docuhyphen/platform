@@ -13,6 +13,7 @@ import com.docuhyphen.app.api.model.dto.InformationRequestTemplateGroupDto
 import com.docuhyphen.app.api.model.dto.InformationRequestTemplateRequirementDto
 import com.docuhyphen.app.api.model.dto.InformationRequestTemplateSectionDto
 import com.docuhyphen.app.api.model.dto.InformationRequestTemplateSummaryDto
+import com.docuhyphen.app.api.model.dto.InformationRequestTemplateReviewStageDto
 import com.docuhyphen.app.api.model.dto.InformationRequestTemplateUnsupportedPolicyControlDto
 import com.docuhyphen.app.api.model.dto.InformationRequestTemplateVersionDto
 import com.docuhyphen.app.api.model.entity.InformationRequestResponseDisposition
@@ -28,6 +29,7 @@ import com.docuhyphen.app.api.model.entity.InformationRequestTemplateRequirement
 import com.docuhyphen.app.api.model.entity.InformationRequestTemplateRequirementGroup
 import com.docuhyphen.app.api.model.entity.InformationRequestTemplateSection
 import com.docuhyphen.app.api.model.entity.InformationRequestTemplateStatus
+import com.docuhyphen.app.api.model.entity.InformationRequestTemplateReviewStage
 import com.docuhyphen.app.api.model.entity.InformationRequestTemplateVersion
 import com.docuhyphen.app.api.model.entity.InformationRequestTemplateVersionCapability
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestConditionPredicateLiteralCodec
@@ -100,6 +102,7 @@ object InformationRequestTemplateDtoMapper
         groups: List<InformationRequestTemplateGroupDto>,
         conditionRules: List<InformationRequestTemplateConditionRuleDto>,
         requiredCapabilities: List<InformationRequestTemplateCapabilityDto>,
+        reviewStages: List<InformationRequestTemplateReviewStageDto> = emptyList(),
     ): InformationRequestTemplateVersionDto = InformationRequestTemplateVersionDto(
         id = version.id,
         templateDefinitionId = version.templateDefinitionId,
@@ -108,6 +111,9 @@ object InformationRequestTemplateDtoMapper
         schemaVersionId = version.schemaVersionId,
         submissionMode = version.submissionMode,
         submissionStageOrdering = version.submissionStageOrdering,
+        reviewStageOrdering = version.reviewStageOrdering,
+        reviewStages = reviewStages,
+        factReusePurposeKey = version.factReusePurposeKey,
         sections = sections,
         groups = groups,
         conditionRules = conditionRules,
@@ -115,6 +121,23 @@ object InformationRequestTemplateDtoMapper
         publishedAt = version.publishedAt,
         retiredAt = version.retiredAt,
         createdAt = version.createdAt,
+    )
+
+    fun toDto(
+        stage: InformationRequestTemplateReviewStage,
+        sectionKeys: List<String>,
+    ): InformationRequestTemplateReviewStageDto = InformationRequestTemplateReviewStageDto(
+        id = stage.id,
+        stageKey = stage.stageKey,
+        title = stage.title,
+        aggregation = stage.aggregation,
+        quorumCount = stage.quorumCount,
+        minimumReviewerCount = stage.minimumReviewerCount,
+        tieResolution = stage.tieResolution,
+        overridePermitted = stage.overridePermitted,
+        excludesResponseParties = stage.excludesResponseParties,
+        excludesPriorReviewers = stage.excludesPriorReviewers,
+        sectionKeys = sectionKeys,
     )
 
     fun toDto(

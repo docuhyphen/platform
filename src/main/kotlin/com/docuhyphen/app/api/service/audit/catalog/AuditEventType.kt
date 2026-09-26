@@ -250,6 +250,36 @@ enum class AuditEventType(val key: String, val category: AuditCategory)
     INFORMATION_REQUEST_EVIDENCE_SCAN(
         "information_request.evidence.scan", AuditCategory.INFORMATION_REQUEST,
     ),
+    INFORMATION_REQUEST_REVIEW_START(
+        "information_request.review.start", AuditCategory.INFORMATION_REQUEST,
+    ),
+    INFORMATION_REQUEST_REVIEW_ASSIGN(
+        "information_request.review.assign", AuditCategory.INFORMATION_REQUEST,
+    ),
+    INFORMATION_REQUEST_REVIEW_DRAFT(
+        "information_request.review.draft", AuditCategory.INFORMATION_REQUEST,
+    ),
+    INFORMATION_REQUEST_REVIEW_FINDING(
+        "information_request.review.finding", AuditCategory.INFORMATION_REQUEST,
+    ),
+    INFORMATION_REQUEST_REVIEW_COMMENT(
+        "information_request.review.comment", AuditCategory.INFORMATION_REQUEST,
+    ),
+    INFORMATION_REQUEST_REVIEW_SETTLE(
+        "information_request.review.settle", AuditCategory.INFORMATION_REQUEST,
+    ),
+    INFORMATION_REQUEST_CORRECTION_REQUEST(
+        "information_request.request.correction", AuditCategory.INFORMATION_REQUEST,
+    ),
+    INFORMATION_REQUEST_FACT_PROMOTE(
+        "information_request.fact.promote", AuditCategory.INFORMATION_REQUEST,
+    ),
+    INFORMATION_REQUEST_FACT_REVOKE(
+        "information_request.fact.revoke", AuditCategory.INFORMATION_REQUEST,
+    ),
+    INFORMATION_REQUEST_BUSINESS_DECISION_RECORD(
+        "information_request.decision.record", AuditCategory.INFORMATION_REQUEST,
+    ),
 
     // Organization membership and role changes.
     ORG_MEMBERSHIP_ROLE_ASSIGN("organization.membership.role_assign", AuditCategory.ORGANIZATION),
@@ -294,7 +324,7 @@ enum class AuditEventType(val key: String, val category: AuditCategory)
          * consumers (ledger, exports, projections) can reason about which catalog shape produced
          * a given event.
          */
-        const val CATALOG_VERSION: Int = 23
+        const val CATALOG_VERSION: Int = 24
 
         private val byKey: Map<String, AuditEventType> = entries.associateBy { it.key }
 

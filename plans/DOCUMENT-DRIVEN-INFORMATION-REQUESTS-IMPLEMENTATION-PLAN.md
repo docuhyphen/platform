@@ -2,7 +2,7 @@
 
 ## Status
 
-- Overall status: In progress. Phases 1 through 7 and the repeated remediation gate are complete.
+- Overall status: In progress. Phases 1 through 8 and the repeated remediation gate are complete.
 - Scanner decision (user, 2026-09-25): the Information Request feature and every other feature must
   work in production without a malware scanner. Malware scanning moved out of this program into
   `plans/INFORMATION-REQUEST-EVIDENCE-MALWARE-SCANNING-PLAN.md`, which the user will implement later.
@@ -13,19 +13,30 @@
 - Review checkpoint: the 2026-09-13 [Phases 1-5 recheck](DOCUMENT-DRIVEN-INFORMATION-REQUESTS-PHASES-1-5-RECHECK.md)
   found seven remaining gaps. The original P5-R01 through P5-R20 completion records remain
   historical evidence; they do not establish that the integrated implementation is gap-free.
-- Current work: none in progress. Phase 7 was completed on 2026-09-25 in the session the user asked
-  to implement the whole phase; its design decisions are recorded under `## Phase 7`.
+- Current work: none in progress. Phase 8 was implemented in one session (2026-09-25 to
+  2026-09-26) at the user's request; its design decisions are recorded under `## Phase 8` and the
+  evidence journal entry "2026-09-25: Phase 8 implementation session" records every result.
 - Development stage: the platform has no production users and is in active development. No
   backwards-compatibility code may be written, and the compatibility mechanisms already shipped are
   now defect work. See `## Development-Stage Constraint` and
   `## Development-Stage Compatibility Removal`.
-- Exact next task: `P8-T1`. It is dependency-ready; start it only when the user asks for Phase 8.
-  Flyway head is V135 and the remaining program range is V136 through V139.
-- Phase 8 handoff from Phase 7: no transition reaches `SUBMITTED`, `UNDER_REVIEW`, or
-  `CHANGES_REQUESTED` yet, so `START_REVIEW` from `SUBMITTED` is unreachable until Phase 8 decides
-  how a review-required package moves the request; `RESPONSE_REVIEW` has no executor, so every
-  Template Version that can route work to a reviewer is still refused at creation and issuance;
-  packages already record `review_required`.
+- Exact next task: `P9-T1`. It is dependency-ready; start it only when the user asks for Phase 9.
+  Flyway head is V138. V139 is the last number of the provisional program range, so before a second
+  Phase 9 migration is created the allocation in `### Flyway numbering and allocation` must be
+  extended above the current head and recorded in the ledger.
+- Phase 9 handoff from Phase 8: a request never enters a review state; review lives on the package.
+  The trigger events `P9-T1` names as "changes requested" and "satisfied" therefore come from the
+  `SETTLE_REVIEW`, `REQUEST_CORRECTION`, and `CLOSE` transitions (each recorded with an audit event
+  and a domain event), not from request states. Review due instants are stored only when a caller
+  states one; calculated clocks belong to `P9-T5`. The reviewer UI has no assignment, override,
+  reconsideration, or comment control yet (their transport exists in
+  `web-app/src/services/informationRequestReviewService.ts`), and Accepted Facts and Business
+  Decisions have REST resources but no UI; Phase 10 integrates them.
+- Phase 8: complete. Template review plans (V136), package review cycles with assignments,
+  worksheets, decisions, overrides, findings, corrections with allowlists, comments, remediation,
+  reconsideration, and appeal (V137), Accepted Facts and Business Decisions (V138), the
+  `RESPONSE_REVIEW` executor, the walking fixtures, and the reviewer and respondent review UI are
+  done.
 - Phase 7: complete. Staged and whole-package submission with frozen packages, multi-party
   Submission Attestation, amendments with effective-binding advance, reconfirmation, and pending
   Notice Intents, supplement, superseding, recurrence, and refresh follow-ups, the walking
@@ -823,7 +834,7 @@ reason summary.
 | 5     | Structured responses, repeatable groups, and conditions      | Phase 4                                | Complete | P5-R01 through P5-R30 and the repeated P5-R-GATE passed. |
 | 6     | Evidence and secure document handling                        | P5-R-GATE | Complete | Evidence collection works in production without a scanner; scanning is planned separately. |
 | 7     | Submission, response attestation, amendments, and recurrence | Phase 6                                | Complete    | Immutable packages survive staged submission, amendments, supplements, and recurrence.                                                                           |
-| 8     | Review, findings, remediation, and decision separation       | Phase 7                                | Not started | Item-level and staged review is complete and auditable.                                                                                                          |
+| 8     | Review, findings, remediation, and decision separation       | Phase 7                                | Complete    | Item-level and staged review is complete and auditable.                                                                                                          |
 | 9     | Time, Workflow, audit, retention, and export                 | Phase 8                                | Not started | Events, clocks, immutable notices, preservation holds, disposal, and downstream use are reliable.                                                                |
 | 10    | Author, respondent, reviewer, and operations UX              | Phases 2-9                             | Not started | All primary journeys are responsive, accessible, and documented.                                                                                                 |
 | 11    | Generic capability conformance and extension contracts       | Phases 2-10                            | Not started | Eight neutral conformance scenarios pass.                                                                                                                        |
@@ -2990,44 +3001,166 @@ Recorded before implementation so every subtask below states against one design.
 Support item-level, multi-stage, and independent review without treating request satisfaction as a
 downstream process outcome.
 
+### Phase 8 design decisions (2026-09-25)
+
+Recorded before implementation so every subtask below states against one design.
+
+1. Review belongs to a Submission Package, never to the request's collection state. `SUBMITTED`,
+   `UNDER_REVIEW`, and `CHANGES_REQUESTED` leave `InformationRequestState` and both database state
+   checks; nothing ever wrote them. Review and correction commands keep the request's state; only
+   closure moves it, to `CLOSED`.
+2. A Version that derives `RESPONSE_REVIEW` states ordered review stages run `SEQUENTIAL` or
+   `PARALLEL`. A stage states its aggregation (`ALL`, `ANY`, `QUORUM` with a quorum count,
+   `CONSENSUS`), its minimum reviewer count, its tie resolution (`MOST_SEVERE_OUTCOME` or
+   `REQUIRE_OVERRIDE`), whether an authorized override is permitted, its separation-of-duties
+   exclusions (response parties, prior reviewers), and optionally the sections it covers (none named
+   means every section). A reviewer-routed Version that states none freezes with the explicit default
+   of one `review` stage, `ANY`, one reviewer, no override, and no exclusions. A Version that routes no
+   work to a reviewer states no stage. A Version may also name a fact-reuse purpose key.
+3. Which items a review covers is derived from frozen facts only: the binding review policy, the
+   frozen disposition, and the frozen evidence state, by the same rule submission uses for
+   `review_required`. Publication refuses a reviewer-routed binding no stage covers.
+4. A review-required package opens a review cycle in the submission transaction: `INITIAL`, or
+   `RESUBMISSION` when the package resubmits a correction. `RECONSIDERATION` and `APPEAL` open a new
+   cycle of the same package naming the exact prior settled review. A review is `PENDING` until a
+   reviewer is assigned, `IN_REVIEW` after, and settles to `CHANGES_REQUESTED`, `REJECTED`,
+   `SATISFIED`, or `SATISFIED_WITH_EXCEPTION`; a pending review of a withdrawn package is `WITHDRAWN`.
+   An assignment names an active `REVIEWER` party, a stage, and an optional explicit due instant.
+   Recusal, delegation to another `REVIEWER` party, and revocation keep the assignment and record who,
+   when, and why.
+5. Item outcomes are `SATISFIED`, `SATISFIED_WITH_EXCEPTION`, `WAIVED`, `CHANGES_REQUIRED`, and
+   `REJECTED`, ordered by severity `REJECTED` > `CHANGES_REQUIRED` > `SATISFIED_WITH_EXCEPTION` =
+   `WAIVED` > `SATISFIED`. Per stage and item: an override decides; a carried outcome decides; `ANY`
+   takes the earliest decision; `ALL` waits for every eligible reviewer and takes the most severe;
+   `QUORUM` takes an outcome reaching the quorum (the most severe if several do) and ties when every
+   eligible reviewer decided and none did; `CONSENSUS` waits for every eligible reviewer and ties on
+   disagreement. Recused, delegated, and revoked assignments are not eligible, and fewer eligible
+   reviewers than the minimum keeps the item pending. Sequential stages open in order and a settled
+   stage with a non-passing item settles the review; parallel stages settle together. An item's final
+   outcome is its most severe outcome across the stages covering it, and the package outcome maps the
+   most severe item outcome; items no stage covers count as satisfied.
+6. Each assignment has a mutable worksheet of draft item outcomes and notes, saved with `If-Match`
+   on its draft revision (`428` missing, `412` stale). Recording the worksheet (Idempotency-Key and
+   `If-Match`) appends one immutable decision per covered item, once per assignment. A
+   `CHANGES_REQUIRED` or `REJECTED` outcome needs a finding by that assignment on the item;
+   `SATISFIED_WITH_EXCEPTION` and `WAIVED` need a narrative; `WAIVED` needs the binding to permit a
+   waived answer. An authorized override appends one decision for one item with a narrative.
+7. Findings are immutable. Each names one package item and optionally one exact Evidence Version of
+   that item, with a stable reason code, narrative, severity, confidentiality (`RESPONDENT_VISIBLE`
+   or `REVIEWERS_ONLY`), correction scope (`NONE`, `RESPONSE`, `EVIDENCE_VERSION`,
+   `ADDITIONAL_EVIDENCE`), reviewer, and time. A finding in a resubmission review may retest an
+   earlier finding as `RESOLVED` or `UNRESOLVED`. Respondents see respondent-visible findings only
+   after settlement and only on items they may view.
+8. Settlement is atomic with the command that causes it. `CHANGES_REQUESTED` opens one correction,
+   the scoped response cycle, whose allowlist is every `CHANGES_REQUIRED` item's Requirement plus every
+   Evidence Version a finding on it returned with scope `EVIDENCE_VERSION`. `SATISFIED` and
+   `SATISFIED_WITH_EXCEPTION` close the request in the same transaction when every scope's current
+   package is accepted. `REJECTED` leaves the request open for reconsideration, appeal, cancellation,
+   or supersession.
+9. While a correction is open, only allowlisted Requirement occurrences accept response and evidence
+   changes, plus items the corrected package froze as hidden, which a changed condition may activate.
+   In an allowlisted Document Requirement new files may be added, but only an artifact whose frozen
+   version was returned may be replaced or withdrawn. Attestation Requirements of the corrected scope
+   accept new assent because the content hash changes. Group structure stays locked. Resubmitting the
+   scope creates a package naming the corrected one as previous; the corrected package stops being
+   current, the correction closes as `RESUBMITTED`, and remediation records link each returning finding
+   to the resubmitted item. The resubmission review carries forward the accepted outcome of every item
+   whose item hash is unchanged, so only corrected items are retested.
+10. Withdrawal stays "before review": once a reviewer is assigned, a package cannot be withdrawn.
+11. Separation of duties: a stage excluding response parties refuses, at assignment, delegation,
+    decision, and override, a reviewer who responded to, submitted, or attested any item of the
+    package, or who is an answering party of the request. A stage excluding prior reviewers refuses
+    anyone who decided an earlier stage of the same review or the prior review of a reconsideration or
+    appeal. Recusal records a declared conflict with its reason.
+12. Comments are immutable and tied to one package item (Requirement and submission revision),
+    optionally to a finding (a response-to-finding thread) and a parent comment. Reviewer comments may
+    be reviewers-only; respondent comments are respondent-visible and allowed after settlement on
+    items the respondent may view.
+13. Reconsideration (request administration) and appeal (a submitting respondent) name the exact
+    prior settled review, `REJECTED` or `CHANGES_REQUESTED` with its correction still open; an open
+    correction then closes as `SUPERSEDED`.
+14. An Accepted Fact is an explicit, authorized promotion of one accepted `FIELD` package item: owner,
+    the request's subject identity, purpose key, source request, package, item, response revision,
+    exact Field Value Revision, canonical value and type, visibility, confidence (`REVIEWED` when a
+    satisfied review accepted the item, otherwise `DECLARED`), valid period, expiry, supersession of an
+    earlier fact, promotion-time conflict, and revocation. Reuse is an offer to a later request of the
+    same owner, subject, Field, and purpose (named by its Version), exposing source and freshness; the
+    respondent confirms by saving, so nothing is ever written on their behalf, and neither promotion
+    nor satisfaction writes Exchange metadata.
+15. A Business Decision is an append-only external reference: owning process key, outcome code,
+    reason reference, actor, decision time, revision, and for reconsideration or appeal the exact prior
+    decision of the same process. Satisfying a request never creates or changes one, and recording one
+    never changes the request.
+16. Installing the `RESPONSE_REVIEW` executor makes review-required Versions issuable; every other
+    issuance gate is unchanged.
+
+Migrations: V136 (Template review plan and fact-reuse purpose), V137 (runtime review, state
+vocabulary, corrections, comments, remediation), V138 (Accepted Facts and Business Decisions).
+
 ### Tasks
 
-- [ ] `P8-T1` Add reviewer assignment, queues, delegation, review due dates, and optional sequential
+- [x] `P8-T1` Add reviewer assignment, queues, delegation, review due dates, and optional sequential
   or parallel review stages. Store only an explicitly supplied review due instant here; calculated
   clock policy belongs to Phase 9.
-- [ ] `P8-T2` Add Review Findings linked to a Submission Package item and exact Evidence Version.
+  Done: `InformationRequestReviewAssignmentService` (assign, recuse, delegate, revoke, explicit
+  `dueAt`), `GET /information-request-reviews` for the caller's queue.
+    - [x] `P8-T1a` Template review plan (V136): stage ordering, stages, aggregation, tie, override,
+      exclusions, section coverage, default at freeze, publication rules, fact-reuse purpose key, and
+      the authoring, validation, writer, loader, DTO, and copy paths.
+    - [x] `P8-T1b` Runtime review cycles and assignments (V137): opening at submission, assignment,
+      recusal, delegation, revocation, explicit due instants, and the reviewer queue.
+- [x] `P8-T2` Add Review Findings linked to a Submission Package item and exact Evidence Version.
   Store stable reason codes, narrative, severity, reviewer, decision time, and confidentiality.
-- [ ] `P8-T3` Implement correction requests with an explicit Requirement and evidence-version
+  Done: `InformationRequestReviewFindingService`; findings are append-only in V137.
+- [x] `P8-T3` Implement correction requests with an explicit Requirement and evidence-version
   allowlist. Only returned items become editable unless a condition invalidates another item.
-- [ ] `P8-T4` Support requirement outcomes such as satisfied, changes required, rejected, waived,
+  Done: settlement opens the correction; `InformationRequestSubmissionLockService` and the
+  Requirement correction scope (`CORRECTION_ALLOWED`, `CORRECTION_EXCLUDED`) enforce it.
+- [x] `P8-T4` Support requirement outcomes such as satisfied, changes required, rejected, waived,
   and satisfied with exception. Define versioned stage aggregation for all, any, quorum, consensus,
   tie, recusal, delegation, and authorized override, followed by deterministic package and request
   aggregation. For review-required requests, create the `CLOSED` transition and scoped correction
   response-cycle records atomically with their review decisions without reversing the whole request
   lifecycle. Apply the shared Command Receipt contract to retryable review decisions and required
   `If-Match` preconditions to mutable review drafts.
-- [ ] `P8-T5` Add separation-of-duties and conflict-of-interest policy. Where configured, a preparer,
+    - [x] `P8-T4a` Pure stage, review, and package aggregation with its unit matrix.
+    - [x] `P8-T4b` Worksheets, recorded decisions, overrides, and atomic settlement: correction
+      opening, request closure, and the state vocabulary change (V137).
+- [x] `P8-T5` Add separation-of-duties and conflict-of-interest policy. Where configured, a preparer,
   contributor, or prior reviewer cannot perform final satisfaction.
-- [ ] `P8-T6` Add comments and response-to-finding threads tied to Requirement and submission
+  Done: `InformationRequestReviewSeparationPolicy` at assignment, delegation, decision, and override.
+- [x] `P8-T6` Add comments and response-to-finding threads tied to Requirement and submission
   revisions rather than unversioned general comments.
-- [ ] `P8-T7` Add remediation, retest, reconsideration, and appeal references while preserving every
+  Done: `InformationRequestReviewCommentService` on both access surfaces.
+- [x] `P8-T7` Add remediation, retest, reconsideration, and appeal references while preserving every
   earlier finding and decision.
-- [ ] `P8-T8` Implement explicit Accepted Fact promotion. Store tenant, subject, purpose, source
+  Done: remediation at resubmission, retest findings, and `InformationRequestReviewCycleService`.
+- [x] `P8-T8` Implement explicit Accepted Fact promotion. Store tenant, subject, purpose, source
   Submission Package and response revision, canonical value and type, visibility, confidence,
   valid period, expiry, supersession, revocation, and conflict state. Reuse always exposes source and
   freshness and requires configured reconfirmation. Review satisfaction never silently overwrites
   Exchange metadata or a reusable information profile.
-- [ ] `P8-T9` Implement the typed external `BusinessDecision` reference with owning process, outcome
+  Done: V138, `InformationRequestAcceptedFactService`, `InformationRequestAcceptedFactQueryService`,
+  and `/information-requests/{id}/accepted-facts` with `/accepted-fact-offers` on both surfaces.
+- [x] `P8-T9` Implement the typed external `BusinessDecision` reference with owning process, outcome
   code, reason reference, actor, time, and revision. Appeals and reconsideration reference the exact
   prior decision. Satisfying a request never creates or changes a Business Decision.
-- [ ] `P8-T10` Extend `basic_field_document_response_attestation_request` and
+  Done: V138, `InformationRequestBusinessDecisionService`, and `/information-requests/{id}/business-decisions`.
+- [x] `P8-T10` Extend `basic_field_document_response_attestation_request` and
   `multi_party_staged_evidence_request` through staged review, correction allowlists, multi-review
   aggregation, Accepted Fact promotion, and an independent Business Decision reference.
-- [ ] `P8-T11` Add the minimal reviewer submission review, finding, correction, remediation, and
+  Done: `InformationRequestTemplateWalkingSkeletonPhase8Test`.
+- [x] `P8-T11` Add the minimal reviewer submission review, finding, correction, remediation, and
   satisfaction UI behind the feature switch.
-- [ ] `P8-T12` Register review and correction executor capability versions. Enable successful
+  Done: `web-app/src/app/information-requests/review/`: the reviewer workspace at
+  `/information-requests/:requestId/reviews/:reviewId`, the queue at `/information-request-reviews`
+  with a menu entry, both gated on `PlanFeature.INFORMATION_REQUESTS`, and respondent Review results
+  with Appeal in the submission section.
+- [x] `P8-T12` Register review and correction executor capability versions. Enable successful
   issuance in controlled test scopes for review-required Template Versions only when their complete
   capability set is installed.
+  Done: `InformationRequestResponseReviewExecutor`; `InformationRequestControlledIssuanceTest` issues a
+  reviewer-routed Version and refuses one frozen against an unserved review contract.
 
 ### Tests to write first
 
@@ -3744,7 +3877,13 @@ link it follows. |
 
 | `P7-T6`, `P7-T7c` | `V135__information_request_lineage.sql` | 2026-09-25 | Created and PostgreSQL contract-tested. Successor lineage, carry-forward decisions, recurrence definitions, and refresh rules. |
 
-Remaining unallocated program range after these allocations and prior P4/P5 allocations: V136 through V139. Flyway head is V135.
+| `P8-T1a` | `V136__information_request_template_review_plan.sql` | 2026-09-25 | Created and PostgreSQL contract-tested. Version review stage ordering and fact-reuse purpose, review stages and their section coverage, default stage at freeze, restated freeze guard, and publication rules. |
+
+| `P8-T1b` through `P8-T7` | `V137__information_request_review.sql` | 2026-09-25 | Created and PostgreSQL contract-tested. Request state vocabulary without package review states, review cycles, assignments, worksheets, decisions, findings, corrections with their allowlists, comments, remediation, and the widened transition mutations. |
+
+| `P8-T8`, `P8-T9` | `V138__information_request_accepted_fact_business_decision.sql` | 2026-09-25 | Created and PostgreSQL contract-tested. Accepted Facts with revocation, and Business Decision references. |
+
+Remaining unallocated program range after these allocations and prior P4/P5 allocations: V139. Flyway head is V138.
 V118 and V119 were taken by prior P5 remediation work before this row was written.
 
 When verifying that a migration contract test is genuinely red, remove the migration from
@@ -3938,30 +4077,44 @@ Keep only the newest product implementation result in this section. Full histori
 in `plans/DOCUMENT-DRIVEN-INFORMATION-REQUESTS-COMPLETION-EVIDENCE.md`. When a newer implementation session finishes,
 make sure this result is present in the evidence file, then replace it here with the new latest result.
 
-### 2026-09-25: Phase 7 complete
+### 2026-09-26: Phase 8 complete
 
-- Phase 7 is complete: every task `P7-T1` through `P7-T10` and each subtask, with V132 through V135
-  created once each. The journal entry "2026-09-25: Phase 7 implementation session" records which
-  parts were observed red first and which tests were written after their code.
-- Submission freezes one scope, the whole request or one stage, into an append-only package in one
-  transaction under the reviewed submission ETag, closes a no-review request with its final
-  package, locks a submitted scope until its package is withdrawn, and answers an incomplete scope
-  with `422` and recipient-safe problems. Response attestation policies (roles, order, quorum,
-  strength, validity, external reference) are evaluated against the exact content hash.
-- Amendments re-pin an issued request to a later Version of its own Template, advance each runtime
-  Requirement's effective binding with an appended revision, require reconfirmation of answers to a
-  changed meaning, and owe every active party a `PENDING` Notice Intent; they refuse a schema
-  change, an occurrence-structure change, and any change reaching a submitted scope.
-- Follow-ups (supplement, superseding, recurrence, refresh) preserve the source request and package,
-  carry the acting parties forward, and record carry-forward decisions that only offer earlier
-  answers; evidence and assent are always collected again.
-- Every capability except `RESPONSE_REVIEW` has an executor, and
-  `POST /information-requests/{id}/issuance` issues a fully served Version.
-- Verification: the full backend suite passed 2,964 tests, 0 failures, 0 errors, 0 skipped (BUILD SUCCESS in 27:46), and the affected classes passed again after the last small changes listed in the evidence journal; the frontend gate passed with 525 tests in 127 files,
-  `npx tsc --noEmit`, `npm run typecheck:app` (0 Information Request diagnostics), ESLint on the
-  changed files, and `npm run build`.
+- Phase 8 is complete: every task `P8-T1` through `P8-T12` and each subtask, with V136 through V138
+  created once each. The journal entry "2026-09-25: Phase 8 implementation session" records which
+  parts were observed red first and which tests were written after their code, with the temporary
+  mutations used to prove those tests fail on a regression.
+- Review belongs to a Submission Package. A Template Version states sequential or parallel review
+  stages (any, all, quorum, consensus; a tie settled by the most severe outcome or held for an
+  override; separation of duties; section coverage); one default stage is frozen when none is
+  stated, and publication refuses a reviewer-routed Requirement no stage covers.
+- A review-required package opens an `INITIAL` review. Assignments carry explicit due instants and
+  can be recused, delegated, or revoked; worksheets save under `If-Match`; recorded decisions and
+  overrides use Command Receipts. Settlement is atomic: an accepted review closes the request once the
+  whole response is accepted, and a changes-requested review opens a correction whose allowlist is
+  the returned Requirements and file-scoped Evidence Versions, the only scope that becomes editable.
+  A resubmission is reviewed as `RESUBMISSION`, carries unchanged accepted outcomes forward, and
+  records remediation; reconsideration and appeal open a new review of the same package. Findings,
+  decisions, and comments are append-only. The request states `SUBMITTED`, `UNDER_REVIEW`, and
+  `CHANGES_REQUESTED` no longer exist.
+- Accepted Facts are explicit promotions of an accepted `FIELD` item about the request's single
+  subject (`DECLARED`, or `REVIEWED` from a satisfied review), purpose-bound, with valid period,
+  expiry, conflict, supersession, and revocation. A later request of the same owner, subject, Field,
+  and purpose is offered them for reconfirmation; nothing writes Exchange fields. Business Decisions
+  are an append-only external reference chain per owning process, independent of satisfaction.
+- `RESPONSE_REVIEW` has an executor, so a fully served reviewer-routed Version issues; a Version frozen
+  against an unserved contract is refused.
+- UI: the reviewer workspace and queue (plan-gated, with a menu entry) and respondent Review results
+  with Appeal; the help article "Reviewing Information Request submissions" is new and the submission
+  article was corrected.
+- Verification: the final full backend suite passed 3,037 tests, 0 failures, 0 errors, 0 skipped
+  (BUILD SUCCESS in 29:52), after a first full run exposed one stale unit-test stub (fixed) and one
+  container startup error (rerun green). The frontend gate passed with `npx vitest run
+  --maxWorkers=4` (538 tests in 132 files), `npm run typecheck:app` (0 Information Request
+  diagnostics), ESLint on the changed files (0 errors), and `npm run build`; with default workers
+  `npx vitest run` hit one rotating load timeout per run in unrelated files, as the journal records.
+  The industry-neutrality, comment, and character checks found nothing to change.
 - No commit or push was made.
-- Next task: `P8-T1`, only when the user asks for Phase 8.
+- Next task: `P9-T1`, only when the user asks for Phase 9.
 
 ## Continuation Prompt
 
@@ -3974,14 +4127,14 @@ Use this instruction in a new implementation session:
 > `plans/DOCUMENT-DRIVEN-INFORMATION-REQUESTS-COMPLETION-EVIDENCE.md` for prior completion results,
 > evidence, and older decisions. Also read the 2026-09-13 recheck at
 > `plans/DOCUMENT-DRIVEN-INFORMATION-REQUESTS-PHASES-1-5-RECHECK.md`. Inspect the working tree and
-> preserve unrelated changes. `P5-R01` through `P5-R30`, `P5-R-GATE`, Phase 6, and Phase 7 are complete.
+> preserve unrelated changes. `P5-R01` through `P5-R30`, `P5-R-GATE`, and Phases 6 through 8 are complete.
 > On 2026-09-25 the user made malware scanning optional and moved it to
 > `plans/INFORMATION-REQUEST-EVIDENCE-MALWARE-SCANNING-PLAN.md`; evidence collection works in
 > production without a scanner, and no file is ever described as scanned or safe without a scan.
 > The platform has no production users and is in active development: read
 > `## Development-Stage Constraint` and `## Development-Stage Compatibility Removal`, write no
-> backwards-compatibility code, and continue with the next incomplete task, which is P8-T1, when
-> the user asks for Phase 8; read the Phase 8 handoff in `## Status` first. Do not assume permission for
+> backwards-compatibility code, and continue with the next incomplete task, which is P9-T1, when
+> the user asks for Phase 9; read the Phase 9 handoff in `## Status` first. Do not assume permission for
 > a new AWS service or paid resource type. For implementation,
 > follow TDD: add a focused failing test, confirm the intended
 > failure, implement the smallest complete change, run focused and required regression tests, update

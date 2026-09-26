@@ -88,11 +88,11 @@ class InformationRequestRequirementPolicyEvaluator : ResourcePolicyEvaluator
         }
 
         if (request.action in answerMutationActions &&
-            facts.correctionScope == InformationRequestRequirementCorrectionScope.OPEN_CORRECTION)
+            facts.correctionScope == InformationRequestRequirementCorrectionScope.CORRECTION_EXCLUDED)
         {
             return deny(
                 InformationRequestErrorCatalog.CORRECTION_SCOPE_DENIED,
-                "Requirement ${facts.requirementId} is in correction state without item scope",
+                "Requirement ${facts.requirementId} was not returned by the open correction",
             )
         }
 
@@ -160,7 +160,6 @@ class InformationRequestRequirementPolicyEvaluator : ResourcePolicyEvaluator
         val activeResponseStates = setOf(
             InformationRequestState.ISSUED,
             InformationRequestState.IN_PROGRESS,
-            InformationRequestState.CHANGES_REQUESTED,
         )
     }
 }

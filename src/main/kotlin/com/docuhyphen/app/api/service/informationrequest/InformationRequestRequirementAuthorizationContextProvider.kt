@@ -39,6 +39,7 @@ class InformationRequestRequirementAuthorizationContextProvider @Inject construc
     private val participantAccountLinkRepository: ParticipantAccountLinkRepository,
     private val principalGroupMemberRepository: PrincipalGroupMemberRepository,
     private val attestationPolicies: InformationRequestAttestationPolicyLoader,
+    private val lockService: InformationRequestSubmissionLockService,
 ) : ResourceAuthorizationContextProvider
 {
     override val supportedKind: ResourceKind = ResourceKind.INFORMATION_REQUEST_REQUIREMENT
@@ -103,6 +104,7 @@ class InformationRequestRequirementAuthorizationContextProvider @Inject construc
                 currentRevision.occurrencePath,
                 activeOccurrencePaths,
             ),
+            correctionScope = lockService.correctionScopeOf(request.id, requirement.id),
         )
     }
 
@@ -131,6 +133,7 @@ class InformationRequestRequirementAuthorizationContextProvider @Inject construc
         currentRevisionNumber: Int,
         occurrencePath: String,
         occurrenceRemoved: Boolean,
+        correctionScope: InformationRequestRequirementCorrectionScope = InformationRequestRequirementCorrectionScope.NORMAL_RESPONSE,
     ): InformationRequestRequirementPolicyFacts?
     {
         val assignedRoleKey = binding.contributorRole.toShareRoleKey()
@@ -160,10 +163,7 @@ class InformationRequestRequirementAuthorizationContextProvider @Inject construc
             assignedRoleKey = assignedRoleKey,
             assignedParties = assignedParties,
             confidentialityCompartmentKey = binding.confidentialityCompartmentKey,
-            correctionScope = if (request.state == InformationRequestState.CHANGES_REQUESTED)
-                InformationRequestRequirementCorrectionScope.OPEN_CORRECTION
-            else
-                InformationRequestRequirementCorrectionScope.NORMAL_RESPONSE,
+            correctionScope = correctionScope,
             requestState = request.state,
             parent = parentState.snapshot(request.exchangeId) ?: return null,
             delegatedAuthorityFacts = delegatedAuthorityFacts,
@@ -202,6 +202,12 @@ class InformationRequestRequirementAuthorizationContextProvider @Inject construc
                     ?.let { InformationRequestActingParty(party, role, it.authorityId) }
             }
         }
+    }
+
+    fun principalsActingFor(party: InformationRequestParty): Set<PrincipalRef>
+    {
+        val principal = party.principalRef() ?: return emptySet()
+        return setOf(principal) + equivalentPrincipalsFor(principal)
     }
 
     private fun InformationRequestShareRoleKey.toContributorRole(): InformationRequestContributorRole? =

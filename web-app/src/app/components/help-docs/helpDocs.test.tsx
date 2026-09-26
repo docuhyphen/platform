@@ -110,6 +110,18 @@ describe('help documentation states what the platform actually does', () =>
         expect(text).toMatch(/(unanswered|no value|left blank|blank)/i);
     });
 
+    it('says a Template that routes work to a reviewer is issued and its submissions wait for review', () =>
+    {
+        const submission = articleText('request-submission');
+        const review = articleText('request-review');
+
+        expect(submission).not.toMatch(/refused at issuance until review is available/i);
+        expect(submission).toMatch(/waits for review/i);
+        expect(review).toMatch(/Nothing takes effect until you select Record decisions/);
+        expect(review).toMatch(/only the items marked Changes required/i);
+        expect(review).not.toMatch(/Exchange.s fields are updated/i);
+    });
+
     it('limits the concurrent-save protection to saves that state the version they read', () =>
     {
         const text = articleText('using-exchange-fields');

@@ -43,7 +43,7 @@ class InformationRequestAmendmentGuardTest
         whenever(requirementRepository.findForRequest(request.id)).thenReturn(listOf(runtime))
         whenever(occurrenceRepository.findForRequest(request.id)).thenReturn(emptyList())
         whenever(lockService.activePackages(request.id)).thenReturn(emptyList())
-        whenever(lockService.lockedRequirementIds(request.id)).thenReturn(emptySet())
+        whenever(lockService.submittedRequirementIds(request.id)).thenReturn(emptySet())
     }
 
     @Test
@@ -98,7 +98,7 @@ class InformationRequestAmendmentGuardTest
             plan(change(UUID.randomUUID(), InformationRequestAmendmentChangeKind.ADDED, toStage = "second-stage")),
         )
 
-        whenever(lockService.lockedRequirementIds(request.id)).thenReturn(setOf(runtime.id))
+        whenever(lockService.submittedRequirementIds(request.id)).thenReturn(setOf(runtime.id))
         assertRefused(
             InformationRequestErrorCatalog.AMENDMENT_SUBMITTED_SCOPE_CHANGED,
             plan(change(answered, InformationRequestAmendmentChangeKind.PRESENTATION_CHANGED, fromStage = "second-stage")),

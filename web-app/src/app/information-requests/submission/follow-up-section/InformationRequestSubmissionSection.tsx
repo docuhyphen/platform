@@ -8,6 +8,7 @@ import {
     InformationRequestTemplateRequirementDto,
     PlanFeature,
 } from "../../../models/models.tsx";
+import InformationRequestReviewResults from "../../review/review-results/InformationRequestReviewResults.tsx";
 import InformationRequestAmendmentSummary from "../amendment-summary/InformationRequestAmendmentSummary.tsx";
 import InformationRequestCarryForwardList from "../carry-forward-list/InformationRequestCarryForwardList.tsx";
 import InformationRequestSubmissionPanel from "../submission-panel/InformationRequestSubmissionPanel.tsx";
@@ -79,6 +80,11 @@ const InformationRequestSubmissionSection = ({workspace, requirements, accessLin
                                                responseETag={workspace.responseETag}
                                                accessLinkToken={accessLinkToken}
                                                onChanged={onChanged}/>
+            <InformationRequestReviewResults requestId={request.id}
+                                             accessLinkToken={accessLinkToken}
+                                             refreshKey={workspace.responseETag}
+                                             requirementLabels={requirementLabels}
+                                             onChanged={onChanged}/>
             {message && (
                 <MessageBar id={"information-request-supplement-message"}
                             intent={message.intent}>

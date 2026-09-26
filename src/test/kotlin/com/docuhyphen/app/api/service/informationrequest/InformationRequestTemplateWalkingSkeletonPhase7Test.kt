@@ -56,16 +56,13 @@ class InformationRequestTemplateWalkingSkeletonPhase7Test
     }
 
     @Test
-    fun `the basic fixture is fully served while the staged stress fixture waits for review before issuance`()
+    fun `the basic fixture and the staged stress fixture that routes work to a reviewer are both fully served`()
     {
         val basic = publishBasic()
         val stress = publishStress()
 
         assertEquals(emptyList<InformationRequestCapabilityRequirement>(), capabilityGate.unservedRequirements(basic.versionId))
-        assertEquals(
-            listOf(InformationRequestCapability.RESPONSE_REVIEW),
-            capabilityGate.unservedRequirements(stress.versionId).map { it.capability },
-        )
+        assertEquals(emptyList<InformationRequestCapabilityRequirement>(), capabilityGate.unservedRequirements(stress.versionId))
     }
 
     @Test

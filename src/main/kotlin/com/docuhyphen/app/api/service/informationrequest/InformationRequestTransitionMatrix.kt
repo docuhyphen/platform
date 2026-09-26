@@ -7,9 +7,6 @@ enum class InformationRequestState
     DRAFT,
     ISSUED,
     IN_PROGRESS,
-    SUBMITTED,
-    UNDER_REVIEW,
-    CHANGES_REQUESTED,
     CLOSED,
     CANCELLED,
     SUPERSEDED,
@@ -45,6 +42,15 @@ enum class InformationRequestMutation
     WITHDRAW_SUBMISSION,
     CREATE_SUCCESSOR,
     SCHEDULE_FOLLOW_UP,
+    ASSIGN_REVIEWER,
+    SAVE_REVIEW_DRAFT,
+    RECORD_REVIEW_DECISION,
+    RECORD_FINDING,
+    RECORD_REVIEW_COMMENT,
+    SETTLE_REVIEW,
+    PROMOTE_FACT,
+    REVOKE_FACT,
+    RECORD_BUSINESS_DECISION,
 }
 
 enum class InformationRequestReadActor
@@ -102,7 +108,6 @@ object InformationRequestTransitionMatrix
     private val ACTIVE_RESPONSE_STATES = setOf(
         InformationRequestState.ISSUED,
         InformationRequestState.IN_PROGRESS,
-        InformationRequestState.CHANGES_REQUESTED,
     )
 
     private val RESPONSE_MUTATIONS = setOf(
@@ -128,8 +133,26 @@ object InformationRequestTransitionMatrix
 
     private val REVIEW_MUTATIONS = setOf(
         InformationRequestMutation.START_REVIEW,
+        InformationRequestMutation.ASSIGN_REVIEWER,
+        InformationRequestMutation.SAVE_REVIEW_DRAFT,
+        InformationRequestMutation.RECORD_REVIEW_DECISION,
+        InformationRequestMutation.RECORD_FINDING,
+        InformationRequestMutation.RECORD_REVIEW_COMMENT,
+        InformationRequestMutation.SETTLE_REVIEW,
         InformationRequestMutation.REQUEST_CORRECTION,
         InformationRequestMutation.CLOSE,
+    )
+
+    private val FACT_STATES = setOf(
+        InformationRequestState.ISSUED,
+        InformationRequestState.IN_PROGRESS,
+        InformationRequestState.CLOSED,
+    )
+
+    private val RECORD_MUTATIONS = setOf(
+        InformationRequestMutation.PROMOTE_FACT,
+        InformationRequestMutation.REVOKE_FACT,
+        InformationRequestMutation.RECORD_BUSINESS_DECISION,
     )
 
     fun parentEffects(parent: InformationRequestParentSnapshot): InformationRequestParentEffects
@@ -214,9 +237,19 @@ object InformationRequestTransitionMatrix
         {
             return deny(InformationRequestErrorCatalog.PARENT_STATE_INVALID)
         }
-        if (parent.status == ExchangeStatus.INITIATED && mutation in RESPONSE_MUTATIONS + REVIEW_MUTATIONS)
+        if (parent.status == ExchangeStatus.INITIATED && mutation in RESPONSE_MUTATIONS + REVIEW_MUTATIONS + RECORD_MUTATIONS)
         {
             return deny(InformationRequestErrorCatalog.PARENT_STATE_INVALID)
+        }
+        if (mutation == InformationRequestMutation.PROMOTE_FACT || mutation == InformationRequestMutation.REVOKE_FACT)
+        {
+            return if (currentState != null && currentState in FACT_STATES) allow()
+            else deny(InformationRequestErrorCatalog.STATE_INVALID)
+        }
+        if (mutation == InformationRequestMutation.RECORD_BUSINESS_DECISION)
+        {
+            return if (currentState != null && currentState != InformationRequestState.DRAFT) allow()
+            else deny(InformationRequestErrorCatalog.STATE_INVALID)
         }
         if (mutation == InformationRequestMutation.CREATE_DRAFT)
         {
@@ -258,19 +291,18 @@ object InformationRequestTransitionMatrix
             InformationRequestMutation.SUBMIT,
             InformationRequestMutation.WITHDRAW_SUBMISSION,
             -> allowSameFrom(currentState, ACTIVE_RESPONSE_STATES)
-            InformationRequestMutation.START_REVIEW -> allowFrom(
-                currentState,
-                InformationRequestState.SUBMITTED,
-                InformationRequestState.UNDER_REVIEW,
-            )
-            InformationRequestMutation.REQUEST_CORRECTION -> allowFrom(
-                currentState,
-                InformationRequestState.UNDER_REVIEW,
-                InformationRequestState.CHANGES_REQUESTED,
-            )
+            InformationRequestMutation.START_REVIEW,
+            InformationRequestMutation.ASSIGN_REVIEWER,
+            InformationRequestMutation.SAVE_REVIEW_DRAFT,
+            InformationRequestMutation.RECORD_REVIEW_DECISION,
+            InformationRequestMutation.RECORD_FINDING,
+            InformationRequestMutation.RECORD_REVIEW_COMMENT,
+            InformationRequestMutation.SETTLE_REVIEW,
+            InformationRequestMutation.REQUEST_CORRECTION,
+            -> allowSameFrom(currentState, ACTIVE_RESPONSE_STATES)
             InformationRequestMutation.CLOSE -> allowFromAny(
                 currentState,
-                ACTIVE_RESPONSE_STATES + setOf(InformationRequestState.SUBMITTED, InformationRequestState.UNDER_REVIEW),
+                ACTIVE_RESPONSE_STATES,
                 InformationRequestState.CLOSED,
             )
             InformationRequestMutation.AMEND,
@@ -284,6 +316,9 @@ object InformationRequestTransitionMatrix
                 allowFromAny(currentState, nonTerminalStates(), InformationRequestState.EXPIRED)
             InformationRequestMutation.CREATE_SUCCESSOR,
             InformationRequestMutation.SCHEDULE_FOLLOW_UP,
+            InformationRequestMutation.PROMOTE_FACT,
+            InformationRequestMutation.REVOKE_FACT,
+            InformationRequestMutation.RECORD_BUSINESS_DECISION,
             -> deny(InformationRequestErrorCatalog.STATE_INVALID)
         }
     }

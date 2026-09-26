@@ -26,6 +26,8 @@ import {Capability} from "./app/models/models.tsx";
 import PlatformAdministration from "./app/platform-administration/PlatformAdministration.tsx";
 import PlatformAudit from "./app/platform-audit/PlatformAudit.tsx";
 import InformationRequestRespondentWorkspace from "./app/information-requests/respondent-workspace/InformationRequestRespondentWorkspace.tsx";
+import InformationRequestReviewWorkspace from "./app/information-requests/review/review-workspace/InformationRequestReviewWorkspace.tsx";
+import InformationRequestReviewQueue from "./app/information-requests/review/review-queue/InformationRequestReviewQueue.tsx";
 
 const App: React.FC = () =>
 {
@@ -108,6 +110,18 @@ const App: React.FC = () =>
                                element={
                                    <ProtectedRoute path='/sign-in'
                                                    element={<InformationRequestRespondentWorkspace accessMode={"authenticated"}/>}/>
+                               }/>
+
+                        <Route path="/information-requests/:requestId/reviews/:reviewId"
+                               element={
+                                   <ProtectedRoute path='/sign-in'
+                                                   element={<InformationRequestReviewWorkspace/>}/>
+                               }/>
+
+                        <Route path="/information-request-reviews"
+                               element={
+                                   <ProtectedRoute path='/sign-in'
+                                                   element={<InformationRequestReviewQueue/>}/>
                                }/>
 
                         <Route path="/platform/administration"

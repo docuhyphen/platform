@@ -37,7 +37,7 @@ class InformationRequestTransitionMatrixTest
         )
         val review = InformationRequestTransitionMatrix.canMutate(
             parent,
-            InformationRequestState.SUBMITTED,
+            InformationRequestState.ISSUED,
             InformationRequestMutation.START_REVIEW,
         )
 
@@ -71,26 +71,67 @@ class InformationRequestTransitionMatrixTest
         assertAllowed(
             InformationRequestTransitionMatrix.canMutate(
                 parent,
-                InformationRequestState.SUBMITTED,
-                InformationRequestMutation.START_REVIEW,
-            ),
-            InformationRequestState.UNDER_REVIEW,
-        )
-        assertAllowed(
-            InformationRequestTransitionMatrix.canMutate(
-                parent,
-                InformationRequestState.UNDER_REVIEW,
-                InformationRequestMutation.REQUEST_CORRECTION,
-            ),
-            InformationRequestState.CHANGES_REQUESTED,
-        )
-        assertAllowed(
-            InformationRequestTransitionMatrix.canMutate(
-                parent,
-                InformationRequestState.UNDER_REVIEW,
+                InformationRequestState.IN_PROGRESS,
                 InformationRequestMutation.CLOSE,
             ),
             InformationRequestState.CLOSED,
+        )
+    }
+
+    @Test
+    fun `review and correction commands keep the collection state of an active request`()
+    {
+        val parent = InformationRequestParentSnapshot(status = ExchangeStatus.ACCEPTED_STARTED, lockedForUpdate = true)
+        REVIEW_MUTATIONS.forEach { mutation ->
+            listOf(InformationRequestState.ISSUED, InformationRequestState.IN_PROGRESS).forEach { state ->
+                assertAllowed(InformationRequestTransitionMatrix.canMutate(parent, state, mutation))
+            }
+            assertDenied(
+                InformationRequestErrorCatalog.STATE_INVALID,
+                InformationRequestTransitionMatrix.canMutate(parent, InformationRequestState.DRAFT, mutation),
+            )
+            assertDenied(
+                InformationRequestErrorCatalog.PARENT_STATE_INVALID,
+                InformationRequestTransitionMatrix.canMutate(
+                    InformationRequestParentSnapshot(status = ExchangeStatus.INITIATED, lockedForUpdate = true),
+                    InformationRequestState.ISSUED,
+                    mutation,
+                ),
+            )
+        }
+    }
+
+    @Test
+    fun `accepted facts and business decisions are recorded against issued or closed work`()
+    {
+        val parent = InformationRequestParentSnapshot(status = ExchangeStatus.ACCEPTED_STARTED, lockedForUpdate = true)
+        listOf(InformationRequestMutation.PROMOTE_FACT, InformationRequestMutation.REVOKE_FACT).forEach { mutation ->
+            listOf(InformationRequestState.ISSUED, InformationRequestState.IN_PROGRESS, InformationRequestState.CLOSED)
+                .forEach { state -> assertAllowed(InformationRequestTransitionMatrix.canMutate(parent, state, mutation)) }
+            listOf(
+                InformationRequestState.DRAFT,
+                InformationRequestState.CANCELLED,
+                InformationRequestState.SUPERSEDED,
+                InformationRequestState.EXPIRED,
+            ).forEach { state ->
+                assertDenied(
+                    InformationRequestErrorCatalog.STATE_INVALID,
+                    InformationRequestTransitionMatrix.canMutate(parent, state, mutation),
+                )
+            }
+        }
+        (InformationRequestState.entries - InformationRequestState.DRAFT).forEach { state ->
+            assertAllowed(
+                InformationRequestTransitionMatrix.canMutate(parent, state, InformationRequestMutation.RECORD_BUSINESS_DECISION),
+            )
+        }
+        assertDenied(
+            InformationRequestErrorCatalog.STATE_INVALID,
+            InformationRequestTransitionMatrix.canMutate(
+                parent,
+                InformationRequestState.DRAFT,
+                InformationRequestMutation.RECORD_BUSINESS_DECISION,
+            ),
         )
     }
 
@@ -105,7 +146,7 @@ class InformationRequestTransitionMatrixTest
         InformationRequestState.entries
             .filter { it.isTerminal }
             .forEach { state ->
-                (InformationRequestMutation.entries - LINEAGE_MUTATIONS).forEach { mutation ->
+                (InformationRequestMutation.entries - LINEAGE_MUTATIONS - RECORD_MUTATIONS).forEach { mutation ->
                     assertDenied(
                         InformationRequestErrorCatalog.STATE_INVALID,
                         InformationRequestTransitionMatrix.canMutate(parent, state, mutation),
@@ -121,7 +162,6 @@ class InformationRequestTransitionMatrixTest
         listOf(
             InformationRequestState.ISSUED,
             InformationRequestState.IN_PROGRESS,
-            InformationRequestState.CHANGES_REQUESTED,
         ).forEach { state ->
             assertAllowed(InformationRequestTransitionMatrix.canMutate(parent, state, InformationRequestMutation.SUBMIT))
             assertAllowed(
@@ -289,7 +329,7 @@ class InformationRequestTransitionMatrixTest
             InformationRequestErrorCatalog.COMPLETION_GATES_UNSATISFIED,
             InformationRequestTransitionMatrix.canEndExchange(
                 activeLocked,
-                listOf(InformationRequestCompletionCandidate(InformationRequestState.SUBMITTED, gatesExchangeClosure = true)),
+                listOf(InformationRequestCompletionCandidate(InformationRequestState.IN_PROGRESS, gatesExchangeClosure = true)),
             ),
         )
         assertDenied(
@@ -334,6 +374,21 @@ class InformationRequestTransitionMatrixTest
         val LINEAGE_MUTATIONS = setOf(
             InformationRequestMutation.CREATE_SUCCESSOR,
             InformationRequestMutation.SCHEDULE_FOLLOW_UP,
+        )
+        val RECORD_MUTATIONS = setOf(
+            InformationRequestMutation.PROMOTE_FACT,
+            InformationRequestMutation.REVOKE_FACT,
+            InformationRequestMutation.RECORD_BUSINESS_DECISION,
+        )
+        val REVIEW_MUTATIONS = setOf(
+            InformationRequestMutation.START_REVIEW,
+            InformationRequestMutation.ASSIGN_REVIEWER,
+            InformationRequestMutation.SAVE_REVIEW_DRAFT,
+            InformationRequestMutation.RECORD_REVIEW_DECISION,
+            InformationRequestMutation.RECORD_FINDING,
+            InformationRequestMutation.RECORD_REVIEW_COMMENT,
+            InformationRequestMutation.SETTLE_REVIEW,
+            InformationRequestMutation.REQUEST_CORRECTION,
         )
     }
 

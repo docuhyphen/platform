@@ -1,6 +1,7 @@
 import {HelpDocSectionInput} from "../helpDocsRegistry";
 import {fieldsOverviewArticle} from "./articles/fieldsOverviewArticle";
 import {informationRequestEvidenceArticle} from "./articles/informationRequestEvidenceArticle";
+import {informationRequestReviewArticle} from "./articles/informationRequestReviewArticle";
 import {informationRequestSubmissionArticle} from "./articles/informationRequestSubmissionArticle";
 import {informationRequestTemplatesArticle} from "./articles/informationRequestTemplatesArticle";
 import {usingExchangeFieldsArticle} from "./articles/usingExchangeFieldsArticle";
@@ -14,5 +15,6 @@ export const fieldsSection: HelpDocSectionInput = {
         {id: "request-templates", title: "Information Request Templates", content: informationRequestTemplatesArticle},
         {id: "request-evidence", title: "Information Request evidence files", content: informationRequestEvidenceArticle},
         {id: "request-submission", title: "Submitting and following up Information Requests", content: informationRequestSubmissionArticle},
+        {id: "request-review", title: "Reviewing Information Request submissions", content: informationRequestReviewArticle},
     ],
 };

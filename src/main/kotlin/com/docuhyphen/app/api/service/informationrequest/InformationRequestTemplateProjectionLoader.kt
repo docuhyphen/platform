@@ -4,6 +4,7 @@ import com.docuhyphen.app.api.model.InformationRequestTemplateDtoMapper
 import com.docuhyphen.app.api.model.dto.InformationRequestTemplateConditionRuleDto
 import com.docuhyphen.app.api.model.dto.InformationRequestTemplateGroupDto
 import com.docuhyphen.app.api.model.dto.InformationRequestTemplateRequirementDto
+import com.docuhyphen.app.api.model.dto.InformationRequestTemplateReviewStageDto
 import com.docuhyphen.app.api.model.dto.InformationRequestTemplateSectionDto
 import com.docuhyphen.app.api.model.dto.InformationRequestTemplateVersionDto
 import com.docuhyphen.app.api.model.entity.InformationRequestTemplateAttestationPolicy
@@ -29,6 +30,8 @@ import com.docuhyphen.app.api.repository.informationrequest.InformationRequestTe
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestTemplateRequirementBindingRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestTemplateRequirementGroupRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestTemplateRequirementRepository
+import com.docuhyphen.app.api.repository.informationrequest.InformationRequestTemplateReviewStageRepository
+import com.docuhyphen.app.api.repository.informationrequest.InformationRequestTemplateReviewStageSectionRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestTemplateSectionRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestTemplateVersionCapabilityRepository
 import jakarta.enterprise.context.ApplicationScoped
@@ -64,6 +67,8 @@ class InformationRequestTemplateProjectionLoader @Inject constructor(
     private val conditionPredicateLiteralRepository: InformationRequestTemplateConditionPredicateLiteralRepository,
     private val attestationPolicyRepository: InformationRequestTemplateAttestationPolicyRepository,
     private val attestationRoleRepository: InformationRequestTemplateAttestationRoleRepository,
+    private val reviewStageRepository: InformationRequestTemplateReviewStageRepository,
+    private val reviewStageSectionRepository: InformationRequestTemplateReviewStageSectionRepository,
 )
 {
     fun loadVersion(version: InformationRequestTemplateVersion): InformationRequestTemplateVersionDto
@@ -78,7 +83,8 @@ class InformationRequestTemplateProjectionLoader @Inject constructor(
         val bindingsBySection = bindings.groupBy { it.templateSectionId }
         val configuration = loadBindingConfiguration(version.id)
 
-        val sections = sectionRepository.findOrdered(version.id).map { section ->
+        val storedSections = sectionRepository.findOrdered(version.id)
+        val sections = storedSections.map { section ->
             InformationRequestTemplateDtoMapper.toDto(
                 section = section,
                 requirements = bindingsBySection[section.id]
@@ -97,7 +103,21 @@ class InformationRequestTemplateProjectionLoader @Inject constructor(
             conditionRules = loadConditionRules(version.id),
             requiredCapabilities = capabilityRepository.findForVersion(version.id)
                 .map(InformationRequestTemplateDtoMapper::toDto),
+            reviewStages = loadReviewStages(version.id, storedSections.associate { it.id to it.sectionKey }),
         )
+    }
+
+    private fun loadReviewStages(
+        templateVersionId: UUID,
+        sectionKeyById: Map<UUID, String>,
+    ): List<InformationRequestTemplateReviewStageDto>
+    {
+        val coveredByStage = reviewStageSectionRepository.findForVersion(templateVersionId).groupBy { it.reviewStageId }
+        val orderedKeys = sectionKeyById.values.toList()
+        return reviewStageRepository.findForVersion(templateVersionId).map { stage ->
+            val covered = coveredByStage[stage.id].orEmpty().mapNotNull { sectionKeyById[it.templateSectionId] }.toSet()
+            InformationRequestTemplateDtoMapper.toDto(stage, orderedKeys.filter { it in covered })
+        }
     }
 
     private fun loadGroups(templateVersionId: UUID): List<InformationRequestTemplateGroupDto>

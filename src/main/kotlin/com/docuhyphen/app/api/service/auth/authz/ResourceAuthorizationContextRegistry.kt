@@ -123,6 +123,12 @@ class ResourceAuthorizationContextRegistry
             ResourceType.INFORMATION_REQUEST_SUBMISSION_PACKAGE -> null
             ResourceType.INFORMATION_REQUEST_SUBMISSION_ATTESTATION -> null
             ResourceType.INFORMATION_REQUEST_AMENDMENT -> null
+            ResourceType.INFORMATION_REQUEST_REVIEW -> null
+            ResourceType.INFORMATION_REQUEST_REVIEW_ASSIGNMENT -> null
+            ResourceType.INFORMATION_REQUEST_REVIEW_FINDING -> null
+            ResourceType.INFORMATION_REQUEST_REVIEW_COMMENT -> null
+            ResourceType.INFORMATION_REQUEST_ACCEPTED_FACT -> null
+            ResourceType.INFORMATION_REQUEST_BUSINESS_DECISION -> null
         }
     }
 }

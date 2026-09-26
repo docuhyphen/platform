@@ -76,8 +76,10 @@ class InformationRequestTemplateConfigurationValidator
         requirements.forEach { validateOccurrenceAnchor(it, groupKeys) }
         validateConditionRules(requirements, conditionRules)
 
-        return InformationRequestTemplateSubmissionPolicyValidator.normalize(
-            request.copy(sections = sections, groups = groups, conditionRules = conditionRules),
+        return InformationRequestTemplateReviewPlanValidator.normalize(
+            InformationRequestTemplateSubmissionPolicyValidator.normalize(
+                request.copy(sections = sections, groups = groups, conditionRules = conditionRules),
+            ),
         )
     }
 

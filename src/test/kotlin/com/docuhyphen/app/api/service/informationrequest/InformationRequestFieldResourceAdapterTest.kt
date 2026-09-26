@@ -81,13 +81,11 @@ class InformationRequestFieldResourceAdapterTest
         assertTrue(adapter(request(InformationRequestState.DRAFT)).schemaAssignmentMutable(requestId))
         assertFalse(adapter(request(InformationRequestState.ISSUED)).schemaAssignmentMutable(requestId))
         assertFalse(adapter(request(InformationRequestState.IN_PROGRESS)).schemaAssignmentMutable(requestId))
-        assertFalse(adapter(request(InformationRequestState.CHANGES_REQUESTED)).schemaAssignmentMutable(requestId))
 
         assertFalse(adapter(request(InformationRequestState.DRAFT)).valuesEditable(requestId))
         assertTrue(adapter(request(InformationRequestState.ISSUED)).valuesEditable(requestId))
         assertTrue(adapter(request(InformationRequestState.IN_PROGRESS)).valuesEditable(requestId))
-        assertTrue(adapter(request(InformationRequestState.CHANGES_REQUESTED)).valuesEditable(requestId))
-        assertFalse(adapter(request(InformationRequestState.SUBMITTED)).valuesEditable(requestId))
+        assertFalse(adapter(request(InformationRequestState.CLOSED)).valuesEditable(requestId))
     }
 
     @Test

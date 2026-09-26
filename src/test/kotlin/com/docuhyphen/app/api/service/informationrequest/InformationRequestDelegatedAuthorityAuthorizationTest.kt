@@ -225,6 +225,9 @@ class InformationRequestDelegatedAuthorityAuthorizationTest
                     whenever(it.findActiveMembers(any())).thenReturn(emptyList())
                 },
                 attestationPolicies = mock<InformationRequestAttestationPolicyLoader>(),
+                lockService = mock<InformationRequestSubmissionLockService>().also {
+                    whenever(it.correctionScopeOf(any(), any())).thenReturn(InformationRequestRequirementCorrectionScope.NORMAL_RESPONSE)
+                },
             )
             val requestProvider = InformationRequestAuthorizationContextProvider(requestRepository, parentState)
 

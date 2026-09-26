@@ -18,6 +18,10 @@ vi.mock("../../../../services/informationRequestSubmissionService.ts", () => ({
     createInformationRequestSupplement: vi.fn(),
 }));
 vi.mock("../../../../hooks/subscription/usePlanFeature.ts", () => ({usePlanFeature: vi.fn()}));
+vi.mock("../../../../services/informationRequestReviewService.ts", () => ({
+    getInformationRequestReviewResults: vi.fn().mockResolvedValue([]),
+    appealInformationRequestReview: vi.fn(),
+}));
 
 const workspace = (state: InformationRequestState): InformationRequestResponseWorkspaceDto => ({
     request: {

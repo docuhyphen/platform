@@ -114,7 +114,6 @@ class InformationRequestFieldResourceAdapter @Inject constructor(
         requestRepository.findById(resourceId)?.state in setOf(
             InformationRequestState.ISSUED,
             InformationRequestState.IN_PROGRESS,
-            InformationRequestState.CHANGES_REQUESTED,
         )
 
     private fun authorize(

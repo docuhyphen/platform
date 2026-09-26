@@ -1,10 +1,19 @@
 package com.docuhyphen.app.api.resource.model
 
 import com.docuhyphen.app.api.model.dto.InformationRequestTemplateConfigurationRequest
+import com.docuhyphen.app.api.model.entity.InformationRequestAcceptedFactVisibility
 import com.docuhyphen.app.api.model.entity.InformationRequestAttestationDecision
+import com.docuhyphen.app.api.model.entity.InformationRequestBusinessDecisionKind
 import com.docuhyphen.app.api.model.entity.InformationRequestLineageKind
 import com.docuhyphen.app.api.model.entity.InformationRequestRecurrenceUnit
 import com.docuhyphen.app.api.model.entity.InformationRequestResponseDisposition
+import com.docuhyphen.app.api.model.entity.InformationRequestFindingCorrectionScope
+import com.docuhyphen.app.api.model.entity.InformationRequestFindingSeverity
+import com.docuhyphen.app.api.model.entity.InformationRequestRetestResult
+import com.docuhyphen.app.api.model.entity.InformationRequestReviewOutcome
+import com.docuhyphen.app.api.model.entity.InformationRequestReviewVisibility
+import com.docuhyphen.app.api.serializer.TimestampSerializer
+import java.sql.Timestamp
 import com.docuhyphen.app.api.serializer.UUIDSerializer
 import com.docuhyphen.app.api.service.fields.FieldValueEntry
 import kotlinx.serialization.Serializable
@@ -132,4 +141,95 @@ data class AmendInformationRequestRequest(
     @Serializable(with = UUIDSerializer::class) val targetTemplateVersionId: UUID? = null,
     val configuration: InformationRequestTemplateConfigurationRequest? = null,
     val reasonCode: String? = null,
+)
+
+@Serializable
+data class AssignInformationRequestReviewerRequest(
+    val stageKey: String,
+    @Serializable(with = UUIDSerializer::class) val reviewerPartyId: UUID,
+    @Serializable(with = TimestampSerializer::class) val dueAt: Timestamp? = null,
+)
+
+@Serializable
+data class ChangeInformationRequestReviewAssignmentRequest(
+    val reasonCode: String? = null,
+    val narrative: String? = null,
+    @Serializable(with = UUIDSerializer::class) val delegatePartyId: UUID? = null,
+)
+
+@Serializable
+data class InformationRequestReviewWorksheetEntryRequest(
+    @Serializable(with = UUIDSerializer::class) val submissionItemId: UUID,
+    val outcome: InformationRequestReviewOutcome? = null,
+    val narrative: String? = null,
+    val clear: Boolean = false,
+)
+
+@Serializable
+data class SaveInformationRequestReviewWorksheetRequest(
+    val entries: List<InformationRequestReviewWorksheetEntryRequest> = emptyList(),
+)
+
+@Serializable
+data class OverrideInformationRequestReviewItemRequest(
+    val stageKey: String,
+    @Serializable(with = UUIDSerializer::class) val submissionItemId: UUID,
+    val outcome: InformationRequestReviewOutcome,
+    val narrative: String,
+)
+
+@Serializable
+data class RecordInformationRequestReviewFindingRequest(
+    @Serializable(with = UUIDSerializer::class) val submissionItemId: UUID,
+    @Serializable(with = UUIDSerializer::class) val evidenceVersionId: UUID? = null,
+    val reasonCode: String,
+    val narrative: String,
+    val severity: InformationRequestFindingSeverity,
+    val visibility: InformationRequestReviewVisibility,
+    val correctionScope: InformationRequestFindingCorrectionScope = InformationRequestFindingCorrectionScope.NONE,
+    @Serializable(with = UUIDSerializer::class) val retestsFindingId: UUID? = null,
+    val retestResult: InformationRequestRetestResult? = null,
+)
+
+@Serializable
+data class RecordInformationRequestReviewCommentRequest(
+    @Serializable(with = UUIDSerializer::class) val submissionItemId: UUID,
+    @Serializable(with = UUIDSerializer::class) val findingId: UUID? = null,
+    @Serializable(with = UUIDSerializer::class) val replyToCommentId: UUID? = null,
+    val visibility: InformationRequestReviewVisibility = InformationRequestReviewVisibility.RESPONDENT_VISIBLE,
+    val body: String,
+)
+
+@Serializable
+data class ReopenInformationRequestReviewRequest(
+    val reason: String,
+)
+
+@Serializable
+data class PromoteInformationRequestAcceptedFactRequest(
+    @Serializable(with = UUIDSerializer::class) val packageId: UUID,
+    @Serializable(with = UUIDSerializer::class) val submissionItemId: UUID,
+    val purposeKey: String,
+    val visibility: InformationRequestAcceptedFactVisibility = InformationRequestAcceptedFactVisibility.REQUESTING_SIDE,
+    @Serializable(with = TimestampSerializer::class) val validFrom: Timestamp? = null,
+    @Serializable(with = TimestampSerializer::class) val validTo: Timestamp? = null,
+    @Serializable(with = TimestampSerializer::class) val expiresAt: Timestamp? = null,
+    @Serializable(with = UUIDSerializer::class) val supersedesFactId: UUID? = null,
+)
+
+@Serializable
+data class RevokeInformationRequestAcceptedFactRequest(
+    val reasonCode: String,
+    val narrative: String? = null,
+)
+
+@Serializable
+data class RecordInformationRequestBusinessDecisionRequest(
+    val owningProcessKey: String,
+    val outcomeCode: String,
+    val reasonReference: String? = null,
+    val externalReference: String? = null,
+    val kind: InformationRequestBusinessDecisionKind = InformationRequestBusinessDecisionKind.ORIGINAL,
+    @Serializable(with = UUIDSerializer::class) val priorDecisionId: UUID? = null,
+    @Serializable(with = TimestampSerializer::class) val decidedAt: Timestamp,
 )

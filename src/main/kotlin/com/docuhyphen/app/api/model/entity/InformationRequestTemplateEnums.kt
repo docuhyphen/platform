@@ -224,3 +224,23 @@ enum class InformationRequestExternalSignatureReferencePolicy
     OPTIONAL,
     REQUIRED,
 }
+
+enum class InformationRequestReviewStageOrdering
+{
+    SEQUENTIAL,
+    PARALLEL,
+}
+
+enum class InformationRequestReviewAggregation
+{
+    ALL,
+    ANY,
+    QUORUM,
+    CONSENSUS,
+}
+
+enum class InformationRequestReviewTieResolution
+{
+    MOST_SEVERE_OUTCOME,
+    REQUIRE_OVERRIDE,
+}

@@ -26,7 +26,11 @@ import com.docuhyphen.app.api.model.entity.InformationRequestRequiredness
 import com.docuhyphen.app.api.model.entity.InformationRequestRequirementType
 import com.docuhyphen.app.api.model.entity.InformationRequestResponseDisposition
 import com.docuhyphen.app.api.model.entity.InformationRequestResponseMode
+import com.docuhyphen.app.api.model.dto.InformationRequestTemplateReviewStageRequest
+import com.docuhyphen.app.api.model.entity.InformationRequestReviewAggregation
 import com.docuhyphen.app.api.model.entity.InformationRequestReviewPolicy
+import com.docuhyphen.app.api.model.entity.InformationRequestReviewStageOrdering
+import com.docuhyphen.app.api.model.entity.InformationRequestReviewTieResolution
 import com.docuhyphen.app.api.model.entity.InformationRequestTemplateDefinition
 import com.docuhyphen.app.api.model.entity.InformationRequestTemplateScopeKind
 import com.docuhyphen.app.api.model.entity.InformationRequestTemplateStatus
@@ -406,6 +410,89 @@ class InformationRequestTemplateConfigurationWriterContractTest
         }
         assertEquals(InformationRequestSubmissionMode.WHOLE_PACKAGE, rewritten.submissionMode)
         assertNull(rewritten.sections.single().submissionStageKey)
+    }
+
+    @Test
+    fun `review stages, their ordering, and the reuse purpose survive the write and read back as authored`()
+    {
+        val draft = draftTemplate()
+        val reviewed = InformationRequestTemplateConfigurationRequest(
+            reviewStageOrdering = InformationRequestReviewStageOrdering.PARALLEL,
+            factReusePurposeKey = "profile.reuse",
+            sections = listOf(
+                InformationRequestTemplateSectionRequest(
+                    sectionKey = "supporting-data",
+                    title = "Supporting data",
+                    requirements = listOf(
+                        requirement("supporting-record", InformationRequestRequirementType.DOCUMENT).copy(
+                            reviewPolicy = InformationRequestReviewPolicy.REQUIRED,
+                            evidencePolicy = InformationRequestTemplateEvidencePolicyRequest(),
+                        ),
+                    ),
+                ),
+                InformationRequestTemplateSectionRequest(
+                    sectionKey = "other-data",
+                    title = "Other data",
+                    requirements = listOf(
+                        requirement("other-record", InformationRequestRequirementType.DOCUMENT).copy(
+                            evidencePolicy = InformationRequestTemplateEvidencePolicyRequest(),
+                        ),
+                    ),
+                ),
+            ),
+            reviewStages = listOf(
+                InformationRequestTemplateReviewStageRequest(
+                    stageKey = "first-check",
+                    title = "First check",
+                    sectionKeys = listOf("supporting-data"),
+                ),
+                InformationRequestTemplateReviewStageRequest(
+                    stageKey = "final-check",
+                    title = "Final check",
+                    aggregation = InformationRequestReviewAggregation.QUORUM,
+                    quorumCount = 2,
+                    minimumReviewerCount = 3,
+                    tieResolution = InformationRequestReviewTieResolution.REQUIRE_OVERRIDE,
+                    overridePermitted = true,
+                    excludesResponseParties = true,
+                    excludesPriorReviewers = true,
+                ),
+            ),
+        )
+
+        QuarkusTransaction.requiringNew().run { writer.replaceConfiguration(draft, reviewed) }
+        val version = QuarkusTransaction.requiringNew().call {
+            projectionLoader.loadVersion(versionRepository.findById(draft.id)!!)
+        }
+
+        assertEquals(InformationRequestReviewStageOrdering.PARALLEL, version.reviewStageOrdering)
+        assertEquals("profile.reuse", version.factReusePurposeKey)
+        assertEquals(listOf("first-check", "final-check"), version.reviewStages.map { it.stageKey })
+        assertEquals(listOf("supporting-data"), version.reviewStages.first().sectionKeys)
+        val final = version.reviewStages.last()
+        assertEquals(InformationRequestReviewAggregation.QUORUM, final.aggregation)
+        assertEquals(2, final.quorumCount)
+        assertEquals(3, final.minimumReviewerCount)
+        assertEquals(InformationRequestReviewTieResolution.REQUIRE_OVERRIDE, final.tieResolution)
+        assertTrue(final.overridePermitted && final.excludesResponseParties && final.excludesPriorReviewers)
+        assertTrue(final.sectionKeys.isEmpty())
+
+        val copied = InformationRequestTemplateConfigurationMapper.toRequest(version)
+        assertEquals(reviewed.reviewStages, copied.reviewStages)
+        assertEquals(reviewed.reviewStageOrdering, copied.reviewStageOrdering)
+        assertEquals(reviewed.factReusePurposeKey, copied.factReusePurposeKey)
+
+        QuarkusTransaction.requiringNew().run {
+            writer.replaceConfiguration(
+                versionRepository.findById(draft.id)!!,
+                reviewed.copy(reviewStages = emptyList(), factReusePurposeKey = null),
+            )
+        }
+        val rewritten = QuarkusTransaction.requiringNew().call {
+            projectionLoader.loadVersion(versionRepository.findById(draft.id)!!)
+        }
+        assertTrue(rewritten.reviewStages.isEmpty())
+        assertNull(rewritten.factReusePurposeKey)
     }
 
     @Test

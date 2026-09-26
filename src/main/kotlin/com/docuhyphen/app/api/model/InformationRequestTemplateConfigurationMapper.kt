@@ -14,6 +14,8 @@ import com.docuhyphen.app.api.model.dto.InformationRequestTemplateGroupDto
 import com.docuhyphen.app.api.model.dto.InformationRequestTemplateGroupRequest
 import com.docuhyphen.app.api.model.dto.InformationRequestTemplateRequirementDto
 import com.docuhyphen.app.api.model.dto.InformationRequestTemplateRequirementRequest
+import com.docuhyphen.app.api.model.dto.InformationRequestTemplateReviewStageDto
+import com.docuhyphen.app.api.model.dto.InformationRequestTemplateReviewStageRequest
 import com.docuhyphen.app.api.model.dto.InformationRequestTemplateSectionRequest
 import com.docuhyphen.app.api.model.dto.InformationRequestTemplateVersionDto
 
@@ -36,6 +38,23 @@ object InformationRequestTemplateConfigurationMapper
             conditionRules = version.conditionRules.map(::toRequest),
             submissionMode = version.submissionMode,
             submissionStageOrdering = version.submissionStageOrdering,
+            reviewStageOrdering = version.reviewStageOrdering,
+            reviewStages = version.reviewStages.map(::toRequest),
+            factReusePurposeKey = version.factReusePurposeKey,
+        )
+
+    private fun toRequest(stage: InformationRequestTemplateReviewStageDto) =
+        InformationRequestTemplateReviewStageRequest(
+            stageKey = stage.stageKey,
+            title = stage.title,
+            aggregation = stage.aggregation,
+            quorumCount = stage.quorumCount,
+            minimumReviewerCount = stage.minimumReviewerCount,
+            tieResolution = stage.tieResolution,
+            overridePermitted = stage.overridePermitted,
+            excludesResponseParties = stage.excludesResponseParties,
+            excludesPriorReviewers = stage.excludesPriorReviewers,
+            sectionKeys = stage.sectionKeys,
         )
 
     private fun toRequest(rule: InformationRequestTemplateConditionRuleDto) =

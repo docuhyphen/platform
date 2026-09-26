@@ -209,36 +209,59 @@ class InformationRequestRequirementPolicyEvaluatorTest
     }
 
     @Test
-    fun `open correction scope blocks broad inherited response mutations until item scope exists`()
+    fun `a requirement a correction did not return refuses answer and evidence changes`()
     {
-        val outcome = evaluate(
+        listOf(
+            Action.INFORMATION_REQUEST_REQUIREMENT_RESPOND,
+            Action.INFORMATION_REQUEST_EVIDENCE_UPLOAD,
+            Action.INFORMATION_REQUEST_EVIDENCE_WITHDRAW,
+        ).forEach { action ->
+            val outcome = evaluate(
+                principal = assignedPrincipal,
+                action = action,
+                facts = facts(correctionScope = InformationRequestRequirementCorrectionScope.CORRECTION_EXCLUDED),
+            )
+            assertDenied(InformationRequestErrorCatalog.CORRECTION_SCOPE_DENIED, outcome)
+        }
+        val viewing = evaluate(
             principal = assignedPrincipal,
-            action = Action.INFORMATION_REQUEST_REQUIREMENT_RESPOND,
-            facts = facts(correctionScope = InformationRequestRequirementCorrectionScope.OPEN_CORRECTION),
+            action = Action.INFORMATION_REQUEST_REQUIREMENT_VIEW,
+            facts = facts(correctionScope = InformationRequestRequirementCorrectionScope.CORRECTION_EXCLUDED),
         )
-
-        assertDenied(InformationRequestErrorCatalog.CORRECTION_SCOPE_DENIED, outcome)
+        assertTrue(viewing is ResourcePolicyOutcome.Permit)
     }
 
     @Test
-    fun `response mutation is denied while the request is submitted awaiting review`()
+    fun `a requirement a correction returned accepts a new answer`()
     {
         val outcome = evaluate(
             principal = assignedPrincipal,
             action = Action.INFORMATION_REQUEST_REQUIREMENT_RESPOND,
-            facts = facts(requestState = InformationRequestState.SUBMITTED),
+            facts = facts(correctionScope = InformationRequestRequirementCorrectionScope.CORRECTION_ALLOWED),
+        )
+
+        assertTrue(outcome is ResourcePolicyOutcome.Permit)
+    }
+
+    @Test
+    fun `response mutation is denied once the request is closed`()
+    {
+        val outcome = evaluate(
+            principal = assignedPrincipal,
+            action = Action.INFORMATION_REQUEST_REQUIREMENT_RESPOND,
+            facts = facts(requestState = InformationRequestState.CLOSED),
         )
 
         assertDenied(InformationRequestErrorCatalog.STATE_INVALID, outcome)
     }
 
     @Test
-    fun `response mutation is denied while the request is under review`()
+    fun `response mutation is denied once the request is cancelled`()
     {
         val outcome = evaluate(
             principal = assignedPrincipal,
             action = Action.INFORMATION_REQUEST_REQUIREMENT_RESPOND,
-            facts = facts(requestState = InformationRequestState.UNDER_REVIEW),
+            facts = facts(requestState = InformationRequestState.CANCELLED),
         )
 
         assertDenied(InformationRequestErrorCatalog.STATE_INVALID, outcome)
@@ -250,7 +273,7 @@ class InformationRequestRequirementPolicyEvaluatorTest
         val outcome = evaluate(
             principal = assignedPrincipal,
             action = Action.INFORMATION_REQUEST_REQUIREMENT_VIEW,
-            facts = facts(requestState = InformationRequestState.SUBMITTED),
+            facts = facts(requestState = InformationRequestState.CLOSED),
         )
 
         assertTrue(outcome is ResourcePolicyOutcome.Permit)

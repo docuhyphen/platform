@@ -114,7 +114,7 @@ class InformationRequestSubmissionAttestationService @Inject constructor(
             )
         gate.requireMutation(locked, InformationRequestMutation.ATTEST_RESPONSE)
         gate.requireContinuationEntitlement(locked)
-        lockService.requireUnlocked(request.id, listOf(requirement.id))
+        lockService.requireAttestationOpen(request.id, requirement.id)
         gate.authorizeRequirement(command.access, Action.INFORMATION_REQUEST_REQUIREMENT_ATTEST, requirement.id)
 
         val party = actingParty(locked, policy, requirement, command)

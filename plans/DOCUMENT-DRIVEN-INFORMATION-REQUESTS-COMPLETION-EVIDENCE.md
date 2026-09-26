@@ -311,6 +311,192 @@ particular, do not rewrite or normalize the proposal while implementing this pla
 
 ## Implementation Journal
 
+### 2026-09-25: Phase 8 implementation session
+
+This entry is written progressively so an interruption leaves an exact resume point. The user asked
+for the whole of Phase 8 in one session ("implement the rest of the phase 8 in one go"); Phase 8 had
+not started, so every task is in scope.
+
+- Starting state verified against code, not checkboxes: the working tree carries the uncommitted
+  Phase 6 and Phase 7 work (last commit `beb2937f`); no review, finding, correction, Accepted Fact,
+  or Business Decision code existed (searched `src` and `web-app/src`); Flyway head V135. Facts the
+  design rests on: packages already record `review_required` and a review-required final package
+  leaves the request open with no path to closure; `RESPONSE_REVIEW` has no executor, so a
+  reviewer-routed Version is refused at creation and issuance; `SUBMITTED`, `UNDER_REVIEW`, and
+  `CHANGES_REQUESTED` are admitted by the V96 checks but nothing writes them; the Requirement
+  policy evaluator denies every answer mutation while the request is `CHANGES_REQUESTED`, the only
+  correction behavior so far; `INFORMATION_REQUEST_REQUIREMENT_VIEW` is an exact-party action, so a
+  `REVIEWER` party can read no package item today while `INFORMATION_REQUEST_REQUIREMENT_REVIEW`
+  is not; the `information_request.requirement.review` audit key exists with no mutation mapped to
+  it; the no-auth prefix `/no-auth/information-requests/` is already allowlisted.
+- Design decisions 1 through 16, the subtask split, and the V136 through V138 allocations are
+  recorded under `### Phase 8 design decisions` and the migration ledger in the active plan.
+- V136 (`P8-T1a`), test first: `InformationRequestTemplateReviewPlanContractTest` (4 cases) observed
+  red for the intended reasons (missing `review_stage_ordering` column and missing review stage
+  relation), then green at 4 of 4. V136 adds the version review ordering and fact-reuse purpose,
+  review stages with their checks, stage section coverage, the freeze triggers, the default stage at
+  freeze, the restated version guard, and three publication rules (no stage without review routing,
+  gapless positions, every reviewer-routed binding covered).
+- Authoring, tests first: `InformationRequestTemplateReviewPlanValidationTest` (6 cases) red at 5
+  failures, then green; `InformationRequestTemplateReviewPlanValidator` runs after the submission
+  policy validator. The round-trip case added to `InformationRequestTemplateConfigurationWriterContractTest`
+  was red (ordering read back as `SEQUENTIAL`), then green at 8 of 8 after
+  `InformationRequestTemplateReviewPlanWriter`, the projection loader, the DTO mapper, and the copy
+  mapper carried the plan.
+- `P8-T4a`, test first: `InformationRequestReviewAggregatorTest` (11 cases) red at 11 against a stub,
+  then green; `InformationRequestReviewAggregator` is pure.
+- V137, test first: `InformationRequestReviewContractTest` (7 cases) observed red (missing review
+  relations; the request state check still admitting the removed states), then green at 7 of 7 on
+  the first run of the migration. `ReviewSqlFixture` and a `reviewed`, `optionalRecord`, and
+  `beforePublish` option on `SubmissionRuntimeSqlFixture` support it.
+- Vocabulary, tests first where behavior existed: `InformationRequestTransitionMatrixTest` (12) red
+  at 2 (review commands and fact or decision records refused), then green after `SUBMITTED`,
+  `UNDER_REVIEW`, and `CHANGES_REQUESTED` left `InformationRequestState` and the matrix rules changed;
+  `AuditEventTypeTest` (7) red at 2 (missing keys, version 23), green at catalog version 24;
+  `InformationRequestAuthorizationVocabularyTest` (8) was red only at compile and passed once the
+  six new actions existed. The six test files naming removed states were moved to current states.
+- `P8-T3` authorization, test first: the Requirement context provider test now expects its
+  correction scope from `InformationRequestSubmissionLockService.correctionScopeOf`; red
+  (`NORMAL_RESPONSE` returned), then green at 12 of 12. The scope vocabulary is `NORMAL_RESPONSE`,
+  `CORRECTION_ALLOWED`, `CORRECTION_EXCLUDED`; the evaluator case was renamed and a permit case added
+  (19 of 19). The lock service now reads the current package per scope (withdrawn or followed
+  packages drop out), unlocks allowlisted and frozen-hidden items under an open correction, reopens
+  attestation of a corrected scope, and allows replacing or withdrawing only a returned file.
+- Review services (`InformationRequestReviewLoader`, `InformationRequestReviewRouting`,
+  `InformationRequestSatisfactionService`, `InformationRequestReviewSettlement`,
+  `InformationRequestReviewOpeningService`, `InformationRequestReviewAccess`,
+  `InformationRequestReviewSeparationPolicy`, `InformationRequestReviewAssignmentService`,
+  `InformationRequestReviewDecisionService`, `InformationRequestReviewFindingService`,
+  `InformationRequestReviewCommentService`, `InformationRequestReviewCycleService`) and the
+  submission service changes were written before their PostgreSQL test, so
+  `InformationRequestReviewTransactionTest` (7 cases: satisfied closure with replay and fingerprint
+  conflict, correction allowlist with refused unreturned item and file plus resubmission, remediation,
+  and retest, carried outcome, withdrawal before and after assignment, separation of duties,
+  reconsideration and appeal with a stale precondition, worksheet preconditions) was not observed red;
+  it passed 7 of 7 on its first run. To prove it detects regressions, two temporary mutations were
+  run and reverted: disabling correction editability and skipping carry-forward failed 2 of 7.
+- Review reads: `InformationRequestReviewQueryTransactionTest` (3 cases: respondents see only
+  respondent-visible findings and only once the review settles; a reviewer reads the content it may
+  review while an administrator reads only the review's standing; the reviewer queue lists open
+  assignments by due instant and drops decided ones) passed on its first run because
+  `InformationRequestReviewQueryService` was written first, so it was not observed red. A temporary
+  mutation that showed findings before settlement failed it and was reverted.
+- Review REST: `InformationRequestReviewResourceContractTest` (6 cases) was written before the
+  resources. Its first run failed one case whose expectation was wrong (it expected the resource to
+  answer 428 for a missing `If-Match`, while the platform pattern is that the resource passes
+  `CommandPrecondition.Absent` and the service refuses), so the expectation was corrected to the
+  service-enforced precondition and the suite passed 6 of 6. A duplicate root path with
+  `InformationRequestNoAuthRequestResource` was avoided by splitting the no-auth surface into
+  `/no-auth/information-requests/{id}/reviews` and `/no-auth/information-requests/{id}/review-results`.
+- V138, test first: `InformationRequestAcceptedFactContractTest` (3 cases: a fact is promoted from
+  the exact field answer a package froze about the request's subject; supersession, conflict, and a
+  single revocation; a Business Decision chain numbered from one whose later decision names the
+  latest prior one) was red (missing relations), then green at 3 of 3. `FieldAnswerSqlFixture` and
+  `FactSqlFixture` support it.
+- Accepted Fact and Business Decision services: `InformationRequestAcceptedFactTransactionTest`
+  (4 cases: a promoted fact is offered to a later request of the same subject for reconfirmation
+  until revoked; a requesting-side fact is not offered to responding parties; a differing current
+  fact is recorded as a conflict and superseding it retires it from reuse; a decision chain stays
+  independent of the request and names the exact prior decision) first failed on replay because the
+  test computed `validTo` per call, which changed the fingerprint; the test now reuses one command
+  and asserts the fingerprint conflict separately, then passed 4 of 4. A temporary mutation that
+  disabled conflict detection and the responding-party visibility filter failed the conflict and
+  visibility cases (2 of 4) and was reverted.
+- Accepted Fact and Business Decision REST: `InformationRequestAcceptedFactResourceContractTest`
+  (6 cases) was written after the resources, so it was not observed red; it passed 6 of 6 on its
+  first run. A temporary mutation that dropped the supersession id and the decision `ETag` header
+  failed 2 of 6 and was reverted (restore verified with `diff`). Command:
+  `.\mvnw.cmd "-Dtest=InformationRequestAcceptedFactResourceContractTest" test -DskipFrontend=true`.
+- `P8-T12`, tests first: `InformationRequestControlledIssuanceTest` now expects a reviewer-routed
+  Version to issue and a Version frozen against `RESPONSE_REVIEW` v2 to be refused naming only that
+  requirement; `InformationRequestTemplatePersistenceContractTest` expects every capability installed
+  and refuses a v2 review contract; `InformationRequestTemplateWalkingSkeletonPhase7Test` expects the
+  staged stress fixture to be fully served. Observed red at 3 failures (review v1 unserved), then
+  green at 24 of 24 after `InformationRequestResponseReviewExecutor` was installed. Command:
+  `.\mvnw.cmd "-Dtest=InformationRequestControlledIssuanceTest,InformationRequestTemplatePersistenceContractTest,InformationRequestTemplateWalkingSkeletonPhase7Test,InformationRequestCapabilityExecutorTest" test -DskipFrontend=true`.
+- `P8-T10`, test first: `InformationRequestTemplateWalkingSkeletonPhase8Test` (4 cases) publishes the
+  two fixtures through the real writer and loader. It was red at 3 of 4 for the intended reasons (the
+  stress fixture carried only the default `review` stage; neither fixture named a reuse purpose). The
+  stress fixture now states sequential `content-review` (quorum 2 of at least 3, excluding response
+  parties, covering the response and evidence sections) and `confirmation-review` (consensus of at
+  least 2 with a required override on a tie, excluding prior reviewers) stages and the
+  `subject-status.reuse` purpose; the basic fixture states `recorded-summary.reuse` and still routes
+  nothing to a reviewer. The aggregation case drives `InformationRequestReviewAggregator` with the
+  published plan: understaffed content waits, a quorum return settles the review as changes
+  requested with only the rejected item returned while the confirmation stage waits, and on
+  resubmission a tied confirmation waits for an override that settles the package as satisfied with
+  exception. The fourth case runs the basic shape end to end on PostgreSQL (a review-required answer
+  and file, `FieldAnswerSqlFixture` plus a subject): the returned answer alone is editable, the
+  resubmission is reviewed as `RESUBMISSION` and closes the request, the promoted fact is `REVIEWED`
+  from the resubmission review, and the Business Decision recorded afterwards leaves the closed
+  request's state, satisfaction time, and satisfying package unchanged. That case passed before the
+  fixture change, so it was not observed red; two temporary mutations (promotion always `DECLARED`;
+  the correction lock never refusing) each failed it and were reverted with the restore verified by
+  `diff`. All walking skeleton suites pass together at 21 of 21. Command:
+  `.\mvnw.cmd "-Dtest=InformationRequestTemplateWalkingSkeletonPhase8Test,InformationRequestTemplateWalkingSkeletonPhase7Test,InformationRequestTemplateWalkingSkeletonPhase6Test,InformationRequestTemplateWalkingSkeletonPhase5Test,InformationRequestTemplateWalkingSkeletonContractTest" test -DskipFrontend=true`.
+- `P8-T11` frontend. `models.tsx` lost the three removed request states and gained the review,
+  Accepted Fact, Business Decision, and Template review plan types.
+  `informationRequestReviewService.test.ts` (4 cases) was red (module missing), then green at 4 of 4
+  with `informationRequestReviewService.ts`. `InformationRequestReviewWorkspace.test.tsx` (3 cases:
+  outcomes saved under the worksheet revision then recorded; a finding recorded and a stale worksheet
+  reported without recording; closed without the plan feature) was written before the components,
+  which it could not import, and passed 3 of 3 once `useInformationRequestReview` and the workspace
+  components existed; a temporary mutation that recorded with the stale worksheet revision failed it
+  and was reverted. `InformationRequestReviewResults.test.tsx` (2 cases) was red (module missing);
+  after the component its first run failed because the Fluent dialog needs a `ResizeObserver` stub
+  in jsdom, which it now has like the other dialog tests, then 2 of 2.
+  `InformationRequestReviewQueue.test.tsx` (2 cases) was written before the page; its first run
+  failed one case on the same `MessageBar` stub need, then 2 of 2. `ReviewQueueNavigation` and its
+  test were written together, so that test was not observed red. The results panel is mounted in
+  `InformationRequestSubmissionSection` (its test now mocks the review transport), the routes are in
+  `App.tsx`, and the menu entry uses the new `ReviewQueueIcon`.
+- Frontend gates. `npm run typecheck:app` first reported 3 Information Request diagnostics (the
+  finding dialog passed state setters where the generic choice needed its own type), fixed with
+  typed callbacks; it now reports 0 Information Request diagnostics of 346 baseline. The root
+  `npx tsc --noEmit` exits 0 but checks no files, because the root `tsconfig.json` only references
+  the projects, so `typecheck:app` is the effective type gate. ESLint on the changed files: 0 errors
+  (3 warnings, all in the unchanged `helpDocsRegistry.tsx`). `npm run build` passed. `npx vitest run`
+  with default workers failed one different unrelated test in each of two runs on the 5-second
+  timeout under load (`RequirementEvidencePanel` withdrawal at 6.98 s, then `NotificationContext`
+  hydration); both files pass alone (12 of 12), and `npx vitest run --maxWorkers=4` passed 536 of
+  536 tests in 131 files.
+- Help documentation. Searched `web-app/src/app/components/help-docs/sections/` for review and
+  Information Request coverage and read the submission, evidence, and templates articles in full.
+  The submission article said a reviewer-routed Template is refused at issuance and that a submitted
+  part can always be withdrawn; both are corrected. The evidence article's Ready for review text is
+  still accurate, and the templates article says nothing about review. New
+  `informationRequestReviewArticle.tsx` (90 lines) is registered as `request-review` in
+  `fieldsSection.tsx` (20 lines); the registry stays at 24 lines. `helpDocs.test.tsx` gained an
+  accuracy case written after the text (the removed sentence matches its forbidden pattern); the
+  suite passes 10 of 10.
+- Audits, rerun after the last change. The 166 changed and new files contain no em dash, arrow, or
+  emoji. Phase 8 production Kotlin, SQL, and TypeScript files contain no comments, and the only
+  comments in its test files are the vitest environment pragmas. No industry vocabulary appears in
+  any Phase 8 file. Every new REST path is a noun resource. No infrastructure or AWS change was made.
+- Full backend suite: `.\mvnw.cmd test -DskipFrontend=true` first ran 3,035 tests with 1 failure and 1 error (BUILD
+  FAILURE in 29:46). The error was environmental: one case of `InformationRequestReviewContractTest`
+  could not start its `postgres:16-alpine` container, and the class passed 7 of 7 when rerun. The
+  failure was real: `InformationRequestAmendmentGuardTest` still stubbed `lockedRequirementIds`,
+  while the guard had been switched to `submittedRequirementIds` earlier in this session so that an
+  amendment cannot rebind an item returned for correction while its review is open, and that test
+  was not in the targeted runs. The test now stubs the method the guard uses, the two Phase 7
+  observations in `InformationRequestSubmissionTransactionTest` read `submittedRequirementIds`, and
+  `lockedRequirementIds`, left without a production caller, was removed. New
+  `InformationRequestSubmissionLockServiceTest` (2 cases: under an open correction only returned
+  items and items a condition hid at submission reopen while every item stays submitted; without a
+  correction everything stays locked) was written after the code, so a temporary mutation that
+  removed the hidden-item allowance was used instead; it failed the first case and was reverted with
+  the restore verified by `diff`. The failed, errored, new, and related classes then passed 122 of
+  122: `.\mvnw.cmd "-Dtest=InformationRequestAmendmentGuardTest,InformationRequestSubmissionLockServiceTest,InformationRequestSubmissionTransactionTest,InformationRequestReviewContractTest,InformationRequestDelegatedAuthorityAuthorizationTest,InformationRequestEvidenceAuthorizationMatrixTest,InformationRequestEvidenceCommandTransactionTest,InformationRequestGroupAuthorizationServiceTest,InformationRequestGroupOccurrenceServiceTest,InformationRequestPartyConcurrencyTransactionTest,InformationRequestRequirementAuthorizationContextProviderTest,InformationRequestResponseDraftServiceTest,InformationRequestReviewTransactionTest,InformationRequestTemplateWalkingSkeletonPhase8Test" test -DskipFrontend=true`.
+  The final full run after those changes: 3,037 tests, 0 failures, 0 errors, 0 skipped, BUILD SUCCESS in 29:52
+  (`.\mvnw.cmd test -DskipFrontend=true`). The final frontend run, after the menu entry and help
+  documentation changes, passed `npx vitest run --maxWorkers=4` with 538 tests in 132 files,
+  `npm run build`, `npm run typecheck:app` (0 Information Request diagnostics), and ESLint on every
+  changed path (0 errors).
+- Result: Phase 8 complete. No commit or push was made. The local development database is at V131
+  (checked read-only), so V132 through V138 have not been applied there. Next task: `P9-T1`, only
+  when the user asks for Phase 9.
+
 ### 2026-09-25: Phase 7 implementation session
 
 This entry is written progressively so an interruption leaves an exact resume point. The user asked

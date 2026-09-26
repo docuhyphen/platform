@@ -141,7 +141,6 @@ class InformationRequestSubmissionQueryService @Inject constructor(
         val ACTIVE_RESPONSE_STATES = setOf(
             InformationRequestState.ISSUED,
             InformationRequestState.IN_PROGRESS,
-            InformationRequestState.CHANGES_REQUESTED,
         )
     }
 }

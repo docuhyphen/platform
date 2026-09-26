@@ -75,6 +75,7 @@ class InformationRequestTemplateConfigurationWriter @Inject constructor(
     private val conditionPredicateRepository: InformationRequestTemplateConditionPredicateRepository,
     private val conditionPredicateLiteralRepository: InformationRequestTemplateConditionPredicateLiteralRepository,
     private val attestationPolicyWriter: InformationRequestTemplateAttestationPolicyWriter,
+    private val reviewPlanWriter: InformationRequestTemplateReviewPlanWriter,
 )
 {
     /**
@@ -108,10 +109,17 @@ class InformationRequestTemplateConfigurationWriter @Inject constructor(
         val bindings = writeStructure(draft, document, requirements)
         writeBindingPolicies(draft.id, authored, bindings)
         attestationPolicyWriter.write(draft.id, authored, bindings)
+        reviewPlanWriter.write(
+            draft.id,
+            document.reviewStages,
+            sectionRepository.findOrdered(draft.id).associate { it.sectionKey to it.id },
+        )
 
         draft.schemaVersionId = document.schemaVersionId
         draft.submissionMode = document.submissionMode
         draft.submissionStageOrdering = document.submissionStageOrdering
+        draft.reviewStageOrdering = document.reviewStageOrdering
+        draft.factReusePurposeKey = document.factReusePurposeKey
         versionRepository.update(draft)
     }
 
@@ -125,6 +133,7 @@ class InformationRequestTemplateConfigurationWriter @Inject constructor(
      */
     private fun clearConfiguration(templateVersionId: UUID)
     {
+        reviewPlanWriter.clear(templateVersionId)
         attestationPolicyWriter.clear(templateVersionId)
         acceptedValueRepository.deleteForVersion(templateVersionId)
         evidencePolicyRepository.deleteForVersion(templateVersionId)

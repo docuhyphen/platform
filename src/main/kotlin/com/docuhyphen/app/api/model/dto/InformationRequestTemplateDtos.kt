@@ -13,7 +13,10 @@ import com.docuhyphen.app.api.model.entity.InformationRequestRequiredness
 import com.docuhyphen.app.api.model.entity.InformationRequestRequirementType
 import com.docuhyphen.app.api.model.entity.InformationRequestResponseDisposition
 import com.docuhyphen.app.api.model.entity.InformationRequestResponseMode
+import com.docuhyphen.app.api.model.entity.InformationRequestReviewAggregation
 import com.docuhyphen.app.api.model.entity.InformationRequestReviewPolicy
+import com.docuhyphen.app.api.model.entity.InformationRequestReviewStageOrdering
+import com.docuhyphen.app.api.model.entity.InformationRequestReviewTieResolution
 import com.docuhyphen.app.api.model.entity.InformationRequestSubmissionMode
 import com.docuhyphen.app.api.model.entity.InformationRequestSubmissionStageOrdering
 import com.docuhyphen.app.api.model.entity.InformationRequestTemplateScopeKind
@@ -101,6 +104,9 @@ data class InformationRequestTemplateVersionDto(
     val submissionMode: InformationRequestSubmissionMode = InformationRequestSubmissionMode.WHOLE_PACKAGE,
     val submissionStageOrdering: InformationRequestSubmissionStageOrdering =
         InformationRequestSubmissionStageOrdering.ANY_ORDER,
+    val reviewStageOrdering: InformationRequestReviewStageOrdering = InformationRequestReviewStageOrdering.SEQUENTIAL,
+    val reviewStages: List<InformationRequestTemplateReviewStageDto> = emptyList(),
+    val factReusePurposeKey: String? = null,
     val sections: List<InformationRequestTemplateSectionDto> = emptyList(),
     /** The repeatable and nested groups an occurrence-anchored requirement may answer once per. */
     val groups: List<InformationRequestTemplateGroupDto> = emptyList(),
@@ -194,6 +200,21 @@ data class InformationRequestTemplateRequirementDto(
 )
 
 @Serializable
+data class InformationRequestTemplateReviewStageDto(
+    @Serializable(with = UUIDSerializer::class) val id: UUID,
+    val stageKey: String,
+    val title: String,
+    val aggregation: InformationRequestReviewAggregation,
+    val quorumCount: Int? = null,
+    val minimumReviewerCount: Int,
+    val tieResolution: InformationRequestReviewTieResolution,
+    val overridePermitted: Boolean,
+    val excludesResponseParties: Boolean,
+    val excludesPriorReviewers: Boolean,
+    val sectionKeys: List<String> = emptyList(),
+)
+
+@Serializable
 data class InformationRequestTemplateAttestationPolicyDto(
     @Serializable(with = UUIDSerializer::class) val id: UUID,
     val requiredRoles: List<InformationRequestContributorRole>,
@@ -263,6 +284,23 @@ data class InformationRequestTemplateConfigurationRequest(
     val submissionMode: InformationRequestSubmissionMode = InformationRequestSubmissionMode.WHOLE_PACKAGE,
     val submissionStageOrdering: InformationRequestSubmissionStageOrdering =
         InformationRequestSubmissionStageOrdering.ANY_ORDER,
+    val reviewStageOrdering: InformationRequestReviewStageOrdering = InformationRequestReviewStageOrdering.SEQUENTIAL,
+    val reviewStages: List<InformationRequestTemplateReviewStageRequest> = emptyList(),
+    val factReusePurposeKey: String? = null,
+)
+
+@Serializable
+data class InformationRequestTemplateReviewStageRequest(
+    val stageKey: String,
+    val title: String,
+    val aggregation: InformationRequestReviewAggregation = InformationRequestReviewAggregation.ANY,
+    val quorumCount: Int? = null,
+    val minimumReviewerCount: Int = 1,
+    val tieResolution: InformationRequestReviewTieResolution = InformationRequestReviewTieResolution.MOST_SEVERE_OUTCOME,
+    val overridePermitted: Boolean = false,
+    val excludesResponseParties: Boolean = false,
+    val excludesPriorReviewers: Boolean = false,
+    val sectionKeys: List<String> = emptyList(),
 )
 
 @Serializable

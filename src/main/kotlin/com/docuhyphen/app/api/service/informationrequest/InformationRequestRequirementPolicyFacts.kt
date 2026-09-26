@@ -47,5 +47,6 @@ data class InformationRequestRequirementDelegatedAuthorityFact(
 enum class InformationRequestRequirementCorrectionScope
 {
     NORMAL_RESPONSE,
-    OPEN_CORRECTION,
+    CORRECTION_ALLOWED,
+    CORRECTION_EXCLUDED,
 }

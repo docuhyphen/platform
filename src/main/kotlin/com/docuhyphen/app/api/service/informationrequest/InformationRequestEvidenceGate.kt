@@ -75,6 +75,11 @@ class InformationRequestEvidenceGate @Inject constructor(
         lockService.requireUnlocked(locked.request.id, listOf(requirement.id))
     }
 
+    fun requireArtifactOpen(locked: LockedInformationRequest, requirement: InformationRequestRequirement, artifactId: UUID)
+    {
+        lockService.requireEvidenceArtifactOpen(locked.request.id, requirement.id, artifactId)
+    }
+
     fun requireMutationAllowed(locked: LockedInformationRequest)
     {
         val decision = InformationRequestTransitionMatrix.canMutate(

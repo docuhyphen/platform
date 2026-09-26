@@ -2122,6 +2122,9 @@ export interface InformationRequestTemplateVersionDto
     schemaVersionId?: string;
     submissionMode?: InformationRequestSubmissionMode;
     submissionStageOrdering?: InformationRequestSubmissionStageOrdering;
+    reviewStageOrdering?: InformationRequestReviewStageOrdering;
+    reviewStages?: InformationRequestTemplateReviewStageDto[];
+    factReusePurposeKey?: string;
     sections: InformationRequestTemplateSectionDto[];
     groups: InformationRequestTemplateGroupDto[];
     conditionRules: InformationRequestTemplateConditionRuleDto[];
@@ -2366,9 +2369,6 @@ export enum InformationRequestState
     DRAFT = "DRAFT",
     ISSUED = "ISSUED",
     IN_PROGRESS = "IN_PROGRESS",
-    SUBMITTED = "SUBMITTED",
-    UNDER_REVIEW = "UNDER_REVIEW",
-    CHANGES_REQUESTED = "CHANGES_REQUESTED",
     CLOSED = "CLOSED",
     CANCELLED = "CANCELLED",
     SUPERSEDED = "SUPERSEDED",
@@ -2979,6 +2979,522 @@ export interface CreateInformationRequestSuccessorRequest
     targetTemplateVersionId?: string;
     sourcePackageId?: string;
     reasonCode?: string;
+}
+
+export enum InformationRequestReviewStageOrdering
+{
+    SEQUENTIAL = "SEQUENTIAL",
+    PARALLEL = "PARALLEL",
+}
+
+export enum InformationRequestReviewAggregation
+{
+    ALL = "ALL",
+    ANY = "ANY",
+    QUORUM = "QUORUM",
+    CONSENSUS = "CONSENSUS",
+}
+
+export enum InformationRequestReviewTieResolution
+{
+    MOST_SEVERE_OUTCOME = "MOST_SEVERE_OUTCOME",
+    REQUIRE_OVERRIDE = "REQUIRE_OVERRIDE",
+}
+
+export interface InformationRequestTemplateReviewStageDto
+{
+    id: string;
+    stageKey: string;
+    title: string;
+    aggregation: InformationRequestReviewAggregation;
+    quorumCount?: number;
+    minimumReviewerCount: number;
+    tieResolution: InformationRequestReviewTieResolution;
+    overridePermitted: boolean;
+    excludesResponseParties: boolean;
+    excludesPriorReviewers: boolean;
+    sectionKeys: string[];
+}
+
+export enum InformationRequestReviewKind
+{
+    INITIAL = "INITIAL",
+    RESUBMISSION = "RESUBMISSION",
+    RECONSIDERATION = "RECONSIDERATION",
+    APPEAL = "APPEAL",
+}
+
+export enum InformationRequestReviewState
+{
+    PENDING = "PENDING",
+    IN_REVIEW = "IN_REVIEW",
+    CHANGES_REQUESTED = "CHANGES_REQUESTED",
+    REJECTED = "REJECTED",
+    SATISFIED = "SATISFIED",
+    SATISFIED_WITH_EXCEPTION = "SATISFIED_WITH_EXCEPTION",
+    WITHDRAWN = "WITHDRAWN",
+}
+
+export enum InformationRequestReviewAssignmentState
+{
+    ACTIVE = "ACTIVE",
+    RECUSED = "RECUSED",
+    DELEGATED = "DELEGATED",
+    REVOKED = "REVOKED",
+}
+
+export enum InformationRequestReviewOutcome
+{
+    SATISFIED = "SATISFIED",
+    SATISFIED_WITH_EXCEPTION = "SATISFIED_WITH_EXCEPTION",
+    WAIVED = "WAIVED",
+    CHANGES_REQUIRED = "CHANGES_REQUIRED",
+    REJECTED = "REJECTED",
+}
+
+export enum InformationRequestReviewDecisionKind
+{
+    REVIEWER = "REVIEWER",
+    OVERRIDE = "OVERRIDE",
+    CARRIED = "CARRIED",
+}
+
+export enum InformationRequestFindingSeverity
+{
+    OBSERVATION = "OBSERVATION",
+    MINOR = "MINOR",
+    MAJOR = "MAJOR",
+    CRITICAL = "CRITICAL",
+}
+
+export enum InformationRequestReviewVisibility
+{
+    RESPONDENT_VISIBLE = "RESPONDENT_VISIBLE",
+    REVIEWERS_ONLY = "REVIEWERS_ONLY",
+}
+
+export enum InformationRequestFindingCorrectionScope
+{
+    NONE = "NONE",
+    RESPONSE = "RESPONSE",
+    EVIDENCE_VERSION = "EVIDENCE_VERSION",
+    ADDITIONAL_EVIDENCE = "ADDITIONAL_EVIDENCE",
+}
+
+export enum InformationRequestRetestResult
+{
+    RESOLVED = "RESOLVED",
+    UNRESOLVED = "UNRESOLVED",
+}
+
+export enum InformationRequestCorrectionState
+{
+    OPEN = "OPEN",
+    RESUBMITTED = "RESUBMITTED",
+    SUPERSEDED = "SUPERSEDED",
+}
+
+export enum InformationRequestReviewCommentRole
+{
+    REVIEWER = "REVIEWER",
+    RESPONDENT = "RESPONDENT",
+    ADMINISTRATOR = "ADMINISTRATOR",
+}
+
+export enum InformationRequestReviewItemStanding
+{
+    PENDING = "PENDING",
+    UNDERSTAFFED = "UNDERSTAFFED",
+    TIED = "TIED",
+    DECIDED = "DECIDED",
+}
+
+export enum InformationRequestReviewStageState
+{
+    WAITING = "WAITING",
+    OPEN = "OPEN",
+    SETTLED = "SETTLED",
+}
+
+export interface InformationRequestReviewSummaryDto
+{
+    id: string;
+    informationRequestId: string;
+    packageId: string;
+    packageNumber: number;
+    stageKey?: string;
+    reviewNumber: number;
+    kind: InformationRequestReviewKind;
+    priorReviewId?: string;
+    state: InformationRequestReviewState;
+    openingReason?: string;
+    openedAt: string;
+    settledAt?: string;
+    reviewETag: string;
+}
+
+export interface InformationRequestReviewItemStandingDto
+{
+    submissionItemId: string;
+    standing: InformationRequestReviewItemStanding;
+    outcome?: InformationRequestReviewOutcome;
+}
+
+export interface InformationRequestReviewStageStandingDto
+{
+    stageKey: string;
+    title: string;
+    position: number;
+    aggregation: InformationRequestReviewAggregation;
+    quorumCount?: number;
+    minimumReviewerCount: number;
+    tieResolution: InformationRequestReviewTieResolution;
+    overridePermitted: boolean;
+    excludesResponseParties: boolean;
+    excludesPriorReviewers: boolean;
+    state: InformationRequestReviewStageState;
+    items: InformationRequestReviewItemStandingDto[];
+}
+
+export interface InformationRequestReviewItemDto
+{
+    submissionItemId: string;
+    requirementId: string;
+    requirementKey: string;
+    requirementType: InformationRequestRequirementType;
+    occurrencePath: string;
+    reviewed: boolean;
+    finalOutcome?: InformationRequestReviewOutcome;
+    contentVisible: boolean;
+    disposition?: InformationRequestResponseDisposition;
+    narrative?: string;
+    fieldValue?: unknown;
+    evidence: InformationRequestSubmissionEvidenceDto[];
+}
+
+export interface InformationRequestReviewAssignmentDto
+{
+    id: string;
+    stageKey: string;
+    reviewerPartyId: string;
+    state: InformationRequestReviewAssignmentState;
+    dueAt?: string;
+    delegatedFromAssignmentId?: string;
+    assignedAt: string;
+    changeReasonCode?: string;
+    changedAt?: string;
+    decidedAt?: string;
+    callerIsReviewer: boolean;
+}
+
+export interface InformationRequestReviewDecisionDto
+{
+    id: string;
+    stageKey: string;
+    submissionItemId: string;
+    kind: InformationRequestReviewDecisionKind;
+    assignmentId?: string;
+    carriedFromDecisionId?: string;
+    outcome: InformationRequestReviewOutcome;
+    narrative?: string;
+    decidedAt: string;
+    decidedByCaller: boolean;
+}
+
+export interface InformationRequestReviewFindingDto
+{
+    id: string;
+    submissionItemId: string;
+    requirementId: string;
+    evidenceVersionId?: string;
+    reasonCode: string;
+    narrative: string;
+    severity: InformationRequestFindingSeverity;
+    visibility: InformationRequestReviewVisibility;
+    correctionScope: InformationRequestFindingCorrectionScope;
+    retestsFindingId?: string;
+    retestResult?: InformationRequestRetestResult;
+    recordedAt: string;
+    recordedByCaller: boolean;
+}
+
+export interface InformationRequestReviewCommentDto
+{
+    id: string;
+    submissionItemId: string;
+    requirementId: string;
+    findingId?: string;
+    replyToCommentId?: string;
+    authorRole: InformationRequestReviewCommentRole;
+    visibility: InformationRequestReviewVisibility;
+    body: string;
+    createdAt: string;
+    authoredByCaller: boolean;
+}
+
+export interface InformationRequestCorrectionDto
+{
+    id: string;
+    reviewId: string;
+    packageId: string;
+    state: InformationRequestCorrectionState;
+    openedAt: string;
+    closedAt?: string;
+    resubmittedPackageId?: string;
+    requirementIds: string[];
+    evidenceVersionIds: string[];
+    undisclosedItemCount: number;
+}
+
+export interface InformationRequestRemediationDto
+{
+    findingId: string;
+    remediatedByPackageId: string;
+    remediatedByItemId: string;
+    recordedAt: string;
+}
+
+export interface InformationRequestReviewWorksheetEntryDto
+{
+    submissionItemId: string;
+    outcome: InformationRequestReviewOutcome;
+    narrative?: string;
+}
+
+export interface InformationRequestReviewWorksheetDto
+{
+    assignmentId: string;
+    draftETag: string;
+    entries: InformationRequestReviewWorksheetEntryDto[];
+}
+
+export interface InformationRequestReviewDto
+{
+    review: InformationRequestReviewSummaryDto;
+    reviewStageOrdering: InformationRequestReviewStageOrdering;
+    stages: InformationRequestReviewStageStandingDto[];
+    items: InformationRequestReviewItemDto[];
+    assignments: InformationRequestReviewAssignmentDto[];
+    decisions: InformationRequestReviewDecisionDto[];
+    findings: InformationRequestReviewFindingDto[];
+    comments: InformationRequestReviewCommentDto[];
+    correction?: InformationRequestCorrectionDto;
+    remediations: InformationRequestRemediationDto[];
+    worksheets: InformationRequestReviewWorksheetDto[];
+    canManage: boolean;
+}
+
+export interface InformationRequestRespondentReviewDto
+{
+    review: InformationRequestReviewSummaryDto;
+    findings: InformationRequestReviewFindingDto[];
+    comments: InformationRequestReviewCommentDto[];
+    correction?: InformationRequestCorrectionDto;
+    remediations: InformationRequestRemediationDto[];
+    canAppeal: boolean;
+    canComment: boolean;
+}
+
+export interface InformationRequestReviewQueueEntryDto
+{
+    assignmentId: string;
+    reviewId: string;
+    informationRequestId: string;
+    exchangeId: string;
+    reviewStageKey: string;
+    packageNumber: number;
+    submissionStageKey?: string;
+    reviewState: InformationRequestReviewState;
+    itemCount: number;
+    dueAt?: string;
+    assignedAt: string;
+}
+
+export interface InformationRequestReviewCommandResultDto
+{
+    requestState: InformationRequestState;
+    responseETag: string;
+    review: InformationRequestReviewSummaryDto;
+    assignmentId?: string;
+    draftETag?: string;
+    findingId?: string;
+    commentId?: string;
+}
+
+export interface AssignInformationRequestReviewerRequest
+{
+    stageKey: string;
+    reviewerPartyId: string;
+    dueAt?: string;
+}
+
+export interface ChangeInformationRequestReviewAssignmentRequest
+{
+    reasonCode?: string;
+    narrative?: string;
+    delegatePartyId?: string;
+}
+
+export interface InformationRequestReviewWorksheetEntryRequest
+{
+    submissionItemId: string;
+    outcome?: InformationRequestReviewOutcome;
+    narrative?: string;
+    clear?: boolean;
+}
+
+export interface SaveInformationRequestReviewWorksheetRequest
+{
+    entries: InformationRequestReviewWorksheetEntryRequest[];
+}
+
+export interface OverrideInformationRequestReviewItemRequest
+{
+    stageKey: string;
+    submissionItemId: string;
+    outcome: InformationRequestReviewOutcome;
+    narrative: string;
+}
+
+export interface RecordInformationRequestReviewFindingRequest
+{
+    submissionItemId: string;
+    evidenceVersionId?: string;
+    reasonCode: string;
+    narrative: string;
+    severity: InformationRequestFindingSeverity;
+    visibility: InformationRequestReviewVisibility;
+    correctionScope?: InformationRequestFindingCorrectionScope;
+    retestsFindingId?: string;
+    retestResult?: InformationRequestRetestResult;
+}
+
+export interface RecordInformationRequestReviewCommentRequest
+{
+    submissionItemId: string;
+    findingId?: string;
+    replyToCommentId?: string;
+    visibility?: InformationRequestReviewVisibility;
+    body: string;
+}
+
+export interface ReopenInformationRequestReviewRequest
+{
+    reason: string;
+}
+
+export enum InformationRequestAcceptedFactVisibility
+{
+    REQUESTING_SIDE = "REQUESTING_SIDE",
+    RESPONDING_PARTIES = "RESPONDING_PARTIES",
+}
+
+export enum InformationRequestAcceptedFactConfidence
+{
+    DECLARED = "DECLARED",
+    REVIEWED = "REVIEWED",
+}
+
+export enum InformationRequestAcceptedFactConflictState
+{
+    NONE = "NONE",
+    CONFLICTING = "CONFLICTING",
+}
+
+export enum InformationRequestAcceptedFactFreshness
+{
+    CURRENT = "CURRENT",
+    EXPIRED = "EXPIRED",
+    OUTSIDE_VALID_PERIOD = "OUTSIDE_VALID_PERIOD",
+}
+
+export enum InformationRequestBusinessDecisionKind
+{
+    ORIGINAL = "ORIGINAL",
+    RECONSIDERATION = "RECONSIDERATION",
+    APPEAL = "APPEAL",
+}
+
+export interface InformationRequestAcceptedFactDto
+{
+    id: string;
+    subjectIdentityRefId: string;
+    purposeKey: string;
+    fieldDefinitionId: string;
+    valueType: FieldValueType;
+    value: unknown;
+    sourceInformationRequestId: string;
+    sourcePackageId: string;
+    sourceSubmissionItemId: string;
+    sourceRequirementId: string;
+    sourceReviewId?: string;
+    visibility: InformationRequestAcceptedFactVisibility;
+    confidence: InformationRequestAcceptedFactConfidence;
+    validFrom: string;
+    validTo?: string;
+    expiresAt?: string;
+    supersedesFactId?: string;
+    supersededByFactId?: string;
+    conflictState: InformationRequestAcceptedFactConflictState;
+    conflictingFactId?: string;
+    promotedAt: string;
+    revoked: boolean;
+    revokedAt?: string;
+    revocationReasonCode?: string;
+    freshness: InformationRequestAcceptedFactFreshness;
+}
+
+export interface InformationRequestAcceptedFactOfferDto
+{
+    requirementId: string;
+    requirementKey: string;
+    fact: InformationRequestAcceptedFactDto;
+    reconfirmationRequired: boolean;
+}
+
+export interface InformationRequestBusinessDecisionDto
+{
+    id: string;
+    informationRequestId: string;
+    owningProcessKey: string;
+    outcomeCode: string;
+    reasonReference?: string;
+    externalReference?: string;
+    kind: InformationRequestBusinessDecisionKind;
+    priorDecisionId?: string;
+    decisionRevision: number;
+    decidedAt: string;
+    recordedAt: string;
+    recordedByCaller: boolean;
+}
+
+export interface PromoteInformationRequestAcceptedFactRequest
+{
+    packageId: string;
+    submissionItemId: string;
+    purposeKey: string;
+    visibility?: InformationRequestAcceptedFactVisibility;
+    validFrom?: string;
+    validTo?: string;
+    expiresAt?: string;
+    supersedesFactId?: string;
+}
+
+export interface RevokeInformationRequestAcceptedFactRequest
+{
+    reasonCode: string;
+    narrative?: string;
+}
+
+export interface RecordInformationRequestBusinessDecisionRequest
+{
+    owningProcessKey: string;
+    outcomeCode: string;
+    reasonReference?: string;
+    externalReference?: string;
+    kind?: InformationRequestBusinessDecisionKind;
+    priorDecisionId?: string;
+    decidedAt: string;
 }
 
 // ── Audit projection, exports, and integrity ──────────────────────────────────

@@ -7,6 +7,9 @@ internal class SubmissionRuntimeSqlFixture(
     private val connection: Connection,
     staged: Boolean = false,
     sequential: Boolean = false,
+    reviewed: Boolean = false,
+    optionalRecord: Boolean = false,
+    beforePublish: (SubmissionRuntimeSqlFixture) -> Unit = {},
 )
 {
     val template = SubmissionTemplateSqlFixture(connection)
@@ -32,6 +35,10 @@ internal class SubmissionRuntimeSqlFixture(
     val inspectionId: UUID = UUID.randomUUID()
     val supportingLinkTemplateId: UUID = UUID.randomUUID()
     val confirmationSectionId: UUID = UUID.randomUUID()
+    val optionalTemplateRequirementId: UUID = UUID.randomUUID()
+    val optionalBindingId: UUID = UUID.randomUUID()
+    val optionalRequirementId: UUID = UUID.randomUUID()
+    val optionalRevisionId: UUID = UUID.randomUUID()
 
     init
     {
@@ -57,6 +64,14 @@ internal class SubmissionRuntimeSqlFixture(
         template.insertBinding(documentBindingId, template.versionId, documentTemplateRequirementId, template.sectionId, 1)
         template.insertEvidencePolicy(UUID.randomUUID(), documentBindingId, template.versionId)
         template.insertDisposition(documentBindingId, template.versionId, "PROVIDED")
+        if (reviewed)
+        {
+            execute(
+                connection,
+                "UPDATE information_request_template_requirement_binding SET review_policy = 'REQUIRED' WHERE id = ?",
+                documentBindingId,
+            )
+        }
         template.insertRequirement(attestationTemplateRequirementId, "recorded-assertion", "RESPONSE_ATTESTATION")
         template.insertBinding(
             attestationBindingId,
@@ -78,6 +93,19 @@ internal class SubmissionRuntimeSqlFixture(
             documentBindingId,
             template.versionId,
         )
+        if (optionalRecord)
+        {
+            template.insertRequirement(optionalTemplateRequirementId, "optional-record", "DOCUMENT")
+            template.insertBinding(optionalBindingId, template.versionId, optionalTemplateRequirementId, template.sectionId, 3)
+            template.insertEvidencePolicy(UUID.randomUUID(), optionalBindingId, template.versionId)
+            template.insertDisposition(optionalBindingId, template.versionId, "PROVIDED")
+            execute(
+                connection,
+                "UPDATE information_request_template_requirement_binding SET requiredness = 'OPTIONAL' WHERE id = ?",
+                optionalBindingId,
+            )
+        }
+        beforePublish(this)
         template.recordDerivedCapabilities(template.versionId)
         template.publish(template.versionId)
 
@@ -122,6 +150,10 @@ internal class SubmissionRuntimeSqlFixture(
             attestationTemplateRequirementId,
             attestationBindingId,
         )
+        if (optionalRecord)
+        {
+            insertRuntimeRequirement(optionalRequirementId, optionalRevisionId, optionalTemplateRequirementId, optionalBindingId)
+        }
         execute(
             connection,
             """
@@ -211,10 +243,68 @@ internal class SubmissionRuntimeSqlFixture(
         )
     }
 
+    fun reviewStageId(stageKey: String = "review"): UUID =
+        UUID.fromString(
+            queryString(
+                connection,
+                "SELECT id::text FROM information_request_template_review_stage WHERE template_version_id = ? AND stage_key = ?",
+                template.versionId,
+                stageKey,
+            ),
+        )
+
+    fun insertActingParty(id: UUID, role: String, userId: UUID)
+    {
+        insertUser(userId)
+        insertParty(id, role, userId)
+    }
+
+    fun insertPartyForUser(id: UUID, role: String, userId: UUID)
+    {
+        insertParty(id, role, userId)
+    }
+
+    fun insertRequirementOccurrence(id: UUID, revisionId: UUID, templateRequirementId: UUID, bindingId: UUID)
+    {
+        insertRuntimeRequirement(id, revisionId, templateRequirementId, bindingId)
+    }
+
+    fun insertSubject(subjectIdentityRefId: UUID, partyId: UUID? = null)
+    {
+        execute(
+            connection,
+            """
+            INSERT INTO subject_identity_ref (id, owner_type, owner_organization_id, subject_kind, created_at)
+            VALUES (?, 'ORGANIZATION', ?, 'RECORD', ?)
+            """.trimIndent(),
+            subjectIdentityRefId,
+            template.organizationId,
+            template.now,
+        )
+        partyId?.let {
+            execute(
+                connection,
+                """
+                INSERT INTO information_request_party
+                    (id, information_request_id, role_key, subject_identity_ref_id, active, party_revision,
+                     assigned_at, created_at, updated_at)
+                VALUES (?, ?, 'SUBJECT', ?, TRUE, 1, ?, ?, ?)
+                """.trimIndent(),
+                it,
+                requestId,
+                subjectIdentityRefId,
+                template.now,
+                template.now,
+                template.now,
+            )
+        }
+    }
+
     fun publishNextVersion(
         number: Int = 2,
         keepAttestation: Boolean = true,
         adjust: (NextSubmissionVersion) -> Unit = {},
+        adjustCapabilities: (NextSubmissionVersion) -> Unit = {},
     ): NextSubmissionVersion
     {
         val next = NextSubmissionVersion(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID())
@@ -248,6 +338,7 @@ internal class SubmissionRuntimeSqlFixture(
         }
         adjust(next)
         template.recordDerivedCapabilities(next.versionId)
+        adjustCapabilities(next)
         template.publish(next.versionId)
         return next
     }

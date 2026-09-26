@@ -13,4 +13,5 @@ class InformationRequestTemplateValidationException(
     val sectionKey: String? = null,
     val requirementKey: String? = null,
     val groupKey: String? = null,
+    val reviewStageKey: String? = null,
 ) : RuntimeException(message)

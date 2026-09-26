@@ -43,12 +43,14 @@ export const informationRequestSubmissionArticle = (
             <b> Part to submit</b>. A Template can require parts to be submitted in order. Once a
             part is submitted, its answers, files, repeated items, and confirmations cannot change,
             while the other parts stay open. To change a submitted part, select <b>Withdraw</b> on
-            its submission; the part opens again and a later submission follows the withdrawn one.
+            its submission before a reviewer is assigned to it; the part opens again and a later
+            submission follows the withdrawn one.
         </p>
         <p id={"information-request-submission-complete-help"}>
             A request whose Template needs no reviewer is complete as soon as its last part is
-            submitted. Only such Templates can be issued at the moment; a Template that routes
-            work to a reviewer is refused at issuance until review is available.
+            submitted. When the Template routes work to a reviewer, each submission waits for
+            review and the request completes once its reviews accept the whole response; see
+            Reviewing Information Request submissions.
         </p>
 
         <h3 id={"information-request-submission-amendments-heading"}>Amendments</h3>

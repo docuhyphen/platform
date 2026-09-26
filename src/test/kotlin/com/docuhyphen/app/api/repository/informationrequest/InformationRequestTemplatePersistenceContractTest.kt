@@ -628,7 +628,7 @@ class InformationRequestTemplatePersistenceContractTest
 
         QuarkusTransaction.requiringNew().run {
             capabilityRepository.save(
-                requiredCapability(version.id, InformationRequestCapability.RESPONSE_REVIEW, 1),
+                requiredCapability(version.id, InformationRequestCapability.RESPONSE_REVIEW, 2),
             )
             capabilityRepository.save(
                 requiredCapability(version.id, InformationRequestCapability.RESPONSE_SUBMISSION, 1),
@@ -653,14 +653,14 @@ class InformationRequestTemplatePersistenceContractTest
                 capabilityRepository.findForVersion(otherVersion.id).map { it.capabilityKey },
             )
             assertEquals(
-                listOf(1, 1),
+                listOf(2, 1),
                 capabilityRepository.findForVersion(version.id).map { it.requiredContractVersion },
             )
 
             assertEquals(
                 listOf(
                     InformationRequestCapabilityRequirement(
-                        InformationRequestCapability.RESPONSE_REVIEW, 1,
+                        InformationRequestCapability.RESPONSE_REVIEW, 2,
                     ),
                     InformationRequestCapabilityRequirement(
                         InformationRequestCapability.RESPONSE_SUBMISSION, 1,
@@ -669,14 +669,15 @@ class InformationRequestTemplatePersistenceContractTest
                 capabilityGate.requirementsOf(version.id),
             )
 
-            // Every capability but reviewer disposition is installed, so a version that needs review
-            // is published and valid but cannot be issued, and the refusal names only what is missing.
+            // Every capability is installed, but this version was frozen against a review contract no
+            // installed executor honours, so it is valid but cannot be issued, and the refusal names
+            // only what is missing.
             assertEquals(
-                InformationRequestCapability.entries.toSet() - InformationRequestCapability.RESPONSE_REVIEW,
+                InformationRequestCapability.entries.toSet(),
                 executorRegistry.installedCapabilities(),
             )
             val unserved = listOf(
-                InformationRequestCapabilityRequirement(InformationRequestCapability.RESPONSE_REVIEW, 1),
+                InformationRequestCapabilityRequirement(InformationRequestCapability.RESPONSE_REVIEW, 2),
             )
             assertEquals(unserved, capabilityGate.unservedRequirements(version.id))
             val refusal = assertThrows<InformationRequestCapabilityNotInstalledException> {
@@ -684,7 +685,7 @@ class InformationRequestTemplatePersistenceContractTest
             }
             assertEquals(unserved, refusal.unserved)
             assertTrue(
-                refusal.message.contains("RESPONSE_REVIEW v1") && !refusal.message.contains("RESPONSE_SUBMISSION"),
+                refusal.message.contains("RESPONSE_REVIEW v2") && !refusal.message.contains("RESPONSE_SUBMISSION"),
                 "The refusal should name only the unserved capability: ${refusal.message}",
             )
             capabilityGate.requireInstalledCapabilities(otherVersion.id)

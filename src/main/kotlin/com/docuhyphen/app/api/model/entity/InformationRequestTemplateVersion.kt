@@ -51,6 +51,13 @@ class InformationRequestTemplateVersion
     var submissionStageOrdering: InformationRequestSubmissionStageOrdering =
         InformationRequestSubmissionStageOrdering.ANY_ORDER
 
+    @Column(name = "review_stage_ordering", nullable = false, length = 32)
+    @Enumerated(EnumType.STRING)
+    var reviewStageOrdering: InformationRequestReviewStageOrdering = InformationRequestReviewStageOrdering.SEQUENTIAL
+
+    @Column(name = "fact_reuse_purpose_key", nullable = true, length = 128)
+    var factReusePurposeKey: String? = null
+
     @Column(name = "published_at", nullable = true)
     var publishedAt: Timestamp? = null
 

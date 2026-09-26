@@ -182,7 +182,7 @@ class InformationRequestEvidenceUploadService @Inject constructor(
                 "Information Request evidence not found",
             )
         gate.requireMutationAllowed(locked)
-        gate.requireEvidenceOpen(locked, requirement)
+        gate.requireArtifactOpen(locked, requirement, artifact.id)
         gate.requireContinuationEntitlement(locked)
         gate.authorize(command.access, Action.INFORMATION_REQUEST_EVIDENCE_UPLOAD, requirement.id)
         command.precondition.requireSatisfiedBy(InformationRequestETag.artifactOf(artifact))

@@ -136,6 +136,17 @@ class InformationRequestTransitionHistoryService @Inject constructor(
         InformationRequestMutation.WITHDRAW_SUBMISSION -> AuditEventType.INFORMATION_REQUEST_SUBMISSION_WITHDRAW
         InformationRequestMutation.CREATE_SUCCESSOR -> AuditEventType.INFORMATION_REQUEST_SUCCESSOR_CREATE
         InformationRequestMutation.SCHEDULE_FOLLOW_UP -> AuditEventType.INFORMATION_REQUEST_FOLLOW_UP_SCHEDULE
+        InformationRequestMutation.START_REVIEW -> AuditEventType.INFORMATION_REQUEST_REVIEW_START
+        InformationRequestMutation.ASSIGN_REVIEWER -> AuditEventType.INFORMATION_REQUEST_REVIEW_ASSIGN
+        InformationRequestMutation.SAVE_REVIEW_DRAFT -> AuditEventType.INFORMATION_REQUEST_REVIEW_DRAFT
+        InformationRequestMutation.RECORD_REVIEW_DECISION -> AuditEventType.INFORMATION_REQUEST_REQUIREMENT_REVIEW
+        InformationRequestMutation.RECORD_FINDING -> AuditEventType.INFORMATION_REQUEST_REVIEW_FINDING
+        InformationRequestMutation.RECORD_REVIEW_COMMENT -> AuditEventType.INFORMATION_REQUEST_REVIEW_COMMENT
+        InformationRequestMutation.SETTLE_REVIEW -> AuditEventType.INFORMATION_REQUEST_REVIEW_SETTLE
+        InformationRequestMutation.REQUEST_CORRECTION -> AuditEventType.INFORMATION_REQUEST_CORRECTION_REQUEST
+        InformationRequestMutation.PROMOTE_FACT -> AuditEventType.INFORMATION_REQUEST_FACT_PROMOTE
+        InformationRequestMutation.REVOKE_FACT -> AuditEventType.INFORMATION_REQUEST_FACT_REVOKE
+        InformationRequestMutation.RECORD_BUSINESS_DECISION -> AuditEventType.INFORMATION_REQUEST_BUSINESS_DECISION_RECORD
         else -> null
     }
 

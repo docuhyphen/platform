@@ -57,7 +57,7 @@ class InformationRequestAmendmentGuard @Inject constructor(
         val packages = lockService.activePackages(request.id)
         if (packages.isEmpty()) return
         val submittedStages = packages.map { it.stageKey }.toSet()
-        val locked = lockService.lockedRequirementIds(request.id)
+        val locked = lockService.submittedRequirementIds(request.id)
         val lockedTemplateRequirements = requirementRepository.findForRequest(request.id)
             .filter { it.id in locked }
             .map { it.sourceTemplateRequirementId }
