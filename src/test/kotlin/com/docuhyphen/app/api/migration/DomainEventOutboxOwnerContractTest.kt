@@ -46,22 +46,16 @@ class DomainEventOutboxOwnerContractTest
     }
 
     @Test
-    fun `legacy writers gain explicit owners during a rolling deployment`()
+    fun `an event that does not state its owner is refused`()
     {
         withPostgres { postgres ->
             flyway(postgres).migrate()
-            val organizationId = UUID.randomUUID()
-            val platformEventId = UUID.randomUUID()
-            val organizationEventId = UUID.randomUUID()
 
             postgres.createConnection("").use { connection ->
-                insertLegacyEvent(connection, platformEventId, null)
-                insertLegacyEvent(connection, organizationEventId, organizationId)
-
-                assertEquals("PLATFORM", ownerKind(connection, platformEventId))
-                assertNull(ownerId(connection, platformEventId))
-                assertEquals("ORGANIZATION", ownerKind(connection, organizationEventId))
-                assertEquals(organizationId, ownerId(connection, organizationEventId))
+                val refusal = assertThrows<SQLException> {
+                    insertLegacyEvent(connection, UUID.randomUUID(), UUID.randomUUID())
+                }
+                assertTrue(refusal.message.orEmpty().contains("owner_kind"), refusal.message)
             }
         }
     }

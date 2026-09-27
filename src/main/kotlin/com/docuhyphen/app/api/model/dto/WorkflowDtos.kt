@@ -64,6 +64,8 @@ data class WorkflowTriggerEventResponseDto(
     val description: String?,
     val subjectFields: List<WorkflowSubjectFieldResponseDto>,
     val isActive: Boolean,
+    val subjectResourceType: String,
+    val subjectSchemaVersion: Int,
 )
 
 @Serializable

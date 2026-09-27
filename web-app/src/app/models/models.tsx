@@ -218,6 +218,7 @@ export interface UpdateExchangeRequest
     status?: ExchangeStatus;
     rejectionReason?: string;
     allowedDownloadFormats?: string[];
+    cancelRemainingInformationRequests?: boolean;
 }
 
 export interface UpdateNoAuthExchangeRequest
@@ -601,6 +602,10 @@ export enum Capability
     AUDIT_RETENTION_MANAGE = 'AUDIT_RETENTION_MANAGE',
     AUDIT_LEGAL_HOLD_MANAGE = 'AUDIT_LEGAL_HOLD_MANAGE',
     AUDIT_INTEGRITY_VERIFY = 'AUDIT_INTEGRITY_VERIFY',
+
+    // Information Request operations and privacy
+    INFORMATION_REQUEST_OPERATIONS_READ = 'INFORMATION_REQUEST_OPERATIONS_READ',
+    INFORMATION_REQUEST_PRIVACY_MANAGE = 'INFORMATION_REQUEST_PRIVACY_MANAGE',
 
     // Application Registration
     APP_REG_READ = 'APP_REG_READ',
@@ -1175,6 +1180,8 @@ export interface WorkflowTriggerEventDto
     description?: string;
     subjectFields: WorkflowSubjectFieldDto[];
     isActive: boolean;
+    subjectResourceType: "EXCHANGE" | "INFORMATION_REQUEST";
+    subjectSchemaVersion: number;
 }
 
 export interface WorkflowSubjectFieldDto
@@ -1349,9 +1356,20 @@ export interface WorkflowFieldConditionDraft
     value?: unknown;
 }
 
+export interface WorkflowRequirementConditionDraft
+{
+    templateRequirementId: string;
+    occurrencePath: string;
+    requirementKey?: string;
+    valueType: FieldValueType;
+    operator: FieldOperator;
+    value?: unknown;
+}
+
 export interface WorkflowApplicabilityDraft
 {
     fieldConditions: WorkflowFieldConditionDraft[];
+    requirementConditions?: WorkflowRequirementConditionDraft[];
 }
 
 export interface WorkflowStepSpecDraft
@@ -2879,11 +2897,19 @@ export enum InformationRequestAmendmentChangeKind
 export enum InformationRequestNoticeKind
 {
     REQUIREMENTS_AMENDED = "REQUIREMENTS_AMENDED",
+    RESPONSE_REMINDER = "RESPONSE_REMINDER",
+    RESPONSE_OVERDUE = "RESPONSE_OVERDUE",
 }
 
 export enum InformationRequestNoticeDeliveryState
 {
     PENDING = "PENDING",
+    CLAIMED = "CLAIMED",
+    RENDERED = "RENDERED",
+    RETRYING = "RETRYING",
+    DELIVERED = "DELIVERED",
+    FAILED = "FAILED",
+    UNDELIVERABLE = "UNDELIVERABLE",
 }
 
 export interface InformationRequestAmendmentChangeDto
@@ -2979,6 +3005,362 @@ export interface CreateInformationRequestSuccessorRequest
     targetTemplateVersionId?: string;
     sourcePackageId?: string;
     reasonCode?: string;
+}
+
+export enum InformationRequestSlaStatus
+{
+    NO_CLOCK = "NO_CLOCK",
+    ON_TRACK = "ON_TRACK",
+    DUE_SOON = "DUE_SOON",
+    OVERDUE = "OVERDUE",
+    PAUSED = "PAUSED",
+    MET = "MET",
+}
+
+export enum InformationRequestOperationsException
+{
+    NOTICE_UNDELIVERABLE = "NOTICE_UNDELIVERABLE",
+    NOTICE_FAILED = "NOTICE_FAILED",
+    CLOCK_ESCALATED = "CLOCK_ESCALATED",
+    AUTOMATION_SKIPPED = "AUTOMATION_SKIPPED",
+    EVENT_DELIVERY_FAILING = "EVENT_DELIVERY_FAILING",
+}
+
+export interface InformationRequestOperationsRowDto
+{
+    requestId: string;
+    exchangeId: string;
+    templateVersionId: string;
+    state: InformationRequestState;
+    gatesExchangeClosure: boolean;
+    createdAt: string;
+    issuedAt?: string;
+    firstViewedAt?: string;
+    startedAt?: string;
+    ageSeconds: number;
+    slaStatus: InformationRequestSlaStatus;
+    nearestDueAt?: string;
+    clockCount: number;
+    reminderCount: number;
+    noticeCounts: Partial<Record<InformationRequestNoticeDeliveryState, number>>;
+    exceptionCounts: Partial<Record<InformationRequestOperationsException, number>>;
+}
+
+export interface InformationRequestOperationsPageDto
+{
+    items: InformationRequestOperationsRowDto[];
+    total: number;
+    limit: number;
+    offset: number;
+}
+
+export interface InformationRequestOperationsFilter
+{
+    slaStatus?: InformationRequestSlaStatus;
+    exceptionsOnly: boolean;
+    limit: number;
+    offset: number;
+}
+
+export enum InformationRequestClockState
+{
+    RUNNING = "RUNNING",
+    PAUSED = "PAUSED",
+    STOPPED = "STOPPED",
+}
+
+export enum InformationRequestClockEventKind
+{
+    STARTED = "STARTED",
+    PAUSED = "PAUSED",
+    RESUMED = "RESUMED",
+    EXTENDED = "EXTENDED",
+    REMINDED = "REMINDED",
+    OVERDUE = "OVERDUE",
+    ESCALATED = "ESCALATED",
+    EXPIRED = "EXPIRED",
+    STOPPED = "STOPPED",
+}
+
+export interface InformationRequestClockEventDto
+{
+    eventNumber: number;
+    eventKind: InformationRequestClockEventKind;
+    dueCycle: number;
+    pointOrdinal?: number;
+    reasonCode?: string;
+    dueAt?: string;
+    occurredAt: string;
+}
+
+export interface InformationRequestClockDto
+{
+    id: string;
+    clockKey: string;
+    policyVersionId: string;
+    policyVersionNumber: number;
+    clockType: "CALENDAR" | "BUSINESS";
+    urgency: "STANDARD" | "URGENT";
+    receivedAt: string;
+    state: InformationRequestClockState;
+    dueAt: string;
+    dueCycle: number;
+    remainingSeconds?: number;
+    overdueAt?: string;
+    stoppedAt?: string;
+    clockETag: string;
+    events: InformationRequestClockEventDto[];
+}
+
+export interface InformationRequestNoticeAttemptDto
+{
+    attemptNumber: number;
+    outcome: "DELIVERED" | "FAILED" | "SKIPPED";
+    failureCode?: string;
+    attemptedAt: string;
+}
+
+export interface InformationRequestNoticeSequenceAllocationDto
+{
+    sequenceKey: string;
+    renderedValue: string;
+}
+
+export interface InformationRequestNoticeHistoryDto
+{
+    noticeIntentId: string;
+    noticeKind: InformationRequestNoticeKind;
+    partyId: string;
+    deliveryState: InformationRequestNoticeDeliveryState;
+    owedAt: string;
+    noticeId?: string;
+    channel?: "EMAIL";
+    maskedEndpoint?: string;
+    endpointState?: "RESOLVED" | "MISSING";
+    renderedSubject?: string;
+    renderedBody?: string;
+    renderedContentHash?: string;
+    sourceKind?: "COMMUNICATION" | "PLATFORM_DEFAULT";
+    sourceCommunicationId?: string;
+    sourceContentHash?: string;
+    renderedAt?: string;
+    attempts: InformationRequestNoticeAttemptDto[];
+    sequenceAllocations: InformationRequestNoticeSequenceAllocationDto[];
+}
+
+export interface InformationRequestAuditEventDto
+{
+    eventId: string;
+    eventTypeKey: string;
+    eventClass: string;
+    category: string;
+    outcome: string;
+    occurredAt: string;
+    recordedAt: string;
+    actorKind?: string;
+    actorId?: string;
+    requestId?: string;
+    businessTransactionId?: string;
+    sealed: boolean;
+    eventHash?: string;
+    streamSequence?: number;
+    payload: Record<string, string>;
+    withheldKeyCount: number;
+}
+
+export interface InformationRequestAuditPageDto
+{
+    items: InformationRequestAuditEventDto[];
+    total: number;
+    limit: number;
+    offset: number;
+}
+
+export interface InformationRequestReconciliationGapDto
+{
+    transitionId: string;
+    sequenceNumber: number;
+    mutation: string;
+    expectedEventTypeKey: string;
+}
+
+export interface InformationRequestReconciliationStrayDto
+{
+    eventId: string;
+    eventTypeKey: string;
+    businessTransactionId?: string;
+}
+
+export interface InformationRequestAuditReconciliationDto
+{
+    requestId: string;
+    reconciled: boolean;
+    auditedTransitionCount: number;
+    matchedTransitionCount: number;
+    unsealedEventCount: number;
+    missing: InformationRequestReconciliationGapDto[];
+    unmatched: InformationRequestReconciliationStrayDto[];
+}
+
+export interface InformationRequestRecordExportDto
+{
+    id: string;
+    exportKind: "REQUEST_RECORD" | "SUBJECT_RECORD";
+    requestId?: string;
+    subjectIdentityRefId?: string;
+    sourceRequestIds: string[];
+    schemaVersion: number;
+    contentHashAlgorithm: string;
+    contentHash: string;
+    contentLength: number;
+    storageLocation: string;
+    transferRegion?: string;
+    transferDecision: "NOT_REQUESTED" | "PERMITTED";
+    requestedByPrincipalKind: string;
+    requestedByPrincipalId: string;
+    requestedAt: string;
+    verified: boolean;
+    content?: unknown;
+}
+
+export enum RecordPreservationScope
+{
+    RESOURCE = "RESOURCE",
+    DESCENDANTS_AND_REFERENCES = "DESCENDANTS_AND_REFERENCES",
+}
+
+export enum RecordPreservationHoldStatus
+{
+    ACTIVE = "ACTIVE",
+    RELEASED = "RELEASED",
+}
+
+export interface RecordPreservationHoldEventDto
+{
+    eventNumber: number;
+    eventKind: "PLACED" | "SCOPE_CHANGED" | "RELEASED";
+    scope: RecordPreservationScope;
+    reason: string;
+    principalKind: string;
+    principalId: string;
+    occurredAt: string;
+}
+
+export interface RecordPreservationHoldDto
+{
+    id: string;
+    ownerKind: "PLATFORM" | "ORGANIZATION" | "USER";
+    ownerId?: string;
+    resourceType: string;
+    resourceId: string;
+    scope: RecordPreservationScope;
+    status: RecordPreservationHoldStatus;
+    reason: string;
+    caseReference?: string;
+    effectiveFrom: string;
+    placedByPrincipalKind: string;
+    placedByPrincipalId: string;
+    placedAt: string;
+    releasedByPrincipalKind?: string;
+    releasedByPrincipalId?: string;
+    releasedAt?: string;
+    releaseReason?: string;
+    holdRevision: number;
+    events: RecordPreservationHoldEventDto[];
+}
+
+export interface PlaceRecordPreservationHoldRequest
+{
+    resourceType: string;
+    resourceId: string;
+    scope: RecordPreservationScope;
+    reason: string;
+    caseReference?: string;
+}
+
+export interface RecordRetentionScheduleVersionDto
+{
+    id: string;
+    versionNumber: number;
+    minimumRetentionDays: number;
+    disposalAfterDays?: number;
+    recordedByPrincipalKind: string;
+    recordedByPrincipalId: string;
+    recordedAt: string;
+}
+
+export interface RecordRetentionScheduleDto
+{
+    resourceType: string;
+    current?: RecordRetentionScheduleVersionDto;
+    versions: RecordRetentionScheduleVersionDto[];
+}
+
+export interface PublishRecordRetentionScheduleRequest
+{
+    minimumRetentionDays: number;
+    disposalAfterDays?: number;
+}
+
+export enum RecordDisposalState
+{
+    CLAIMED = "CLAIMED",
+    OBJECTS_DELETED = "OBJECTS_DELETED",
+    FINALIZED = "FINALIZED",
+}
+
+export interface RecordDisposalObjectDto
+{
+    documentId: string;
+    documentVersionId: string;
+    retained: boolean;
+    retainedReason?: string;
+    deletionOutcome?: "DELETED" | "ABSENT";
+    deletedAt?: string;
+}
+
+export interface RecordDisposalTombstoneDto
+{
+    removedRowCounts: Record<string, number>;
+    deletedObjectCount: number;
+    retainedObjectCount: number;
+    disposedAt: string;
+}
+
+export interface RecordDisposalDto
+{
+    claimId: string;
+    resourceType: string;
+    resourceId: string;
+    basis: "RETENTION_SCHEDULE" | "PRIVACY_DELETION";
+    state: RecordDisposalState;
+    claimedAt: string;
+    objectsDeletedAt?: string;
+    finalizedAt?: string;
+    attemptCount: number;
+    lastErrorCode?: string;
+    objects: RecordDisposalObjectDto[];
+    tombstone?: RecordDisposalTombstoneDto;
+}
+
+export interface InformationRequestDisposalStandingDto
+{
+    requestId: string;
+    eligible: boolean;
+    reasonCode?: string;
+    detail?: string;
+    eligibleFrom?: string;
+    schedule?: RecordRetentionScheduleVersionDto;
+    holds: RecordPreservationHoldDto[];
+    retainedObjectCount: number;
+    disposal?: RecordDisposalDto;
+}
+
+export interface InformationRequestExchangeCompletionRefusalDto
+{
+    errorMessage: string;
+    reasonCode: string;
+    informationRequestIds: string[];
 }
 
 export enum InformationRequestReviewStageOrdering

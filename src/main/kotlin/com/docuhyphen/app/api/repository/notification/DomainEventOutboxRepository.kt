@@ -48,11 +48,16 @@ class DomainEventOutboxRepository :
     {
         @Suppress("UNCHECKED_CAST")
         val rows = entityManager.createNativeQuery(
-            """SELECT * FROM workflow_event_outbox
-               WHERE status = 'PENDING' AND next_attempt_at <= :now
-               ORDER BY next_attempt_at ASC
+            """SELECT * FROM workflow_event_outbox candidate
+               WHERE candidate.status = 'PENDING' AND candidate.next_attempt_at <= :now
+                 AND (candidate.ordering_key IS NULL OR NOT EXISTS (
+                     SELECT 1 FROM workflow_event_outbox earlier
+                     WHERE earlier.ordering_key = candidate.ordering_key
+                       AND earlier.status = 'PENDING'
+                       AND earlier.sequence_number < candidate.sequence_number))
+               ORDER BY candidate.next_attempt_at ASC, candidate.sequence_number ASC
                LIMIT 1
-               FOR UPDATE SKIP LOCKED""",
+               FOR UPDATE OF candidate SKIP LOCKED""",
             DomainEventOutboxEntry::class.java,
         )
             .setParameter("now", now)
@@ -89,4 +94,24 @@ class DomainEventOutboxRepository :
             .setParameter("status", DomainEventOutboxEntry.STATUS_PENDING)
             .setParameter("minAttempts", minAttempts)
             .singleResult
+
+    fun failingDeliveryCounts(orderingKeys: Collection<String>): Map<String, Int>
+    {
+        if (orderingKeys.isEmpty()) return emptyMap()
+        return entityManager.createQuery(
+            """
+            SELECT e.orderingKey, COUNT(e)
+            FROM DomainEventOutboxEntry e
+            WHERE e.orderingKey IN :keys
+              AND ((e.status = :pending AND e.attemptCount > 0) OR e.status = :failed)
+            GROUP BY e.orderingKey
+            """.trimIndent(),
+            Array<Any>::class.java,
+        )
+            .setParameter("keys", orderingKeys)
+            .setParameter("pending", DomainEventOutboxEntry.STATUS_PENDING)
+            .setParameter("failed", DomainEventOutboxEntry.STATUS_FAILED)
+            .resultList
+            .associate { row -> row[0] as String to (row[1] as Number).toInt() }
+    }
 }

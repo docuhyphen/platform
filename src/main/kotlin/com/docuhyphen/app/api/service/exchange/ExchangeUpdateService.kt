@@ -46,6 +46,8 @@ import java.time.format.DateTimeFormatter
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import com.docuhyphen.app.api.service.auth.authz.Decision as AuthDecision
+import com.docuhyphen.app.api.service.informationrequest.InformationRequestExchangeCompletionService
+import com.docuhyphen.app.api.service.informationrequest.InformationRequestParentLifecycleService
 
 @ApplicationScoped
 class ExchangeUpdateService @Inject constructor(
@@ -73,7 +75,8 @@ class ExchangeUpdateService @Inject constructor(
     private val noAuthExchangeAccessWindowService: NoAuthExchangeAccessWindowService,
     private val lifecycleNotificationService: ExchangeLifecycleNotificationService,
     private val documentThumbnailService: DocumentThumbnailService,
-    private val requestParentLifecycle: com.docuhyphen.app.api.service.informationrequest.InformationRequestParentLifecycleService,
+    private val requestParentLifecycle: InformationRequestParentLifecycleService,
+    private val requestCompletion: InformationRequestExchangeCompletionService,
 )
 {
     @PersistenceContext
@@ -286,6 +289,7 @@ class ExchangeUpdateService @Inject constructor(
                         "A completion workflow is already active. The exchange will be closed when it completes."
                     )
                 }
+                requestCompletion.prepareEnding(exchange, principal, request.cancelRemainingInformationRequests == true)
                 val orgId = exchange.ownerOrganizationId
                 val triggerResult = workflowEngineService.trigger(
                     TriggerRequest(
@@ -360,8 +364,8 @@ class ExchangeUpdateService @Inject constructor(
         {
             // Read the current constraints to preserve flags that aren't being changed.
             val currentJson = shareService.recipientConstraintsJson(sessionUUID) ?: "{}"
-            val currentConstraints = com.docuhyphen.app.api.service.auth.authz.ShareConstraints.parse(currentJson)
-                ?: com.docuhyphen.app.api.service.auth.authz.ShareConstraints.PERMISSIVE
+            val currentConstraints = ShareConstraints.parse(currentJson)
+                ?: ShareConstraints.PERMISSIVE
             val addition = request?.allowDocumentAddition
                 ?: currentJson.contains("\"allow_document_addition\":true")
             val deletion = request?.allowDocumentDeletion

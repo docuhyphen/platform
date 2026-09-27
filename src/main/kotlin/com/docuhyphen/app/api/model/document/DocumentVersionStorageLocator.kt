@@ -60,3 +60,9 @@ object DocumentVersionStorageLocators
             DocumentVersionLocatorKind.OBJECT_KEY -> ObjectStoreDocumentVersionLocator(value)
         }
 }
+
+enum class DocumentVersionDeletionOutcome
+{
+    DELETED,
+    ABSENT,
+}

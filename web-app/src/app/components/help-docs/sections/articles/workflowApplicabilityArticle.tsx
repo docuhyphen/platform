@@ -41,6 +41,12 @@ export const workflowApplicabilityArticle = (
             </li>
         </ul>
 
+        <p>
+            Field conditions apply only to Exchange triggers. For a workflow that starts from an
+            Information Request trigger, the designer shows no Field conditions and the workflow
+            runs for every event of its trigger.
+        </p>
+
         <h3>When a workflow is skipped</h3>
         <p>
             The gate never fails open. A condition that cannot be judged counts as a

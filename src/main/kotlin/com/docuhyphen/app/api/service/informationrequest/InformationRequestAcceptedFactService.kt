@@ -48,6 +48,7 @@ class InformationRequestAcceptedFactService @Inject constructor(
     private val bindingRepository: InformationRequestTemplateRequirementBindingRepository,
     private val fieldValueRevisions: FieldValueRevisionQueryService,
     private val facts: InformationRequestAcceptedFactStanding,
+    private val restrictions: InformationRequestSubjectRestrictionService,
     private val commandReceiptService: CommandReceiptService,
     private val transitionHistory: InformationRequestTransitionHistoryService,
     private val clock: Clock,
@@ -145,6 +146,13 @@ class InformationRequestAcceptedFactService @Inject constructor(
                 InformationRequestErrorCatalog.ACCEPTED_FACT_SUBJECT_REQUIRED,
                 "An accepted fact is about the single subject of its source request",
             )
+        if (restrictions.isRestricted(request.ownerType, ownerIdOf(request), subject))
+        {
+            throw InformationRequestLifecycleException(
+                InformationRequestErrorCatalog.SUBJECT_RESTRICTED,
+                "Processing for this subject is restricted, so no fact is promoted",
+            )
+        }
         val fieldDefinitionId = bindingRepository.findById(item.templateBindingId)?.collectedFieldDefinitionId
             ?: refuse("An accepted fact is promoted from an item that collects a Field")
         val value = fieldValueRevisions.valueOf(requireNotNull(item.fieldValueRevisionId))

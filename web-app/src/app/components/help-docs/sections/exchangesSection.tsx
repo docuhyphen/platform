@@ -53,6 +53,15 @@ export const exchangesSection: HelpDocSectionInput = {
                         <li>Review audit history for compliance and record retention.</li>
                     </ol>
 
+                    <h3>Ending an Exchange with open Information Requests</h3>
+                    <p>
+                        An Exchange cannot end while an Information Request that must finish first
+                        is still open. The end dialog says how many are waiting, and the Exchange
+                        stays Active until they complete. When the only open requests are ones that
+                        do not have to finish first, the dialog says how many are open and offers
+                        <b> Cancel requests and end</b>, which cancels them and ends the Exchange.
+                    </p>
+
                     <h3>Plan allowances</h3>
                     <p>
                         Free can create up to five new Exchanges per calendar month and keep up to

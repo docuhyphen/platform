@@ -1,6 +1,7 @@
 package com.docuhyphen.app.api.service.informationrequest
 
 import com.docuhyphen.app.api.model.entity.InformationRequest
+import com.docuhyphen.app.api.model.entity.InformationRequestClock
 import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceArtifact
 import com.docuhyphen.app.api.model.entity.InformationRequestParty
 import com.docuhyphen.app.api.model.entity.InformationRequestRequirementRevision
@@ -33,6 +34,9 @@ object InformationRequestETag
 
     fun artifactOf(artifact: InformationRequestEvidenceArtifact): String =
         RevisionETag.of(artifact.id, artifact.artifactRevision)
+
+    fun clockOf(clock: InformationRequestClock): String =
+        RevisionETag.of(clock.id, clock.clockRevision)
 
     fun submissionOf(stageKey: String?, contentHash: String): String =
         "\"submission:${stageKey ?: WHOLE_REQUEST}:$contentHash\""

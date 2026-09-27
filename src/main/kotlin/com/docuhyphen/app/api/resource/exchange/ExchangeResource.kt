@@ -10,6 +10,7 @@ import com.docuhyphen.app.api.exception.SubscriptionDenialException
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.model.BasicEntityToDtoTransformer.Companion.toDto
 import com.docuhyphen.app.api.model.DetailedEntityToDtoTransformer
+import com.docuhyphen.app.api.model.InformationRequestCompletionDtoMapper
 import com.docuhyphen.app.api.model.dto.DocumentDetailedDto
 import com.docuhyphen.app.api.model.dto.ExchangeBasicDto
 import com.docuhyphen.app.api.model.dto.ExchangeDetailedDto
@@ -24,6 +25,7 @@ import com.docuhyphen.app.api.resource.model.ReplacePrimaryRecipientRequest
 import com.docuhyphen.app.api.resource.model.UpdateExchangeRequest
 import com.docuhyphen.app.api.service.exchange.*
 import com.docuhyphen.app.api.service.fields.FieldValidationException
+import com.docuhyphen.app.api.service.informationrequest.InformationRequestExchangeCompletionException
 import com.docuhyphen.app.api.service.user.AppUserService
 import com.docuhyphen.app.api.service.workflow.WorkflowDefinitionService
 import com.docuhyphen.app.api.service.storage.FileStorageService
@@ -473,6 +475,15 @@ class ExchangeResource @Inject constructor(
         {
             when (exception)
             {
+                is InformationRequestExchangeCompletionException ->
+                {
+                    logger.info("Exchange {} ending refused by its Information Requests: {}", exchangeId, exception.reasonCode)
+                    Response
+                        .status(Response.Status.CONFLICT)
+                        .entity(InformationRequestCompletionDtoMapper.refusal(exception))
+                        .build()
+                }
+
                 is WorkflowConflictException ->
                 {
                     logger.info("Workflow conflict on exchange {} update: {}", exchangeId, exception.message)

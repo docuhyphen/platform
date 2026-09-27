@@ -521,6 +521,25 @@ class InformationRequestPartyService @Inject constructor(
         require(party.informationRequestId == request.id) { "Information Request party not found" }
         require(party.active) { "Information Request party is already revoked" }
 
+        val saved = revokeParty(request, party, command.access.principal)
+        return InformationRequestPartyAssignmentResult(
+            party = saved,
+            partiesETag = InformationRequestETag.partiesOf(request),
+            partyETag = InformationRequestETag.partyOf(saved),
+        )
+    }
+
+    @Transactional(Transactional.TxType.MANDATORY)
+    fun revokeForOwnershipChange(requestId: UUID, partyId: UUID): InformationRequestParty?
+    {
+        val (_, request) = lockPartyMutationRequest(requestId)
+        val party = partyRepository.findByIdForUpdate(partyId)?.takeIf { it.informationRequestId == request.id && it.active }
+            ?: return null
+        return revokeParty(request, party, OWNERSHIP_CHANGE_ACTOR)
+    }
+
+    private fun revokeParty(request: InformationRequest, party: InformationRequestParty, revokedBy: PrincipalRef): InformationRequestParty
+    {
         val now = Timestamp.from(Instant.now())
         party.active = false
         party.revokedAt = now
@@ -532,19 +551,14 @@ class InformationRequestPartyService @Inject constructor(
             bootstrapShareLinkService.revokeAllForShare(shareId)
             shareService.revoke(
                 shareId = shareId,
-                revokedBy = command.access.principal,
+                revokedBy = revokedBy,
                 resourceLabel = RESOURCE_LABEL,
             )
         }
-
         request.partyRevision += 1
         request.updatedAt = now
         requestRepository.update(request)
-        return InformationRequestPartyAssignmentResult(
-            party = saved,
-            partiesETag = InformationRequestETag.partiesOf(request),
-            partyETag = InformationRequestETag.partyOf(saved),
-        )
+        return saved
     }
 
     private fun lockPartyMutationRequest(requestId: UUID): Pair<Exchange, InformationRequest>
@@ -881,6 +895,7 @@ class InformationRequestPartyService @Inject constructor(
     private companion object
     {
         const val RESOURCE_LABEL = "Information Request"
+        val OWNERSHIP_CHANGE_ACTOR = PrincipalRef(PrincipalKind.SERVICE_ACCOUNT, UUID(0, 0))
         const val ASSIGN_OPERATION = "assign-information-request-party"
         const val ASSIGN_EXTERNAL_PARTICIPANT_OPERATION = "assign-external-participant-information-request-party"
         const val ASSIGN_TRUSTED_RECIPIENT_OPERATION = "assign-trusted-recipient-information-request-party"

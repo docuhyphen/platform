@@ -27,6 +27,7 @@ enum class InformationRequestMutation
     CREATE_DRAFT,
     ISSUE,
     RECORD_FIRST_VIEW,
+    START_RESPONSE,
     SAVE_RESPONSE,
     ATTEST_RESPONSE,
     ADMINISTER_EVIDENCE,
@@ -51,6 +52,14 @@ enum class InformationRequestMutation
     PROMOTE_FACT,
     REVOKE_FACT,
     RECORD_BUSINESS_DECISION,
+    CHANGE_COMPLETION_GATE,
+    START_CLOCK,
+    PAUSE_CLOCK,
+    RESUME_CLOCK,
+    EXTEND_CLOCK,
+    RECORD_REMINDER,
+    RECORD_OVERDUE,
+    RECORD_ESCALATION,
 }
 
 enum class InformationRequestReadActor
@@ -112,6 +121,7 @@ object InformationRequestTransitionMatrix
 
     private val RESPONSE_MUTATIONS = setOf(
         InformationRequestMutation.RECORD_FIRST_VIEW,
+        InformationRequestMutation.START_RESPONSE,
         InformationRequestMutation.SAVE_RESPONSE,
         InformationRequestMutation.ATTEST_RESPONSE,
         InformationRequestMutation.ADMINISTER_EVIDENCE,
@@ -279,7 +289,8 @@ object InformationRequestTransitionMatrix
                 InformationRequestState.DRAFT,
                 InformationRequestState.ISSUED,
             )
-            InformationRequestMutation.RECORD_FIRST_VIEW -> allowFrom(
+            InformationRequestMutation.RECORD_FIRST_VIEW -> allowSameFrom(currentState, ACTIVE_RESPONSE_STATES)
+            InformationRequestMutation.START_RESPONSE -> allowFrom(
                 currentState,
                 InformationRequestState.ISSUED,
                 InformationRequestState.IN_PROGRESS,
@@ -320,6 +331,16 @@ object InformationRequestTransitionMatrix
             InformationRequestMutation.REVOKE_FACT,
             InformationRequestMutation.RECORD_BUSINESS_DECISION,
             -> deny(InformationRequestErrorCatalog.STATE_INVALID)
+            InformationRequestMutation.CHANGE_COMPLETION_GATE,
+            InformationRequestMutation.START_CLOCK,
+            InformationRequestMutation.PAUSE_CLOCK,
+            InformationRequestMutation.RESUME_CLOCK,
+            InformationRequestMutation.EXTEND_CLOCK,
+            -> allowSameFrom(currentState, nonTerminalStates())
+            InformationRequestMutation.RECORD_REMINDER,
+            InformationRequestMutation.RECORD_OVERDUE,
+            InformationRequestMutation.RECORD_ESCALATION,
+            -> allowSameFrom(currentState, ACTIVE_RESPONSE_STATES)
         }
     }
 
@@ -332,11 +353,11 @@ object InformationRequestTransitionMatrix
         {
             return deny(InformationRequestErrorCatalog.PARENT_LOCK_REQUIRED)
         }
-        if (parent.deleted || parent.status != ExchangeStatus.ACCEPTED_STARTED)
+        if (!parentAllowsMutation(parent))
         {
             return deny(InformationRequestErrorCatalog.PARENT_STATE_INVALID)
         }
-        if (requests.any { it.gatesExchangeClosure && it.state != InformationRequestState.CLOSED })
+        if (requests.any { it.gatesExchangeClosure && !it.state.isTerminal })
         {
             return deny(InformationRequestErrorCatalog.COMPLETION_GATES_UNSATISFIED)
         }

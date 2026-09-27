@@ -23,7 +23,7 @@ import {
 import {useWorkflowDesignerStyles} from "./WorkflowDesignerStyles.tsx";
 import {useHelpSidebar} from "../../../../context/HelpSidebarContext.tsx";
 import SaveWorkflowDialog from "../save-workflow-dialog/SaveWorkflowDialog.tsx";
-import ApplicabilityEditor from "./applicability-editor/ApplicabilityEditor.tsx";
+import WorkflowApplicabilityPage from "./workflow-applicability-page/WorkflowApplicabilityPage.tsx";
 import WorkflowDesignerHeader from "./workflow-designer-header/WorkflowDesignerHeader.tsx";
 import WorkflowMetadataForm from "./workflow-metadata-form/WorkflowMetadataForm.tsx";
 import WorkflowStepsSection from "./workflow-steps-section/WorkflowStepsSection.tsx";
@@ -37,6 +37,7 @@ import {
 } from "../../../components/IconBundles.tsx";
 import {formatTriggerName} from "../workflowUtils.ts";
 import {appendStep, deleteStepAndRemap, replaceStep} from "./stepMutations.ts";
+import {applicabilitySummaryOf, isRequestTrigger, normalizedApplicability, savedApplicability} from "./workflowApplicability.ts";
 import {buildDefinitionGraph} from "../workflow-graph/workflowDefinitionGraphAdapter.ts";
 import {validateWorkflowGraph} from "../workflow-graph/workflowGraphValidation.ts";
 
@@ -102,6 +103,7 @@ const WorkflowDesigner = ({
     const patch = (p: Partial<WorkflowDesignerState>) => setState(s => ({...s, ...p}));
 
     const selectedTrigger = triggers.find(t => t.eventName === state.triggerEvent);
+    const requestTrigger = isRequestTrigger(selectedTrigger);
     const subjectFields = selectedTrigger?.subjectFields ?? [];
 
     const load = useCallback(async () =>
@@ -139,7 +141,7 @@ const WorkflowDesigner = ({
                     triggerEvent: def.triggerEvent,
                     isActive: def.isActive,
                     steps: parsed.steps ?? [],
-                    applicability: parsed.applicability,
+                    applicability: normalizedApplicability(parsed.applicability),
                 };
                 setState(loaded);
                 setDefScope(def.scope);
@@ -197,9 +199,7 @@ const WorkflowDesigner = ({
         {
             throw new Error("Cannot save a workflow outside the Platform Administration scope.");
         }
-        const applicability = state.applicability && state.applicability.fieldConditions.length > 0
-            ? state.applicability
-            : undefined;
+        const applicability = savedApplicability(state.applicability, requestTrigger);
         const stepsJson = JSON.stringify({steps: state.steps, applicability});
         if (definitionId)
         {
@@ -249,12 +249,7 @@ const WorkflowDesigner = ({
         </div>
     );
 
-    const applicabilityCount = state.applicability?.fieldConditions.length ?? 0;
-    const applicabilitySummary = defScope === "ORG"
-        ? applicabilityCount === 0
-            ? "Applies to every matching Exchange"
-            : `${applicabilityCount} ${applicabilityCount === 1 ? "condition" : "conditions"} configured`
-        : "Only organization workflows support applicability conditions";
+    const applicabilitySummary = applicabilitySummaryOf(state.applicability, defScope, requestTrigger);
     const stepsSummary = state.steps.length === 0
         ? "No steps configured"
         : `${state.steps.length} ${state.steps.length === 1 ? "step" : "steps"} configured`;
@@ -314,16 +309,10 @@ const WorkflowDesigner = ({
     ) : (
         <div className={styles.formPage}>
             {formBackButton("Applicability", () => navigateFormPage("overview"))}
-            {defScope === "ORG" ? (
-                <ApplicabilityEditor
-                    applicability={state.applicability}
-                    onChange={a => patch({applicability: a})}
-                />
-            ) : (
-                <Text id="workflow-applicability-unavailable-message">
-                    Applicability conditions are available only for organization workflows.
-                </Text>
-            )}
+            <WorkflowApplicabilityPage scope={defScope}
+                                       requestTrigger={requestTrigger}
+                                       applicability={state.applicability}
+                                       onChange={a => patch({applicability: a})}/>
         </div>
     );
 

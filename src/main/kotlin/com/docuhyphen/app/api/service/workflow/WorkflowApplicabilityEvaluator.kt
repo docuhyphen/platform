@@ -2,6 +2,8 @@ package com.docuhyphen.app.api.service.workflow
 
 import com.docuhyphen.app.api.model.entity.FieldValueType
 import com.docuhyphen.app.api.model.entity.ResourceType
+import com.docuhyphen.app.api.model.workflow.WorkflowRequirementOperand
+import com.docuhyphen.app.api.model.workflow.WorkflowTriggerSubject
 import com.docuhyphen.app.api.service.fields.CanonicalFieldValue
 import com.docuhyphen.app.api.service.fields.ExchangeFieldQueryService
 import com.docuhyphen.app.api.service.fields.FieldOperator
@@ -25,6 +27,7 @@ import java.util.*
 class WorkflowApplicabilityEvaluator @Inject constructor(
     private val exchangeFieldQueryService: ExchangeFieldQueryService,
     private val typeRegistry: FieldTypeRegistry,
+    private val operandSource: WorkflowRequirementOperandSource,
 )
 {
     private val logger = LoggerFactory.getLogger(WorkflowApplicabilityEvaluator::class.java)
@@ -38,11 +41,53 @@ class WorkflowApplicabilityEvaluator @Inject constructor(
         subjectResourceId: UUID?,
         @Suppress("UNUSED_PARAMETER") organizationId: UUID?,
         applicability: ApplicabilitySpec?,
+        subjectData: Map<String, String> = emptyMap(),
     ): Boolean
     {
-        val conditions = applicability?.fieldConditions
-        if (conditions.isNullOrEmpty()) return true
+        val fieldConditions = applicability?.fieldConditions.orEmpty()
+        val requirementConditions = applicability?.requirementConditions.orEmpty()
+        if (fieldConditions.isEmpty() && requirementConditions.isEmpty()) return true
+        if (fieldConditions.isNotEmpty() && !fieldConditionsMatch(subjectResourceType, subjectResourceId, fieldConditions)) return false
+        return requirementConditions.isEmpty() ||
+            requirementConditionsMatch(subjectResourceType, subjectResourceId, subjectData, requirementConditions)
+    }
 
+    fun validate(applicability: ApplicabilitySpec?, trigger: WorkflowTriggerSubject? = null)
+    {
+        val conditions = applicability?.fieldConditions.orEmpty()
+        if (conditions.isNotEmpty() && trigger?.subjectResourceType == INFORMATION_REQUEST_SUBJECT)
+            throw IllegalArgumentException("Applicability: Exchange field conditions apply only to Exchange triggers")
+        for (condition in conditions)
+        {
+            runCatching { UUID.fromString(condition.fieldDefinitionId) }.getOrElse {
+                throw IllegalArgumentException("Applicability: invalid fieldDefinitionId '${condition.fieldDefinitionId}'")
+            }
+            validateOperator(condition.valueType, condition.operator, condition.value)
+        }
+        val requirementConditions = applicability?.requirementConditions.orEmpty()
+        if (requirementConditions.isEmpty()) return
+        if (trigger == null || trigger.subjectResourceType != INFORMATION_REQUEST_SUBJECT ||
+            PACKAGE_FIELD !in trigger.subjectFieldNames)
+            throw IllegalArgumentException(
+                "Applicability: requirement conditions apply only to Information Request triggers that name a Submission Package",
+            )
+        for (condition in requirementConditions)
+        {
+            runCatching { UUID.fromString(condition.templateRequirementId) }.getOrElse {
+                throw IllegalArgumentException("Applicability: invalid templateRequirementId '${condition.templateRequirementId}'")
+            }
+            if (condition.occurrencePath.isBlank())
+                throw IllegalArgumentException("Applicability: a requirement condition names its occurrence path")
+            validateOperator(condition.valueType, condition.operator, condition.value)
+        }
+    }
+
+    private fun fieldConditionsMatch(
+        subjectResourceType: String?,
+        subjectResourceId: UUID?,
+        conditions: List<FieldConditionSpec>,
+    ): Boolean
+    {
         if (subjectResourceType != ResourceType.EXCHANGE.name || subjectResourceId == null)
         {
             logger.debug("Applicability conditions present but subject is not an Exchange; non-match")
@@ -63,42 +108,53 @@ class WorkflowApplicabilityEvaluator @Inject constructor(
                 logger.warn("Applicability condition has invalid fieldDefinitionId {}; non-match", condition.fieldDefinitionId)
                 return@all false
             }
-            evaluate(condition, snapshot.valuesByFieldDefinitionId[fieldDefinitionId])
+            evaluate(condition.valueType, condition.operator, condition.value, snapshot.valuesByFieldDefinitionId[fieldDefinitionId])
         }
     }
 
-    /**
-     * Validates an [ApplicabilitySpec] for persistence: each operator must be supported by its
-     * declared value type, a literal value is required except for IS_EMPTY / IS_NOT_EMPTY, and the
-     * fieldDefinitionId must be a UUID. Throws [IllegalArgumentException] on the first problem.
-     */
-    fun validate(applicability: ApplicabilitySpec?)
+    private fun requirementConditionsMatch(
+        subjectResourceType: String?,
+        subjectResourceId: UUID?,
+        subjectData: Map<String, String>,
+        conditions: List<RequirementConditionSpec>,
+    ): Boolean
     {
-        val conditions = applicability?.fieldConditions ?: return
-        for (condition in conditions)
-        {
-            runCatching { UUID.fromString(condition.fieldDefinitionId) }.getOrElse {
-                throw IllegalArgumentException("Applicability: invalid fieldDefinitionId '${condition.fieldDefinitionId}'")
+        if (subjectResourceType != INFORMATION_REQUEST_SUBJECT || subjectResourceId == null) return false
+        val packageId = subjectData[PACKAGE_FIELD]?.let { runCatching { UUID.fromString(it) }.getOrNull() } ?: return false
+        return conditions.all { condition ->
+            val templateRequirementId = runCatching { UUID.fromString(condition.templateRequirementId) }.getOrNull()
+                ?: return@all false
+            when (val operand = operandSource.frozenValue(subjectResourceId, packageId, templateRequirementId, condition.occurrencePath))
+            {
+                is WorkflowRequirementOperand.Unavailable -> false
+                WorkflowRequirementOperand.Empty -> evaluate(condition.valueType, condition.operator, condition.value, null)
+                is WorkflowRequirementOperand.Value ->
+                    operand.value.type == condition.valueType &&
+                        evaluate(condition.valueType, condition.operator, condition.value, operand.value)
             }
-            val supported = typeRegistry.contractFor(condition.valueType).supportedOperators
-            if (condition.operator !in supported)
-                throw IllegalArgumentException(
-                    "Applicability: operator ${condition.operator} is not valid for field type ${condition.valueType}",
-                )
-            if (requiresValue(condition.operator) && (condition.value == null || condition.value is JsonNull))
-                throw IllegalArgumentException(
-                    "Applicability: a value is required for operator ${condition.operator}",
-                )
         }
     }
 
-    private fun evaluate(condition: FieldConditionSpec, stored: CanonicalFieldValue?): Boolean
+    private fun validateOperator(valueType: FieldValueType, operator: FieldOperator, value: JsonElement?)
     {
-        val operator = condition.operator
-        val supported = typeRegistry.contractFor(condition.valueType).supportedOperators
+        val supported = typeRegistry.contractFor(valueType).supportedOperators
+        if (operator !in supported)
+            throw IllegalArgumentException("Applicability: operator $operator is not valid for field type $valueType")
+        if (requiresValue(operator) && (value == null || value is JsonNull))
+            throw IllegalArgumentException("Applicability: a value is required for operator $operator")
+    }
+
+    private fun evaluate(
+        valueType: FieldValueType,
+        operator: FieldOperator,
+        literal: JsonElement?,
+        stored: CanonicalFieldValue?,
+    ): Boolean
+    {
+        val supported = typeRegistry.contractFor(valueType).supportedOperators
         if (operator !in supported)
         {
-            logger.warn("Operator {} unsupported for type {}; non-match", operator, condition.valueType)
+            logger.warn("Operator {} unsupported for type {}; non-match", operator, valueType)
             return false
         }
 
@@ -107,22 +163,22 @@ class WorkflowApplicabilityEvaluator @Inject constructor(
         if (operator == FieldOperator.IS_NOT_EMPTY) return present
         if (!present) return false
 
-        return when (condition.valueType)
+        return when (valueType)
         {
             FieldValueType.SHORT_TEXT, FieldValueType.LONG_TEXT ->
-                matchesText(operator, stored!!.textValue, condition.value)
+                matchesText(operator, stored!!.textValue, literal)
             FieldValueType.BOOLEAN ->
-                matchesBoolean(operator, stored!!.boolValue, condition.value)
+                matchesBoolean(operator, stored!!.boolValue, literal)
             FieldValueType.INTEGER, FieldValueType.DECIMAL ->
-                matchesNumber(operator, stored!!.numberValue, condition.value)
+                matchesNumber(operator, stored!!.numberValue, literal)
             FieldValueType.DATE ->
-                matchesDate(operator, stored!!.dateValue, condition.value)
+                matchesDate(operator, stored!!.dateValue, literal)
             FieldValueType.DATE_TIME ->
-                matchesDateTime(operator, stored!!.datetimeValue, condition.value)
+                matchesDateTime(operator, stored!!.datetimeValue, literal)
             FieldValueType.SINGLE_SELECT ->
-                matchesSingleSelect(operator, stored!!.selectionCodes.firstOrNull(), condition.value)
+                matchesSingleSelect(operator, stored!!.selectionCodes.firstOrNull(), literal)
             FieldValueType.MULTI_SELECT ->
-                matchesMultiSelect(operator, stored!!.selectionCodes, condition.value)
+                matchesMultiSelect(operator, stored!!.selectionCodes, literal)
         }
     }
 
@@ -260,5 +316,11 @@ class WorkflowApplicabilityEvaluator @Inject constructor(
     {
         logger.warn("Applicability literal {} could not be parsed; non-match", literal)
         return false
+    }
+
+    private companion object
+    {
+        const val INFORMATION_REQUEST_SUBJECT = "INFORMATION_REQUEST"
+        const val PACKAGE_FIELD = "submissionPackageId"
     }
 }

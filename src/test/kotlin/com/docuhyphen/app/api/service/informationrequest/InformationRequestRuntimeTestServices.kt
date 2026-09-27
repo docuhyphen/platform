@@ -131,6 +131,7 @@ class InformationRequestRuntimeTestServices
     @Inject lateinit var factRepository: com.docuhyphen.app.api.repository.informationrequest.InformationRequestAcceptedFactRepository
     @Inject lateinit var factRevocationRepository: com.docuhyphen.app.api.repository.informationrequest.InformationRequestAcceptedFactRevocationRepository
     @Inject lateinit var factStanding: InformationRequestAcceptedFactStanding
+    @Inject lateinit var subjectRestrictions: InformationRequestSubjectRestrictionService
     @Inject lateinit var businessDecisionRepository: com.docuhyphen.app.api.repository.informationrequest.InformationRequestBusinessDecisionRepository
 
     fun build(
@@ -211,11 +212,11 @@ class InformationRequestRuntimeTestServices
             ),
             acceptedFacts = InformationRequestAcceptedFactService(
                 gate, reviewLoader, lockService, packageReader, factRepository, factRevocationRepository, partyRepository,
-                bindingRepository, fieldValueRevisionQueryService, factStanding, commandReceiptService, history, clock,
+                bindingRepository, fieldValueRevisionQueryService, factStanding, subjectRestrictions, commandReceiptService, history, clock,
             ),
             acceptedFactQueries = InformationRequestAcceptedFactQueryService(
                 queries, gate, factStanding, factRepository, partyRepository, requirementRepository, bindingRepository,
-                templateRequirementRepository, templateVersionRepository,
+                templateRequirementRepository, templateVersionRepository, subjectRestrictions,
             ),
             businessDecisions = InformationRequestBusinessDecisionService(
                 gate, queries, businessDecisionRepository, commandReceiptService, history, clock,

@@ -300,6 +300,41 @@ internal class SubmissionRuntimeSqlFixture(
         }
     }
 
+    fun insertSiblingRequest(id: UUID, subjectIdentityRefId: UUID)
+    {
+        execute(
+            connection,
+            """
+            INSERT INTO information_request
+                (id, exchange_id, template_version_id, owner_type, owner_organization_id, state,
+                 gates_exchange_closure, aggregate_revision, party_revision, created_at, updated_at, issued_at)
+            VALUES (?, ?, ?, 'ORGANIZATION', ?, 'ISSUED', TRUE, 1, 1, ?, ?, ?)
+            """.trimIndent(),
+            id,
+            exchangeId,
+            template.versionId,
+            template.organizationId,
+            template.now,
+            template.now,
+            template.now,
+        )
+        execute(
+            connection,
+            """
+            INSERT INTO information_request_party
+                (id, information_request_id, role_key, subject_identity_ref_id, active, party_revision,
+                 assigned_at, created_at, updated_at)
+            VALUES (?, ?, 'SUBJECT', ?, TRUE, 1, ?, ?, ?)
+            """.trimIndent(),
+            UUID.randomUUID(),
+            id,
+            subjectIdentityRefId,
+            template.now,
+            template.now,
+            template.now,
+        )
+    }
+
     fun publishNextVersion(
         number: Int = 2,
         keepAttestation: Boolean = true,

@@ -13,14 +13,16 @@ class InformationRequestAmendmentReader @Inject constructor(
     private val amendmentRepository: InformationRequestAmendmentRepository,
     private val changeRepository: InformationRequestAmendmentChangeRepository,
     private val noticeRepository: InformationRequestNoticeIntentRepository,
+    private val noticeStates: InformationRequestNoticeStateReader,
 )
 {
     fun views(requestId: UUID): List<InformationRequestAmendmentView>
     {
         val changes = changeRepository.findForRequest(requestId).groupBy { it.amendmentId }
         val notices = noticeRepository.findForRequest(requestId).groupBy { it.amendmentId }
+        val states = noticeStates.states(requestId)
         return amendmentRepository.findForRequest(requestId).map { amendment ->
-            InformationRequestAmendmentView(amendment, changes[amendment.id].orEmpty(), notices[amendment.id].orEmpty())
+            InformationRequestAmendmentView(amendment, changes[amendment.id].orEmpty(), notices[amendment.id].orEmpty(), states)
         }
     }
 

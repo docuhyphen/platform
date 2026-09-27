@@ -59,6 +59,13 @@ class InformationRequestTransitionMatrixTest
                 InformationRequestState.ISSUED,
                 InformationRequestMutation.RECORD_FIRST_VIEW,
             ),
+        )
+        assertAllowed(
+            InformationRequestTransitionMatrix.canMutate(
+                parent,
+                InformationRequestState.ISSUED,
+                InformationRequestMutation.START_RESPONSE,
+            ),
             InformationRequestState.IN_PROGRESS,
         )
         assertAllowed(
@@ -348,6 +355,110 @@ class InformationRequestTransitionMatrixTest
                 ),
             ),
         )
+    }
+
+    @Test
+    fun `a first view keeps the state, a start moves an issued request into progress once, and expiry ends open work`()
+    {
+        val active = InformationRequestParentSnapshot(status = ExchangeStatus.ACCEPTED_STARTED, lockedForUpdate = true)
+
+        assertAllowed(
+            InformationRequestTransitionMatrix.canMutate(active, InformationRequestState.IN_PROGRESS, InformationRequestMutation.RECORD_FIRST_VIEW),
+        )
+        assertDenied(
+            InformationRequestErrorCatalog.STATE_INVALID,
+            InformationRequestTransitionMatrix.canMutate(active, InformationRequestState.IN_PROGRESS, InformationRequestMutation.START_RESPONSE),
+        )
+        assertDenied(
+            InformationRequestErrorCatalog.STATE_INVALID,
+            InformationRequestTransitionMatrix.canMutate(active, InformationRequestState.DRAFT, InformationRequestMutation.START_RESPONSE),
+        )
+        assertDenied(
+            InformationRequestErrorCatalog.PARENT_STATE_INVALID,
+            InformationRequestTransitionMatrix.canMutate(
+                InformationRequestParentSnapshot(status = ExchangeStatus.INITIATED, lockedForUpdate = true),
+                InformationRequestState.ISSUED,
+                InformationRequestMutation.START_RESPONSE,
+            ),
+        )
+        listOf(InformationRequestState.DRAFT, InformationRequestState.ISSUED, InformationRequestState.IN_PROGRESS).forEach { state ->
+            assertAllowed(
+                InformationRequestTransitionMatrix.canMutate(active, state, InformationRequestMutation.EXPIRE),
+                InformationRequestState.EXPIRED,
+            )
+        }
+    }
+
+    @Test
+    fun `completion gates and clocks are configured on open work while reminders, overdue, and escalation reach only issued work`()
+    {
+        val initiated = InformationRequestParentSnapshot(status = ExchangeStatus.INITIATED, lockedForUpdate = true)
+        val active = InformationRequestParentSnapshot(status = ExchangeStatus.ACCEPTED_STARTED, lockedForUpdate = true)
+        val configuration = setOf(
+            InformationRequestMutation.CHANGE_COMPLETION_GATE,
+            InformationRequestMutation.START_CLOCK,
+            InformationRequestMutation.PAUSE_CLOCK,
+            InformationRequestMutation.RESUME_CLOCK,
+            InformationRequestMutation.EXTEND_CLOCK,
+        )
+        val clockPoints = setOf(
+            InformationRequestMutation.RECORD_REMINDER,
+            InformationRequestMutation.RECORD_OVERDUE,
+            InformationRequestMutation.RECORD_ESCALATION,
+        )
+
+        listOf(initiated, active).forEach { parent ->
+            configuration.forEach { mutation ->
+                listOf(InformationRequestState.DRAFT, InformationRequestState.ISSUED, InformationRequestState.IN_PROGRESS).forEach { state ->
+                    assertAllowed(InformationRequestTransitionMatrix.canMutate(parent, state, mutation))
+                }
+                assertDenied(
+                    InformationRequestErrorCatalog.STATE_INVALID,
+                    InformationRequestTransitionMatrix.canMutate(parent, InformationRequestState.CLOSED, mutation),
+                )
+            }
+            clockPoints.forEach { mutation ->
+                assertAllowed(InformationRequestTransitionMatrix.canMutate(parent, InformationRequestState.ISSUED, mutation))
+                assertAllowed(InformationRequestTransitionMatrix.canMutate(parent, InformationRequestState.IN_PROGRESS, mutation))
+                assertDenied(
+                    InformationRequestErrorCatalog.STATE_INVALID,
+                    InformationRequestTransitionMatrix.canMutate(parent, InformationRequestState.DRAFT, mutation),
+                )
+            }
+        }
+        (configuration + clockPoints).forEach { mutation ->
+            assertDenied(
+                InformationRequestErrorCatalog.PARENT_STATE_INVALID,
+                InformationRequestTransitionMatrix.canMutate(parent(ExchangeStatus.ENDED).copy(lockedForUpdate = true), InformationRequestState.ISSUED, mutation),
+            )
+        }
+    }
+
+    @Test
+    fun `an initiated Exchange with requests may end once its gates are met and nothing else remains open`()
+    {
+        val initiated = InformationRequestParentSnapshot(status = ExchangeStatus.INITIATED, lockedForUpdate = true)
+
+        assertAllowed(InformationRequestTransitionMatrix.canEndExchange(initiated, emptyList()))
+        assertAllowed(
+            InformationRequestTransitionMatrix.canEndExchange(
+                initiated,
+                listOf(InformationRequestCompletionCandidate(InformationRequestState.CANCELLED, gatesExchangeClosure = true)),
+            ),
+        )
+        assertDenied(
+            InformationRequestErrorCatalog.COMPLETION_GATES_UNSATISFIED,
+            InformationRequestTransitionMatrix.canEndExchange(
+                initiated,
+                listOf(InformationRequestCompletionCandidate(InformationRequestState.DRAFT, gatesExchangeClosure = true)),
+            ),
+        )
+        listOf(ExchangeStatus.ENDED, ExchangeStatus.REJECTED, ExchangeStatus.RESCINDED).forEach { status ->
+            assertDenied(
+                InformationRequestErrorCatalog.PARENT_STATE_INVALID,
+                InformationRequestTransitionMatrix.canEndExchange(parent(status).copy(lockedForUpdate = true), emptyList()),
+            )
+        }
     }
 
     @Test

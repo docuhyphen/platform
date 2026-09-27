@@ -90,8 +90,14 @@ class InformationRequestNoticeIntent
     @Column(name = "information_request_id", nullable = false)
     lateinit var informationRequestId: UUID
 
-    @Column(name = "amendment_id", nullable = false)
-    lateinit var amendmentId: UUID
+    @Column(name = "amendment_id")
+    var amendmentId: UUID? = null
+
+    @Column(name = "clock_event_id")
+    var clockEventId: UUID? = null
+
+    @Column(name = "source_communication_id")
+    var sourceCommunicationId: UUID? = null
 
     @Column(name = "party_id", nullable = false)
     lateinit var partyId: UUID
@@ -99,10 +105,6 @@ class InformationRequestNoticeIntent
     @Column(name = "notice_kind", nullable = false, length = 64)
     @Enumerated(EnumType.STRING)
     var noticeKind: InformationRequestNoticeKind = InformationRequestNoticeKind.REQUIREMENTS_AMENDED
-
-    @Column(name = "delivery_state", nullable = false, length = 32)
-    @Enumerated(EnumType.STRING)
-    var deliveryState: InformationRequestNoticeDeliveryState = InformationRequestNoticeDeliveryState.PENDING
 
     @Column(name = "created_at", nullable = false)
     var createdAt: Timestamp = Timestamp.from(Instant.now())
@@ -121,9 +123,17 @@ enum class InformationRequestAmendmentChangeKind
 enum class InformationRequestNoticeKind
 {
     REQUIREMENTS_AMENDED,
+    RESPONSE_REMINDER,
+    RESPONSE_OVERDUE,
 }
 
 enum class InformationRequestNoticeDeliveryState
 {
     PENDING,
+    CLAIMED,
+    RENDERED,
+    RETRYING,
+    DELIVERED,
+    FAILED,
+    UNDELIVERABLE,
 }

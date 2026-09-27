@@ -311,6 +311,431 @@ particular, do not rewrite or normalize the proposal while implementing this pla
 
 ## Implementation Journal
 
+### 2026-09-26: Phase 9 implementation session
+
+This entry is written progressively so an interruption leaves an exact resume point. The user asked
+for the whole of Phase 9 in one session ("implement the rest of the phase 9 in one go"); Phase 9 had
+not started, so every task is in scope.
+
+- Starting state verified against code, not checkboxes: last commit `a4d44959` ("info req p8") holds
+  the Phase 8 modifications, while the Phase 8 files it created (V136 through V138, the review,
+  Accepted Fact, and Business Decision services, resources, tests, and UI) are still untracked in the
+  working tree and are preserved. Flyway head V138. No Phase 9 code existed: no trigger registry row,
+  consumer, clock, outbound notice, record hold generalization, disposal, export, or privacy code
+  (searched `src` and `web-app/src`). Docker 26 is available for Testcontainers.
+- Facts the design rests on are listed at the top of `### Phase 9 design decisions` in the active
+  plan, with decisions 1 through 13, the V139 through V143 allocations, and the program range
+  extension to V160 recorded in the migration ledger.
+- Decision 6 was refined before its code: requiring every gating request to be `CLOSED` would block
+  an Exchange forever once a gating request is cancelled or expires, because a terminal request can
+  no longer change its gate. A gating request now blocks while it is open and is never cancelled by
+  the ending command.
+- V139 (`P9-T1`, `P9-T2`), test first: `InformationRequestEventConsumptionContractTest` (4 cases) was
+  observed red for the intended reasons (missing `subject_schema_version` and `ordering_key`
+  columns, missing `domain_event_consumption` relation, and an `IN_PROGRESS` request without a start
+  instant accepted), then green at 4 of 4. V139 also removes the V94 rolling-deployment trigger that
+  filled an outbox owner for writers that stated none (a compatibility shim the DS-T4 sweep missed);
+  `DomainEventOutboxOwnerContractTest` replaced its "legacy writers gain owners" case with "an event
+  that does not state its owner is refused" and passes 3 of 3. The same legacy-owner trigger pattern
+  still exists on the five V84 audit tables and is reported here rather than removed, since no Phase
+  9 task touches those tables.
+- Vocabulary, tests first: `AuditEventTypeTest` gained two cases and version 25 and
+  `InformationRequestTransitionMatrixTest` gained three cases and changed the first-view expectation;
+  with the new mutations present as denying stubs both were red on behavior (3 catalog failures, 4
+  matrix failures), then green at 9 of 9 and 15 of 15. `RECORD_FIRST_VIEW` now keeps the state,
+  `START_RESPONSE` moves `ISSUED` to `IN_PROGRESS`, completion-gate and clock configuration apply to
+  open requests, reminder, overdue, and escalation points apply to issued work, and `canEndExchange`
+  admits an `INITIATED` parent and blocks only on open gating requests.
+- Consumption, ordering, first view, and start were written before their tests, so the tests were
+  not observed red first: `InformationRequestWorkflowTriggerConsumerTest` (4),
+  `WorkflowInformationRequestSubjectTest` (3; its first run exposed a stub that could never match a
+  null applicability argument, which also made the refusal case pass vacuously, fixed with
+  `anyOrNull`), and `InformationRequestEventConsumptionTransactionTest` (4, PostgreSQL, dispatcher
+  off). One combined temporary mutation (subscription check back inside the per-definition loop,
+  receipts ignored, the ordering clause removed, start disabled, and the responding-party check
+  removed) failed every targeted case (1 of 3 and 4 of 4), and the restore was verified by `diff`.
+  With the directly affected suites: 78 of 78 green (`WorkflowInformationRequestSubjectTest`,
+  `InformationRequestWorkflowTriggerConsumerTest`, `InformationRequestEventConsumptionTransactionTest`,
+  `InformationRequestResponseWorkspaceServiceTest`, `InformationRequestLifecycleServiceTest`,
+  `InformationRequestPartyServiceTest`, `DomainEventDispatcherTest`, `DomainEventOutboxPublisherTest`,
+  `WorkflowCounterpartyClearanceTest`).
+- Two Workflow engine corrections found while wiring request triggers: `trigger` now checks every
+  matching definition's subscription before starting any instance and no longer marks a joined
+  transaction rollback-only on a refusal, so a consumer can record the refusal instead of retrying
+  forever (existing callers still roll back at their own boundary); and the pending-approvals inbox
+  links a request-subject approval to the request's Exchange instead of treating the request ID as an
+  Exchange ID.
+- `P9-T3`, test first: `WorkflowRequirementConditionTest` (6 cases) was red on behavior against
+  stub declarations (6 failures), then green. `ApplicabilitySpec.requirementConditions` name a stable
+  Template Requirement, occurrence path, type, operator, and literal; the evaluator reads them only
+  for an `INFORMATION_REQUEST` subject through `WorkflowRequirementOperandSource`, whose
+  implementation `InformationRequestWorkflowOperandService` reads the answer frozen in the package the
+  trigger's `submissionPackageId` names (`FieldValueRevisionQueryService.canonicalValueOf`). A missing
+  package, a package of another request, an absent or ambiguous item, a non-Field item, and a type
+  mismatch are non-matches. Validation refuses requirement conditions unless the registered trigger
+  is a request trigger whose subject schema names `submissionPackageId`, and refuses Exchange field
+  conditions on request triggers. `InformationRequestWorkflowOperandServiceTest` (4) and the new
+  `WorkflowDefinitionServiceValidationTest` case were written after their code; a temporary mutation
+  (package request check removed; trigger subject not passed to validation) failed 1 of 4 and 1 of 5
+  and was reverted with the restore verified by `diff`. `WorkflowApplicabilityEvaluatorTest` stays
+  21 of 21.
+- `P9-T4`, test first: two `ExchangeTerminationInformationRequestEffectsTest` cases (the request
+  check runs before the ending Workflow with the caller's `cancelRemainingInformationRequests`
+  choice; a refusal starts no Workflow and writes no status) were red against a no-op
+  `InformationRequestExchangeCompletionService` (2 failures), then green at 7 of 7. The service runs
+  `canEndExchange` over the Exchange's locked requests, refuses `COMPLETION_GATES_UNSATISFIED` or
+  `REMAINING_REQUESTS_REQUIRE_CANCELLATION` with the request IDs, and cancels remaining nongating
+  requests with reason `EXCHANGE_ENDED` only when asked; its refusal does not mark the joined
+  transaction rollback-only, so the ending-Workflow confirmation paths in
+  `ExchangeApprovalEventHandler` log it and leave the Exchange unchanged. `PUT /exchanges/{id}`
+  answers the refusal as 409 with `reasonCode` and `informationRequestIds`.
+  `PUT /information-requests/{id}/completion-gate` (`InformationRequestCompletionGateService`,
+  `If-Match`, Idempotency-Key, `CHANGE_COMPLETION_GATE` history) changes the gate on open requests.
+  New actions `INFORMATION_REQUEST_CONFIGURE_COMPLETION`, `INFORMATION_REQUEST_MANAGE_CLOCKS`, and
+  `INFORMATION_REQUEST_VIEW_OPERATIONS` (all request administration), with the vocabulary test
+  updated first; `VIEW_OPERATIONS` and `EXPORT` joined the read actions so history and export stay
+  available on finished requests and ended Exchanges. `InformationRequestExchangeCompletionTransactionTest`
+  (4, PostgreSQL) was written after its code; a temporary mutation (always cancel; no state check on
+  the gate command) failed 2 of 4 and was reverted with the restore verified by `diff`. Affected
+  suites green: `ExchangeAuthorizationTest` 20, `RescindSideEffectsTest` 8,
+  `InformationRequestTransitionMatrixTest` 15, `InformationRequestAuthorizationVocabularyTest` 8.
+- V140 (`P9-T5`), test first: `InformationRequestClockContractTest` (3) was red (missing clock
+  relations), then green at 3 of 3. A first strict guard that refused any clock update not advancing
+  the revision broke on Hibernate's second flush of one command, so V140 (applied only to disposable
+  test containers so far) was edited to refuse only a revision that moves backwards, with the
+  contract expectation changed with it.
+- Clock calculation, test first: `InformationRequestClockCalculatorTest` (6: calendar time, business
+  hours with weekends, a holiday, local working hours across the 2026-03-29 Berlin daylight saving
+  change, elapsed and backward walks as inverses, a business calendar without working time) was red
+  at 6 of 6 against a stub, then green.
+- Clock services were written before their PostgreSQL test: `InformationRequestClockPolicyService`
+  (owner-scoped definitions and immutable versions through the new `InformationRequestOwnerScopeAccess`,
+  which applies the Template authoring rule: organization Template authors or the personal owner),
+  `InformationRequestClockService` (start from the received instant with the urgency budget; pause
+  keeps the working time left; resume recalculates; an extension opens a new due cycle; every change
+  under `If-Match` on the clock ETag with Idempotency-Key), `InformationRequestClockRecorder`,
+  `InformationRequestClockPointProcessor` (reminder, overdue, escalation, and expiry points once per
+  due cycle; a finished request or Exchange stops the clock; a draft defers), and
+  `InformationRequestClockScheduler` (`app.information-request.clock.every`, default 1m).
+  `InformationRequestClockTransactionTest` (5, PostgreSQL, fixed test clock) passed on its first run
+  after the guard fix; a temporary mutation (history ignored for due points, pause keeping the whole
+  budget, expiry effect ignored) failed 3 of 5 and was reverted with the restore verified by `diff`.
+  `InformationRequestClockPolicyServiceTest` (3) was written after its code; a mutation removing the
+  overlap and key checks failed it and was reverted (restore verified by hash). Reminder and overdue
+  notices are wired through `InformationRequestClockNoticeHook`, which `P9-T8` fills.
+- V141 (`P9-T8`), test first: `InformationRequestOutboundNoticeContractTest` (4) was red (missing
+  claim, notice, allocation, and attempt relations; the intent still requiring an amendment), then
+  green at 4 of 4; `InformationRequestAmendmentContractTest` moved off the removed `delivery_state`
+  column and passes 3 of 3. Clock policy versions may name a reminder and an overdue Communication,
+  checked for visibility to the policy owner.
+- Notice services were written before their PostgreSQL test: the clock hook owes one intent per
+  active responding party with a principal; `InformationRequestNoticeDispatcher.claimAndRender`
+  claims the intent (`INSERT ... ON CONFLICT DO NOTHING`), resolves the endpoint, renders the named
+  Communication or the platform default for the notice kind, allocates each distinct `{{SEQ:KEY}}`
+  once through `TemplateVariableInterpolator.allocateSequence` and substitutes that value in subject
+  and body before interpolation, and stores the immutable notice, its allocations, source and
+  rendered SHA-256, and a `SKIPPED NO_ENDPOINT` attempt when no endpoint exists, all in one
+  transaction; `deliver` sends the stored render with a 5 minute doubling backoff and at most 5
+  attempts. Delivery state is derived (`InformationRequestNoticeStateReader`). The durable
+  `InformationRequestNoticeConsumer` dispatches a request's owed notices when its event carries a
+  notice count, and `InformationRequestNoticeScheduler` (`app.information-request.notice.dispatch-every`,
+  default 1m) sweeps the rest. `GET /information-requests/{id}/notices` returns the history with
+  masked endpoints only (stricter than decision 10, which allowed the administrator the raw endpoint:
+  no projection returns it). Tests never send email: `RecordingInformationRequestNoticeSender` is a
+  test-wide CDI alternative.
+- `InformationRequestNoticeTransactionTest` (4, PostgreSQL) passed on its first run. A first
+  mutation harness run reported every mutation killed while Maven never started (`mvnw.cmd` not
+  found); a no-op control exposed it, so those results were discarded. With the harness fixed, the
+  control survived (4 of 4 green) and five separate mutations were each killed by the tests that
+  own them: a sequence value per token occurrence (4 of 4 failed), retry without backoff (1),
+  nothing recorded for a missing endpoint (1), the consumer ignoring notice counts (1), and the hook
+  owing no notices (4). Every restore was verified by SHA-256. With the directly affected suites 31
+  of 31 green (notice, amendment transaction and resource contract, clock transaction and policy,
+  and the three migration contracts).
+- `P9-T6`, test first for the service level rule: `InformationRequestSlaCalculatorTest` (4) was red
+  at 3 of 4 against a stub (the no-clock case matches any stub), then green. A running clock is
+  `DUE_SOON` from its earliest reminder point (derived from the frozen policy version, not from the
+  scheduler having run), `OVERDUE` at its due instant or once overdue is recorded, a paused clock is
+  `PAUSED`, and a stopped clock is `MET` only if it stopped by its final due instant (an extension
+  moves that instant); a request takes its most urgent clock. `GET /information-request-operations`
+  (`InformationRequestOperationsService`, `VIEW_OPERATIONS` at the active owner scope) returns age,
+  first view, start, nearest running due instant, reminder count, derived notice delivery counts,
+  and exception counts (`NOTICE_UNDELIVERABLE`, `NOTICE_FAILED`, open `CLOCK_ESCALATED`,
+  `AUTOMATION_SKIPPED` from `SKIPPED` consumption receipts, and `EVENT_DELIVERY_FAILING` for the
+  request's ordered events that failed routing and so hold its queue), filtered by state, Exchange,
+  service level, and exception, ordered by nearest due, and paged by limit and offset. The
+  notification domain answers the event standing through `DomainEventDeliveryStandingService`.
+  `InformationRequestOperationsTransactionTest` (3, PostgreSQL) and
+  `InformationRequestOperationsResourceContractTest` (2) were written after their code and passed
+  first; with a surviving no-op control, six separate mutations were each killed (exceptions-only
+  filter ignored, failing deliveries not counted, due soon never derived, unordered queue, page limit
+  unchecked, skipped receipts miscounted) and every restore was verified by SHA-256.
+- V142 (`P9-T7`, `P9-T9`), test first: `RecordPreservationDisposalContractTest` (7) was red at 7 of 7
+  for the intended reasons (missing hold owner, scope, and history columns; missing retention,
+  claim, object, tombstone, and export relations), then red again on its first migration run
+  because a trigger named the `audit_log` table V53 dropped, then green at 7 of 7. V142 generalizes
+  `audit_legal_hold` in place (owner kind and ID for platform, organization, and personal owners,
+  effective instant, `RESOURCE` or `DESCENDANTS_AND_REFERENCES` scope, canonical principal
+  attribution replacing the App User columns, a revision, and a backfilled append-only
+  `audit_legal_hold_event` history), adds append-only retention schedule versions, disposal claims
+  that only move forward (`CLAIMED`, `OBJECTS_DELETED`, `FINALIZED`), claim scope keys, stored-object
+  rows, tombstones, and append-only record exports with their source requests. A transaction-level
+  advisory lock serializes hold placement against claim scope inserts, so a held record cannot be
+  claimed and a claimed record cannot be held even under a race. A generic reference guard refuses
+  a new reference to a claimed request, document, or document version (evidence, submission
+  evidence, document versions, Exchange documents, comments, lineage, supersession, account links,
+  carry-forward, fact supersession and conflict, assessment reuse). `record_dispose_information_request`
+  deletes a request's rows in dependency order, including its Field values, unshared document
+  versions, and an ad hoc Template it alone uses, only while its claim is `OBJECTS_DELETED`; the
+  append-only guards permit a delete only under that claim (`record_disposal_in_progress()`), and
+  the function writes the tombstone with per-table counts and finalizes the claim.
+- Preservation services were written before their PostgreSQL test: `RecordPreservationHoldService`
+  owns placement, scope change, release, and the preservation question over the same table, and
+  `AuditLegalHoldService` and `AuditDisposalEligibilityService` now delegate to it, so one hold is
+  visible to both subsystems. `RecordRetentionScheduleService`, `RecordDisposalService`, the
+  eligibility check (`InformationRequestDisposalEligibility`: finished, minimum retention, disposal
+  age for the schedule basis, covering holds, live references), `InformationRequestDisposalService`
+  (claim, delete stored objects through the new idempotent `DocumentVersionStorageService.deleteVersion`
+  with an absent object as success, finalize, audit each step), and `InformationRequestDisposalWorker`
+  with its scheduler (`app.record-disposal.every`, default 1h) resume open claims and claim what a
+  schedule makes due. REST: `/record-preservation-holds`, `/record-retention-schedules/{resourceType}`,
+  `/record-disposals`, and `/information-requests/{id}/disposal-standing`; the audit-governance hold
+  APIs keep their paths and now return owner, scope, and canonical attribution.
+- `InformationRequestDisposalTransactionTest` (5, PostgreSQL, local storage) passed on its first run
+  after stale compiled classes of the removed hold entity were deleted from `target/` (Hibernate
+  schema validation had found the old `organization_id` mapping). It proves scheduled disposal with
+  a real stored object deleted, audit of claim, object deletion, and finalization, stable refusals
+  (`RECORD_NOT_FINISHED`, `RETENTION_REQUIRED`, `RECORD_HELD`, `RECORD_REFERENCED`), hold history
+  across release, a refused hold on a claimed record, a failed object deletion that stays retryable
+  and then finalizes with an absent object recorded as `ABSENT`, recovery of a claim interrupted
+  after its objects were deleted, and retained shared bytes. `AuditLegalHoldServiceTest` (4) now
+  drives the real neutral service through the audit adapter, and `AuditDisposalEligibilityServiceTest`
+  (3), `AuditLegalHoldResourceTest` (2), `AuditOrganizationGovernanceTenantIsolationTest` (6), and
+  `AuditEngagementResourceTest` (4) pass. With a surviving no-op control, eight separate mutations
+  were each killed (holds not consulted, minimum retention ignored, live references ignored, shared
+  bytes never retained, hold placement not checking open claims, deletion failures treated as
+  absent, interrupted claims never finalized, scheduled disposal never claiming), and every restore
+  was verified by SHA-256.
+- Observation for the handoff, not changed: the `DocumentsBucket` in `infra/cloudformation.yml` is
+  versioned and the application role lacks `s3:ListBucketVersions` and `s3:DeleteObjectVersion`, so
+  the AWS adapter's version-by-version delete is refused there; a disposal claim then stays
+  `CLAIMED`, retries, and is never finalized or described as physically disposed until those
+  permissions exist (an IAM change within existing services, not made without the user).
+- `P9-T7`, audit and export projections, written before their PostgreSQL test:
+  `InformationRequestAuditService` returns a request's classified audit history
+  (`GET /information-requests/{id}/audit-events`), the owner-scope search
+  (`GET /information-request-audit-events`), and the reconciliation
+  (`GET /information-requests/{id}/audit-reconciliation`) that matches every audited transition to
+  its audit record by business transaction and reports missing and unmatched history without
+  payload values. `AuditTargetHistoryService` answers the audit side, and
+  `InformationRequestAuditPayloadPolicy` passes only allow-listed payload keys and counts the rest.
+  `InformationRequestRecordExportService` and `InformationRequestRecordAssembler` (schema version 1)
+  freeze an immutable JSON record with its SHA-256, replay by Idempotency-Key, verify the hash on
+  every read, record the storage location and transfer decision, and refuse a transfer region the
+  policy does not permit (`POST`, `GET`, `GET /{exportId}` under
+  `/information-requests/{id}/record-exports`, with a `Digest` header on read). New audit event
+  `information_request.request.export_read` (catalog version 26). `InformationRequestAuditExportTransactionTest`
+  (3, PostgreSQL) passed first; with a surviving no-op control (11 of 11 green over the four owning
+  suites), five mutations were each killed: allow-list ignored, missing records never reported,
+  stray records never reported, export hash never verified, transfer policy ignored. Every restore
+  was verified by SHA-256.
+- V143 (`P9-T10`), test first: `InformationRequestPrivacyContractTest` (3) was red (missing privacy
+  request, target, restriction, and correction relations), then green at 3 of 3. V143 adds privacy
+  requests with their append-only targets, subject restrictions (one active per owner and subject),
+  and appended package item corrections, each with its guard. The ledger row named the file
+  `V143__information_request_privacy_request.sql`; the created file is
+  `V143__information_request_privacy.sql` and the ledger now says so.
+- Privacy services were written before their PostgreSQL test: `InformationRequestPrivacyService`
+  records access, export, correction, restriction, and deletion requests with purpose and policy
+  basis keys as data (`/information-request-privacy-requests`); access and export produce an
+  immutable subject record export; `InformationRequestItemCorrectionService` appends a correction to
+  a submitted package item of a request about the subject without rewriting the package;
+  `InformationRequestSubjectRestrictionService` restricts and lifts
+  (`/information-request-subject-restrictions`), and Accepted Fact promotion (`SUBJECT_RESTRICTED`)
+  and offers honour it; deletion checks every request about the subject first and claims each for
+  disposal only when none is refused. Refinement of decision 12: a correction applies to a submitted
+  package item only; pointing an open request at a new response revision stays with the respondent
+  workspace. `InformationRequestPrivacyTransactionTest` (4) passed first. Mutation proof: correction
+  ignoring the subject and restriction ignored on promotion were killed (the second by the Phase 9
+  walking test), but deletion proceeding despite refusals SURVIVED, because every deletion case had
+  one request per subject and the per-request disposal refusal still stopped that one request. The
+  gap was real: without the up-front check, a subject's eligible requests would be deleted while an
+  ineligible one refused. A fifth case (`a deletion request disposes none of the subject's requests
+  while any one of them may not be disposed`, with the new `SubmissionRuntimeSqlFixture.insertSiblingRequest`)
+  proves nothing is claimed or deleted; it passed on the correct code (5 of 5).
+- `P9-T11`: `RecordStorageLocationPolicy`, `RecordTransferPolicy`, and `RecordOwnershipChangePolicy`
+  are interfaces with configuration-backed default beans (`app.records.storage-location`, default
+  `primary`; `app.records.permitted-transfer-regions`, default `*`;
+  `app.records.member-removal-party-decision`, default `RETAIN`). Exports record both decisions.
+  Organization member removal asks the ownership policy about each of that member's parties on the
+  organization's own requests (`InformationRequestOwnershipChangeService`, called by
+  `OrganizationMembershipService.removeMember`); `REVOKE` revokes through the party service with
+  history. `InformationRequestOwnershipChangeTransactionTest` (2) passed first; mutations ignoring
+  the revoke decision and reaching other owners' requests were each killed. No infrastructure
+  changed.
+- Defect found by the Phase 9 walking test and fixed test first: an overdue clock whose request
+  had finished never stopped when it had no further due point, because the point processor tested
+  "next point" before the request state. A new `InformationRequestClockTransactionTest` case was red
+  on that behavior, then green (6 of 6) after `InformationRequestClockPointProcessor.process` checks a
+  stopped clock and then a finished request or ended Exchange first, and
+  `InformationRequestClockScheduler` also sweeps unstopped clocks of finished requests
+  (`InformationRequestClockRepository.findUnstoppedOfFinishedIds`).
+- `P9-T12`: `InformationRequestTemplateWalkingSkeletonPhase9Test` (2, PostgreSQL). The basic-shaped
+  request's automation reads its exact submitted package and not another request's, its clock keeps
+  the policy version and due instant it started with, its whole audit history reconciles, its
+  exported record carries both packages with distinct hashes, both reviews, and its history, a
+  subject restriction refuses fact promotion, an access request exports it, a hold refuses its
+  privacy deletion, and after release the deletion completes. The staged request is overdue with
+  delivered reminder and overdue notices, submits stage by stage, reports its breach in the
+  operations queue, reconciles, exports both stages with masked notice endpoints, and is disposed on
+  schedule. Both green.
+- Authorization gap found while building the operations UI, fixed test first: the owner-scope
+  operations queue, the owner-scope audit search, and privacy handling checked
+  `VIEW_OPERATIONS` or `MANAGE_PRIVACY`, which required `INFORMATION_REQUEST_ADMIN` from an
+  organization role, and no organization role grants it (the transaction tests mocked owner access,
+  so none noticed). Granting `INFORMATION_REQUEST_ADMIN` to organization roles was rejected: it would
+  open every request's administration to organization administrators through membership grants,
+  which `InformationRequestAuthorizationVocabularyTest` forbids by design. Decision 14 (new) instead
+  gives owner-scope administration its own capabilities, `INFORMATION_REQUEST_OPERATIONS_READ` and
+  `INFORMATION_REQUEST_PRIVACY_MANAGE`, held by Organization Owners and Administrators only, with
+  new action `INFORMATION_REQUEST_VIEW_OPERATIONS_QUEUE` for the queue and search and
+  `INFORMATION_REQUEST_MANAGE_PRIVACY` moved to the privacy capability. Request-level views keep
+  `VIEW_OPERATIONS` and `INFORMATION_REQUEST_ADMIN` (the Exchange owner or a decision maker), and no
+  request-scoped action accepts the owner-scope capabilities. The vocabulary test gained the
+  owner-scope case and `RecordOwnerScopeAccessTest` (2) was added. Their first red was a compile
+  failure against the missing vocabulary, which the protocol does not accept as the red state; the
+  behavioral red is the mutation proof below, where the pre-fix grant set and the pre-fix mapping each
+  fail these tests. They passed with 58 of 58 across the owning and affected suites
+  (`RecordOwnerScopeAccessTest`, `InformationRequestAuthorizationVocabularyTest` 9,
+  `ActionCapabilityModelTest` 34, privacy 5, operations 3, audit export 3, operations resource 2).
+  Mutation proof with a surviving no-op control: removing both capabilities from the organization
+  owner and administrator set (the pre-fix grants), mapping the queue action back to
+  `INFORMATION_REQUEST_ADMIN` (the pre-fix mapping), and letting request-level views accept the
+  owner-scope capability were each killed, and so was the deletion-despite-refusals mutation that had
+  survived before the fifth privacy case. Every restore was verified by SHA-256.
+- `P9-T13`, frontend behind `PlanFeature.INFORMATION_REQUESTS`: models for operations, clocks,
+  notices, audit, reconciliation, exports, holds, retention, disposal, and the Exchange completion
+  refusal; notice kinds and every derived delivery state with labels;
+  `informationRequestOperationsService.ts` and `recordPreservationService.ts`; the shared
+  `useLoadedValue` hook; the operations queue page (`/information-request-operations`: service level
+  and exceptions filters, paging), the request detail page (`/information-request-operations/:requestId`:
+  clocks, notices, audit history with reconciliation, records with disposal standing, hold placement,
+  and verified record export and download), and the record preservation page
+  (`/record-preservation`: holds with release, the retention schedule, disposals); the
+  `OperationsNavigation` menu button (personal owners, or `INFORMATION_REQUEST_OPERATIONS_READ` in an
+  organization); the Exchange end dialog explains both completion refusals and offers
+  `Cancel requests and end` only for nongating requests; the Workflow designer hides Exchange Field
+  conditions for request triggers. A designer defect found on the way, fixed test first: saving a
+  loaded definition assumed `fieldConditions` exists and dropped `requirementConditions`, so a
+  request-trigger workflow set through the API crashed or lost its conditions on save;
+  `workflowApplicability.test.ts` (5) first failed on the missing module, which is not an accepted
+  red; the behavioral red is the killed mutation that keeps Field conditions for request triggers.
+  It went green with
+  `workflowApplicability.ts` normalizing on load and saving each kind only for its trigger subject.
+  The page tests were written after their components: `OperationsNavigation` (3),
+  `InformationRequestOperations` (3), `InformationRequestOperationsDetail` (2), `RecordPreservation`
+  (4), and `ExchangeEndDialog` (2). With a surviving no-op control (19 of 19), ten frontend mutations
+  were each killed (personal owners losing access, members gaining it, cancellation never requested,
+  a gated ending left enabled, request triggers keeping Field conditions, the exceptions filter
+  ignored, a hold placed without its chosen scope, retention accepting a disposal age before the
+  minimum, a released hold not reloaded, withheld audit values hidden); every restore was verified by
+  SHA-256.
+- Help documentation reviewed against the new behavior (`grep` over the help sections for
+  operations, holds, retention, triggers, applicability, and ending): new articles
+  `informationRequestOperationsArticle.tsx` (68 lines), `recordPreservationArticle.tsx` (68), and
+  `requestTriggerEventsArticle.tsx` (48); updated `workflowApplicabilityArticle.tsx` (Field conditions
+  apply only to Exchange triggers), `triggerEventsArticle.tsx` (pointer to request triggers, 146
+  lines), the Exchange lifecycle article in `exchangesSection.tsx` (ending with open requests), and
+  the Role & Permission Matrix in `adminOperationsSection.tsx` (Owner and Admin hold the queue and
+  privacy requests; an organization role does not open one request's details). Four docs
+  assertions in `helpDocs.test.tsx` were red first, then green (14 of 14). Sections stay under 300
+  lines and `helpDocsRegistry.tsx` is unchanged at 24.
+- Inline fully qualified names added by Phase 9 in eleven production files were replaced by imports
+  (a KDoc link that was already there was left as written).
+- Frontend review after the page tests: the touched `ExchangeEndDialog` had grown to 173 lines, so
+  its ending command moved into `useExchangeEnding.ts` (dialog 118 lines); its legacy elements gained
+  ids, one attribute per line, and a typed Textarea handler. Both dialog mutations were re-run
+  against the moved code with a surviving control and were killed again. The request detail tabs
+  scroll horizontally instead of widening a phone-width page. A structural scan of every new TSX file
+  found no other element with several attributes on one line and no id missing outside Fluent
+  `Dialog` wrappers, which render no element of their own.
+- Entitlement gap found while documenting record preservation, fixed test first: the audit API's hold
+  path requires the organization's `AUDIT_GOVERNANCE` feature for a change, but the new record
+  preservation resources changed the same holds and retention schedules with no subscription check.
+  `RecordPreservationEntitlementTest` (2) first failed to compile against the missing guard (not an
+  accepted red; the behavioral red is the mutation proof below, where the unguarded pre-fix path
+  fails both cases), then passed once `RecordPreservationEntitlementGuard` was added to hold
+  placement, scope change, release, and
+  schedule publication in `RecordPreservationAdministration`: an organization owner needs
+  `AUDIT_GOVERNANCE` (through `OrganizationFeatureSubscriptionGuard`), a personal owner needs
+  mutations allowed and `INFORMATION_REQUESTS`, and reads stay unchecked as on the audit API. With a
+  surviving control, three mutations were killed (placement skipping the guard, the organization
+  asking for the wrong feature, the personal owner skipping the feature check). Privacy handling has
+  no subscription check, deliberately, since subject rights should not wait on billing; recorded for
+  the user.
+- REST contract tests added for the new adapters: `RecordPreservationResourceContractTest` (3: paths,
+  a created hold, bad requests that never reach the service, stable reason codes, not found, and
+  forbidden) and `InformationRequestRecordResourcesContractTest` (4: paths, malformed input, a hidden
+  record answered as not found, and a verified export read). Two defects found while writing them:
+  the export read sent `Digest: sha-256=<hex>`, which claims a digest of the response body although
+  it covered only the stored export bytes (and was not base64), so the header was removed and the
+  hash stays in the body; and the audit window error said "occurredBefore is later than
+  occurredAfter" when refusing the opposite, now "occurredBefore must be later than occurredAfter".
+- The rewritten `AuditLegalHoldServiceTest` carried an industry-specific fixture reason from the
+  original test; it now says "records review hold".
+- First full backend run, recorded plainly: `.\mvnw.cmd test -DskipFrontend=true` ran 3,139 tests
+  with 4 failures and 3 errors (BUILD FAILURE in 35:25). The failures were Phase 8 expectations that
+  an answered request stays `ISSUED`, which decision 2 deliberately changed to `IN_PROGRESS`
+  (`InformationRequestReviewTransactionTest` lines 79, 137, and 323 and
+  `InformationRequestSubmissionTransactionTest` line 214; the targeted rerun then reached a fifth at
+  review line 181). A refused submission still leaves the request `ISSUED`, and that expectation is
+  unchanged. Two errors were `WorkflowInstanceGraphRecordingTest` stubs of
+  `WorkflowApplicabilityEvaluator.isApplicable` with four matchers after `P9-T3` added the fifth
+  `subjectData` parameter; they now use five, like `WorkflowInformationRequestSubjectTest`. The
+  third error was environmental (`InformationRequestOutboundNoticeContractTest` could not start its
+  `postgres:16-alpine` container) and the class passed 4 of 4 on rerun. The targeted rerun of the
+  failed, errored, new, and affected classes then ran 77 tests with 1 failure (review line 181), and
+  after that correction the review and Phase 8 walking classes passed 11 of 11.
+- Frontend verification: `npx tsc --noEmit` exits 0 (the root configuration only references the
+  projects), `npm run typecheck:app` reports 346 diagnostics, 0 Information Request, matching the
+  reviewed baseline, ESLint on every changed or new frontend TypeScript file reports nothing, and
+  `npm run build` passes with its existing chunk-size warning. `npx vitest run` covers 561 tests in
+  138 files. None of five full runs (three at `--maxWorkers=4`, two at `--maxWorkers=2`) was fully
+  green: each had one or two tests exceed the 5-second timeout under load. The first run's two were
+  not captured by name; the others were `fieldsService` (two cases in one run),
+  `InformationRequestReviewQueue`, `SubscriptionTrialTransitionDialog`, and
+  `TrustedParticipantInvitations`, all unchanged by this phase except that the review queue lives in
+  the request area. Each passes alone, and no named failure repeated or touched Phase 9 code.
+- Local development database, checked read-only (`flyway_schema_history` in `docu-hyphen-postgres-db`):
+  its head is V131, applied 2026-09-25, so none of V132 through V143 has reached it and the V140 and
+  V142 edits made during their test-first iterations touched only disposable test containers. The
+  next `quarkus:dev` start applies V132 through V143 there in order.
+- Final full backend suite after every change above: `.\mvnw.cmd test -DskipFrontend=true` passed
+  3,148 tests, 0 failures, 0 errors, 0 skipped (BUILD SUCCESS in 34:36). Only plan, evidence, and
+  memory files changed after it started. Phase 9 is complete.
+- Industry-neutrality, comment, and character audit over every line added in the 299 changed or new
+  source, test, migration, and configuration files: no em dash, arrow, or emoji; the only new
+  comments are section dividers matching each file's existing divider style (`Capability.kt`,
+  `models.tsx`, and the vocabulary test's rule list); an industry vocabulary scan (lending, clinical,
+  insurance, legal, tax, tenancy, employment, and similar nouns) matched only the SQL keyword
+  `GET DIAGNOSTICS` and the pre-existing fixture reason in `AuditLegalHoldServiceTest`, now neutral.
+  Production identifiers, REST paths, events, capabilities, and UI routes are process-neutral
+  (`record-preservation`, `information-request-operations`, `INFORMATION_REQUEST_OPERATIONS_READ`).
+- Handoff: the exact next task is `P10-T1`, only when the user asks. Read the plan's Status (the
+  Phase 10 handoff lists the UI gaps Phase 10 inherits), `### Phase 9 design decisions` (decision 14
+  and the refinements), and this entry. Open for the user: the AWS IAM permissions for versioned
+  object deletion, organization administrators opening every request's details (a permission
+  decision), and the V84 audit legacy-owner triggers. No commit or push was made.
+- Displaced from the active plan's status when Phase 9 completed, kept here verbatim (the Phase 8
+  handoff): a request never enters a review state; review lives on the package. The trigger events
+  `P9-T1` names as "changes requested" and "satisfied" therefore come from the `SETTLE_REVIEW`,
+  `REQUEST_CORRECTION`, and `CLOSE` transitions (each recorded with an audit event and a domain
+  event), not from request states. Review due instants are stored only when a caller states one;
+  calculated clocks belong to `P9-T5`. The reviewer UI has no assignment, override,
+  reconsideration, or comment control yet (their transport exists in
+  `web-app/src/services/informationRequestReviewService.ts`), and Accepted Facts and Business
+  Decisions have REST resources but no UI; Phase 10 integrates them.
+
 ### 2026-09-25: Phase 8 implementation session
 
 This entry is written progressively so an interruption leaves an exact resume point. The user asked

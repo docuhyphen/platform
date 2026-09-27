@@ -7,6 +7,7 @@ import com.docuhyphen.app.api.model.entity.FieldValueType
 import com.docuhyphen.app.api.model.entity.OrganizationRoleName
 import com.docuhyphen.app.api.model.entity.PrincipalGroupRoleName
 import com.docuhyphen.app.api.model.entity.WorkflowStepType
+import com.docuhyphen.app.api.service.fields.FieldOperator
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonClassDiscriminator
@@ -53,6 +54,17 @@ data class WorkflowSpec(
 @Serializable
 data class ApplicabilitySpec(
     val fieldConditions: List<FieldConditionSpec> = emptyList(),
+    val requirementConditions: List<RequirementConditionSpec> = emptyList(),
+)
+
+@Serializable
+data class RequirementConditionSpec(
+    val templateRequirementId: String,
+    val occurrencePath: String = "root",
+    val requirementKey: String? = null,
+    val valueType: FieldValueType,
+    val operator: FieldOperator,
+    val value: JsonElement? = null,
 )
 
 /**
@@ -65,7 +77,7 @@ data class FieldConditionSpec(
     val fieldDefinitionId: String,
     val fieldKey: String? = null,
     val valueType: FieldValueType,
-    val operator: com.docuhyphen.app.api.service.fields.FieldOperator,
+    val operator: FieldOperator,
     val value: JsonElement? = null,
 )
 

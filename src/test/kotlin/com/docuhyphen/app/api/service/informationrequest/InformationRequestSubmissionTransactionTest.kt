@@ -211,7 +211,7 @@ class InformationRequestSubmissionTransactionTest
             services.submissions.submit(submit(fixture, "record-stage", submissionETag(fixture, "record-stage"), "stage-one"))
         }
         assertEquals("record-stage", first.submission.submissionPackage.stageKey)
-        assertEquals(InformationRequestState.ISSUED, first.request.state)
+        assertEquals(InformationRequestState.IN_PROGRESS, first.request.state)
         QuarkusTransaction.requiringNew().run {
             assertEquals(setOf(fixture.documentRequirementId), lockService.submittedRequirementIds(fixture.requestId))
         }

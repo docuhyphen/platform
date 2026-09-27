@@ -1,6 +1,7 @@
 package com.docuhyphen.app.api.service.audit
 
 import com.docuhyphen.app.api.service.audit.catalog.AuditCategory
+import com.docuhyphen.app.api.service.recordpreservation.RecordPreservationHoldService
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -17,9 +18,9 @@ class AuditDisposalEligibilityServiceTest
     fun `retention-expired but held resource is not eligible for disposal`()
     {
         val retentionService = mock<AuditRetentionPolicyService>()
-        val holdService = mock<AuditLegalHoldService>()
+        val holdService = mock<RecordPreservationHoldService>()
         whenever(retentionService.isLedgerRetentionExpired(any(), any(), any(), any())).thenReturn(true)
-        whenever(holdService.isUnderHold(any(), any(), any())).thenReturn(true)
+        whenever(holdService.isPreserved(any(), any())).thenReturn(true)
 
         val svc = AuditDisposalEligibilityService(retentionService, holdService)
         val eligible = svc.isEligibleForDisposal(UUID.randomUUID(), AuditCategory.EXCHANGE, Instant.now(), "EXCHANGE", "abc")
@@ -31,9 +32,9 @@ class AuditDisposalEligibilityServiceTest
     fun `retention-expired and not held resource is eligible for disposal`()
     {
         val retentionService = mock<AuditRetentionPolicyService>()
-        val holdService = mock<AuditLegalHoldService>()
+        val holdService = mock<RecordPreservationHoldService>()
         whenever(retentionService.isLedgerRetentionExpired(any(), any(), any(), any())).thenReturn(true)
-        whenever(holdService.isUnderHold(any(), any(), any())).thenReturn(false)
+        whenever(holdService.isPreserved(any(), any())).thenReturn(false)
 
         val svc = AuditDisposalEligibilityService(retentionService, holdService)
         val eligible = svc.isEligibleForDisposal(UUID.randomUUID(), AuditCategory.EXCHANGE, Instant.now(), "EXCHANGE", "abc")
@@ -45,7 +46,7 @@ class AuditDisposalEligibilityServiceTest
     fun `retention not yet expired is never eligible regardless of hold`()
     {
         val retentionService = mock<AuditRetentionPolicyService>()
-        val holdService = mock<AuditLegalHoldService>()
+        val holdService = mock<RecordPreservationHoldService>()
         whenever(retentionService.isLedgerRetentionExpired(any(), any(), any(), any())).thenReturn(false)
 
         val svc = AuditDisposalEligibilityService(retentionService, holdService)

@@ -138,6 +138,7 @@ class ExchangeAuthorizationTest
         lifecycleNotificationService = mock(),
         documentThumbnailService = mock(),
         requestParentLifecycle = mock(),
+        requestCompletion = mock(),
     )
 
     // -------------------------------------------------------------------------

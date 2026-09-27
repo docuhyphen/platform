@@ -643,6 +643,7 @@ class InformationRequestLifecycleServiceTest
             transitionRepository = transitionRepository,
             auditRecorder = auditRecorder,
             domainEventPublisher = eventPublisher,
+            responseStart = InformationRequestResponseStart(requestRepository, java.time.Clock.systemUTC()),
         )
         val service = InformationRequestLifecycleService(
             requestRepository = requestRepository,

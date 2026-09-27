@@ -280,6 +280,29 @@ enum class AuditEventType(val key: String, val category: AuditCategory)
     INFORMATION_REQUEST_BUSINESS_DECISION_RECORD(
         "information_request.decision.record", AuditCategory.INFORMATION_REQUEST,
     ),
+    INFORMATION_REQUEST_FIRST_VIEW("information_request.request.view", AuditCategory.INFORMATION_REQUEST),
+    INFORMATION_REQUEST_START("information_request.request.start", AuditCategory.INFORMATION_REQUEST),
+    INFORMATION_REQUEST_EXPIRE("information_request.request.expire", AuditCategory.INFORMATION_REQUEST),
+    INFORMATION_REQUEST_OVERDUE("information_request.request.overdue", AuditCategory.INFORMATION_REQUEST),
+    INFORMATION_REQUEST_COMPLETION_GATE_CHANGE(
+        "information_request.request.completion_gate", AuditCategory.INFORMATION_REQUEST,
+    ),
+    INFORMATION_REQUEST_CLOCK_START("information_request.clock.start", AuditCategory.INFORMATION_REQUEST),
+    INFORMATION_REQUEST_CLOCK_PAUSE("information_request.clock.pause", AuditCategory.INFORMATION_REQUEST),
+    INFORMATION_REQUEST_CLOCK_RESUME("information_request.clock.resume", AuditCategory.INFORMATION_REQUEST),
+    INFORMATION_REQUEST_CLOCK_EXTEND("information_request.clock.extend", AuditCategory.INFORMATION_REQUEST),
+    INFORMATION_REQUEST_CLOCK_REMIND("information_request.clock.remind", AuditCategory.INFORMATION_REQUEST),
+    INFORMATION_REQUEST_CLOCK_ESCALATE("information_request.clock.escalate", AuditCategory.INFORMATION_REQUEST),
+    INFORMATION_REQUEST_CLOCK_POLICY_PUBLISH(
+        "information_request.clock_policy.publish", AuditCategory.INFORMATION_REQUEST,
+    ),
+    INFORMATION_REQUEST_NOTICE_RENDER("information_request.notice.render", AuditCategory.INFORMATION_REQUEST),
+    INFORMATION_REQUEST_NOTICE_DELIVER("information_request.notice.deliver", AuditCategory.INFORMATION_REQUEST),
+    INFORMATION_REQUEST_PRIVACY_RECORD("information_request.privacy.record", AuditCategory.INFORMATION_REQUEST),
+    INFORMATION_REQUEST_PRIVACY_COMPLETE("information_request.privacy.complete", AuditCategory.INFORMATION_REQUEST),
+    INFORMATION_REQUEST_PRIVACY_REFUSE("information_request.privacy.refuse", AuditCategory.INFORMATION_REQUEST),
+    INFORMATION_REQUEST_ITEM_CORRECT("information_request.item.correct", AuditCategory.INFORMATION_REQUEST),
+    INFORMATION_REQUEST_EXPORT_READ("information_request.request.export_read", AuditCategory.INFORMATION_REQUEST),
 
     // Organization membership and role changes.
     ORG_MEMBERSHIP_ROLE_ASSIGN("organization.membership.role_assign", AuditCategory.ORGANIZATION),
@@ -313,6 +336,12 @@ enum class AuditEventType(val key: String, val category: AuditCategory)
     AUDIT_RETENTION_POLICY_UPDATED("audit.retention_policy.updated", AuditCategory.AUDIT_GOVERNANCE),
     AUDIT_LEGAL_HOLD_PLACED("audit.legal_hold.placed", AuditCategory.AUDIT_GOVERNANCE),
     AUDIT_LEGAL_HOLD_RELEASED("audit.legal_hold.released", AuditCategory.AUDIT_GOVERNANCE),
+    AUDIT_LEGAL_HOLD_SCOPE_CHANGED("audit.legal_hold.scope_changed", AuditCategory.AUDIT_GOVERNANCE),
+    RECORD_RETENTION_SCHEDULE_UPDATED("record.retention_schedule.updated", AuditCategory.AUDIT_GOVERNANCE),
+    RECORD_DISPOSAL_CLAIMED("record.disposal.claimed", AuditCategory.AUDIT_GOVERNANCE),
+    RECORD_DISPOSAL_DENIED("record.disposal.denied", AuditCategory.AUDIT_GOVERNANCE),
+    RECORD_DISPOSAL_OBJECT_DELETED("record.disposal.object_deleted", AuditCategory.AUDIT_GOVERNANCE),
+    RECORD_DISPOSAL_FINALIZED("record.disposal.finalized", AuditCategory.AUDIT_GOVERNANCE),
     AUDIT_IDENTITY_KEY_SHREDDED("audit.identity_key.shredded", AuditCategory.AUDIT_GOVERNANCE),
     AUDIT_ANALYTICS_RECONCILED("audit.analytics.reconciled", AuditCategory.AUDIT_GOVERNANCE),
     ;
@@ -324,7 +353,7 @@ enum class AuditEventType(val key: String, val category: AuditCategory)
          * consumers (ledger, exports, projections) can reason about which catalog shape produced
          * a given event.
          */
-        const val CATALOG_VERSION: Int = 24
+        const val CATALOG_VERSION: Int = 26
 
         private val byKey: Map<String, AuditEventType> = entries.associateBy { it.key }
 

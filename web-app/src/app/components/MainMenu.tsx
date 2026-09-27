@@ -8,6 +8,7 @@ import AppLogo from "./app-logo/AppLogo.tsx";
 import {ExchangeIcon} from "./IconBundles.tsx";
 import AccountMenu from "./main-menu/account-menu/AccountMenu.tsx";
 import NotificationsPanel from "./main-menu/notifications-panel/NotificationsPanel.tsx";
+import OperationsNavigation from "./main-menu/operations-navigation/OperationsNavigation.tsx";
 import PlatformNavigation from "./main-menu/platform-navigation/PlatformNavigation.tsx";
 import ReviewQueueNavigation from "./main-menu/review-queue-navigation/ReviewQueueNavigation.tsx";
 import {useMainMenuStyles} from "./MainMenuStyles.tsx";
@@ -71,6 +72,7 @@ const MainMenu: React.FC<{onToggleHelpSidebar: () => void}> = ({onToggleHelpSide
                 <NotificationsPanel/>
             </div>
             <ReviewQueueNavigation/>
+            <OperationsNavigation/>
             <PlatformNavigation/>
             <AccountMenu onToggleHelpSidebar={onToggleHelpSidebar}/>
         </section>

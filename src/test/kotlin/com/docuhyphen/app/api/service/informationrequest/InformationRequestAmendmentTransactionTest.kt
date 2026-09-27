@@ -45,6 +45,7 @@ class InformationRequestAmendmentTransactionTest
     @Inject lateinit var currentRepository: InformationRequestRequirementCurrentRepository
     @Inject lateinit var responseRepository: InformationRequestResponseRepository
     @Inject lateinit var noticeRepository: InformationRequestNoticeIntentRepository
+    @Inject lateinit var noticeStates: InformationRequestNoticeStateReader
     @Inject lateinit var transitionRepository: InformationRequestTransitionRepository
 
     @Test
@@ -84,7 +85,7 @@ class InformationRequestAmendmentTransactionTest
             assertNull(response.reconfirmationRequiredByAmendmentId)
             assertEquals(
                 setOf(InformationRequestNoticeDeliveryState.PENDING),
-                noticeRepository.findForRequest(fixture.requestId).map { it.deliveryState }.toSet(),
+                noticeRepository.findForRequest(fixture.requestId).map { noticeStates.states(fixture.requestId).getValue(it.id) }.toSet(),
             )
             assertTrue(InformationRequestMutation.AMEND in transitionRepository.findForRequest(fixture.requestId).map { it.mutation })
         }

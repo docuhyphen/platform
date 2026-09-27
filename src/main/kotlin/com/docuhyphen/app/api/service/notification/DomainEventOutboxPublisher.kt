@@ -53,6 +53,7 @@ class DomainEventOutboxPublisher : DomainEventPublisher
             organizationId = ownerColumns.organizationId
             ownerKind = ownerColumns.ownerKind
             ownerId = ownerColumns.ownerId
+            orderingKey = event.orderingKey?.trim()?.takeIf { it.isNotBlank() }
             envelopeJson = json.encodeToString(DomainEvent.serializer(), event)
             createdAt = now
             nextAttemptAt = now

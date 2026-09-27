@@ -14,6 +14,12 @@ import org.slf4j.LoggerFactory
 import java.sql.Timestamp
 import java.time.Instant
 import java.util.UUID
+import com.docuhyphen.app.api.model.entity.Exchange
+import com.docuhyphen.app.api.model.entity.PrincipalKind
+import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.service.informationrequest.InformationRequestExchangeCompletionException
+import com.docuhyphen.app.api.service.informationrequest.InformationRequestExchangeCompletionService
+import com.docuhyphen.app.api.service.informationrequest.InformationRequestParentLifecycleService
 
 /**
  * Applies the side-effects of workflow lifecycle events to the Exchange and Share models.
@@ -39,7 +45,8 @@ class ExchangeApprovalEventHandler @Inject constructor(
     private val exchangeParticipantOrgService: ExchangeParticipantOrgService,
     private val lifecycleNotificationService: ExchangeLifecycleNotificationService,
     private val exchangeRecipientService: ExchangeRecipientService,
-    private val requestParentLifecycle: com.docuhyphen.app.api.service.informationrequest.InformationRequestParentLifecycleService,
+    private val requestParentLifecycle: InformationRequestParentLifecycleService,
+    private val requestCompletion: InformationRequestExchangeCompletionService,
 )
 {
     companion object
@@ -101,7 +108,7 @@ class ExchangeApprovalEventHandler @Inject constructor(
                         session.status = ExchangeStatus.ACCEPTED_STARTED
                         exchangeRepository.update(session)
                         requestParentLifecycle.apply(exchangeId, session.status, session.isDeleted,
-                            com.docuhyphen.app.api.service.auth.authz.PrincipalRef(com.docuhyphen.app.api.model.entity.PrincipalKind.SERVICE_ACCOUNT, UUID(0, 0)))
+                            PrincipalRef(PrincipalKind.SERVICE_ACCOUNT, UUID(0, 0)))
                         lifecycleNotificationService.publish(session, ExchangeStatus.ACCEPTED_STARTED)
                     }
                 }
@@ -122,7 +129,7 @@ class ExchangeApprovalEventHandler @Inject constructor(
                         session.endDate = Timestamp.from(Instant.now())
                         exchangeRepository.update(session)
                         requestParentLifecycle.apply(exchangeId, session.status, session.isDeleted,
-                            com.docuhyphen.app.api.service.auth.authz.PrincipalRef(com.docuhyphen.app.api.model.entity.PrincipalKind.SERVICE_ACCOUNT, UUID(0, 0)))
+                            PrincipalRef(PrincipalKind.SERVICE_ACCOUNT, UUID(0, 0)))
                         lifecycleNotificationService.publish(session, ExchangeStatus.REJECTED)
                     }
                 }
@@ -153,7 +160,7 @@ class ExchangeApprovalEventHandler @Inject constructor(
                             session.status = ExchangeStatus.ACCEPTED_STARTED
                             exchangeRepository.update(session)
                         requestParentLifecycle.apply(exchangeId, session.status, session.isDeleted,
-                            com.docuhyphen.app.api.service.auth.authz.PrincipalRef(com.docuhyphen.app.api.model.entity.PrincipalKind.SERVICE_ACCOUNT, UUID(0, 0)))
+                            PrincipalRef(PrincipalKind.SERVICE_ACCOUNT, UUID(0, 0)))
                             lifecycleNotificationService.publish(session, ExchangeStatus.ACCEPTED_STARTED)
                             logger.info(
                                 "Exchange {} activated: {} pending share(s) activated, status -> ACCEPTED_STARTED",
@@ -248,6 +255,7 @@ class ExchangeApprovalEventHandler @Inject constructor(
             EVENT_ENDING ->
             {
                 val exchange = exchangeRepository.findByIdForUpdate(exchangeId)
+                if (exchange != null && !requestsPermitEnding(exchange)) return
                 exchange?.let { session ->
                     if (session.status != ExchangeStatus.ENDED)
                     {
@@ -255,7 +263,7 @@ class ExchangeApprovalEventHandler @Inject constructor(
                         session.endDate = Timestamp.from(Instant.now())
                         exchangeRepository.update(session)
                         requestParentLifecycle.apply(exchangeId, session.status, session.isDeleted,
-                            com.docuhyphen.app.api.service.auth.authz.PrincipalRef(com.docuhyphen.app.api.model.entity.PrincipalKind.SERVICE_ACCOUNT, UUID(0, 0)))
+                            PrincipalRef(PrincipalKind.SERVICE_ACCOUNT, UUID(0, 0)))
                         lifecycleNotificationService.publish(session, ExchangeStatus.ENDED)
                     }
                 }
@@ -272,6 +280,7 @@ class ExchangeApprovalEventHandler @Inject constructor(
             {
                 // Canonical terminal event from an ending workflow (step onApprove.emit).
                 val exchange = exchangeRepository.findByIdForUpdate(exchangeId)
+                if (exchange != null && !requestsPermitEnding(exchange)) return
                 exchange?.let { session ->
                     if (session.status != ExchangeStatus.ENDED)
                     {
@@ -279,7 +288,7 @@ class ExchangeApprovalEventHandler @Inject constructor(
                         session.endDate = Timestamp.from(Instant.now())
                         exchangeRepository.update(session)
                         requestParentLifecycle.apply(exchangeId, session.status, session.isDeleted,
-                            com.docuhyphen.app.api.service.auth.authz.PrincipalRef(com.docuhyphen.app.api.model.entity.PrincipalKind.SERVICE_ACCOUNT, UUID(0, 0)))
+                            PrincipalRef(PrincipalKind.SERVICE_ACCOUNT, UUID(0, 0)))
                         lifecycleNotificationService.publish(session, ExchangeStatus.ENDED)
                     }
                 }
@@ -293,6 +302,25 @@ class ExchangeApprovalEventHandler @Inject constructor(
             }
         }
     }
+
+    private fun requestsPermitEnding(exchange: Exchange): Boolean =
+        try
+        {
+            requestCompletion.prepareEnding(
+                exchange,
+                PrincipalRef(PrincipalKind.SERVICE_ACCOUNT, UUID(0, 0)),
+                cancelRemaining = false,
+            )
+            true
+        }
+        catch (refusal: InformationRequestExchangeCompletionException)
+        {
+            logger.warn(
+                "Exchange {} was not ended because its Information Requests refused ending: {} {}",
+                exchange.id, refusal.reasonCode, refusal.requestIds,
+            )
+            false
+        }
 
     private fun activateExchangeGateShares(exchangeId: UUID): Int =
         shareService.activatePendingForResource(

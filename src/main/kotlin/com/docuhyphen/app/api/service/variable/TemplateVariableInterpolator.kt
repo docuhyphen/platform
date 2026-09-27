@@ -4,6 +4,7 @@ import com.docuhyphen.app.api.model.dto.formatSequenceValue
 import com.docuhyphen.app.api.model.entity.AppUser
 import com.docuhyphen.app.api.model.entity.Organization
 import com.docuhyphen.app.api.model.entity.VariableScope
+import com.docuhyphen.app.api.model.variable.SequenceAllocation
 import com.docuhyphen.app.api.repository.variable.SequenceDefinitionRepository
 import com.docuhyphen.app.api.repository.variable.VariableDefinitionRepository
 import jakarta.enterprise.context.ApplicationScoped
@@ -15,6 +16,7 @@ import org.slf4j.LoggerFactory
 import java.time.Instant
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
+import java.util.UUID
 
 data class VariableResolutionContext(
     val user: AppUser,
@@ -103,6 +105,28 @@ class TemplateVariableInterpolator @Inject constructor(
 
         unresolved.add(token)
         return null
+    }
+
+    @Transactional(Transactional.TxType.MANDATORY)
+    fun allocateSequence(organizationId: UUID, key: String): SequenceAllocation?
+    {
+        @Suppress("UNCHECKED_CAST")
+        val rows = entityManager.createNativeQuery(
+            """UPDATE sequence_definition
+               SET current_value = current_value + 1
+               WHERE organization_id = :orgId AND key = :key AND is_active = TRUE AND is_deleted = FALSE
+               RETURNING current_value, pad_width, prefix, suffix"""
+        )
+            .setParameter("orgId", organizationId)
+            .setParameter("key", key)
+            .resultList
+        val row = rows.firstOrNull() as Array<*>? ?: return null
+        val value = (row[0] as Number).toLong()
+        return SequenceAllocation(
+            key = key,
+            value = value,
+            renderedValue = formatSequenceValue(value, (row[1] as Number).toInt(), row[2] as String?, row[3] as String?),
+        )
     }
 
     private fun resolveSequenceToken(

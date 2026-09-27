@@ -1,6 +1,7 @@
 import {HelpDocSectionInput} from "../helpDocsRegistry";
 import {workflowOverviewArticle} from "./articles/workflowOverviewArticle";
 import {triggerEventsArticle} from "./articles/triggerEventsArticle";
+import {requestTriggerEventsArticle} from "./articles/requestTriggerEventsArticle";
 import {buildingAWorkflowArticle} from "./articles/buildingAWorkflowArticle";
 import {workflowApplicabilityArticle} from "./articles/workflowApplicabilityArticle";
 import {stepTypesArticle} from "./articles/stepTypesArticle";
@@ -18,6 +19,7 @@ export const workflowsSection: HelpDocSectionInput = {
     articles: [
         {id: "workflow-overview",           title: "Workflow overview",                  content: workflowOverviewArticle},
         {id: "trigger-events",              title: "Trigger events",                     content: triggerEventsArticle},
+        {id: "request-trigger-events",      title: "Information Request trigger events", content: requestTriggerEventsArticle},
         {id: "building-a-workflow",         title: "Building a workflow",                content: buildingAWorkflowArticle},
         {id: "workflow-applicability",      title: "Field-based applicability",          content: workflowApplicabilityArticle},
         {id: "step-types",                  title: "Step types explained",               content: stepTypesArticle},

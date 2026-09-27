@@ -49,6 +49,7 @@ class InformationRequestResponseWorkspaceService @Inject constructor(
     private val groupAuthorizationService: InformationRequestGroupAuthorizationService,
     private val supportingEvidenceLinkService: InformationRequestSupportingEvidenceLinkService,
     private val evidenceDeploymentPolicy: InformationRequestEvidenceDeploymentPolicy,
+    private val firstViewService: InformationRequestFirstViewService,
 )
 {
     fun loadRequest(requestId: UUID, access: RequestAccessContext): InformationRequestDto
@@ -67,6 +68,8 @@ class InformationRequestResponseWorkspaceService @Inject constructor(
     fun load(requestId: UUID, access: RequestAccessContext): InformationRequestResponseWorkspaceDto
     {
         val request = queryService.findById(requestId, access)
+        runCatching { firstViewService.recordIfFirst(requestId, access) }
+            .onFailure { logger.warn("Information Request first view was not recorded for request={}", requestId, it) }
         val templateVersionDto = loadTemplateVersion(request)
         val conditionEvaluations = conditionEvaluationService.evaluate(requestId)
         val responsesByRequirement = responseRepository.findAllForRequest(requestId)
@@ -124,6 +127,11 @@ class InformationRequestResponseWorkspaceService @Inject constructor(
             evidenceUploadAvailable = evidenceDeploymentPolicy.uploadAvailable(),
             evidenceMalwareScanning = evidenceDeploymentPolicy.malwareScanningConfigured(),
         )
+    }
+
+    private companion object
+    {
+        private val logger = org.slf4j.LoggerFactory.getLogger(InformationRequestResponseWorkspaceService::class.java)
     }
 
     private fun loadTemplateVersion(request: InformationRequest): InformationRequestTemplateVersionDto

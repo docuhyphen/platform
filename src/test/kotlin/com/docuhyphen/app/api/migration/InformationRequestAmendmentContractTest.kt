@@ -143,8 +143,8 @@ class InformationRequestAmendmentContractTest
                 }
 
                 insertNotice(connection, fixture.requestId, amendmentId, fixture.contributorPartyId)
-                refusedBy(connection, "ck_information_request_notice_intent_delivery") {
-                    insertNotice(connection, fixture.requestId, amendmentId, fixture.attestorPartyId, "DELIVERED")
+                refusedBy(connection, "ck_information_request_notice_intent_source") {
+                    insertNotice(connection, fixture.requestId, null, fixture.attestorPartyId)
                 }
                 val otherRequest = SubmissionRuntimeSqlFixture(connection)
                 refusedBy(connection, "information_request_notice_intent_party_fkey") {
@@ -288,20 +288,19 @@ class InformationRequestAmendmentContractTest
         )
     }
 
-    private fun insertNotice(connection: Connection, requestId: UUID, amendmentId: UUID, partyId: UUID, state: String = "PENDING")
+    private fun insertNotice(connection: Connection, requestId: UUID, amendmentId: UUID?, partyId: UUID)
     {
         execute(
             connection,
             """
             INSERT INTO information_request_notice_intent
-                (id, information_request_id, amendment_id, party_id, notice_kind, delivery_state)
-            VALUES (?, ?, ?, ?, 'REQUIREMENTS_AMENDED', ?)
+                (id, information_request_id, amendment_id, party_id, notice_kind)
+            VALUES (?, ?, ?, ?, 'REQUIREMENTS_AMENDED')
             """.trimIndent(),
             UUID.randomUUID(),
             requestId,
             amendmentId,
             partyId,
-            state,
         )
     }
 }

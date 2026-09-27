@@ -37,6 +37,7 @@ import org.slf4j.LoggerFactory
 import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
+import com.docuhyphen.app.api.exception.SubscriptionDenialException
 
 /**
  * Default [WorkflowEngineService] implementation.
@@ -109,7 +110,7 @@ class DefaultWorkflowEngineService : WorkflowEngineService
     // trigger
     // -------------------------------------------------------------------------
 
-    @Transactional
+    @Transactional(dontRollbackOn = [SubscriptionDenialException::class])
     override fun trigger(request: TriggerRequest): TriggerResult?
     {
         val definitions = definitionRepository.findAllActiveForTrigger(request.triggerEvent, request.organizationId)
@@ -119,11 +120,11 @@ class DefaultWorkflowEngineService : WorkflowEngineService
             return null
         }
 
+        definitions.forEach { subscriptionGuard.requireInstanceStart(it, request.organizationId) }
         val enrichedRequest = enrichSubjectData(request)
         var firstResult: TriggerResult? = null
         for (definition in definitions)
         {
-            subscriptionGuard.requireInstanceStart(definition, request.organizationId)
             val result = triggerOne(definition, enrichedRequest)
             if (firstResult == null) firstResult = result
         }
@@ -178,6 +179,7 @@ class DefaultWorkflowEngineService : WorkflowEngineService
                 request.subjectResourceId,
                 request.organizationId,
                 spec.applicability,
+                request.subjectData,
             ))
         {
             logger.debug(
@@ -502,10 +504,14 @@ class DefaultWorkflowEngineService : WorkflowEngineService
             if (alreadyVoted) return@mapNotNull null
 
             val instance = instanceRepository.findById(step.instanceId) ?: return@mapNotNull null
-            val exchangeId = instance.subjectResourceId
+            val subjectData = decodeSubjectData(instance.subjectDataJson)
+            val exchangeId = if (instance.subjectResourceType == null || instance.subjectResourceType == ResourceType.EXCHANGE.name)
+                instance.subjectResourceId
+            else
+                subjectData["exchangeId"]?.let { runCatching { UUID.fromString(it) }.getOrNull() }
             val session = exchangeId?.let { exchangeRepository.findById(it) }
             val initiator = instance.initiatedByAppUserId?.let { appUserRepository.findById(it) }
-            val groupName = decodeSubjectData(instance.subjectDataJson)["recipientGroupId"]
+            val groupName = subjectData["recipientGroupId"]
                 ?.let { runCatching { UUID.fromString(it) }.getOrNull() }
                 ?.let { principalGroupRepository.findById(it)?.name }
 

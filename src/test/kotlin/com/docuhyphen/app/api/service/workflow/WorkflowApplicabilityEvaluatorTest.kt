@@ -16,7 +16,7 @@ import java.util.*
 class WorkflowApplicabilityEvaluatorTest
 {
     private val queryService: ExchangeFieldQueryService = mock()
-    private val evaluator = WorkflowApplicabilityEvaluator(queryService, FieldTypeRegistry())
+    private val evaluator = WorkflowApplicabilityEvaluator(queryService, FieldTypeRegistry(), mock())
 
     private val exchangeId = UUID.randomUUID()
     private val orgId = UUID.randomUUID()

@@ -399,6 +399,7 @@ data class UpdateExchangeRequest(
     var status: ExchangeStatus? = null,
     var rejectionReason: String? = null,
     var allowedDownloadFormats: List<String>? = null,
+    var cancelRemainingInformationRequests: Boolean? = null,
 )
 
 @Serializable

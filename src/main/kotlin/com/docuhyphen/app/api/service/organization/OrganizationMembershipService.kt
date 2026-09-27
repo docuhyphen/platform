@@ -6,6 +6,7 @@ import com.docuhyphen.app.api.model.entity.OrganizationMembershipStatus
 import com.docuhyphen.app.api.model.entity.OrganizationRoleName
 import com.docuhyphen.app.api.repository.user.AppUserRepository
 import com.docuhyphen.app.api.repository.organization.OrganizationMembershipRepository
+import com.docuhyphen.app.api.service.informationrequest.InformationRequestOwnershipChangeService
 import com.docuhyphen.app.api.service.subscription.OrganizationFeatureSubscriptionGuard
 import com.docuhyphen.app.api.service.subscription.PlanFeature
 import jakarta.enterprise.context.ApplicationScoped
@@ -27,6 +28,7 @@ class OrganizationMembershipService @Inject constructor(
     private val appUserRepository: AppUserRepository,
     private val organizationSeatGuard: OrganizationSeatGuard,
     private val subscriptionGuard: OrganizationFeatureSubscriptionGuard,
+    private val requestOwnershipChanges: InformationRequestOwnershipChangeService,
 )
 {
     /**
@@ -103,6 +105,7 @@ class OrganizationMembershipService @Inject constructor(
     fun removeMember(appUserId: UUID, organizationId: UUID)
     {
         subscriptionGuard.requireMutation(organizationId, PlanFeature.ORGANIZATION_ADMINISTRATION)
+        requestOwnershipChanges.memberRemoved(organizationId, appUserId)
         membershipRepository.deleteByUserAndOrg(appUserId, organizationId)
     }
 

@@ -31,16 +31,23 @@ data class AuditLegalHoldCreateRequestDto(
 @Serializable
 data class AuditLegalHoldDto(
     val holdId: String,
-    val organizationId: String? = null,
+    val ownerKind: String,
+    val ownerId: String? = null,
     val resourceType: String,
     val resourceId: String,
     val reason: String,
     val caseReference: String? = null,
     val status: String,
-    val placedByUserId: String,
+    val scope: String,
+    val effectiveFrom: String,
+    val placedByPrincipalKind: String,
+    val placedByPrincipalId: String,
     val placedAt: String,
-    val releasedByUserId: String? = null,
+    val releasedByPrincipalKind: String? = null,
+    val releasedByPrincipalId: String? = null,
     val releasedAt: String? = null,
+    val releaseReason: String? = null,
+    val holdRevision: Long,
 )
 
 @Serializable

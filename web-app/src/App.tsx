@@ -28,6 +28,9 @@ import PlatformAudit from "./app/platform-audit/PlatformAudit.tsx";
 import InformationRequestRespondentWorkspace from "./app/information-requests/respondent-workspace/InformationRequestRespondentWorkspace.tsx";
 import InformationRequestReviewWorkspace from "./app/information-requests/review/review-workspace/InformationRequestReviewWorkspace.tsx";
 import InformationRequestReviewQueue from "./app/information-requests/review/review-queue/InformationRequestReviewQueue.tsx";
+import InformationRequestOperations from "./app/information-requests/operations/operations-page/InformationRequestOperations.tsx";
+import InformationRequestOperationsDetail from "./app/information-requests/operations/operations-detail/InformationRequestOperationsDetail.tsx";
+import RecordPreservation from "./app/record-preservation/record-preservation-page/RecordPreservation.tsx";
 
 const App: React.FC = () =>
 {
@@ -122,6 +125,24 @@ const App: React.FC = () =>
                                element={
                                    <ProtectedRoute path='/sign-in'
                                                    element={<InformationRequestReviewQueue/>}/>
+                               }/>
+
+                        <Route path="/information-request-operations"
+                               element={
+                                   <ProtectedRoute path='/sign-in'
+                                                   element={<InformationRequestOperations/>}/>
+                               }/>
+
+                        <Route path="/information-request-operations/:requestId"
+                               element={
+                                   <ProtectedRoute path='/sign-in'
+                                                   element={<InformationRequestOperationsDetail/>}/>
+                               }/>
+
+                        <Route path="/record-preservation"
+                               element={
+                                   <ProtectedRoute path='/sign-in'
+                                                   element={<RecordPreservation/>}/>
                                }/>
 
                         <Route path="/platform/administration"

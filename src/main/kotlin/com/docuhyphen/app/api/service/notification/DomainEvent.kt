@@ -30,6 +30,7 @@ data class DomainEvent(
     val subject: SubjectRef? = null,
     val organizationId: String? = null,
     val payload: Map<String, String> = emptyMap(),
+    val orderingKey: String? = null,
 )
 {
     @Serializable

@@ -120,6 +120,7 @@ internal class NoAuthOtpVerificationFixture(
             lifecycleNotificationService = mock<ExchangeLifecycleNotificationService>(),
             documentThumbnailService = mock<DocumentThumbnailService>(),
         requestParentLifecycle = mock(),
+        requestCompletion = mock(),
         )
     }
 

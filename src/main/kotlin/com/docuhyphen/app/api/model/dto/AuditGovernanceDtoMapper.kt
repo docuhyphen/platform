@@ -1,6 +1,6 @@
 package com.docuhyphen.app.api.model.dto
 
-import com.docuhyphen.app.api.model.entity.AuditLegalHold
+import com.docuhyphen.app.api.model.entity.RecordPreservationHold
 import com.docuhyphen.app.api.service.audit.AnalyticsReconciliationReport
 import com.docuhyphen.app.api.service.audit.RetentionPolicySpec
 
@@ -16,18 +16,25 @@ object AuditGovernanceDtoMapper
         isOverride = spec.isOverride,
     )
 
-    fun toDto(hold: AuditLegalHold): AuditLegalHoldDto = AuditLegalHoldDto(
+    fun toDto(hold: RecordPreservationHold): AuditLegalHoldDto = AuditLegalHoldDto(
         holdId = hold.id.toString(),
-        organizationId = hold.organizationId?.toString(),
+        ownerKind = hold.ownerKind.name,
+        ownerId = hold.ownerId?.toString(),
         resourceType = hold.resourceType,
         resourceId = hold.resourceId,
         reason = hold.reason,
         caseReference = hold.caseReference,
         status = hold.status.name,
-        placedByUserId = hold.placedByUserId.toString(),
+        scope = hold.scope.name,
+        effectiveFrom = hold.effectiveFrom.toInstant().toString(),
+        placedByPrincipalKind = hold.placedByPrincipalKind.name,
+        placedByPrincipalId = hold.placedByPrincipalId.toString(),
         placedAt = hold.placedAt.toInstant().toString(),
-        releasedByUserId = hold.releasedByUserId?.toString(),
+        releasedByPrincipalKind = hold.releasedByPrincipalKind?.name,
+        releasedByPrincipalId = hold.releasedByPrincipalId?.toString(),
         releasedAt = hold.releasedAt?.toInstant()?.toString(),
+        releaseReason = hold.releaseReason,
+        holdRevision = hold.holdRevision,
     )
 
     fun toDto(report: AnalyticsReconciliationReport): AuditAnalyticsReconciliationDto = AuditAnalyticsReconciliationDto(

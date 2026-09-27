@@ -20,7 +20,11 @@ import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
 import com.docuhyphen.app.api.service.auth.authz.Decision
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.exchange.ExchangeRecipientService
+import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
+import com.docuhyphen.app.api.service.informationrequest.InformationRequestExchangeCompletionException
+import com.docuhyphen.app.api.service.informationrequest.InformationRequestExchangeCompletionService
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestParentLifecycleService
+import com.docuhyphen.app.api.service.workflow.WorkflowEngineService
 import io.quarkus.security.ForbiddenException
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -87,6 +91,42 @@ class ExchangeTerminationInformationRequestEffectsTest
     }
 
     @Test
+    fun `ending an Exchange asks its Information Requests first with the stated cancellation choice`()
+    {
+        val fixture = Fixture(ExchangeStatus.ACCEPTED_STARTED, Action.EXCHANGE_VIEW, Action.EXCHANGE_EDIT)
+
+        fixture.service.updateExchange(
+            exchangeId.toString(),
+            UpdateExchangeRequest(status = ExchangeStatus.ENDED, cancelRemainingInformationRequests = true),
+        )
+
+        val effects = inOrder(fixture.requestCompletion, fixture.workflowEngine, fixture.parentLifecycle)
+        effects.verify(fixture.requestCompletion).prepareEnding(fixture.exchange, principal, true)
+        effects.verify(fixture.workflowEngine).trigger(any())
+        effects.verify(fixture.parentLifecycle).apply(exchangeId, ExchangeStatus.ENDED, false, principal)
+    }
+
+    @Test
+    fun `an Exchange whose Information Requests refuse ending neither starts an ending workflow nor ends`()
+    {
+        val fixture = Fixture(ExchangeStatus.ACCEPTED_STARTED, Action.EXCHANGE_VIEW, Action.EXCHANGE_EDIT)
+        whenever(fixture.requestCompletion.prepareEnding(any(), any(), any())).thenThrow(
+            InformationRequestExchangeCompletionException(
+                InformationRequestErrorCatalog.COMPLETION_GATES_UNSATISFIED,
+                listOf(UUID.randomUUID()),
+            ),
+        )
+
+        assertThrows<InformationRequestExchangeCompletionException> {
+            fixture.service.updateExchange(exchangeId.toString(), UpdateExchangeRequest(status = ExchangeStatus.ENDED))
+        }
+
+        verify(fixture.workflowEngine, never()).trigger(any())
+        verify(fixture.parentLifecycle, never()).apply(any(), any(), any(), any())
+        verify(fixture.exchangeRepository, never()).updateStatus(any(), any())
+    }
+
+    @Test
     fun `a refused rescind applies no Information Request effects`()
     {
         val fixture = Fixture(ExchangeStatus.ACCEPTED_STARTED)
@@ -105,8 +145,10 @@ class ExchangeTerminationInformationRequestEffectsTest
             requireRecipientSignIn = false
         }
         val parentLifecycle = mock<InformationRequestParentLifecycleService>()
+        val requestCompletion = mock<InformationRequestExchangeCompletionService>()
+        val workflowEngine = mock<WorkflowEngineService>()
         val shareService = mock<ShareService>()
-        private val exchangeRepository = mock<ExchangeRepository>()
+        val exchangeRepository = mock<ExchangeRepository>()
         private val workflowInstanceRepository = mock<WorkflowInstanceRepository>()
         val service: ExchangeUpdateService
 
@@ -156,7 +198,7 @@ class ExchangeTerminationInformationRequestEffectsTest
                 appUserService = mock(),
                 workflowInstanceRepository = workflowInstanceRepository,
                 workflowStepRepository = mock(),
-                workflowEngineService = mock(),
+                workflowEngineService = workflowEngine,
                 authTokenContext = tokenContext,
                 authorizationService = authorizationService,
                 authorizationContextFactory = authorizationContextFactory,
@@ -167,6 +209,7 @@ class ExchangeTerminationInformationRequestEffectsTest
                 lifecycleNotificationService = mock(),
                 documentThumbnailService = mock(),
                 requestParentLifecycle = parentLifecycle,
+                requestCompletion = requestCompletion,
             )
         }
     }

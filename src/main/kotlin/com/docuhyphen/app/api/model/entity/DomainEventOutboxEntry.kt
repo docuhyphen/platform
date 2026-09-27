@@ -45,6 +45,12 @@ class DomainEventOutboxEntry
     @Column(name = "owner_id")
     var ownerId: UUID? = null
 
+    @Column(name = "ordering_key", length = 160)
+    var orderingKey: String? = null
+
+    @Column(name = "sequence_number", insertable = false, updatable = false)
+    var sequenceNumber: Long? = null
+
     /** JSON-serialized [com.docuhyphen.app.api.service.notification.DomainEvent] envelope. */
     @Column(name = "envelope_json", nullable = false, columnDefinition = "text")
     lateinit var envelopeJson: String

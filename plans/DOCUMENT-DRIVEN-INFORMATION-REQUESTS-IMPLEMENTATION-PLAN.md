@@ -2,7 +2,8 @@
 
 ## Status
 
-- Overall status: In progress. Phases 1 through 8 and the repeated remediation gate are complete.
+- Overall status: In progress. Phases 1 through 9 and the repeated remediation gate are complete; Phase 10 has not
+  started.
 - Scanner decision (user, 2026-09-25): the Information Request feature and every other feature must
   work in production without a malware scanner. Malware scanning moved out of this program into
   `plans/INFORMATION-REQUEST-EVIDENCE-MALWARE-SCANNING-PLAN.md`, which the user will implement later.
@@ -13,25 +14,37 @@
 - Review checkpoint: the 2026-09-13 [Phases 1-5 recheck](DOCUMENT-DRIVEN-INFORMATION-REQUESTS-PHASES-1-5-RECHECK.md)
   found seven remaining gaps. The original P5-R01 through P5-R20 completion records remain
   historical evidence; they do not establish that the integrated implementation is gap-free.
-- Current work: none in progress. Phase 8 was implemented in one session (2026-09-25 to
-  2026-09-26) at the user's request; its design decisions are recorded under `## Phase 8` and the
-  evidence journal entry "2026-09-25: Phase 8 implementation session" records every result.
+- Current work: none in progress. Phase 9 was requested in full by the user on 2026-09-26
+  ("implement the rest of the phase 9 in one go") and completed the same day; its design decisions
+  (1 through 14 and the recorded refinements) are under `### Phase 9 design decisions`, and its proof
+  is the evidence journal entry "2026-09-26: Phase 9 implementation session".
 - Development stage: the platform has no production users and is in active development. No
   backwards-compatibility code may be written, and the compatibility mechanisms already shipped are
   now defect work. See `## Development-Stage Constraint` and
   `## Development-Stage Compatibility Removal`.
-- Exact next task: `P9-T1`. It is dependency-ready; start it only when the user asks for Phase 9.
-  Flyway head is V138. V139 is the last number of the provisional program range, so before a second
-  Phase 9 migration is created the allocation in `### Flyway numbering and allocation` must be
-  extended above the current head and recorded in the ledger.
-- Phase 9 handoff from Phase 8: a request never enters a review state; review lives on the package.
-  The trigger events `P9-T1` names as "changes requested" and "satisfied" therefore come from the
-  `SETTLE_REVIEW`, `REQUEST_CORRECTION`, and `CLOSE` transitions (each recorded with an audit event
-  and a domain event), not from request states. Review due instants are stored only when a caller
-  states one; calculated clocks belong to `P9-T5`. The reviewer UI has no assignment, override,
-  reconsideration, or comment control yet (their transport exists in
-  `web-app/src/services/informationRequestReviewService.ts`), and Accepted Facts and Business
-  Decisions have REST resources but no UI; Phase 10 integrates them.
+- Exact next task: `P10-T1`. It is dependency-ready; start it only when the user asks for Phase 10.
+  Flyway head is V143, and V144 through V160 remain unallocated in the extended program range.
+- Latest implementation result, the Phase 10 handoff from Phase 9: request Workflow triggers with
+  durable, ordered, receipted consumption (V139), requirement-scoped Workflow operands, Exchange
+  completion gates, versioned request clocks (V140), immutable outbound notices (V141), the
+  operations projection, audit history, search, reconciliation, and verified record exports, neutral
+  record-preservation holds, retention, and claimed disposal (V142), privacy requests, restrictions,
+  and corrections (V143), storage, transfer, and ownership-change policies, both Phase 9 walking
+  fixtures, and the minimal operations and record preservation UI are done. Phase 10 inherits these
+  gaps: clock policy authoring, clock commands (pause, resume, extend), privacy requests and subject
+  restrictions, hold scope change, and the owner-scope audit search have REST resources but no UI;
+  the operations queue has no search, assignee, or bulk reminder action (`P10-T6`); the reviewer UI
+  still lacks assignment, override, reconsideration, and comment controls, and Accepted Facts and
+  Business Decisions still have no UI. Decision 14 keeps a request's details with the Exchange owner
+  or a decision maker; letting organization administrators open every request is a permission
+  decision for the user. Organization hold and retention changes require `AUDIT_GOVERNANCE` on both
+  the audit API and the record preservation API, and personal ones require `INFORMATION_REQUESTS`;
+  reads and privacy handling have no subscription check. Reported and not changed: the AWS
+  `DocumentsBucket` is versioned and the application role lacks `s3:ListBucketVersions` and
+  `s3:DeleteObjectVersion`, so an AWS disposal claim stays `CLAIMED` and retries until that IAM
+  change (within existing services) is approved; the V84 legacy-owner triggers on five audit tables
+  are a compatibility shim no Phase 9 task touched.
+- Phase 9: complete. Verification and mutation proof are recorded in the Phase 9 evidence entry.
 - Phase 8: complete. Template review plans (V136), package review cycles with assignments,
   worksheets, decisions, overrides, findings, corrections with allowlists, comments, remediation,
   reconsideration, and appeal (V137), Accepted Facts and Business Decisions (V138), the
@@ -835,7 +848,7 @@ reason summary.
 | 6     | Evidence and secure document handling                        | P5-R-GATE | Complete | Evidence collection works in production without a scanner; scanning is planned separately. |
 | 7     | Submission, response attestation, amendments, and recurrence | Phase 6                                | Complete    | Immutable packages survive staged submission, amendments, supplements, and recurrence.                                                                           |
 | 8     | Review, findings, remediation, and decision separation       | Phase 7                                | Complete    | Item-level and staged review is complete and auditable.                                                                                                          |
-| 9     | Time, Workflow, audit, retention, and export                 | Phase 8                                | Not started | Events, clocks, immutable notices, preservation holds, disposal, and downstream use are reliable.                                                                |
+| 9     | Time, Workflow, audit, retention, and export                 | Phase 8                                | Complete    | Events, clocks, immutable notices, preservation holds, disposal, and downstream use are reliable.                                                                |
 | 10    | Author, respondent, reviewer, and operations UX              | Phases 2-9                             | Not started | All primary journeys are responsive, accessible, and documented.                                                                                                 |
 | 11    | Generic capability conformance and extension contracts       | Phases 2-10                            | Not started | Eight neutral conformance scenarios pass.                                                                                                                        |
 | 12    | Compatibility, packaging, rollout, and final hardening       | Phases 1-11                            | Not started | Migration, entitlement, quotas, documentation, and release gates pass.                                                                                           |
@@ -3196,9 +3209,148 @@ vocabulary, corrections, comments, remediation), V138 (Accepted Facts and Busine
 Make Information Requests operationally reliable, traceable, schedulable, and safe for downstream
 automation.
 
+### Phase 9 design decisions (2026-09-26)
+
+Recorded before implementation so every task below states against one design. Verified facts they
+rest on: the transition history service is the only Information Request event publisher and its
+event type is the audit key (`information_request.request.issue`); nothing consumes those events;
+`RECORD_FIRST_VIEW` and `EXPIRE` have no caller, so nothing reaches `IN_PROGRESS` or `EXPIRED`; the
+Workflow registry is only the designer's catalogue and Workflows start only through
+`WorkflowEngineService.trigger`; the outbox claims by `next_attempt_at` with no per-consumer
+receipt, so a redelivery can repeat a side effect; `canEndExchange` has no production caller and an
+Exchange ends without consulting its requests; notice intents are append-only with a `PENDING`-only
+state; `AuditLegalHold` is organization-or-platform only with App User attribution; the storage port
+cannot delete.
+
+1. Trigger vocabulary. A Workflow trigger name is the durable event type its owning transition
+   already publishes. The registry gains `subject_resource_type` (`EXCHANGE`, `INFORMATION_REQUEST`)
+   and `subject_schema_version`; the seven Exchange rows are version 1. Request triggers:
+   `information_request.request.issue` (issued), `.view` (viewed), `.start` (started), `.submit`
+   (submitted), `.correction` (changes requested), `.close` (satisfied), `.expire`, `.cancel`,
+   `.supersede`, and `.overdue`. Their version 1 subject fields carry identifiers, states, stable
+   codes, counts, and instants only (`requestId`, `exchangeId`, `templateVersionId`, `orgId`,
+   `state`, `transitionSequence`, and per event `submissionPackageId`, `packageNumber`, `stageKey`,
+   `reviewId`, `reasonCode`, `supersededByRequestId`, `clockId`, `clockKey`, `dueAt`); never a
+   response value, label, or contact endpoint.
+2. Viewed and started. `RECORD_FIRST_VIEW` keeps the request's state and is recorded once, on the
+   first workspace read by a responding party on either surface (`first_viewed_at`). New
+   `START_RESPONSE` moves `ISSUED` to `IN_PROGRESS` on the first response, evidence, attestation,
+   group, or submission mutation (`started_at`). `EXPIRE` gains its audit key and `expired_at`.
+3. Durable consumption. A `DomainEventConsumer` contract replaces hard-wired routing for new
+   consumers. Each consumer's effect commits with a `domain_event_consumption` receipt (consumer
+   key, event, outcome `APPLIED` or `SKIPPED`, detail) in the routing transaction, so a redelivered
+   event causes one business effect per consumer; the durable notification fan-out is receipted the
+   same way. Ordering is opt-in by `DomainEvent.orderingKey`: the outbox stores it with a sequence
+   number and never claims an event while an earlier undelivered event with the same key exists.
+   Request events are ordered per request. The Workflow trigger consumer starts matching
+   definitions with subject type `INFORMATION_REQUEST`; a subscription refusal is a `SKIPPED`
+   receipt with its reason, never an endless retry that would block the request's ordered queue.
+4. Counterparty wait. `WAIT_FOR_COUNTERPARTY_CLEARANCE` waits for other organizations' instances on
+   the same subject; it never observes Requirement satisfaction. A characterization test proves it
+   completes at once for a request subject with no counterparty instance, so it is not reused, and
+   Requirement satisfaction is a distinct generic condition (decision 5).
+5. Scoped operands. `ApplicabilitySpec.requirementConditions` name a stable Template Requirement ID,
+   an occurrence path (default `root`), a value type, an operator, and a literal. They evaluate only
+   for an `INFORMATION_REQUEST` subject against the exact Submission Package the triggering event
+   names, reading the frozen Field Value Revision of that package item. No package in the subject, a
+   package of another request, an absent item, several matching items, a non-Field item, or a type
+   mismatch is a non-match: automation never picks a response. Field conditions stay Exchange-only
+   and unchanged; the validator refuses each kind on the other subject type.
+6. Completion gates. `gates_exchange_closure` stays the per-request gate and becomes changeable by
+   `PUT /information-requests/{id}/completion-gate` (`If-Match`, Idempotency-Key,
+   `CHANGE_COMPLETION_GATE` history) while the request is not terminal. Ending an Exchange that holds
+   requests, directly or when its ending Workflow confirms, runs
+   `InformationRequestExchangeCompletionService` under the Exchange lock: a gating request that is
+   still open refuses `COMPLETION_GATES_UNSATISFIED` and is never cancelled by the ending command, so
+   it must be satisfied or explicitly cancelled first; a remaining nongating open request refuses
+   `REMAINING_REQUESTS_REQUIRE_CANCELLATION` unless the caller states
+   `cancelRemainingInformationRequests`, which cancels each one with reason `EXCHANGE_ENDED` in the
+   same transaction. A gating request that already ended (closed, cancelled, superseded, or expired)
+   no longer holds the gate, because a terminal request cannot change its gate and would otherwise
+   block ending forever; its history shows whether it was satisfied. The check runs before an ending
+   Workflow starts, and again at confirmation, where a refusal leaves the Exchange unchanged. An
+   Exchange with no requests ends exactly as today, including from `INITIATED`.
+7. Clocks. A clock policy is an owner-scoped definition with immutable numbered versions: clock type
+   (`CALENDAR` or `BUSINESS`), business timezone, weekly working periods, holiday dates, standard and
+   urgent durations, ordered reminder offsets before due, an optional escalation offset after due, and
+   a due effect (`MARK_OVERDUE` or `EXPIRE_REQUEST`), all measured in the clock type. A request clock
+   (one per `clock_key` per request) freezes the policy version, urgency, and received instant and
+   records every calculation append-only (`STARTED`, `PAUSED`, `RESUMED`, `EXTENDED`, `REMINDED`,
+   `OVERDUE`, `ESCALATED`, `EXPIRED`, `STOPPED`) with its inputs and resulting due instant, so a later
+   policy version never rewrites deadline proof. A pure calculator computes due instants across
+   timezones, working hours, holidays, pauses, and extensions. A scheduler records each reminder,
+   overdue, escalation, and expiry point once (unique per clock, kind, and ordinal); overdue and
+   expiry are request transitions and Workflow triggers, and reminders and overdue owe Notice Intents
+   to the acting parties. A clock stops when its request becomes terminal.
+8. Operations projection. `GET /information-request-operations` lists the requests the caller may
+   administer in its active owner scope with state, age, first view, start, nearest due and SLA
+   status (`NO_CLOCK`, `ON_TRACK`, `DUE_SOON`, `OVERDUE`, `PAUSED`, `MET`), reminder count, notice
+   delivery counts, and exception counts, filtered by state, Exchange, SLA status, and exceptions.
+9. Audit projections. `GET /information-requests/{id}/audit-events` and
+   `GET /information-request-audit-events` return classified Information Request events with
+   allow-listed payload keys only. `GET /information-requests/{id}/audit-reconciliation` matches every
+   audited transition to its audit record by business transaction, reporting missing and unmatched
+   history without payload values. `POST /information-requests/{id}/record-exports` freezes an
+   immutable JSON record of who requested, provided, reviewed, changed, and decided each item, with
+   evidence identified by version hash, stores it with its SHA-256, and verifies that hash on read.
+10. Notices. A claim row idempotently claims one Notice Intent before rendering. The immutable
+    `OutboundNotice` snapshots the party, recipient endpoint, channel, rendered subject and body,
+    rendered hash and algorithm, source Communication and its pre-interpolation hash (or the
+    platform default content for the notice kind when none is named), event and idempotency keys,
+    and every `{{SEQ:KEY}}` allocation: each distinct key gets one value shared by subject and body,
+    consumed once in the claim transaction. Delivery attempts are append-only; a retry reuses the
+    stored render and never increments a Sequence. A notice without an endpoint is recorded as such
+    and never described as delivered. Intents lose the unwritable `delivery_state`; delivery state is
+    derived. Endpoints are masked in every projection except to the request administrator.
+11. Preservation and disposal. `audit_legal_hold` is generalized in place: owner kind and ID for
+    platform, organization, and personal ownership, effective instant, scope (`RESOURCE` or
+    `DESCENDANTS_AND_REFERENCES`), canonical principal attribution replacing the App User columns,
+    and an append-only lifecycle history. `RecordPreservationHoldService` owns placement, scope
+    change, release, and the preservation question, and the audit governance APIs and
+    `AuditDisposalEligibilityService` delegate to it, so one hold is visible to both subsystems.
+    Owner-scoped retention schedules state a minimum retention and an automatic disposal age after a
+    request becomes terminal; without a schedule nothing is disposed. A disposal claim locks the
+    request, rechecks retention, holds, and shared-byte reachability, and refuses new references and
+    hold placement while it is open; objects are deleted through the idempotent storage port (an
+    absent object is success), then a database function removes the request's rows under the claim
+    and a tombstone is finalized. A retry after object deletion completes safely. Every claim,
+    denial, object deletion, and finalization is audited.
+12. Privacy requests. An owner records a subject access, export, correction, restriction, or deletion
+    request for one `SubjectIdentityRef` with purpose and policy basis keys as data. Access and
+    export produce an immutable subject record export; correction appends a correction record
+    against a package item or points an open request to a new response revision, never rewriting a
+    package; restriction stops Accepted Fact promotion and reuse for the subject; deletion claims
+    each terminal request about the subject for disposal unless a hold or minimum retention forbids
+    it, which refuses with a stable reason.
+13. Extension points. Storage location, permitted transfer regions, and ownership changes are
+    policy interfaces with configuration-backed defaults that keep current behavior. Exports record
+    the storage location and the transfer decision; organization member removal asks the ownership
+    policy about that member's request parties. No infrastructure changes.
+
+14. Owner-scope administration (added 2026-09-26 during `P9-T13`). The cross-request operations
+    queue, the owner-scope audit search, and privacy handling act across an owner's requests, not on
+    one request, so they require their own capabilities, `INFORMATION_REQUEST_OPERATIONS_READ`
+    (`INFORMATION_REQUEST_VIEW_OPERATIONS_QUEUE`) and `INFORMATION_REQUEST_PRIVACY_MANAGE`
+    (`INFORMATION_REQUEST_MANAGE_PRIVACY`), which only Organization Owners and Administrators hold; a
+    personal owner is always permitted for their own requests. Request-level views (clocks, notices, audit
+    history, reconciliation, disposal standing) keep `INFORMATION_REQUEST_VIEW_OPERATIONS` on
+    `INFORMATION_REQUEST_ADMIN`, so they stay with the Exchange owner or a decision maker, and no
+    request-scoped action accepts an owner-scope capability. Organization membership grants reach
+    every organization-owned request, so granting request administration to organization roles
+    would open every request to organization administrators; that remains a user decision.
+
+Refinements recorded while implementing: decision 10 masks recipient endpoints in every projection,
+including the request administrator's; decision 12 applies a correction to a submitted package item
+only, and pointing an open request at a new response revision stays with the respondent workspace.
+
+Migrations (the program range is extended past V139 below): V139 (events, trigger registry,
+ordering, consumption, and transition vocabulary), V140 (clock policies and request clocks), V141
+(notices), V142 (preservation holds, retention, disposal, and record exports), V143 (privacy
+requests).
+
 ### Tasks
 
-- [ ] `P9-T1` Register the namespaced events already emitted transactionally by their owning
+- [x] `P9-T1` Register the namespaced events already emitted transactionally by their owning
   mutation phases as Workflow trigger events, with safe versioned subject schemas for issued,
   viewed, started, submitted, changes requested, satisfied, expired, cancelled, and superseded.
   Add an explicit Flyway migration for `workflow_trigger_event_registry` with versioned
@@ -3207,26 +3359,44 @@ automation.
   `WAIT_FOR_COUNTERPARTY_CLEARANCE` and reuse it only if its Exchange subject, organization, and
   completion semantics exactly match the requested wait; otherwise keep Requirement satisfaction
   as a distinct generic Workflow condition.
-- [ ] `P9-T2` Implement Workflow and notification consumers, ordering rules, retry behavior, and
+  Done: V139 request trigger rows with version 1 subject schemas and the scheduled overdue event;
+  `WAIT_FOR_COUNTERPARTY_CLEARANCE` was characterized and is not reused (decision 4).
+- [x] `P9-T2` Implement Workflow and notification consumers, ordering rules, retry behavior, and
   duplicate-side-effect protection over the neutral transactional publisher introduced in Phase 3
   and backed compatibly by the existing physical outbox. Do not import Workflow-specific publisher
   types into Information Request services and do not retrofit event persistence after the
   originating transaction has already shipped.
-- [ ] `P9-T3` Scope Workflow operands to Information Request ID, stable Requirement ID, and exact
+  Done: `DomainEventConsumer` receipts per consumer, opt-in per-request ordering in the outbox, the
+  Workflow trigger and notice consumers, and `SKIPPED` receipts for subscription refusals.
+- [x] `P9-T3` Scope Workflow operands to Information Request ID, stable Requirement ID, and exact
   Submission Package revision. Keep existing Exchange Workflow Field behavior unchanged.
-- [ ] `P9-T4` Add configurable Exchange completion gates based on specified satisfied Information
+  Done: `ApplicabilitySpec.requirementConditions` evaluated only against the exact package the event
+  names (`InformationRequestWorkflowOperandService`); Exchange Field conditions are unchanged and
+  Exchange-only.
+- [x] `P9-T4` Add configurable Exchange completion gates based on specified satisfied Information
   Requests rather than generic document-required flags. Ending must atomically reject or explicitly
   cancel any remaining nongating request instead of silently abandoning it.
-- [ ] `P9-T5` Implement Request Clocks for urgency, clock type, received time, business timezone,
+  Done: `InformationRequestExchangeCompletionService` under the Exchange lock
+  (`COMPLETION_GATES_UNSATISFIED`, `REMAINING_REQUESTS_REQUIRE_CANCELLATION`,
+  `cancelRemainingInformationRequests`) and `PUT /information-requests/{id}/completion-gate`.
+- [x] `P9-T5` Implement Request Clocks for urgency, clock type, received time, business timezone,
   versioned business calendar, working hours and holiday set, pause and resume reasons,
   extensions, reminder points, escalation, and overdue transition deduplication. Freeze the policy
   version, inputs, and calculation history so later calendar changes do not rewrite deadline proof.
-- [ ] `P9-T6` Add cross-request search, queue, aging, SLA, delivery, reminder, and exception
+  Done: V140 clock policies with immutable versions, the pure calculator, clock commands under
+  `If-Match`, and the point processor and scheduler; a finished request or ended Exchange stops its
+  clocks, including an overdue clock with no further point.
+- [x] `P9-T6` Add cross-request search, queue, aging, SLA, delivery, reminder, and exception
   projections.
-- [ ] `P9-T7` Add cross-request audit search, reconciliation, integrity, and export projections over
+  Done: `GET /information-request-operations` with the service level calculator, notice, reminder,
+  and exception counts, filters, and paging, at owner scope through
+  `INFORMATION_REQUEST_VIEW_OPERATIONS_QUEUE` (decision 14).
+- [x] `P9-T7` Add cross-request audit search, reconciliation, integrity, and export projections over
   the classified transactional events already recorded by Phases 2 through 8. Detect missing or
   unmatched history without exposing sensitive values in unrestricted payloads.
-- [ ] `P9-T8` Build immutable `OutboundNotice` and append-only `NoticeDeliveryAttempt` records before
+  Done: request audit history, owner-scope audit search, reconciliation, and SHA-256-verified record
+  exports that record their storage location and transfer decision.
+- [x] `P9-T8` Build immutable `OutboundNotice` and append-only `NoticeDeliveryAttempt` records before
   retention or privacy integration begins. Idempotently claim each durable `NoticeIntent`, snapshot
   request party and recipient endpoint, channel, rendered subject and body, rendered-content hash
   and algorithm, source Communication ID and pre-interpolation source-content hash, event and
@@ -3240,7 +3410,10 @@ automation.
   recipient endpoints and retained content as sensitive: apply compartment authorization,
   protection at rest through approved existing controls, redaction, access history, privacy rules,
   and retention. Mutable Communication remains authoring input only.
-- [ ] `P9-T9` Build neutral record-preservation and disposal foundations for Information Requests,
+  Done: V141 claims, immutable outbound notices, one Sequence allocation per key shared by subject
+  and body, append-only attempts with backoff, derived delivery state, and masked endpoints in every
+  projection.
+- [x] `P9-T9` Build neutral record-preservation and disposal foundations for Information Requests,
   Submission Packages, Evidence Versions, referenced Document Versions, Outbound Notices, retained
   notice content, and exports. Define authorized hold placement, release, and scope change through
   central capabilities and thin REST resources; include tenant and resource scope, reason,
@@ -3261,19 +3434,32 @@ automation.
   lifecycle history. Adapt `AuditDisposalEligibilityService` through the neutral hold service so an
   operator cannot place a hold in one subsystem that is invisible to another. Every claim, denial,
   retry, database deletion, and object deletion is audited and reproducible.
-- [ ] `P9-T10` Implement privacy-request handling for authorized subject access, correction by new
+  Done: V142 generalized `audit_legal_hold` with its lifecycle history, retention schedules, claimed
+  disposal with idempotent storage deletion, tombstones, and reference guards, with the hold,
+  schedule, disposal, and standing resources; audit governance delegates to the neutral hold service.
+- [x] `P9-T10` Implement privacy-request handling for authorized subject access, correction by new
   revision, export, restriction, and deletion where retention or a record-preservation hold does
   not prohibit it. Apply the same handling to sensitive recipient endpoints and retained notice
   content. Record purpose and policy basis without embedding policy conclusions in application
   code.
-- [ ] `P9-T11` Add policy extension points for storage location, permitted transfer regions, and
+  Done: V143 privacy requests, subject restrictions, and package item corrections; deletion is all or
+  nothing; restrictions stop fact promotion and offers.
+- [x] `P9-T11` Add policy extension points for storage location, permitted transfer regions, and
   ownership changes when a user or organization relationship changes. Any infrastructure change
   remains subject to explicit AWS-service approval.
-- [ ] `P9-T12` Extend `basic_field_document_response_attestation_request` and
+  Done: storage location, transfer region, and ownership-change policies with configuration-backed
+  defaults; organization member removal consults the ownership policy.
+- [x] `P9-T12` Extend `basic_field_document_response_attestation_request` and
   `multi_party_staged_evidence_request` through scoped Workflow, versioned clocks, immutable
   notices, audit search, retention, record-preservation holds, privacy requests, and evidence export.
-- [ ] `P9-T13` Add the minimal operational queue, clock, notice history, audit history, authorized
+  Done: `InformationRequestTemplateWalkingSkeletonPhase9Test`, one basic-shaped and one staged
+  scenario.
+- [x] `P9-T13` Add the minimal operational queue, clock, notice history, audit history, authorized
   hold placement and release, disposal status, and evidence export UI behind the feature switch.
+  Done: the operations queue and request detail pages, the record preservation page, the menu entry,
+  the Exchange end refusal handling, and request-trigger applicability in the designer. Privacy
+  request, clock policy, clock command, hold scope change, and audit search screens remain for Phase
+  10.
 
 ### Tests to write first
 
@@ -3883,7 +4069,19 @@ link it follows. |
 
 | `P8-T8`, `P8-T9` | `V138__information_request_accepted_fact_business_decision.sql` | 2026-09-25 | Created and PostgreSQL contract-tested. Accepted Facts with revocation, and Business Decision references. |
 
-Remaining unallocated program range after these allocations and prior P4/P5 allocations: V139. Flyway head is V138.
+| `P9-T1`, `P9-T2` | `V139__information_request_event_consumption.sql` | 2026-09-26 | Created and PostgreSQL contract-tested. Trigger registry subject type, schema version, and request trigger rows; outbox ordering key and sequence; consumption receipts; request view, start, and expiry instants; widened transition mutations. |
+
+| `P9-T5` | `V140__information_request_clock.sql` | 2026-09-26 | Created and PostgreSQL contract-tested. Clock policies with immutable versions, working periods, holidays, and reminders; request clocks and their append-only calculation history. |
+
+| `P9-T8` | `V141__information_request_outbound_notice.sql` | 2026-09-26 | Created and PostgreSQL contract-tested. Notice intent sources and kinds without the stored delivery state, claims, immutable outbound notices, sequence allocations, and delivery attempts. |
+
+| `P9-T7`, `P9-T9` | `V142__record_preservation_disposal.sql` | 2026-09-26 | Created and PostgreSQL contract-tested. Generalized hold ownership, scope, attribution, and lifecycle history; retention schedules; disposal claims, objects, and tombstones; record exports; the claimed disposal function. |
+
+| `P9-T10` | `V143__information_request_privacy.sql` | 2026-09-26 | Created and PostgreSQL contract-tested. Privacy requests, subject restrictions, and package item corrections. |
+
+The provisional program range ended at V139. On 2026-09-26, before the second Phase 9 migration, it
+was extended to V139 through V160; the head was V138 and no other initiative had taken a number
+above it. Remaining unallocated program range: V144 through V160. Flyway head is V143.
 V118 and V119 were taken by prior P5 remediation work before this row was written.
 
 When verifying that a migration contract test is genuinely red, remove the migration from

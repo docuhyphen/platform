@@ -40,9 +40,32 @@ class InformationRequestTransitionHistoryService @Inject constructor(
     private val transitionRepository: InformationRequestTransitionRepository,
     private val auditRecorder: AuditRecorder,
     @TransactionalEventSink private val domainEventPublisher: DomainEventPublisher,
+    private val responseStart: InformationRequestResponseStart,
 )
 {
     fun record(command: InformationRequestTransitionHistoryCommand): InformationRequestTransition
+    {
+        if (!responseStart.startsWith(command)) return recordOne(command)
+        val previousState = command.request.state
+        responseStart.start(command.request)
+        recordOne(
+            InformationRequestTransitionHistoryCommand(
+                request = command.request,
+                fromState = previousState,
+                toState = command.request.state,
+                mutation = InformationRequestMutation.START_RESPONSE,
+                actor = command.actor,
+                partyId = command.partyId,
+                idempotencyKey = "information_request.start|${command.request.id}",
+            ),
+        )
+        val sameState = command.fromState == previousState && command.toState == previousState
+        return recordOne(
+            if (sameState) command.copy(fromState = command.request.state, toState = command.request.state) else command,
+        )
+    }
+
+    private fun recordOne(command: InformationRequestTransitionHistoryCommand): InformationRequestTransition
     {
         val occurredAt = Timestamp.from(Instant.now())
         val transition = transitionRepository.save(
@@ -89,6 +112,7 @@ class InformationRequestTransitionHistoryService @Inject constructor(
                 subject = DomainEvent.SubjectRef("INFORMATION_REQUEST", command.request.id.toString()),
                 organizationId = command.request.ownerOrganizationId?.toString(),
                 payload = payload,
+                orderingKey = orderingKeyOf(command.request.id),
             ),
             owner,
         )
@@ -105,6 +129,8 @@ class InformationRequestTransitionHistoryService @Inject constructor(
             "sequenceNumber" to transition.sequenceNumber.toString(),
             "toState" to command.toState.name,
             "mutation" to command.mutation.name,
+            "exchangeId" to command.request.exchangeId.toString(),
+            "templateVersionId" to command.request.templateVersionId.toString(),
         )
         command.fromState?.let { fields["fromState"] = it.name }
         command.request.supersededByRequestId?.let { fields["supersededByRequestId"] = it.toString() }
@@ -120,36 +146,6 @@ class InformationRequestTransitionHistoryService @Inject constructor(
         return fields
     }
 
-    private fun auditEventTypeFor(mutation: InformationRequestMutation): AuditEventType? = when (mutation)
-    {
-        InformationRequestMutation.CREATE_DRAFT -> AuditEventType.INFORMATION_REQUEST_CREATE
-        InformationRequestMutation.ISSUE -> AuditEventType.INFORMATION_REQUEST_ISSUE
-        InformationRequestMutation.SUBMIT -> AuditEventType.INFORMATION_REQUEST_SUBMIT
-        InformationRequestMutation.AMEND -> AuditEventType.INFORMATION_REQUEST_AMEND
-        InformationRequestMutation.CANCEL -> AuditEventType.INFORMATION_REQUEST_CANCEL
-        InformationRequestMutation.SUPERSEDE -> AuditEventType.INFORMATION_REQUEST_SUPERSEDE
-        InformationRequestMutation.REASSIGN -> AuditEventType.INFORMATION_REQUEST_PARTY_REASSIGN
-        InformationRequestMutation.SAVE_RESPONSE -> AuditEventType.INFORMATION_REQUEST_REQUIREMENT_RESPOND
-        InformationRequestMutation.ATTEST_RESPONSE -> AuditEventType.INFORMATION_REQUEST_REQUIREMENT_ATTEST
-        InformationRequestMutation.ADMINISTER_EVIDENCE -> AuditEventType.INFORMATION_REQUEST_EVIDENCE_ADMINISTER
-        InformationRequestMutation.CLOSE -> AuditEventType.INFORMATION_REQUEST_CLOSE
-        InformationRequestMutation.WITHDRAW_SUBMISSION -> AuditEventType.INFORMATION_REQUEST_SUBMISSION_WITHDRAW
-        InformationRequestMutation.CREATE_SUCCESSOR -> AuditEventType.INFORMATION_REQUEST_SUCCESSOR_CREATE
-        InformationRequestMutation.SCHEDULE_FOLLOW_UP -> AuditEventType.INFORMATION_REQUEST_FOLLOW_UP_SCHEDULE
-        InformationRequestMutation.START_REVIEW -> AuditEventType.INFORMATION_REQUEST_REVIEW_START
-        InformationRequestMutation.ASSIGN_REVIEWER -> AuditEventType.INFORMATION_REQUEST_REVIEW_ASSIGN
-        InformationRequestMutation.SAVE_REVIEW_DRAFT -> AuditEventType.INFORMATION_REQUEST_REVIEW_DRAFT
-        InformationRequestMutation.RECORD_REVIEW_DECISION -> AuditEventType.INFORMATION_REQUEST_REQUIREMENT_REVIEW
-        InformationRequestMutation.RECORD_FINDING -> AuditEventType.INFORMATION_REQUEST_REVIEW_FINDING
-        InformationRequestMutation.RECORD_REVIEW_COMMENT -> AuditEventType.INFORMATION_REQUEST_REVIEW_COMMENT
-        InformationRequestMutation.SETTLE_REVIEW -> AuditEventType.INFORMATION_REQUEST_REVIEW_SETTLE
-        InformationRequestMutation.REQUEST_CORRECTION -> AuditEventType.INFORMATION_REQUEST_CORRECTION_REQUEST
-        InformationRequestMutation.PROMOTE_FACT -> AuditEventType.INFORMATION_REQUEST_FACT_PROMOTE
-        InformationRequestMutation.REVOKE_FACT -> AuditEventType.INFORMATION_REQUEST_FACT_REVOKE
-        InformationRequestMutation.RECORD_BUSINESS_DECISION -> AuditEventType.INFORMATION_REQUEST_BUSINESS_DECISION_RECORD
-        else -> null
-    }
-
     private fun transitionActorKindOf(kind: PrincipalKind): InformationRequestTransitionActorKind = when (kind)
     {
         PrincipalKind.USER -> InformationRequestTransitionActorKind.USER
@@ -161,4 +157,49 @@ class InformationRequestTransitionHistoryService @Inject constructor(
         PrincipalKind.PUBLIC_LINK -> InformationRequestTransitionActorKind.PUBLIC_LINK
     }
 
+    companion object
+    {
+        fun orderingKeyOf(requestId: UUID): String = "information_request:$requestId"
+
+        fun auditEventTypeFor(mutation: InformationRequestMutation): AuditEventType? = when (mutation)
+        {
+            InformationRequestMutation.CREATE_DRAFT -> AuditEventType.INFORMATION_REQUEST_CREATE
+            InformationRequestMutation.ISSUE -> AuditEventType.INFORMATION_REQUEST_ISSUE
+            InformationRequestMutation.SUBMIT -> AuditEventType.INFORMATION_REQUEST_SUBMIT
+            InformationRequestMutation.AMEND -> AuditEventType.INFORMATION_REQUEST_AMEND
+            InformationRequestMutation.CANCEL -> AuditEventType.INFORMATION_REQUEST_CANCEL
+            InformationRequestMutation.SUPERSEDE -> AuditEventType.INFORMATION_REQUEST_SUPERSEDE
+            InformationRequestMutation.REASSIGN -> AuditEventType.INFORMATION_REQUEST_PARTY_REASSIGN
+            InformationRequestMutation.SAVE_RESPONSE -> AuditEventType.INFORMATION_REQUEST_REQUIREMENT_RESPOND
+            InformationRequestMutation.ATTEST_RESPONSE -> AuditEventType.INFORMATION_REQUEST_REQUIREMENT_ATTEST
+            InformationRequestMutation.ADMINISTER_EVIDENCE -> AuditEventType.INFORMATION_REQUEST_EVIDENCE_ADMINISTER
+            InformationRequestMutation.CLOSE -> AuditEventType.INFORMATION_REQUEST_CLOSE
+            InformationRequestMutation.WITHDRAW_SUBMISSION -> AuditEventType.INFORMATION_REQUEST_SUBMISSION_WITHDRAW
+            InformationRequestMutation.CREATE_SUCCESSOR -> AuditEventType.INFORMATION_REQUEST_SUCCESSOR_CREATE
+            InformationRequestMutation.SCHEDULE_FOLLOW_UP -> AuditEventType.INFORMATION_REQUEST_FOLLOW_UP_SCHEDULE
+            InformationRequestMutation.START_REVIEW -> AuditEventType.INFORMATION_REQUEST_REVIEW_START
+            InformationRequestMutation.ASSIGN_REVIEWER -> AuditEventType.INFORMATION_REQUEST_REVIEW_ASSIGN
+            InformationRequestMutation.SAVE_REVIEW_DRAFT -> AuditEventType.INFORMATION_REQUEST_REVIEW_DRAFT
+            InformationRequestMutation.RECORD_REVIEW_DECISION -> AuditEventType.INFORMATION_REQUEST_REQUIREMENT_REVIEW
+            InformationRequestMutation.RECORD_FINDING -> AuditEventType.INFORMATION_REQUEST_REVIEW_FINDING
+            InformationRequestMutation.RECORD_REVIEW_COMMENT -> AuditEventType.INFORMATION_REQUEST_REVIEW_COMMENT
+            InformationRequestMutation.SETTLE_REVIEW -> AuditEventType.INFORMATION_REQUEST_REVIEW_SETTLE
+            InformationRequestMutation.REQUEST_CORRECTION -> AuditEventType.INFORMATION_REQUEST_CORRECTION_REQUEST
+            InformationRequestMutation.PROMOTE_FACT -> AuditEventType.INFORMATION_REQUEST_FACT_PROMOTE
+            InformationRequestMutation.REVOKE_FACT -> AuditEventType.INFORMATION_REQUEST_FACT_REVOKE
+            InformationRequestMutation.RECORD_BUSINESS_DECISION -> AuditEventType.INFORMATION_REQUEST_BUSINESS_DECISION_RECORD
+            InformationRequestMutation.RECORD_FIRST_VIEW -> AuditEventType.INFORMATION_REQUEST_FIRST_VIEW
+            InformationRequestMutation.START_RESPONSE -> AuditEventType.INFORMATION_REQUEST_START
+            InformationRequestMutation.EXPIRE -> AuditEventType.INFORMATION_REQUEST_EXPIRE
+            InformationRequestMutation.RECORD_OVERDUE -> AuditEventType.INFORMATION_REQUEST_OVERDUE
+            InformationRequestMutation.CHANGE_COMPLETION_GATE -> AuditEventType.INFORMATION_REQUEST_COMPLETION_GATE_CHANGE
+            InformationRequestMutation.START_CLOCK -> AuditEventType.INFORMATION_REQUEST_CLOCK_START
+            InformationRequestMutation.PAUSE_CLOCK -> AuditEventType.INFORMATION_REQUEST_CLOCK_PAUSE
+            InformationRequestMutation.RESUME_CLOCK -> AuditEventType.INFORMATION_REQUEST_CLOCK_RESUME
+            InformationRequestMutation.EXTEND_CLOCK -> AuditEventType.INFORMATION_REQUEST_CLOCK_EXTEND
+            InformationRequestMutation.RECORD_REMINDER -> AuditEventType.INFORMATION_REQUEST_CLOCK_REMIND
+            InformationRequestMutation.RECORD_ESCALATION -> AuditEventType.INFORMATION_REQUEST_CLOCK_ESCALATE
+            else -> null
+        }
+    }
 }

@@ -59,7 +59,7 @@ class WorkflowDefinitionServiceValidationTest
         authorizationService = mock(),
         authorizationContextFactory = authorizationContextFactory,
         userRoleService = userRoleService,
-        applicabilityEvaluator = WorkflowApplicabilityEvaluator(fieldQueryService, FieldTypeRegistry()),
+        applicabilityEvaluator = WorkflowApplicabilityEvaluator(fieldQueryService, FieldTypeRegistry(), org.mockito.kotlin.mock()),
         workflowSpecValidator = WorkflowSpecValidator(
             triggerRepository,
             ConditionPredicateService(),
@@ -136,6 +136,50 @@ class WorkflowDefinitionServiceValidationTest
         verify(definitionRepository, org.mockito.kotlin.never()).save(any())
     }
 
+    @Test
+    fun `create accepts requirement conditions only on a request trigger that names a Submission Package`()
+    {
+        setupCaller()
+        whenever(definitionRepository.save(any())).doAnswer { it.getArgument(0) }
+        whenever(triggerRepository.findByEventName(PACKAGE_TRIGGER)).thenReturn(
+            WorkflowTriggerEventRegistry().apply {
+                eventName = PACKAGE_TRIGGER
+                subjectResourceType = "INFORMATION_REQUEST"
+                subjectFieldsJson = """[{"name":"requestId","type":"UUID"},{"name":"submissionPackageId","type":"UUID"}]"""
+            },
+        )
+        whenever(triggerRepository.findByEventName(ISSUE_TRIGGER)).thenReturn(
+            WorkflowTriggerEventRegistry().apply {
+                eventName = ISSUE_TRIGGER
+                subjectResourceType = "INFORMATION_REQUEST"
+                subjectFieldsJson = """[{"name":"requestId","type":"UUID"}]"""
+            },
+        )
+
+        assertThrows(IllegalArgumentException::class.java) {
+            service.createDefinition(createRequest(requirementConditionSteps(), ISSUE_TRIGGER))
+        }
+        assertDoesNotThrow {
+            service.createDefinition(createRequest(requirementConditionSteps(), PACKAGE_TRIGGER))
+        }
+        verify(definitionRepository).save(any())
+    }
+
+    private fun requirementConditionSteps(): String = WorkflowSpecJson.encode(
+        WorkflowSpec(
+            steps = listOf(WorkflowStepSpec(type = WorkflowStepType.NOTIFICATION, onApprove = StepOutcomeSpec("END"))),
+            applicability = ApplicabilitySpec(
+                requirementConditions = listOf(
+                    RequirementConditionSpec(
+                        templateRequirementId = UUID.randomUUID().toString(),
+                        valueType = com.docuhyphen.app.api.model.entity.FieldValueType.SHORT_TEXT,
+                        operator = com.docuhyphen.app.api.service.fields.FieldOperator.IS_NOT_EMPTY,
+                    ),
+                ),
+            ),
+        ),
+    )
+
     private fun setupCaller()
     {
         whenever(authorizationContextFactory.currentPrincipal())
@@ -152,9 +196,9 @@ class WorkflowDefinitionServiceValidationTest
         )
     }
 
-    private fun createRequest(stepsJson: String) = CreateWorkflowDefinitionRequest(
+    private fun createRequest(stepsJson: String, trigger: String = TRIGGER) = CreateWorkflowDefinitionRequest(
         name = "Def",
-        triggerEvent = TRIGGER,
+        triggerEvent = trigger,
         stepsJson = stepsJson,
         scope = "PERSONAL",
     )
@@ -175,6 +219,8 @@ class WorkflowDefinitionServiceValidationTest
     private companion object
     {
         const val TRIGGER = "exchange.definition_test"
+        const val PACKAGE_TRIGGER = "information_request.request.submit"
+        const val ISSUE_TRIGGER = "information_request.request.issue"
         const val VALID_PREDICATE = "\$subject.amount >= 10"
         const val INVALID_PREDICATE = "\$subject.amount contains '1'"
     }

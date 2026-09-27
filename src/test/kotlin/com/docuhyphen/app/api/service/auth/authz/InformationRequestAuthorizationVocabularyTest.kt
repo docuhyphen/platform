@@ -23,6 +23,9 @@ import java.util.UUID
  *  - Every runtime request Action maps to a runtime request Capability.
  *  - None of those capabilities is granted by any existing role, so the vocabulary is
  *    default-deny until a resource-scoped role grant is added.
+ *  - Owner-scope request administration, which spans an owner's requests rather than acting on
+ *    one, requires its own capabilities that only organization owners and administrators hold,
+ *    and no request-scoped Action requires them.
  *  - Existing Exchange and Document capability grants are untouched.
  *  - Every stable refusal code is uniquely named within one prefix.
  */
@@ -44,6 +47,16 @@ class InformationRequestAuthorizationVocabularyTest
         Capability.INFORMATION_REQUEST_EVIDENCE_ADMIN,
         Capability.INFORMATION_REQUEST_EXPORT,
     )
+
+    private val ownerScopeActions = setOf(
+        Action.INFORMATION_REQUEST_VIEW_OPERATIONS_QUEUE,
+        Action.INFORMATION_REQUEST_MANAGE_PRIVACY,
+    )
+
+    private val requestScopedActions = Action.entries
+        .filter { it.name.startsWith("INFORMATION_REQUEST_") }
+        .filterNot { it.name.startsWith("INFORMATION_REQUEST_TEMPLATE_") }
+        .filterNot { it in ownerScopeActions }
 
     // --- resource vocabulary ---
 
@@ -78,11 +91,8 @@ class InformationRequestAuthorizationVocabularyTest
     @Test
     fun `every runtime request action requires a runtime request capability`()
     {
-        val requestActions = Action.entries.filter { it.name.startsWith("INFORMATION_REQUEST_") }
-            .filterNot { it.name.startsWith("INFORMATION_REQUEST_TEMPLATE_") }
-
-        assertTrue(requestActions.isNotEmpty()) { "the runtime request action vocabulary must exist" }
-        requestActions.forEach { action ->
+        assertTrue(requestScopedActions.isNotEmpty()) { "the runtime request action vocabulary must exist" }
+        requestScopedActions.forEach { action ->
             assertTrue(action.required in runtimeCapabilities) {
                 "$action must require a runtime Information Request capability, not ${action.required}"
             }
@@ -119,13 +129,12 @@ class InformationRequestAuthorizationVocabularyTest
             Action.INFORMATION_REQUEST_COMMENT_ON_REVIEW,
             Action.INFORMATION_REQUEST_PROMOTE_FACT,
             Action.INFORMATION_REQUEST_RECORD_DECISION,
+            Action.INFORMATION_REQUEST_CONFIGURE_COMPLETION,
+            Action.INFORMATION_REQUEST_MANAGE_CLOCKS,
+            Action.INFORMATION_REQUEST_VIEW_OPERATIONS,
         )
 
-        val declared = Action.entries.filter { it.name.startsWith("INFORMATION_REQUEST_") }
-            .filterNot { it.name.startsWith("INFORMATION_REQUEST_TEMPLATE_") }
-            .toSet()
-
-        assertEquals(expected, declared)
+        assertEquals(expected, requestScopedActions.toSet())
     }
 
     @Test
@@ -143,6 +152,34 @@ class InformationRequestAuthorizationVocabularyTest
         assertEquals(Capability.INFORMATION_REQUEST_RESPOND, Action.INFORMATION_REQUEST_COMMENT_ON_REVIEW.required)
         assertEquals(Capability.INFORMATION_REQUEST_ADMIN, Action.INFORMATION_REQUEST_PROMOTE_FACT.required)
         assertEquals(Capability.INFORMATION_REQUEST_ADMIN, Action.INFORMATION_REQUEST_RECORD_DECISION.required)
+        assertEquals(Capability.INFORMATION_REQUEST_ADMIN, Action.INFORMATION_REQUEST_CONFIGURE_COMPLETION.required)
+        assertEquals(Capability.INFORMATION_REQUEST_ADMIN, Action.INFORMATION_REQUEST_MANAGE_CLOCKS.required)
+        assertEquals(Capability.INFORMATION_REQUEST_ADMIN, Action.INFORMATION_REQUEST_VIEW_OPERATIONS.required)
+    }
+
+    // --- owner-scope request administration ---
+
+    @Test
+    fun `owner scope request administration requires capabilities only organization owners and administrators hold`()
+    {
+        assertEquals(Capability.INFORMATION_REQUEST_OPERATIONS_READ, Action.INFORMATION_REQUEST_VIEW_OPERATIONS_QUEUE.required)
+        assertEquals(Capability.INFORMATION_REQUEST_PRIVACY_MANAGE, Action.INFORMATION_REQUEST_MANAGE_PRIVACY.required)
+        val ownerScope = ownerScopeActions.map { it.required }.toSet()
+
+        OrganizationRoleName.entries.forEach { role ->
+            val granted = RoleCapabilities.forOrganizationRole(role).intersect(ownerScope)
+            if (role == OrganizationRoleName.ORG_OWNER || role == OrganizationRoleName.ORG_ADMIN) assertEquals(ownerScope, granted)
+            else assertTrue(granted.isEmpty()) { "$role must not administer an owner's requests" }
+        }
+        val elsewhere = mutableSetOf<Capability>()
+        AppRoleName.entries.forEach { elsewhere += RoleCapabilities.forAppRole(it) }
+        ApplicationRoleName.entries.forEach { elsewhere += RoleCapabilities.forApplicationRole(it) }
+        PrincipalGroupRoleName.entries.forEach { elsewhere += RoleCapabilities.forPrincipalGroupRole(it) }
+        ExchangeShareRoleName.entries.forEach { elsewhere += RoleCapabilities.forExchangeShareRole(it) }
+        assertTrue(elsewhere.intersect(ownerScope).isEmpty())
+        requestScopedActions.forEach { action ->
+            assertFalse(action.required in ownerScope) { "$action acts on one request and must not accept owner-scope administration" }
+        }
     }
 
     // --- default deny, narrowed to the Exchange owner's authoring grant ---

@@ -5,6 +5,7 @@ import com.docuhyphen.app.api.exception.DocumentVersionContentNotFoundException
 import com.docuhyphen.app.api.exception.DocumentVersionObjectKeyInUseException
 import com.docuhyphen.app.api.model.document.DocumentVersionContentDigest
 import com.docuhyphen.app.api.model.document.DocumentVersionContentDigests
+import com.docuhyphen.app.api.model.document.DocumentVersionDeletionOutcome
 import com.docuhyphen.app.api.model.document.ObjectStoreDocumentVersionLocator
 import com.docuhyphen.app.api.qualifier.Local
 import jakarta.enterprise.context.ApplicationScoped
@@ -69,6 +70,10 @@ class LocalDocumentVersionStorageService @Inject constructor(
 
         return target
     }
+
+    override fun deleteVersion(locator: ObjectStoreDocumentVersionLocator): DocumentVersionDeletionOutcome =
+        if (Files.deleteIfExists(contentFile(locator).toPath())) DocumentVersionDeletionOutcome.DELETED
+        else DocumentVersionDeletionOutcome.ABSENT
 
     private fun contentFile(locator: ObjectStoreDocumentVersionLocator): File =
         File(rootDirectory, locator.value)

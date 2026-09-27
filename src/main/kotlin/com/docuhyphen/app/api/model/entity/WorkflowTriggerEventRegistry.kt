@@ -36,6 +36,12 @@ class WorkflowTriggerEventRegistry
     @Column(name = "is_active", nullable = false)
     var isActive: Boolean = true
 
+    @Column(name = "subject_resource_type", nullable = false, length = 32)
+    var subjectResourceType: String = "EXCHANGE"
+
+    @Column(name = "subject_schema_version", nullable = false)
+    var subjectSchemaVersion: Int = 1
+
     @Column(name = "created_at", nullable = false)
     @Serializable(with = TimestampSerializer::class)
     var createdAt: Timestamp = Timestamp.from(Instant.now())

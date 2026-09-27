@@ -34,6 +34,12 @@ export const changeKindLabels: Record<InformationRequestAmendmentChangeKind, str
 
 export const noticeStateLabels: Record<InformationRequestNoticeDeliveryState, string> = {
     [InformationRequestNoticeDeliveryState.PENDING]: "Notice pending",
+    [InformationRequestNoticeDeliveryState.CLAIMED]: "Notice being prepared",
+    [InformationRequestNoticeDeliveryState.RENDERED]: "Notice ready to send",
+    [InformationRequestNoticeDeliveryState.RETRYING]: "Notice delivery retrying",
+    [InformationRequestNoticeDeliveryState.DELIVERED]: "Notice delivered",
+    [InformationRequestNoticeDeliveryState.FAILED]: "Notice delivery failed",
+    [InformationRequestNoticeDeliveryState.UNDELIVERABLE]: "Notice undeliverable",
 };
 
 export const carryForwardLabels: Record<InformationRequestCarryForwardDecision, string> = {

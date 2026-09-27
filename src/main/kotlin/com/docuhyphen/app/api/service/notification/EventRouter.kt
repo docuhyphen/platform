@@ -22,6 +22,8 @@ class EventRouter
     @Inject private lateinit var ruleEngine: NotificationRuleEngine
     @Inject private lateinit var dispatcher: DeliveryDispatcher
     @Inject private lateinit var sessionApprovalEventHandler: com.docuhyphen.app.api.service.exchange.ExchangeApprovalEventHandler
+    @Inject private lateinit var consumers: jakarta.enterprise.inject.Instance<DomainEventConsumer>
+    @Inject private lateinit var consumption: DomainEventConsumptionService
 
     fun route(event: DomainEvent)
     {
@@ -61,7 +63,9 @@ class EventRouter
             sessionApprovalEventHandler.handle(event)
         }
 
-        fanOutNotifications(event)
+        consumers.sortedWith(compareBy<DomainEventConsumer>({ it.routingOrder }, { it.consumerKey }))
+            .filter { it.handles(event) }
+            .forEach { consumption.consumeOnce(it, event) }
     }
 
     private fun fanOutNotifications(event: DomainEvent)

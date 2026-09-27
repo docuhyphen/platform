@@ -1,40 +1,31 @@
 package com.docuhyphen.app.api.service.audit
 
-import com.docuhyphen.app.api.model.entity.AuditLegalHold
-import com.docuhyphen.app.api.model.entity.AuditLegalHoldStatus
-import com.docuhyphen.app.api.repository.audit.AuditLegalHoldRepository
-import com.docuhyphen.app.api.service.audit.catalog.AuditActorKind
-import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
-import com.docuhyphen.app.api.service.audit.catalog.AuditOutcome
+import com.docuhyphen.app.api.exception.RecordPreservationException
+import com.docuhyphen.app.api.exception.RecordPreservationNotFoundException
+import com.docuhyphen.app.api.exception.RecordPreservationRequestException
+import com.docuhyphen.app.api.model.entity.RecordPreservationHold
+import com.docuhyphen.app.api.model.entity.RecordPreservationHoldStatus
+import com.docuhyphen.app.api.model.entity.RecordPreservationScope
+import com.docuhyphen.app.api.model.recordpreservation.PlaceRecordPreservationHoldCommand
+import com.docuhyphen.app.api.model.recordpreservation.RecordOwnerRef
+import com.docuhyphen.app.api.model.recordpreservation.RecordPreservationKey
+import com.docuhyphen.app.api.model.recordpreservation.ReleaseRecordPreservationHoldCommand
+import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.service.recordpreservation.RecordPreservationHoldService
 import com.docuhyphen.app.api.service.subscription.OrganizationFeatureSubscriptionGuard
 import com.docuhyphen.app.api.service.subscription.PlanFeature
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
-import org.slf4j.LoggerFactory
-import java.sql.Timestamp
-import java.time.Instant
 import java.util.UUID
 
-/**
- * Places and releases holds on a denormalized resource reference. A hold never
- * touches the WORM ledger/archive - it only records the fact that disposal of anything
- * referencing that resource must not proceed while [isUnderHold] is true. Legal hold overrides
- * disposal: callers of any future retention-purge job must consult this before disposing.
- */
 @ApplicationScoped
 class AuditLegalHoldService @Inject constructor(
-    private val auditLegalHoldRepository: AuditLegalHoldRepository,
-    private val auditRecorder: AuditRecorder,
+    private val holds: RecordPreservationHoldService,
     private val auditDeniedAttemptService: AuditDeniedAttemptService,
     private val subscriptionGuard: OrganizationFeatureSubscriptionGuard,
 )
 {
-    companion object
-    {
-        private val logger = LoggerFactory.getLogger(AuditLegalHoldService::class.java)
-    }
-
     @Transactional
     fun placeHold(
         organizationId: UUID?,
@@ -43,57 +34,46 @@ class AuditLegalHoldService @Inject constructor(
         reason: String,
         caseReference: String?,
         placedByUserId: UUID,
-    ): AuditLegalHold
+    ): RecordPreservationHold
     {
         subscriptionGuard.requireMutation(organizationId, PlanFeature.AUDIT_GOVERNANCE)
-        require(resourceType.isNotBlank()) { "resourceType is required" }
-        require(resourceId.isNotBlank()) { "resourceId is required" }
-        require(reason.isNotBlank()) { "reason is required" }
-
-        val now = Timestamp.from(Instant.now())
-        val hold = AuditLegalHold().apply {
-            this.organizationId = organizationId
-            this.resourceType = resourceType.trim()
-            this.resourceId = resourceId.trim()
-            this.reason = reason.trim()
-            this.caseReference = caseReference?.trim()?.takeIf { it.isNotBlank() }
-            this.status = AuditLegalHoldStatus.ACTIVE
-            this.placedByUserId = placedByUserId
-            this.placedAt = now
-            this.createdAt = now
-            this.updatedAt = now
+        return guarded {
+            holds.place(
+                PlaceRecordPreservationHoldCommand(
+                    owner = ownerOf(organizationId),
+                    resourceType = resourceType,
+                    resourceId = resourceId,
+                    scope = RecordPreservationScope.RESOURCE,
+                    reason = reason,
+                    caseReference = caseReference,
+                    effectiveFrom = null,
+                    principal = PrincipalRef.user(placedByUserId),
+                ),
+            ).hold
         }
-        val saved = auditLegalHoldRepository.save(hold)
-        recordEvent(AuditEventType.AUDIT_LEGAL_HOLD_PLACED, placedByUserId, saved)
-        return saved
     }
 
     @Transactional
-    fun releaseHold(holdId: UUID, expectedOrganizationId: UUID?, releasedByUserId: UUID): AuditLegalHold
+    fun releaseHold(holdId: UUID, expectedOrganizationId: UUID?, releasedByUserId: UUID): RecordPreservationHold
     {
-        val hold = auditLegalHoldRepository.findById(holdId) ?: throw AuditLegalHoldNotFoundException()
-        if (hold.organizationId != expectedOrganizationId)
-        {
-            throw AuditLegalHoldNotFoundException()
+        subscriptionGuard.requireMutation(expectedOrganizationId, PlanFeature.AUDIT_GOVERNANCE)
+        return guarded {
+            holds.release(
+                ReleaseRecordPreservationHoldCommand(
+                    holdId = holdId,
+                    owner = ownerOf(expectedOrganizationId),
+                    reason = RELEASE_REASON,
+                    principal = PrincipalRef.user(releasedByUserId),
+                ),
+            ).hold
         }
-        subscriptionGuard.requireMutation(hold.organizationId, PlanFeature.AUDIT_GOVERNANCE)
-        require(hold.status == AuditLegalHoldStatus.ACTIVE) { "Only an ACTIVE legal hold can be released" }
-
-        val now = Timestamp.from(Instant.now())
-        hold.status = AuditLegalHoldStatus.RELEASED
-        hold.releasedByUserId = releasedByUserId
-        hold.releasedAt = now
-        hold.updatedAt = now
-        val saved = auditLegalHoldRepository.update(hold)
-        recordEvent(AuditEventType.AUDIT_LEGAL_HOLD_RELEASED, releasedByUserId, saved)
-        return saved
     }
 
     fun isUnderHold(organizationId: UUID?, resourceType: String, resourceId: String): Boolean =
-        auditLegalHoldRepository.findActiveForResource(organizationId, resourceType, resourceId).isNotEmpty()
+        holds.isPreserved(ownerOf(organizationId), listOf(RecordPreservationKey(resourceType, resourceId, direct = true)))
 
-    fun listActiveHolds(organizationId: UUID?): List<AuditLegalHold> =
-        auditLegalHoldRepository.findActiveForOrganization(organizationId)
+    fun listActiveHolds(organizationId: UUID?): List<RecordPreservationHold> =
+        holds.holds(ownerOf(organizationId), setOf(RecordPreservationHoldStatus.ACTIVE))
 
     fun recordDeniedAttempt(actorId: UUID, organizationId: UUID, reasonCode: String)
     {
@@ -106,38 +86,30 @@ class AuditLegalHoldService @Inject constructor(
         )
     }
 
-    private fun recordEvent(eventType: AuditEventType, actorId: UUID, hold: AuditLegalHold)
-    {
+    private fun ownerOf(organizationId: UUID?): RecordOwnerRef =
+        organizationId?.let(RecordOwnerRef::organization) ?: RecordOwnerRef.PLATFORM
+
+    private fun <T> guarded(block: () -> T): T =
         try
         {
-            auditRecorder.record(
-                AuditEventDraft(
-                    eventTypeKey = eventType.key,
-                    outcome = AuditOutcome.SUCCESS,
-                    actorId = actorId,
-                    actorKind = AuditActorKind.HUMAN,
-                    actorRole = "AUDIT_GOVERNANCE",
-                    owner = hold.organizationId?.let(AuditOwnerScope::Organization) ?: AuditOwnerScope.Platform,
-                    targetType = "AUDIT_LEGAL_HOLD",
-                    targetId = hold.id.toString(),
-                    targetLabel = hold.caseReference?.let { "${hold.reason} ($it)" } ?: hold.reason,
-                    payload = buildMap {
-                        put("resource_type", hold.resourceType)
-                        put("resource_id", hold.resourceId)
-                        put("status", hold.status.name)
-                        hold.caseReference?.let { put("case_reference", it) }
-                    },
-                )
-            )
+            block()
         }
-        catch (e: AuditDraftInvalidException)
+        catch (exception: RecordPreservationNotFoundException)
         {
-            logger.warn("AuditLegalHoldService: AuditRecorder rejected {}: {}", eventType, e.message)
+            throw AuditLegalHoldNotFoundException()
         }
-        catch (e: AuditCaptureFailedException)
+        catch (exception: RecordPreservationRequestException)
         {
-            logger.error("AuditLegalHoldService: AuditRecorder capture failed for {}: {}", eventType, e.message, e)
+            throw IllegalArgumentException(exception.message)
         }
+        catch (exception: RecordPreservationException)
+        {
+            throw IllegalArgumentException(exception.message)
+        }
+
+    private companion object
+    {
+        const val RELEASE_REASON = "Released through audit governance"
     }
 }
 

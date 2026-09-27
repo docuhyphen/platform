@@ -15,6 +15,14 @@ class AuditLedgerEventRepository : BaseRepository<AuditLedgerEvent>(AuditLedgerE
      * `audit_outbox` row is a no-op rather than a duplicate ledger row. The `event_id` unique
      * constraint on `audit_ledger_event` is the authoritative belt-and-braces guard underneath.
      */
+    fun findByEventIds(eventIds: Collection<UUID>): List<AuditLedgerEvent>
+    {
+        if (eventIds.isEmpty()) return emptyList()
+        return entityManager.createQuery("SELECT e FROM AuditLedgerEvent e WHERE e.eventId IN :eventIds", AuditLedgerEvent::class.java)
+            .setParameter("eventIds", eventIds)
+            .resultList
+    }
+
     fun existsByEventId(eventId: UUID): Boolean
     {
         val count = entityManager.createQuery(

@@ -5,6 +5,7 @@ import com.docuhyphen.app.api.model.entity.InformationRequest
 import com.docuhyphen.app.api.model.entity.InformationRequestAmendment
 import com.docuhyphen.app.api.model.entity.InformationRequestAmendmentChange
 import com.docuhyphen.app.api.model.entity.InformationRequestAmendmentChangeKind
+import com.docuhyphen.app.api.model.entity.InformationRequestNoticeDeliveryState
 import com.docuhyphen.app.api.model.entity.InformationRequestNoticeIntent
 import com.docuhyphen.app.api.service.command.CommandPrecondition
 import com.docuhyphen.app.api.service.informationrequest.RequestAccessContext
@@ -54,6 +55,7 @@ data class InformationRequestAmendmentView(
     val amendment: InformationRequestAmendment,
     val changes: List<InformationRequestAmendmentChange>,
     val notices: List<InformationRequestNoticeIntent>,
+    val noticeStates: Map<UUID, InformationRequestNoticeDeliveryState> = emptyMap(),
 )
 
 data class InformationRequestAmendmentResult(

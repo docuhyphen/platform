@@ -46,8 +46,8 @@ export const adminOperationsSection: HelpDocSectionInput = {
                         removing one role does not replace their other organization roles.
                     </p>
                     <ul>
-                        <li><b>Owner:</b> Organization policy, users, billing, audit, and group administration.</li>
-                        <li><b>Admin:</b> Organization policy, users, audit, and group administration.</li>
+                        <li><b>Owner:</b> Organization policy, users, billing, audit, and group administration, plus the Information Request operations queue and privacy requests.</li>
+                        <li><b>Admin:</b> Organization policy, users, audit, and group administration, plus the Information Request operations queue and privacy requests.</li>
                         <li><b>Billing Admin:</b> Billing management.</li>
                         <li><b>User Manager:</b> Organization member management and group visibility.</li>
                         <li><b>Auditor:</b> Organization audit review and evidence export.</li>
@@ -61,6 +61,7 @@ export const adminOperationsSection: HelpDocSectionInput = {
                         <li>App Admin is a platform role. It does not grant access to organization people, groups, settings, content, or member-capacity details.</li>
                         <li>An App Admin needs a separate organization role and the matching active organization to use organization administration capabilities.</li>
                         <li>An organization role does not grant access to an Exchange by itself.</li>
+                        <li>An organization role does not open one Information Request&apos;s details. The Exchange owner or a decision maker on the request does.</li>
                         <li>A group Manager role applies only to that group, not to the organization or an Exchange.</li>
                         <li>An Exchange role applies only to the relevant Exchange and its documents.</li>
                         <li>The Owner label in a group is separate from the Owner label on an Exchange.</li>

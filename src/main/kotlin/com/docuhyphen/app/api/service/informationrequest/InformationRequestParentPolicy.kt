@@ -7,7 +7,7 @@ import com.docuhyphen.app.api.service.auth.authz.*
 object InformationRequestParentPolicy
 {
     val readActions = setOf(Action.INFORMATION_REQUEST_VIEW, Action.INFORMATION_REQUEST_REQUIREMENT_VIEW,
-        Action.INFORMATION_REQUEST_EVIDENCE_VIEW)
+        Action.INFORMATION_REQUEST_EVIDENCE_VIEW, Action.INFORMATION_REQUEST_VIEW_OPERATIONS, Action.INFORMATION_REQUEST_EXPORT)
 
     fun evaluate(request: ResourcePolicyRequest, parent: InformationRequestParentSnapshot): ResourcePolicyOutcome
     {

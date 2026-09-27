@@ -112,6 +112,8 @@ object RoleCapabilities
         // roles that administer the organization rather than reaching every member.
         Capability.INFORMATION_REQUEST_TEMPLATE_READ,
         Capability.INFORMATION_REQUEST_TEMPLATE_WRITE,
+        Capability.INFORMATION_REQUEST_OPERATIONS_READ,
+        Capability.INFORMATION_REQUEST_PRIVACY_MANAGE,
     )
 
     private val ORGANIZATION: Map<OrganizationRoleName, Set<Capability>> = mapOf(

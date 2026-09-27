@@ -116,6 +116,8 @@
     FullScreenMaximizeRegular,
     FullScreenMinimizeFilled,
     FullScreenMinimizeRegular,
+    GaugeFilled,
+    GaugeRegular,
     GridFilled,
     GridRegular,
     InfoFilled,
@@ -168,6 +170,8 @@
     SettingsCogMultipleRegular,
     SettingsFilled,
     SettingsRegular,
+    ShieldLockFilled,
+    ShieldLockRegular,
     ShieldPersonFilled,
     ShieldPersonRegular,
     TableFilled,
@@ -277,6 +281,8 @@ export const CommentIcon = bundleIcon(CommentFilled, CommentRegular);
 export const SendCommentIcon = bundleIcon(SendFilled, SendRegular);
 export const AuditIcon = bundleIcon(DocumentBulletListClockFilled, DocumentBulletListClockRegular);
 export const ReviewQueueIcon = bundleIcon(ClipboardTaskListLtrFilled, ClipboardTaskListLtrRegular);
+export const RequestOperationsIcon = bundleIcon(GaugeFilled, GaugeRegular);
+export const RecordPreservationIcon = bundleIcon(ShieldLockFilled, ShieldLockRegular);
 export const DocumentVersionsIcon = bundleIcon(DocumentFolderFilled, DocumentFolderRegular);
 export const PickFromLibraryIcon = bundleIcon(DocumentFolderFilled, DocumentFolderRegular);
 export const RecipientsIcon = bundleIcon(PeopleCommunityAddFilled, PeopleCommunityAddRegular)

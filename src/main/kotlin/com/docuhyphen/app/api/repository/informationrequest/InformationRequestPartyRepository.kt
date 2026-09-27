@@ -11,6 +11,19 @@ import java.util.UUID
 class InformationRequestPartyRepository :
     BaseRepository<InformationRequestParty>(InformationRequestParty::class.java)
 {
+    fun findForRequest(requestId: UUID): List<InformationRequestParty> =
+        entityManager.createQuery(
+            """
+            SELECT party
+            FROM InformationRequestParty party
+            WHERE party.informationRequestId = :requestId
+            ORDER BY party.assignedAt, party.id
+            """.trimIndent(),
+            InformationRequestParty::class.java,
+        )
+            .setParameter("requestId", requestId)
+            .resultList
+
     fun findActiveForRequest(requestId: UUID): List<InformationRequestParty> =
         entityManager.createQuery(
             """

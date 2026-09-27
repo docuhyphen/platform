@@ -28,19 +28,29 @@ class FieldValueRevisionQueryService @Inject constructor(
         return revisionRepository.findLatest(valueSetId, binding.fieldContractId)
     }
 
+    fun canonicalValueOf(revisionId: UUID): CanonicalFieldValue?
+    {
+        val revision = revisionRepository.findById(revisionId) ?: return null
+        val codes = selectionRepository.findByRevision(revision.id).map { it.optionCode }
+        if (revision.isCleared) return CanonicalFieldValue.empty(revision.valueType)
+        return CanonicalFieldValue(
+            type = revision.valueType,
+            isEmpty = CanonicalValueCodec.isEmpty(asFieldValue(revision), codes),
+            textValue = revision.textValue,
+            numberValue = revision.numberValue,
+            boolValue = revision.boolValue,
+            dateValue = revision.dateValue,
+            datetimeValue = revision.datetimeValue?.toInstant(),
+            datetimeOffsetMinutes = revision.datetimeOffsetMinutes,
+            selectionCodes = codes,
+        )
+    }
+
     fun valueOf(revisionId: UUID): FieldValueRevisionValue?
     {
         val revision = revisionRepository.findById(revisionId) ?: return null
         val codes = selectionRepository.findByRevision(revision.id).map { it.optionCode }
-        val value = FieldValue().apply {
-            valueType = revision.valueType
-            textValue = revision.textValue
-            numberValue = revision.numberValue
-            boolValue = revision.boolValue
-            dateValue = revision.dateValue
-            datetimeValue = revision.datetimeValue
-            datetimeOffsetMinutes = revision.datetimeOffsetMinutes
-        }
+        val value = asFieldValue(revision)
         return FieldValueRevisionValue(
             revisionId = revision.id,
             fieldContractId = revision.fieldContractId,
@@ -48,5 +58,15 @@ class FieldValueRevisionQueryService @Inject constructor(
             cleared = revision.isCleared,
             value = CanonicalValueCodec.toJson(value, codes),
         )
+    }
+
+    private fun asFieldValue(revision: FieldValueRevision): FieldValue = FieldValue().apply {
+        valueType = revision.valueType
+        textValue = revision.textValue
+        numberValue = revision.numberValue
+        boolValue = revision.boolValue
+        dateValue = revision.dateValue
+        datetimeValue = revision.datetimeValue
+        datetimeOffsetMinutes = revision.datetimeOffsetMinutes
     }
 }

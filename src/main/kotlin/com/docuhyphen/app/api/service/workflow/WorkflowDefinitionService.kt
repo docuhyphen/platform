@@ -21,6 +21,7 @@ import com.docuhyphen.app.api.model.entity.WorkflowInstanceStatus
 import com.docuhyphen.app.api.model.entity.WorkflowScope
 import com.docuhyphen.app.api.model.entity.WorkflowStepInstance
 import com.docuhyphen.app.api.model.entity.OrganizationRoleName
+import com.docuhyphen.app.api.model.workflow.WorkflowTriggerSubject
 import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
 import com.docuhyphen.app.api.repository.organization.PrincipalGroupRepository
 import com.docuhyphen.app.api.repository.workflow.WorkflowDefinitionRepository
@@ -820,6 +821,8 @@ class WorkflowDefinitionService @Inject constructor(
                 WorkflowSubjectFieldResponseDto(it.name, it.type, it.description, it.lookupType)
             },
             isActive = isActive,
+            subjectResourceType = subjectResourceType,
+            subjectSchemaVersion = subjectSchemaVersion,
         )
 
     fun entityLookup(actor: AppUser, lookupType: String, query: String?): List<WorkflowEntityRefDto>
@@ -865,8 +868,17 @@ class WorkflowDefinitionService @Inject constructor(
     {
         val spec = runCatching { WorkflowSpecJson.decode(stepsJson) }
             .getOrElse { throw IllegalArgumentException("Invalid stepsJson: ${it.message}") }
-        applicabilityEvaluator.validate(spec.applicability)
+        applicabilityEvaluator.validate(spec.applicability, triggerSubjectOf(triggerEvent))
         workflowSpecValidator.validate(spec, triggerEvent, definitionScope)
+    }
+
+    private fun triggerSubjectOf(triggerEvent: String): WorkflowTriggerSubject?
+    {
+        val registered = triggerEventRepository.findByEventName(triggerEvent) ?: return null
+        return WorkflowTriggerSubject(
+            subjectResourceType = registered.subjectResourceType,
+            subjectFieldNames = decodeSubjectFields(registered.subjectFieldsJson).map { it.name }.toSet(),
+        )
     }
 }
 

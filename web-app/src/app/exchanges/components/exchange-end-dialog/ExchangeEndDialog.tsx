@@ -1,5 +1,5 @@
-﻿import {ExchangeDetailedDto, ExchangeStatus, UpdateExchangeRequest} from "../../../models/models.tsx";
-import React, {useEffect, useState} from "react";
+﻿import {ExchangeDetailedDto} from "../../../models/models.tsx";
+import React, {ChangeEvent} from "react";
 import {useGlobalStyles} from "../../../../GlobalStyles.tsx";
 import {
     Button,
@@ -15,11 +15,11 @@ import {
     MessageBarBody,
     Spinner,
     Text,
-    Textarea
+    Textarea,
+    TextareaOnChangeData,
 } from "@fluentui/react-components";
 import {useExchangeEndDialogStyles} from "./ExchangeEndDialogStyles.tsx";
-import {updateExchange} from "../../../../services/exchangeApi.ts";
-import {publishExchangeUpdate} from "../../../observable/exchangeObservables.ts";
+import {useExchangeEnding} from "./useExchangeEnding.ts";
 
 interface ExchangeEndDialogProps
 {
@@ -39,49 +39,17 @@ const ExchangeEndDialog: React.FC<ExchangeEndDialogProps> = (
 {
     const styles = useExchangeEndDialogStyles()
     const [exchangeEndNote, setExchangeEndNote] = React.useState('');
-    const [endingExchange, setEndingExchange] = React.useState(false);
     const globalStyles = useGlobalStyles()
-    const [dialogErrorMessage, setDialogErrorMessage] = useState<string | null>(null);
-
-    useEffect(() =>
+    const ending = useExchangeEnding(exchange, isOpen, (updatedExchange) =>
     {
-        if (isOpen) setDialogErrorMessage(null);
-    }, [isOpen]);
+        onExchangeEnded(updatedExchange);
+        setExchangeEndNote('');
+        onDismiss();
+    });
 
-    const onExchangeEnd = async () =>
+    const onEndNoteChange = (_: ChangeEvent<HTMLTextAreaElement>, data: TextareaOnChangeData) =>
     {
-        setEndingExchange(true)
-
-        try
-        {
-            const request = {
-                status: ExchangeStatus.ENDED
-            } as UpdateExchangeRequest
-
-            const updatedExchange = await updateExchange(exchange.id, request);
-            if (!updatedExchange)
-            {
-                throw new Error("Ended Exchange response was empty");
-            }
-            publishExchangeUpdate(updatedExchange);
-            onExchangeEnded(updatedExchange);
-            setExchangeEndNote('');
-            onDismiss()
-        }
-        catch (error)
-        {
-            setDialogErrorMessage("Error ending exchange");
-            console.error("Error ending exchange", error);
-        }
-        finally
-        {
-            setEndingExchange(false);
-        }
-    }
-
-    const onEndNoteChange = (_, newValue) =>
-    {
-        setExchangeEndNote(newValue.value || '')
+        setExchangeEndNote(data.value || '')
     }
 
     const onCancel = () =>
@@ -93,40 +61,48 @@ const ExchangeEndDialog: React.FC<ExchangeEndDialogProps> = (
     return <>
         {<Dialog modalType="alert"
                  open={isOpen}>
-            <DialogSurface>
+            <DialogSurface id={"end-exchange-dialog"}>
                 <DialogBody>
-                    <DialogTitle>Ending Exchange: {exchange && exchange.name}</DialogTitle>
-                    <DialogContent className={styles.dialogContentContainer}>
-                        {dialogErrorMessage && (
-                            <MessageBar intent="error">
+                    <DialogTitle id={"end-exchange-dialog-title"}>Ending Exchange: {exchange && exchange.name}</DialogTitle>
+                    <DialogContent id={"end-exchange-dialog-content"}
+                                   className={styles.dialogContentContainer}>
+                        {ending.message && (
+                            <MessageBar id={"end-exchange-message"}
+                                        intent={ending.refused ? "warning" : "error"}>
                                 <MessageBarBody>
-                                    <Text size={200}>{dialogErrorMessage}</Text>
+                                    <Text id={"end-exchange-message-text"}
+                                          size={200}>
+                                        {ending.message}
+                                    </Text>
                                 </MessageBarBody>
                             </MessageBar>
                         )}
-                        <Field label={"Notes"} className={styles.endNoteField}>
+                        <Field id={"end-exchange-note-field"}
+                               label={"Notes"}
+                               className={styles.endNoteField}>
                             <Textarea
                                 id={"textarea-end-exchange-note"}
                                 value={exchangeEndNote}
                                 onChange={onEndNoteChange}/>
                         </Field>
                     </DialogContent>
-                    <DialogActions>
+                    <DialogActions id={"end-exchange-dialog-actions"}>
                         <Button
                             id={"end-exchange-submit-btn"}
                             appearance="primary"
                             className={globalStyles.buttonWithLoading}
                             shape={"circular"}
-                            onClick={onExchangeEnd}>
-                            {endingExchange && <Spinner size={"tiny"}/>}
-                            End Exchange
+                            disabled={ending.ending || ending.blockedByRequests}
+                            onClick={ending.end}>
+                            {ending.ending && <Spinner size={"tiny"}/>}
+                            {ending.cancellationOffered ? "Cancel requests and end" : "End Exchange"}
                         </Button>
                         <DialogTrigger disableButtonEnhancement>
                             <Button
                                 id={"end-exchange-cancel-btn"}
                                 appearance="secondary"
                                 shape={"circular"}
-                                disabled={endingExchange}
+                                disabled={ending.ending}
                                 onClick={onCancel}>
                                 Cancel
                             </Button>

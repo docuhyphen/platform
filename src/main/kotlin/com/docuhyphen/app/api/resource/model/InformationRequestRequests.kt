@@ -18,6 +18,9 @@ import com.docuhyphen.app.api.serializer.UUIDSerializer
 import com.docuhyphen.app.api.service.fields.FieldValueEntry
 import kotlinx.serialization.Serializable
 import java.util.UUID
+import com.docuhyphen.app.api.model.entity.InformationRequestClockDueEffect
+import com.docuhyphen.app.api.model.entity.InformationRequestClockType
+import com.docuhyphen.app.api.model.entity.InformationRequestClockUrgency
 
 @Serializable
 data class CreateInformationRequestDraftRequest(
@@ -232,4 +235,54 @@ data class RecordInformationRequestBusinessDecisionRequest(
     val kind: InformationRequestBusinessDecisionKind = InformationRequestBusinessDecisionKind.ORIGINAL,
     @Serializable(with = UUIDSerializer::class) val priorDecisionId: UUID? = null,
     @Serializable(with = TimestampSerializer::class) val decidedAt: Timestamp,
+)
+
+@Serializable
+data class ChangeInformationRequestCompletionGateRequest(
+    val gatesExchangeClosure: Boolean,
+)
+
+@Serializable
+data class InformationRequestWorkingPeriodRequest(
+    val dayOfWeek: String,
+    val startMinute: Int,
+    val endMinute: Int,
+)
+
+@Serializable
+data class InformationRequestClockPolicyDefinitionRequest(
+    val clockType: InformationRequestClockType,
+    val businessTimezone: String,
+    val workingPeriods: List<InformationRequestWorkingPeriodRequest> = emptyList(),
+    val holidays: List<String> = emptyList(),
+    val standardDurationMinutes: Int,
+    val urgentDurationMinutes: Int,
+    val reminderMinutesBeforeDue: List<Int> = emptyList(),
+    val escalationAfterMinutes: Int? = null,
+    val dueEffect: InformationRequestClockDueEffect =
+        InformationRequestClockDueEffect.MARK_OVERDUE,
+    @Serializable(with = UUIDSerializer::class) val reminderCommunicationId: UUID? = null,
+    @Serializable(with = UUIDSerializer::class) val overdueCommunicationId: UUID? = null,
+)
+
+@Serializable
+data class DefineInformationRequestClockPolicyRequest(
+    val policyKey: String,
+    val displayName: String,
+    val definition: InformationRequestClockPolicyDefinitionRequest,
+)
+
+@Serializable
+data class StartInformationRequestClockRequest(
+    val clockKey: String,
+    @Serializable(with = UUIDSerializer::class) val policyVersionId: UUID,
+    val urgency: InformationRequestClockUrgency =
+        InformationRequestClockUrgency.STANDARD,
+    @Serializable(with = TimestampSerializer::class) val receivedAt: Timestamp? = null,
+)
+
+@Serializable
+data class ChangeInformationRequestClockRequest(
+    val reasonCode: String,
+    val extensionMinutes: Int? = null,
 )

@@ -129,6 +129,7 @@ class ResourceAuthorizationContextRegistry
             ResourceType.INFORMATION_REQUEST_REVIEW_COMMENT -> null
             ResourceType.INFORMATION_REQUEST_ACCEPTED_FACT -> null
             ResourceType.INFORMATION_REQUEST_BUSINESS_DECISION -> null
+            ResourceType.INFORMATION_REQUEST_RECORD_EXPORT -> null
         }
     }
 }

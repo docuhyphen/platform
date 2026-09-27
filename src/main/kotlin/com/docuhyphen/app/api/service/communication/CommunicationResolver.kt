@@ -1,5 +1,6 @@
 package com.docuhyphen.app.api.service.communication
 
+import com.docuhyphen.app.api.model.communication.CommunicationSource
 import com.docuhyphen.app.api.repository.communication.CommunicationRepository
 import com.docuhyphen.app.api.service.variable.TemplateVariableInterpolator
 import com.docuhyphen.app.api.service.variable.VariableResolutionContext
@@ -61,5 +62,19 @@ class CommunicationResolver @Inject constructor(
             val resolvedBody = interpolator.interpolate(communication.body, enrichedContext).resolved
             RenderedCommunication(subject = resolvedSubject, body = resolvedBody)
         }
+    }
+
+    fun sourceOf(communicationId: UUID): CommunicationSource?
+    {
+        val communication = repository.findById(communicationId) ?: return null
+        if (!communication.isActive || communication.isDeleted) return null
+        return CommunicationSource(
+            id = communication.id,
+            scope = communication.scope,
+            organizationId = communication.organizationId,
+            createdByAppUserId = communication.createdByAppUserId,
+            subject = communication.subject,
+            body = communication.body,
+        )
     }
 }

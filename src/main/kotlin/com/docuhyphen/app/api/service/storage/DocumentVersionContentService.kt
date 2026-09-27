@@ -5,6 +5,9 @@ import com.docuhyphen.app.api.model.document.DocumentVersionContent
 import com.docuhyphen.app.api.model.document.DocumentVersionContentDigest
 import com.docuhyphen.app.api.model.document.DocumentVersionContentDigests
 import com.docuhyphen.app.api.model.document.DocumentVersionContentIdentityMapper
+import com.docuhyphen.app.api.model.document.DocumentVersionDeletionOutcome
+import com.docuhyphen.app.api.model.document.DocumentVersionLocatorKind
+import com.docuhyphen.app.api.model.document.DocumentVersionStorageLocators
 import com.docuhyphen.app.api.model.document.DocumentVersionObjectKeys
 import com.docuhyphen.app.api.model.document.DocumentVersionStorageLocatorMapper
 import com.docuhyphen.app.api.model.document.ObjectStoreDocumentVersionLocator
@@ -47,5 +50,14 @@ class DocumentVersionContentService @Inject constructor(
         }
 
         return DocumentVersionContent(file, version.fileName)
+    }
+
+    fun delete(locatorKind: String?, locator: String?): DocumentVersionDeletionOutcome
+    {
+        if (locatorKind == null || locator == null) return DocumentVersionDeletionOutcome.ABSENT
+        return when (val stored = DocumentVersionStorageLocators.resolve(DocumentVersionLocatorKind.valueOf(locatorKind), locator))
+        {
+            is ObjectStoreDocumentVersionLocator -> documentVersionStorageService.deleteVersion(stored)
+        }
     }
 }

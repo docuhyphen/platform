@@ -4,6 +4,7 @@ import com.docuhyphen.app.api.exception.DocumentVersionContentDigestMismatchExce
 import com.docuhyphen.app.api.exception.DocumentVersionContentNotFoundException
 import com.docuhyphen.app.api.exception.DocumentVersionObjectKeyInUseException
 import com.docuhyphen.app.api.model.document.DocumentVersionContentDigest
+import com.docuhyphen.app.api.model.document.DocumentVersionDeletionOutcome
 import com.docuhyphen.app.api.model.document.ObjectStoreDocumentVersionLocator
 import com.docuhyphen.app.api.qualifier.Aws
 import jakarta.enterprise.context.ApplicationScoped
@@ -13,7 +14,9 @@ import software.amazon.awssdk.core.sync.ResponseTransformer
 import software.amazon.awssdk.regions.Region
 import software.amazon.awssdk.services.s3.S3Client
 import software.amazon.awssdk.services.s3.model.ChecksumAlgorithm
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest
 import software.amazon.awssdk.services.s3.model.GetObjectRequest
+import software.amazon.awssdk.services.s3.model.ListObjectVersionsRequest
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException
 import software.amazon.awssdk.services.s3.model.PutObjectRequest
 import software.amazon.awssdk.services.s3.model.S3Exception
@@ -107,5 +110,39 @@ class AwsS3DocumentVersionStorageService @Inject constructor(
         }
 
         return target
+    }
+
+    override fun deleteVersion(locator: ObjectStoreDocumentVersionLocator): DocumentVersionDeletionOutcome
+    {
+        val versionIds = mutableListOf<String>()
+        var keyMarker: String? = null
+        var versionMarker: String? = null
+        do
+        {
+            val page = s3Client.listObjectVersions(
+                ListObjectVersionsRequest.builder()
+                    .bucket(bucketName)
+                    .prefix(locator.value)
+                    .keyMarker(keyMarker)
+                    .versionIdMarker(versionMarker)
+                    .build(),
+            )
+            versionIds += page.versions().filter { it.key() == locator.value }.map { it.versionId() }
+            versionIds += page.deleteMarkers().filter { it.key() == locator.value }.map { it.versionId() }
+            keyMarker = page.nextKeyMarker()
+            versionMarker = page.nextVersionIdMarker()
+        }
+        while (page.isTruncated == true)
+        if (versionIds.isEmpty()) return DocumentVersionDeletionOutcome.ABSENT
+        versionIds.forEach { versionId ->
+            s3Client.deleteObject(
+                DeleteObjectRequest.builder()
+                    .bucket(bucketName)
+                    .key(locator.value)
+                    .versionId(versionId)
+                    .build(),
+            )
+        }
+        return DocumentVersionDeletionOutcome.DELETED
     }
 }

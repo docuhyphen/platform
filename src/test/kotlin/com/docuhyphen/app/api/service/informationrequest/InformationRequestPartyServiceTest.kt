@@ -1131,6 +1131,7 @@ class InformationRequestPartyServiceTest
             transitionRepository = transitionRepository,
             auditRecorder = auditRecorder,
             domainEventPublisher = eventPublisher,
+            responseStart = InformationRequestResponseStart(requestRepository, java.time.Clock.systemUTC()),
         )
         val initiator = AppUser().apply {
             id = UUID.randomUUID()

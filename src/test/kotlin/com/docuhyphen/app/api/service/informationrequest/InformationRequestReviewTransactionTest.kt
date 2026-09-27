@@ -76,7 +76,7 @@ class InformationRequestReviewTransactionTest
         assertEquals(InformationRequestReviewKind.INITIAL, review.kind)
         assertEquals(InformationRequestReviewState.PENDING, review.state)
         assertEquals(packageId, review.packageId)
-        assertEquals(InformationRequestState.ISSUED, state(fixture))
+        assertEquals(InformationRequestState.IN_PROGRESS, state(fixture))
 
         val assigned = assign(services, fixture, review)
         assertEquals(InformationRequestReviewState.IN_REVIEW, assigned.review.state)
@@ -134,7 +134,7 @@ class InformationRequestReviewTransactionTest
         val returned = record(services, fixture, assigned, drafted, "return-worksheet")
 
         assertEquals(InformationRequestReviewState.CHANGES_REQUESTED, returned.review.state)
-        assertEquals(InformationRequestState.ISSUED, returned.request.state)
+        assertEquals(InformationRequestState.IN_PROGRESS, returned.request.state)
         val correction = QuarkusTransaction.requiringNew().call { correctionRepository.findForRequest(fixture.requestId).single() }
         assertEquals(InformationRequestCorrectionState.OPEN, correction.state)
         QuarkusTransaction.requiringNew().run {
@@ -178,7 +178,7 @@ class InformationRequestReviewTransactionTest
         val retest = QuarkusTransaction.requiringNew().call { reviewsOf(fixture).last() }
         assertEquals(InformationRequestReviewKind.RESUBMISSION, retest.kind)
         assertEquals(review.id, retest.priorReviewId)
-        assertEquals(InformationRequestState.ISSUED, state(fixture))
+        assertEquals(InformationRequestState.IN_PROGRESS, state(fixture))
 
         val reassigned = assign(services, fixture, retest)
         QuarkusTransaction.requiringNew().run {
@@ -320,7 +320,7 @@ class InformationRequestReviewTransactionTest
         finding(services, fixture, review, documentItem(fixture, packageId), InformationRequestFindingCorrectionScope.NONE)
         val rejected = record(services, fixture, assigned, draft(services, fixture, assigned, InformationRequestReviewOutcome.REJECTED), "reject")
         assertEquals(InformationRequestReviewState.REJECTED, rejected.review.state)
-        assertEquals(InformationRequestState.ISSUED, rejected.request.state)
+        assertEquals(InformationRequestState.IN_PROGRESS, rejected.request.state)
 
         val reconsidered = QuarkusTransaction.requiringNew().call {
             services.reviewCycles.reopen(reopen(fixture, rejected, InformationRequestReviewKind.RECONSIDERATION, owner(fixture), "reconsider"))

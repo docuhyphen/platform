@@ -79,6 +79,15 @@ class InformationRequest
     @Column(name = "superseded_by_request_id")
     var supersededByRequestId: UUID? = null
 
+    @Column(name = "first_viewed_at")
+    var firstViewedAt: Timestamp? = null
+
+    @Column(name = "started_at")
+    var startedAt: Timestamp? = null
+
+    @Column(name = "expired_at")
+    var expiredAt: Timestamp? = null
+
     @Column(name = "created_at", nullable = false)
     var createdAt: Timestamp = Timestamp.from(Instant.now())
 

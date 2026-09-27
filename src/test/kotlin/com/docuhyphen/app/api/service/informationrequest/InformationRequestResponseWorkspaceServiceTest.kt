@@ -412,7 +412,7 @@ class InformationRequestResponseWorkspaceServiceTest
         val supportingLinks = InformationRequestSupportingEvidenceLinkService(templateLinks, requirements, linkRepository)
         val evidenceUpload = mock<InformationRequestEvidenceDeploymentPolicy>()
         val service = InformationRequestResponseWorkspaceService(query, versions, templates, occurrenceRepository, requirements,
-            responses, bindingRepository, fields, authorization, conditions, groupAuthorization, supportingLinks, evidenceUpload)
+            responses, bindingRepository, fields, authorization, conditions, groupAuthorization, supportingLinks, evidenceUpload, mock())
 
         fun updateTemplate(transform: (InformationRequestTemplateVersionDto) -> InformationRequestTemplateVersionDto)
         {

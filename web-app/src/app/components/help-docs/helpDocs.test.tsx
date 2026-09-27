@@ -122,6 +122,40 @@ describe('help documentation states what the platform actually does', () =>
         expect(review).not.toMatch(/Exchange.s fields are updated/i);
     });
 
+    it('lets owners and administrators see the whole queue while request details stay with the people who manage each request', () =>
+    {
+        const text = articleText('request-operations');
+
+        expect(text).toMatch(/Organization Owners and Administrators/);
+        expect(text).toMatch(/Exchange owner or a decision maker/i);
+        expect(text).toMatch(/reconcil/i);
+        expect(text).toMatch(/masked/i);
+        expect(text).not.toMatch(/every member of the organization/i);
+    });
+
+    it('says a released hold keeps its history and that disposal keeps files other records still use', () =>
+    {
+        const text = articleText('record-preservation');
+
+        expect(text).toMatch(/history stay on record/i);
+        expect(text).toMatch(/another record still uses/i);
+        expect(text).toMatch(/nothing about the subject is deleted/i);
+    });
+
+    it('limits Exchange Field conditions to Exchange triggers', () =>
+    {
+        expect(articleText('request-trigger-events')).toMatch(/Exchange Field conditions apply only to Exchange triggers/);
+        expect(articleText('workflow-applicability')).toMatch(/apply only to Exchange triggers/);
+    });
+
+    it('explains ending an Exchange whose Information Requests are still open', () =>
+    {
+        const text = articleText('exchange-lifecycle');
+
+        expect(text).toMatch(/Cancel requests and end/);
+        expect(text).toMatch(/must finish first/i);
+    });
+
     it('limits the concurrent-save protection to saves that state the version they read', () =>
     {
         const text = articleText('using-exchange-fields');

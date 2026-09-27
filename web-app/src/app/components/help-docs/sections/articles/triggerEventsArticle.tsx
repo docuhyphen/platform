@@ -6,7 +6,8 @@ export const triggerEventsArticle = (
             A trigger event is the signal that starts a workflow instance. Each
             workflow definition is bound to exactly one trigger. When that event
             fires on an Exchange, the engine looks for an active definition that
-            matches, creates an instance, and begins executing its steps.
+            matches, creates an instance, and begins executing its steps. Triggers that
+            start from an Information Request are described in Information Request trigger events.
         </p>
 
         <h3>Available trigger events</h3>

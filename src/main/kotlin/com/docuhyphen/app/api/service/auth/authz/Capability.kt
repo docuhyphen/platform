@@ -140,6 +140,10 @@ enum class Capability
     INFORMATION_REQUEST_EVIDENCE_ADMIN,
     INFORMATION_REQUEST_EXPORT,
 
+    // Owner-scope Information Request administration
+    INFORMATION_REQUEST_OPERATIONS_READ,
+    INFORMATION_REQUEST_PRIVACY_MANAGE,
+
     // Platform
     APP_ADMIN,
     APP_AUDIT_READ,

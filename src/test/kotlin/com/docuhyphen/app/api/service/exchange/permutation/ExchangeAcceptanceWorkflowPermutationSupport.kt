@@ -119,6 +119,7 @@ internal class ExchangeAcceptanceWorkflowFixture
             lifecycleNotificationService = mock<ExchangeLifecycleNotificationService>(),
             documentThumbnailService = mock<DocumentThumbnailService>(),
         requestParentLifecycle = mock(),
+        requestCompletion = mock(),
         )
     }
 

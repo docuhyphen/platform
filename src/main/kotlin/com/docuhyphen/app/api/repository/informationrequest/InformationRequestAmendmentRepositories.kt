@@ -59,4 +59,51 @@ class InformationRequestNoticeIntentRepository :
         )
             .setParameter("requestId", requestId)
             .resultList
+
+    fun findForRequests(requestIds: Collection<UUID>): List<InformationRequestNoticeIntent>
+    {
+        if (requestIds.isEmpty()) return emptyList()
+        return entityManager.createQuery(
+            """
+            SELECT intent
+            FROM InformationRequestNoticeIntent intent
+            WHERE intent.informationRequestId IN :requestIds
+            ORDER BY intent.createdAt, intent.id
+            """.trimIndent(),
+            InformationRequestNoticeIntent::class.java,
+        )
+            .setParameter("requestIds", requestIds)
+            .resultList
+    }
+
+    fun findUnclaimedIds(limit: Int): List<UUID> =
+        entityManager.createQuery(
+            """
+            SELECT intent.id
+            FROM InformationRequestNoticeIntent intent
+            WHERE NOT EXISTS (
+                SELECT 1 FROM InformationRequestNoticeClaim claim WHERE claim.noticeIntentId = intent.id
+            )
+            ORDER BY intent.createdAt, intent.id
+            """.trimIndent(),
+            UUID::class.java,
+        )
+            .setMaxResults(limit)
+            .resultList
+
+    fun findUnclaimedIdsForRequest(requestId: UUID): List<UUID> =
+        entityManager.createQuery(
+            """
+            SELECT intent.id
+            FROM InformationRequestNoticeIntent intent
+            WHERE intent.informationRequestId = :requestId
+              AND NOT EXISTS (
+                SELECT 1 FROM InformationRequestNoticeClaim claim WHERE claim.noticeIntentId = intent.id
+            )
+            ORDER BY intent.createdAt, intent.id
+            """.trimIndent(),
+            UUID::class.java,
+        )
+            .setParameter("requestId", requestId)
+            .resultList
 }

@@ -20,7 +20,7 @@ class OrganizationMembershipSeatEnforcementTest
     private val membershipRepository = mock<OrganizationMembershipRepository>()
     private val appUserRepository = mock<AppUserRepository>()
     private val seatGuard = mock<OrganizationSeatGuard>()
-    private val service = OrganizationMembershipService(membershipRepository, appUserRepository, seatGuard, mock())
+    private val service = OrganizationMembershipService(membershipRepository, appUserRepository, seatGuard, mock(), mock())
 
     @Test
     fun `activating an invited provisioned membership reserves a seat`()

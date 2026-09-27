@@ -4,6 +4,7 @@ import com.docuhyphen.app.api.model.dto.InformationRequestAmendmentChangeDto
 import com.docuhyphen.app.api.model.dto.InformationRequestAmendmentDto
 import com.docuhyphen.app.api.model.dto.InformationRequestAmendmentResultDto
 import com.docuhyphen.app.api.model.dto.InformationRequestNoticeIntentDto
+import com.docuhyphen.app.api.model.entity.InformationRequestNoticeDeliveryState
 import com.docuhyphen.app.api.model.informationrequest.InformationRequestAmendmentResult
 import com.docuhyphen.app.api.model.informationrequest.InformationRequestReadableAmendment
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
@@ -28,7 +29,13 @@ object InformationRequestAmendmentDtoMapper
             undisclosedChangeCount = readable.view.changes.size - visibleChanges.size,
             notices = readable.view.notices
                 .filter { it.partyId in readable.visibleNoticePartyIds }
-                .map { InformationRequestNoticeIntentDto(it.id, it.partyId, it.noticeKind, it.deliveryState, it.createdAt) },
+                .map {
+                    InformationRequestNoticeIntentDto(
+                        it.id, it.partyId, it.noticeKind,
+                        readable.view.noticeStates[it.id] ?: InformationRequestNoticeDeliveryState.PENDING,
+                        it.createdAt,
+                    )
+                },
         )
     }
 

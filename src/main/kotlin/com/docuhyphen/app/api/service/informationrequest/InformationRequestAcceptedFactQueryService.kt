@@ -27,6 +27,7 @@ class InformationRequestAcceptedFactQueryService @Inject constructor(
     private val bindingRepository: InformationRequestTemplateRequirementBindingRepository,
     private val templateRequirementRepository: InformationRequestTemplateRequirementRepository,
     private val versionRepository: InformationRequestTemplateVersionRepository,
+    private val restrictions: InformationRequestSubjectRestrictionService,
 )
 {
     fun promotedFrom(requestId: UUID, access: RequestAccessContext): List<InformationRequestAcceptedFactView>
@@ -45,6 +46,8 @@ class InformationRequestAcceptedFactQueryService @Inject constructor(
             .distinct()
             .singleOrNull()
             ?: return emptyList()
+        val ownerId = if (request.ownerType == InformationRequestOwnerType.ORGANIZATION) request.ownerOrganizationId else request.ownerUserId
+        if (restrictions.isRestricted(request.ownerType, requireNotNull(ownerId), subject)) return emptyList()
         val requestingSide = gate.permitsRequest(access, Action.INFORMATION_REQUEST_PROMOTE_FACT, request.id)
         val fieldRequirements = requirementRepository.findForRequest(request.id).mapNotNull { requirement ->
             val binding = bindingRepository.findById(requirement.sourceTemplateBindingId) ?: return@mapNotNull null
@@ -59,7 +62,6 @@ class InformationRequestAcceptedFactQueryService @Inject constructor(
             Triple(requirement, fieldDefinitionId, key)
         }
         if (fieldRequirements.isEmpty()) return emptyList()
-        val ownerId = if (request.ownerType == InformationRequestOwnerType.ORGANIZATION) request.ownerOrganizationId else request.ownerUserId
         val active = standing.activeForKey(
             request.ownerType,
             requireNotNull(ownerId),

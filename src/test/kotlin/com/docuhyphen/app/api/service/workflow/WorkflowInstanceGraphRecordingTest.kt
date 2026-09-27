@@ -135,7 +135,7 @@ class WorkflowInstanceGraphRecordingTest
     {
         val definition = definitionWith(approvalStep("END"))
         whenever(definitionRepository.findAllActiveForTrigger(any(), any())).thenReturn(listOf(definition))
-        whenever(applicabilityEvaluator.isApplicable(anyOrNull(), anyOrNull(), anyOrNull(), anyOrNull())).thenReturn(true)
+        whenever(applicabilityEvaluator.isApplicable(anyOrNull(), anyOrNull(), anyOrNull(), anyOrNull(), any())).thenReturn(true)
         whenever(assigneeResolver.resolveAll(any(), any())).thenReturn(emptyList())
         whenever(transitionRepository.existsStartByInstanceId(any())).thenReturn(false)
 
@@ -270,7 +270,7 @@ class WorkflowInstanceGraphRecordingTest
         val definition = definitionWith(approvalStep("END"))
         val originalStepsJson = definition.stepsJson
         whenever(definitionRepository.findAllActiveForTrigger(any(), any())).thenReturn(listOf(definition))
-        whenever(applicabilityEvaluator.isApplicable(anyOrNull(), anyOrNull(), anyOrNull(), anyOrNull())).thenReturn(true)
+        whenever(applicabilityEvaluator.isApplicable(anyOrNull(), anyOrNull(), anyOrNull(), anyOrNull(), any())).thenReturn(true)
         whenever(assigneeResolver.resolveAll(any(), any())).thenReturn(emptyList())
         whenever(transitionRepository.existsStartByInstanceId(any())).thenReturn(false)
 
