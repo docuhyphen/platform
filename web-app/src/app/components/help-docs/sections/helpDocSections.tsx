@@ -7,6 +7,7 @@ import {workflowsSection}        from "./workflowsSection";
 import {blueprintsSection}       from "./blueprintsSection";
 import {variablesSection}        from "./variablesSection";
 import {fieldsSection}           from "./fieldsSection";
+import {informationRequestsSection} from "./informationRequestsSection";
 import {communicationsSection}   from "./communicationsSection";
 import {documentLibrarySection}  from "./documentLibrarySection";
 
@@ -23,6 +24,7 @@ export const helpDocSections: HelpDocSectionInput[] = [
     blueprintsSection,
     variablesSection,
     fieldsSection,
+    informationRequestsSection,
     communicationsSection,
     documentLibrarySection,
 ];

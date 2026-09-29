@@ -3,7 +3,9 @@ package com.docuhyphen.app.api.service.storage
 import com.docuhyphen.app.api.qualifier.Aws
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
+import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.eclipse.microprofile.config.inject.ConfigProperty
+import software.amazon.awssdk.core.sync.ResponseTransformer
 import software.amazon.awssdk.regions.Region
 import software.amazon.awssdk.services.s3.S3Client
 import software.amazon.awssdk.services.s3.model.GetObjectRequest
@@ -17,8 +19,6 @@ import java.util.*
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
 import javax.crypto.spec.SecretKeySpec
-import org.bouncycastle.jce.provider.BouncyCastleProvider
-import software.amazon.awssdk.core.sync.ResponseTransformer
 
 @ApplicationScoped
 @Aws
@@ -119,7 +119,8 @@ class AwsS3FileStorageService @Inject constructor(
        Download
        ============================ */
 
-    override fun downloadDocument(key: String): File {
+    override fun downloadDocument(key: String): File
+    {
         // Preserve the real file extension so callers can use file.name reliably
         val extension = "." + key.substringAfterLast('.', "tmp")
         val tempFile = Files.createTempFile("docuhyphen-${UUID.randomUUID()}", extension).toFile()
@@ -134,7 +135,8 @@ class AwsS3FileStorageService @Inject constructor(
             s3Client.getObject(getObjectRequest, ResponseTransformer.toOutputStream(outputStream))
         }
 
-        if (!ENABLE_ENCRYPTION) {
+        if (!ENABLE_ENCRYPTION)
+        {
             return tempFile
         }
 

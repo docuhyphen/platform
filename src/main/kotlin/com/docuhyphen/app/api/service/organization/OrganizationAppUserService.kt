@@ -6,15 +6,15 @@ import com.docuhyphen.app.api.extension.normalizeEmailOrNull
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.interceptor.EnforceAdminAction
 import com.docuhyphen.app.api.model.entity.AppUser
-import com.docuhyphen.app.api.model.entity.Person
 import com.docuhyphen.app.api.model.entity.OrganizationRoleName
-import com.docuhyphen.app.api.service.user.AppUserService
+import com.docuhyphen.app.api.model.entity.Person
 import com.docuhyphen.app.api.service.auth.AdminApprovalContext
 import com.docuhyphen.app.api.service.auth.AuthAuditService
 import com.docuhyphen.app.api.service.auth.AuthenticationService
 import com.docuhyphen.app.api.service.communication.EmailService
 import com.docuhyphen.app.api.service.communication.EmailTemplateService
 import com.docuhyphen.app.api.service.notification.AppAdminNotificationService
+import com.docuhyphen.app.api.service.user.AppUserService
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
@@ -59,8 +59,14 @@ class OrganizationAppUserService @Inject constructor(
         adminApprovalContext: AdminApprovalContext,
     ): AppUser
     {
-        val targetOrgId = try { UUID.fromString(organizationId) }
-            catch (e: IllegalArgumentException) { throw IllegalArgumentException("Invalid organization ID") }
+        val targetOrgId = try
+        {
+            UUID.fromString(organizationId)
+        }
+        catch (e: IllegalArgumentException)
+        {
+            throw IllegalArgumentException("Invalid organization ID")
+        }
         if (authTokenContext.authToken.appUser?.id?.let { userRoleService.isOrgAdminIn(it, targetOrgId) } != true)
         {
             throw IllegalArgumentException("User does not have permission to add members to this organization")
@@ -93,7 +99,8 @@ class OrganizationAppUserService @Inject constructor(
         }
 
         if (organizationMembershipService.membersOf(organization.id)
-                .any { it.email.normalizeEmailOrNull() == normalizedEmail })
+                .any { it.email.normalizeEmailOrNull() == normalizedEmail }
+        )
         {
             throw IllegalArgumentException("App user with that email already exists")
         }
@@ -172,8 +179,14 @@ class OrganizationAppUserService @Inject constructor(
         {
             throw IllegalArgumentException("Organization ID cannot be null")
         }
-        val targetOrgId = try { UUID.fromString(organizationId) }
-            catch (e: IllegalArgumentException) { throw IllegalArgumentException("Invalid organization ID") }
+        val targetOrgId = try
+        {
+            UUID.fromString(organizationId)
+        }
+        catch (e: IllegalArgumentException)
+        {
+            throw IllegalArgumentException("Invalid organization ID")
+        }
         if (authTokenContext.authToken.appUser?.id?.let { userRoleService.isOrgAdminIn(it, targetOrgId) } != true)
         {
             throw IllegalArgumentException("User does not have permission to list members of this organization")
@@ -203,8 +216,14 @@ class OrganizationAppUserService @Inject constructor(
         {
             throw IllegalArgumentException("Organization ID cannot be null or blank")
         }
-        val targetOrgId = try { UUID.fromString(organizationId) }
-            catch (e: IllegalArgumentException) { throw IllegalArgumentException("Invalid organization ID") }
+        val targetOrgId = try
+        {
+            UUID.fromString(organizationId)
+        }
+        catch (e: IllegalArgumentException)
+        {
+            throw IllegalArgumentException("Invalid organization ID")
+        }
         if (authTokenContext.authToken.appUser?.id?.let { userRoleService.isOrgAdminIn(it, targetOrgId) } != true)
         {
             throw IllegalArgumentException("User does not have permission to update members of this organization")
@@ -334,8 +353,14 @@ class OrganizationAppUserService @Inject constructor(
         {
             throw IllegalArgumentException("Organization ID cannot be null or blank")
         }
-        val targetOrgId = try { UUID.fromString(organizationId) }
-            catch (e: IllegalArgumentException) { throw IllegalArgumentException("Invalid organization ID") }
+        val targetOrgId = try
+        {
+            UUID.fromString(organizationId)
+        }
+        catch (e: IllegalArgumentException)
+        {
+            throw IllegalArgumentException("Invalid organization ID")
+        }
         if (authTokenContext.authToken.appUser?.id?.let { userRoleService.isOrgAdminIn(it, targetOrgId) } != true)
         {
             throw IllegalArgumentException("User does not have permission to remove members from this organization")
@@ -437,7 +462,8 @@ class OrganizationAppUserService @Inject constructor(
                 addedBy = actorLabel(),
                 isNewUser = isNewUser,
                 temporaryPassword = temporaryPassword,
-                temporaryPasswordExpiresAt = temporaryPasswordExpiry?.toInstant()?.let(TEMP_PASSWORD_EXPIRY_FORMATTER::format),
+                temporaryPasswordExpiresAt = temporaryPasswordExpiry?.toInstant()
+                    ?.let(TEMP_PASSWORD_EXPIRY_FORMATTER::format),
             )
             emailService.sendEmail(
                 to = appUser.email,

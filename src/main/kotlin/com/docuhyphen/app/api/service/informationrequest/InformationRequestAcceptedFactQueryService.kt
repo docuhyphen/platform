@@ -62,7 +62,7 @@ class InformationRequestAcceptedFactQueryService @Inject constructor(
             Triple(requirement, fieldDefinitionId, key)
         }
         if (fieldRequirements.isEmpty()) return emptyList()
-        val active = standing.activeForKey(
+        val active = standing.eligibleForReuse(
             request.ownerType,
             requireNotNull(ownerId),
             subject,

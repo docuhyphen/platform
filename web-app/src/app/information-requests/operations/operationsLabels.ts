@@ -8,6 +8,7 @@ import {
     InformationRequestSlaStatus,
     InformationRequestState,
 } from "../../models/models.tsx";
+import {formatInformationRequestTime} from "../shared/informationRequestFormatting.ts";
 
 type BadgeColor = NonNullable<BadgeProps["color"]>;
 
@@ -82,7 +83,7 @@ export const noticeKindLabels: Record<InformationRequestNoticeKind, string> = {
     [InformationRequestNoticeKind.RESPONSE_OVERDUE]: "Response overdue",
 };
 
-export const formattedTime = (value?: string): string => value ? new Date(value).toLocaleString() : "Not set";
+export const formattedTime = (value?: string): string => value ? formatInformationRequestTime(value) : "Not set";
 
 export const formattedDuration = (totalSeconds: number): string =>
 {

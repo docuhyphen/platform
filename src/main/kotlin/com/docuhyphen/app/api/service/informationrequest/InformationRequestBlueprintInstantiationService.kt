@@ -1,45 +1,21 @@
 package com.docuhyphen.app.api.service.informationrequest
 
-import com.docuhyphen.app.api.model.entity.BlueprintFieldDefault
-import com.docuhyphen.app.api.model.entity.BlueprintParticipantDefault
-import com.docuhyphen.app.api.model.entity.Exchange
-import com.docuhyphen.app.api.model.entity.ExchangeShareRoleName
-import com.docuhyphen.app.api.model.entity.InformationRequest
-import com.docuhyphen.app.api.model.entity.InformationRequestDocumentPlaceholder
-import com.docuhyphen.app.api.model.entity.InformationRequestOwnerType
-import com.docuhyphen.app.api.model.entity.InformationRequestShareRoleKey
-import com.docuhyphen.app.api.model.entity.PrincipalKind
-import com.docuhyphen.app.api.model.entity.ResourceType
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestDocumentPlaceholderRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
-import com.docuhyphen.app.api.service.auth.authz.Action
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.Decision
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import com.docuhyphen.app.api.service.auth.authz.ResourceRef
-import com.docuhyphen.app.api.service.blueprint.BlueprintDocumentInstantiationDefault
+import com.docuhyphen.app.api.service.auth.authz.*
 import com.docuhyphen.app.api.service.blueprint.BlueprintDefinitionService
-import com.docuhyphen.app.api.service.command.CommandActorRef
-import com.docuhyphen.app.api.service.command.CommandMutationResult
-import com.docuhyphen.app.api.service.command.CommandReceiptDecision
-import com.docuhyphen.app.api.service.command.CommandReceiptRequest
-import com.docuhyphen.app.api.service.command.CommandReceiptService
-import com.docuhyphen.app.api.service.command.CommandRequestFingerprint
-import com.docuhyphen.app.api.service.command.CommandResultReference
-import com.docuhyphen.app.api.service.fields.BlueprintFieldDefaultEntry
-import com.docuhyphen.app.api.service.fields.BlueprintFieldDefaultsCommand
-import com.docuhyphen.app.api.service.fields.FieldsAccessContext
-import com.docuhyphen.app.api.service.fields.FieldsJson
-import com.docuhyphen.app.api.service.fields.FieldsResourceRef
-import com.docuhyphen.app.api.service.fields.SchemaAssignmentService
+import com.docuhyphen.app.api.service.blueprint.BlueprintDocumentInstantiationDefault
+import com.docuhyphen.app.api.service.command.*
+import com.docuhyphen.app.api.service.fields.*
 import io.quarkus.security.ForbiddenException
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 data class CreateInformationRequestFromBlueprintCommand(
     val blueprintDefinitionId: UUID,
@@ -66,6 +42,7 @@ class InformationRequestBlueprintInstantiationService @Inject constructor(
     private val authorizationService: AuthorizationService,
     private val commandReceiptService: CommandReceiptService,
     private val transitionHistory: InformationRequestTransitionHistoryService,
+    private val entitlementGuard: InformationRequestEntitlementGuard,
 )
 {
     @Transactional
@@ -99,6 +76,7 @@ class InformationRequestBlueprintInstantiationService @Inject constructor(
             throw IllegalStateException("Information Requests cannot be created for a deleted Exchange")
         }
         requireDraftCreationAllowed(exchange)
+        entitlementGuard.requireRequestMutation(exchange)
         authorize(command)
 
         val snapshot = blueprintService.loadInformationRequestInstantiationSnapshot(

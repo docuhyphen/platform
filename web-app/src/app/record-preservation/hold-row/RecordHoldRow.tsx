@@ -8,10 +8,11 @@ interface RecordHoldRowProps
 {
     hold: RecordPreservationHoldDto;
     canManage: boolean;
+    onChangeScope: () => void;
     onRelease: () => void;
 }
 
-const RecordHoldRow = ({hold, canManage, onRelease}: RecordHoldRowProps) =>
+const RecordHoldRow = ({hold, canManage, onChangeScope, onRelease}: RecordHoldRowProps) =>
 {
     const styles = useRecordHoldRowStyles();
     const id = `record-hold-${hold.id}`;
@@ -46,12 +47,21 @@ const RecordHoldRow = ({hold, canManage, onRelease}: RecordHoldRowProps) =>
                 {status.label}
             </Badge>
             {canManage && hold.status === RecordPreservationHoldStatus.ACTIVE && (
-                <Button id={`${id}-release`}
-                        appearance={"secondary"}
-                        shape={"circular"}
-                        onClick={onRelease}>
-                    Release
-                </Button>
+                <div id={`${id}-actions`}
+                     className={styles.actions}>
+                    <Button id={`${id}-scope`}
+                            appearance={"secondary"}
+                            shape={"circular"}
+                            onClick={onChangeScope}>
+                        Change scope
+                    </Button>
+                    <Button id={`${id}-release`}
+                            appearance={"secondary"}
+                            shape={"circular"}
+                            onClick={onRelease}>
+                        Release
+                    </Button>
+                </div>
             )}
         </li>
     );

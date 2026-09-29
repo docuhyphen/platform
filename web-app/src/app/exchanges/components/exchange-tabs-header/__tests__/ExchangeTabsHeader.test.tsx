@@ -12,6 +12,7 @@ const renderHeader = (
     canViewDetails: boolean,
     canViewWorkflow: boolean,
     canViewAudit = false,
+    canViewInformationRequests = false,
 ) => render(
     <ExchangeTabsHeader
         activeTab={"documents"}
@@ -20,6 +21,7 @@ const renderHeader = (
         canViewAudit={canViewAudit}
         canViewDetails={canViewDetails}
         canViewWorkflow={canViewWorkflow}
+        canViewInformationRequests={canViewInformationRequests}
         isDocumentToolbarVisible={false}
         onTabChange={vi.fn()}
         onDownloadZip={vi.fn()}
@@ -53,6 +55,24 @@ describe("ExchangeTabsHeader plan tab visibility", () =>
 
         expect(document.getElementById("exchange-details-tab")).toBeTruthy();
         expect(document.getElementById("exchange-workflow-tab")).toBeTruthy();
+    });
+});
+
+describe("ExchangeTabsHeader Information Requests tab", () =>
+{
+    it("shows one Information Requests tab apart from the Fields tab when the server lists work or offers creation", () =>
+    {
+        renderHeader(true, false, false, true);
+
+        expect(document.getElementById("exchange-information-requests-tab-trigger")?.textContent).toContain("Information Requests");
+        expect(document.getElementById("exchange-details-tab")).toBeTruthy();
+    });
+
+    it("is absent when nothing is listed or offered, even for a user whose own plan shows Fields", () =>
+    {
+        renderHeader(true, true, true, false);
+
+        expect(document.getElementById("exchange-information-requests-tab-trigger")).toBeFalsy();
     });
 });
 

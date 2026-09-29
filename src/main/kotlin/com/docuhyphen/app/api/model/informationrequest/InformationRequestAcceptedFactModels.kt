@@ -5,6 +5,8 @@ import com.docuhyphen.app.api.model.entity.InformationRequestAcceptedFactRevocat
 import com.docuhyphen.app.api.model.entity.InformationRequestAcceptedFactVisibility
 import com.docuhyphen.app.api.model.entity.InformationRequestBusinessDecision
 import com.docuhyphen.app.api.model.entity.InformationRequestBusinessDecisionKind
+import com.docuhyphen.app.api.model.entity.InformationRequestFactRecertification
+import com.docuhyphen.app.api.service.command.CommandPrecondition
 import com.docuhyphen.app.api.service.informationrequest.RequestAccessContext
 import java.time.Instant
 import java.util.UUID
@@ -14,6 +16,8 @@ data class PromoteInformationRequestAcceptedFactCommand(
     val packageId: UUID,
     val submissionItemId: UUID,
     val purposeKey: String,
+    val policyBasisKey: String? = null,
+    val evidenceVersionIds: List<UUID> = emptyList(),
     val visibility: InformationRequestAcceptedFactVisibility,
     val validFrom: Instant? = null,
     val validTo: Instant? = null,
@@ -44,6 +48,7 @@ data class InformationRequestAcceptedFactView(
     val revocation: InformationRequestAcceptedFactRevocation?,
     val supersededByFactId: UUID?,
     val freshness: InformationRequestAcceptedFactFreshness,
+    val evidenceVersionIds: List<UUID> = emptyList(),
 )
 
 data class InformationRequestAcceptedFactOffer(
@@ -51,6 +56,26 @@ data class InformationRequestAcceptedFactOffer(
     val requirementKey: String,
     val fact: InformationRequestAcceptedFactView,
     val reconfirmationRequired: Boolean,
+)
+
+data class RecertifyInformationRequestAcceptedFactCommand(
+    val requestId: UUID,
+    val factId: UUID,
+    val requirementId: UUID,
+    val assented: Boolean,
+    val precondition: CommandPrecondition,
+    val access: RequestAccessContext,
+    val idempotencyKey: String,
+)
+
+data class InformationRequestFactRecertificationView(
+    val recertification: InformationRequestFactRecertification,
+    val evidenceVersionIds: List<UUID>,
+)
+
+data class InformationRequestFactRecertificationResult(
+    val view: InformationRequestFactRecertificationView,
+    val responseETag: String,
 )
 
 data class RecordInformationRequestBusinessDecisionCommand(

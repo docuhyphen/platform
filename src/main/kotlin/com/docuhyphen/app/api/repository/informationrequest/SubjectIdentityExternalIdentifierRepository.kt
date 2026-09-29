@@ -4,7 +4,7 @@ import com.docuhyphen.app.api.model.entity.SubjectIdentityExternalIdentifier
 import com.docuhyphen.app.api.model.entity.SubjectIdentityOwnerType
 import com.docuhyphen.app.api.repository.BaseRepository
 import jakarta.enterprise.context.ApplicationScoped
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class SubjectIdentityExternalIdentifierRepository :
@@ -36,4 +36,18 @@ class SubjectIdentityExternalIdentifierRepository :
             .setParameter("identifierValue", identifierValue)
             .resultList
             .firstOrNull()
+
+    fun findForSubjects(subjectIds: List<UUID>): List<SubjectIdentityExternalIdentifier> =
+        if (subjectIds.isEmpty()) emptyList()
+        else entityManager.createQuery(
+            """
+            SELECT identifier
+            FROM SubjectIdentityExternalIdentifier identifier
+            WHERE identifier.subjectIdentityRefId IN :subjectIds
+            ORDER BY identifier.authorizedAt, identifier.id
+            """.trimIndent(),
+            SubjectIdentityExternalIdentifier::class.java,
+        )
+            .setParameter("subjectIds", subjectIds)
+            .resultList
 }

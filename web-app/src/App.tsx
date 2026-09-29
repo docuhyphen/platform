@@ -26,6 +26,7 @@ import {Capability} from "./app/models/models.tsx";
 import PlatformAdministration from "./app/platform-administration/PlatformAdministration.tsx";
 import PlatformAudit from "./app/platform-audit/PlatformAudit.tsx";
 import InformationRequestRespondentWorkspace from "./app/information-requests/respondent-workspace/InformationRequestRespondentWorkspace.tsx";
+import InformationRequestAuthorWorkspace from "./app/information-requests/authoring/author-workspace/InformationRequestAuthorWorkspace.tsx";
 import InformationRequestReviewWorkspace from "./app/information-requests/review/review-workspace/InformationRequestReviewWorkspace.tsx";
 import InformationRequestReviewQueue from "./app/information-requests/review/review-queue/InformationRequestReviewQueue.tsx";
 import InformationRequestOperations from "./app/information-requests/operations/operations-page/InformationRequestOperations.tsx";
@@ -113,6 +114,12 @@ const App: React.FC = () =>
                                element={
                                    <ProtectedRoute path='/sign-in'
                                                    element={<InformationRequestRespondentWorkspace accessMode={"authenticated"}/>}/>
+                               }/>
+
+                        <Route path="/information-requests/:requestId/manage"
+                               element={
+                                   <ProtectedRoute path='/sign-in'
+                                                   element={<InformationRequestAuthorWorkspace/>}/>
                                }/>
 
                         <Route path="/information-requests/:requestId/reviews/:reviewId"

@@ -10,9 +10,10 @@ interface Props
     value: unknown;
     onChange: (value: unknown) => void;
     showLabel?: boolean;
+    labelledBy?: string;
 }
 
-const FieldValueEditor = ({binding, value, onChange, showLabel = true}: Props) =>
+const FieldValueEditor = ({binding, value, onChange, showLabel = true, labelledBy}: Props) =>
 {
     const id = `exchange-field-${binding.fieldContractId}`;
     const disabled = binding.isReadOnly;
@@ -26,6 +27,7 @@ const FieldValueEditor = ({binding, value, onChange, showLabel = true}: Props) =
             case FieldValueType.LONG_TEXT:
                 return (
                     <Textarea id={id}
+                              aria-labelledby={labelledBy}
                               disabled={disabled}
                               placeholder="Enter details"
                               rows={3}
@@ -35,6 +37,7 @@ const FieldValueEditor = ({binding, value, onChange, showLabel = true}: Props) =
             case FieldValueType.BOOLEAN:
                 return (
                     <FieldBooleanEditor id={id}
+                                        labelledBy={labelledBy}
                                         value={value}
                                         disabled={disabled}
                                         onChange={onChange}/>
@@ -42,6 +45,7 @@ const FieldValueEditor = ({binding, value, onChange, showLabel = true}: Props) =
             case FieldValueType.INTEGER:
                 return (
                     <Input id={id}
+                           aria-labelledby={labelledBy}
                            type="number"
                            step={1}
                            disabled={disabled}
@@ -56,6 +60,7 @@ const FieldValueEditor = ({binding, value, onChange, showLabel = true}: Props) =
             case FieldValueType.DECIMAL:
                 return (
                     <Input id={id}
+                           aria-labelledby={labelledBy}
                            type="number"
                            disabled={disabled}
                            placeholder="Enter a decimal number"
@@ -65,6 +70,7 @@ const FieldValueEditor = ({binding, value, onChange, showLabel = true}: Props) =
             case FieldValueType.DATE:
                 return (
                     <Input id={id}
+                           aria-labelledby={labelledBy}
                            type="date"
                            disabled={disabled}
                            value={typeof value === 'string' ? value : ''}
@@ -73,6 +79,7 @@ const FieldValueEditor = ({binding, value, onChange, showLabel = true}: Props) =
             case FieldValueType.DATE_TIME:
                 return (
                     <Input id={id}
+                           aria-labelledby={labelledBy}
                            type="datetime-local"
                            disabled={disabled}
                            value={toDateTimeInputValue(value)}
@@ -82,6 +89,7 @@ const FieldValueEditor = ({binding, value, onChange, showLabel = true}: Props) =
             case FieldValueType.MULTI_SELECT:
                 return (
                     <FieldSelectEditor id={id}
+                                       labelledBy={labelledBy}
                                        binding={binding}
                                        value={value}
                                        disabled={disabled}
@@ -90,6 +98,7 @@ const FieldValueEditor = ({binding, value, onChange, showLabel = true}: Props) =
             default:
                 return (
                     <Input id={id}
+                           aria-labelledby={labelledBy}
                            disabled={disabled}
                            placeholder="Enter a value"
                            value={typeof value === 'string' ? value : ''}

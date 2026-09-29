@@ -1,51 +1,55 @@
-import {useCallback, useState} from "react";
+import {useState} from "react";
 import {Button, MessageBar, MessageBarBody, Spinner, Text} from "@fluentui/react-components";
-import {useLoadedValue} from "../../../../hooks/useLoadedValue.ts";
-import {getInformationRequestOperations} from "../../../../services/informationRequestOperationsService.ts";
-import {InformationRequestSlaStatus} from "../../../models/models.tsx";
 import OperationsQueueFilters from "../operations-queue-filters/OperationsQueueFilters.tsx";
 import OperationsQueueRow from "../operations-queue-row/OperationsQueueRow.tsx";
+import OperationsQueueToolbar from "../operations-queue-toolbar/OperationsQueueToolbar.tsx";
+import SendRemindersDialog from "../send-reminders-dialog/SendRemindersDialog.tsx";
+import {OPERATIONS_PAGE_SIZE, useOperationsQueue} from "./useOperationsQueue.ts";
 import {useOperationsQueueStyles} from "./OperationsQueueStyles.tsx";
+import {formatInformationRequestCount} from "../../shared/informationRequestFormatting.ts";
 
-const PAGE_SIZE = 25;
+interface OperationsQueueProps
+{
+    canSendReminders: boolean;
+}
 
-const OperationsQueue = () =>
+const OperationsQueue = ({canSendReminders}: OperationsQueueProps) =>
 {
     const styles = useOperationsQueueStyles();
-    const [slaStatus, setSlaStatus] = useState<InformationRequestSlaStatus | undefined>(undefined);
-    const [exceptionsOnly, setExceptionsOnly] = useState(false);
-    const [offset, setOffset] = useState(0);
-    const load = useCallback(
-        () => getInformationRequestOperations({slaStatus, exceptionsOnly, limit: PAGE_SIZE, offset}),
-        [slaStatus, exceptionsOnly, offset],
-    );
-    const page = useLoadedValue(load, "The operations queue could not be loaded.");
-
-    const filterBySlaStatus = (status: InformationRequestSlaStatus | undefined) =>
-    {
-        setSlaStatus(status);
-        setOffset(0);
-    };
-
-    const filterByExceptions = (only: boolean) =>
-    {
-        setExceptionsOnly(only);
-        setOffset(0);
-    };
+    const queue = useOperationsQueue();
+    const [confirming, setConfirming] = useState(false);
+    const {page, filter} = queue;
+    const offset = filter.offset;
 
     return (
         <div id={"information-request-operations-queue"}
              className={styles.queue}>
-            <OperationsQueueFilters slaStatus={slaStatus}
-                                    exceptionsOnly={exceptionsOnly}
-                                    onSlaStatusChange={filterBySlaStatus}
-                                    onExceptionsOnlyChange={filterByExceptions}/>
-            {page.error && (
+            <OperationsQueueFilters query={queue.query}
+                                    assigneeId={filter.assigneeId}
+                                    assignees={queue.assignees}
+                                    slaStatus={filter.slaStatus}
+                                    exceptionsOnly={filter.exceptionsOnly}
+                                    onQueryChange={queue.setQuery}
+                                    onAssigneeChange={queue.setAssigneeId}
+                                    onSlaStatusChange={queue.setSlaStatus}
+                                    onExceptionsOnlyChange={queue.setExceptionsOnly}/>
+            <OperationsQueueToolbar selectedCount={queue.selected.size}
+                                    canSendReminders={canSendReminders}
+                                    busy={queue.busy}
+                                    onSendReminders={() => setConfirming(true)}
+                                    onExport={() => void queue.exportCsv()}/>
+            {(page.error ?? queue.error) && (
                 <MessageBar id={"information-request-operations-error"}
-                            intent={"error"}>
-                    <MessageBarBody>{page.error}</MessageBarBody>
+                            intent={"error"}
+                            role={"alert"}>
+                    <MessageBarBody>{queue.error ?? page.error}</MessageBarBody>
                 </MessageBar>
             )}
+            <Text id={"information-request-operations-status"}
+                  role={"status"}
+                  aria-live={"polite"}>
+                {queue.notice ?? ""}
+            </Text>
             {!page.error && !page.value && (
                 <Spinner id={"information-request-operations-loading"}
                          size={"medium"}
@@ -56,34 +60,48 @@ const OperationsQueue = () =>
             )}
             {page.value && page.value.items.length > 0 && (
                 <ul id={"information-request-operations-list"}
+                    aria-label={"Information Requests"}
                     className={styles.list}>
                     {page.value.items.map(row => (
                         <OperationsQueueRow key={row.requestId}
-                                            row={row}/>
+                                            row={row}
+                                            selectable={canSendReminders}
+                                            selected={queue.selected.has(row.requestId)}
+                                            onToggle={() => queue.toggle(row)}/>
                     ))}
                 </ul>
             )}
-            {page.value && page.value.total > PAGE_SIZE && (
+            {page.value && page.value.total > OPERATIONS_PAGE_SIZE && (
                 <div id={"information-request-operations-pager"}
                      className={styles.pager}>
                     <Button id={"information-request-operations-previous-btn"}
                             appearance={"secondary"}
                             shape={"circular"}
                             disabled={offset === 0}
-                            onClick={() => setOffset(Math.max(0, offset - PAGE_SIZE))}>
+                            onClick={() => queue.setOffset(Math.max(0, offset - OPERATIONS_PAGE_SIZE))}>
                         Previous
                     </Button>
                     <Text id={"information-request-operations-range"}>
-                        {`${offset + 1} to ${Math.min(offset + PAGE_SIZE, page.value.total)} of ${page.value.total}`}
+                        {`${formatInformationRequestCount(offset + 1)} to ${formatInformationRequestCount(Math.min(offset + OPERATIONS_PAGE_SIZE, page.value.total))} of ${formatInformationRequestCount(page.value.total)}`}
                     </Text>
                     <Button id={"information-request-operations-next-btn"}
                             appearance={"secondary"}
                             shape={"circular"}
-                            disabled={offset + PAGE_SIZE >= page.value.total}
-                            onClick={() => setOffset(offset + PAGE_SIZE)}>
+                            disabled={offset + OPERATIONS_PAGE_SIZE >= page.value.total}
+                            onClick={() => queue.setOffset(offset + OPERATIONS_PAGE_SIZE)}>
                         Next
                     </Button>
                 </div>
+            )}
+            {confirming && (
+                <SendRemindersDialog requestCount={queue.selected.size}
+                                     busy={queue.busy}
+                                     onConfirm={() =>
+                                     {
+                                         setConfirming(false);
+                                         void queue.sendReminders();
+                                     }}
+                                     onDismiss={() => setConfirming(false)}/>
             )}
         </div>
     );

@@ -1,10 +1,7 @@
 package com.docuhyphen.app.api.service.informationrequest
 
 import com.docuhyphen.app.api.model.entity.ExchangeStatus
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertSame
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 
 class InformationRequestTransitionMatrixTest
@@ -143,6 +140,33 @@ class InformationRequestTransitionMatrixTest
     }
 
     @Test
+    fun `external source records are kept against issued or closed work of an active Exchange only`()
+    {
+        val parent = InformationRequestParentSnapshot(status = ExchangeStatus.ACCEPTED_STARTED, lockedForUpdate = true)
+        val draftParent = InformationRequestParentSnapshot(status = ExchangeStatus.INITIATED, lockedForUpdate = true)
+        EXTERNAL_SOURCE_MUTATIONS.forEach { mutation ->
+            listOf(InformationRequestState.ISSUED, InformationRequestState.IN_PROGRESS, InformationRequestState.CLOSED).forEach { state ->
+                assertAllowed(InformationRequestTransitionMatrix.canMutate(parent, state, mutation))
+                assertDenied(
+                    InformationRequestErrorCatalog.PARENT_STATE_INVALID,
+                    InformationRequestTransitionMatrix.canMutate(draftParent, state, mutation),
+                )
+            }
+            listOf(
+                InformationRequestState.DRAFT,
+                InformationRequestState.CANCELLED,
+                InformationRequestState.SUPERSEDED,
+                InformationRequestState.EXPIRED,
+            ).forEach { state ->
+                assertDenied(
+                    InformationRequestErrorCatalog.STATE_INVALID,
+                    InformationRequestTransitionMatrix.canMutate(parent, state, mutation),
+                )
+            }
+        }
+    }
+
+    @Test
     fun `terminal request states are read only even while the parent is active`()
     {
         val parent = InformationRequestParentSnapshot(
@@ -153,7 +177,7 @@ class InformationRequestTransitionMatrixTest
         InformationRequestState.entries
             .filter { it.isTerminal }
             .forEach { state ->
-                (InformationRequestMutation.entries - LINEAGE_MUTATIONS - RECORD_MUTATIONS).forEach { mutation ->
+                (InformationRequestMutation.entries - LINEAGE_MUTATIONS - RECORD_MUTATIONS - EXTERNAL_SOURCE_MUTATIONS).forEach { mutation ->
                     assertDenied(
                         InformationRequestErrorCatalog.STATE_INVALID,
                         InformationRequestTransitionMatrix.canMutate(parent, state, mutation),
@@ -302,6 +326,21 @@ class InformationRequestTransitionMatrixTest
     }
 
     @Test
+    fun `recertifying a reused value is permitted exactly where saving a response is`()
+    {
+        listOf(ExchangeStatus.INITIATED, ExchangeStatus.ACCEPTED_STARTED, ExchangeStatus.ENDED).forEach { status ->
+            val parent = InformationRequestParentSnapshot(status = status, lockedForUpdate = true)
+            (InformationRequestState.entries + listOf(null)).forEach { state ->
+                assertEquals(
+                    InformationRequestTransitionMatrix.canMutate(parent, state, InformationRequestMutation.SAVE_RESPONSE),
+                    InformationRequestTransitionMatrix.canMutate(parent, state, InformationRequestMutation.RECERTIFY_FACT),
+                    "$status $state",
+                )
+            }
+        }
+    }
+
+    @Test
     fun `parent lock is required before a request mutation can trust the parent state`()
     {
         val unlocked = InformationRequestParentSnapshot(status = ExchangeStatus.ACCEPTED_STARTED)
@@ -435,6 +474,79 @@ class InformationRequestTransitionMatrixTest
     }
 
     @Test
+    fun `parties change on open work and a reminder reaches only issued work of an accepted Exchange`()
+    {
+        val initiated = InformationRequestParentSnapshot(status = ExchangeStatus.INITIATED, lockedForUpdate = true)
+        val active = InformationRequestParentSnapshot(status = ExchangeStatus.ACCEPTED_STARTED, lockedForUpdate = true)
+        val partyChanges = setOf(InformationRequestMutation.ASSIGN_PARTY, InformationRequestMutation.REVOKE_PARTY)
+
+        listOf(initiated, active).forEach { parent ->
+            partyChanges.forEach { mutation ->
+                listOf(
+                    InformationRequestState.DRAFT,
+                    InformationRequestState.ISSUED,
+                    InformationRequestState.IN_PROGRESS
+                ).forEach { state ->
+                    val decision = InformationRequestTransitionMatrix.canMutate(parent, state, mutation)
+                    assertEquals(InformationRequestPolicyDecision.Allow(null), decision)
+                }
+                assertDenied(
+                    InformationRequestErrorCatalog.STATE_INVALID,
+                    InformationRequestTransitionMatrix.canMutate(parent, InformationRequestState.CANCELLED, mutation),
+                )
+            }
+        }
+        assertAllowed(
+            InformationRequestTransitionMatrix.canMutate(
+                active,
+                InformationRequestState.ISSUED,
+                InformationRequestMutation.SEND_REMINDER
+            )
+        )
+        assertAllowed(
+            InformationRequestTransitionMatrix.canMutate(
+                active,
+                InformationRequestState.IN_PROGRESS,
+                InformationRequestMutation.SEND_REMINDER
+            )
+        )
+        assertDenied(
+            InformationRequestErrorCatalog.STATE_INVALID,
+            InformationRequestTransitionMatrix.canMutate(
+                active,
+                InformationRequestState.DRAFT,
+                InformationRequestMutation.SEND_REMINDER
+            ),
+        )
+        assertDenied(
+            InformationRequestErrorCatalog.STATE_INVALID,
+            InformationRequestTransitionMatrix.canMutate(
+                active,
+                InformationRequestState.CLOSED,
+                InformationRequestMutation.SEND_REMINDER
+            ),
+        )
+        assertDenied(
+            InformationRequestErrorCatalog.PARENT_STATE_INVALID,
+            InformationRequestTransitionMatrix.canMutate(
+                initiated,
+                InformationRequestState.ISSUED,
+                InformationRequestMutation.SEND_REMINDER
+            ),
+        )
+        (partyChanges + InformationRequestMutation.SEND_REMINDER).forEach { mutation ->
+            assertDenied(
+                InformationRequestErrorCatalog.PARENT_STATE_INVALID,
+                InformationRequestTransitionMatrix.canMutate(
+                    parent(ExchangeStatus.ENDED).copy(lockedForUpdate = true),
+                    InformationRequestState.ISSUED,
+                    mutation
+                ),
+            )
+        }
+    }
+
+    @Test
     fun `an initiated Exchange with requests may end once its gates are met and nothing else remains open`()
     {
         val initiated = InformationRequestParentSnapshot(status = ExchangeStatus.INITIATED, lockedForUpdate = true)
@@ -490,6 +602,12 @@ class InformationRequestTransitionMatrixTest
             InformationRequestMutation.PROMOTE_FACT,
             InformationRequestMutation.REVOKE_FACT,
             InformationRequestMutation.RECORD_BUSINESS_DECISION,
+        )
+        val EXTERNAL_SOURCE_MUTATIONS = setOf(
+            InformationRequestMutation.REQUEST_EXTERNAL_SOURCE,
+            InformationRequestMutation.RECORD_EXTERNAL_VALUE,
+            InformationRequestMutation.DECIDE_EXTERNAL_VALUE,
+            InformationRequestMutation.RECORD_GENERATED_OUTPUT,
         )
         val REVIEW_MUTATIONS = setOf(
             InformationRequestMutation.START_REVIEW,

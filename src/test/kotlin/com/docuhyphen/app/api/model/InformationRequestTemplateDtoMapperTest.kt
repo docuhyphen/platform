@@ -1,22 +1,21 @@
 package com.docuhyphen.app.api.model
 
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateDefinition
-import com.docuhyphen.app.api.model.entity.InformationRequestConditionHiddenDataPolicy
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateScopeKind
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateStatus
 import com.docuhyphen.app.api.model.dto.InformationRequestTemplateConditionRuleDto
 import com.docuhyphen.app.api.model.dto.InformationRequestTemplateVersionDto
+import com.docuhyphen.app.api.model.entity.InformationRequestConditionHiddenDataPolicy
+import com.docuhyphen.app.api.model.entity.InformationRequestTemplateDefinition
+import com.docuhyphen.app.api.model.entity.InformationRequestTemplateScopeKind
+import com.docuhyphen.app.api.model.entity.InformationRequestTemplateStatus
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 class InformationRequestTemplateDtoMapperTest
 {
     @Test
-    fun `template projection names unsupported authoring controls with server reasons`()
+    fun `template projection carries the definition identity`()
     {
         val definition = InformationRequestTemplateDefinition().apply {
             scopeKind = InformationRequestTemplateScopeKind.PERSONAL
@@ -34,10 +33,8 @@ class InformationRequestTemplateDtoMapperTest
             latestPublishedVersion = null,
         )
 
-        val control = dto.unsupportedPolicyControls.single()
-        assertEquals("document-evidence-policy", control.controlKey)
-        assertEquals("Document Evidence Policy", control.label)
-        assertTrue(control.reason.isNotBlank())
+        assertEquals("collection-pattern", dto.templateKey)
+        assertEquals("Collection pattern", dto.displayName)
     }
 
     @Test

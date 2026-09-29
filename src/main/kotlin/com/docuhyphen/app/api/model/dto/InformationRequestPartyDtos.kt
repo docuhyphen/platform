@@ -6,7 +6,7 @@ import com.docuhyphen.app.api.serializer.TimestampSerializer
 import com.docuhyphen.app.api.serializer.UUIDSerializer
 import kotlinx.serialization.Serializable
 import java.sql.Timestamp
-import java.util.UUID
+import java.util.*
 
 /**
  * One request-scoped party as shown to one caller. [principalId], [principalKind],
@@ -28,4 +28,5 @@ data class InformationRequestPartyDto(
     @Serializable(with = TimestampSerializer::class) val revokedAt: Timestamp? = null,
     val partyRevision: Long,
     val partyETag: String,
+    val label: String? = null,
 )

@@ -142,6 +142,7 @@ enum class Capability
 
     // Owner-scope Information Request administration
     INFORMATION_REQUEST_OPERATIONS_READ,
+    INFORMATION_REQUEST_OPERATIONS_MANAGE,
     INFORMATION_REQUEST_PRIVACY_MANAGE,
 
     // Platform

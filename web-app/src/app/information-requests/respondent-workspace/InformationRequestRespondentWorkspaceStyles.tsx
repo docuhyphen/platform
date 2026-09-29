@@ -12,7 +12,6 @@ export const useInformationRequestRespondentWorkspaceStyles = makeStyles({
         height: "100%",
         backgroundColor: tokens.colorNeutralBackground2,
         color: tokens.colorNeutralForeground1,
-        overflow: "hidden",
     },
     header: {
         display: "flex",
@@ -20,7 +19,10 @@ export const useInformationRequestRespondentWorkspaceStyles = makeStyles({
         alignItems: "center",
         gap: tokens.spacingHorizontalL,
         padding: `${tokens.spacingVerticalL} ${tokens.spacingHorizontalXXL}`,
-        borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
+        borderBottom: `${tokens.strokeWidthThin} solid ${tokens.colorNeutralStroke2}`,
+        "@media (max-width: 640px)": {
+            padding: `${tokens.spacingVerticalM} ${tokens.spacingHorizontalL}`,
+        },
         backgroundColor: tokens.colorNeutralBackground1,
         flexWrap: "wrap",
     },
@@ -38,7 +40,10 @@ export const useInformationRequestRespondentWorkspaceStyles = makeStyles({
         minHeight: 0,
         padding: tokens.spacingHorizontalXXL,
         boxSizing: "border-box",
-        overflow: "hidden",
+        overflowY: "auto",
+        "@media (max-width: 640px)": {
+            padding: tokens.spacingHorizontalL,
+        },
     },
     centered: {
         minHeight: "60vh",
@@ -61,10 +66,6 @@ export const useInformationRequestRespondentWorkspaceStyles = makeStyles({
         display: "flex",
         flexDirection: "column",
         gap: tokens.spacingVerticalM,
-    },
-    workspaceShell: {
-        height: "100%",
-        minHeight: 0,
     },
     error: {
         color: tokens.colorPaletteRedForeground1,

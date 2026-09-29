@@ -6,6 +6,7 @@ import {InformationRequestReviewQueueEntryDto} from "../../../models/models.tsx"
 import {humanizedKey, submissionErrorMessage} from "../../submission/submissionLabels.ts";
 import {reviewStatePresentation} from "../reviewLabels.ts";
 import {useReviewQueueListStyles} from "./ReviewQueueListStyles.tsx";
+import {formatInformationRequestTime} from "../../shared/informationRequestFormatting.ts";
 
 const ReviewQueueList = () =>
 {
@@ -69,7 +70,7 @@ const ReviewQueueList = () =>
                             {entry.dueAt && (
                                 <Text id={`${id}-due`}
                                       className={styles.detail}>
-                                    {`Due ${new Date(entry.dueAt).toLocaleString()}`}
+                                    {`Due ${formatInformationRequestTime(entry.dueAt)}`}
                                 </Text>
                             )}
                         </div>

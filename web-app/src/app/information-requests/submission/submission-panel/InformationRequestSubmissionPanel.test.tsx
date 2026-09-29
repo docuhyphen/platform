@@ -1,5 +1,5 @@
 /** @vitest-environment jsdom */
-import {cleanup, fireEvent, render, screen, waitFor} from "@testing-library/react";
+import {cleanup, fireEvent, render, screen, waitFor, within} from "@testing-library/react";
 import {afterEach, beforeAll, beforeEach, describe, expect, it, vi} from "vitest";
 import * as transport from "../../../../services/informationRequestSubmissionService.ts";
 import {
@@ -66,6 +66,11 @@ const renderPanel = (onChanged = vi.fn()) =>
     render(<InformationRequestSubmissionPanel requestId={"request-a"}
                                               requestState={InformationRequestState.ISSUED}
                                               responseETag={"\"responses:1\""}
+                                              requirementLabels={{"assertion-a": "Confirm the recorded items are accurate"}}
+                                              reviewItems={[
+                                                  {requirementId: "count-a", label: "How many records were kept?", answer: "12"},
+                                                  {requirementId: "files-a", label: "Attach the record register", answer: "Not applicable: No register this period"},
+                                              ]}
                                               onChanged={onChanged}/>);
 
 describe("InformationRequestSubmissionPanel", () =>
@@ -91,6 +96,16 @@ describe("InformationRequestSubmissionPanel", () =>
 
         expect(await screen.findByText("Waiting for a confirmation")).toBeTruthy();
         expect(screen.getByText("2 more items handled by other parties are not complete yet.")).toBeTruthy();
+        expect(screen.queryByText("recorded assertion")).toBeNull();
+        const target = document.createElement("div");
+        target.id = "information-request-response-requirement-root-recorded-assertion";
+        target.tabIndex = -1;
+        target.scrollIntoView = vi.fn();
+        document.body.appendChild(target);
+        fireEvent.click(screen.getByRole("button", {name: "Go to Confirm the recorded items are accurate"}));
+        expect(target.scrollIntoView).toHaveBeenCalled();
+        expect(document.activeElement).toBe(target);
+        target.remove();
         expect((screen.getByRole("button", {name: "Submit"}) as HTMLButtonElement).disabled).toBe(true);
     });
 
@@ -131,9 +146,15 @@ describe("InformationRequestSubmissionPanel", () =>
 
         renderPanel();
         fireEvent.click(await screen.findByRole("button", {name: "Submit"}));
+        const review = await screen.findByRole("dialog", {name: "Review before submitting"});
+        expect(within(review).getByText("How many records were kept?")).toBeTruthy();
+        expect(within(review).getByText("Not applicable: No register this period")).toBeTruthy();
+        expect(transport.submitInformationRequestPackage).not.toHaveBeenCalled();
+        fireEvent.click(within(review).getByRole("button", {name: "Submit"}));
         expect(await screen.findByText(/Submission 1 was recorded\. This request is now complete\./)).toBeTruthy();
 
         fireEvent.click(screen.getByRole("button", {name: "Submit"}));
+        fireEvent.click(within(await screen.findByRole("dialog", {name: "Review before submitting"})).getByRole("button", {name: "Submit"}));
         expect(await screen.findByText(/The information changed after you reviewed it/)).toBeTruthy();
     });
 });

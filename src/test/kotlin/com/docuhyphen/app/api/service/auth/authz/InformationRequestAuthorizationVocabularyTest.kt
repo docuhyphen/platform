@@ -1,18 +1,11 @@
 package com.docuhyphen.app.api.service.auth.authz
 
-import com.docuhyphen.app.api.model.entity.AppRoleName
-import com.docuhyphen.app.api.model.entity.ApplicationRoleName
-import com.docuhyphen.app.api.model.entity.ExchangeShareRoleName
-import com.docuhyphen.app.api.model.entity.OrganizationRoleName
-import com.docuhyphen.app.api.model.entity.PrincipalGroupRoleName
-import com.docuhyphen.app.api.model.entity.ResourceType
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.service.auth.authz.ResourceAuthorizationContextRegistry.Companion.toResourceKind
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
-import java.util.UUID
+import java.util.*
 
 /**
  * The runtime Information Request vocabulary in the central authorization stack.
@@ -51,6 +44,7 @@ class InformationRequestAuthorizationVocabularyTest
     private val ownerScopeActions = setOf(
         Action.INFORMATION_REQUEST_VIEW_OPERATIONS_QUEUE,
         Action.INFORMATION_REQUEST_MANAGE_PRIVACY,
+        Action.INFORMATION_REQUEST_SEND_REMINDERS,
     )
 
     private val requestScopedActions = Action.entries
@@ -111,6 +105,8 @@ class InformationRequestAuthorizationVocabularyTest
             Action.INFORMATION_REQUEST_SUPERSEDE,
             Action.INFORMATION_REQUEST_AMEND,
             Action.INFORMATION_REQUEST_MANAGE_PARTIES,
+            Action.INFORMATION_REQUEST_MANAGE_EXTERNAL_SOURCES,
+            Action.INFORMATION_REQUEST_DECIDE_EXTERNAL_VALUES,
             Action.INFORMATION_REQUEST_REASSIGN_PARTY,
             Action.INFORMATION_REQUEST_EXPORT,
             Action.INFORMATION_REQUEST_REQUIREMENT_VIEW,
@@ -164,6 +160,10 @@ class InformationRequestAuthorizationVocabularyTest
     {
         assertEquals(Capability.INFORMATION_REQUEST_OPERATIONS_READ, Action.INFORMATION_REQUEST_VIEW_OPERATIONS_QUEUE.required)
         assertEquals(Capability.INFORMATION_REQUEST_PRIVACY_MANAGE, Action.INFORMATION_REQUEST_MANAGE_PRIVACY.required)
+        assertEquals(
+            Capability.INFORMATION_REQUEST_OPERATIONS_MANAGE,
+            Action.INFORMATION_REQUEST_SEND_REMINDERS.required
+        )
         val ownerScope = ownerScopeActions.map { it.required }.toSet()
 
         OrganizationRoleName.entries.forEach { role ->

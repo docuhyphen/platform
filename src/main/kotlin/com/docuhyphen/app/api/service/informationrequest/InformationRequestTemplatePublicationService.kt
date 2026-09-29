@@ -12,7 +12,7 @@ import jakarta.inject.Inject
 import jakarta.transaction.Transactional
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestTemplatePublicationService @Inject constructor(
@@ -43,6 +43,9 @@ class InformationRequestTemplatePublicationService @Inject constructor(
                 "Information request template version ${draft.versionNumber} configures no requirements",
             )
         }
+        InformationRequestTemplatePublicationReadiness.requireReady(
+            authoringService.projectTemplate(definition).draftVersion,
+        )
 
         required.forEach { capability ->
             capabilityRepository.save(

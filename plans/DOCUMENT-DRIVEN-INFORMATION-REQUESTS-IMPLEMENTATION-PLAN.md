@@ -2,8 +2,10 @@
 
 ## Status
 
-- Overall status: In progress. Phases 1 through 9 and the repeated remediation gate are complete; Phase 10 has not
-  started.
+- Overall status: In progress. Phases 1 through 11 and the repeated remediation gate are complete; Phase 12
+  has not started. Phase 10's manual width check (1440, 1024, 768, and 360 CSS pixels across the
+  author, respondent, reviewer, authenticated, and no-auth journeys) was explicitly waived by the user
+  on 2026-09-28 ("You can skip this"). It was not run and is not claimed as passing.
 - Scanner decision (user, 2026-09-25): the Information Request feature and every other feature must
   work in production without a malware scanner. Malware scanning moved out of this program into
   `plans/INFORMATION-REQUEST-EVIDENCE-MALWARE-SCANNING-PLAN.md`, which the user will implement later.
@@ -14,36 +16,25 @@
 - Review checkpoint: the 2026-09-13 [Phases 1-5 recheck](DOCUMENT-DRIVEN-INFORMATION-REQUESTS-PHASES-1-5-RECHECK.md)
   found seven remaining gaps. The original P5-R01 through P5-R20 completion records remain
   historical evidence; they do not establish that the integrated implementation is gap-free.
-- Current work: none in progress. Phase 9 was requested in full by the user on 2026-09-26
-  ("implement the rest of the phase 9 in one go") and completed the same day; its design decisions
-  (1 through 14 and the recorded refinements) are under `### Phase 9 design decisions`, and its proof
-  is the evidence journal entry "2026-09-26: Phase 9 implementation session".
+- Current work: none in progress. Phase 11 was requested in full by the user and completed on
+  2026-09-29: `P11-T1` through `P11-T12` and the exit gate (full backend suite 3,285 tests green,
+  full frontend suite 730 tests green, eight conformance scenarios in 13 tests green, traceability
+  matrix under `### Phase 11 capability traceability`). V148 was not applied to the local database
+  when the session ended; `quarkus:dev` applies it on its next reload, and it must not be edited once
+  the local history shows it.
 - Development stage: the platform has no production users and is in active development. No
   backwards-compatibility code may be written, and the compatibility mechanisms already shipped are
   now defect work. See `## Development-Stage Constraint` and
   `## Development-Stage Compatibility Removal`.
-- Exact next task: `P10-T1`. It is dependency-ready; start it only when the user asks for Phase 10.
-  Flyway head is V143, and V144 through V160 remain unallocated in the extended program range.
-- Latest implementation result, the Phase 10 handoff from Phase 9: request Workflow triggers with
-  durable, ordered, receipted consumption (V139), requirement-scoped Workflow operands, Exchange
-  completion gates, versioned request clocks (V140), immutable outbound notices (V141), the
-  operations projection, audit history, search, reconciliation, and verified record exports, neutral
-  record-preservation holds, retention, and claimed disposal (V142), privacy requests, restrictions,
-  and corrections (V143), storage, transfer, and ownership-change policies, both Phase 9 walking
-  fixtures, and the minimal operations and record preservation UI are done. Phase 10 inherits these
-  gaps: clock policy authoring, clock commands (pause, resume, extend), privacy requests and subject
-  restrictions, hold scope change, and the owner-scope audit search have REST resources but no UI;
-  the operations queue has no search, assignee, or bulk reminder action (`P10-T6`); the reviewer UI
-  still lacks assignment, override, reconsideration, and comment controls, and Accepted Facts and
-  Business Decisions still have no UI. Decision 14 keeps a request's details with the Exchange owner
-  or a decision maker; letting organization administrators open every request is a permission
-  decision for the user. Organization hold and retention changes require `AUDIT_GOVERNANCE` on both
-  the audit API and the record preservation API, and personal ones require `INFORMATION_REQUESTS`;
-  reads and privacy handling have no subscription check. Reported and not changed: the AWS
-  `DocumentsBucket` is versioned and the application role lacks `s3:ListBucketVersions` and
-  `s3:DeleteObjectVersion`, so an AWS disposal claim stays `CLAIMED` and retries until that IAM
-  change (within existing services) is approved; the V84 legacy-owner triggers on five audit tables
-  are a compatibility shim no Phase 9 task touched.
+- Exact next task: `P12-T1`, only when the user asks for Phase 12. Flyway head is V148; V149
+  through V160 remain unallocated.
+- Latest implementation result: see `## Latest Implementation Result`.
+- Carried into Phase 12: external sources have REST and help but no screen (Phase 11 decision 12);
+  a remote connector, if ever scoped, needs its own security review and the shared signer noted in
+  decision 2. The Personal Request Schema entitlement decision and the Phase 9 AWS and legacy
+  trigger issues remain open as recorded in prior evidence.
+- Phase 11: complete. Verification and mutation proof are recorded in the Phase 11 evidence entries.
+- Phase 10: complete. Verification and mutation proof are recorded in the Phase 10 evidence entry.
 - Phase 9: complete. Verification and mutation proof are recorded in the Phase 9 evidence entry.
 - Phase 8: complete. Template review plans (V136), package review cycles with assignments,
   worksheets, decisions, overrides, findings, corrections with allowlists, comments, remediation,
@@ -849,8 +840,8 @@ reason summary.
 | 7     | Submission, response attestation, amendments, and recurrence | Phase 6                                | Complete    | Immutable packages survive staged submission, amendments, supplements, and recurrence.                                                                           |
 | 8     | Review, findings, remediation, and decision separation       | Phase 7                                | Complete    | Item-level and staged review is complete and auditable.                                                                                                          |
 | 9     | Time, Workflow, audit, retention, and export                 | Phase 8                                | Complete    | Events, clocks, immutable notices, preservation holds, disposal, and downstream use are reliable.                                                                |
-| 10    | Author, respondent, reviewer, and operations UX              | Phases 2-9                             | Not started | All primary journeys are responsive, accessible, and documented.                                                                                                 |
-| 11    | Generic capability conformance and extension contracts       | Phases 2-10                            | Not started | Eight neutral conformance scenarios pass.                                                                                                                        |
+| 10    | Author, respondent, reviewer, and operations UX              | Phases 2-9                             | Complete    | All primary journeys are responsive, accessible, and documented (manual width check waived by the user on 2026-09-28).                                          |
+| 11    | Generic capability conformance and extension contracts       | Phases 2-10                            | Complete    | Eight neutral conformance scenarios pass.                                                                                                                        |
 | 12    | Compatibility, packaging, rollout, and final hardening       | Phases 1-11                            | Not started | Migration, entitlement, quotas, documentation, and release gates pass.                                                                                           |
 
 ### Progress rules
@@ -3509,29 +3500,138 @@ Integrate and harden the feature-switched capability slices from earlier phases 
 responsive, and accessible user journeys. This phase must not redefine backend contracts merely to
 compensate for UI assumptions.
 
+### Phase 10 design decisions (2026-09-27)
+
+Recorded before the backend additions so every task below states against one design. Verified facts
+they rest on: Template authoring saved one Field Requirement only, and the Template API reported
+Document evidence policy as unavailable although Phase 6 shipped it; a publish that breaks a storage
+completeness rule answered "Request failed"; no REST endpoint adds, reassigns, or revokes request
+parties, and nothing creates a `SubjectIdentityRef`; `createFromBlueprint` has no caller and no
+entitlement check; ad hoc creation answers 500 for a validation refusal; `InformationRequestDto` has
+no title; the operations queue has no search, assignee, or name; nothing sends a reminder on demand;
+the respondent workspace has no autosave, section navigation, dispositions other than `PROVIDED`,
+narrative, or upload retry, and shows raw keys; the reviewer workspace has no assignment, override,
+reconsideration, comment, or evidence preview control.
+
+1. Template authoring. The Settings tab lists Templates per scope and opens one editor for a whole
+   Version: ordered sections and requirements (typed answer, document, confirmation) with response,
+   evidence, confirmation, and link policies; repeatable groups; conditions; review stages and order;
+   submission mode and stages; Schema and fact reuse purpose; and a Versions panel (start a draft from
+   the published version, retire, copy). A client preflight mirrors the server's rules and each item
+   opens the part it names. The server stays authoritative: a refused save or publication answers
+   `InformationRequestTemplateRefusalDto` (`INFORMATION_REQUEST_TEMPLATE_INVALID` with the section,
+   requirement, group, or review stage key), and publication states the freeze-time storage rules
+   first (`InformationRequestTemplatePublicationReadiness`). The document editing parts live in
+   `information-requests/template-document/` so ad hoc request creation reuses them.
+2. Request creation. `POST /information-requests` takes exactly one source: `configuration` (ad hoc),
+   `blueprintDefinitionId` (the existing instantiation service, now with the owner entitlement check
+   ad hoc creation already applies), or `templateVersionId` (a published, non-retired Version the
+   caller may read). A validation refusal answers 400 with the Template refusal; an unavailable
+   Version answers 409 with its stable code.
+3. Request title. The title is the display name of the Template Definition the request pins (for an
+   ad hoc request, the author's own name for it); no column is added. It is carried by the projections
+   that display it (the Exchange summary, the response workspace, and the operations row), not by
+   every command result.
+4. Parties. `POST /information-requests/{id}/parties` assigns one party under the parties `ETag`
+   (`If-Match`) and an Idempotency-Key: `roleKey` with exactly one of `userId`, `principalGroupId`,
+   `email` (an owner-scoped External Participant, found or created), or, for `SUBJECT`,
+   `subjectIdentityRefId`. `POST .../parties/{partyId}/reassignment` and `.../revocation` complete it,
+   and `GET .../parties` answers the parties `ETag` in its header. Issuance keeps needing an explicit
+   request-scoped Decision Maker: the author UI assigns the author as Decision Maker when a request is
+   created and shows it; it never widens the Exchange owner grant.
+5. Subjects. `POST /information-requests/{id}/subjects` names the request's Subject party: a known
+   external reference finds the owner's existing `SubjectIdentityRef`; otherwise one is created in the
+   request owner's scope (the owning organization, or the owning user) with the optional reference
+   stored as an authorized alias, once per Idempotency-Key. `GET /information-request-subjects` lists
+   the active owner's subjects with their references for party selection and privacy requests, under
+   `INFORMATION_REQUEST_MANAGE_PRIVACY`. No name or email is ever stored on a subject.
+6. Access links. A link is issued per acting party and shown once for the author to copy. "Resend"
+   rotates the link (a new secret; earlier sessions end) and shows the new link. No raw secret is
+   stored or placed in a notice, so the platform never emails a link.
+7. Exchange tab. `GET /exchanges/{exchangeId}/information-requests` answers
+   `InformationRequestExchangeListingDto`: `canCreate` (the caller may create, the Exchange takes new
+   drafts, and the owner's plan allows it) and an `InformationRequestSummaryDto` for each request the
+   caller may discover under the existing view rule: title, state, issue time, nearest running due
+   instant, required-answer progress over what the caller may see, the caller's party roles,
+   server-derived permissions, and a next action code (`COMPLETE_SETUP`, `RESPOND`, `REVIEW`, `MANAGE`,
+   `VIEW`). No count of hidden requests is returned. A no-auth session is bound to one request and uses that
+   request's workspace; the legacy Exchange shell never authorizes request data, so it has no such tab.
+8. Respondent workspace. One workspace for both surfaces with section navigation, per-requirement
+   permitted answers and narrative, required markers and help text, a missing-items summary that
+   links to items, review before submit, correction guidance naming the items and files a correction
+   reopens, and respondent comments on settled reviews. Autosave runs two seconds after the last edit
+   beside an explicit Save; saved edits are cleared; a stale save keeps the unsaved edits, loads the
+   latest, and asks the respondent to review and save again rather than overwriting; a failed upload
+   keeps the file for retry under the same Idempotency-Key; an expired session keeps unsaved edits in
+   the tab's session storage until the contact code is verified again. No WebSocket is required.
+9. Reviewer workspace. Assignment management (assign a Reviewer party to a stage, delegate, recuse,
+   revoke), overrides where a stage permits them, reconsideration, comments, exact evidence version
+   preview and download, decision and remediation history, and each stage's separation-of-duties
+   rules; Accepted Fact promotion and revocation and Business Decision records in the request's
+   management workspace.
+10. Operations. The queue gains `search` (title or request id prefix), an assignee filter, the row
+    title, and acting assignees; `POST /information-request-reminders` owes a `RESPONSE_REMINDER`
+    Notice Intent to each active responding party of each open request named, audited per request and
+    replayed by Idempotency-Key, under the new owner-scope capability
+    `INFORMATION_REQUEST_OPERATIONS_MANAGE` (Organization Owners and Administrators; a personal owner
+    for their own requests), consistent with decision 14 of Phase 9. The queue exports its authorized
+    projection as CSV. Clock policies, clock commands, privacy requests and subject restrictions, hold
+    scope change, and the owner-scope audit search get their screens.
+11. Accessibility and formatting. Shared formatting helpers state times with the viewer's timezone,
+    numbers and sizes by locale; save status is a polite live region; a refusal moves focus to the
+    part it names; every region and control has an accessible name; layouts reflow at phone width.
+12. Help and pricing. A dedicated Information Requests help section replaces the articles filed under
+    Fields; the website pricing table gains an Information Requests row matching the plan catalog
+    (Personal and Business).
+
+Refinements recorded while implementing (2026-09-27 and 2026-09-28):
+
+- Clock commands live in one place, the request's management workspace (`Due dates`), because
+  starting, pausing, resuming, and extending need the request-scoped management authority
+  (`INFORMATION_REQUEST_MANAGE_CLOCKS`, held through `INFORMATION_REQUEST_ADMIN`) that reading the
+  operations queue does not grant. The operations detail links there with `Manage this request`.
+- A privacy correction names one submitted item, so it is recorded from the management workspace's
+  `Corrections` section, and only when the current session owns the request (a personal owner, or
+  an organization session with `INFORMATION_REQUEST_PRIVACY_MANAGE`). The operations `Privacy` tab
+  records access, export, restriction, and deletion requests. The submission package read shape now
+  names each item by `id` so an item can be promoted or corrected exactly.
+- The management workspace treats a successful accepted-fact listing as the server's signal that the
+  caller may promote facts and record decisions, since both need `INFORMATION_REQUEST_ADMIN`; a
+  refused listing hides those controls and still lists decisions.
+- The queue's CSV export is built in the browser from the authorized queue itself (every matching
+  page at 200 rows, the same projection the caller can read), with values that could start a
+  spreadsheet formula prefixed. No export endpoint was added.
+- A refusal is announced as an alert; where the refusal names a part, `Show` (Template editor) or
+  opening that part (a refused one-off creation) moves focus there, and submission blockers link to
+  their items. A response save refusal names no part.
+- No Field type carries a currency or unit, so typed values are shown as entered; times use the
+  viewer's time zone and counts the viewer's number format through the shared formatting helpers.
+- Accepted-fact offers are not shown in the respondent workspace yet; reuse and reconfirmation in a
+  later request belong to `P11-T1`.
+
 ### Tasks
 
-- [ ] `P10-T1` Add Settings authoring for Template Definitions, versions, ordered sections,
+- [x] `P10-T1` Add Settings authoring for Template Definitions, versions, ordered sections,
   Requirement types, response policies, conditions, evidence policies, review stages, and publish
   validation.
-- [ ] `P10-T2` Add request-author creation and dispatch for Blueprint-based and ad hoc Information
+- [x] `P10-T2` Add request-author creation and dispatch for Blueprint-based and ad hoc Information
   Requests, including preview-as-recipient, subject and contributor selection, schedule, resend,
   link rotation, due policy, cancel, supersede, and supplemental request actions.
-- [ ] `P10-T3` Build one respondent Information Request workspace shared by authenticated and
+- [x] `P10-T3` Build one respondent Information Request workspace shared by authenticated and
   no-auth shells. Include section navigation, repeatable groups, inline evidence, save status,
   missing-item summary, review-before-submit, response attestation, and correction guidance.
-- [ ] `P10-T4` Add autosave, explicit save fallback, stale-write conflict recovery, multi-device
+- [x] `P10-T4` Add autosave, explicit save fallback, stale-write conflict recovery, multi-device
   messaging, interrupted upload recovery, session-expiry recovery, and safe retry behavior. Treat
   persisted revisions, ETags, `412`, and refresh or merge messaging as the correctness mechanism for
   authenticated and no-auth clients. Reuse `RealtimeEventService` and existing authenticated User
   Session sockets only for optional notifications where they reduce latency. Do not require a
   no-auth WebSocket or imply live collaborative editing in this program.
-- [ ] `P10-T5` Add reviewer workspaces with responses and evidence together, exact version preview,
+- [x] `P10-T5` Add reviewer workspaces with responses and evidence together, exact version preview,
   findings, correction selection, stage status, separation-of-duties controls, satisfaction, and
   remediation history.
-- [ ] `P10-T6` Add operational work queues with search, filters, aging, deadlines, assignees,
+- [x] `P10-T6` Add operational work queues with search, filters, aging, deadlines, assignees,
   delivery status, exceptions, bulk reminders, and authorized export.
-- [ ] `P10-T7` Add one `Information Requests` tab to each Exchange. The tab lists only requests in
+- [x] `P10-T7` Add one `Information Requests` tab to each Exchange. The tab lists only requests in
   that Exchange that the current principal and access session is authorized to discover, with only
   its permitted recipient, progress, due date, status, and next action projection. Authorized owners
   and administrators may see all; contributors and reviewers see only assigned work; a no-auth
@@ -3541,9 +3641,9 @@ compensate for UI assumptions.
   or expansion controls disabled. Do not reveal hidden request counts. Open the selected author,
   respondent, or reviewer workspace. Keep the existing `Fields` tab for internal Exchange metadata;
   do not create one Exchange tab per request.
-- [ ] `P10-T8` Complete responsive, keyboard, screen-reader, focus, localization, timezone, number,
+- [x] `P10-T8` Complete responsive, keyboard, screen-reader, focus, localization, timezone, number,
   currency, unit, upload progress, empty, loading, and error states.
-- [ ] `P10-T9` Verify the Phase 1 help registry refactor still leaves `helpDocsRegistry.tsx` under 60
+- [x] `P10-T9` Verify the Phase 1 help registry refactor still leaves `helpDocsRegistry.tsx` under 60
   lines, then update all affected help documentation and website pricing copy only after actual plan
   availability is implemented. Marketing copy may describe concrete use cases as explanatory
   examples, but no new component, function, route, script, asset, or product configuration name may
@@ -3589,6 +3689,10 @@ npm run buildWithTs
 Manually verify at minimum 1440, 1024, 768, and 360 CSS pixel widths for author, respondent,
 reviewer, authenticated, and no-auth journeys.
 
+Session exception (2026-09-28): the user explicitly said "You can skip this" when asked for the
+local session needed for these width checks. They remain unperformed; this exception waives that
+gate for Phase 10 completion and does not constitute visual verification.
+
 ### Exit criteria
 
 - Every primary journey is usable without administrative Schema endpoints.
@@ -3606,41 +3710,173 @@ Prove that the configurable core covers varied document-driven process structure
 test-only, neutral conformance fixtures and generic extension contracts. No shipped Template,
 vocabulary, branch, identifier, or fixture may encode a particular industry or customer domain.
 
+### Phase 11 design decisions (2026-09-29)
+
+Recorded for `P11-T11` and `P11-T12` before their tests. Verified characterization of the existing
+integration components the tasks ask to reuse:
+
+- `WorkflowWebhookEndpoint` is an organization-owned row bound to one Workflow Definition, with a
+  signing secret and a permitted event-type list. It names where a Workflow ACTION step posts an
+  event and carries no request, Requirement, polling, or result state.
+- `WebhookDeliveryService.deliver` posts one HMAC-SHA256-signed Workflow-instance payload and returns
+  only success or failure. It reads no response body, does not retry, and does not re-validate the
+  destination at delivery time; Workflow step failure is the only retry path.
+- `WebhookDestinationPolicy.validate` is a generic egress policy (scheme, resolved host, loopback,
+  link-local, site-local, and metadata addresses) usable unchanged by any adapter that calls a
+  remote endpoint.
+- `Application` identity and `ApplicationTokenBoundaryService` authenticate inbound application
+  calls; neither is an outbound identity.
+
+Decisions:
+
+1. The connector contract stays separate from Workflow webhooks (architectural decision 38): it
+   needs request, polling, imported-value, reconciliation, and verification state. The port
+   `InformationRequestConnector` states a lowercase `key`, a `kind` (`STRUCTURED_EVIDENCE` or
+   `EXTERNAL_VERIFICATION`), a `contractVersion`, the `resultKeys` it may return, and an optional
+   `maximumResultAge`, mirroring the configuration bundle's connector contract; `request` and `poll`
+   answer `Pending` (external reference, retry-after), `Completed` (external reference, result), or
+   `Failed` (reason code). A call carries identifiers and the optional lookup reference the
+   requester supplied; the platform never sends response values implicitly.
+2. Reused as-is: the central authorizer (`INFORMATION_REQUEST_MANAGE_EXTERNAL_SOURCES`, held through
+   the request administration capability, for requesting exchanges, proposing values, and recording
+   outputs; `INFORMATION_REQUEST_DECIDE_EXTERNAL_VALUES`, held through the request review capability,
+   for deciding, reconciling, and resolving), Command Receipts,
+   transition history with its audit catalog, the continuation entitlement check, and record
+   disposal. A future remote adapter must validate its destination with `WebhookDestinationPolicy`
+   before every call and sign its requests with the HMAC-SHA256 scheme `WebhookDeliveryService`
+   uses, extracting that private signer into a shared component when the first remote adapter is
+   scoped. No second outbound endpoint model, HTTP client, or delivery stack is added,
+   and no production connector is shipped: the registry is empty outside tests.
+3. V148 persists connector exchanges (forward-only `REQUESTED`, `PENDING`, `COMPLETED`, `FAILED` with
+   attempts and next attempt time), imported values (append-only, `MANUAL` or `CONNECTOR` source,
+   source reference, result key, value type, canonical value, confidence `ASSERTED`, `MATCHED`, or
+   `VERIFIED`, verification time, expiry, provenance reference, recorder), one decision per value,
+   discrepancies (one per value and response revision) with one resolution each, and generated
+   output references. Disposal removes and counts every one of them.
+4. A scheduled worker (`app.information-request.connectors.every`, default one minute, `off` in the
+   test profile so test adapters are never raced by the empty production registry) claims a due
+   exchange under a row lock with a five-minute lease, calls the connector outside any transaction,
+   and records the outcome under the request lock. A thrown call retries with linear backoff; ten
+   attempts end in `attempts_exhausted`; a missing connector ends in `connector_unavailable`; a
+   result that breaks its declared contract ends in `result_rejected` and records nothing; a request
+   that no longer accepts external records ends in `request_not_accepting_values`.
+5. Imported values are untrusted and never write a response, Field value, or Accepted Fact. A value
+   for a Requirement that collects a Field is canonicalized by that Field's contract
+   (`FieldValueValidator`), so it compares exactly with an answer; a value for any other Requirement
+   must be a scalar type validated by its type contract. `MATCHED` and `VERIFIED` need a
+   verification time that is not in the future, and expiry follows verification.
+6. A decision (`ACCEPTED` or `REJECTED`, with a reason code) is recorded once per value by a
+   holder of the request review capability. The principal who proposed a manual value cannot decide it
+   (`REVIEW_SEPARATION_OF_DUTIES`), and an expired value cannot be accepted
+   (`IMPORTED_VALUE_EXPIRED`). Accepting a value changes nothing else.
+7. Reconciliation compares every value not rejected with its Requirement's current response:
+   `MATCHES`, `DIFFERS` (a discrepancy is recorded once per value and response revision),
+   `NO_ANSWER`, `NOT_COMPARABLE` (the Requirement collects no Field), or `EXPIRED`. A discrepancy is
+   resolved once, `RESPONSE_STANDS` or `FOLLOW_UP_REQUESTED`, with a reason; neither changes the
+   response, and a follow-up uses the existing correction and supplement commands.
+8. A generated output reference records where an output produced outside the platform lives, its
+   optional package, hash, and media type, and what produced it. The platform never generates,
+   fetches, or stores the output. No OCR, extraction, AI finding, or document generation is built.
+9. REST, authenticated and requesting-side only (respondents never see imported values; there is no
+   no-auth surface): `GET` and `POST /information-requests/{id}/connector-exchanges`, `GET` and
+   `POST .../imported-values`, `POST .../imported-values/{valueId}/decisions`,
+   `POST .../imported-value-reconciliations`,
+   `POST .../imported-value-discrepancies/{discrepancyId}/resolutions`, and `GET` and
+   `POST .../generated-outputs`. Every `POST` requires an Idempotency-Key. DTOs state whether the
+   caller recorded or decided an item instead of exposing principal identifiers.
+10. External source records are part of the request record: the verified record export gains the
+    external sources and the request's own recertifications, and the export schema version rises.
+    Transition details carry identifiers and keys only, never imported values or lookup references.
+11. The configuration bundle's connector contract is aligned with the port: `resultFieldKeys` is
+    renamed `resultKeys`, and `requiresReview` is removed because every imported value is reviewed.
+12. Phase 11 adds no screen for external sources. The contracts are documented in help, and the
+    capability is proven by the multi-party (connector verification of an answer) and timed,
+    retained, exported (manual source, generated output, export, and disposal) scenarios.
+13. Defect found by the `P11-T12` tests and fixed: the central authorizer treated every terminal
+    request as archived and refused every non-read action unless the caller held `EXCHANGE_ADMIN`,
+    which no request principal holds, so promoting or revoking a fact, recording a business decision,
+    and every external-source record were refused on a CLOSED request although the transition matrix
+    allows them there (a satisfied review closes the request, so reviewed facts could never be
+    promoted). `InformationRequestParentPolicy.closedRecordActions` (fact promotion, business
+    decision, external-source management, and external-value decisions) is exempt from the archived
+    refusal for the request resource only; the capability check, the parent policy, and the
+    transition matrix still decide, so every other write to a terminal request stays refused.
+14. Registered and unregistered participation is proven inside the scenarios as well as by the
+    dual-surface resource tests: the itemized scenario runs its whole flow for a registered and for
+    an unregistered (participant) contributor with identical outcomes, and the parallel review
+    scenario reviews an unregistered respondent's package. `PublishedRequestSupport.issue` can create
+    participant-backed parties for this.
+
+### Phase 11 capability traceability
+
+Every shared capability in `## Cross-Process Capability Traceability` is proven by at least two
+materially different scenarios under `src/test/kotlin/.../service/informationrequest/conformance/`:
+S1 `BasicFieldDocumentResponseAttestationRequestConformanceTest`, S2
+`MultiPartyStagedEvidenceRequestConformanceTest`, S3 `RepeatableConditionalRequestConformanceTest`,
+S4 `MultiFileEvidencePolicyRequestConformanceTest`, S5 `ItemizedStagedSubmissionRequestConformanceTest`,
+S6 `MultiStageReviewCorrectionRequestConformanceTest`, S7 `RecurringSupplementalRequestConformanceTest`,
+S8 `TimedRetainedExportRequestConformanceTest`.
+
+| Shared capability | Scenarios | What each proves |
+|---|---|---|
+| Request-scoped party roles, delegated authority, and Requirement assignment | S2, S6, S5 | S2: distinct subject, contributor, attestor, reviewer, delegate, and outsider under real authorization; expiring, scoped, revocable delegation. S6: stage reviewers, separation of duties. S5: the responder recorded per item. |
+| Repeatable groups, stable occurrence paths, and cross-occurrence validation | S3, S6 | S3: nested occurrences, per-occurrence values and evidence, no path reuse, cross-occurrence refusal. S6: two entry occurrences reviewed, only the returned occurrence reopened. |
+| Versioned conditions, amendments, and staged policy | S3, S7, S2, S5 | S3: `UNKNOWN`, `TRUE`, `FALSE` per occurrence. S7: an amendment that requires reconfirmation. S2 and S5: staged submission policy. |
+| Evidence Artifacts, immutable Evidence Versions, assessments, and evidence policy | S4, S3, S1 | S4: coverage, issuer, age, validity, certification, quarantine, replacement. S3: per-occurrence conforming file. S1: the evidence version frozen in the package. |
+| Policy-controlled dispositions and evidence alternatives | S5, S4 | S5: six dispositions and refusal of unconfigured ones. S4: configured alternative and waiver. |
+| Submission Packages, hashes, exact configuration, stage locks, and Submission Attestation | S1, S5, S2 | S1: one package, hash equal to the attested ETag, atomic closure. S5: stage locks and exact manifests. S2: staged packages with a separate confirmation stage. |
+| Request lineage, carry-forward, recurrence, correction, and retest | S7, S6, S3 | S7: supplement, recurrence, supersession, cancellation. S6: correction, resubmission, remediation, retest. S3: occurrence-scoped correction. |
+| Review stages, aggregation, separation of duties, findings, correction allowlists, remediation | S6, S3 | S6: sequential and parallel stages, aggregation, prior-reviewer refusal. S3: a finding that returns one occurrence. |
+| Request Clocks and scheduler policy | S8, S7 | S8: pinned clock version, pause, resume, extension, reminder. S7: a recurrence that refuses an early occurrence. |
+| Audit, access history, retention, hold, purge, privacy, and export | S8, S1, S7 | S8: reproducible export, export read in access history, hold, retention, disposal, subject requests. S1: database refusal to change a package, transition history, replay. S7: cancellation and supersession history kept. |
+| Explicit Accepted Facts and generic connector contracts | S7, S2, S8 | S7: fact freshness and reconfirmation. S2: connector verification of an answer, reconciliation, reviewer decision, respondents denied. S8: manual value on a document Requirement, generated output, export, disposal. |
+| Registered and unregistered participation through shared services | S5, S6 | S5: the same itemized flow and outcomes for a registered and an unregistered contributor. S6: an unregistered respondent's package reviewed in parallel stages. Surface parity is also proven by the dual-surface resource contract tests. |
+
 ### Tasks
 
-- [ ] `P11-T1` Add a purpose-bound reusable information profile for explicitly promoted values and
+- [x] `P11-T1` Add a purpose-bound reusable information profile for explicitly promoted values and
   evidence references. Reuse must enforce subject and tenant scope, consent or policy basis,
   freshness, expiry, source visibility, and explicit respondent recertification.
-- [ ] `P11-T2` Define a versioned generic configuration-bundle format for Template Versions,
+  - [x] `P11-T1a` Correct Accepted Fact offer eligibility before exposing reuse: exclude expired
+    and out-of-period facts, use exclusive end boundaries, preserve current fact history and
+    promotion conflict checks, and prove owner, subject, purpose, and audience isolation.
+  - [x] `P11-T1b` Persist explicit consent or policy basis and promoted evidence references with
+    immutable provenance, owner and subject scope, revocation, and retention reference safety.
+  - [x] `P11-T1c` Add an atomic respondent recertification command that revalidates an offer,
+    requires the target response precondition, records exact source provenance, and never writes
+    a response without explicit assent. Prove authenticated and no-auth parity and refusal races.
+  - [x] `P11-T1d` Expose eligible offers and recertification in the shared respondent workspace,
+    extend promotion controls and help, then run affected suites before closing the parent task.
+- [x] `P11-T2` Define a versioned generic configuration-bundle format for Template Versions,
   validation policies, customer-authored reason-code vocabularies, role presets, clocks, retention
   defaults, and optional connector contracts. The format describes generic capability schemas and
   never ships a particular process vocabulary or execution branch.
-- [ ] `P11-T3` Complete the test-only `basic_field_document_response_attestation_request`
+- [x] `P11-T3` Complete the test-only `basic_field_document_response_attestation_request`
   conformance scenario: sparse draft, one Field Requirement, one Document Requirement, one
   Response Attestation Requirement, exact immutable submission, and atomic no-review closure.
-- [ ] `P11-T4` Complete the test-only `multi_party_staged_evidence_request` conformance scenario:
+- [x] `P11-T4` Complete the test-only `multi_party_staged_evidence_request` conformance scenario:
   distinct subject, contributor, delegate, attestor, and reviewer; scoped assignment; delegated
   authority expiry and revocation; staged submission; and cross-party denial.
-- [ ] `P11-T5` Complete the test-only `repeatable_conditional_request` conformance scenario: nested
+- [x] `P11-T5` Complete the test-only `repeatable_conditional_request` conformance scenario: nested
   occurrences, stable paths, conditions with unknown state, cross-occurrence validation, and
   occurrence-scoped evidence and findings.
-- [ ] `P11-T6` Complete the test-only `multi_file_evidence_policy_request` conformance scenario:
+- [x] `P11-T6` Complete the test-only `multi_file_evidence_policy_request` conformance scenario:
   multiple files, coverage, issuer, freshness, expiry, certification, configured alternatives,
   waiver, quarantine, replacement, and immutable version membership. Quarantine is exercised with a
   test scanner adapter; the scenario does not need a real scanner.
-- [ ] `P11-T7` Complete the test-only `itemized_staged_submission_request` conformance scenario:
+- [x] `P11-T7` Complete the test-only `itemized_staged_submission_request` conformance scenario:
   item-specific provided, partial, unavailable, exception-requested, referenced, and waived
   dispositions; stage locks; later-stage edits; and an exact package manifest.
-- [ ] `P11-T8` Complete the test-only `multi_stage_review_correction_request` conformance scenario:
+- [x] `P11-T8` Complete the test-only `multi_stage_review_correction_request` conformance scenario:
   sequential and parallel review, separation of duties, finding aggregation, correction allowlist,
   resubmission, remediation, and retest.
-- [ ] `P11-T9` Complete the test-only `recurring_supplemental_request` conformance scenario:
+- [x] `P11-T9` Complete the test-only `recurring_supplemental_request` conformance scenario:
   recurrence, amendments, supplements, carry-forward and invalidation, Accepted Fact freshness,
   reconfirmation, cancellation, and supersession.
-- [ ] `P11-T10` Complete the test-only `timed_retained_export_request` conformance scenario:
+- [x] `P11-T10` Complete the test-only `timed_retained_export_request` conformance scenario:
   versioned clocks, pause and resume, extension, reminders, immutable notices, access history,
   retention, record-preservation hold, privacy operations, and reproducible export.
-- [ ] `P11-T11` Add generic connector interfaces for structured evidence and external verification.
+- [x] `P11-T11` Add generic connector interfaces for structured evidence and external verification.
   First characterize and reuse existing Application identity, `WorkflowWebhookEndpoint`,
   destination policy, signing, outbound delivery, retry, and authorization components where their
   contracts match. Keep a connector contract separate where it requires request, polling,
@@ -3648,7 +3884,7 @@ vocabulary, branch, identifier, or fixture may encode a particular industry or c
   provide. Do not build a second generic outbound endpoint or delivery stack. Ship only local or
   test adapters in this program; live external integrations require separate scope and security
   review.
-- [ ] `P11-T12` Add source-aware imported-value proposal, reconciliation, discrepancy-finding, and
+- [x] `P11-T12` Add source-aware imported-value proposal, reconciliation, discrepancy-finding, and
   generated-output-reference contracts for manual or external sources. Imported or proposed values
   remain untrusted until reviewed and never overwrite responses or Accepted Facts automatically.
   Do not implement OCR, automated extraction, AI findings, or a document-generation engine in this
@@ -4079,9 +4315,15 @@ link it follows. |
 
 | `P9-T10` | `V143__information_request_privacy.sql` | 2026-09-26 | Created and PostgreSQL contract-tested. Privacy requests, subject restrictions, and package item corrections. |
 
+| `P10-T2`, `P10-T6` | `V144__information_request_author_actions.sql` | 2026-09-27 | Created and PostgreSQL contract-tested. Party assignment, party revocation, and sent-reminder transition mutations; a sent-reminder source on notice intents. |
+| `P11-T1b` | `V145__information_request_reusable_fact_profile.sql` | 2026-09-29 | Created and PostgreSQL contract-tested. Required reuse policy basis and exact submitted evidence references. |
+| `P11-T1b` | `V146__information_request_fact_evidence_disposal.sql` | 2026-09-29 | Created and PostgreSQL contract-tested. Disposal counts promoted evidence references before deleting their parent facts. |
+| `P11-T1c` | `V147__information_request_fact_recertification.sql` | 2026-09-29 | Created and PostgreSQL contract-tested. Append-only respondent recertification records with copied source provenance and evidence, insert guards, the `RECERTIFY_FACT` transition mutation, and disposal of a request's own recertifications. |
+| `P11-T11`, `P11-T12` | `V148__information_request_external_sources.sql` | 2026-09-29 | Created and PostgreSQL contract-tested (3 tests). Connector exchanges with a forward-only state guard and a same-request Requirement guard, append-only imported values, decisions, discrepancies, and resolutions with same-request guards, generated output references, four transition mutations, and disposal of every external source record. Not applied to the local database when created. |
+
 The provisional program range ended at V139. On 2026-09-26, before the second Phase 9 migration, it
 was extended to V139 through V160; the head was V138 and no other initiative had taken a number
-above it. Remaining unallocated program range: V144 through V160. Flyway head is V143.
+above it. Remaining unallocated program range: V149 through V160. Flyway head is V148.
 V118 and V119 were taken by prior P5 remediation work before this row was written.
 
 When verifying that a migration contract test is genuinely red, remove the migration from
@@ -4275,44 +4517,40 @@ Keep only the newest product implementation result in this section. Full histori
 in `plans/DOCUMENT-DRIVEN-INFORMATION-REQUESTS-COMPLETION-EVIDENCE.md`. When a newer implementation session finishes,
 make sure this result is present in the evidence file, then replace it here with the new latest result.
 
-### 2026-09-26: Phase 8 complete
+### 2026-09-29: Phase 11 external sources, connectors, and exit gate
 
-- Phase 8 is complete: every task `P8-T1` through `P8-T12` and each subtask, with V136 through V138
-  created once each. The journal entry "2026-09-25: Phase 8 implementation session" records which
-  parts were observed red first and which tests were written after their code, with the temporary
-  mutations used to prove those tests fail on a regression.
-- Review belongs to a Submission Package. A Template Version states sequential or parallel review
-  stages (any, all, quorum, consensus; a tie settled by the most severe outcome or held for an
-  override; separation of duties; section coverage); one default stage is frozen when none is
-  stated, and publication refuses a reviewer-routed Requirement no stage covers.
-- A review-required package opens an `INITIAL` review. Assignments carry explicit due instants and
-  can be recused, delegated, or revoked; worksheets save under `If-Match`; recorded decisions and
-  overrides use Command Receipts. Settlement is atomic: an accepted review closes the request once the
-  whole response is accepted, and a changes-requested review opens a correction whose allowlist is
-  the returned Requirements and file-scoped Evidence Versions, the only scope that becomes editable.
-  A resubmission is reviewed as `RESUBMISSION`, carries unchanged accepted outcomes forward, and
-  records remediation; reconsideration and appeal open a new review of the same package. Findings,
-  decisions, and comments are append-only. The request states `SUBMITTED`, `UNDER_REVIEW`, and
-  `CHANGES_REQUESTED` no longer exist.
-- Accepted Facts are explicit promotions of an accepted `FIELD` item about the request's single
-  subject (`DECLARED`, or `REVIEWED` from a satisfied review), purpose-bound, with valid period,
-  expiry, conflict, supersession, and revocation. A later request of the same owner, subject, Field,
-  and purpose is offered them for reconfirmation; nothing writes Exchange fields. Business Decisions
-  are an append-only external reference chain per owning process, independent of satisfaction.
-- `RESPONSE_REVIEW` has an executor, so a fully served reviewer-routed Version issues; a Version frozen
-  against an unserved contract is refused.
-- UI: the reviewer workspace and queue (plan-gated, with a menu entry) and respondent Review results
-  with Appeal; the help article "Reviewing Information Request submissions" is new and the submission
-  article was corrected.
-- Verification: the final full backend suite passed 3,037 tests, 0 failures, 0 errors, 0 skipped
-  (BUILD SUCCESS in 29:52), after a first full run exposed one stale unit-test stub (fixed) and one
-  container startup error (rerun green). The frontend gate passed with `npx vitest run
-  --maxWorkers=4` (538 tests in 132 files), `npm run typecheck:app` (0 Information Request
-  diagnostics), ESLint on the changed files (0 errors), and `npm run build`; with default workers
-  `npx vitest run` hit one rotating load timeout per run in unrelated files, as the journal records.
-  The industry-neutrality, comment, and character checks found nothing to change.
-- No commit or push was made.
-- Next task: `P9-T1`, only when the user asks for Phase 9.
+- Resumed an interrupted, unjournaled start of `P11-T11` and `P11-T12` and corrected the stale
+  Status (it still named `P11-T8` although the journal recorded `P11-T8` through `P11-T10`). The
+  design was recorded first as `### Phase 11 design decisions (2026-09-29)`.
+- `P11-T11`: `InformationRequestConnector` states its contract as data (key, kind, version, result
+  keys, optional result age limit), and the registry refuses two adapters under one key and is empty
+  outside tests. A connector exchange carries an optional lookup reference, allows one open exchange
+  per Requirement and connector, and checks continuation entitlement. A scheduled worker (off in the
+  test profile) checks the request state, the installed connector, and the contract version before
+  any call, then records `PENDING`, `COMPLETED`, or `FAILED` under the request lock with bounded
+  retries.
+- `P11-T12`: imported values are canonicalized by the collected Field's contract
+  (`InformationRequestImportedValueCanonicalizer`) or validated as scalars, and keep their source,
+  confidence, verification time, expiry, and provenance. A reviewer decides each once (never the
+  author of a manual value, never accepting an expired one); reconciliation reports `MATCHES`,
+  `DIFFERS`, `NO_ANSWER`, `NOT_COMPARABLE`, or `EXPIRED` and records discrepancies once per answer
+  revision, each resolved once. Nothing writes an answer or an Accepted Fact. Generated output
+  references are recorded without fetching or storing anything. REST lives under
+  `/information-requests/{id}/` (`connector-exchanges`, `imported-values` with `/{valueId}/decisions`,
+  `imported-value-reconciliations`, `imported-value-discrepancies/{discrepancyId}/resolutions`,
+  `generated-outputs`). The record export (schema version 2) now includes external sources and the
+  request's own recertifications. V148 was tightened before its first application, and a help
+  article was added.
+- Defect fixed: the authorizer refused every non-read action on a CLOSED request, so fact promotion,
+  business decisions, and external-source records failed there despite the transition matrix. Those
+  record actions are now exempt from the archived refusal for the request resource only.
+- Exit gate: full backend `.\mvnw.cmd -o test -DskipFrontend=true` passed 3,285 tests (0 failures,
+  errors, or skips, 35:07); the eight conformance scenarios passed 13 tests after the participant
+  variants were added; `npm.cmd test -- --maxWorkers=2` passed 730 tests in 173 files;
+  `npx.cmd tsc --noEmit`, `npm.cmd run typecheck:app` (346 reviewed unrelated, 0 Information
+  Request), and `npm.cmd run build` passed; `npm.cmd run lint` (109 problems) and `buildWithTs` (346
+  diagnostics) match their recorded baselines. Neutrality audit clean. No commit or push.
+- Exact next task: `P12-T1`, only when the user asks for Phase 12.
 
 ## Continuation Prompt
 
@@ -4325,14 +4563,14 @@ Use this instruction in a new implementation session:
 > `plans/DOCUMENT-DRIVEN-INFORMATION-REQUESTS-COMPLETION-EVIDENCE.md` for prior completion results,
 > evidence, and older decisions. Also read the 2026-09-13 recheck at
 > `plans/DOCUMENT-DRIVEN-INFORMATION-REQUESTS-PHASES-1-5-RECHECK.md`. Inspect the working tree and
-> preserve unrelated changes. `P5-R01` through `P5-R30`, `P5-R-GATE`, and Phases 6 through 8 are complete.
+> preserve unrelated changes. `P5-R01` through `P5-R30`, `P5-R-GATE`, and Phases 6 through 11 are complete.
 > On 2026-09-25 the user made malware scanning optional and moved it to
 > `plans/INFORMATION-REQUEST-EVIDENCE-MALWARE-SCANNING-PLAN.md`; evidence collection works in
 > production without a scanner, and no file is ever described as scanned or safe without a scan.
 > The platform has no production users and is in active development: read
 > `## Development-Stage Constraint` and `## Development-Stage Compatibility Removal`, write no
-> backwards-compatibility code, and continue with the next incomplete task, which is P9-T1, when
-> the user asks for Phase 9; read the Phase 9 handoff in `## Status` first. Do not assume permission for
+> backwards-compatibility code, and continue with the next incomplete task, which is P12-T1, when
+> the user asks for Phase 12; read the Phase 12 handoff in `## Status` first. Do not assume permission for
 > a new AWS service or paid resource type. For implementation,
 > follow TDD: add a focused failing test, confirm the intended
 > failure, implement the smallest complete change, run focused and required regression tests, update

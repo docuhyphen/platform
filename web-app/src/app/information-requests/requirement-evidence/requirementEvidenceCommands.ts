@@ -24,6 +24,7 @@ export interface RequirementEvidenceCommands
         file: File,
         evidenceETag: string,
         onProgress: (percent: number) => void,
+        idempotencyKey: string,
     ) => Promise<InformationRequestEvidenceCommandOutcome>;
     replace: (
         requestId: string,
@@ -32,6 +33,7 @@ export interface RequirementEvidenceCommands
         file: File,
         artifactETag: string,
         onProgress: (percent: number) => void,
+        idempotencyKey: string,
     ) => Promise<InformationRequestEvidenceCommandOutcome>;
     withdraw: (
         requestId: string,
@@ -59,17 +61,17 @@ export const requirementEvidenceCommands = (
     return {
         list: (requestId, requirementId) =>
             listInformationRequestEvidence(requestId, requirementId, accessLinkToken),
-        upload: (requestId, requirementId, file, evidenceETag, onProgress) =>
+        upload: (requestId, requirementId, file, evidenceETag, onProgress, idempotencyKey) =>
             uploadInformationRequestEvidence(requestId, requirementId, file, {
                 expectedETag: evidenceETag,
-                idempotencyKey: nextIdempotencyKey(),
+                idempotencyKey,
                 accessLinkToken,
                 onProgress,
             }),
-        replace: (requestId, requirementId, artifactId, file, artifactETag, onProgress) =>
+        replace: (requestId, requirementId, artifactId, file, artifactETag, onProgress, idempotencyKey) =>
             replaceInformationRequestEvidence(requestId, requirementId, artifactId, file, {
                 expectedETag: artifactETag,
-                idempotencyKey: nextIdempotencyKey(),
+                idempotencyKey,
                 accessLinkToken,
                 onProgress,
             }),

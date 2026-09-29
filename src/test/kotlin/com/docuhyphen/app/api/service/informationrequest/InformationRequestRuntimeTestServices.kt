@@ -1,6 +1,12 @@
 package com.docuhyphen.app.api.service.informationrequest
 
+import com.docuhyphen.app.api.repository.informationrequest.InformationRequestConnectorExchangeRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestCorrectionRepository
+import com.docuhyphen.app.api.repository.informationrequest.InformationRequestGeneratedOutputRepository
+import com.docuhyphen.app.api.repository.informationrequest.InformationRequestImportedValueDecisionRepository
+import com.docuhyphen.app.api.repository.informationrequest.InformationRequestImportedValueDiscrepancyRepository
+import com.docuhyphen.app.api.repository.informationrequest.InformationRequestImportedValueDiscrepancyResolutionRepository
+import com.docuhyphen.app.api.repository.informationrequest.InformationRequestImportedValueRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestReviewAssignmentRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestReviewCommentRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestReviewDecisionRepository
@@ -131,15 +137,40 @@ class InformationRequestRuntimeTestServices
     @Inject lateinit var factRepository: com.docuhyphen.app.api.repository.informationrequest.InformationRequestAcceptedFactRepository
     @Inject lateinit var factRevocationRepository: com.docuhyphen.app.api.repository.informationrequest.InformationRequestAcceptedFactRevocationRepository
     @Inject lateinit var factStanding: InformationRequestAcceptedFactStanding
+    @Inject lateinit var factEvidenceService: InformationRequestAcceptedFactEvidenceService
     @Inject lateinit var subjectRestrictions: InformationRequestSubjectRestrictionService
+    @Inject lateinit var schemaFieldBindingRepository: com.docuhyphen.app.api.repository.fields.SchemaFieldBindingRepository
+    @Inject lateinit var recertificationRepository: com.docuhyphen.app.api.repository.informationrequest.InformationRequestFactRecertificationRepository
+    @Inject lateinit var recertificationEvidenceRepository: com.docuhyphen.app.api.repository.informationrequest.InformationRequestFactRecertificationEvidenceRepository
     @Inject lateinit var businessDecisionRepository: com.docuhyphen.app.api.repository.informationrequest.InformationRequestBusinessDecisionRepository
+    @Inject lateinit var connectorExchangeRepository: InformationRequestConnectorExchangeRepository
+    @Inject lateinit var importedValueRepository: InformationRequestImportedValueRepository
+    @Inject lateinit var importedValueDecisionRepository: InformationRequestImportedValueDecisionRepository
+    @Inject lateinit var discrepancyRepository: InformationRequestImportedValueDiscrepancyRepository
+    @Inject lateinit var discrepancyResolutionRepository: InformationRequestImportedValueDiscrepancyResolutionRepository
+    @Inject lateinit var generatedOutputRepository: InformationRequestGeneratedOutputRepository
+    @Inject lateinit var importedValueCanonicalizer: InformationRequestImportedValueCanonicalizer
 
+    @Suppress("LongParameterList")
     fun build(
         requestId: UUID,
         history: InformationRequestTransitionHistoryService = transitionHistory,
         hiddenRequirementId: UUID? = null,
         denies: (PrincipalRef, Action) -> Boolean = { _, _ -> false },
+        centralAuthorization: AuthorizationService? = null,
+        responseValidation: InformationRequestStructuredResponseValidationService = structuredResponseValidationService,
+        connectors: List<InformationRequestConnector> = emptyList(),
+        externalClock: Clock = clock,
     ): InformationRequestRuntimeServices
+    {
+        val authorization = centralAuthorization ?: stubbedAuthorization(hiddenRequirementId, denies)
+        return services(requestId, history, authorization, mock(), responseValidation, ExternalSourceSetup(connectors, externalClock))
+    }
+
+    private fun stubbedAuthorization(
+        hiddenRequirementId: UUID?,
+        denies: (PrincipalRef, Action) -> Boolean,
+    ): AuthorizationService
     {
         val authorization = mock<AuthorizationService>()
         whenever(authorization.authorize(any(), any(), any(), any())).thenAnswer { invocation ->
@@ -153,7 +184,18 @@ class InformationRequestRuntimeTestServices
             else
                 Decision.Allow()
         }
-        val grants = mock<InformationRequestExecutionGrantService>()
+        return authorization
+    }
+
+    private fun services(
+        requestId: UUID,
+        history: InformationRequestTransitionHistoryService,
+        authorization: AuthorizationService,
+        grants: InformationRequestExecutionGrantService,
+        responseValidation: InformationRequestStructuredResponseValidationService,
+        external: ExternalSourceSetup,
+    ): InformationRequestRuntimeServices
+    {
         whenever(grants.findForRequest(requestId)).thenReturn(
             RequestExecutionGrant().apply {
                 this.requestId = requestId
@@ -187,7 +229,39 @@ class InformationRequestRuntimeTestServices
             partyRepository, partyService, packageReader, lockService, requirementRepository, templateRequirementRepository,
             lineageRepository, carryForwardRepository, requestRepository, lifecycle, commandReceiptService, history, clock,
         )
+        val acceptedFactQueries = InformationRequestAcceptedFactQueryService(
+            queries, gate, factStanding, factRepository, partyRepository, requirementRepository, bindingRepository,
+            templateRequirementRepository, templateVersionRepository, subjectRestrictions,
+        )
+        val responses = InformationRequestResponseDraftService(
+            requestRepository = requestRepository,
+            exchangeRepository = exchangeRepository,
+            requirementRepository = requirementRepository,
+            occurrenceRepository = occurrenceRepository,
+            revisionRepository = revisionRepository,
+            dispositionRepository = dispositionRepository,
+            bindingRepository = bindingRepository,
+            responseStore = responseRepository,
+            schemaAssignmentService = schemaAssignmentService,
+            schemaAssignmentRepository = schemaAssignmentRepository,
+            fieldValueSetRepository = fieldValueSetRepository,
+            fieldContractRepository = fieldContractRepository,
+            authorizationService = authorization,
+            commandReceiptService = commandReceiptService,
+            entitlementGuard = mock(),
+            executionGrantService = grants,
+            transitionHistory = history,
+            conditionEvaluationService = conditionEvaluationService,
+            structuredResponseValidationService = responseValidation,
+            lockService = lockService,
+        )
         val reviewAccess = InformationRequestReviewAccess(gate, partyRepository, reviewAssignmentRepository, requirementContext)
+        val connectorRegistry = InformationRequestConnectorRegistry(external.connectors)
+        val importedValues = InformationRequestImportedValueService(
+            gate, queries, importedValueRepository, importedValueDecisionRepository, discrepancyRepository,
+            discrepancyResolutionRepository, requirementRepository, importedValueCanonicalizer, responseRepository,
+            commandReceiptService, history, external.clock,
+        )
         return InformationRequestRuntimeServices(
             reviewAssignments = InformationRequestReviewAssignmentService(
                 gate, reviewAccess, reviewLoader, reviewSeparation, reviewSettlement, reviewRepository,
@@ -212,11 +286,13 @@ class InformationRequestRuntimeTestServices
             ),
             acceptedFacts = InformationRequestAcceptedFactService(
                 gate, reviewLoader, lockService, packageReader, factRepository, factRevocationRepository, partyRepository,
-                bindingRepository, fieldValueRevisionQueryService, factStanding, subjectRestrictions, commandReceiptService, history, clock,
+                bindingRepository, fieldValueRevisionQueryService, factStanding, factEvidenceService, subjectRestrictions, commandReceiptService, history, clock,
             ),
-            acceptedFactQueries = InformationRequestAcceptedFactQueryService(
-                queries, gate, factStanding, factRepository, partyRepository, requirementRepository, bindingRepository,
-                templateRequirementRepository, templateVersionRepository, subjectRestrictions,
+            acceptedFactQueries = acceptedFactQueries,
+            factRecertifications = InformationRequestFactRecertificationService(
+                gate, factRepository, acceptedFactQueries, responses, requirementRepository, schemaAssignmentRepository,
+                schemaFieldBindingRepository, fieldContractRepository, schemaAssignmentService, recertificationRepository,
+                recertificationEvidenceRepository, commandReceiptService, history, clock,
             ),
             businessDecisions = InformationRequestBusinessDecisionService(
                 gate, queries, businessDecisionRepository, commandReceiptService, history, clock,
@@ -248,28 +324,7 @@ class InformationRequestRuntimeTestServices
                 transitionHistory = history,
                 viewLoader = InformationRequestEvidenceViewLoader(versionRepository, documentVersionRecordingService),
             ),
-            responses = InformationRequestResponseDraftService(
-                requestRepository = requestRepository,
-                exchangeRepository = exchangeRepository,
-                requirementRepository = requirementRepository,
-                occurrenceRepository = occurrenceRepository,
-                revisionRepository = revisionRepository,
-                dispositionRepository = dispositionRepository,
-                bindingRepository = bindingRepository,
-                responseStore = responseRepository,
-                schemaAssignmentService = schemaAssignmentService,
-                schemaAssignmentRepository = schemaAssignmentRepository,
-                fieldValueSetRepository = fieldValueSetRepository,
-                fieldContractRepository = fieldContractRepository,
-                authorizationService = authorization,
-                commandReceiptService = commandReceiptService,
-                entitlementGuard = mock(),
-                executionGrantService = grants,
-                transitionHistory = history,
-                conditionEvaluationService = conditionEvaluationService,
-                structuredResponseValidationService = structuredResponseValidationService,
-                lockService = lockService,
-            ),
+            responses = responses,
             submissionQueries = InformationRequestSubmissionQueryService(
                 queries, exchangeRepository, packageReader, contentCollector, stages, readiness, lockService,
                 requirementContext, fieldValueRevisionQueryService, gate,
@@ -286,10 +341,22 @@ class InformationRequestRuntimeTestServices
                 templateRequirementRepository, commandReceiptService, history, clock,
             ),
             lineageQueries = InformationRequestLineageQueryService(
-                queries, lineageRepository, carryForwardRepository, itemRepository, fieldValueRevisionQueryService, gate,
+                queries, lineageRepository, recurrenceRepository, carryForwardRepository, itemRepository, fieldValueRevisionQueryService, gate,
+            ),
+            connectorExchanges = InformationRequestConnectorService(
+                gate, queries, connectorRegistry, connectorExchangeRepository, requirementRepository, commandReceiptService, history, external.clock,
+            ),
+            connectorWorker = InformationRequestConnectorWorker(
+                connectorRegistry, connectorExchangeRepository, gate, importedValues, entityManager, external.clock,
+            ),
+            importedValues = importedValues,
+            generatedOutputs = InformationRequestGeneratedOutputService(
+                gate, queries, generatedOutputRepository, packageRepository, commandReceiptService, history, external.clock,
             ),
         )
     }
+
+    data class ExternalSourceSetup(val connectors: List<InformationRequestConnector>, val clock: Clock)
 }
 
 data class InformationRequestRuntimeServices(
@@ -301,6 +368,7 @@ data class InformationRequestRuntimeServices(
     val reviewQueries: InformationRequestReviewQueryService,
     val acceptedFacts: InformationRequestAcceptedFactService,
     val acceptedFactQueries: InformationRequestAcceptedFactQueryService,
+    val factRecertifications: InformationRequestFactRecertificationService,
     val businessDecisions: InformationRequestBusinessDecisionService,
     val gate: InformationRequestMutationGate,
     val readiness: InformationRequestSubmissionReadinessEvaluator,
@@ -315,4 +383,8 @@ data class InformationRequestRuntimeServices(
     val successors: InformationRequestSuccessorService,
     val followUps: InformationRequestFollowUpService,
     val lineageQueries: InformationRequestLineageQueryService,
+    val connectorExchanges: InformationRequestConnectorService,
+    val connectorWorker: InformationRequestConnectorWorker,
+    val importedValues: InformationRequestImportedValueService,
+    val generatedOutputs: InformationRequestGeneratedOutputService,
 )

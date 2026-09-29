@@ -215,6 +215,9 @@ enum class AuditEventType(val key: String, val category: AuditCategory)
     INFORMATION_REQUEST_PARTY_REASSIGN(
         "information_request.party.reassign", AuditCategory.INFORMATION_REQUEST,
     ),
+    INFORMATION_REQUEST_PARTY_ASSIGN("information_request.party.assign", AuditCategory.INFORMATION_REQUEST),
+    INFORMATION_REQUEST_PARTY_REVOKE("information_request.party.revoke", AuditCategory.INFORMATION_REQUEST),
+    INFORMATION_REQUEST_REMIND("information_request.request.remind", AuditCategory.INFORMATION_REQUEST),
     INFORMATION_REQUEST_CLOSE(
         "information_request.request.close", AuditCategory.INFORMATION_REQUEST,
     ),
@@ -276,6 +279,21 @@ enum class AuditEventType(val key: String, val category: AuditCategory)
     ),
     INFORMATION_REQUEST_FACT_REVOKE(
         "information_request.fact.revoke", AuditCategory.INFORMATION_REQUEST,
+    ),
+    INFORMATION_REQUEST_FACT_RECERTIFY(
+        "information_request.fact.recertify", AuditCategory.INFORMATION_REQUEST,
+    ),
+    INFORMATION_REQUEST_EXTERNAL_SOURCE_REQUEST(
+        "information_request.external.request", AuditCategory.INFORMATION_REQUEST,
+    ),
+    INFORMATION_REQUEST_EXTERNAL_VALUE_RECORD(
+        "information_request.external.record", AuditCategory.INFORMATION_REQUEST,
+    ),
+    INFORMATION_REQUEST_EXTERNAL_VALUE_DECIDE(
+        "information_request.external.decide", AuditCategory.INFORMATION_REQUEST,
+    ),
+    INFORMATION_REQUEST_GENERATED_OUTPUT_RECORD(
+        "information_request.output.record", AuditCategory.INFORMATION_REQUEST,
     ),
     INFORMATION_REQUEST_BUSINESS_DECISION_RECORD(
         "information_request.decision.record", AuditCategory.INFORMATION_REQUEST,
@@ -353,7 +371,7 @@ enum class AuditEventType(val key: String, val category: AuditCategory)
          * consumers (ledger, exports, projections) can reason about which catalog shape produced
          * a given event.
          */
-        const val CATALOG_VERSION: Int = 26
+        const val CATALOG_VERSION: Int = 28
 
         private val byKey: Map<String, AuditEventType> = entries.associateBy { it.key }
 

@@ -1,11 +1,133 @@
 package com.docuhyphen.app.api.migration
 
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import java.sql.Connection
 import java.util.UUID
 
 class InformationRequestAcceptedFactContractTest
 {
+    @Test
+    fun `promoted facts store a policy basis and exact submitted evidence references`()
+    {
+        withFact { connection, _ ->
+            org.junit.jupiter.api.Assertions.assertEquals(
+                1,
+                queryInt(
+                    connection,
+                    "SELECT COUNT(*) FROM information_schema.columns WHERE table_name = 'information_request_accepted_fact' AND column_name = 'policy_basis_key' AND is_nullable = 'NO'",
+                ),
+            )
+            org.junit.jupiter.api.Assertions.assertEquals(
+                1,
+                queryInt(
+                    connection,
+                    "SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'information_request_accepted_fact_evidence'",
+                ),
+            )
+        }
+    }
+
+    @Test
+    fun `a promoted evidence reference is restricted to a conforming version linked to the source answer`()
+    {
+        withSubmissionPostgres { postgres ->
+            submissionFlyway(postgres).migrate()
+            postgres.createConnection("").use { connection ->
+                lateinit var answers: FieldAnswerSqlFixture
+                val templateLinkId = UUID.randomUUID()
+                val runtime = SubmissionRuntimeSqlFixture(connection, beforePublish = { configured ->
+                    answers = FieldAnswerSqlFixture(connection, configured.template)
+                    execute(
+                        connection,
+                        "INSERT INTO information_request_template_binding_evidence_link (id, template_binding_id, supporting_template_binding_id, template_version_id) VALUES (?, ?, ?, ?)",
+                        templateLinkId,
+                        answers.bindingId,
+                        configured.documentBindingId,
+                        configured.template.versionId,
+                    )
+                })
+                answers.materialize(runtime)
+                val facts = FactSqlFixture(connection, runtime, answers)
+                val documentItemId = UUID.randomUUID()
+                val submittedEvidenceId = UUID.randomUUID()
+                val requestLinkId = UUID.randomUUID()
+                runtime.insertItem(
+                    documentItemId,
+                    facts.packageId,
+                    runtime.documentRequirementId,
+                    runtime.documentRevisionId,
+                    runtime.documentBindingId,
+                    "DOCUMENT",
+                    runtime.documentResponseId,
+                )
+                runtime.insertEvidenceMember(submittedEvidenceId, facts.packageId, documentItemId)
+                execute(
+                    connection,
+                    "INSERT INTO information_request_supporting_evidence_link (id, information_request_id, supported_requirement_id, supporting_requirement_id, template_evidence_link_id) VALUES (?, ?, ?, ?, ?)",
+                    requestLinkId,
+                    runtime.requestId,
+                    answers.requirementId,
+                    runtime.documentRequirementId,
+                    templateLinkId,
+                )
+                execute(
+                    connection,
+                    "INSERT INTO information_request_submission_supporting_link (id, package_id, information_request_id, supporting_evidence_link_id, supported_requirement_id, supporting_requirement_id) VALUES (?, ?, ?, ?, ?, ?)",
+                    UUID.randomUUID(),
+                    facts.packageId,
+                    runtime.requestId,
+                    requestLinkId,
+                    answers.requirementId,
+                    runtime.documentRequirementId,
+                )
+                val factId = UUID.randomUUID()
+                facts.insertFact(factId)
+                val referenceId = UUID.randomUUID()
+                execute(
+                    connection,
+                    "INSERT INTO information_request_accepted_fact_evidence (id, fact_id, source_submission_evidence_id, evidence_version_id) VALUES (?, ?, ?, ?)",
+                    referenceId,
+                    factId,
+                    submittedEvidenceId,
+                    runtime.evidenceVersionId,
+                )
+                assertEquals(
+                    1,
+                    queryInt(connection, "SELECT COUNT(*) FROM information_request_accepted_fact_evidence WHERE fact_id = ?", factId),
+                )
+                refusedBy(connection, "promoted evidence is a conforming submitted version supporting the fact") {
+                    execute(
+                        connection,
+                        "INSERT INTO information_request_accepted_fact_evidence (id, fact_id, source_submission_evidence_id, evidence_version_id) VALUES (?, ?, ?, ?)",
+                        UUID.randomUUID(),
+                        factId,
+                        submittedEvidenceId,
+                        UUID.randomUUID(),
+                    )
+                }
+                refusedBy(connection, "information request history is append-only") {
+                    execute(connection, "DELETE FROM information_request_accepted_fact_evidence WHERE id = ?", referenceId)
+                }
+
+                execute(connection, "UPDATE information_request SET state = 'CANCELLED', cancelled_at = now() WHERE id = ?", runtime.requestId)
+                val preservation = PreservationSqlFixture(connection, runtime)
+                val scheduleId = UUID.randomUUID()
+                preservation.insertSchedule(scheduleId, 1, minimumDays = 0, disposalDays = 0)
+                val claimId = UUID.randomUUID()
+                preservation.insertClaim(claimId, scheduleId)
+                preservation.insertScope(claimId, "INFORMATION_REQUEST", runtime.requestId.toString(), direct = true)
+                val objectId = preservation.insertObject(claimId, retained = false)
+                execute(connection, "UPDATE record_disposal_object SET deletion_outcome = 'ABSENT', deleted_at = now() WHERE id = ?", objectId)
+                preservation.advance(claimId)
+                val removed = requireNotNull(queryString(connection, "SELECT record_dispose_information_request(?)", claimId))
+                assertTrue(removed.contains("\"information_request_accepted_fact_evidence\": 1"), removed)
+                assertEquals(0, queryInt(connection, "SELECT COUNT(*) FROM information_request_accepted_fact_evidence WHERE fact_id = ?", factId))
+            }
+        }
+    }
+
     @Test
     fun `an accepted fact is promoted from the exact field answer a package froze about the request's subject`()
     {
@@ -21,6 +143,9 @@ class InformationRequestAcceptedFactContractTest
             }
             refusedBy(connection, "ck_information_request_accepted_fact_purpose") {
                 facts.insertFact(UUID.randomUUID(), purpose = "Not A Purpose")
+            }
+            refusedBy(connection, "ck_information_request_accepted_fact_policy_basis") {
+                facts.insertFact(UUID.randomUUID(), policyBasis = "Unstated Basis")
             }
             refusedBy(connection, "ck_information_request_accepted_fact_period") {
                 facts.insertFact(UUID.randomUUID(), validToOffsetDays = -1)
@@ -131,6 +256,7 @@ internal class FactSqlFixture(
         responseRevision: Long = 2,
         confidence: String = "DECLARED",
         purpose: String = "profile.reuse",
+        policyBasis: String = "policy.reuse",
         validToOffsetDays: Int = 30,
         conflict: String = "NONE",
         conflictingFactId: UUID? = null,
@@ -141,18 +267,19 @@ internal class FactSqlFixture(
             connection,
             """
             INSERT INTO information_request_accepted_fact
-                (id, owner_type, owner_organization_id, subject_identity_ref_id, purpose_key, field_definition_id, value_type,
+                (id, owner_type, owner_organization_id, subject_identity_ref_id, purpose_key, policy_basis_key, field_definition_id, value_type,
                  canonical_value, source_information_request_id, source_package_id, source_submission_item_id,
                  source_requirement_id, source_response_id, source_response_revision, source_field_value_revision_id,
                  visibility, confidence, valid_from, valid_to, supersedes_fact_id, conflict_state, conflicting_fact_id,
                  promoted_by_principal_kind, promoted_by_principal_id, promoted_at)
-            VALUES (?, 'ORGANIZATION', ?, ?, ?, ?, 'SHORT_TEXT', '"Recorded answer"', ?, ?, ?, ?, ?, ?, ?,
+            VALUES (?, 'ORGANIZATION', ?, ?, ?, ?, ?, 'SHORT_TEXT', '"Recorded answer"', ?, ?, ?, ?, ?, ?, ?,
                     'RESPONDING_PARTIES', ?, now(), now() + (? * INTERVAL '1 day'), ?, ?, ?, 'USER', ?, now())
             """.trimIndent(),
             id,
             runtime.template.organizationId,
             subject,
             purpose,
+            policyBasis,
             answers.fieldDefinitionId,
             runtime.requestId,
             packageId,

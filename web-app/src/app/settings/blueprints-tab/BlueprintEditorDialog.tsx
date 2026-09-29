@@ -54,6 +54,8 @@ import VariableTokenInput from '../../../components/variable-token-input/Variabl
 import {getAvailableVariables} from '../../../services/variableService.ts';
 import DocumentLibraryPicker from '../../../app/exchange-initiation/components/document-library-picker/DocumentLibraryPicker.tsx';
 import BlueprintBusinessFieldsTab from './blueprint-business-fields-tab/BlueprintBusinessFieldsTab.tsx';
+import BlueprintInformationRequestTab from './blueprint-information-request-tab/BlueprintInformationRequestTab.tsx';
+import {templateVersionChange} from './blueprint-information-request-tab/blueprintTemplateVersionChange.ts';
 
 interface BlueprintEditorDialogProps
 {
@@ -65,7 +67,7 @@ interface BlueprintEditorDialogProps
     enforcedScope?: BlueprintScope;
 }
 
-type EditorTab = 'details' | 'documents' | 'permissions' | 'fields';
+type EditorTab = 'details' | 'documents' | 'permissions' | 'fields' | 'informationRequest';
 
 const emptyConfig = (): BlueprintConfig => ({
     requestRecipientSignIn: true,
@@ -97,6 +99,7 @@ const BlueprintEditorDialog: React.FC<BlueprintEditorDialogProps> = (
     const [documents, setDocuments] = useState<BlueprintDocumentConfig[]>([]);
     const [schemaDefinitionId, setSchemaDefinitionId] = useState<string | undefined>(undefined);
     const [fieldDefaults, setFieldDefaults] = useState<BlueprintFieldDefaultConfig[]>([]);
+    const [templateVersionId, setTemplateVersionId] = useState<string | undefined>(undefined);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [availableVariables, setAvailableVariables] = useState<AvailableVariablesDto | null>(null);
@@ -122,6 +125,7 @@ const BlueprintEditorDialog: React.FC<BlueprintEditorDialogProps> = (
             setDocuments(blueprint.exchangeDocuments ?? []);
             setSchemaDefinitionId(blueprint.schemaDefinitionId);
             setFieldDefaults(blueprint.fieldDefaults ?? []);
+            setTemplateVersionId(blueprint.informationRequestTemplateVersionId);
         }
         else
         {
@@ -133,6 +137,7 @@ const BlueprintEditorDialog: React.FC<BlueprintEditorDialogProps> = (
             setDocuments([]);
             setSchemaDefinitionId(undefined);
             setFieldDefaults([]);
+            setTemplateVersionId(undefined);
         }
         setActiveTab('details');
         setPickerOpen(false);
@@ -186,6 +191,7 @@ const BlueprintEditorDialog: React.FC<BlueprintEditorDialogProps> = (
                     generalTags: tags,
                     schemaDefinitionId,
                     fieldDefaults,
+                    ...templateVersionChange(blueprint.informationRequestTemplateVersionId, templateVersionId),
                 };
                 await updateBlueprint(blueprint.id, req);
             }
@@ -202,6 +208,7 @@ const BlueprintEditorDialog: React.FC<BlueprintEditorDialogProps> = (
                     isActive: true,
                     schemaDefinitionId,
                     fieldDefaults: fieldDefaults.length > 0 ? fieldDefaults : undefined,
+                    informationRequestTemplateVersionId: templateVersionId,
                 };
                 await createBlueprint(req);
             }
@@ -242,6 +249,10 @@ const BlueprintEditorDialog: React.FC<BlueprintEditorDialogProps> = (
                             <Tab value="details">Details</Tab>
                             <Tab value="documents">Documents</Tab>
                             <Tab value="fields">Business Fields</Tab>
+                            <Tab id={"blueprint-editor-information-request-tab"}
+                                 value="informationRequest">
+                                Information Request
+                            </Tab>
                             <Tab value="permissions">Permissions</Tab>
                         </TabList>
 
@@ -530,6 +541,12 @@ const BlueprintEditorDialog: React.FC<BlueprintEditorDialogProps> = (
                                 enforcedScope={enforcedScope}
                                 onChange={(id, defaults) => { setSchemaDefinitionId(id); setFieldDefaults(defaults); }}
                             />
+                        )}
+
+                        {activeTab === 'informationRequest' && (
+                            <BlueprintInformationRequestTab scope={effectiveScope}
+                                                            templateVersionId={templateVersionId}
+                                                            onChange={setTemplateVersionId}/>
                         )}
 
                         {activeTab === 'permissions' && (

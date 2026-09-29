@@ -4,7 +4,7 @@ import com.docuhyphen.app.api.model.entity.InformationRequestTemplateVersion
 import com.docuhyphen.app.api.repository.BaseRepository
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.persistence.LockModeType
-import java.util.UUID
+import java.util.*
 
 /**
  * Persistence for [InformationRequestTemplateVersion]. Every lookup states the definition it is
@@ -110,4 +110,19 @@ class InformationRequestTemplateVersionRepository :
 
     fun findLatestPublished(definitionId: UUID): InformationRequestTemplateVersion? =
         findPublished(definitionId).lastOrNull()
+
+    fun findForIds(ids: Collection<UUID>): List<InformationRequestTemplateVersion>
+    {
+        if (ids.isEmpty()) return emptyList()
+        return entityManager.createQuery(
+            """
+            SELECT version
+            FROM InformationRequestTemplateVersion version
+            WHERE version.id IN :ids
+            """.trimIndent(),
+            InformationRequestTemplateVersion::class.java,
+        )
+            .setParameter("ids", ids)
+            .resultList
+    }
 }

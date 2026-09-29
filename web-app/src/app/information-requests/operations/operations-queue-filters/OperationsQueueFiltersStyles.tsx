@@ -7,6 +7,13 @@ export const useOperationsQueueFiltersStyles = makeStyles({
         gap: tokens.spacingHorizontalL,
         flexWrap: "wrap",
     },
+    search: {
+        flexGrow: 1,
+        minWidth: "240px",
+        "@media (max-width: 640px)": {
+            width: "100%",
+        },
+    },
     field: {
         minWidth: "200px",
         "@media (max-width: 640px)": {

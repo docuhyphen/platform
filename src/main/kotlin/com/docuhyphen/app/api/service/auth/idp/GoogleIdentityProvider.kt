@@ -2,7 +2,8 @@ package com.docuhyphen.app.api.service.auth.idp
 
 import com.docuhyphen.app.api.model.entity.IdentityProviderType
 import com.docuhyphen.app.api.service.auth.idp.OAuthClaimField.*
-import com.docuhyphen.app.api.service.auth.idp.OAuthTokenField.*
+import com.docuhyphen.app.api.service.auth.idp.OAuthTokenField.ACCESS_TOKEN
+import com.docuhyphen.app.api.service.auth.idp.OAuthTokenField.ID_TOKEN
 import com.docuhyphen.app.api.service.config.ConfigurationService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
@@ -38,7 +39,8 @@ class GoogleIdentityProvider @Inject constructor(
         prompt: String?,
     ): String
     {
-        val clientId = runtimeCredentials?.clientId?.takeIf { it.isNotBlank() } ?: configurationService.googleOAuthClientId
+        val clientId =
+            runtimeCredentials?.clientId?.takeIf { it.isNotBlank() } ?: configurationService.googleOAuthClientId
         val scopes = runtimeCredentials?.scopes?.takeIf { it.isNotBlank() } ?: "openid email profile"
         val encodedRedirectUri = URLEncoder.encode(redirectUri, StandardCharsets.UTF_8)
         val encodedState = URLEncoder.encode(state, StandardCharsets.UTF_8)
@@ -78,8 +80,10 @@ class GoogleIdentityProvider @Inject constructor(
         codeVerifier: String?,
     ): OAuthTokenResponse
     {
-        val clientId = runtimeCredentials?.clientId?.takeIf { it.isNotBlank() } ?: configurationService.googleOAuthClientId
-        val clientSecret = runtimeCredentials?.clientSecret?.takeIf { it.isNotBlank() } ?: configurationService.googleOAuthClientSecret
+        val clientId =
+            runtimeCredentials?.clientId?.takeIf { it.isNotBlank() } ?: configurationService.googleOAuthClientId
+        val clientSecret =
+            runtimeCredentials?.clientSecret?.takeIf { it.isNotBlank() } ?: configurationService.googleOAuthClientSecret
 
         val verifierPart = codeVerifier?.takeIf { it.isNotBlank() }
             ?.let { "&code_verifier=${URLEncoder.encode(it, StandardCharsets.UTF_8)}" }
@@ -113,7 +117,11 @@ class GoogleIdentityProvider @Inject constructor(
         )
     }
 
-    override fun validateIdToken(idToken: String, expectedNonce: String, runtimeCredentials: RuntimeIdpCredentials?): OAuthUserInfo
+    override fun validateIdToken(
+        idToken: String,
+        expectedNonce: String,
+        runtimeCredentials: RuntimeIdpCredentials?
+    ): OAuthUserInfo
     {
         val decoded = oidcTokenValidator.decode(idToken, PROVIDER_LABEL)
         val kid = oidcTokenValidator.requireSupportedHeader(
@@ -135,7 +143,8 @@ class GoogleIdentityProvider @Inject constructor(
 
         oidcTokenValidator.requireIssuer(
             claims = claims,
-            acceptedIssuers = runtimeCredentials?.oidcIssuer?.takeIf { it.isNotBlank() }?.let { setOf(it) } ?: ACCEPTED_ISSUERS,
+            acceptedIssuers = runtimeCredentials?.oidcIssuer?.takeIf { it.isNotBlank() }?.let { setOf(it) }
+                ?: ACCEPTED_ISSUERS,
             provider = PROVIDER_LABEL,
         )
 
@@ -174,7 +183,8 @@ class GoogleIdentityProvider @Inject constructor(
             return configured
         }
 
-        val clientId = runtimeCredentials?.clientId?.takeIf { it.isNotBlank() } ?: configurationService.googleOAuthClientId
+        val clientId =
+            runtimeCredentials?.clientId?.takeIf { it.isNotBlank() } ?: configurationService.googleOAuthClientId
         return setOf(clientId).filter { it.isNotBlank() }.toSet()
     }
 

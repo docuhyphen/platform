@@ -1,23 +1,14 @@
 package com.docuhyphen.app.api.model
 
-import com.docuhyphen.app.api.model.dto.InformationRequestDto
-import com.docuhyphen.app.api.model.dto.InformationRequestGroupOccurrenceDto
-import com.docuhyphen.app.api.model.dto.InformationRequestResponseDto
-import com.docuhyphen.app.api.model.dto.InformationRequestResponseWorkspaceDto
-import com.docuhyphen.app.api.model.dto.InformationRequestSupportingEvidenceLinkDto
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateVersionDto
-import com.docuhyphen.app.api.model.dto.SchemaAssignmentDto
-import com.docuhyphen.app.api.model.entity.InformationRequest
-import com.docuhyphen.app.api.model.entity.InformationRequestRequirement
-import com.docuhyphen.app.api.model.entity.InformationRequestResponse
-import com.docuhyphen.app.api.model.entity.InformationRequestResponseDisposition
-import com.docuhyphen.app.api.model.entity.InformationRequestSupportingEvidenceLink
+import com.docuhyphen.app.api.model.dto.*
+import com.docuhyphen.app.api.model.entity.*
 import java.sql.Timestamp
 
 object InformationRequestResponseWorkspaceDtoMapper
 {
     fun toDto(
         request: InformationRequestDto,
+        title: String,
         templateVersion: InformationRequestTemplateVersionDto,
         responseETag: String,
         occurrences: List<InformationRequestGroupOccurrenceDto>,
@@ -29,6 +20,7 @@ object InformationRequestResponseWorkspaceDtoMapper
     ): InformationRequestResponseWorkspaceDto =
         InformationRequestResponseWorkspaceDto(
             request = request,
+            title = title,
             templateVersion = templateVersion,
             responseETag = responseETag,
             occurrences = occurrences,

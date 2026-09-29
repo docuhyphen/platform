@@ -8,6 +8,7 @@ import {
 import {attestationStatePresentation, roleLabel} from "../submissionLabels.ts";
 import {AttestationInput} from "../useInformationRequestSubmission.ts";
 import {useSubmissionAttestationCardStyles} from "./SubmissionAttestationCardStyles.tsx";
+import {formatInformationRequestCount} from "../../shared/informationRequestFormatting.ts";
 
 interface Props
 {
@@ -49,7 +50,7 @@ const SubmissionAttestationCard = ({status, busy, onAttest}: Props) =>
             </div>
             <Text id={`${id}-progress`}
                   className={styles.detail}>
-                {`${status.assentCount} of ${status.requiredAssentCount} confirmations given`}
+                {`${formatInformationRequestCount(status.assentCount)} of ${formatInformationRequestCount(status.requiredAssentCount)} confirmations given`}
                 {status.missingRoles.length > 0 && `; still needed from ${status.missingRoles.map(roleLabel).join(", ")}`}
             </Text>
             {status.callerDecision && (

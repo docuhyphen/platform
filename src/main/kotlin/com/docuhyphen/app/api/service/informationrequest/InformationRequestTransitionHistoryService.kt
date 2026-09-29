@@ -19,7 +19,7 @@ import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 data class InformationRequestTransitionHistoryCommand(
     val request: InformationRequest,
@@ -187,6 +187,11 @@ class InformationRequestTransitionHistoryService @Inject constructor(
             InformationRequestMutation.REQUEST_CORRECTION -> AuditEventType.INFORMATION_REQUEST_CORRECTION_REQUEST
             InformationRequestMutation.PROMOTE_FACT -> AuditEventType.INFORMATION_REQUEST_FACT_PROMOTE
             InformationRequestMutation.REVOKE_FACT -> AuditEventType.INFORMATION_REQUEST_FACT_REVOKE
+            InformationRequestMutation.RECERTIFY_FACT -> AuditEventType.INFORMATION_REQUEST_FACT_RECERTIFY
+            InformationRequestMutation.REQUEST_EXTERNAL_SOURCE -> AuditEventType.INFORMATION_REQUEST_EXTERNAL_SOURCE_REQUEST
+            InformationRequestMutation.RECORD_EXTERNAL_VALUE -> AuditEventType.INFORMATION_REQUEST_EXTERNAL_VALUE_RECORD
+            InformationRequestMutation.DECIDE_EXTERNAL_VALUE -> AuditEventType.INFORMATION_REQUEST_EXTERNAL_VALUE_DECIDE
+            InformationRequestMutation.RECORD_GENERATED_OUTPUT -> AuditEventType.INFORMATION_REQUEST_GENERATED_OUTPUT_RECORD
             InformationRequestMutation.RECORD_BUSINESS_DECISION -> AuditEventType.INFORMATION_REQUEST_BUSINESS_DECISION_RECORD
             InformationRequestMutation.RECORD_FIRST_VIEW -> AuditEventType.INFORMATION_REQUEST_FIRST_VIEW
             InformationRequestMutation.START_RESPONSE -> AuditEventType.INFORMATION_REQUEST_START
@@ -198,6 +203,9 @@ class InformationRequestTransitionHistoryService @Inject constructor(
             InformationRequestMutation.RESUME_CLOCK -> AuditEventType.INFORMATION_REQUEST_CLOCK_RESUME
             InformationRequestMutation.EXTEND_CLOCK -> AuditEventType.INFORMATION_REQUEST_CLOCK_EXTEND
             InformationRequestMutation.RECORD_REMINDER -> AuditEventType.INFORMATION_REQUEST_CLOCK_REMIND
+            InformationRequestMutation.ASSIGN_PARTY -> AuditEventType.INFORMATION_REQUEST_PARTY_ASSIGN
+            InformationRequestMutation.REVOKE_PARTY -> AuditEventType.INFORMATION_REQUEST_PARTY_REVOKE
+            InformationRequestMutation.SEND_REMINDER -> AuditEventType.INFORMATION_REQUEST_REMIND
             InformationRequestMutation.RECORD_ESCALATION -> AuditEventType.INFORMATION_REQUEST_CLOCK_ESCALATE
             else -> null
         }

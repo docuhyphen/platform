@@ -14,12 +14,24 @@ import {refusalMessage} from "./requirementEvidenceLabels.ts";
 const STALE_MESSAGE = "This evidence changed while you were working. The latest files are shown, so try again.";
 const OBJECT_URL_LIFETIME_MS = 60_000;
 
+export interface KeptUpload
+{
+    file: File;
+    idempotencyKey: string;
+    artifact?: InformationRequestEvidenceArtifactDto;
+}
+
+type EvidenceCommandResult = "SAVED" | "STALE" | "REFUSED";
+
 export interface RequirementEvidence
 {
     evidence: InformationRequestEvidenceListDto | null;
     busy: boolean;
     progress: number | null;
     message: string | null;
+    kept: KeptUpload | null;
+    retry: () => Promise<void>;
+    discard: () => void;
     upload: (file: File) => Promise<void>;
     replace: (artifact: InformationRequestEvidenceArtifactDto, file: File) => Promise<void>;
     withdraw: (artifact: InformationRequestEvidenceArtifactDto, reason: string) => Promise<void>;
@@ -40,6 +52,7 @@ export const useRequirementEvidence = (
     const [busy, setBusy] = useState(false);
     const [progress, setProgress] = useState<number | null>(null);
     const [message, setMessage] = useState<string | null>(null);
+    const [kept, setKept] = useState<KeptUpload | null>(null);
 
     const load = useCallback(async () =>
     {
@@ -62,7 +75,7 @@ export const useRequirementEvidence = (
         command: () => Promise<InformationRequestEvidenceCommandOutcome>,
         fallback: string,
         tracksProgress: boolean,
-    ) =>
+    ): Promise<EvidenceCommandResult> =>
     {
         setBusy(true);
         setMessage(null);
@@ -71,10 +84,12 @@ export const useRequirementEvidence = (
         {
             const outcome = await command();
             if (outcome.outcome === "STALE") setMessage(STALE_MESSAGE);
+            return outcome.outcome === "STALE" ? "STALE" : "SAVED";
         }
         catch (refusal: unknown)
         {
             setMessage(refusalMessage(refusal, fallback));
+            return "REFUSED";
         }
         finally
         {
@@ -84,29 +99,38 @@ export const useRequirementEvidence = (
         }
     };
 
-    const upload = async (file: File) =>
+    const send = async (upload: KeptUpload) =>
     {
-        if (!evidence) return;
-        await run(
-            () => commands.upload(requestId, requirementId, file, evidence.evidenceETag, setProgress),
-            "The file could not be uploaded.",
-            true,
-        );
+        const target = upload.artifact;
+        const result = target
+            ? await run(
+                () => commands.replace(requestId, requirementId, target.id, upload.file, target.etag, setProgress, upload.idempotencyKey),
+                "The file could not be replaced.",
+                true,
+            )
+            : evidence
+                ? await run(
+                    () => commands.upload(requestId, requirementId, upload.file, evidence.evidenceETag, setProgress, upload.idempotencyKey),
+                    "The file could not be uploaded.",
+                    true,
+                )
+                : "STALE";
+        setKept(result === "REFUSED" ? upload : null);
     };
 
-    const replace = (artifact: InformationRequestEvidenceArtifactDto, file: File) =>
-        run(
-            () => commands.replace(requestId, requirementId, artifact.id, file, artifact.etag, setProgress),
-            "The file could not be replaced.",
-            true,
-        );
+    const upload = (file: File) => send({file, idempotencyKey: crypto.randomUUID()});
 
-    const withdraw = (artifact: InformationRequestEvidenceArtifactDto, reason: string) =>
-        run(
+    const replace = (artifact: InformationRequestEvidenceArtifactDto, file: File) =>
+        send({file, idempotencyKey: crypto.randomUUID(), artifact});
+
+    const withdraw = async (artifact: InformationRequestEvidenceArtifactDto, reason: string) =>
+    {
+        await run(
             () => commands.withdraw(requestId, requirementId, artifact.id, reason, artifact.etag),
             "The file could not be withdrawn.",
             false,
         );
+    };
 
     const open = async (
         artifact: InformationRequestEvidenceArtifactDto,
@@ -137,5 +161,20 @@ export const useRequirementEvidence = (
         }
     };
 
-    return {evidence, busy, progress, message, upload, replace, withdraw, open};
+    return {
+        evidence,
+        busy,
+        progress,
+        message,
+        kept,
+        retry: async () =>
+        {
+            if (kept) await send(kept);
+        },
+        discard: () => setKept(null),
+        upload,
+        replace,
+        withdraw,
+        open,
+    };
 };

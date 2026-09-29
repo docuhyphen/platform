@@ -2,7 +2,6 @@ package com.docuhyphen.app.api.service.informationrequest
 
 import com.docuhyphen.app.api.model.entity.InformationRequestLineageKind
 import com.docuhyphen.app.api.model.entity.InformationRequestRecurrence
-import com.docuhyphen.app.api.model.entity.InformationRequestRecurrenceUnit
 import com.docuhyphen.app.api.model.entity.InformationRequestRefreshRule
 import com.docuhyphen.app.api.model.entity.InformationRequestRequirementType
 import com.docuhyphen.app.api.model.entity.ResourceType
@@ -34,7 +33,6 @@ import jakarta.transaction.Transactional
 import java.sql.Timestamp
 import java.time.Clock
 import java.time.Instant
-import java.time.ZoneOffset
 
 @ApplicationScoped
 class InformationRequestFollowUpService @Inject constructor(
@@ -196,18 +194,8 @@ class InformationRequestFollowUpService @Inject constructor(
         }
     }
 
-    fun dueAt(recurrence: InformationRequestRecurrence, sequence: Int): Instant
-    {
-        val steps = (sequence - 1).toLong() * recurrence.intervalCount
-        val first = recurrence.firstDueAt.toInstant().atZone(ZoneOffset.UTC)
-        return when (recurrence.intervalUnit)
-        {
-            InformationRequestRecurrenceUnit.DAY -> first.plusDays(steps)
-            InformationRequestRecurrenceUnit.WEEK -> first.plusWeeks(steps)
-            InformationRequestRecurrenceUnit.MONTH -> first.plusMonths(steps)
-            InformationRequestRecurrenceUnit.YEAR -> first.plusYears(steps)
-        }.toInstant()
-    }
+    fun dueAt(recurrence: InformationRequestRecurrence, sequence: Int): Instant =
+        InformationRequestRecurrenceSchedule.dueAt(recurrence, sequence)
 
     private fun schedule(
         locked: LockedInformationRequest,

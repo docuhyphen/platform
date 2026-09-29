@@ -127,7 +127,7 @@ class InformationRequestTemplateMaterializer @Inject constructor(
                 ?: throw IllegalStateException(
                     "Information request template version ${version.id} has Field requirements and no Schema Version",
                 )
-            schemaAssignmentService.assignPublishedSchemaVersion(
+            schemaAssignmentService.assignSchemaVersionForCreation(
                 PublishedSchemaAssignmentCommand(
                     resource = FieldsResourceRef(ResourceType.INFORMATION_REQUEST.name, request.id),
                     access = access,

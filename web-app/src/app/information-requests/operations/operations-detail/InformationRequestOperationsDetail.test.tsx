@@ -39,6 +39,8 @@ const renderDetail = () => render(
         <Routes>
             <Route path={"/information-request-operations/:requestId"}
                    element={<InformationRequestOperationsDetail/>}/>
+            <Route path={"/information-requests/:requestId/manage"}
+                   element={<p>Management workspace opened</p>}/>
         </Routes>
     </MemoryRouter>,
 );
@@ -112,6 +114,16 @@ describe("InformationRequestOperationsDetail", () =>
         expect(await screen.findByText("The audit history does not reconcile")).toBeTruthy();
         expect(screen.getByText("1 audited changes have no audit record, first at change 3.")).toBeTruthy();
         expect(await screen.findByText("state: ISSUED, 2 values withheld")).toBeTruthy();
+    });
+
+    it("opens the request's management workspace, where its clocks are paused, resumed, or extended", async () =>
+    {
+        renderDetail();
+
+        expect(await screen.findByText(/Clock changes are made where the request is managed/)).toBeTruthy();
+        fireEvent.click(screen.getByRole("button", {name: "Manage this request"}));
+
+        expect(await screen.findByText("Management workspace opened")).toBeTruthy();
     });
 
     it("explains the disposal standing, places a hold, and creates a record export", async () =>

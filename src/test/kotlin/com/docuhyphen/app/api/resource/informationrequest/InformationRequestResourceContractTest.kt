@@ -1,11 +1,13 @@
 package com.docuhyphen.app.api.resource.informationrequest
 
-import com.docuhyphen.app.api.model.dto.InformationRequestDto
 import com.docuhyphen.app.api.model.InformationRequestDtoMapper
+import com.docuhyphen.app.api.model.dto.InformationRequestDto
 import com.docuhyphen.app.api.model.dto.InformationRequestResponseWorkspaceDto
 import com.docuhyphen.app.api.model.dto.InformationRequestTemplateConfigurationRequest
+import com.docuhyphen.app.api.model.dto.InformationRequestTemplateRefusalDto
 import com.docuhyphen.app.api.model.entity.InformationRequest
 import com.docuhyphen.app.api.model.entity.InformationRequestOwnerType
+import com.docuhyphen.app.api.model.entity.RequestExecutionUsageKind
 import com.docuhyphen.app.api.resource.model.CancelInformationRequestRequest
 import com.docuhyphen.app.api.resource.model.CreateInformationRequestDraftRequest
 import com.docuhyphen.app.api.resource.model.ResponseError
@@ -13,40 +15,16 @@ import com.docuhyphen.app.api.resource.model.SupersedeInformationRequestRequest
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.command.CommandPrecondition
-import com.docuhyphen.app.api.service.informationrequest.CancelInformationRequestCommand
-import com.docuhyphen.app.api.service.informationrequest.CreateAdHocInformationRequestCommand
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestAccessContextFactory
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestAdHocCreationService
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestCapability
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestCapabilityNotInstalledException
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestCapabilityRequirement
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestConditionEvaluationProjection
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestConditionEvaluationState
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestCreationResult
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestLifecycleException
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestLifecycleResult
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestLifecycleService
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestQueryService
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestResponseWorkspaceService
-import com.docuhyphen.app.api.service.informationrequest.IssueInformationRequestCommand
-import com.docuhyphen.app.api.service.informationrequest.RequestAccessContext
-import com.docuhyphen.app.api.service.informationrequest.SupersedeInformationRequestCommand
+import com.docuhyphen.app.api.service.informationrequest.*
 import io.quarkus.security.ForbiddenException
 import jakarta.ws.rs.GET
 import jakarta.ws.rs.POST
 import jakarta.ws.rs.Path
 import jakarta.ws.rs.core.Response
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
-import org.mockito.kotlin.any
-import org.mockito.kotlin.eq
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.whenever
-import java.util.UUID
+import org.mockito.kotlin.*
+import java.util.*
 
 /**
  * The owner-facing runtime request resource exposes list, draft creation, issuance, cancellation, and
@@ -60,12 +38,16 @@ class InformationRequestResourceContractTest
     private val lifecycleService = mock<InformationRequestLifecycleService>()
     private val accessContextFactory = mock<InformationRequestAccessContextFactory>()
     private val responseWorkspaceService = mock<InformationRequestResponseWorkspaceService>()
+    private val blueprintInstantiationService = mock<InformationRequestBlueprintInstantiationService>()
+    private val templateInstantiationService = mock<InformationRequestTemplateInstantiationService>()
     private val resource = InformationRequestResource(
         queryService,
         creationService,
         lifecycleService,
         accessContextFactory,
         responseWorkspaceService,
+        blueprintInstantiationService,
+        templateInstantiationService,
     )
 
     private val access = RequestAccessContext(PrincipalRef.user(UUID.randomUUID()), AuthorizationContext())
@@ -232,14 +214,132 @@ class InformationRequestResourceContractTest
         verify(creationService).createAdHoc(
             CreateAdHocInformationRequestCommand(
                 exchangeId = exchangeId,
-                displayName = draft.displayName,
+                displayName = "Collection request",
                 description = draft.description,
-                configuration = draft.configuration,
+                configuration = configurationRequest(),
                 gatesExchangeClosure = draft.gatesExchangeClosure,
                 access = access,
                 idempotencyKey = "idempotency-key-1",
             ),
         )
+    }
+
+    @Test
+    fun `creation names exactly one source and each source is created by its own service`()
+    {
+        val blueprintId = UUID.randomUUID()
+        val versionId = UUID.randomUUID()
+        val created = InformationRequestCreationResult(request, "etag-created", requirementCount = 2)
+        whenever(blueprintInstantiationService.createFromBlueprint(any())).thenReturn(created)
+        whenever(templateInstantiationService.createFromTemplateVersion(any())).thenReturn(created)
+
+        val fromBlueprint = resource.create(
+            CreateInformationRequestDraftRequest(exchangeId = exchangeId, blueprintDefinitionId = blueprintId),
+            "idem-blueprint",
+        )
+        val fromVersion = resource.create(
+            CreateInformationRequestDraftRequest(
+                exchangeId = exchangeId,
+                templateVersionId = versionId,
+                gatesExchangeClosure = false,
+            ),
+            "idem-version",
+        )
+        val noSource = resource.create(CreateInformationRequestDraftRequest(exchangeId = exchangeId), "idem-none")
+        val twoSources = resource.create(
+            CreateInformationRequestDraftRequest(
+                exchangeId = exchangeId,
+                blueprintDefinitionId = blueprintId,
+                templateVersionId = versionId,
+            ),
+            "idem-two",
+        )
+
+        assertEquals(Response.Status.CREATED.statusCode, fromBlueprint.status)
+        assertEquals("etag-created", fromBlueprint.getHeaderString("ETag"))
+        assertEquals(Response.Status.CREATED.statusCode, fromVersion.status)
+        assertEquals(Response.Status.BAD_REQUEST.statusCode, noSource.status)
+        assertEquals(Response.Status.BAD_REQUEST.statusCode, twoSources.status)
+        verify(blueprintInstantiationService).createFromBlueprint(
+            CreateInformationRequestFromBlueprintCommand(
+                blueprintDefinitionId = blueprintId,
+                exchangeId = exchangeId,
+                gatesExchangeClosure = true,
+                access = access,
+                idempotencyKey = "idem-blueprint",
+            ),
+        )
+        verify(templateInstantiationService).createFromTemplateVersion(
+            CreateInformationRequestFromTemplateVersionCommand(
+                templateVersionId = versionId,
+                exchangeId = exchangeId,
+                gatesExchangeClosure = false,
+                access = access,
+                idempotencyKey = "idem-version",
+            ),
+        )
+        verify(creationService, never()).createAdHoc(any())
+    }
+
+    @Test
+    fun `a refused ad hoc configuration names the requirement it refuses`()
+    {
+        whenever(creationService.createAdHoc(any())).thenThrow(
+            InformationRequestTemplateValidationException(
+                "Requirement response-confirmation states no prompt",
+                sectionKey = "requested-data",
+                requirementKey = "response-confirmation",
+            ),
+        )
+
+        val refused = resource.create(
+            CreateInformationRequestDraftRequest(
+                exchangeId = exchangeId,
+                displayName = "Collection request",
+                configuration = configurationRequest(),
+            ),
+            "idem-ad-hoc",
+        )
+
+        assertEquals(Response.Status.BAD_REQUEST.statusCode, refused.status)
+        val body = refused.entity as InformationRequestTemplateRefusalDto
+        assertEquals("INFORMATION_REQUEST_TEMPLATE_INVALID", body.reasonCode)
+        assertEquals("requested-data", body.sectionKey)
+        assertEquals("response-confirmation", body.requirementKey)
+    }
+
+    @Test
+    fun `an unavailable Template Version and exhausted capacity are refused with stable codes`()
+    {
+        whenever(templateInstantiationService.createFromTemplateVersion(any())).thenThrow(
+            InformationRequestTemplateVersionUnavailableException(
+                InformationRequestTemplateVersionUnavailableException.RETIRED,
+                "Information request template version 2 has been retired",
+            ),
+        )
+        whenever(lifecycleService.issue(any())).thenThrow(
+            RequestExecutionUsageExhaustedException(
+                grantId = UUID.randomUUID(),
+                usageKind = RequestExecutionUsageKind.ADDITIONAL_RECIPIENT,
+                cap = 1,
+                activeUsage = 1,
+                requested = 1,
+            ),
+        )
+
+        val retired = resource.create(
+            CreateInformationRequestDraftRequest(exchangeId = exchangeId, templateVersionId = UUID.randomUUID()),
+            "idem-retired",
+        )
+        val exhausted = resource.issue(requestId.toString(), "\"v1\"", "idem-issue")
+
+        assertEquals(Response.Status.CONFLICT.statusCode, retired.status)
+        assertEquals(
+            InformationRequestTemplateVersionUnavailableException.RETIRED,
+            (retired.entity as ResponseError).reasonCode,
+        )
+        assertEquals(Response.Status.CONFLICT.statusCode, exhausted.status)
+        assertEquals(InformationRequestErrorCatalog.CAPACITY_EXHAUSTED, (exhausted.entity as ResponseError).reasonCode)
     }
 
     @Test

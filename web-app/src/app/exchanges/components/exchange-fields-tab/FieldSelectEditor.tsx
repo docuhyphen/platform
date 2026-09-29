@@ -7,6 +7,7 @@ interface Props
     binding: SchemaFieldBindingDto;
     value: unknown;
     disabled?: boolean;
+    labelledBy?: string;
     onChange: (value: unknown) => void;
 }
 
@@ -14,7 +15,7 @@ interface Props
 const activeOptions = (binding: SchemaFieldBindingDto) =>
     binding.options.filter(option => option.active !== false);
 
-const FieldSelectEditor = ({id, binding, value, disabled, onChange}: Props) =>
+const FieldSelectEditor = ({id, binding, value, disabled, labelledBy, onChange}: Props) =>
 {
     const options = activeOptions(binding);
 
@@ -24,6 +25,7 @@ const FieldSelectEditor = ({id, binding, value, disabled, onChange}: Props) =>
 
         return (
             <Dropdown id={id}
+                      aria-labelledby={labelledBy}
                       multiselect
                       disabled={disabled}
                       placeholder="Select one or more options"
@@ -45,6 +47,7 @@ const FieldSelectEditor = ({id, binding, value, disabled, onChange}: Props) =>
 
     return (
         <Dropdown id={id}
+                  aria-labelledby={labelledBy}
                   disabled={disabled}
                   placeholder="Select an option"
                   selectedOptions={value ? [String(value)] : []}

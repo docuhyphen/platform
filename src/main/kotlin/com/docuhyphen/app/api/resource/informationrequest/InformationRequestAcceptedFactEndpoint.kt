@@ -41,6 +41,8 @@ class InformationRequestAcceptedFactEndpoint(
                 packageId = body.packageId,
                 submissionItemId = body.submissionItemId,
                 purposeKey = body.purposeKey,
+                policyBasisKey = body.policyBasisKey,
+                evidenceVersionIds = body.evidenceVersionIds,
                 visibility = body.visibility,
                 validFrom = body.validFrom?.toInstant(),
                 validTo = body.validTo?.toInstant(),

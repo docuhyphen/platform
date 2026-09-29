@@ -37,6 +37,7 @@ const workspace = (state: InformationRequestState): InformationRequestResponseWo
         requestETag: "\"request-a:4\"",
         conditionEvaluations: [],
     },
+    title: "Periodic records request",
     templateVersion: {
         id: "version-a",
         templateDefinitionId: "definition-a",

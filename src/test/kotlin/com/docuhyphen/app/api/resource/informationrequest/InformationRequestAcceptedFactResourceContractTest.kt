@@ -35,6 +35,7 @@ import com.docuhyphen.app.api.service.informationrequest.InformationRequestNoAut
 import com.docuhyphen.app.api.service.informationrequest.RequestAccessContext
 import jakarta.ws.rs.Path
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.Json
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -67,6 +68,7 @@ class InformationRequestAcceptedFactResourceContractTest
     private val fact = InformationRequestAcceptedFact().apply {
         subjectIdentityRefId = UUID.randomUUID()
         purposeKey = "process.eligibility"
+        policyBasisKey = "policy.reuse"
         fieldDefinitionId = UUID.randomUUID()
         valueType = FieldValueType.SHORT_TEXT
         canonicalValue = "\"Synthetic value\""
@@ -128,6 +130,7 @@ class InformationRequestAcceptedFactResourceContractTest
                 packageId = packageId,
                 submissionItemId = itemId,
                 purposeKey = "process.eligibility",
+                policyBasisKey = "policy.reuse",
                 visibility = InformationRequestAcceptedFactVisibility.RESPONDING_PARTIES,
                 validTo = validTo,
                 supersedesFactId = supersededId,
@@ -144,6 +147,7 @@ class InformationRequestAcceptedFactResourceContractTest
         verify(facts).promote(captured.capture())
         assertEquals(packageId, captured.firstValue.packageId)
         assertEquals(itemId, captured.firstValue.submissionItemId)
+        assertEquals("policy.reuse", captured.firstValue.policyBasisKey)
         assertEquals(InformationRequestAcceptedFactVisibility.RESPONDING_PARTIES, captured.firstValue.visibility)
         assertEquals(validTo.toInstant(), captured.firstValue.validTo)
         assertEquals(supersededId, captured.firstValue.supersedesFactId)
@@ -198,8 +202,23 @@ class InformationRequestAcceptedFactResourceContractTest
         val elsewhere = noAuthOfferResource.offers(UUID.randomUUID().toString(), "link-token", "session-token")
 
         assertEquals(200, authenticated.status)
-        assertTrue((authenticated.entity as Array<*>).filterIsInstance<InformationRequestAcceptedFactOfferDto>().single().reconfirmationRequired)
+        val authenticatedOffer = (authenticated.entity as Array<*>).filterIsInstance<InformationRequestAcceptedFactOfferDto>().single()
+        assertTrue(authenticatedOffer.reconfirmationRequired)
+        assertEquals(fact.id, authenticatedOffer.fact.id)
+        assertEquals(JsonPrimitive("Synthetic value"), authenticatedOffer.fact.value)
+        val authenticatedJson = Json.encodeToString(InformationRequestAcceptedFactOfferDto.serializer(), authenticatedOffer)
+        assertFalse(authenticatedJson.contains("subjectIdentityRefId"))
+        assertFalse(authenticatedJson.contains("fieldDefinitionId"))
+        assertFalse(authenticatedJson.contains("sourceInformationRequestId"))
+        assertFalse(authenticatedJson.contains("sourcePackageId"))
+        assertFalse(authenticatedJson.contains("sourceSubmissionItemId"))
+        assertFalse(authenticatedJson.contains("sourceRequirementId"))
+        assertFalse(authenticatedJson.contains("sourceReviewId"))
+        assertFalse(authenticatedJson.contains("evidenceVersionIds"))
         assertEquals(200, linked.status)
+        val linkedOffer = (linked.entity as Array<*>).filterIsInstance<InformationRequestAcceptedFactOfferDto>().single()
+        val linkedJson = Json.encodeToString(InformationRequestAcceptedFactOfferDto.serializer(), linkedOffer)
+        assertEquals(authenticatedJson, linkedJson)
         assertEquals(404, elsewhere.status)
         verify(factQueries).offers(requestId, noAuthAccess)
     }

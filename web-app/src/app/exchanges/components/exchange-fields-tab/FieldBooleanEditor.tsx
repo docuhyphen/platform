@@ -5,6 +5,7 @@ interface Props
     id: string;
     value: unknown;
     disabled?: boolean;
+    labelledBy?: string;
     onChange: (value: boolean | null) => void;
 }
 
@@ -16,12 +17,13 @@ const NO = 'false';
  * the field yet must not be recorded as having answered No, and one who did answer No must be able
  * to take that answer back, so the control offers both answers and a way to clear them.
  */
-const FieldBooleanEditor = ({id, value, disabled, onChange}: Props) =>
+const FieldBooleanEditor = ({id, value, disabled, labelledBy, onChange}: Props) =>
 {
     const answered = value === true || value === false;
 
     return (
         <Dropdown id={id}
+                  aria-labelledby={labelledBy}
                   clearable
                   disabled={disabled}
                   placeholder="Not answered"

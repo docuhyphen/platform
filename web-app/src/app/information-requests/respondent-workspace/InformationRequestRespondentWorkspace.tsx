@@ -1,8 +1,7 @@
 import {FluentProvider, MessageBar, MessageBarBody, Spinner, Text, Title2} from "@fluentui/react-components";
 import {lightTheme} from "../../../context/theme.ts";
-import InformationRequestStructuredResponsePanel from "../structured-response-workspace/InformationRequestStructuredResponsePanel.tsx";
-import InformationRequestSubmissionSection from "../submission/follow-up-section/InformationRequestSubmissionSection.tsx";
 import ContactProofPanel from "./ContactProofPanel.tsx";
+import RespondentWorkspaceBody from "./respondent-workspace-body/RespondentWorkspaceBody.tsx";
 import {useInformationRequestRespondentWorkspaceStyles} from "./InformationRequestRespondentWorkspaceStyles.tsx";
 import {
     InformationRequestRespondentAccessMode,
@@ -38,13 +37,15 @@ const InformationRequestRespondentWorkspace = ({accessMode}: Props) =>
                         theme={lightTheme}
                         className={styles.themeProvider}>
             <section id={"information-request-respondent-page"}
+                     aria-labelledby={"information-request-respondent-title"}
                      className={styles.page}>
                 <header id={"information-request-respondent-header"}
                         className={styles.header}>
                     <div id={"information-request-respondent-title-group"}
                          className={styles.titleGroup}>
-                        <Title2 id={"information-request-respondent-title"}>
-                            Information Request
+                        <Title2 id={"information-request-respondent-title"}
+                                as={"h1"}>
+                            {workspace?.title ?? "Information Request"}
                         </Title2>
                         <Text id={"information-request-respondent-subtitle"}
                               className={styles.mutedText}>
@@ -87,25 +88,10 @@ const InformationRequestRespondentWorkspace = ({accessMode}: Props) =>
                         </div>
                     )}
                     {workspace && (
-                        <div id={"information-request-respondent-workspace-shell"}
-                             className={styles.workspaceShell}>
-                            <InformationRequestStructuredResponsePanel request={workspace.request}
-                                                                       responseETag={workspace.responseETag}
-                                                                       groups={workspace.templateVersion.groups}
-                                                                       conditionRules={workspace.templateVersion.conditionRules}
-                                                                       occurrences={workspace.occurrences}
-                                                                       requirements={requirements}
-                                                                       bindings={workspace.schemaAssignment?.bindings ?? []}
-                                                                       responses={workspace.responses}
-                                                                       evidenceUploadAvailable={workspace.evidenceUploadAvailable}
-                                                                       evidenceMalwareScanning={workspace.evidenceMalwareScanning}
-                                                                       accessLinkToken={accessLinkToken}
-                                                                       onRefresh={loadWorkspace}/>
-                            <InformationRequestSubmissionSection workspace={workspace}
-                                                                 requirements={requirements}
-                                                                 accessLinkToken={accessLinkToken}
-                                                                 onChanged={loadWorkspace}/>
-                        </div>
+                        <RespondentWorkspaceBody workspace={workspace}
+                                                 requirements={requirements}
+                                                 accessLinkToken={accessLinkToken}
+                                                 onRefresh={() => void loadWorkspace()}/>
                     )}
                 </main>
             </section>

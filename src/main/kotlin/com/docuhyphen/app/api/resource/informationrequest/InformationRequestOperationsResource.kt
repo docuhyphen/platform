@@ -2,11 +2,7 @@ package com.docuhyphen.app.api.resource.informationrequest
 
 import com.docuhyphen.app.api.exception.InformationRequestCommandRequestException
 import com.docuhyphen.app.api.model.InformationRequestOperationsDtoMapper
-import com.docuhyphen.app.api.model.informationrequest.DEFAULT_OPERATIONS_LIMIT
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestOperationsException
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestOperationsFilter
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestSlaStatus
-import com.docuhyphen.app.api.model.informationrequest.MAXIMUM_OPERATIONS_LIMIT
+import com.docuhyphen.app.api.model.informationrequest.*
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestOperationsService
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestState
 import jakarta.inject.Inject
@@ -29,6 +25,8 @@ class InformationRequestOperationsResource @Inject constructor(
     fun queue(
         @QueryParam("state") states: List<String>?,
         @QueryParam("exchangeId") exchangeId: String?,
+        @QueryParam("search") search: String?,
+        @QueryParam("assigneeId") assigneeId: String?,
         @QueryParam("slaStatus") slaStatuses: List<String>?,
         @QueryParam("exception") exceptions: List<String>?,
         @QueryParam("exceptionsOnly") exceptionsOnly: Boolean?,
@@ -41,6 +39,9 @@ class InformationRequestOperationsResource @Inject constructor(
             val filter = InformationRequestOperationsFilter(
                 states = states.orEmpty().map { parse<InformationRequestState>(it, "state") }.toSet(),
                 exchangeId = exchangeId?.takeIf { it.isNotBlank() }?.let { InformationRequestCommandHttp.uuid(it, "exchange id") },
+                search = search?.trim()?.takeIf { it.isNotEmpty() },
+                assigneeId = assigneeId?.takeIf { it.isNotBlank() }
+                    ?.let { InformationRequestCommandHttp.uuid(it, "assignee id") },
                 slaStatuses = slaStatuses.orEmpty().map { parse<InformationRequestSlaStatus>(it, "service level status") }.toSet(),
                 exceptions = exceptions.orEmpty().map { parse<InformationRequestOperationsException>(it, "exception") }.toSet(),
                 exceptionsOnly = exceptionsOnly == true,

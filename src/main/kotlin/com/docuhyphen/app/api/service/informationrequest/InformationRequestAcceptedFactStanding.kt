@@ -5,6 +5,7 @@ import com.docuhyphen.app.api.model.entity.InformationRequestOwnerType
 import com.docuhyphen.app.api.model.informationrequest.InformationRequestAcceptedFactFreshness
 import com.docuhyphen.app.api.model.informationrequest.InformationRequestAcceptedFactView
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestAcceptedFactRepository
+import com.docuhyphen.app.api.repository.informationrequest.InformationRequestAcceptedFactEvidenceRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestAcceptedFactRevocationRepository
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
@@ -15,6 +16,7 @@ import java.util.UUID
 class InformationRequestAcceptedFactStanding @Inject constructor(
     private val factRepository: InformationRequestAcceptedFactRepository,
     private val revocationRepository: InformationRequestAcceptedFactRevocationRepository,
+    private val evidenceRepository: InformationRequestAcceptedFactEvidenceRepository,
     private val clock: Clock,
 )
 {
@@ -25,12 +27,14 @@ class InformationRequestAcceptedFactStanding @Inject constructor(
         val ids = facts.map { it.id }
         val revocations = revocationRepository.findForFacts(ids).associateBy { it.factId }
         val superseding = factRepository.findSuperseding(ids).associateBy { requireNotNull(it.supersedesFactId) }
+        val evidence = evidenceRepository.findForFacts(ids).groupBy { it.factId }
         return facts.map { fact ->
             InformationRequestAcceptedFactView(
                 fact = fact,
                 revocation = revocations[fact.id],
                 supersededByFactId = superseding[fact.id]?.id,
                 freshness = freshnessOf(fact),
+                evidenceVersionIds = evidence[fact.id].orEmpty().map { it.evidenceVersionId },
             )
         }
     }
@@ -46,13 +50,27 @@ class InformationRequestAcceptedFactStanding @Inject constructor(
             .filter { it.revocation == null && it.supersededByFactId == null }
             .map { it.fact }
 
+    fun eligibleForReuse(
+        ownerType: InformationRequestOwnerType,
+        ownerId: UUID,
+        subjectIdentityRefId: UUID,
+        fieldDefinitionIds: Collection<UUID>,
+        purposeKey: String,
+    ): List<InformationRequestAcceptedFact> =
+        views(factRepository.findForKey(ownerType, ownerId, subjectIdentityRefId, fieldDefinitionIds, purposeKey))
+            .filter {
+                it.revocation == null && it.supersededByFactId == null &&
+                    it.freshness == InformationRequestAcceptedFactFreshness.CURRENT
+            }
+            .map { it.fact }
+
     private fun freshnessOf(fact: InformationRequestAcceptedFact): InformationRequestAcceptedFactFreshness
     {
         val now = clock.instant()
         return when
         {
-            fact.expiresAt?.toInstant()?.isBefore(now) == true -> InformationRequestAcceptedFactFreshness.EXPIRED
-            fact.validFrom.toInstant().isAfter(now) || fact.validTo?.toInstant()?.isBefore(now) == true ->
+            fact.expiresAt?.toInstant()?.let { !it.isAfter(now) } == true -> InformationRequestAcceptedFactFreshness.EXPIRED
+            fact.validFrom.toInstant().isAfter(now) || fact.validTo?.toInstant()?.let { !it.isAfter(now) } == true ->
                 InformationRequestAcceptedFactFreshness.OUTSIDE_VALID_PERIOD
             else -> InformationRequestAcceptedFactFreshness.CURRENT
         }

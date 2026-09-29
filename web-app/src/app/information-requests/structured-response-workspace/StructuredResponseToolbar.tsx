@@ -4,6 +4,8 @@ import {InformationRequestState, InformationRequestTemplateGroupDto} from "../..
 import {toFieldElementId} from "../../exchanges/components/exchange-fields-tab/fieldLayoutUtils.ts";
 import {useInformationRequestStructuredResponseWorkspaceStyles} from "./InformationRequestStructuredResponseWorkspaceStyles.tsx";
 import {OccurrenceCommandResult} from "./StructuredResponseWorkspaceTypes.ts";
+import {requestStateLabels} from "../operations/operationsLabels.ts";
+import {groupLabel} from "./responseAnswerState.ts";
 
 interface Props
 {
@@ -40,7 +42,7 @@ const StructuredResponseToolbar = ({
         <div id="information-request-response-toolbar"
              className={styles.toolbar}>
             <Text id="information-request-response-state">
-                {state}
+                {requestStateLabels[state]}
             </Text>
             <div id="information-request-response-group-controls"
                  className={styles.groupControls}>
@@ -57,7 +59,7 @@ const StructuredResponseToolbar = ({
                                     .then(onResult)
                                     .catch(onCommandFailure);
                             }}>
-                        Add {group.groupKey}
+                        {`Add ${groupLabel(group.groupKey).toLowerCase()}`}
                     </Button>
                 ))}
             </div>

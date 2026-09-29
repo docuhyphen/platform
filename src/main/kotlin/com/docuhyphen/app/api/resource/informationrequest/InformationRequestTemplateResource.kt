@@ -14,26 +14,12 @@ import com.docuhyphen.app.api.service.informationrequest.InformationRequestTempl
 import io.quarkus.security.ForbiddenException
 import io.quarkus.security.UnauthorizedException
 import jakarta.inject.Inject
-import jakarta.ws.rs.Consumes
-import jakarta.ws.rs.GET
-import jakarta.ws.rs.POST
-import jakarta.ws.rs.PUT
-import jakarta.ws.rs.Path
-import jakarta.ws.rs.PathParam
-import jakarta.ws.rs.Produces
-import jakarta.ws.rs.QueryParam
-import jakarta.ws.rs.WebApplicationException
+import jakarta.ws.rs.*
 import jakarta.ws.rs.core.MediaType.APPLICATION_JSON
 import jakarta.ws.rs.core.Response
-import jakarta.ws.rs.core.Response.Status.BAD_REQUEST
-import jakarta.ws.rs.core.Response.Status.CONFLICT
-import jakarta.ws.rs.core.Response.Status.CREATED
-import jakarta.ws.rs.core.Response.Status.FORBIDDEN
-import jakarta.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR
-import jakarta.ws.rs.core.Response.Status.NOT_FOUND
-import jakarta.ws.rs.core.Response.Status.UNAUTHORIZED
+import jakarta.ws.rs.core.Response.Status.*
 import org.slf4j.LoggerFactory
-import java.util.UUID
+import java.util.*
 
 /**
  * REST adapter for reusable Information Request Template administration.
@@ -229,8 +215,7 @@ class InformationRequestTemplateResource @Inject constructor(
 
         return when (exception)
         {
-            is InformationRequestTemplateValidationException -> Response.status(BAD_REQUEST)
-                .entity(ResponseError(exception.message)).build()
+            is InformationRequestTemplateValidationException -> InformationRequestTemplateRefusalResponse.of(exception)
             is IllegalStateException -> Response.status(CONFLICT)
                 .entity(ResponseError(exception.message)).build()
             is IllegalArgumentException -> Response.status(NOT_FOUND)

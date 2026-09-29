@@ -1,8 +1,11 @@
+import {useState} from "react";
 import {Button, Dropdown, Field, MessageBar, MessageBarBody, Option, Text} from "@fluentui/react-components";
 import {InformationRequestState, InformationRequestSubmissionMode} from "../../../models/models.tsx";
 import SubmissionAttestationCard from "../submission-attestation-card/SubmissionAttestationCard.tsx";
 import SubmissionPackageList from "../submission-package-list/SubmissionPackageList.tsx";
 import SubmissionReadinessList from "../submission-readiness-list/SubmissionReadinessList.tsx";
+import SubmissionReviewDialog from "../submission-review-dialog/SubmissionReviewDialog.tsx";
+import {SubmissionReviewItem} from "../submissionReview.ts";
 import {humanizedKey} from "../submissionLabels.ts";
 import {useInformationRequestSubmission} from "../useInformationRequestSubmission.ts";
 import {useInformationRequestSubmissionPanelStyles} from "./InformationRequestSubmissionPanelStyles.tsx";
@@ -13,11 +16,22 @@ interface Props
     requestState: InformationRequestState;
     responseETag: string;
     accessLinkToken?: string;
+    requirementLabels?: Record<string, string>;
+    reviewItems?: SubmissionReviewItem[];
     onChanged: () => void;
 }
 
-const InformationRequestSubmissionPanel = ({requestId, requestState, responseETag, accessLinkToken, onChanged}: Props) =>
+const InformationRequestSubmissionPanel = ({
+    requestId,
+    requestState,
+    responseETag,
+    accessLinkToken,
+    requirementLabels = {},
+    reviewItems = [],
+    onChanged,
+}: Props) =>
 {
+    const [reviewing, setReviewing] = useState(false);
     const styles = useInformationRequestSubmissionPanelStyles();
     const {preview, result, busy, error, selectStage, submit, attest, withdraw} =
         useInformationRequestSubmission(requestId, responseETag, accessLinkToken, onChanged);
@@ -74,7 +88,8 @@ const InformationRequestSubmissionPanel = ({requestId, requestState, responseETa
             {!closed && (
                 <SubmissionReadinessList ready={preview.ready}
                                          problems={preview.problems}
-                                         undisclosedProblemCount={preview.undisclosedProblemCount}/>
+                                         undisclosedProblemCount={preview.undisclosedProblemCount}
+                                         requirementLabels={requirementLabels}/>
             )}
             {!closed && preview.attestations.map(status => (
                 <SubmissionAttestationCard key={status.requirementId}
@@ -89,7 +104,7 @@ const InformationRequestSubmissionPanel = ({requestId, requestState, responseETa
                             appearance={"primary"}
                             shape={"circular"}
                             disabled={busy || !preview.canSubmit}
-                            onClick={() => void submit()}>
+                            onClick={() => setReviewing(true)}>
                         Submit
                     </Button>
                     {!preview.canSubmit && preview.ready && (
@@ -99,6 +114,16 @@ const InformationRequestSubmissionPanel = ({requestId, requestState, responseETa
                         </Text>
                     )}
                 </div>
+            )}
+            {reviewing && (
+                <SubmissionReviewDialog items={reviewItems}
+                                        busy={busy}
+                                        onConfirm={() =>
+                                        {
+                                            setReviewing(false);
+                                            void submit();
+                                        }}
+                                        onDismiss={() => setReviewing(false)}/>
             )}
             <SubmissionPackageList packages={preview.packages}
                                    busy={busy}

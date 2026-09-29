@@ -3,7 +3,7 @@ package com.docuhyphen.app.api.service.config
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import org.eclipse.microprofile.config.inject.ConfigProperty
-import java.util.Optional
+import java.util.*
 
 /**
  * OAuth provider, OIDC validation, application-token, audit, and SCIM/directory
@@ -48,10 +48,16 @@ class OAuthConfigService @Inject constructor(
     @ConfigProperty(name = "app.oidc.validation.require-azp-when-multi-aud", defaultValue = "true")
     private val oidcRequireAzpWhenMultiAudConfig: Boolean,
 
-    @ConfigProperty(name = "app.oidc.validation.required-claims.google", defaultValue = "sub,email,email_verified,iss,aud,exp,iat,nonce")
+    @ConfigProperty(
+        name = "app.oidc.validation.required-claims.google",
+        defaultValue = "sub,email,email_verified,iss,aud,exp,iat,nonce"
+    )
     private val oidcRequiredClaimsGoogleConfig: String,
 
-    @ConfigProperty(name = "app.oidc.validation.required-claims.microsoft", defaultValue = "sub,oid,tid,iss,aud,exp,iat,nonce")
+    @ConfigProperty(
+        name = "app.oidc.validation.required-claims.microsoft",
+        defaultValue = "sub,oid,tid,iss,aud,exp,iat,nonce"
+    )
     private val oidcRequiredClaimsMicrosoftConfig: String,
 
     // --- Microsoft email trust ---
@@ -119,6 +125,7 @@ class OAuthConfigService @Inject constructor(
     fun isOidcRequireAzpWhenMultiAudEnabled(): Boolean = oidcRequireAzpWhenMultiAudConfig
     fun getOidcRequiredClaimsGoogle(): Set<String> =
         oidcRequiredClaimsGoogleConfig.split(',').map { it.trim() }.filter { it.isNotBlank() }.toSet()
+
     fun getOidcRequiredClaimsMicrosoft(): Set<String> =
         oidcRequiredClaimsMicrosoftConfig.split(',').map { it.trim() }.filter { it.isNotBlank() }.toSet()
 
@@ -133,9 +140,16 @@ class OAuthConfigService @Inject constructor(
 
     fun getApplicationTokenDefaultScopes(): Set<String> =
         applicationTokenDefaultScopesConfig.split(',').map { it.trim() }.filter { it.isNotBlank() }.toSet()
-    fun getApplicationTokenRequiredScope(): String = applicationTokenRequiredScopeConfig.trim().ifBlank { "application:api" }
-    fun getApplicationTokenIntegrationScope(): String = applicationTokenIntegrationScopeConfig.trim().ifBlank { "application:integration" }
-    fun getApplicationTokenServiceScope(): String = applicationTokenServiceScopeConfig.trim().ifBlank { "application:service" }
+
+    fun getApplicationTokenRequiredScope(): String =
+        applicationTokenRequiredScopeConfig.trim().ifBlank { "application:api" }
+
+    fun getApplicationTokenIntegrationScope(): String =
+        applicationTokenIntegrationScopeConfig.trim().ifBlank { "application:integration" }
+
+    fun getApplicationTokenServiceScope(): String =
+        applicationTokenServiceScopeConfig.trim().ifBlank { "application:service" }
+
     fun getApplicationTokenAllowedEndpointPrefixes(): Set<String> = applicationTokenAllowedEndpointPrefixesConfig
         .split(',')
         .map { it.trim() }

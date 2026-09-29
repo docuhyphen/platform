@@ -7,6 +7,7 @@ import {
     InformationRequestFindingCorrectionScope,
     InformationRequestFindingSeverity,
     InformationRequestRespondentReviewDto,
+    InformationRequestReviewCommentRole,
     InformationRequestReviewKind,
     InformationRequestReviewState,
     InformationRequestReviewVisibility,
@@ -17,6 +18,7 @@ import InformationRequestReviewResults from "./InformationRequestReviewResults.t
 vi.mock("../../../../services/informationRequestReviewService.ts", () => ({
     getInformationRequestReviewResults: vi.fn(),
     appealInformationRequestReview: vi.fn(),
+    recordInformationRequestReviewComment: vi.fn(),
 }));
 
 const returned = (canAppeal: boolean): InformationRequestRespondentReviewDto => ({
@@ -93,6 +95,54 @@ describe("InformationRequestReviewResults", () =>
         expect(screen.getAllByText("Provide the supporting record").length).toBeGreaterThan(0);
         expect(screen.getByText("1 other returned items concern parts handled by other parties.")).toBeTruthy();
         expect(screen.queryByRole("button", {name: "Appeal"})).toBeNull();
+    });
+
+    it("names returned files, shows the conversation on each finding, and sends the respondent's reply", async () =>
+    {
+        const onChanged = vi.fn();
+        const settled = returned(false);
+        vi.mocked(transport.getInformationRequestReviewResults).mockResolvedValue([{
+            ...settled,
+            correction: {...settled.correction!, evidenceVersionIds: ["version-a", "version-b"]},
+            comments: [{
+                id: "comment-a",
+                submissionItemId: "item-a",
+                requirementId: "requirement-a",
+                findingId: "finding-a",
+                authorRole: InformationRequestReviewCommentRole.REVIEWER,
+                visibility: InformationRequestReviewVisibility.RESPONDENT_VISIBLE,
+                body: "Please attach page 2",
+                createdAt: "2026-09-26T09:30:00Z",
+                authoredByCaller: false,
+            }],
+            canComment: true,
+        }]);
+        vi.mocked(transport.recordInformationRequestReviewComment).mockResolvedValue({
+            outcome: "SAVED",
+            responseETag: "\"responses:3\"",
+            data: {} as never,
+        });
+
+        render(<InformationRequestReviewResults requestId={"request-a"}
+                                                accessLinkToken={"bootstrap"}
+                                                refreshKey={"\"responses:2\""}
+                                                requirementLabels={{"requirement-a": "Provide the supporting record"}}
+                                                onChanged={onChanged}/>);
+
+        expect(await screen.findByText("2 returned files can be replaced or withdrawn.")).toBeTruthy();
+        expect(screen.getByText("Reviewer: Please attach page 2")).toBeTruthy();
+        fireEvent.click(screen.getByRole("button", {name: "Reply to the finding on Provide the supporting record"}));
+        fireEvent.change(screen.getByLabelText("Your reply"), {target: {value: "Page 2 is attached"}});
+        fireEvent.click(screen.getByRole("button", {name: "Send reply"}));
+
+        await waitFor(() => expect(transport.recordInformationRequestReviewComment).toHaveBeenCalledWith(
+            "request-a",
+            "review-a",
+            {submissionItemId: "item-a", findingId: "finding-a", visibility: InformationRequestReviewVisibility.RESPONDENT_VISIBLE, body: "Page 2 is attached"},
+            expect.any(String),
+            "bootstrap",
+        ));
+        expect(await screen.findByText("Your reply was sent.")).toBeTruthy();
     });
 
     it("appeals the exact review under its revision and reports a stale review", async () =>

@@ -604,7 +604,10 @@ export enum Capability
     AUDIT_INTEGRITY_VERIFY = 'AUDIT_INTEGRITY_VERIFY',
 
     // Information Request operations and privacy
+    INFORMATION_REQUEST_TEMPLATE_READ = 'INFORMATION_REQUEST_TEMPLATE_READ',
+    INFORMATION_REQUEST_TEMPLATE_WRITE = 'INFORMATION_REQUEST_TEMPLATE_WRITE',
     INFORMATION_REQUEST_OPERATIONS_READ = 'INFORMATION_REQUEST_OPERATIONS_READ',
+    INFORMATION_REQUEST_OPERATIONS_MANAGE = 'INFORMATION_REQUEST_OPERATIONS_MANAGE',
     INFORMATION_REQUEST_PRIVACY_MANAGE = 'INFORMATION_REQUEST_PRIVACY_MANAGE',
 
     // Application Registration
@@ -2102,16 +2105,18 @@ export interface InformationRequestTemplateDto
     status: InformationRequestTemplateStatus;
     draftVersion?: InformationRequestTemplateVersionDto;
     latestPublishedVersion?: InformationRequestTemplateVersionDto;
-    unsupportedPolicyControls?: InformationRequestTemplateUnsupportedPolicyControlDto[];
     createdAt: string;
     updatedAt: string;
 }
 
-export interface InformationRequestTemplateUnsupportedPolicyControlDto
+export interface InformationRequestTemplateRefusalDto
 {
-    controlKey: string;
-    label: string;
-    reason: string;
+    errorMessage: string;
+    reasonCode: string;
+    sectionKey?: string;
+    requirementKey?: string;
+    groupKey?: string;
+    reviewStageKey?: string;
 }
 
 export interface InformationRequestTemplateSummaryDto
@@ -2278,6 +2283,35 @@ export interface InformationRequestTemplateConfigurationRequest
     sections: InformationRequestTemplateSectionRequest[];
     groups?: InformationRequestTemplateGroupRequest[];
     conditionRules?: InformationRequestTemplateConditionRuleRequest[];
+    submissionMode?: InformationRequestSubmissionMode;
+    submissionStageOrdering?: InformationRequestSubmissionStageOrdering;
+    reviewStageOrdering?: InformationRequestReviewStageOrdering;
+    reviewStages?: InformationRequestTemplateReviewStageRequest[];
+    factReusePurposeKey?: string;
+}
+
+export interface InformationRequestTemplateReviewStageRequest
+{
+    stageKey: string;
+    title: string;
+    aggregation?: InformationRequestReviewAggregation;
+    quorumCount?: number;
+    minimumReviewerCount?: number;
+    tieResolution?: InformationRequestReviewTieResolution;
+    overridePermitted?: boolean;
+    excludesResponseParties?: boolean;
+    excludesPriorReviewers?: boolean;
+    sectionKeys?: string[];
+}
+
+export interface InformationRequestTemplateAttestationPolicyRequest
+{
+    requiredRoles?: InformationRequestContributorRole[];
+    ordering?: InformationRequestAttestationOrdering;
+    minimumAssentCount?: number;
+    minimumAuthenticationStrength?: InformationRequestAuthenticationStrength;
+    validityHours?: number;
+    externalSignatureReference?: InformationRequestExternalSignatureReferencePolicy;
 }
 
 export interface InformationRequestTemplateConditionRuleRequest
@@ -2311,6 +2345,7 @@ export interface InformationRequestTemplateSectionRequest
     sectionKey: string;
     title: string;
     helpText?: string;
+    submissionStageKey?: string;
     requirements: InformationRequestTemplateRequirementRequest[];
 }
 
@@ -2332,6 +2367,7 @@ export interface InformationRequestTemplateRequirementRequest
     evidencePolicy?: InformationRequestTemplateEvidencePolicyRequest;
     substituteRequirementKeys?: string[];
     supportingEvidenceRequirementKeys?: string[];
+    attestationPolicy?: InformationRequestTemplateAttestationPolicyRequest;
 }
 
 export interface InformationRequestTemplateEvidencePolicyRequest
@@ -2475,6 +2511,7 @@ export interface InformationRequestAccessSessionDto
 export interface InformationRequestResponseWorkspaceDto
 {
     request: InformationRequestDto;
+    title: string;
     templateVersion: InformationRequestTemplateVersionDto;
     responseETag: string;
     occurrences: InformationRequestGroupOccurrenceDto[];
@@ -2740,6 +2777,7 @@ export interface InformationRequestSubmissionEvidenceDto
 
 export interface InformationRequestSubmissionItemDto
 {
+    id: string;
     requirementId: string;
     requirementKey: string;
     requirementType: InformationRequestRequirementType;
@@ -2970,11 +3008,40 @@ export interface InformationRequestLineageDto
     createdAt: string;
 }
 
+export enum InformationRequestRecurrenceUnit
+{
+    DAY = "DAY",
+    WEEK = "WEEK",
+    MONTH = "MONTH",
+    YEAR = "YEAR",
+}
+
+export interface InformationRequestRecurrenceDto
+{
+    id: string;
+    originRequestId: string;
+    intervalUnit: InformationRequestRecurrenceUnit;
+    intervalCount: number;
+    firstDueAt: string;
+    maximumOccurrences?: number;
+    createdAt: string;
+}
+
+export interface DefineInformationRequestRecurrenceRequest
+{
+    intervalUnit: InformationRequestRecurrenceUnit;
+    intervalCount: number;
+    firstDueAt: string;
+    maximumOccurrences?: number;
+}
+
 export interface InformationRequestLineageViewDto
 {
     informationRequestId: string;
     source?: InformationRequestLineageDto;
     successors: InformationRequestLineageDto[];
+    recurrence?: InformationRequestRecurrenceDto;
+    nextOccurrenceDueAt?: string;
 }
 
 export interface InformationRequestCarryForwardDto
@@ -3030,6 +3097,8 @@ export interface InformationRequestOperationsRowDto
 {
     requestId: string;
     exchangeId: string;
+    title: string;
+    assignees: InformationRequestOperationsAssigneeDto[];
     templateVersionId: string;
     state: InformationRequestState;
     gatesExchangeClosure: boolean;
@@ -3056,6 +3125,8 @@ export interface InformationRequestOperationsPageDto
 
 export interface InformationRequestOperationsFilter
 {
+    search?: string;
+    assigneeId?: string;
     slaStatus?: InformationRequestSlaStatus;
     exceptionsOnly: boolean;
     limit: number;
@@ -3802,6 +3873,8 @@ export interface InformationRequestAcceptedFactDto
     id: string;
     subjectIdentityRefId: string;
     purposeKey: string;
+    policyBasisKey: string;
+    evidenceVersionIds: string[];
     fieldDefinitionId: string;
     valueType: FieldValueType;
     value: unknown;
@@ -3830,8 +3903,40 @@ export interface InformationRequestAcceptedFactOfferDto
 {
     requirementId: string;
     requirementKey: string;
-    fact: InformationRequestAcceptedFactDto;
+    fact: InformationRequestReusableFactDto;
     reconfirmationRequired: boolean;
+}
+
+export interface InformationRequestReusableFactDto
+{
+    id: string;
+    purposeKey: string;
+    policyBasisKey: string;
+    valueType: FieldValueType;
+    value: unknown;
+    confidence: InformationRequestAcceptedFactConfidence;
+    validFrom: string;
+    validTo?: string;
+    expiresAt?: string;
+    freshness: InformationRequestAcceptedFactFreshness;
+}
+
+export interface RecertifyInformationRequestAcceptedFactRequest
+{
+    requirementId: string;
+    assented: boolean;
+}
+
+export interface InformationRequestFactRecertificationDto
+{
+    id: string;
+    requirementId: string;
+    factId: string;
+    responseId: string;
+    responseRevision: number;
+    valueType: FieldValueType;
+    value: unknown;
+    assentedAt: string;
 }
 
 export interface InformationRequestBusinessDecisionDto
@@ -3855,6 +3960,8 @@ export interface PromoteInformationRequestAcceptedFactRequest
     packageId: string;
     submissionItemId: string;
     purposeKey: string;
+    policyBasisKey: string;
+    evidenceVersionIds?: string[];
     visibility?: InformationRequestAcceptedFactVisibility;
     validFrom?: string;
     validTo?: string;
@@ -3981,4 +4088,363 @@ export interface AuditOrganizationIntegrityDto
     platformOnly: boolean;
     allValid: boolean;
     streams: AuditStreamIntegrityDto[];
+}
+
+export enum InformationRequestShareRoleKey
+{
+    SUBJECT = "SUBJECT",
+    CONTRIBUTOR = "CONTRIBUTOR",
+    PREPARER = "PREPARER",
+    ATTESTOR = "ATTESTOR",
+    REVIEWER = "REVIEWER",
+    DECISION_MAKER = "DECISION_MAKER",
+}
+
+export enum InformationRequestNextAction
+{
+    COMPLETE_SETUP = "COMPLETE_SETUP",
+    RESPOND = "RESPOND",
+    REVIEW = "REVIEW",
+    MANAGE = "MANAGE",
+    VIEW = "VIEW",
+}
+
+export interface InformationRequestSummaryPermissionsDto
+{
+    canManage: boolean;
+    canRespond: boolean;
+    canReview: boolean;
+}
+
+export interface InformationRequestSummaryDto
+{
+    id: string;
+    exchangeId: string;
+    title: string;
+    state: InformationRequestState;
+    issuedAt?: string;
+    nextDueAt?: string;
+    completedCount: number;
+    requiredCount: number;
+    callerRoles: InformationRequestShareRoleKey[];
+    permissions: InformationRequestSummaryPermissionsDto;
+    nextAction: InformationRequestNextAction;
+}
+
+export interface InformationRequestExchangeListingDto
+{
+    requests: InformationRequestSummaryDto[];
+    canCreate: boolean;
+}
+
+export interface CreateInformationRequestRequest
+{
+    exchangeId: string;
+    displayName?: string;
+    description?: string;
+    configuration?: InformationRequestTemplateConfigurationRequest;
+    blueprintDefinitionId?: string;
+    templateVersionId?: string;
+    gatesExchangeClosure?: boolean;
+}
+
+export type InformationRequestPartyPrincipalKind = "USER" | "PARTICIPANT" | "PRINCIPAL_GROUP";
+
+export interface InformationRequestPartyDto
+{
+    id: string;
+    informationRequestId: string;
+    roleKey: InformationRequestShareRoleKey;
+    active: boolean;
+    principalId?: string;
+    principalKind?: InformationRequestPartyPrincipalKind;
+    subjectIdentityRefId?: string;
+    exchangeRecipientId?: string;
+    assignedAt: string;
+    revokedAt?: string;
+    partyRevision: number;
+    partyETag: string;
+    label?: string;
+}
+
+export interface InformationRequestPartyListingDto
+{
+    parties: InformationRequestPartyDto[];
+    partiesETag: string;
+}
+
+export interface AssignInformationRequestPartyRequest
+{
+    roleKey: InformationRequestShareRoleKey;
+    userId?: string;
+    principalGroupId?: string;
+    email?: string;
+    displayName?: string;
+    subjectIdentityRefId?: string;
+    exchangeRecipientId?: string;
+}
+
+export interface ReassignInformationRequestPartyRequest
+{
+    userId?: string;
+    principalGroupId?: string;
+    exchangeRecipientId?: string;
+}
+
+export enum InformationRequestSubjectKind
+{
+    PERSON = "PERSON",
+    ORGANIZATION = "ORGANIZATION",
+    ASSET = "ASSET",
+    RECORD = "RECORD",
+    OTHER = "OTHER",
+}
+
+export interface InformationRequestSubjectReferenceDto
+{
+    authority: string;
+    identifierType: string;
+    identifierValue: string;
+}
+
+export interface InformationRequestSubjectDto
+{
+    id: string;
+    subjectKind: InformationRequestSubjectKind;
+    references: InformationRequestSubjectReferenceDto[];
+    createdAt: string;
+}
+
+export interface AssignInformationRequestSubjectRequest
+{
+    subjectKind: InformationRequestSubjectKind;
+    reference?: InformationRequestSubjectReferenceDto;
+}
+
+export enum InformationRequestAccessLinkStatus
+{
+    ACTIVE = "ACTIVE",
+    REVOKED = "REVOKED",
+    EXPIRED = "EXPIRED",
+}
+
+export interface InformationRequestAccessLinkDto
+{
+    shareLinkId: string;
+    status: InformationRequestAccessLinkStatus;
+    expiresAt?: string;
+    maxUses?: number;
+    rotationCount: number;
+    partyId?: string;
+    createdAt?: string;
+}
+
+export interface InformationRequestAccessLinkIssuedDto
+{
+    shareLinkId: string;
+    accessToken: string;
+    status: InformationRequestAccessLinkStatus;
+    expiresAt?: string;
+    maxUses?: number;
+    rotationCount: number;
+}
+
+export interface IssueInformationRequestAccessLinkRequest
+{
+    partyId: string;
+    expiresAt?: string;
+    maxUses?: number;
+}
+
+export interface InformationRequestOperationsAssigneeDto
+{
+    roleKey: InformationRequestShareRoleKey;
+    principalKind: InformationRequestPartyPrincipalKind;
+    principalId: string;
+    label?: string;
+}
+
+export interface InformationRequestReminderResultDto
+{
+    requestId: string;
+    noticeCount: number;
+}
+
+export enum InformationRequestClockType
+{
+    CALENDAR = "CALENDAR",
+    BUSINESS = "BUSINESS",
+}
+
+export enum InformationRequestClockDueEffect
+{
+    MARK_OVERDUE = "MARK_OVERDUE",
+    EXPIRE_REQUEST = "EXPIRE_REQUEST",
+}
+
+export enum InformationRequestClockUrgency
+{
+    STANDARD = "STANDARD",
+    URGENT = "URGENT",
+}
+
+export interface InformationRequestWorkingPeriodDto
+{
+    dayOfWeek: string;
+    startMinute: number;
+    endMinute: number;
+}
+
+export interface InformationRequestClockPolicyVersionDto
+{
+    id: string;
+    versionNumber: number;
+    clockType: InformationRequestClockType;
+    businessTimezone: string;
+    standardDurationMinutes: number;
+    urgentDurationMinutes: number;
+    escalationAfterMinutes?: number;
+    dueEffect: InformationRequestClockDueEffect;
+    workingPeriods: InformationRequestWorkingPeriodDto[];
+    holidays: string[];
+    reminderMinutesBeforeDue: number[];
+    reminderCommunicationId?: string;
+    overdueCommunicationId?: string;
+    publishedAt: string;
+}
+
+export interface InformationRequestClockPolicyDto
+{
+    id: string;
+    policyKey: string;
+    displayName: string;
+    ownerType: InformationRequestOwnerType;
+    versions: InformationRequestClockPolicyVersionDto[];
+}
+
+export interface InformationRequestClockPolicyDefinitionRequest
+{
+    clockType: InformationRequestClockType;
+    businessTimezone: string;
+    workingPeriods: InformationRequestWorkingPeriodDto[];
+    holidays: string[];
+    standardDurationMinutes: number;
+    urgentDurationMinutes: number;
+    reminderMinutesBeforeDue: number[];
+    escalationAfterMinutes?: number;
+    dueEffect: InformationRequestClockDueEffect;
+    reminderCommunicationId?: string;
+    overdueCommunicationId?: string;
+}
+
+export interface DefineInformationRequestClockPolicyRequest
+{
+    policyKey: string;
+    displayName: string;
+    definition: InformationRequestClockPolicyDefinitionRequest;
+}
+
+export interface StartInformationRequestClockRequest
+{
+    clockKey: string;
+    policyVersionId: string;
+    urgency: InformationRequestClockUrgency;
+    receivedAt?: string;
+}
+
+export interface ChangeInformationRequestClockRequest
+{
+    reasonCode: string;
+    extensionMinutes?: number;
+}
+
+export enum InformationRequestPrivacyRequestKind
+{
+    ACCESS = "ACCESS",
+    EXPORT = "EXPORT",
+    CORRECTION = "CORRECTION",
+    RESTRICTION = "RESTRICTION",
+    DELETION = "DELETION",
+}
+
+export enum InformationRequestPrivacyRequestState
+{
+    RECORDED = "RECORDED",
+    COMPLETED = "COMPLETED",
+    REFUSED = "REFUSED",
+}
+
+export enum InformationRequestPrivacyTargetOutcome
+{
+    EXPORTED = "EXPORTED",
+    CORRECTED = "CORRECTED",
+    RESTRICTED = "RESTRICTED",
+    DISPOSAL_CLAIMED = "DISPOSAL_CLAIMED",
+    REFUSED = "REFUSED",
+}
+
+export interface InformationRequestPrivacyTargetDto
+{
+    requestId: string;
+    outcome: InformationRequestPrivacyTargetOutcome;
+    reasonCode?: string;
+    disposalClaimId?: string;
+}
+
+export interface InformationRequestSubjectRestrictionDto
+{
+    id: string;
+    subjectIdentityRefId: string;
+    privacyRequestId: string;
+    restrictedAt: string;
+    liftedAt?: string;
+    liftReasonCode?: string;
+}
+
+export interface InformationRequestItemCorrectionDto
+{
+    id: string;
+    requestId: string;
+    packageId: string;
+    submissionItemId: string;
+    reasonCode: string;
+    recordedAt: string;
+}
+
+export interface InformationRequestPrivacyRequestDto
+{
+    id: string;
+    subjectIdentityRefId: string;
+    requestKind: InformationRequestPrivacyRequestKind;
+    purposeKey: string;
+    policyBasisKey: string;
+    state: InformationRequestPrivacyRequestState;
+    refusalCode?: string;
+    refusalDetail?: string;
+    recordExportId?: string;
+    recordedByPrincipalKind: string;
+    recordedByPrincipalId: string;
+    recordedAt: string;
+    completedAt?: string;
+    targets: InformationRequestPrivacyTargetDto[];
+    restriction?: InformationRequestSubjectRestrictionDto;
+    correction?: InformationRequestItemCorrectionDto;
+}
+
+export interface InformationRequestItemCorrectionRequest
+{
+    submissionItemId: string;
+    value?: unknown;
+    narrative?: string;
+    reasonCode: string;
+}
+
+export interface RecordInformationRequestPrivacyRequestRequest
+{
+    subjectIdentityRefId: string;
+    requestKind: InformationRequestPrivacyRequestKind;
+    purposeKey: string;
+    policyBasisKey: string;
+    transferRegion?: string;
+    correction?: InformationRequestItemCorrectionRequest;
 }

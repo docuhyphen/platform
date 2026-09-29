@@ -128,6 +128,8 @@ class ResourceAuthorizationContextRegistry
             ResourceType.INFORMATION_REQUEST_REVIEW_FINDING -> null
             ResourceType.INFORMATION_REQUEST_REVIEW_COMMENT -> null
             ResourceType.INFORMATION_REQUEST_ACCEPTED_FACT -> null
+            ResourceType.INFORMATION_REQUEST_FACT_RECERTIFICATION -> null
+            ResourceType.INFORMATION_REQUEST_EXTERNAL_SOURCE -> null
             ResourceType.INFORMATION_REQUEST_BUSINESS_DECISION -> null
             ResourceType.INFORMATION_REQUEST_RECORD_EXPORT -> null
         }

@@ -6,10 +6,11 @@ interface Props
 {
     busy: boolean;
     error: string | null;
+    status: string;
     onSave: () => void;
 }
 
-const StructuredResponseSaveFooter = ({busy, error, onSave}: Props) =>
+const StructuredResponseSaveFooter = ({busy, error, status, onSave}: Props) =>
 {
     const styles = useInformationRequestStructuredResponseWorkspaceStyles();
 
@@ -17,10 +18,16 @@ const StructuredResponseSaveFooter = ({busy, error, onSave}: Props) =>
         <>
             {error && (
                 <Text id="information-request-response-save-error"
+                      role="alert"
                       className={styles.error}>
                     {error}
                 </Text>
             )}
+            <Text id="information-request-response-save-status"
+                  role="status"
+                  aria-live="polite">
+                {status}
+            </Text>
             <div id="information-request-response-actions"
                  className={styles.actions}>
                 <Button id="information-request-response-save"

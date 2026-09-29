@@ -1,13 +1,10 @@
 package com.docuhyphen.app.api.model.informationrequest
 
-import com.docuhyphen.app.api.model.entity.InformationRequest
-import com.docuhyphen.app.api.model.entity.InformationRequestClock
-import com.docuhyphen.app.api.model.entity.InformationRequestClockEvent
-import com.docuhyphen.app.api.model.entity.InformationRequestNoticeDeliveryState
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.notification.DomainEventDeliveryStanding
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestState
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 enum class InformationRequestSlaStatus
 {
@@ -44,6 +41,8 @@ data class InformationRequestSlaStanding(
 data class InformationRequestOperationsFilter(
     val states: Set<InformationRequestState> = emptySet(),
     val exchangeId: UUID? = null,
+    val search: String? = null,
+    val assigneeId: UUID? = null,
     val slaStatuses: Set<InformationRequestSlaStatus> = emptySet(),
     val exceptions: Set<InformationRequestOperationsException> = emptySet(),
     val exceptionsOnly: Boolean = false,
@@ -51,8 +50,17 @@ data class InformationRequestOperationsFilter(
     val offset: Int = 0,
 )
 
+data class InformationRequestOperationsAssignee(
+    val roleKey: InformationRequestShareRoleKey,
+    val principalKind: PrincipalKind,
+    val principalId: UUID,
+    val label: String?,
+)
+
 data class InformationRequestOperationsRow(
     val request: InformationRequest,
+    val title: String,
+    val assignees: List<InformationRequestOperationsAssignee>,
     val ageSeconds: Long,
     val clockCount: Int,
     val standing: InformationRequestSlaStanding,

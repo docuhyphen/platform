@@ -1,37 +1,7 @@
 package com.docuhyphen.app.api.model
 
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateAcceptedValueDto
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateAttestationPolicyDto
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateCapabilityDto
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateConditionPredicateDto
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateConditionPredicateRequest
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateConditionRuleDto
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateConditionRuleRequest
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateDto
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateEvidencePolicyDto
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateGroupDto
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateRequirementDto
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateSectionDto
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateSummaryDto
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateReviewStageDto
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateUnsupportedPolicyControlDto
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateVersionDto
-import com.docuhyphen.app.api.model.entity.InformationRequestResponseDisposition
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateAttestationPolicy
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateAttestationRole
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateConditionPredicate
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateConditionRule
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateDefinition
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateEvidenceAcceptedValue
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateEvidencePolicy
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateRequirement
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateRequirementBinding
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateRequirementGroup
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateSection
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateStatus
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateReviewStage
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateVersion
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateVersionCapability
+import com.docuhyphen.app.api.model.dto.*
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestConditionPredicateLiteralCodec
 
 /**
@@ -64,7 +34,6 @@ object InformationRequestTemplateDtoMapper
         status = definition.status,
         draftVersion = draftVersion,
         latestPublishedVersion = latestPublishedVersion,
-        unsupportedPolicyControls = unsupportedPolicyControls,
         createdAt = definition.createdAt,
         updatedAt = definition.updatedAt,
     )
@@ -299,13 +268,5 @@ object InformationRequestTemplateDtoMapper
     ): InformationRequestTemplateCapabilityDto = InformationRequestTemplateCapabilityDto(
         capability = recorded.capabilityKey,
         requiredContractVersion = recorded.requiredContractVersion,
-    )
-
-    private val unsupportedPolicyControls = listOf(
-        InformationRequestTemplateUnsupportedPolicyControlDto(
-            controlKey = "document-evidence-policy",
-            label = "Document Evidence Policy",
-            reason = "Document evidence policy controls are not available in this deployment.",
-        ),
     )
 }

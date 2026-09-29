@@ -23,6 +23,7 @@ import {
     SchemaFieldBindingDto,
 } from "../../models/models.tsx";
 import InformationRequestStructuredResponseWorkspace from "./InformationRequestStructuredResponseWorkspace.tsx";
+import {unnamedControls} from "../shared/testing/unnamedControls.ts";
 
 const onSaveResponses = vi.fn();
 const onAddOccurrence = vi.fn();
@@ -285,7 +286,7 @@ const deepFieldBinding: SchemaFieldBindingDto = {
 
 const changeRequirementValue = (requirementElementId: string, value: string) =>
 {
-    const input = document.getElementById(requirementElementId)?.querySelector("input") as HTMLInputElement | null;
+    const input = document.getElementById(requirementElementId)?.querySelector("input:not([type='radio'])") as HTMLInputElement | null;
     if (!input) throw new Error(`Missing input for ${requirementElementId}`);
     fireEvent.change(input, {target: {value}});
 };
@@ -414,11 +415,21 @@ describe("InformationRequestStructuredResponseWorkspace", () =>
         expect(screen.queryByText("Provide the reported summary")).toBeNull();
     });
 
+    it("names every control and region of the response form", () =>
+    {
+        renderWorkspace();
+
+        expect(unnamedControls(document.body)).toEqual([]);
+    });
+
     it("saves active Field Requirements sparsely and exposes occurrence commands", async () =>
     {
         renderWorkspace();
 
-        expect(screen.getByText("collect-hidden-detail is inactive")).toBeTruthy();
+        expect(screen.getByText("\"Provide the hidden summary\" is not asked because of an earlier answer.")).toBeTruthy();
+        expect(screen.queryByText(/collect-hidden-detail/)).toBeNull();
+        expect(screen.getByText("In progress")).toBeTruthy();
+        expect(screen.getByText("Reported item 1")).toBeTruthy();
         expect(screen.queryByText("Provide the hidden summary")).toBeNull();
 
         fireEvent.change(document.querySelector("#exchange-field-field-contract-1")!, {
@@ -449,7 +460,7 @@ describe("InformationRequestStructuredResponseWorkspace", () =>
             "\"responses:1\"",
         ));
 
-        fireEvent.click(screen.getByRole("button", {name: "Add reported-item"}));
+        fireEvent.click(screen.getByRole("button", {name: "Add reported item"}));
 
         await waitFor(() => expect(onAddOccurrence).toHaveBeenCalledWith(
             "request-1",
@@ -836,7 +847,7 @@ describe("InformationRequestStructuredResponseWorkspace", () =>
         });
         fireEvent.click(screen.getByRole("button", {name: "Save responses"}));
 
-        expect(await screen.findByText("These responses changed after this workspace loaded, so your save was not applied."))
+        expect(await screen.findByText("These answers changed somewhere else. Your changes are kept: review them against the latest answers, then choose Save responses."))
             .toBeTruthy();
         expect(onRefresh).toHaveBeenCalledTimes(1);
         expect(onSaveResponses).toHaveBeenCalledTimes(1);
@@ -895,10 +906,10 @@ describe("InformationRequestStructuredResponseWorkspace", () =>
         onAddOccurrence.mockRejectedValueOnce({errorMessage: "Access denied to add occurrence"});
         renderWorkspace();
 
-        fireEvent.click(screen.getByRole("button", {name: "Add reported-item"}));
+        fireEvent.click(screen.getByRole("button", {name: "Add reported item"}));
 
         expect(await screen.findByText("Access denied to add occurrence")).toBeTruthy();
-        expect((screen.getByRole("button", {name: "Add reported-item"}) as HTMLButtonElement).disabled).toBe(false);
+        expect((screen.getByRole("button", {name: "Add reported item"}) as HTMLButtonElement).disabled).toBe(false);
     });
 
     it("requires explicit confirmation before saving a clear for inactive hidden responses", async () =>

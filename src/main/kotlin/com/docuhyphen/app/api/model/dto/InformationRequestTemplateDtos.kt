@@ -1,35 +1,14 @@
 package com.docuhyphen.app.api.model.dto
 
-import com.docuhyphen.app.api.model.entity.InformationRequestAttestationOrdering
-import com.docuhyphen.app.api.model.entity.InformationRequestAuthenticationStrength
-import com.docuhyphen.app.api.model.entity.InformationRequestContributorRole
-import com.docuhyphen.app.api.model.entity.InformationRequestConditionHiddenDataPolicy
-import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceAttribute
-import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceAttributeRequirement
-import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceConformancePolicy
-import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceWaiverPolicy
-import com.docuhyphen.app.api.model.entity.InformationRequestExternalSignatureReferencePolicy
-import com.docuhyphen.app.api.model.entity.InformationRequestRequiredness
-import com.docuhyphen.app.api.model.entity.InformationRequestRequirementType
-import com.docuhyphen.app.api.model.entity.InformationRequestResponseDisposition
-import com.docuhyphen.app.api.model.entity.InformationRequestResponseMode
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewAggregation
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewPolicy
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewStageOrdering
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewTieResolution
-import com.docuhyphen.app.api.model.entity.InformationRequestSubmissionMode
-import com.docuhyphen.app.api.model.entity.InformationRequestSubmissionStageOrdering
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateScopeKind
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateStatus
-import com.docuhyphen.app.api.model.entity.FieldValueType
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.serializer.TimestampSerializer
 import com.docuhyphen.app.api.serializer.UUIDSerializer
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestCapability
 import com.docuhyphen.app.api.service.fields.FieldOperator
-import kotlinx.serialization.json.JsonElement
+import com.docuhyphen.app.api.service.informationrequest.InformationRequestCapability
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonElement
 import java.sql.Timestamp
-import java.util.UUID
+import java.util.*
 
 /**
  * Contracts for reusable, versioned Information Request Template configuration.
@@ -59,16 +38,8 @@ data class InformationRequestTemplateDto(
     val status: InformationRequestTemplateStatus,
     val draftVersion: InformationRequestTemplateVersionDto? = null,
     val latestPublishedVersion: InformationRequestTemplateVersionDto? = null,
-    val unsupportedPolicyControls: List<InformationRequestTemplateUnsupportedPolicyControlDto> = emptyList(),
     @Serializable(with = TimestampSerializer::class) val createdAt: Timestamp,
     @Serializable(with = TimestampSerializer::class) val updatedAt: Timestamp,
-)
-
-@Serializable
-data class InformationRequestTemplateUnsupportedPolicyControlDto(
-    val controlKey: String,
-    val label: String,
-    val reason: String,
 )
 
 /**
@@ -261,6 +232,16 @@ data class InformationRequestTemplateAcceptedValueDto(
 data class InformationRequestTemplateCapabilityDto(
     val capability: InformationRequestCapability,
     val requiredContractVersion: Int,
+)
+
+@Serializable
+data class InformationRequestTemplateRefusalDto(
+    val errorMessage: String,
+    val reasonCode: String,
+    val sectionKey: String? = null,
+    val requirementKey: String? = null,
+    val groupKey: String? = null,
+    val reviewStageKey: String? = null,
 )
 
 // ── Write shape ──────────────────────────────────────────────────────────────

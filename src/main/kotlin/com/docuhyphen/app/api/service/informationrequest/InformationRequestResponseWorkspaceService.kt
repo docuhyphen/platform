@@ -3,36 +3,18 @@ package com.docuhyphen.app.api.service.informationrequest
 import com.docuhyphen.app.api.model.InformationRequestDtoMapper
 import com.docuhyphen.app.api.model.InformationRequestGroupOccurrenceDtoMapper
 import com.docuhyphen.app.api.model.InformationRequestResponseWorkspaceDtoMapper
-import com.docuhyphen.app.api.model.dto.InformationRequestResponseWorkspaceDto
-import com.docuhyphen.app.api.model.dto.InformationRequestDto
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateGroupDto
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateRequirementDto
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateVersionDto
-import com.docuhyphen.app.api.model.dto.SchemaAssignmentDto
-import com.docuhyphen.app.api.model.entity.InformationRequest
-import com.docuhyphen.app.api.model.entity.InformationRequestGroupOccurrence
-import com.docuhyphen.app.api.model.entity.InformationRequestRequirement
-import com.docuhyphen.app.api.model.entity.InformationRequestRequirementType
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateRequirementBinding
-import com.docuhyphen.app.api.model.entity.ResourceType
-import com.docuhyphen.app.api.repository.informationrequest.InformationRequestGroupOccurrenceRepository
-import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRequirementRepository
-import com.docuhyphen.app.api.repository.informationrequest.InformationRequestResponseRepository
-import com.docuhyphen.app.api.repository.informationrequest.InformationRequestTemplateVersionRepository
-import com.docuhyphen.app.api.repository.informationrequest.InformationRequestTemplateRequirementBindingRepository
+import com.docuhyphen.app.api.model.dto.*
+import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.repository.informationrequest.*
 import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
 import com.docuhyphen.app.api.service.auth.authz.Decision
 import com.docuhyphen.app.api.service.auth.authz.ResourceRef
-import com.docuhyphen.app.api.service.fields.FieldValueReadCommand
-import com.docuhyphen.app.api.service.fields.FieldValueSetRef
-import com.docuhyphen.app.api.service.fields.FieldsAccessContext
-import com.docuhyphen.app.api.service.fields.FieldsResourceRef
-import com.docuhyphen.app.api.service.fields.SchemaAssignmentService
+import com.docuhyphen.app.api.service.fields.*
 import io.quarkus.security.ForbiddenException
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestResponseWorkspaceService @Inject constructor(
@@ -50,6 +32,7 @@ class InformationRequestResponseWorkspaceService @Inject constructor(
     private val supportingEvidenceLinkService: InformationRequestSupportingEvidenceLinkService,
     private val evidenceDeploymentPolicy: InformationRequestEvidenceDeploymentPolicy,
     private val firstViewService: InformationRequestFirstViewService,
+    private val titleReader: InformationRequestTitleReader,
 )
 {
     fun loadRequest(requestId: UUID, access: RequestAccessContext): InformationRequestDto
@@ -105,6 +88,7 @@ class InformationRequestResponseWorkspaceService @Inject constructor(
 
         return InformationRequestResponseWorkspaceDtoMapper.toDto(
             request = InformationRequestDtoMapper.toDto(request, safeConditionEvaluations),
+            title = titleReader.titleOf(request),
             templateVersion = safeTemplateVersion,
             responseETag = InformationRequestETag.responsesOf(request),
             occurrences = InformationRequestWorkspaceOccurrenceProjection.occurrences(

@@ -10,44 +10,17 @@ import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.resource.model.SupersedeInformationRequestRequest
 import com.docuhyphen.app.api.service.command.CommandPreconditionException
 import com.docuhyphen.app.api.service.command.CommandReceiptConflictException
-import com.docuhyphen.app.api.service.informationrequest.CancelInformationRequestCommand
-import com.docuhyphen.app.api.service.informationrequest.CreateAdHocInformationRequestCommand
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestAccessContextFactory
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestAdHocCreationService
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestCreationResult
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestLifecycleResult
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestLifecycleService
-import com.docuhyphen.app.api.service.informationrequest.IssueInformationRequestCommand
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestCapabilityNotInstalledException
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestLifecycleException
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestQueryService
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestResponseWorkspaceService
-import com.docuhyphen.app.api.service.informationrequest.SupersedeInformationRequestCommand
+import com.docuhyphen.app.api.service.informationrequest.*
 import io.quarkus.security.ForbiddenException
 import io.quarkus.security.UnauthorizedException
 import jakarta.inject.Inject
-import jakarta.ws.rs.Consumes
-import jakarta.ws.rs.GET
-import jakarta.ws.rs.HeaderParam
-import jakarta.ws.rs.POST
-import jakarta.ws.rs.Path
-import jakarta.ws.rs.PathParam
-import jakarta.ws.rs.Produces
-import jakarta.ws.rs.QueryParam
-import jakarta.ws.rs.WebApplicationException
+import jakarta.ws.rs.*
 import jakarta.ws.rs.core.HttpHeaders.IF_MATCH
 import jakarta.ws.rs.core.MediaType.APPLICATION_JSON
 import jakarta.ws.rs.core.Response
-import jakarta.ws.rs.core.Response.Status.BAD_REQUEST
-import jakarta.ws.rs.core.Response.Status.CONFLICT
-import jakarta.ws.rs.core.Response.Status.CREATED
-import jakarta.ws.rs.core.Response.Status.FORBIDDEN
-import jakarta.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR
-import jakarta.ws.rs.core.Response.Status.NOT_FOUND
-import jakarta.ws.rs.core.Response.Status.UNAUTHORIZED
+import jakarta.ws.rs.core.Response.Status.*
 import org.slf4j.LoggerFactory
-import java.util.UUID
+import java.util.*
 
 /**
  * REST adapter for the owner-facing slice of the runtime Information Request lifecycle: listing an
@@ -64,6 +37,8 @@ class InformationRequestResource @Inject constructor(
     private val lifecycleService: InformationRequestLifecycleService,
     private val accessContextFactory: InformationRequestAccessContextFactory,
     private val responseWorkspaceService: InformationRequestResponseWorkspaceService,
+    private val blueprintInstantiationService: InformationRequestBlueprintInstantiationService,
+    private val templateInstantiationService: InformationRequestTemplateInstantiationService,
 )
 {
     @GET
@@ -124,18 +99,47 @@ class InformationRequestResource @Inject constructor(
         {
             val commandKey = requiredIdempotencyKey(idempotencyKey)
                 ?: return badRequest("Idempotency-Key is required")
+            val sources = listOfNotNull(request.configuration, request.blueprintDefinitionId, request.templateVersionId)
+            if (sources.size != 1)
+            {
+                return badRequest("State exactly one of configuration, blueprintDefinitionId, or templateVersionId")
+            }
+            val access = accessContextFactory.currentAuthenticated()
             created(
-                creationService.createAdHoc(
-                    CreateAdHocInformationRequestCommand(
-                        exchangeId = request.exchangeId,
-                        displayName = request.displayName,
-                        description = request.description,
-                        configuration = request.configuration,
-                        gatesExchangeClosure = request.gatesExchangeClosure,
-                        access = accessContextFactory.currentAuthenticated(),
-                        idempotencyKey = commandKey,
-                    ),
-                ),
+                when
+                {
+                    request.blueprintDefinitionId != null -> blueprintInstantiationService.createFromBlueprint(
+                        CreateInformationRequestFromBlueprintCommand(
+                            blueprintDefinitionId = request.blueprintDefinitionId,
+                            exchangeId = request.exchangeId,
+                            gatesExchangeClosure = request.gatesExchangeClosure,
+                            access = access,
+                            idempotencyKey = commandKey,
+                        ),
+                    )
+
+                    request.templateVersionId != null -> templateInstantiationService.createFromTemplateVersion(
+                        CreateInformationRequestFromTemplateVersionCommand(
+                            templateVersionId = request.templateVersionId,
+                            exchangeId = request.exchangeId,
+                            gatesExchangeClosure = request.gatesExchangeClosure,
+                            access = access,
+                            idempotencyKey = commandKey,
+                        ),
+                    )
+
+                    else -> creationService.createAdHoc(
+                        CreateAdHocInformationRequestCommand(
+                            exchangeId = request.exchangeId,
+                            displayName = request.displayName.orEmpty(),
+                            description = request.description,
+                            configuration = requireNotNull(request.configuration),
+                            gatesExchangeClosure = request.gatesExchangeClosure,
+                            access = access,
+                            idempotencyKey = commandKey,
+                        ),
+                    )
+                },
             )
         }
         catch (exception: Exception)
@@ -272,6 +276,17 @@ class InformationRequestResource @Inject constructor(
                 .entity(ResponseError(exception.message, InformationRequestErrorCatalog.CAPABILITY_NOT_INSTALLED)).build()
             is InformationRequestLifecycleException -> Response.status(CONFLICT)
                 .entity(ResponseError(exception.message, exception.reasonCode)).build()
+            is InformationRequestTemplateValidationException -> InformationRequestTemplateRefusalResponse.of(exception)
+            is InformationRequestTemplateVersionUnavailableException -> Response.status(CONFLICT)
+                .entity(ResponseError(exception.message, exception.code)).build()
+
+            is RequestExecutionUsageExhaustedException -> Response.status(CONFLICT)
+                .entity(
+                    ResponseError(
+                        "This request has no acting-party capacity left in its execution grant",
+                        InformationRequestErrorCatalog.CAPACITY_EXHAUSTED,
+                    ),
+                ).build()
             is IllegalStateException -> Response.status(CONFLICT)
                 .entity(ResponseError(exception.message)).build()
             is IllegalArgumentException -> Response.status(NOT_FOUND)

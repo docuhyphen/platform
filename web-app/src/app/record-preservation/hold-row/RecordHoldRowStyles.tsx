@@ -20,4 +20,9 @@ export const useRecordHoldRowStyles = makeStyles({
     detail: {
         color: tokens.colorNeutralForeground3,
     },
+    actions: {
+        display: "flex",
+        flexWrap: "wrap",
+        gap: tokens.spacingHorizontalS,
+    },
 });

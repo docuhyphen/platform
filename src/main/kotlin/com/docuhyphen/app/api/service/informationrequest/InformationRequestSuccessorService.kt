@@ -13,6 +13,7 @@ import com.docuhyphen.app.api.model.informationrequest.InformationRequestSuccess
 import com.docuhyphen.app.api.model.informationrequest.LockedInformationRequest
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestCarryForwardRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestLineageRepository
+import com.docuhyphen.app.api.model.entity.InformationRequestShareRoleKey
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestPartyRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRequirementRepository
@@ -146,7 +147,7 @@ class InformationRequestSuccessorService @Inject constructor(
             access,
             idempotencyKey,
         )
-        copyActingParties(source, successor, access)
+        copyParties(source, successor, access)
         val now = Timestamp.from(clock.instant())
         val lineage = lineageRepository.save(
             InformationRequestLineage().apply {
@@ -206,7 +207,7 @@ class InformationRequestSuccessorService @Inject constructor(
         return lockService.activePackages(source.id).lastOrNull()?.let { packageReader.view(source.id, it.id) }
     }
 
-    private fun copyActingParties(source: InformationRequest, successor: InformationRequest, access: RequestAccessContext)
+    private fun copyParties(source: InformationRequest, successor: InformationRequest, access: RequestAccessContext)
     {
         val defaults = partyRepository.findActiveForRequest(source.id).mapNotNull { party ->
             val kind = party.principalKind ?: return@mapNotNull null
@@ -214,6 +215,11 @@ class InformationRequestSuccessorService @Inject constructor(
             BlueprintInformationRequestPartyDefault(party.roleKey, PrincipalRef(kind, id))
         }
         partyService.materializeBlueprintDefaultParties(successor, defaults, access)
+        partyService.materializeSubjectParties(
+            successor,
+            partyRepository.findActiveForRequestRole(source.id, InformationRequestShareRoleKey.SUBJECT).mapNotNull { it.subjectIdentityRefId },
+            access,
+        )
     }
 
     private fun recordCarryForward(

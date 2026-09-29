@@ -11,17 +11,7 @@ import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.command.CommandPrecondition
-import com.docuhyphen.app.api.service.command.CommandReceiptConflictException
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestAccessContextFactory
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestBootstrapShareLinkIssuance
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestBootstrapShareLinkService
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestLifecycleException
-import com.docuhyphen.app.api.service.informationrequest.IssueInformationRequestBootstrapShareLinkCommand
-import com.docuhyphen.app.api.service.informationrequest.ReplaceInformationRequestBootstrapShareLinkCommand
-import com.docuhyphen.app.api.service.informationrequest.RequestAccessContext
-import com.docuhyphen.app.api.service.informationrequest.RevokeInformationRequestBootstrapShareLinkCommand
-import com.docuhyphen.app.api.service.informationrequest.RotateInformationRequestBootstrapShareLinkCommand
+import com.docuhyphen.app.api.service.informationrequest.*
 import io.quarkus.security.ForbiddenException
 import jakarta.ws.rs.POST
 import jakarta.ws.rs.Path
@@ -32,7 +22,7 @@ import org.mockito.kotlin.any
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
-import java.util.UUID
+import java.util.*
 
 /**
  * The owner-facing bootstrap access-link resource exposes issuance, rotation, replacement, and
@@ -65,6 +55,32 @@ class InformationRequestAccessLinkResourceContractTest
     init
     {
         whenever(accessContextFactory.currentAuthenticated()).thenReturn(access)
+    }
+
+    @Test
+    fun `the author lists access links by party without any secret`()
+    {
+        whenever(bootstrapShareLinkService.links(requestId, access)).thenReturn(
+            listOf(
+                com.docuhyphen.app.api.model.informationrequest.InformationRequestAccessLinkView(
+                    shareLink(),
+                    partyId
+                )
+            ),
+        )
+
+        val listed = resource.list(requestId.toString())
+        val invalid = resource.list("not-a-request")
+
+        assertEquals(true, InformationRequestAccessLinkResource::class.java.declaredMethods.single { it.name == "list" }
+            .isAnnotationPresent(jakarta.ws.rs.GET::class.java))
+        assertEquals(Response.Status.OK.statusCode, listed.status)
+        @Suppress("UNCHECKED_CAST")
+        val link = (listed.entity as List<InformationRequestAccessLinkDto>).single()
+        assertEquals(shareLinkId, link.shareLinkId)
+        assertEquals(partyId, link.partyId)
+        assertEquals(ShareLinkStatus.ACTIVE, link.status)
+        assertEquals(Response.Status.BAD_REQUEST.statusCode, invalid.status)
     }
 
     @Test

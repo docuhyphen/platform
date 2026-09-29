@@ -8,6 +8,9 @@ import {
     InformationRequestNoticeKind,
 } from "../../../models/models.tsx";
 import InformationRequestAmendmentSummary from "./InformationRequestAmendmentSummary.tsx";
+import {formatInformationRequestTime} from "../../shared/informationRequestFormatting.ts";
+
+const shownTime = (value: string): string => formatInformationRequestTime(value).replace(/\s+/g, " ");
 
 vi.mock("../../../../services/informationRequestSubmissionService.ts", () => ({
     getInformationRequestAmendments: vi.fn(),
@@ -44,6 +47,7 @@ describe("InformationRequestAmendmentSummary", () =>
                                                    refreshKey={"\"responses:1\""}/>);
 
         expect(await screen.findByText("Amendment 1")).toBeTruthy();
+        expect(screen.getByText(shownTime("2026-09-25T08:00:00Z"))).toBeTruthy();
         expect(screen.getByText("supporting record: Changed")).toBeTruthy();
         expect(screen.getByText(/confirm your answer again/)).toBeTruthy();
         expect(screen.getByText("additional record: Newly requested")).toBeTruthy();

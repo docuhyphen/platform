@@ -2,12 +2,8 @@ package com.docuhyphen.app.api.service.informationrequest
 
 import com.docuhyphen.app.api.model.dto.*
 import com.docuhyphen.app.api.model.entity.*
-import com.docuhyphen.app.api.model.entity.InformationRequestSupportingEvidenceLink
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateBindingEvidenceLink
 import com.docuhyphen.app.api.model.informationrequest.InformationRequestNoAuthAccess
 import com.docuhyphen.app.api.repository.informationrequest.*
-import com.docuhyphen.app.api.repository.informationrequest.InformationRequestSupportingEvidenceLinkRepository
-import com.docuhyphen.app.api.repository.informationrequest.InformationRequestTemplateBindingEvidenceLinkRepository
 import com.docuhyphen.app.api.resource.informationrequest.InformationRequestNoAuthRequestResource
 import com.docuhyphen.app.api.resource.informationrequest.InformationRequestResource
 import com.docuhyphen.app.api.service.auth.authz.*
@@ -18,7 +14,7 @@ import org.junit.jupiter.api.Test
 import org.mockito.kotlin.*
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 class InformationRequestResponseWorkspaceServiceTest
 {
@@ -109,6 +105,16 @@ class InformationRequestResponseWorkspaceServiceTest
         val unscanned = fixture.service.load(fixture.request.id, fixture.access)
         assertFalse(unscanned.evidenceUploadAvailable)
         assertFalse(unscanned.evidenceMalwareScanning)
+    }
+
+    @Test
+    fun `both workspace surfaces carry the request's title`()
+    {
+        val fixture = Fixture()
+        whenever(fixture.conditions.evaluate(fixture.request.id)).thenReturn(emptyList())
+        whenever(fixture.titleReader.titleOf(fixture.request)).thenReturn("Periodic records request")
+
+        fixture.loadWorkspaces().forEach { assertEquals("Periodic records request", it.title) }
     }
 
     @Test
@@ -411,8 +417,19 @@ class InformationRequestResponseWorkspaceServiceTest
         val templateLinks = mock<InformationRequestTemplateBindingEvidenceLinkRepository>()
         val supportingLinks = InformationRequestSupportingEvidenceLinkService(templateLinks, requirements, linkRepository)
         val evidenceUpload = mock<InformationRequestEvidenceDeploymentPolicy>()
+        val titleReader = mock<InformationRequestTitleReader>()
         val service = InformationRequestResponseWorkspaceService(query, versions, templates, occurrenceRepository, requirements,
-            responses, bindingRepository, fields, authorization, conditions, groupAuthorization, supportingLinks, evidenceUpload, mock())
+            responses,
+            bindingRepository,
+            fields,
+            authorization,
+            conditions,
+            groupAuthorization,
+            supportingLinks,
+            evidenceUpload,
+            mock(),
+            titleReader
+        )
 
         fun updateTemplate(transform: (InformationRequestTemplateVersionDto) -> InformationRequestTemplateVersionDto)
         {
@@ -432,7 +449,8 @@ class InformationRequestResponseWorkspaceServiceTest
         {
             val accessFactory = mock<InformationRequestAccessContextFactory>()
             whenever(accessFactory.currentAuthenticated()).thenReturn(access)
-            val authenticated = InformationRequestResource(query, mock(), mock(), accessFactory, service)
+            val authenticated =
+                InformationRequestResource(query, mock(), mock(), accessFactory, service, mock(), mock())
             val resolver = mock<InformationRequestNoAuthReadAccessService>()
             whenever(resolver.resolve("bootstrap", "session")).thenReturn(InformationRequestNoAuthAccess(access, request.id))
             val noAuth = InformationRequestNoAuthRequestResource(resolver, mock(), mock(), mock(), service)
@@ -449,7 +467,8 @@ class InformationRequestResponseWorkspaceServiceTest
         {
             val accessFactory = mock<InformationRequestAccessContextFactory>()
             whenever(accessFactory.currentAuthenticated()).thenReturn(access)
-            val authenticated = InformationRequestResource(query, mock(), mock(), accessFactory, service)
+            val authenticated =
+                InformationRequestResource(query, mock(), mock(), accessFactory, service, mock(), mock())
             val resolver = mock<InformationRequestNoAuthReadAccessService>()
             whenever(resolver.resolve("bootstrap", "session")).thenReturn(InformationRequestNoAuthAccess(access, request.id))
             val noAuth = InformationRequestNoAuthRequestResource(resolver, mock(), mock(), mock(), service)
@@ -465,6 +484,7 @@ class InformationRequestResponseWorkspaceServiceTest
         init
         {
             val version = InformationRequestTemplateVersion().apply { id = request.templateVersionId }
+            whenever(titleReader.titleOf(any())).thenReturn("Collection request")
             whenever(query.findById(request.id, access)).thenReturn(request)
             whenever(versions.findById(version.id)).thenReturn(version)
             whenever(templates.loadVersion(version)).thenReturn(InformationRequestTemplateVersionDto(version.id,

@@ -1,14 +1,9 @@
 package com.docuhyphen.app.api.model.entity
 
-import jakarta.persistence.Column
-import jakarta.persistence.Entity
-import jakarta.persistence.EnumType
-import jakarta.persistence.Enumerated
-import jakarta.persistence.Id
-import jakarta.persistence.Table
+import jakarta.persistence.*
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 @Entity
 @Table(name = "information_request_amendment")
@@ -95,6 +90,9 @@ class InformationRequestNoticeIntent
 
     @Column(name = "clock_event_id")
     var clockEventId: UUID? = null
+
+    @Column(name = "transition_id")
+    var transitionId: UUID? = null
 
     @Column(name = "source_communication_id")
     var sourceCommunicationId: UUID? = null

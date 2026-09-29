@@ -1,8 +1,10 @@
+import {useState} from "react";
 import {Button, Tab, TabList} from "@fluentui/react-components";
 import {AddIcon} from "../../components/IconBundles.tsx";
 import {InformationRequestTemplateScopeKind} from "../../models/models.tsx";
-import InformationRequestTemplateDraftPanel from "./InformationRequestTemplateDraftPanel.tsx";
-import InformationRequestTemplateList from "./InformationRequestTemplateList.tsx";
+import TemplateCreateDialog from "./template-create-dialog/TemplateCreateDialog.tsx";
+import TemplateEditor from "./template-editor/TemplateEditor.tsx";
+import TemplateList from "./template-list/TemplateList.tsx";
 import {useInformationRequestTemplatesTabStyles} from "./InformationRequestTemplatesTabStyles.tsx";
 import {useInformationRequestTemplateAdministration} from "./useInformationRequestTemplateAdministration.ts";
 
@@ -10,70 +12,67 @@ const InformationRequestTemplatesTab = () =>
 {
     const styles = useInformationRequestTemplatesTabStyles();
     const state = useInformationRequestTemplateAdministration();
+    const [creating, setCreating] = useState(false);
+
+    if (state.openTemplate && state.commands)
+    {
+        return (
+            <div id={"settings-information-request-templates-tab"}
+                 className={styles.root}>
+                <TemplateEditor template={state.openTemplate}
+                                schemas={state.schemas}
+                                canManage={state.canManageScope}
+                                commands={state.commands}
+                                onClose={state.close}/>
+            </div>
+        );
+    }
 
     return (
-        <div
-            id={"settings-information-request-templates-tab"}
-            className={styles.root}
-        >
-            <div className={styles.stickyBlock}>
-                <div className={styles.headerRow}>
-                    <TabList
-                        id={"information-request-template-scope-tabs"}
-                        selectedValue={state.scope ?? undefined}
-                        onTabSelect={(_, data) => state.setScope(
-                            data.value as InformationRequestTemplateScopeKind,
-                        )}
-                    >
-                        <Tab
-                            id={"information-request-template-personal-scope"}
-                            value={InformationRequestTemplateScopeKind.PERSONAL}
-                        >
-                            My Templates
+        <div id={"settings-information-request-templates-tab"}
+             className={styles.root}>
+            <div id={"information-request-template-header"}
+                 className={styles.header}>
+                <TabList id={"information-request-template-scope-tabs"}
+                         selectedValue={state.scope ?? undefined}
+                         onTabSelect={(_, data) => state.setScope(data.value as InformationRequestTemplateScopeKind)}>
+                    <Tab id={"information-request-template-personal-scope"}
+                         value={InformationRequestTemplateScopeKind.PERSONAL}>
+                        My Templates
+                    </Tab>
+                    {state.hasOrg && (
+                        <Tab id={"information-request-template-organization-scope"}
+                             value={InformationRequestTemplateScopeKind.ORGANIZATION}>
+                            Organization
                         </Tab>
-                        {state.hasOrg && (
-                            <Tab
-                                id={"information-request-template-organization-scope"}
-                                value={InformationRequestTemplateScopeKind.ORGANIZATION}
-                            >
-                                Organization
-                            </Tab>
-                        )}
-                        <Tab
-                            id={"information-request-template-platform-scope"}
-                            value={InformationRequestTemplateScopeKind.PLATFORM}
-                        >
-                            Platform
-                        </Tab>
-                    </TabList>
-                    {state.canManageScope && (
-                        <Button
-                            id={"information-request-template-create"}
-                            appearance={"subtle"}
+                    )}
+                    <Tab id={"information-request-template-platform-scope"}
+                         value={InformationRequestTemplateScopeKind.PLATFORM}>
+                        Platform
+                    </Tab>
+                </TabList>
+                {state.canManageScope && (
+                    <Button id={"information-request-template-create"}
+                            appearance={"primary"}
                             shape={"circular"}
                             icon={<AddIcon/>}
-                            onClick={() => void state.createDraft()}
-                        >
-                            New Template
-                        </Button>
-                    )}
-                </div>
+                            onClick={() => setCreating(true)}>
+                        New Template
+                    </Button>
+                )}
             </div>
-            <div className={styles.content}>
-                <InformationRequestTemplateList
-                    templates={state.templates}
-                    loading={state.loading}
-                    error={state.error}
-                    canManage={state.canManageScope}
-                    onOpenDraft={template => void state.openDraft(template)}
-                />
-                <InformationRequestTemplateDraftPanel
-                    template={state.selectedTemplate}
-                    schemas={state.schemas}
-                    onSave={state.saveDraft}
-                    onPublish={state.publishDraft}
-                />
+            <div id={"information-request-template-content"}
+                 className={styles.content}>
+                <TemplateList templates={state.templates}
+                              loading={state.loading}
+                              error={state.error}
+                              onOpen={template => void state.open(template)}/>
             </div>
+            {creating && state.scope && (
+                <TemplateCreateDialog scopeKind={state.scope}
+                                      onCreate={state.create}
+                                      onDismiss={() => setCreating(false)}/>
+            )}
         </div>
     );
 };

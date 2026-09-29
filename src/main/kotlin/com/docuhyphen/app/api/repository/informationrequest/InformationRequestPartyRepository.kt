@@ -5,7 +5,7 @@ import com.docuhyphen.app.api.model.entity.InformationRequestShareRoleKey
 import com.docuhyphen.app.api.model.entity.PrincipalKind
 import com.docuhyphen.app.api.repository.BaseRepository
 import jakarta.enterprise.context.ApplicationScoped
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestPartyRepository :
@@ -23,6 +23,23 @@ class InformationRequestPartyRepository :
         )
             .setParameter("requestId", requestId)
             .resultList
+
+    fun findActiveForRequests(requestIds: Collection<UUID>): List<InformationRequestParty>
+    {
+        if (requestIds.isEmpty()) return emptyList()
+        return entityManager.createQuery(
+            """
+            SELECT party
+            FROM InformationRequestParty party
+            WHERE party.informationRequestId IN :requestIds
+              AND party.active = TRUE
+            ORDER BY party.roleKey, party.createdAt, party.id
+            """.trimIndent(),
+            InformationRequestParty::class.java,
+        )
+            .setParameter("requestIds", requestIds)
+            .resultList
+    }
 
     fun findActiveForRequest(requestId: UUID): List<InformationRequestParty> =
         entityManager.createQuery(

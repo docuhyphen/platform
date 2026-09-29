@@ -4,6 +4,8 @@ import {beforeEach, describe, expect, it, vi} from "vitest";
 import apiClient from "../apiClient.ts";
 import {
     appealInformationRequestReview,
+    assignInformationRequestReviewer,
+    changeInformationRequestReviewAssignment,
     getInformationRequestReview,
     getInformationRequestReviewQueue,
     getInformationRequestReviewResults,
@@ -135,5 +137,30 @@ describe("Information Request review transport", () =>
                 },
             },
         );
+    });
+
+    it("assigns a reviewer party to a stage and changes an assignment under the review revision", async () =>
+    {
+        vi.mocked(apiClient.post).mockResolvedValue({data: {assignmentId: "assignment-b"}, headers: {etag: "\"review:6\""}});
+        const options = {expectedETag: "\"review:5\"", idempotencyKey: "assign-key"};
+
+        await assignInformationRequestReviewer("request-a", "review-a", {stageKey: "content", reviewerPartyId: "party-r"}, options);
+        expect(apiClient.post).toHaveBeenLastCalledWith(
+            "/information-requests/request-a/reviews/review-a/assignments",
+            {stageKey: "content", reviewerPartyId: "party-r"},
+            {headers: {"If-Match": "\"review:5\"", "Idempotency-Key": "assign-key"}},
+        );
+        for (const change of ["recusal", "delegation", "revocation"] as const)
+        {
+            await changeInformationRequestReviewAssignment("request-a", "review-a", "assignment-a", change, {reasonCode: "CONFLICT"}, options);
+            expect(apiClient.post).toHaveBeenLastCalledWith(
+                `/information-requests/request-a/reviews/review-a/assignments/assignment-a/${change}`,
+                {reasonCode: "CONFLICT"},
+                {headers: {"If-Match": "\"review:5\"", "Idempotency-Key": "assign-key"}},
+            );
+        }
+        vi.mocked(apiClient.post).mockRejectedValueOnce(refusal(412, {reasonCode: "COMMAND_PRECONDITION_STALE"}));
+        expect(await changeInformationRequestReviewAssignment("request-a", "review-a", "assignment-a", "revocation", {}, options))
+            .toEqual({outcome: "STALE"});
     });
 });

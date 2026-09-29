@@ -4,6 +4,7 @@ import {ArrowUploadRegular} from "@fluentui/react-icons";
 import {InformationRequestEvidenceArtifactDto} from "../../../models/models.tsx";
 import EvidenceArtifactRow from "../evidence-artifact-row/EvidenceArtifactRow.tsx";
 import EvidenceFileButton from "../evidence-file-button/EvidenceFileButton.tsx";
+import EvidenceKeptUpload from "../evidence-kept-upload/EvidenceKeptUpload.tsx";
 import EvidenceWithdrawDialog from "../evidence-withdraw-dialog/EvidenceWithdrawDialog.tsx";
 import {RequirementEvidenceSettings, useRequirementEvidenceSettings} from "../RequirementEvidenceContext.ts";
 import {findingMessage, requirementStatePresentation} from "../requirementEvidenceLabels.ts";
@@ -23,7 +24,7 @@ const RequirementEvidenceContent = ({requestId, requirementId, prompt, elementId
 }) =>
 {
     const styles = useRequirementEvidencePanelStyles();
-    const {evidence, busy, progress, message, upload, replace, withdraw, open} =
+    const {evidence, busy, progress, message, kept, retry, discard, upload, replace, withdraw, open} =
         useRequirementEvidence(requestId, requirementId, settings.commands);
     const [withdrawing, setWithdrawing] = useState<InformationRequestEvidenceArtifactDto | null>(null);
     const id = `information-request-evidence-${elementId}`;
@@ -101,6 +102,7 @@ const RequirementEvidenceContent = ({requestId, requirementId, prompt, elementId
                 {progress !== null && (
                     <ProgressBar id={`${id}-progress`}
                                  className={styles.progress}
+                                 aria-label={`Uploading, ${Math.round(progress)} percent sent`}
                                  value={progress / 100}/>
                 )}
                 {!settings.malwareScanning && (
@@ -116,6 +118,13 @@ const RequirementEvidenceContent = ({requestId, requirementId, prompt, elementId
                             intent="warning">
                     <MessageBarBody>{message}</MessageBarBody>
                 </MessageBar>
+            )}
+            {kept && (
+                <EvidenceKeptUpload id={`${id}-kept`}
+                                    fileName={kept.file.name}
+                                    busy={busy}
+                                    onRetry={() => void retry()}
+                                    onDiscard={discard}/>
             )}
             {withdrawing && (
                 <EvidenceWithdrawDialog id={`${id}-withdraw-dialog`}

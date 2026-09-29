@@ -18,6 +18,7 @@ vi.mock("../../../services/recordPreservationService.ts", () => ({
     INFORMATION_REQUEST_RECORD_TYPE: "INFORMATION_REQUEST",
     getRecordPreservationHolds: vi.fn(),
     releaseRecordPreservationHold: vi.fn(),
+    changeRecordPreservationHoldScope: vi.fn(),
     getRecordRetentionSchedule: vi.fn(),
     publishRecordRetentionSchedule: vi.fn(),
     getRecordDisposals: vi.fn(),
@@ -84,6 +85,41 @@ describe("RecordPreservation", () =>
 
         await waitFor(() => expect(records.releaseRecordPreservationHold).toHaveBeenCalledWith("hold-a", "Review closed"));
         await waitFor(() => expect(records.getRecordPreservationHolds).toHaveBeenCalledTimes(2));
+    });
+
+    it("changes what an active hold covers with a stated reason", async () =>
+    {
+        vi.mocked(records.changeRecordPreservationHoldScope).mockResolvedValue({
+            ...hold,
+            scope: RecordPreservationScope.DESCENDANTS_AND_REFERENCES,
+        });
+        renderRecords();
+
+        fireEvent.click(await screen.findByRole("button", {name: "Change scope"}));
+        const dialog = await screen.findByRole("dialog", {name: "Change what this hold covers"});
+        const confirm = within(dialog).getByRole("button", {name: "Change scope"});
+        fireEvent.click(within(dialog).getByRole("radio", {name: "This record, its descendants, and the records it refers to"}));
+        expect(confirm.hasAttribute("disabled")).toBe(true);
+        fireEvent.change(within(dialog).getByRole("textbox", {name: /Reason/}), {target: {value: "Related records are in scope"}});
+        fireEvent.click(confirm);
+
+        await waitFor(() => expect(records.changeRecordPreservationHoldScope).toHaveBeenCalledWith(
+            "hold-a",
+            RecordPreservationScope.DESCENDANTS_AND_REFERENCES,
+            "Related records are in scope",
+        ));
+        await waitFor(() => expect(records.getRecordPreservationHolds).toHaveBeenCalledTimes(2));
+    });
+
+    it("keeps the scope choice closed until it differs from the hold's current scope", async () =>
+    {
+        renderRecords();
+
+        fireEvent.click(await screen.findByRole("button", {name: "Change scope"}));
+        const dialog = await screen.findByRole("dialog", {name: "Change what this hold covers"});
+        fireEvent.change(within(dialog).getByRole("textbox", {name: /Reason/}), {target: {value: "No change"}});
+        expect(within(dialog).getByRole("button", {name: "Change scope"}).hasAttribute("disabled")).toBe(true);
+        expect(records.changeRecordPreservationHoldScope).not.toHaveBeenCalled();
     });
 
     it("publishes a retention version only when disposal never precedes the minimum", async () =>

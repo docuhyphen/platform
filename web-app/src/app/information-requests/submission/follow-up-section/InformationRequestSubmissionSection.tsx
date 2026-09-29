@@ -14,6 +14,7 @@ import InformationRequestCarryForwardList from "../carry-forward-list/Informatio
 import InformationRequestSubmissionPanel from "../submission-panel/InformationRequestSubmissionPanel.tsx";
 import InformationRequestSupplementDialog from "../supplement-dialog/InformationRequestSupplementDialog.tsx";
 import {submissionErrorMessage} from "../submissionLabels.ts";
+import {submissionReviewItems} from "../submissionReview.ts";
 import {useInformationRequestSubmissionSectionStyles} from "./InformationRequestSubmissionSectionStyles.tsx";
 
 interface Props
@@ -40,6 +41,7 @@ const InformationRequestSubmissionSection = ({workspace, requirements, accessLin
         return Object.fromEntries(workspace.responses.map(response =>
             [response.informationRequestRequirementId, prompts.get(response.sourceTemplateBindingId) ?? "Requested item"]));
     }, [requirements, workspace.responses]);
+    const reviewItems = useMemo(() => submissionReviewItems(workspace.responses, requirements), [requirements, workspace.responses]);
     const canRequestSupplement = !accessLinkToken && followUpFeature.isAvailable && FOLLOW_UP_STATES.has(request.state);
 
     const requestSupplement = async (reason: string) =>
@@ -79,6 +81,8 @@ const InformationRequestSubmissionSection = ({workspace, requirements, accessLin
                                                requestState={request.state}
                                                responseETag={workspace.responseETag}
                                                accessLinkToken={accessLinkToken}
+                                               requirementLabels={requirementLabels}
+                                               reviewItems={reviewItems}
                                                onChanged={onChanged}/>
             <InformationRequestReviewResults requestId={request.id}
                                              accessLinkToken={accessLinkToken}

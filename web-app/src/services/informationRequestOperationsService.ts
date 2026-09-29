@@ -28,6 +28,8 @@ const requestPath = (requestId: string): string => `/information-requests/${requ
 export const getInformationRequestOperations = (filter: InformationRequestOperationsFilter): Promise<InformationRequestOperationsPageDto> =>
     read(() => apiClient.get("/information-request-operations", {
         params: {
+            search: filter.search?.trim() || undefined,
+            assigneeId: filter.assigneeId || undefined,
             slaStatus: filter.slaStatus,
             exceptionsOnly: filter.exceptionsOnly || undefined,
             limit: filter.limit,

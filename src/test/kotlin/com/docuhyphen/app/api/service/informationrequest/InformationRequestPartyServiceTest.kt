@@ -1,75 +1,29 @@
 package com.docuhyphen.app.api.service.informationrequest
 
-import com.docuhyphen.app.api.model.entity.Exchange
-import com.docuhyphen.app.api.model.entity.ExchangeStatus
-import com.docuhyphen.app.api.model.entity.InformationRequest
-import com.docuhyphen.app.api.model.entity.InformationRequestOwnerType
-import com.docuhyphen.app.api.model.entity.InformationRequestParty
-import com.docuhyphen.app.api.model.entity.InformationRequestShareRoleKey
-import com.docuhyphen.app.api.model.entity.InformationRequestTransition
-import com.docuhyphen.app.api.model.entity.PrincipalGroup
-import com.docuhyphen.app.api.model.entity.PrincipalKind
-import com.docuhyphen.app.api.model.entity.ResourceType
-import com.docuhyphen.app.api.model.entity.Share
-import com.docuhyphen.app.api.model.entity.ShareSource
-import com.docuhyphen.app.api.model.entity.ShareStatus
-import com.docuhyphen.app.api.model.entity.CommandReceipt
-import com.docuhyphen.app.api.model.entity.ExchangeRecipient
-import com.docuhyphen.app.api.model.entity.ExchangeRecipientAcceptanceStatus
-import com.docuhyphen.app.api.model.entity.ExchangeRecipientPurpose
-import com.docuhyphen.app.api.model.entity.ExchangeRecipientSelectionType
-import com.docuhyphen.app.api.model.entity.ExchangeRecipientType
-import com.docuhyphen.app.api.model.entity.ExchangeShareRoleName
-import com.docuhyphen.app.api.model.entity.AppUser
-import com.docuhyphen.app.api.model.entity.RequestExecutionGrant
-import com.docuhyphen.app.api.model.entity.RequestExecutionUsageKind
-import com.docuhyphen.app.api.model.entity.RequestExecutionUsageReservation
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestPartyRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestTransitionRepository
 import com.docuhyphen.app.api.repository.informationrequest.SubjectIdentityRefRepository
+import com.docuhyphen.app.api.resource.model.TrustedGroupRecipientSelectionRequest
+import com.docuhyphen.app.api.resource.model.TrustedPersonRecipientSelectionRequest
 import com.docuhyphen.app.api.service.audit.AuditCaptureResult
 import com.docuhyphen.app.api.service.audit.AuditEventDraft
 import com.docuhyphen.app.api.service.audit.AuditRecorder
 import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
-import com.docuhyphen.app.api.service.auth.authz.Action
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.Decision
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import com.docuhyphen.app.api.service.auth.authz.ResourceRef
+import com.docuhyphen.app.api.service.auth.authz.*
 import com.docuhyphen.app.api.service.command.CommandPrecondition
 import com.docuhyphen.app.api.service.command.CommandReceiptRequest
 import com.docuhyphen.app.api.service.command.CommandReceiptService
 import com.docuhyphen.app.api.service.command.CommandReceiptStore
-import com.docuhyphen.app.api.service.exchange.ExternalParticipantOwner
-import com.docuhyphen.app.api.service.exchange.ExternalParticipantService
-import com.docuhyphen.app.api.service.exchange.ExchangeRecipientService
-import com.docuhyphen.app.api.service.exchange.ExchangeRecipientSelectionResolver
-import com.docuhyphen.app.api.service.exchange.ResolvedExchangeRecipientSelection
-import com.docuhyphen.app.api.service.exchange.ShareService
+import com.docuhyphen.app.api.service.exchange.*
 import com.docuhyphen.app.api.service.notification.DomainEvent
 import com.docuhyphen.app.api.service.notification.DomainEventPublisher
-import com.docuhyphen.app.api.resource.model.TrustedGroupRecipientSelectionRequest
-import com.docuhyphen.app.api.resource.model.TrustedPersonRecipientSelectionRequest
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertNotNull
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Assertions.assertThrows
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
-import org.mockito.kotlin.any
-import org.mockito.kotlin.anyOrNull
-import org.mockito.kotlin.argumentCaptor
-import org.mockito.kotlin.eq
-import org.mockito.kotlin.inOrder
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.never
-import org.mockito.kotlin.times
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.whenever
-import java.util.UUID
+import org.mockito.kotlin.*
+import java.util.*
 
 class InformationRequestPartyServiceTest
 {
@@ -980,6 +934,111 @@ class InformationRequestPartyServiceTest
         assertEquals(AuditEventType.INFORMATION_REQUEST_PARTY_REASSIGN.key, audit.firstValue.eventTypeKey)
         assertEquals(1, fixture.events.size)
         assertEquals(AuditEventType.INFORMATION_REQUEST_PARTY_REASSIGN.key, fixture.events.single().type)
+    }
+
+    @Test
+    fun `assigning a party and a contact records party scoped history and audit`()
+    {
+        val fixture = Fixture()
+        val actor = PrincipalRef.user(UUID.randomUUID())
+        whenever(fixture.externalParticipantService.findOrCreate(any(), eq("contact@example.test"), anyOrNull()))
+            .thenReturn(ExternalParticipant().apply { id = UUID.randomUUID() })
+
+        val assigned = fixture.service.assign(
+            AssignInformationRequestPartyCommand(
+                requestId = fixture.request.id,
+                roleKey = InformationRequestShareRoleKey.DECISION_MAKER,
+                principal = actor,
+                access = RequestAccessContext(actor, fixture.authorizationContext),
+                precondition = CommandPrecondition.ExpectedRevision(InformationRequestETag.partiesOf(fixture.request)),
+                idempotencyKey = "assign-decision-maker",
+            ),
+        )
+        val contact = fixture.service.assignExternalParticipant(
+            AssignExternalParticipantInformationRequestPartyCommand(
+                requestId = fixture.request.id,
+                roleKey = InformationRequestShareRoleKey.CONTRIBUTOR,
+                email = "contact@example.test",
+                access = RequestAccessContext(actor, fixture.authorizationContext),
+                precondition = CommandPrecondition.ExpectedRevision(InformationRequestETag.partiesOf(fixture.request)),
+                idempotencyKey = "assign-contact",
+            ),
+        )
+
+        assertEquals(
+            listOf(InformationRequestMutation.ASSIGN_PARTY, InformationRequestMutation.ASSIGN_PARTY),
+            fixture.savedTransitions.map { it.mutation },
+        )
+        assertEquals(listOf(assigned.party.id, contact.party.id), fixture.savedTransitions.map { it.partyId })
+        val audit = argumentCaptor<AuditEventDraft>()
+        verify(fixture.auditRecorder, times(2)).record(audit.capture())
+        assertTrue(audit.allValues.all { it.eventTypeKey == AuditEventType.INFORMATION_REQUEST_PARTY_ASSIGN.key })
+    }
+
+    @Test
+    fun `revoking a party records party scoped history and audit`()
+    {
+        val fixture = Fixture()
+        val actor = PrincipalRef.user(UUID.randomUUID())
+        val existingParty = fixture.activeActingParty()
+
+        fixture.service.revoke(
+            RevokeInformationRequestPartyCommand(
+                requestId = fixture.request.id,
+                partyId = existingParty.id,
+                access = RequestAccessContext(actor, fixture.authorizationContext),
+                precondition = CommandPrecondition.ExpectedRevision(InformationRequestETag.partiesOf(fixture.request)),
+                idempotencyKey = "revoke-with-history",
+            ),
+        )
+
+        val transition = fixture.savedTransitions.single()
+        assertEquals(InformationRequestMutation.REVOKE_PARTY, transition.mutation)
+        assertEquals(existingParty.id, transition.partyId)
+        val audit = argumentCaptor<AuditEventDraft>()
+        verify(fixture.auditRecorder).record(audit.capture())
+        assertEquals(AuditEventType.INFORMATION_REQUEST_PARTY_REVOKE.key, audit.firstValue.eventTypeKey)
+    }
+
+    @Test
+    fun `a finished request takes no new party and keeps the parties it has`()
+    {
+        val fixture = Fixture()
+        fixture.request.state = InformationRequestState.CANCELLED
+        val actor = PrincipalRef.user(UUID.randomUUID())
+        val existingParty = fixture.activeActingParty()
+
+        val assignment = assertThrows(InformationRequestLifecycleException::class.java) {
+            fixture.service.assign(
+                AssignInformationRequestPartyCommand(
+                    requestId = fixture.request.id,
+                    roleKey = InformationRequestShareRoleKey.CONTRIBUTOR,
+                    principal = PrincipalRef.participant(UUID.randomUUID()),
+                    access = RequestAccessContext(actor, fixture.authorizationContext),
+                    precondition = CommandPrecondition.ExpectedRevision(InformationRequestETag.partiesOf(fixture.request)),
+                    idempotencyKey = "assign-after-cancel",
+                ),
+            )
+        }
+        val revocation = assertThrows(InformationRequestLifecycleException::class.java) {
+            fixture.service.revoke(
+                RevokeInformationRequestPartyCommand(
+                    requestId = fixture.request.id,
+                    partyId = existingParty.id,
+                    access = RequestAccessContext(actor, fixture.authorizationContext),
+                    precondition = CommandPrecondition.ExpectedRevision(InformationRequestETag.partiesOf(fixture.request)),
+                    idempotencyKey = "revoke-after-cancel",
+                ),
+            )
+        }
+
+        assertEquals(InformationRequestErrorCatalog.STATE_INVALID, assignment.reasonCode)
+        assertEquals(InformationRequestErrorCatalog.STATE_INVALID, revocation.reasonCode)
+        assertTrue(existingParty.active)
+        assertTrue(fixture.savedTransitions.isEmpty())
+        verify(fixture.shareService, never()).grantRoleKeyWithPrincipalProvenance(
+            any(), any(), any(), any(), any(), anyOrNull(), any(), anyOrNull(), anyOrNull(), any(), anyOrNull(),
+        )
     }
 
     @Test

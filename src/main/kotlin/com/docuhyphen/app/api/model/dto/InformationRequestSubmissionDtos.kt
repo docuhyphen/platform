@@ -46,6 +46,7 @@ data class InformationRequestSubmissionPackageDto(
 
 @Serializable
 data class InformationRequestSubmissionItemDto(
+    @Serializable(with = UUIDSerializer::class) val id: UUID,
     @Serializable(with = UUIDSerializer::class) val requirementId: UUID,
     val requirementKey: String,
     val requirementType: InformationRequestRequirementType,

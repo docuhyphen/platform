@@ -10,6 +10,8 @@ import {
     statedInformationRequestRefusal,
 } from "./informationRequestRuntimeService.ts";
 import {
+    AssignInformationRequestReviewerRequest,
+    ChangeInformationRequestReviewAssignmentRequest,
     InformationRequestRespondentReviewDto,
     InformationRequestReviewCommandResultDto,
     InformationRequestReviewDto,
@@ -158,6 +160,34 @@ export const reconsiderInformationRequestReview = (
 ): Promise<RuntimeCommandResult<InformationRequestReviewCommandResultDto>> =>
     execute(() => apiClient.post(
         `${reviewPath(requestId, reviewId)}/reconsiderations`,
+        request,
+        {headers: informationRequestCommandHeaders(requestId, {...options, accessLinkToken: undefined})},
+    ));
+
+export type InformationRequestReviewAssignmentChange = "recusal" | "delegation" | "revocation";
+
+export const assignInformationRequestReviewer = (
+    requestId: string,
+    reviewId: string,
+    request: AssignInformationRequestReviewerRequest,
+    options: RuntimeCommandOptions,
+): Promise<RuntimeCommandResult<InformationRequestReviewCommandResultDto>> =>
+    execute(() => apiClient.post(
+        `${reviewPath(requestId, reviewId)}/assignments`,
+        request,
+        {headers: informationRequestCommandHeaders(requestId, {...options, accessLinkToken: undefined})},
+    ));
+
+export const changeInformationRequestReviewAssignment = (
+    requestId: string,
+    reviewId: string,
+    assignmentId: string,
+    change: InformationRequestReviewAssignmentChange,
+    request: ChangeInformationRequestReviewAssignmentRequest,
+    options: RuntimeCommandOptions,
+): Promise<RuntimeCommandResult<InformationRequestReviewCommandResultDto>> =>
+    execute(() => apiClient.post(
+        `${reviewPath(requestId, reviewId)}/assignments/${assignmentId}/${change}`,
         request,
         {headers: informationRequestCommandHeaders(requestId, {...options, accessLinkToken: undefined})},
     ));

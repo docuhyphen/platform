@@ -31,6 +31,8 @@ data class InformationRequestLineageViewDto(
     @Serializable(with = UUIDSerializer::class) val informationRequestId: UUID,
     val source: InformationRequestLineageDto? = null,
     val successors: List<InformationRequestLineageDto> = emptyList(),
+    val recurrence: InformationRequestRecurrenceDto? = null,
+    @Serializable(with = TimestampSerializer::class) val nextOccurrenceDueAt: Timestamp? = null,
 )
 
 @Serializable

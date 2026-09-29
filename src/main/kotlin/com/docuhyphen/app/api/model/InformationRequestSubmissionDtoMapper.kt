@@ -178,6 +178,7 @@ object InformationRequestSubmissionDtoMapper
         evidence: List<InformationRequestSubmissionEvidence>,
         fieldValue: FieldValueRevisionValue?,
     ) = InformationRequestSubmissionItemDto(
+        id = item.id,
         requirementId = item.informationRequestRequirementId,
         requirementKey = item.requirementKey,
         requirementType = item.requirementType,

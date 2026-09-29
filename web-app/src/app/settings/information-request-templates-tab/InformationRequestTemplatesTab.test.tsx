@@ -1,17 +1,12 @@
 /** @vitest-environment jsdom */
-import {cleanup, fireEvent, render, screen, waitFor} from "@testing-library/react";
-import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
+import {cleanup, fireEvent, render, screen, waitFor, within} from "@testing-library/react";
+import {afterEach, beforeAll, beforeEach, describe, expect, it, vi} from "vitest";
 import {
     CurrentSessionDto,
-    FieldDataClassification,
-    FieldLifecycleStatus,
     FieldScopeKind,
-    FieldValueType,
-    InformationRequestRequirementType,
     InformationRequestTemplateDto,
     InformationRequestTemplateScopeKind,
     InformationRequestTemplateStatus,
-    SchemaDefinitionDto,
 } from "../../models/models.tsx";
 import InformationRequestTemplatesTab from "./InformationRequestTemplatesTab.tsx";
 
@@ -21,6 +16,9 @@ const templateApi = vi.hoisted(() => ({
     create: vi.fn(),
     replace: vi.fn(),
     publish: vi.fn(),
+    newVersion: vi.fn(),
+    retire: vi.fn(),
+    clone: vi.fn(),
 }));
 
 const fieldApi = vi.hoisted(() => ({
@@ -40,6 +38,9 @@ vi.mock("../../../services/informationRequestTemplateService.ts", () => ({
     createInformationRequestTemplate: (...args: unknown[]) => templateApi.create(...args),
     replaceInformationRequestTemplateDraftConfiguration: (...args: unknown[]) => templateApi.replace(...args),
     publishInformationRequestTemplateDraft: (...args: unknown[]) => templateApi.publish(...args),
+    createInformationRequestTemplateDraftVersion: (...args: unknown[]) => templateApi.newVersion(...args),
+    retireInformationRequestTemplateVersion: (...args: unknown[]) => templateApi.retire(...args),
+    cloneInformationRequestTemplate: (...args: unknown[]) => templateApi.clone(...args),
 }));
 
 vi.mock("../../../services/fieldsService.ts", () => ({
@@ -52,6 +53,18 @@ vi.mock("../../../context/AuthContext.tsx", () => ({
         hasCapability: () => authState.canManageOrganization,
     }),
 }));
+
+beforeAll(() =>
+{
+    globalThis.ResizeObserver = class
+    {
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+    };
+});
+
+afterEach(cleanup);
 
 const templateSummary = {
     id: "template-1",
@@ -66,8 +79,9 @@ const templateSummary = {
     updatedAt: "2026-09-02T00:00:00Z",
 };
 
-const draftTemplate = (): InformationRequestTemplateDto => ({
+const draftTemplate = (updatedAt = "2026-09-02T00:00:00Z"): InformationRequestTemplateDto => ({
     ...templateSummary,
+    updatedAt,
     draftVersion: {
         id: "draft-version-1",
         templateDefinitionId: "template-1",
@@ -79,48 +93,9 @@ const draftTemplate = (): InformationRequestTemplateDto => ({
         requiredCapabilities: [],
         createdAt: "2026-09-02T00:00:00Z",
     },
-    unsupportedPolicyControls: [{
-        controlKey: "document-evidence-policy",
-        label: "Document Evidence Policy",
-        reason: "Document evidence policy controls are not available in this deployment.",
-    }],
-} as InformationRequestTemplateDto);
-
-const requestSchema = (): SchemaDefinitionDto => ({
-    id: "schema-1",
-    scopeKind: FieldScopeKind.ORGANIZATION,
-    namespace: "process",
-    schemaKey: "request-schema",
-    displayName: "Request Schema",
-    targetResourceType: "INFORMATION_REQUEST",
-    status: FieldLifecycleStatus.PUBLISHED,
-    latestPublishedVersion: {
-        id: "schema-version-1",
-        schemaDefinitionId: "schema-1",
-        versionNumber: 1,
-        status: FieldLifecycleStatus.PUBLISHED,
-        bindings: [{
-            id: "binding-1",
-            fieldContractId: "field-contract-1",
-            fieldDefinitionId: "field-1",
-            namespace: "process",
-            fieldKey: "recorded-summary",
-            label: "Recorded summary",
-            valueType: FieldValueType.SHORT_TEXT,
-            displayOrder: 0,
-            isRequired: true,
-            isReadOnly: false,
-            visibility: FieldDataClassification.INTERNAL,
-            constraints: {},
-            options: [],
-        }],
-        publishedAt: "2026-09-02T00:00:00Z",
-        createdAt: "2026-09-02T00:00:00Z",
-    },
-    createdAt: "2026-09-02T00:00:00Z",
 });
 
-afterEach(cleanup);
+const dialog = () => screen.getByRole("dialog");
 
 describe("InformationRequestTemplatesTab", () =>
 {
@@ -130,87 +105,72 @@ describe("InformationRequestTemplatesTab", () =>
         templateApi.list.mockResolvedValue([templateSummary]);
         templateApi.get.mockResolvedValue(draftTemplate());
         templateApi.create.mockResolvedValue(draftTemplate());
-        templateApi.replace.mockResolvedValue(draftTemplate());
+        templateApi.replace.mockResolvedValue(draftTemplate("2026-09-03T00:00:00Z"));
         templateApi.publish.mockResolvedValue({
             ...draftTemplate(),
             status: InformationRequestTemplateStatus.PUBLISHED,
         });
-        fieldApi.listSchemas.mockResolvedValue([requestSchema()]);
+        fieldApi.listSchemas.mockResolvedValue([]);
         authState.currentSession = {
             activeOrganizationId: "organization-1",
         } as CurrentSessionDto;
         authState.canManageOrganization = true;
     });
 
-    it("lists Templates, saves one typed draft Requirement, and publishes", async () =>
+    it("lists Templates, opens one in the editor, saves it against its own id, and returns to the list", async () =>
     {
         render(<InformationRequestTemplatesTab/>);
 
         expect(await screen.findByText("Collection pattern")).toBeTruthy();
-        expect(templateApi.list).toHaveBeenCalledWith({
-            scopeKind: InformationRequestTemplateScopeKind.ORGANIZATION,
-        });
-        expect(fieldApi.listSchemas).toHaveBeenCalledWith({
-            scopeKind: FieldScopeKind.ORGANIZATION,
-        });
+        expect(templateApi.list).toHaveBeenCalledWith({scopeKind: InformationRequestTemplateScopeKind.ORGANIZATION});
+        expect(fieldApi.listSchemas).toHaveBeenCalledWith({scopeKind: FieldScopeKind.ORGANIZATION});
+        expect(fieldApi.listSchemas).toHaveBeenCalledWith({scopeKind: FieldScopeKind.PLATFORM});
 
-        fireEvent.click(screen.getByRole("button", {name: "Open draft"}));
+        fireEvent.click(screen.getByRole("button", {name: "Open Collection pattern"}));
+        expect(await screen.findByRole("button", {name: "Back to Templates"})).toBeTruthy();
+        expect(templateApi.get).toHaveBeenCalledWith("template-1");
 
-        expect(await screen.findByText("Document evidence policy controls are not available in this deployment."))
-            .toBeTruthy();
-        expect(screen.getByRole("button", {name: "Document Evidence Policy"}).hasAttribute("disabled"))
-            .toBe(true);
-
-        fireEvent.change(document.querySelector("#information-request-template-requirement-key-input")!, {
-            target: {value: "recorded-summary"},
-        });
-        fireEvent.change(document.querySelector("#information-request-template-requirement-prompt-input")!, {
-            target: {value: "Provide the recorded summary"},
-        });
+        fireEvent.click(screen.getByRole("button", {name: "Add section"}));
+        fireEvent.change(within(dialog()).getByLabelText("Title"), {target: {value: "Collected data"}});
+        fireEvent.click(within(dialog()).getByRole("button", {name: "Save"}));
         fireEvent.click(screen.getByRole("button", {name: "Save draft"}));
 
-        await waitFor(() => expect(templateApi.replace).toHaveBeenCalledWith(
-            "template-1",
-            {
-                schemaVersionId: "schema-version-1",
-                sections: [{
-                    sectionKey: "requested-data",
-                    title: "Requested data",
-                    requirements: [{
-                        requirementKey: "recorded-summary",
-                        requirementType: InformationRequestRequirementType.FIELD,
-                        prompt: "Provide the recorded summary",
-                        collectedFieldDefinitionId: "field-1",
-                    }],
-                }],
-            },
-        ));
+        await waitFor(() => expect(templateApi.replace).toHaveBeenCalledWith("template-1", expect.objectContaining({
+            sections: [expect.objectContaining({sectionKey: "collected-data", title: "Collected data"})],
+        })));
+        expect(await screen.findByText("All changes saved")).toBeTruthy();
 
-        fireEvent.click(screen.getByRole("button", {name: "Publish draft"}));
-
-        await waitFor(() => expect(templateApi.publish).toHaveBeenCalledWith("template-1"));
+        fireEvent.click(screen.getByRole("button", {name: "Back to Templates"}));
+        expect(await screen.findByRole("button", {name: "Open Collection pattern"})).toBeTruthy();
     });
 
-    it("creates Templates for the active organization", async () =>
+    it("creates a Template for the active organization under a key taken from its name", async () =>
     {
         render(<InformationRequestTemplatesTab/>);
 
         expect(await screen.findByText("Collection pattern")).toBeTruthy();
-        expect(screen.getByRole("tab", {name: "My Templates"})).toBeTruthy();
         expect(screen.getByRole("tab", {name: "Organization"}).getAttribute("aria-selected")).toBe("true");
-        expect(screen.getByRole("tab", {name: "Platform"})).toBeTruthy();
         fireEvent.click(screen.getByRole("button", {name: "New Template"}));
+        fireEvent.change(within(dialog()).getByLabelText("Name"), {target: {value: "Evidence Collection"}});
+        fireEvent.change(within(dialog()).getByLabelText("Description"), {target: {value: "Collect files"}});
+        fireEvent.click(within(dialog()).getByRole("button", {name: "Create"}));
 
         await waitFor(() => expect(templateApi.create).toHaveBeenCalledWith({
             namespace: "process",
-            templateKey: expect.stringMatching(/^request-template-/),
-            displayName: "New Information Request Template",
+            templateKey: "evidence-collection",
+            displayName: "Evidence Collection",
+            description: "Collect files",
             scopeKind: InformationRequestTemplateScopeKind.ORGANIZATION,
         }));
+        expect(await screen.findByRole("button", {name: "Back to Templates"})).toBeTruthy();
     });
 
-    it("keeps Platform Templates visible and read-only", async () =>
+    it("keeps Platform Templates readable but closed to authoring", async () =>
     {
+        templateApi.get.mockResolvedValue({
+            ...draftTemplate(),
+            scopeKind: InformationRequestTemplateScopeKind.PLATFORM,
+        });
         render(<InformationRequestTemplatesTab/>);
 
         expect(await screen.findByText("Collection pattern")).toBeTruthy();
@@ -220,7 +180,10 @@ describe("InformationRequestTemplatesTab", () =>
             scopeKind: InformationRequestTemplateScopeKind.PLATFORM,
         }));
         expect(screen.queryByRole("button", {name: "New Template"})).toBeNull();
-        expect(screen.queryByRole("button", {name: "Open draft"})).toBeNull();
+        fireEvent.click(await screen.findByRole("button", {name: "Open Collection pattern"}));
+        expect(await screen.findByText("Read only")).toBeTruthy();
+        expect(screen.queryByRole("button", {name: "Save draft"})).toBeNull();
+        expect(screen.queryByRole("button", {name: "Add section"})).toBeNull();
     });
 
     it("keeps Personal Templates as a separate owner scope", async () =>
@@ -233,22 +196,27 @@ describe("InformationRequestTemplatesTab", () =>
         await waitFor(() => expect(templateApi.list).toHaveBeenLastCalledWith({
             scopeKind: InformationRequestTemplateScopeKind.PERSONAL,
         }));
-        expect(fieldApi.listSchemas).toHaveBeenLastCalledWith({
-            scopeKind: FieldScopeKind.PERSONAL,
-        });
+        expect(fieldApi.listSchemas).toHaveBeenCalledWith({scopeKind: FieldScopeKind.PERSONAL});
         expect(screen.getByRole("button", {name: "New Template"})).toBeTruthy();
     });
 
-    it("lets organization members read Templates without organization authoring controls", async () =>
+    it("lets organization members read Templates without authoring controls", async () =>
     {
         authState.canManageOrganization = false;
-
         render(<InformationRequestTemplatesTab/>);
 
         expect(await screen.findByText("Collection pattern")).toBeTruthy();
-        expect(screen.getByRole("tab", {name: "Organization"})).toBeTruthy();
-        expect(screen.getByRole("tab", {name: "Platform"})).toBeTruthy();
         expect(screen.queryByRole("button", {name: "New Template"})).toBeNull();
-        expect(screen.queryByRole("button", {name: "Open draft"})).toBeNull();
+        fireEvent.click(screen.getByRole("button", {name: "Open Collection pattern"}));
+        expect(await screen.findByText("Read only")).toBeTruthy();
+        expect(screen.queryByRole("button", {name: "Save draft"})).toBeNull();
+    });
+
+    it("says why the list could not be read", async () =>
+    {
+        templateApi.list.mockRejectedValue({errorMessage: "Denied", reasonCode: "FEATURE_NOT_INCLUDED"});
+        render(<InformationRequestTemplatesTab/>);
+
+        expect(await screen.findByText("Information Request Templates could not be loaded.")).toBeTruthy();
     });
 });

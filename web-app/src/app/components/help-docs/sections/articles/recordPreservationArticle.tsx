@@ -22,9 +22,10 @@ export const recordPreservationArticle = (
             tab with a reason and an optional case reference. It covers either the request only,
             or the request, its descendants, and the records it refers to. A hold on the
             request&apos;s Exchange, its owner, or a subject it concerns also protects the request
-            when that hold covers descendants and referenced records. Releasing a hold needs a
-            reason and lifts only that hold. The hold and its history stay on record: when it was
-            placed, every scope change, and its release.
+            when that hold covers descendants and referenced records. <b>Change scope</b> on an active
+            hold switches what it covers, with a reason. Releasing a hold needs a reason and lifts only
+            that hold. The hold and its history stay on record: when it was placed, every scope change,
+            and its release.
         </p>
 
         <h3 id={"record-preservation-retention-heading"}>Retention schedule</h3>
@@ -49,8 +50,9 @@ export const recordPreservationArticle = (
 
         <h3 id={"record-preservation-privacy-heading"}>Privacy requests</h3>
         <p id={"record-preservation-privacy-help"}>
-            Access, export, correction, restriction, and deletion requests about a subject are
-            recorded through the API with their purpose and policy basis. An access or export
+            Access, export, restriction, and deletion requests about a subject are recorded on the
+            Privacy tab of Information Request operations, with their purpose and policy basis; a
+            correction is recorded from the request&apos;s page, under Corrections. An access or export
             request produces a verified record of every request about the subject. A correction
             adds a new, audited revision of a submitted answer without changing the submission. A
             restriction stops accepted facts about the subject from being promoted or offered for

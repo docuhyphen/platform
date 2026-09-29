@@ -25,10 +25,40 @@ export const informationRequestOperationsArticle = (
             <li><b>No clock:</b> the request runs without a clock.</li>
         </ul>
         <p id={"information-request-operations-filter-help"}>
-            The most urgent clock sets a request&apos;s level. Filter by service level, or turn on
-            <b> Exceptions only</b> to list requests with undeliverable or failed notices, escalated
-            clocks, skipped automations, or failing event deliveries.
+            The most urgent clock sets a request&apos;s level. Each row shows the request&apos;s title and
+            the parties acting on it. <b>Search</b> finds a title or the start of a request id,
+            <b> Assigned to</b> lists the requests of one party, and <b>Exceptions only</b> lists requests
+            with undeliverable or failed notices, escalated clocks, skipped automations, or failing event
+            deliveries.
         </p>
+
+        <h3 id={"information-request-operations-reminders-heading"}>Reminders and export</h3>
+        <p id={"information-request-operations-reminders-help"}>
+            Select requests and choose <b>Send reminders</b>: after you confirm, each responding party
+            of each selected request is owed a reminder notice, and the page says how many notices were
+            queued. Delivery then shows in each request&apos;s Notices tab. If any selected request is no
+            longer open, nothing is sent. Organization Owners and Administrators send reminders for the
+            organization&apos;s requests, and you send them for your personal requests. <b>Export
+            CSV</b> downloads every request that matches the current filters, as the queue shows it.
+        </p>
+
+        <h3 id={"information-request-operations-tabs-heading"}>Due date policies, privacy, and audit search</h3>
+        <ul id={"information-request-operations-tabs-list"}>
+            <li>
+                <b>Due date policies</b> sets how long a request has, in calendar time or business
+                hours with working days and holidays, when reminders go out, and what happens when it is
+                due. Each change publishes a new version.
+            </li>
+            <li>
+                <b>Privacy</b>, for people who manage privacy, lists the subjects your requests name,
+                records access, export, restriction, and deletion requests about them, and lifts
+                restrictions; see Record preservation, retention, and disposal.
+            </li>
+            <li>
+                <b>Audit search</b> searches the audit record of every request you own by request,
+                event, actor, and time.
+            </li>
+        </ul>
 
         <h3 id={"information-request-operations-clocks-heading"}>Clocks</h3>
         <p id={"information-request-operations-clocks-help"}>
@@ -36,7 +66,8 @@ export const informationRequestOperationsArticle = (
             history: started, paused, resumed, extended, reminders, overdue, escalated, and
             stopped. A clock keeps the policy version it started with, so publishing a new version
             changes only clocks started afterwards. When a request finishes or its Exchange ends,
-            its clocks stop.
+            its clocks stop. <b>Manage this request</b> opens the request&apos;s page, where a clock is
+            paused, resumed, or extended with a reason.
         </p>
 
         <h3 id={"information-request-operations-notices-heading"}>Notices</h3>

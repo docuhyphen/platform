@@ -24,6 +24,11 @@ export const informationRequestEvidenceArticle = (
                 The same file cannot be provided twice for one Requirement.
             </li>
             <li>
+                A progress bar shows how much of a file has been sent. If an upload is interrupted, the
+                file is kept on the page: select <b>Retry</b> to send it again, which never adds it
+                twice, or <b>Discard</b>.
+            </li>
+            <li>
                 Once the part of the request holding a Requirement is submitted, its files cannot
                 be added, replaced, or withdrawn until that submission is withdrawn.
             </li>

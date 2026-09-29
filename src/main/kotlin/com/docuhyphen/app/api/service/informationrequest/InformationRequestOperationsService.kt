@@ -1,20 +1,14 @@
 package com.docuhyphen.app.api.service.informationrequest
 
-import com.docuhyphen.app.api.model.entity.InformationRequest
-import com.docuhyphen.app.api.model.entity.InformationRequestClock
-import com.docuhyphen.app.api.model.entity.InformationRequestClockState
-import com.docuhyphen.app.api.model.entity.InformationRequestNoticeDeliveryState
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestClockPolicyVersionView
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestOperationsException
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestOperationsFilter
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestOperationsInputs
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestOperationsPage
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestOperationsRow
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestSlaClock
+import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.informationrequest.*
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestClockEventRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestClockRepository
+import com.docuhyphen.app.api.repository.informationrequest.InformationRequestPartyRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
 import com.docuhyphen.app.api.service.auth.authz.Action
+import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.service.identity.PrincipalDisplayService
 import com.docuhyphen.app.api.service.notification.DomainEventDeliveryStandingService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
@@ -33,6 +27,9 @@ class InformationRequestOperationsService @Inject constructor(
     private val noticeStates: InformationRequestNoticeStateReader,
     private val deliveries: DomainEventDeliveryStandingService,
     private val clock: Clock,
+    private val titleReader: InformationRequestTitleReader,
+    private val partyRepository: InformationRequestPartyRepository,
+    private val principalDisplayService: PrincipalDisplayService,
 )
 {
     @Transactional
@@ -40,12 +37,21 @@ class InformationRequestOperationsService @Inject constructor(
     {
         val owner = ownerAccess.currentOwner()
         ownerAccess.requireAccess(owner, Action.INFORMATION_REQUEST_VIEW_OPERATIONS_QUEUE)
-        val requests = requestRepository.findForOwner(owner.ownerType, owner.ownerId)
+        val candidates = requestRepository.findForOwner(owner.ownerType, owner.ownerId)
             .filter { filter.states.isEmpty() || it.state in filter.states }
             .filter { filter.exchangeId == null || it.exchangeId == filter.exchangeId }
+        val titles = titleReader.titlesOf(candidates)
+        val parties = partyRepository.findActiveForRequests(candidates.map { it.id })
+            .filter { it.principalKind != null && it.principalId != null }
+            .groupBy { it.informationRequestId }
+        val requests = candidates
+            .filter { matchesSearch(it, titles.getValue(it.id), filter.search) }
+            .filter { request ->
+                filter.assigneeId == null || parties[request.id].orEmpty().any { it.principalId == filter.assigneeId }
+            }
         val inputs = inputsFor(requests)
         val now = clock.instant()
-        val rows = requests.map { rowOf(it, inputs, now) }
+        val rows = requests.map { rowOf(it, titles.getValue(it.id), inputs, now) }
             .filter { filter.slaStatuses.isEmpty() || it.standing.status in filter.slaStatuses }
             .filter { row -> filter.exceptions.isEmpty() || filter.exceptions.any { (row.exceptionCounts[it] ?: 0) > 0 } }
             .filter { !filter.exceptionsOnly || it.exceptionCounts.isNotEmpty() }
@@ -54,8 +60,27 @@ class InformationRequestOperationsService @Inject constructor(
                     .thenBy { it.request.createdAt }
                     .thenBy { it.request.id },
             )
-        return InformationRequestOperationsPage(rows.drop(filter.offset).take(filter.limit), rows.size, filter.limit, filter.offset)
+        val page = rows.drop(filter.offset).take(filter.limit)
+            .map { row -> row.copy(assignees = assigneesOf(parties[row.request.id].orEmpty())) }
+        return InformationRequestOperationsPage(page, rows.size, filter.limit, filter.offset)
     }
+
+    private fun matchesSearch(request: InformationRequest, title: String, search: String?): Boolean
+    {
+        val term = search?.trim()?.lowercase()?.takeIf { it.isNotEmpty() } ?: return true
+        return title.lowercase().contains(term) || request.id.toString().startsWith(term)
+    }
+
+    private fun assigneesOf(parties: List<InformationRequestParty>): List<InformationRequestOperationsAssignee> =
+        parties.map { party ->
+            val principal = PrincipalRef(requireNotNull(party.principalKind), requireNotNull(party.principalId))
+            InformationRequestOperationsAssignee(
+                roleKey = party.roleKey,
+                principalKind = principal.kind,
+                principalId = principal.id,
+                label = principalDisplayService.display(principal).name,
+            )
+        }
 
     private fun inputsFor(requests: List<InformationRequest>): InformationRequestOperationsInputs
     {
@@ -71,7 +96,12 @@ class InformationRequestOperationsService @Inject constructor(
         )
     }
 
-    private fun rowOf(request: InformationRequest, inputs: InformationRequestOperationsInputs, now: Instant): InformationRequestOperationsRow
+    private fun rowOf(
+        request: InformationRequest,
+        title: String,
+        inputs: InformationRequestOperationsInputs,
+        now: Instant,
+    ): InformationRequestOperationsRow
     {
         val requestClocks = inputs.clocks[request.id].orEmpty()
         val standing = InformationRequestSlaCalculator.standing(
@@ -82,6 +112,8 @@ class InformationRequestOperationsService @Inject constructor(
         val delivery = inputs.deliveries[InformationRequestTransitionHistoryService.orderingKeyOf(request.id)]
         return InformationRequestOperationsRow(
             request = request,
+            title = title,
+            assignees = emptyList(),
             ageSeconds = ageOf(request, now),
             clockCount = requestClocks.size,
             standing = standing,

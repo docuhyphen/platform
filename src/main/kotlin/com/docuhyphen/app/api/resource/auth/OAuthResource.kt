@@ -2,26 +2,16 @@ package com.docuhyphen.app.api.resource.auth
 
 import com.docuhyphen.app.api.exception.SubscriptionDenialException
 import com.docuhyphen.app.api.model.entity.IdentityProviderType
-import com.docuhyphen.app.api.resource.model.*
 import com.docuhyphen.app.api.model.entity.SecurityIncidentSeverity
 import com.docuhyphen.app.api.model.entity.SecurityIncidentType
-import com.docuhyphen.app.api.service.user.AppUserService
-import com.docuhyphen.app.api.service.auth.AuthAuditService
-import com.docuhyphen.app.api.service.auth.AuthRateLimitService
-import com.docuhyphen.app.api.service.auth.AuthenticationService
-import com.docuhyphen.app.api.service.auth.ClientIpResolver
-import com.docuhyphen.app.api.service.auth.ExternalProviderAlreadyLinkedException
-import com.docuhyphen.app.api.service.auth.OAuthStateService
-import com.docuhyphen.app.api.service.auth.OAuthUserLinkingService
-import com.docuhyphen.app.api.service.auth.OAuthTokenHandoffService
-import com.docuhyphen.app.api.service.identity.OrganizationIdentityPolicyService
-import com.docuhyphen.app.api.service.identity.OrganizationIdpRuntimeCredentialService
-import com.docuhyphen.app.api.service.auth.RevocationReasonCode
-import com.docuhyphen.app.api.service.security.SecurityIncidentService
-import com.docuhyphen.app.api.service.auth.TokenIssuanceService
-import com.docuhyphen.app.api.service.auth.UnverifiedExternalEmailException
+import com.docuhyphen.app.api.resource.model.*
+import com.docuhyphen.app.api.service.auth.*
 import com.docuhyphen.app.api.service.auth.idp.IdentityProviderRegistry
 import com.docuhyphen.app.api.service.config.ConfigurationService
+import com.docuhyphen.app.api.service.identity.OrganizationIdentityPolicyService
+import com.docuhyphen.app.api.service.identity.OrganizationIdpRuntimeCredentialService
+import com.docuhyphen.app.api.service.security.SecurityIncidentService
+import com.docuhyphen.app.api.service.user.AppUserService
 import jakarta.inject.Inject
 import jakarta.ws.rs.*
 import jakarta.ws.rs.core.Context
@@ -48,7 +38,7 @@ class OAuthResource @Inject constructor(
     private val securityIncidentService: SecurityIncidentService,
     private val organizationIdentityPolicyService: OrganizationIdentityPolicyService,
     private val organizationIdpRuntimeCredentialService: OrganizationIdpRuntimeCredentialService,
-    private val stepUpAuthService: com.docuhyphen.app.api.service.auth.StepUpAuthService,
+    private val stepUpAuthService: StepUpAuthService,
     private val oauthTokenHandoffService: OAuthTokenHandoffService,
     private val clientIpResolver: ClientIpResolver,
 )
@@ -89,7 +79,8 @@ class OAuthResource @Inject constructor(
             if (authRateLimitService.isLimited(
                     key = "auth:oauth:authorize:$clientIp",
                     maxPerMinute = configurationService.getAuthRateLimitAuthorizePerMinute(),
-                ))
+                )
+            )
             {
                 securityIncidentService.record(
                     incidentType = SecurityIncidentType.AUTH_RATE_LIMIT_OAUTH_AUTHORIZE,
@@ -165,7 +156,8 @@ class OAuthResource @Inject constructor(
             if (authRateLimitService.isLimited(
                     key = "auth:oauth:callback:$clientIp",
                     maxPerMinute = configurationService.getAuthRateLimitCallbackPerMinute(),
-                ))
+                )
+            )
             {
                 securityIncidentService.record(
                     incidentType = SecurityIncidentType.AUTH_RATE_LIMIT_OAUTH_CALLBACK,
@@ -237,7 +229,8 @@ class OAuthResource @Inject constructor(
                     return redirectToFrontendError(ERROR_INVALID_STATE)
                 }
 
-            val runtimeCredentials = organizationIdpRuntimeCredentialService.resolve(providerType, verifiedState.orgIdpConfigId)
+            val runtimeCredentials =
+                organizationIdpRuntimeCredentialService.resolve(providerType, verifiedState.orgIdpConfigId)
 
             // Exchange code for tokens
             val oauthResponse = provider.exchangeCodeForTokens(
@@ -283,7 +276,7 @@ class OAuthResource @Inject constructor(
                     tokenIssuanceService.generateCsrfToken()
                 )
                 val callbackUrl = "${configurationService.baseUrl}/oauth/callback" +
-                    "?code=${URLEncoder.encode(handoffCode, StandardCharsets.UTF_8)}"
+                        "?code=${URLEncoder.encode(handoffCode, StandardCharsets.UTF_8)}"
                 return Response.temporaryRedirect(URI.create(callbackUrl))
                     .cookie(refreshCookie, csrfCookie)
                     .build()
@@ -352,11 +345,13 @@ class OAuthResource @Inject constructor(
             }
 
             // Issue token triple
-            val tokenTriple = tokenIssuanceService.issueTokenTriple(result.appUser,
+            val tokenTriple = tokenIssuanceService.issueTokenTriple(
+                result.appUser,
                 userAgent = request.getHeader("User-Agent"),
                 ipAddress = clientIp,
             )
-            val refreshCookie = tokenIssuanceService.buildRefreshTokenCookieWithPolicy(tokenTriple.refreshToken, result.appUser)
+            val refreshCookie =
+                tokenIssuanceService.buildRefreshTokenCookieWithPolicy(tokenTriple.refreshToken, result.appUser)
             val csrfToken = tokenIssuanceService.generateCsrfToken()
             val csrfCookie = tokenIssuanceService.buildCsrfTokenCookie(csrfToken)
 
@@ -367,7 +362,7 @@ class OAuthResource @Inject constructor(
                 isNewUser = result.isNewUser,
             )
             val callbackUrl = "$baseUrl/oauth/callback" +
-                "?code=${URLEncoder.encode(handoffCode, StandardCharsets.UTF_8)}"
+                    "?code=${URLEncoder.encode(handoffCode, StandardCharsets.UTF_8)}"
 
             Response.temporaryRedirect(URI.create(callbackUrl)).cookie(refreshCookie, csrfCookie).build()
                 .also {
@@ -468,7 +463,7 @@ class OAuthResource @Inject constructor(
                     .build()
             }
 
-            val claims = authenticationService.parseLinkTokenClaims(payload.linkToken!!)
+            val claims = authenticationService.parseLinkTokenClaims(payload.linkToken)
                 ?: return Response.status(Response.Status.UNAUTHORIZED)
                     .entity(ResponseError("Invalid or expired link token"))
                     .build()
@@ -483,9 +478,11 @@ class OAuthResource @Inject constructor(
 
             val email = claims.subject
             val providerName = claims["provider"] as? String
-                ?: return Response.status(Response.Status.BAD_REQUEST).entity(ResponseError("Invalid link token")).build()
+                ?: return Response.status(Response.Status.BAD_REQUEST).entity(ResponseError("Invalid link token"))
+                    .build()
             val externalSubjectId = claims["externalSubjectId"] as? String
-                ?: return Response.status(Response.Status.BAD_REQUEST).entity(ResponseError("Invalid link token")).build()
+                ?: return Response.status(Response.Status.BAD_REQUEST).entity(ResponseError("Invalid link token"))
+                    .build()
 
             val appUser = appUserService.findByEmail(email)
                 ?: return Response.status(Response.Status.NOT_FOUND)
@@ -500,7 +497,11 @@ class OAuthResource @Inject constructor(
             }
 
             // Validate password
-            if (appUser.password == null || !authenticationService.validatePassword(payload.password!!, appUser.password!!))
+            if (appUser.password == null || !authenticationService.validatePassword(
+                    payload.password,
+                    appUser.password!!
+                )
+            )
             {
                 return Response.status(Response.Status.UNAUTHORIZED)
                     .entity(ResponseError("Invalid password"))
@@ -512,11 +513,13 @@ class OAuthResource @Inject constructor(
             oauthUserLinkingService.createLink(appUser, providerType, externalSubjectId, email)
 
             // Issue token triple
-            val tokenTriple = tokenIssuanceService.issueTokenTriple(appUser,
+            val tokenTriple = tokenIssuanceService.issueTokenTriple(
+                appUser,
                 userAgent = request.getHeader("User-Agent"),
                 ipAddress = clientIpResolver.resolve(request),
             )
-            val refreshCookie = tokenIssuanceService.buildRefreshTokenCookieWithPolicy(tokenTriple.refreshToken, appUser)
+            val refreshCookie =
+                tokenIssuanceService.buildRefreshTokenCookieWithPolicy(tokenTriple.refreshToken, appUser)
             val csrfToken = tokenIssuanceService.generateCsrfToken()
             val csrfCookie = tokenIssuanceService.buildCsrfTokenCookie(csrfToken)
 
@@ -575,7 +578,8 @@ class OAuthResource @Inject constructor(
 
     private fun redirectToStepUpReturn(returnTo: String?): Response
     {
-        val safePath = returnTo?.takeIf { it.startsWith("/") && !it.startsWith("//") && !it.startsWith("/\\") } ?: "/exchanges"
+        val safePath =
+            returnTo?.takeIf { it.startsWith("/") && !it.startsWith("//") && !it.startsWith("/\\") } ?: "/exchanges"
         val separator = if (safePath.contains("?")) "&" else "?"
         val destination = "${configurationService.baseUrl.trimEnd('/')}$safePath${separator}stepUp=success"
         return Response.temporaryRedirect(URI.create(destination)).build()

@@ -1,34 +1,54 @@
 package com.docuhyphen.app.api.resource.model
 
 import com.docuhyphen.app.api.model.dto.InformationRequestTemplateConfigurationRequest
-import com.docuhyphen.app.api.model.entity.InformationRequestAcceptedFactVisibility
-import com.docuhyphen.app.api.model.entity.InformationRequestAttestationDecision
-import com.docuhyphen.app.api.model.entity.InformationRequestBusinessDecisionKind
-import com.docuhyphen.app.api.model.entity.InformationRequestLineageKind
-import com.docuhyphen.app.api.model.entity.InformationRequestRecurrenceUnit
-import com.docuhyphen.app.api.model.entity.InformationRequestResponseDisposition
-import com.docuhyphen.app.api.model.entity.InformationRequestFindingCorrectionScope
-import com.docuhyphen.app.api.model.entity.InformationRequestFindingSeverity
-import com.docuhyphen.app.api.model.entity.InformationRequestRetestResult
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewOutcome
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewVisibility
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.serializer.TimestampSerializer
-import java.sql.Timestamp
 import com.docuhyphen.app.api.serializer.UUIDSerializer
 import com.docuhyphen.app.api.service.fields.FieldValueEntry
 import kotlinx.serialization.Serializable
-import java.util.UUID
-import com.docuhyphen.app.api.model.entity.InformationRequestClockDueEffect
-import com.docuhyphen.app.api.model.entity.InformationRequestClockType
-import com.docuhyphen.app.api.model.entity.InformationRequestClockUrgency
+import java.sql.Timestamp
+import java.util.*
 
 @Serializable
 data class CreateInformationRequestDraftRequest(
     @Serializable(with = UUIDSerializer::class) val exchangeId: UUID,
-    val displayName: String,
+    val displayName: String? = null,
     val description: String? = null,
-    val configuration: InformationRequestTemplateConfigurationRequest,
+    val configuration: InformationRequestTemplateConfigurationRequest? = null,
+    @Serializable(with = UUIDSerializer::class) val blueprintDefinitionId: UUID? = null,
+    @Serializable(with = UUIDSerializer::class) val templateVersionId: UUID? = null,
     val gatesExchangeClosure: Boolean = true,
+)
+
+@Serializable
+data class AssignInformationRequestPartyRequest(
+    val roleKey: InformationRequestShareRoleKey,
+    @Serializable(with = UUIDSerializer::class) val userId: UUID? = null,
+    @Serializable(with = UUIDSerializer::class) val principalGroupId: UUID? = null,
+    val email: String? = null,
+    val displayName: String? = null,
+    @Serializable(with = UUIDSerializer::class) val subjectIdentityRefId: UUID? = null,
+    @Serializable(with = UUIDSerializer::class) val exchangeRecipientId: UUID? = null,
+)
+
+@Serializable
+data class InformationRequestSubjectReferenceRequest(
+    val authority: String,
+    val identifierType: String,
+    val identifierValue: String,
+)
+
+@Serializable
+data class AssignInformationRequestSubjectRequest(
+    val subjectKind: SubjectKind,
+    val reference: InformationRequestSubjectReferenceRequest? = null,
+)
+
+@Serializable
+data class ReassignInformationRequestPartyRequest(
+    @Serializable(with = UUIDSerializer::class) val userId: UUID? = null,
+    @Serializable(with = UUIDSerializer::class) val principalGroupId: UUID? = null,
+    @Serializable(with = UUIDSerializer::class) val exchangeRecipientId: UUID? = null,
 )
 
 @Serializable
@@ -213,11 +233,19 @@ data class PromoteInformationRequestAcceptedFactRequest(
     @Serializable(with = UUIDSerializer::class) val packageId: UUID,
     @Serializable(with = UUIDSerializer::class) val submissionItemId: UUID,
     val purposeKey: String,
+    val policyBasisKey: String,
+    val evidenceVersionIds: List<@Serializable(with = UUIDSerializer::class) UUID> = emptyList(),
     val visibility: InformationRequestAcceptedFactVisibility = InformationRequestAcceptedFactVisibility.REQUESTING_SIDE,
     @Serializable(with = TimestampSerializer::class) val validFrom: Timestamp? = null,
     @Serializable(with = TimestampSerializer::class) val validTo: Timestamp? = null,
     @Serializable(with = TimestampSerializer::class) val expiresAt: Timestamp? = null,
     @Serializable(with = UUIDSerializer::class) val supersedesFactId: UUID? = null,
+)
+
+@Serializable
+data class RecertifyInformationRequestAcceptedFactRequest(
+    @Serializable(with = UUIDSerializer::class) val requirementId: UUID,
+    val assented: Boolean = false,
 )
 
 @Serializable
@@ -285,4 +313,9 @@ data class StartInformationRequestClockRequest(
 data class ChangeInformationRequestClockRequest(
     val reasonCode: String,
     val extensionMinutes: Int? = null,
+)
+
+@Serializable
+data class SendInformationRequestRemindersRequest(
+    val requestIds: List<@Serializable(with = UUIDSerializer::class) UUID> = emptyList(),
 )

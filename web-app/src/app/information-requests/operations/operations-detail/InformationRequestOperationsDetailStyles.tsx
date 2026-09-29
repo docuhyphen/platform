@@ -17,8 +17,16 @@ export const useInformationRequestOperationsDetailStyles = makeStyles({
     header: {
         display: "flex",
         alignItems: "center",
+        flexWrap: "wrap",
         gap: tokens.spacingHorizontalS,
         minWidth: 0,
+        maxWidth: "1100px",
+    },
+    title: {
+        flexGrow: 1,
+    },
+    note: {
+        color: tokens.colorNeutralForeground2,
     },
     content: {
         display: "flex",

@@ -1,33 +1,13 @@
 package com.docuhyphen.app.api.service.informationrequest
 
-import com.docuhyphen.app.api.model.entity.BlueprintDocumentDefault
-import com.docuhyphen.app.api.model.entity.BlueprintFieldDefault
-import com.docuhyphen.app.api.model.entity.BlueprintParticipantDefault
-import com.docuhyphen.app.api.model.entity.CommandReceipt
-import com.docuhyphen.app.api.model.entity.DocumentLibraryEntry
-import com.docuhyphen.app.api.model.entity.Exchange
-import com.docuhyphen.app.api.model.entity.ExchangeShareRoleName
-import com.docuhyphen.app.api.model.entity.ExchangeStatus
-import com.docuhyphen.app.api.model.entity.FieldValueType
-import com.docuhyphen.app.api.model.entity.InformationRequest
-import com.docuhyphen.app.api.model.entity.InformationRequestDocumentPlaceholder
-import com.docuhyphen.app.api.model.entity.InformationRequestOwnerType
-import com.docuhyphen.app.api.model.entity.InformationRequestShareRoleKey
-import com.docuhyphen.app.api.model.entity.InformationRequestTransition
-import com.docuhyphen.app.api.model.entity.PrincipalKind
-import com.docuhyphen.app.api.model.entity.ResourceType
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestDocumentPlaceholderRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
-import com.docuhyphen.app.api.service.auth.authz.Action
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.Decision
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import com.docuhyphen.app.api.service.auth.authz.ResourceRef
-import com.docuhyphen.app.api.service.blueprint.BlueprintInformationRequestInstantiationSnapshot
-import com.docuhyphen.app.api.service.blueprint.BlueprintDocumentInstantiationDefault
+import com.docuhyphen.app.api.service.auth.authz.*
 import com.docuhyphen.app.api.service.blueprint.BlueprintDefinitionService
+import com.docuhyphen.app.api.service.blueprint.BlueprintDocumentInstantiationDefault
+import com.docuhyphen.app.api.service.blueprint.BlueprintInformationRequestInstantiationSnapshot
 import com.docuhyphen.app.api.service.command.CommandReceiptRequest
 import com.docuhyphen.app.api.service.command.CommandReceiptService
 import com.docuhyphen.app.api.service.command.CommandReceiptStore
@@ -35,17 +15,10 @@ import com.docuhyphen.app.api.service.fields.BlueprintFieldDefaultsCommand
 import com.docuhyphen.app.api.service.fields.SchemaAssignmentService
 import kotlinx.serialization.json.JsonPrimitive
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import org.mockito.kotlin.any
-import org.mockito.kotlin.argumentCaptor
-import org.mockito.kotlin.eq
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.never
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.whenever
-import java.util.UUID
+import org.mockito.kotlin.*
+import java.util.*
 
 class InformationRequestBlueprintInstantiationServiceTest
 {
@@ -125,6 +98,26 @@ class InformationRequestBlueprintInstantiationServiceTest
     }
 
     @Test
+    fun `blueprint instantiation answers to the owner's Information Requests entitlement`()
+    {
+        val fixture = fixture()
+        whenever(fixture.entitlementGuard.requireRequestMutation(any())).thenThrow(IllegalStateException("not included"))
+
+        assertThrows<IllegalStateException> {
+            fixture.service.createFromBlueprint(
+                CreateInformationRequestFromBlueprintCommand(
+                    blueprintDefinitionId = blueprintId,
+                    exchangeId = exchangeId,
+                    access = access,
+                    idempotencyKey = "create-without-entitlement",
+                ),
+            )
+        }
+
+        verify(fixture.requestRepository, never()).save(any())
+    }
+
+    @Test
     fun `retired named versions refuse new blueprint instantiation without creating a request`()
     {
         val fixture = fixture()
@@ -166,6 +159,7 @@ class InformationRequestBlueprintInstantiationServiceTest
         val partyService: InformationRequestPartyService,
         val schemaAssignmentService: SchemaAssignmentService,
         val authorizationService: AuthorizationService,
+        val entitlementGuard: InformationRequestEntitlementGuard,
         val savedRequests: MutableList<InformationRequest>,
         val savedPlaceholders: MutableList<InformationRequestDocumentPlaceholder>,
     )
@@ -223,6 +217,7 @@ class InformationRequestBlueprintInstantiationServiceTest
 
         val partyService = mock<InformationRequestPartyService>()
         val schemaAssignmentService = mock<SchemaAssignmentService>()
+        val entitlementGuard = mock<InformationRequestEntitlementGuard>()
         val transitionHistory = mock<InformationRequestTransitionHistoryService>()
         whenever(transitionHistory.record(any())).thenAnswer { invocation ->
             val command = invocation.getArgument<InformationRequestTransitionHistoryCommand>(0)
@@ -247,6 +242,7 @@ class InformationRequestBlueprintInstantiationServiceTest
                 authorizationService = authorizationService,
                 commandReceiptService = CommandReceiptService(InMemoryBlueprintCommandReceiptStore()),
                 transitionHistory = transitionHistory,
+                entitlementGuard = entitlementGuard,
             ),
             blueprintService = blueprintService,
             requestRepository = requestRepository,
@@ -254,6 +250,7 @@ class InformationRequestBlueprintInstantiationServiceTest
             partyService = partyService,
             schemaAssignmentService = schemaAssignmentService,
             authorizationService = authorizationService,
+            entitlementGuard = entitlementGuard,
             savedRequests = requests,
             savedPlaceholders = placeholders,
         )

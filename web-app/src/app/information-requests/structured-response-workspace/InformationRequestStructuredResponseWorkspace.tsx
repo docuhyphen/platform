@@ -12,7 +12,7 @@ import {
 import {useStructuredResponseWorkspaceController} from "./useStructuredResponseWorkspaceController.ts";
 export type {OccurrenceCommandResult, SaveResponsesResult};
 
-const InformationRequestStructuredResponseWorkspace = (props: StructuredResponseWorkspaceProps) =>
+const StructuredResponseWorkspaceContent = (props: StructuredResponseWorkspaceProps) =>
 {
     const {
         request,
@@ -67,6 +67,8 @@ const InformationRequestStructuredResponseWorkspace = (props: StructuredResponse
                                               conditionByScope={controller.conditionByScope}
                                               edits={controller.edits}
                                               setEdits={controller.setEdits}
+                                              answers={controller.answers}
+                                              setAnswers={controller.setAnswers}
                                               onAddOccurrence={onAddOccurrence}
                                               onRemoveOccurrence={onRemoveOccurrence}
                                               onReorderOccurrences={onReorderOccurrences}
@@ -75,9 +77,15 @@ const InformationRequestStructuredResponseWorkspace = (props: StructuredResponse
                                               onCommandFailure={controller.applyCommandFailure}/>
             <StructuredResponseSaveFooter busy={controller.busy}
                                           error={controller.error}
-                                          onSave={controller.save}/>
+                                          status={controller.status}
+                                          onSave={() => void controller.save()}/>
         </div>
     );
 };
+
+const InformationRequestStructuredResponseWorkspace = (props: StructuredResponseWorkspaceProps) => (
+    <StructuredResponseWorkspaceContent key={props.request.id}
+                                        {...props}/>
+);
 
 export default InformationRequestStructuredResponseWorkspace;

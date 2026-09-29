@@ -3,6 +3,7 @@ import {InformationRequestReviewSummaryDto} from "../../../models/models.tsx";
 import {humanizedKey} from "../../submission/submissionLabels.ts";
 import {reviewKindLabels, reviewStatePresentation} from "../reviewLabels.ts";
 import {useReviewHeaderStyles} from "./ReviewHeaderStyles.tsx";
+import {formatInformationRequestTime} from "../../shared/informationRequestFormatting.ts";
 
 interface Props
 {
@@ -25,8 +26,8 @@ const ReviewHeader = ({review}: Props) =>
                 <Text id={"information-request-review-subtitle"}
                       className={styles.detail}>
                     {review.stageKey
-                        ? `Submitted part: ${humanizedKey(review.stageKey)}. Opened ${new Date(review.openedAt).toLocaleString()}.`
-                        : `Opened ${new Date(review.openedAt).toLocaleString()}.`}
+                        ? `Submitted part: ${humanizedKey(review.stageKey)}. Opened ${formatInformationRequestTime(review.openedAt)}.`
+                        : `Opened ${formatInformationRequestTime(review.openedAt)}.`}
                 </Text>
             </div>
             <Badge id={"information-request-review-state"}

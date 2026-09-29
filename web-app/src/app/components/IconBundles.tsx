@@ -27,6 +27,8 @@
     ArrowSortDownLinesRegular,
     ArrowSortUpLinesFilled,
     ArrowSortUpLinesRegular,
+    ArrowUpFilled,
+    ArrowUpRegular,
     ArrowUploadFilled,
     ArrowUploadRegular,
     BookAddFilled,
@@ -239,6 +241,7 @@ export const SettingsSequencesTabIcon = bundleIcon(BookNumberFilled, BookNumberR
 export const SettingsVariablesTabIcon = bundleIcon(NotepadEditFilled, NotepadEditRegular);
 export const SettingsFieldsTabIcon = bundleIcon(TextboxFilled, TextboxRegular);
 export const SettingsInformationRequestsTabIcon = bundleIcon(TextBulletListCheckmarkFilled, TextBulletListCheckmarkRegular);
+export const ExchangeInformationRequestsTabIcon = bundleIcon(TextBulletListCheckmarkFilled, TextBulletListCheckmarkRegular);
 export const ExchangeFieldsTabIcon = bundleIcon(TextboxFilled, TextboxRegular);
 export const SettingsCommunicationsTabIcon = bundleIcon(ChatMailFilled, ChatMailRegular);
 export const MailEditIcon = bundleIcon(MailEditFilled, MailEditRegular)
@@ -318,3 +321,4 @@ export const TagIcon = bundleIcon(TagFilled, TagRegular)
 export const TargetIcon = bundleIcon(TargetFilled, TargetRegular)
 export const ArrowRightIcon = bundleIcon(ArrowRightFilled, ArrowRightRegular)
 export const ArrowDownIcon = bundleIcon(ArrowDownFilled, ArrowDownRegular)
+export const ArrowUpIcon = bundleIcon(ArrowUpFilled, ArrowUpRegular)

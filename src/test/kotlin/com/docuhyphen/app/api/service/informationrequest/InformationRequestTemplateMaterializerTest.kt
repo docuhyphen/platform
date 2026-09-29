@@ -108,7 +108,7 @@ class InformationRequestTemplateMaterializerTest
         assertEquals(revisions.map { it.id }, fixture.savedCurrents.map { it.currentRevisionId })
 
         val schemaCommand = argumentCaptor<PublishedSchemaAssignmentCommand>()
-        verify(fixture.schemaAssignmentService).assignPublishedSchemaVersion(schemaCommand.capture())
+        verify(fixture.schemaAssignmentService).assignSchemaVersionForCreation(schemaCommand.capture())
         assertEquals(ResourceType.INFORMATION_REQUEST.name, schemaCommand.firstValue.resource.resourceType)
         assertEquals(requestId, schemaCommand.firstValue.resource.resourceId)
         assertEquals(schemaVersionId, schemaCommand.firstValue.schemaVersionId)
@@ -146,7 +146,7 @@ class InformationRequestTemplateMaterializerTest
 
         assertEquals(InformationRequestCapability.STRUCTURED_RESPONSE, refusal.unserved.single().capability)
         verify(fixture.requirementRepository, never()).save(any())
-        verify(fixture.schemaAssignmentService, never()).assignPublishedSchemaVersion(any())
+        verify(fixture.schemaAssignmentService, never()).assignSchemaVersionForCreation(any())
         verify(fixture.supportingEvidenceLinkService, never()).materialize(any())
     }
 
@@ -159,7 +159,7 @@ class InformationRequestTemplateMaterializerTest
 
         assertEquals(1, result.requirementCount)
         assertEquals(listOf(documentBindingId), fixture.savedRequirements.map { it.sourceTemplateBindingId })
-        verify(fixture.schemaAssignmentService, never()).assignPublishedSchemaVersion(any())
+        verify(fixture.schemaAssignmentService, never()).assignSchemaVersionForCreation(any())
     }
 
     private data class Fixture(

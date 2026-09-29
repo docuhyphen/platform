@@ -6,7 +6,11 @@ import com.docuhyphen.app.api.service.informationrequest.InformationRequestETag
 
 object InformationRequestPartyDtoMapper
 {
-    fun toDto(party: InformationRequestParty, revealIdentity: Boolean): InformationRequestPartyDto =
+    fun toDto(
+        party: InformationRequestParty,
+        revealIdentity: Boolean,
+        label: String? = null
+    ): InformationRequestPartyDto =
         InformationRequestPartyDto(
             id = party.id,
             informationRequestId = party.informationRequestId,
@@ -20,5 +24,6 @@ object InformationRequestPartyDtoMapper
             revokedAt = party.revokedAt,
             partyRevision = party.partyRevision,
             partyETag = InformationRequestETag.partyOf(party),
+            label = label.takeIf { revealIdentity },
         )
 }

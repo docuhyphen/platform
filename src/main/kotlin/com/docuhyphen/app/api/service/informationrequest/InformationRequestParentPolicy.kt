@@ -9,6 +9,9 @@ object InformationRequestParentPolicy
     val readActions = setOf(Action.INFORMATION_REQUEST_VIEW, Action.INFORMATION_REQUEST_REQUIREMENT_VIEW,
         Action.INFORMATION_REQUEST_EVIDENCE_VIEW, Action.INFORMATION_REQUEST_VIEW_OPERATIONS, Action.INFORMATION_REQUEST_EXPORT)
 
+    val closedRecordActions = setOf(Action.INFORMATION_REQUEST_PROMOTE_FACT, Action.INFORMATION_REQUEST_RECORD_DECISION,
+        Action.INFORMATION_REQUEST_MANAGE_EXTERNAL_SOURCES, Action.INFORMATION_REQUEST_DECIDE_EXTERNAL_VALUES)
+
     fun evaluate(request: ResourcePolicyRequest, parent: InformationRequestParentSnapshot): ResourcePolicyOutcome
     {
         val owner = request.resourceContext.ownerContext

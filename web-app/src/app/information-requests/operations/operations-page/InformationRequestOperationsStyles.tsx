@@ -22,4 +22,8 @@ export const useInformationRequestOperationsStyles = makeStyles({
         flexWrap: "wrap",
         maxWidth: "1100px",
     },
+    tabs: {
+        overflowX: "auto",
+        maxWidth: "100%",
+    },
 });

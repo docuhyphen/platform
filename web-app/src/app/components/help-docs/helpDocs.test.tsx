@@ -35,11 +35,24 @@ describe('help documentation registry', () =>
 
         expect(ids).toEqual([
             'start-here', 'identity', 'exchanges', 'admin-operations', 'workflows',
-            'blueprints', 'variables', 'fields', 'communications', 'document-library',
+            'blueprints', 'variables', 'fields', 'information-requests', 'communications', 'document-library',
         ]);
         expect(HELP_DOC_ARTICLES.map(article => article.sectionId)).toEqual(
             getHelpDocSections().flatMap(section => section.articles.map(() => section.id)),
         );
+    });
+
+    it('files every Information Request article in its own section and keeps Fields to Fields', () =>
+    {
+        const articlesOf = (sectionId: string) =>
+            getHelpDocSections().find(section => section.id === sectionId)?.articles.map(article => article.id);
+
+        expect(articlesOf('fields')).toEqual(['fields-overview', 'using-exchange-fields']);
+        expect(articlesOf('information-requests')).toEqual([
+            'information-requests-overview', 'request-templates', 'request-creating', 'request-access',
+            'request-submission', 'request-evidence', 'request-review', 'request-outcomes', 'request-external-sources',
+            'request-operations', 'record-preservation',
+        ]);
     });
 
     it('names no individual section, so the next one is added without editing it', () =>
@@ -154,6 +167,125 @@ describe('help documentation states what the platform actually does', () =>
 
         expect(text).toMatch(/Cancel requests and end/);
         expect(text).toMatch(/must finish first/i);
+    });
+
+    it('introduces Information Requests where they appear, for the plans that include them', () =>
+    {
+        const text = articleText('information-requests-overview');
+
+        expect(text).toMatch(/Information Requests tab/);
+        expect(text).toMatch(/Personal and Business plans/);
+        expect(text).toMatch(/whatever their own plan/i);
+        expect(text).toMatch(/next action/i);
+        expect(text).not.toMatch(/hidden requests are counted/i);
+    });
+
+    it('describes the Template editor as it is and no longer the single-Field draft', () =>
+    {
+        const text = articleText('request-templates');
+
+        expect(text).toMatch(/Sections, Groups, Conditions, Review, and Settings/);
+        expect(text).toMatch(/Before publishing/);
+        expect(text).not.toMatch(/not available in this deployment/i);
+        expect(text).not.toMatch(/choose the Field that will collect the answer/i);
+    });
+
+    it('explains creating, issuing, and managing a request from its Exchange', () =>
+    {
+        const text = articleText('request-creating');
+
+        expect(text).toMatch(/New Information Request/);
+        expect(text).toMatch(/a Template, a Blueprint, or a one-off/i);
+        expect(text).toMatch(/Make me the Decision Maker/);
+        expect(text).toMatch(/shown once/i);
+        expect(text).toMatch(/Resend link/);
+        expect(text).toMatch(/Preview as recipient/);
+    });
+
+    it('keeps the access link and verification rules together', () =>
+    {
+        const text = articleText('request-access');
+
+        expect(text).toMatch(/24 hours/);
+        expect(text).toMatch(/three contact codes/i);
+        expect(text).toMatch(/Free/);
+    });
+
+    it('describes saving answers the way the response workspace saves them', () =>
+    {
+        const text = articleText('request-submission');
+
+        expect(text).toMatch(/two seconds/i);
+        expect(text).toMatch(/Save responses/);
+        expect(text).toMatch(/keeps your unsaved changes/i);
+        expect(text).toMatch(/Review and submit/);
+    });
+
+    it('says an interrupted upload is kept for a retry', () =>
+    {
+        expect(articleText('request-evidence')).toMatch(/Retry/);
+    });
+
+    it('covers reviewer assignment, recusal, delegation, overrides, and reconsideration', () =>
+    {
+        const text = articleText('request-review');
+
+        for (const phrase of ['Assign reviewer', 'Recuse', 'Delegate', 'Override', 'Reconsider', 'Reviewers only'])
+        {
+            expect(text).toContain(phrase);
+        }
+    });
+
+    it('explains accepted facts, business decisions, and corrections in the management workspace', () =>
+    {
+        const text = articleText('request-outcomes');
+
+        expect(text).toMatch(/Accepted facts/);
+        expect(text).toMatch(/Business decisions/);
+        expect(text).toMatch(/Corrections/);
+        expect(text).toMatch(/confirms it is still accurate/i);
+        expect(text).toContain('Supporting evidence to keep with the fact');
+        expect(text).toMatch(/after it closes/);
+        expect(articleText('request-submission')).toContain('Use this answer');
+    });
+
+    it('explains imported values, reconciliation, connectors, and generated outputs as records that never change an answer', () =>
+    {
+        const text = articleText('request-external-sources');
+
+        for (const phrase of [
+            '/information-requests/{id}/imported-values', '/imported-value-reconciliations',
+            '/imported-value-discrepancies/{discrepancyId}/resolutions', '/connector-exchanges', '/generated-outputs',
+            'MATCHES', 'DIFFERS', 'NOT_COMPARABLE', 'RESPONSE_STANDS', 'FOLLOW_UP_REQUESTED',
+        ])
+        {
+            expect(text).toContain(phrase);
+        }
+        expect(text).toMatch(/never changes an answer/i);
+        expect(text).toMatch(/ships no connector/i);
+        expect(text).toMatch(/respondents never see/i);
+        expect(text).not.toMatch(/scanned|safe to open/i);
+    });
+
+    it('covers reminders, export, due date policies, privacy, and audit search in operations', () =>
+    {
+        const text = articleText('request-operations');
+
+        for (const phrase of ['Send reminders', 'Export CSV', 'Due date policies', 'Privacy', 'Audit search', 'Manage this request'])
+        {
+            expect(text).toContain(phrase);
+        }
+        expect(text).toMatch(/queued/i);
+        expect(text).not.toMatch(/delivered to every party/i);
+    });
+
+    it('records privacy requests on the Privacy tab rather than through the API', () =>
+    {
+        const text = articleText('record-preservation');
+
+        expect(text).toMatch(/Change scope/);
+        expect(text).toMatch(/Privacy tab/);
+        expect(text).not.toMatch(/through the API/i);
     });
 
     it('limits the concurrent-save protection to saves that state the version they read', () =>

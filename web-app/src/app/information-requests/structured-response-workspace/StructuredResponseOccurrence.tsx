@@ -11,6 +11,7 @@ import {
 } from "./structuredResponseWorkspaceState.ts";
 import {StructuredResponseOccurrenceProps} from "./StructuredResponseWorkspaceTypes.ts";
 import {useStructuredResponseOccurrenceCommands} from "./useStructuredResponseOccurrenceCommands.ts";
+import {groupLabel, occurrenceLabel} from "./responseAnswerState.ts";
 const StructuredResponseOccurrence = ({
     occurrence,
     occurrenceIndex,
@@ -26,6 +27,8 @@ const StructuredResponseOccurrence = ({
     conditionByScope,
     edits,
     setEdits,
+    answers,
+    setAnswers,
     onAdd,
     onRemove,
     onReorder,
@@ -55,7 +58,7 @@ const StructuredResponseOccurrence = ({
                  className={styles.occurrenceHeader}>
                 <Text id={`information-request-occurrence-title-${occurrence.id}`}
                       className={styles.occurrenceTitle}>
-                    {occurrence.occurrencePath}
+                    {occurrenceLabel(occurrence.occurrencePath)}
                 </Text>
                 {!isRootOccurrence && (
                     <div id={`information-request-occurrence-actions-${occurrence.id}`}
@@ -98,7 +101,7 @@ const StructuredResponseOccurrence = ({
                                             occurrence.id,
                                             responseETag,
                                         ))}>
-                                Add {childGroup.groupKey}
+                                {`Add ${groupLabel(childGroup.groupKey).toLowerCase()}`}
                             </Button>
                         ))}
                     </div>
@@ -117,7 +120,14 @@ const StructuredResponseOccurrence = ({
                                                        bindings={bindings}
                                                        responses={responses}
                                                        edits={edits}
-                                                       setEdits={setEdits}/>
+                                                       setEdits={setEdits}
+                                                       answers={answers}
+                                                       setAnswers={setAnswers}
+                                                       responseETag={responseETag}
+                                                       busy={busy}
+                                                       onResult={onResult}
+                                                       onCommandStart={onCommandStart}
+                                                       onCommandFailure={onCommandFailure}/>
                     ))}
             </div>
         </div>

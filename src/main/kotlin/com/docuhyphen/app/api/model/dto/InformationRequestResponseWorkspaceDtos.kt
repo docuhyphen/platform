@@ -2,11 +2,12 @@ package com.docuhyphen.app.api.model.dto
 
 import com.docuhyphen.app.api.serializer.UUIDSerializer
 import kotlinx.serialization.Serializable
-import java.util.UUID
+import java.util.*
 
 @Serializable
 data class InformationRequestResponseWorkspaceDto(
     val request: InformationRequestDto,
+    val title: String,
     val templateVersion: InformationRequestTemplateVersionDto,
     val responseETag: String,
     val occurrences: List<InformationRequestGroupOccurrenceDto>,

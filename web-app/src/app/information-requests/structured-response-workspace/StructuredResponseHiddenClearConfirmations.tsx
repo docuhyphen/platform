@@ -1,6 +1,7 @@
 import {Checkbox, Text} from "@fluentui/react-components";
 import {toFieldElementId} from "../../exchanges/components/exchange-fields-tab/fieldLayoutUtils.ts";
 import {HiddenClearConfirmation} from "./structuredResponseWorkspaceState.ts";
+import {occurrenceLabel} from "./responseAnswerState.ts";
 import {useInformationRequestStructuredResponseWorkspaceStyles} from "./InformationRequestStructuredResponseWorkspaceStyles.tsx";
 
 interface Props
@@ -31,7 +32,9 @@ const StructuredResponseHiddenClearConfirmations = ({
                           key={confirmation.requirementId}
                           checked={confirmedRequirementIds.has(confirmation.requirementId)}
                           onChange={(_, data) => onToggle(confirmation.requirementId, data.checked === true)}
-                          label={`${confirmation.prompt} in ${confirmation.occurrencePath}`}/>
+                          label={occurrenceLabel(confirmation.occurrencePath)
+                              ? `${confirmation.prompt} (${occurrenceLabel(confirmation.occurrencePath)})`
+                              : confirmation.prompt}/>
             ))}
         </div>
     );

@@ -52,7 +52,14 @@ const renderRequirement = (responses: InformationRequestResponseDto[]) =>
                                            bindings={[]}
                                            responses={responses}
                                            edits={{}}
-                                           setEdits={vi.fn()}/>
+                                           setEdits={vi.fn()}
+                                           answers={{}}
+                                           setAnswers={vi.fn()}
+                                           responseETag={"\"responses:1\""}
+                                           busy={false}
+                                           onResult={vi.fn()}
+                                           onCommandStart={vi.fn()}
+                                           onCommandFailure={vi.fn()}/>
         </RequirementEvidenceContext.Provider>,
     );
 

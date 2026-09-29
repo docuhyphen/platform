@@ -238,6 +238,7 @@ class InformationRequestTemplateWalkingSkeletonPhase8Test
                     packageId = secondPackage,
                     submissionItemId = support.item(fixture, secondPackage, answers.requirementId),
                     purposeKey = BASIC_REUSE_PURPOSE,
+                    policyBasisKey = "policy.reuse",
                     visibility = InformationRequestAcceptedFactVisibility.RESPONDING_PARTIES,
                     access = support.owner(fixture),
                     idempotencyKey = "promote-reviewed-answer",

@@ -1,53 +1,24 @@
 package com.docuhyphen.app.api.service.informationrequest
 
-import com.docuhyphen.app.api.migration.ClockSqlFixture
-import com.docuhyphen.app.api.migration.FieldAnswerSqlFixture
-import com.docuhyphen.app.api.migration.queryInt
-import com.docuhyphen.app.api.migration.SubmissionRuntimeSqlFixture
-import com.docuhyphen.app.api.migration.queryString
-import com.docuhyphen.app.api.model.entity.InformationRequestAttestationDecision
-import com.docuhyphen.app.api.model.entity.InformationRequestNoticeDeliveryState
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestOperationsFilter
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestSlaStatus
-import com.docuhyphen.app.api.model.recordpreservation.PublishRecordRetentionScheduleCommand
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
-import com.docuhyphen.app.api.service.command.CommandPrecondition
-import com.docuhyphen.app.api.service.notification.DomainEventDeliveryStandingService
-import com.docuhyphen.app.api.service.recordpreservation.RecordRetentionScheduleService
-import com.docuhyphen.app.api.model.entity.InformationRequestAcceptedFactVisibility
-import com.docuhyphen.app.api.model.entity.InformationRequestClockUrgency
-import com.docuhyphen.app.api.model.entity.InformationRequestFindingCorrectionScope
-import com.docuhyphen.app.api.model.entity.InformationRequestOwnerType
-import com.docuhyphen.app.api.model.entity.InformationRequestPrivacyRequestKind
-import com.docuhyphen.app.api.model.entity.InformationRequestPrivacyRequestState
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewOutcome
-import com.docuhyphen.app.api.model.entity.RecordPreservationScope
-import com.docuhyphen.app.api.model.informationrequest.CreateInformationRequestRecordExportCommand
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestAuditSearch
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestOwnerRef
-import com.docuhyphen.app.api.model.informationrequest.PromoteInformationRequestAcceptedFactCommand
-import com.docuhyphen.app.api.model.informationrequest.RecordInformationRequestPrivacyRequestCommand
-import com.docuhyphen.app.api.model.informationrequest.RecordInformationRequestSubmissionAttestationCommand
-import com.docuhyphen.app.api.model.informationrequest.SubmitInformationRequestPackageCommand
-import com.docuhyphen.app.api.model.informationrequest.StartInformationRequestClockCommand
+import com.docuhyphen.app.api.migration.*
+import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.informationrequest.*
 import com.docuhyphen.app.api.model.recordpreservation.PlaceRecordPreservationHoldCommand
+import com.docuhyphen.app.api.model.recordpreservation.PublishRecordRetentionScheduleCommand
 import com.docuhyphen.app.api.model.recordpreservation.RecordOwnerRef
 import com.docuhyphen.app.api.model.recordpreservation.ReleaseRecordPreservationHoldCommand
 import com.docuhyphen.app.api.model.workflow.WorkflowRequirementOperand
-import com.docuhyphen.app.api.repository.informationrequest.InformationRequestClockEventRepository
-import com.docuhyphen.app.api.repository.informationrequest.InformationRequestClockRepository
-import com.docuhyphen.app.api.repository.informationrequest.InformationRequestItemCorrectionRepository
-import com.docuhyphen.app.api.repository.informationrequest.InformationRequestPrivacyRequestRepository
-import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRecordExportRepository
-import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
-import com.docuhyphen.app.api.repository.informationrequest.InformationRequestReviewRepository
-import com.docuhyphen.app.api.repository.informationrequest.InformationRequestSubjectRestrictionRepository
-import com.docuhyphen.app.api.repository.informationrequest.InformationRequestTransitionRepository
+import com.docuhyphen.app.api.repository.informationrequest.*
 import com.docuhyphen.app.api.service.audit.AuditRecorder
 import com.docuhyphen.app.api.service.audit.AuditTargetHistoryService
 import com.docuhyphen.app.api.service.auth.authz.Action
+import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.service.command.CommandPrecondition
+import com.docuhyphen.app.api.service.identity.PrincipalDisplayService
+import com.docuhyphen.app.api.service.notification.DomainEventDeliveryStandingService
 import com.docuhyphen.app.api.service.recordpreservation.RecordPreservationHoldService
+import com.docuhyphen.app.api.service.recordpreservation.RecordRetentionScheduleService
 import com.docuhyphen.app.api.service.recordpreservation.RecordStorageLocationPolicy
 import com.docuhyphen.app.api.service.recordpreservation.RecordTransferPolicy
 import io.quarkus.narayana.jta.QuarkusTransaction
@@ -58,10 +29,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNotEquals
-import org.junit.jupiter.api.Assertions.assertThrows
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
 import org.mockito.kotlin.mock
@@ -69,7 +37,7 @@ import org.mockito.kotlin.whenever
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneOffset
-import java.util.UUID
+import java.util.*
 import javax.sql.DataSource
 
 @QuarkusTest
@@ -106,6 +74,12 @@ class InformationRequestTemplateWalkingSkeletonPhase9Test
     @Inject lateinit var deliveries: DomainEventDeliveryStandingService
     @Inject lateinit var schedules: RecordRetentionScheduleService
     @Inject lateinit var disposalWorker: InformationRequestDisposalWorker
+    @Inject
+    lateinit var titleReader: InformationRequestTitleReader
+    @Inject
+    lateinit var partyRepository: InformationRequestPartyRepository
+    @Inject
+    lateinit var principalDisplayService: PrincipalDisplayService
 
     private val support by lazy { InformationRequestReviewTestSupport(dataSource, runtime, requestRepository, reviewRepository) }
 
@@ -204,6 +178,7 @@ class InformationRequestTemplateWalkingSkeletonPhase9Test
                         packageId = secondPackage,
                         submissionItemId = support.item(fixture, secondPackage, answers.requirementId),
                         purposeKey = REUSE_PURPOSE,
+                        policyBasisKey = "policy.reuse",
                         visibility = InformationRequestAcceptedFactVisibility.RESPONDING_PARTIES,
                         access = support.owner(fixture),
                         idempotencyKey = "promote-restricted",
@@ -272,6 +247,9 @@ class InformationRequestTemplateWalkingSkeletonPhase9Test
 
         val queue = InformationRequestOperationsService(
             ownerAccess(owner), requestRepository, clockRepository, clockEventRepository, clockPolicies, noticeStates, deliveries, Clock.systemUTC(),
+            titleReader,
+            partyRepository,
+            principalDisplayService,
         )
         val row = QuarkusTransaction.requiringNew().call { queue.queue(InformationRequestOperationsFilter()) }.rows.single()
         assertEquals(InformationRequestSlaStatus.OVERDUE, row.standing.status)

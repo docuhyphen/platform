@@ -5,7 +5,7 @@ import com.docuhyphen.app.api.serializer.TimestampSerializer
 import com.docuhyphen.app.api.serializer.UUIDSerializer
 import kotlinx.serialization.Serializable
 import java.sql.Timestamp
-import java.util.UUID
+import java.util.*
 
 /**
  * Returned only from issuance, rotation, and replacement, the three operations that mint a brand
@@ -30,4 +30,6 @@ data class InformationRequestAccessLinkDto(
     @Serializable(with = TimestampSerializer::class) val expiresAt: Timestamp? = null,
     val maxUses: Int? = null,
     val rotationCount: Int,
+    @Serializable(with = UUIDSerializer::class) val partyId: UUID? = null,
+    @Serializable(with = TimestampSerializer::class) val createdAt: Timestamp? = null,
 )

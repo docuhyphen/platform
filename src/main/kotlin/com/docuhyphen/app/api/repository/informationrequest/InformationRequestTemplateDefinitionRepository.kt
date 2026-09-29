@@ -4,7 +4,7 @@ import com.docuhyphen.app.api.model.entity.InformationRequestTemplateDefinition
 import com.docuhyphen.app.api.model.entity.InformationRequestTemplateScopeKind
 import com.docuhyphen.app.api.repository.BaseRepository
 import jakarta.enterprise.context.ApplicationScoped
-import java.util.UUID
+import java.util.*
 
 /**
  * Persistence for [InformationRequestTemplateDefinition]. Every lookup names the owner it is asking
@@ -88,4 +88,19 @@ class InformationRequestTemplateDefinitionRepository :
         )
             .setParameter("userId", userId)
             .resultList
+
+    fun findForIds(ids: Collection<UUID>): List<InformationRequestTemplateDefinition>
+    {
+        if (ids.isEmpty()) return emptyList()
+        return entityManager.createQuery(
+            """
+            SELECT definition
+            FROM InformationRequestTemplateDefinition definition
+            WHERE definition.id IN :ids
+            """.trimIndent(),
+            InformationRequestTemplateDefinition::class.java,
+        )
+            .setParameter("ids", ids)
+            .resultList
+    }
 }

@@ -83,15 +83,33 @@ class SchemaAssignmentService @Inject constructor(
     @Transactional
     fun assignPublishedSchemaVersion(command: PublishedSchemaAssignmentCommand): SchemaAssignmentDto
     {
+        val adapter = adapterRegistry.adapterFor(command.resource.resourceType)
+        if (!adapter.exists(command.resource.resourceId)) throw IllegalArgumentException("Resource not found: ${command.resource.resourceId}")
+        adapter.authorizeManageFields(command.resource.resourceId, command.access.principal, command.access.authorization)
+        adapter.authorizeManageSchema(command.resource.resourceId, command.access.principal, command.access.authorization)
+        return assignPublishedVersion(command, adapter)
+    }
+
+    /**
+     * Assigns the exact published Schema Version a resource is created with, as one step of a
+     * creation command that has already authorized creating that resource. The creator is recorded
+     * as the assigner, and every published-version, visibility, and resource-specific validation
+     * still applies, but no separate Field management capability is required: the creator is
+     * applying configuration the resource is defined by, not editing Fields of an existing resource.
+     */
+    @Transactional
+    fun assignSchemaVersionForCreation(command: PublishedSchemaAssignmentCommand): SchemaAssignmentDto
+    {
+        val adapter = adapterRegistry.adapterFor(command.resource.resourceType)
+        if (!adapter.exists(command.resource.resourceId)) throw IllegalArgumentException("Resource not found: ${command.resource.resourceId}")
+        return assignPublishedVersion(command, adapter)
+    }
+
+    private fun assignPublishedVersion(command: PublishedSchemaAssignmentCommand, adapter: FieldResourceAdapter): SchemaAssignmentDto
+    {
         val resourceType = command.resource.resourceType
         val resourceId = command.resource.resourceId
         val schemaVersionId = command.schemaVersionId
-        val principal = command.access.principal
-        val context = command.access.authorization
-        val adapter = adapterRegistry.adapterFor(resourceType)
-        if (!adapter.exists(resourceId)) throw IllegalArgumentException("Resource not found: $resourceId")
-        adapter.authorizeManageFields(resourceId, principal, context)
-        adapter.authorizeManageSchema(resourceId, principal, context)
         if (!adapter.schemaAssignmentMutable(resourceId))
             throw IllegalStateException("This resource can no longer have its schema changed")
 

@@ -12,9 +12,14 @@ import {
     SchemaFieldBindingDto,
 } from "../../models/models.tsx";
 import {ResponseEdits} from "./structuredResponseWorkspaceState.ts";
+import {ResponseAnswerEdits} from "./responseAnswerState.ts";
 
 export type SaveResponsesResult =
     | { outcome: "SAVED"; responseETag: string; responses: InformationRequestResponseDto[] }
+    | { outcome: "STALE" };
+
+export type ResponseETagResult =
+    | { outcome: "SAVED"; responseETag: string }
     | { outcome: "STALE" };
 
 export type OccurrenceCommandResult =
@@ -71,6 +76,8 @@ export interface StructuredResponseOccurrenceProps
     conditionByScope: Map<string, InformationRequestConditionEvaluationDto>;
     edits: ResponseEdits;
     setEdits: (edits: (previous: ResponseEdits) => ResponseEdits) => void;
+    answers: ResponseAnswerEdits;
+    setAnswers: (answers: (previous: ResponseAnswerEdits) => ResponseAnswerEdits) => void;
     onAdd: (
         requestId: string,
         groupKey: string,
@@ -89,7 +96,7 @@ export interface StructuredResponseOccurrenceProps
         occurrenceIds: string[],
         responseETag: string,
     ) => Promise<OccurrenceCommandResult>;
-    onResult: (result: OccurrenceCommandResult) => void;
+    onResult: (result: ResponseETagResult) => void;
     onCommandStart: () => void;
     onCommandFailure: (error: unknown) => void;
 }

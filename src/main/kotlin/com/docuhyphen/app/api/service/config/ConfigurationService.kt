@@ -3,7 +3,7 @@ package com.docuhyphen.app.api.service.config
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import org.eclipse.microprofile.config.inject.ConfigProperty
-import java.util.Optional
+import java.util.*
 
 /**
  * Central configuration facade.
@@ -120,7 +120,9 @@ class ConfigurationService @Inject constructor(
     fun getSecretsRotationOverlapHours(): Long = secretsRotationOverlapHoursConfig
     fun isSecretsRotationAllowPreviousDuringOverlapEnabled(): Boolean = secretsRotationAllowPreviousDuringOverlapConfig
     fun isSecretsRotationRollbackEnabled(): Boolean = secretsRotationRollbackEnabledConfig
-    fun isSecretsRotationRollbackRequireMonitorPhaseEnabled(): Boolean = secretsRotationRollbackRequireMonitorPhaseConfig
+    fun isSecretsRotationRollbackRequireMonitorPhaseEnabled(): Boolean =
+        secretsRotationRollbackRequireMonitorPhaseConfig
+
     fun getSecretsRotationRuntimeAllowedPhases(): Set<String> = secretsRotationRuntimeAllowedPhasesConfig
         .split(',')
         .map { it.trim().uppercase() }
@@ -239,7 +241,9 @@ class ConfigurationService @Inject constructor(
     fun getOidcRequiredClaimsMicrosoft(): Set<String> = oauthConfig.getOidcRequiredClaimsMicrosoft()
 
     fun isMicrosoftMultiTenantAllowed(): Boolean = oauthConfig.isMicrosoftMultiTenantAllowed()
-    fun isMicrosoftEmailDomainOwnerVerifiedRequired(): Boolean = oauthConfig.isMicrosoftEmailDomainOwnerVerifiedRequired()
+    fun isMicrosoftEmailDomainOwnerVerifiedRequired(): Boolean =
+        oauthConfig.isMicrosoftEmailDomainOwnerVerifiedRequired()
+
     fun isMicrosoftPreferredUsernameAsEmailAllowed(): Boolean = oauthConfig.isMicrosoftPreferredUsernameAsEmailAllowed()
 
     fun getOidcHttpConnectTimeoutSeconds(): Long = oauthConfig.getOidcHttpConnectTimeoutSeconds()
@@ -251,7 +255,8 @@ class ConfigurationService @Inject constructor(
     fun getApplicationTokenRequiredScope(): String = oauthConfig.getApplicationTokenRequiredScope()
     fun getApplicationTokenIntegrationScope(): String = oauthConfig.getApplicationTokenIntegrationScope()
     fun getApplicationTokenServiceScope(): String = oauthConfig.getApplicationTokenServiceScope()
-    fun getApplicationTokenAllowedEndpointPrefixes(): Set<String> = oauthConfig.getApplicationTokenAllowedEndpointPrefixes()
+    fun getApplicationTokenAllowedEndpointPrefixes(): Set<String> =
+        oauthConfig.getApplicationTokenAllowedEndpointPrefixes()
 
 
     fun getScimBearerToken(): String = oauthConfig.getScimBearerToken()

@@ -4,6 +4,7 @@ import {useLoadedValue} from "../../../hooks/useLoadedValue.ts";
 import {getRecordPreservationHolds} from "../../../services/recordPreservationService.ts";
 import LoadedPanel from "../../information-requests/operations/loaded-panel/LoadedPanel.tsx";
 import {RecordPreservationHoldDto, RecordPreservationHoldStatus} from "../../models/models.tsx";
+import ChangeHoldScopeDialog from "../change-hold-scope-dialog/ChangeHoldScopeDialog.tsx";
 import RecordHoldRow from "../hold-row/RecordHoldRow.tsx";
 import ReleaseHoldDialog from "../release-hold-dialog/ReleaseHoldDialog.tsx";
 import {useRecordHoldListStyles} from "./RecordHoldListStyles.tsx";
@@ -18,6 +19,7 @@ const RecordHoldList = ({canManage}: RecordHoldListProps) =>
     const styles = useRecordHoldListStyles();
     const [includeReleased, setIncludeReleased] = useState(false);
     const [releasing, setReleasing] = useState<RecordPreservationHoldDto | null>(null);
+    const [rescoping, setRescoping] = useState<RecordPreservationHoldDto | null>(null);
     const load = useCallback(
         () => getRecordPreservationHolds(includeReleased ? undefined : RecordPreservationHoldStatus.ACTIVE),
         [includeReleased],
@@ -50,11 +52,21 @@ const RecordHoldList = ({canManage}: RecordHoldListProps) =>
                             <RecordHoldRow key={hold.id}
                                            hold={hold}
                                            canManage={canManage}
+                                           onChangeScope={() => setRescoping(hold)}
                                            onRelease={() => setReleasing(hold)}/>
                         ))}
                     </ul>
                 )}
             </LoadedPanel>
+            {rescoping && (
+                <ChangeHoldScopeDialog hold={rescoping}
+                                       onDismiss={() => setRescoping(null)}
+                                       onChanged={() =>
+                                       {
+                                           setRescoping(null);
+                                           holds.reload();
+                                       }}/>
+            )}
             {releasing && (
                 <ReleaseHoldDialog hold={releasing}
                                    onDismiss={() => setReleasing(null)}

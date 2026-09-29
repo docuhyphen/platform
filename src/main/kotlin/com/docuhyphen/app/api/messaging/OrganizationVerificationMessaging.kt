@@ -7,9 +7,7 @@ import jakarta.enterprise.context.ApplicationScoped
 import org.slf4j.LoggerFactory
 
 @ApplicationScoped
-class OrganizationVerificationProducer(
-//    @Channel("organization-verification-out") private val emitter: Emitter<KafkaRecord<String, Organization>>
-)
+class OrganizationVerificationProducer
 {
     private val logger = LoggerFactory.getLogger(OrganizationVerificationProducer::class.java)
 
@@ -19,6 +17,7 @@ class OrganizationVerificationProducer(
 //        emitter.send(KafkaRecord.of(organization.registrationNumber, organization))
     }
 }
+
 @ApplicationScoped
 class OrganizationVerificationConsumer(
     private val organizationRepository: OrganizationRepository,
@@ -27,7 +26,7 @@ class OrganizationVerificationConsumer(
 {
     private val logger = LoggerFactory.getLogger(OrganizationVerificationConsumer::class.java)
 
-//    @Incoming("organization-verification-in")
+    //    @Incoming("organization-verification-in")
 //    @Blocking // Ensures processing does not block the reactive pipeline
     fun verifyOrganization(organization: Organization)
     {

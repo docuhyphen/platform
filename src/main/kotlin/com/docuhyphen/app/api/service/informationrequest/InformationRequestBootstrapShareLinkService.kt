@@ -1,12 +1,7 @@
 package com.docuhyphen.app.api.service.informationrequest
 
-import com.docuhyphen.app.api.model.entity.InformationRequestParty
-import com.docuhyphen.app.api.model.entity.InformationRequestShareRoleKey
-import com.docuhyphen.app.api.model.entity.PrincipalKind
-import com.docuhyphen.app.api.model.entity.ResourceType
-import com.docuhyphen.app.api.model.entity.ShareLink
-import com.docuhyphen.app.api.model.entity.ShareLinkMode
-import com.docuhyphen.app.api.model.entity.ShareLinkStatus
+import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.informationrequest.InformationRequestAccessLinkView
 import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
 import com.docuhyphen.app.api.repository.exchange.ShareLinkRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestPartyRepository
@@ -15,14 +10,7 @@ import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
 import com.docuhyphen.app.api.service.auth.authz.Decision
 import com.docuhyphen.app.api.service.auth.authz.ResourceRef
-import com.docuhyphen.app.api.service.command.CommandActorRef
-import com.docuhyphen.app.api.service.command.CommandMutationResult
-import com.docuhyphen.app.api.service.command.CommandPrecondition
-import com.docuhyphen.app.api.service.command.CommandReceiptDecision
-import com.docuhyphen.app.api.service.command.CommandReceiptRequest
-import com.docuhyphen.app.api.service.command.CommandReceiptService
-import com.docuhyphen.app.api.service.command.CommandRequestFingerprint
-import com.docuhyphen.app.api.service.command.CommandResultReference
+import com.docuhyphen.app.api.service.command.*
 import io.quarkus.security.ForbiddenException
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
@@ -31,8 +19,7 @@ import java.security.MessageDigest
 import java.security.SecureRandom
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.Base64
-import java.util.UUID
+import java.util.*
 
 data class IssueInformationRequestBootstrapShareLinkCommand(
     val requestId: UUID,
@@ -117,6 +104,17 @@ class InformationRequestBootstrapShareLinkService @Inject constructor(
                     "recovered and this retry cannot re-issue it",
             )
         }
+    }
+
+    fun links(requestId: UUID, access: RequestAccessContext): List<InformationRequestAccessLinkView>
+    {
+        requestRepository.findById(requestId) ?: throw IllegalArgumentException("Information Request not found")
+        authorize(access, requestId)
+        val partyByShare = partyRepository.findForRequest(requestId)
+            .mapNotNull { party -> party.shareId?.let { it to party.id } }
+            .toMap()
+        return shareLinkRepository.findBootstrapLinksForShares(partyByShare.keys)
+            .map { InformationRequestAccessLinkView(it, partyByShare.getValue(it.shareId)) }
     }
 
     private fun issueMutation(

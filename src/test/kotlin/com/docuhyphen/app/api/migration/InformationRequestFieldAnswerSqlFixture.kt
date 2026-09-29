@@ -117,7 +117,7 @@ internal class FieldAnswerSqlFixture(
         template.insertDisposition(bindingId, template.versionId, "PROVIDED")
     }
 
-    fun materialize(runtime: SubmissionRuntimeSqlFixture)
+    fun materializeUnanswered(runtime: SubmissionRuntimeSqlFixture)
     {
         val now = template.now
         runtime.insertRequirementOccurrence(requirementId, revisionId, templateRequirementId, bindingId)
@@ -152,6 +152,12 @@ internal class FieldAnswerSqlFixture(
                 now,
             )
         }
+    }
+
+    fun materialize(runtime: SubmissionRuntimeSqlFixture)
+    {
+        val now = template.now
+        materializeUnanswered(runtime)
         execute(
             connection,
             """

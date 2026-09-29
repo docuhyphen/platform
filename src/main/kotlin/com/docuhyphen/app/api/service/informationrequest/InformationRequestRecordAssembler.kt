@@ -11,6 +11,8 @@ import com.docuhyphen.app.api.repository.informationrequest.InformationRequestCl
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestClockRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestCorrectionItemRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestCorrectionRepository
+import com.docuhyphen.app.api.repository.informationrequest.InformationRequestFactRecertificationEvidenceRepository
+import com.docuhyphen.app.api.repository.informationrequest.InformationRequestFactRecertificationRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestPartyRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestReviewDecisionRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestReviewFindingRepository
@@ -55,6 +57,9 @@ class InformationRequestRecordAssembler @Inject constructor(
     private val clockEventRepository: InformationRequestClockEventRepository,
     private val noticeStates: InformationRequestNoticeStateReader,
     private val fieldValues: FieldValueRevisionQueryService,
+    private val recertificationRepository: InformationRequestFactRecertificationRepository,
+    private val recertificationEvidenceRepository: InformationRequestFactRecertificationEvidenceRepository,
+    private val externalSources: InformationRequestExternalSourceRecordAssembler,
 )
 {
     fun assemble(request: InformationRequest): JsonObject = buildJsonObject {
@@ -68,7 +73,9 @@ class InformationRequestRecordAssembler @Inject constructor(
         put("reviews", reviewsOf(request.id))
         put("corrections", correctionsOf(request.id))
         put("acceptedFacts", factsOf(request.id))
+        put("recertifications", recertificationsOf(request.id))
         put("businessDecisions", businessDecisionsOf(request.id))
+        put("externalSources", externalSources.assemble(request.id))
         put("clocks", clocksOf(request.id))
         put("notices", noticesOf(request.id))
     }
@@ -362,6 +369,43 @@ class InformationRequestRecordAssembler @Inject constructor(
         }
     }
 
+    private fun recertificationsOf(requestId: UUID): JsonArray
+    {
+        val recertifications = recertificationRepository.findForRequest(requestId).sortedWith(compareBy({ it.assentedAt }, { it.id }))
+        val evidence = recertificationEvidenceRepository.findForRecertifications(recertifications.map { it.id }).groupBy { it.recertificationId }
+        return buildJsonArray {
+            recertifications.forEach { recertification ->
+                add(
+                    buildJsonObject {
+                        put("recertificationId", recertification.id.toString())
+                        put("requirementId", recertification.informationRequestRequirementId.toString())
+                        put("responseId", recertification.responseId.toString())
+                        put("responseRevision", recertification.responseRevision)
+                        put("factId", recertification.factId.toString())
+                        put("purposeKey", recertification.purposeKey)
+                        put("policyBasisKey", recertification.policyBasisKey)
+                        put("valueType", recertification.valueType.name)
+                        put("sourceInformationRequestId", recertification.sourceInformationRequestId.toString())
+                        put("sourcePackageId", recertification.sourcePackageId.toString())
+                        put("sourceSubmissionItemId", recertification.sourceSubmissionItemId.toString())
+                        put("sourceRequirementId", recertification.sourceRequirementId.toString())
+                        put("sourceFieldValueRevisionId", recertification.sourceFieldValueRevisionId.toString())
+                        put("sourceReviewId", recertification.sourceReviewId?.toString())
+                        put("assentedByPrincipalKind", recertification.assentedByPrincipalKind.name)
+                        put("assentedByPrincipalId", recertification.assentedByPrincipalId.toString())
+                        put("assentedAt", instant(recertification.assentedAt))
+                        put(
+                            "evidenceVersionIds",
+                            buildJsonArray {
+                                evidence[recertification.id].orEmpty().map { it.evidenceVersionId.toString() }.sorted().forEach { add(JsonPrimitive(it)) }
+                            },
+                        )
+                    },
+                )
+            }
+        }
+    }
+
     private fun businessDecisionsOf(requestId: UUID): JsonArray = buildJsonArray {
         businessDecisionRepository.findForRequest(requestId).sortedBy { it.decisionRevision }.forEach { decision ->
             add(
@@ -454,6 +498,6 @@ class InformationRequestRecordAssembler @Inject constructor(
 
     companion object
     {
-        const val SCHEMA_VERSION = 1
+        const val SCHEMA_VERSION = 2
     }
 }

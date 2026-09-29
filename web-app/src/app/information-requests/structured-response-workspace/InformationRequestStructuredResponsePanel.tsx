@@ -10,6 +10,8 @@ import {
 } from "../../models/models.tsx";
 import {RequirementEvidenceContext} from "../requirement-evidence/RequirementEvidenceContext.ts";
 import {requirementEvidenceCommands} from "../requirement-evidence/requirementEvidenceCommands.ts";
+import {ReusableAnswerContext} from "../reusable-answer/ReusableAnswerContext.ts";
+import {useReusableAnswers} from "../reusable-answer/useReusableAnswers.ts";
 import InformationRequestStructuredResponseWorkspace from "./InformationRequestStructuredResponseWorkspace.tsx";
 import {structuredResponseCommands} from "./structuredResponseCommands.ts";
 
@@ -56,23 +58,26 @@ const InformationRequestStructuredResponsePanel = ({
         }),
         [accessLinkToken, evidenceMalwareScanning, evidenceUploadAvailable],
     );
+    const reusableAnswers = useReusableAnswers(request.id, responseETag, accessLinkToken);
 
     return (
         <RequirementEvidenceContext.Provider value={evidence}>
-            <InformationRequestStructuredResponseWorkspace request={request}
-                                                           responseETag={responseETag}
-                                                           enabled={true}
-                                                           groups={groups}
-                                                           conditionRules={conditionRules}
-                                                           occurrences={occurrences}
-                                                           requirements={requirements}
-                                                           bindings={bindings}
-                                                           responses={responses}
-                                                           onSaveResponses={commands.saveResponses}
-                                                           onAddOccurrence={commands.addOccurrence}
-                                                           onRemoveOccurrence={commands.removeOccurrence}
-                                                           onReorderOccurrences={commands.reorderOccurrences}
-                                                           onRefresh={onRefresh}/>
+            <ReusableAnswerContext.Provider value={reusableAnswers}>
+                <InformationRequestStructuredResponseWorkspace request={request}
+                                                               responseETag={responseETag}
+                                                               enabled={true}
+                                                               groups={groups}
+                                                               conditionRules={conditionRules}
+                                                               occurrences={occurrences}
+                                                               requirements={requirements}
+                                                               bindings={bindings}
+                                                               responses={responses}
+                                                               onSaveResponses={commands.saveResponses}
+                                                               onAddOccurrence={commands.addOccurrence}
+                                                               onRemoveOccurrence={commands.removeOccurrence}
+                                                               onReorderOccurrences={commands.reorderOccurrences}
+                                                               onRefresh={onRefresh}/>
+            </ReusableAnswerContext.Provider>
         </RequirementEvidenceContext.Provider>
     );
 };

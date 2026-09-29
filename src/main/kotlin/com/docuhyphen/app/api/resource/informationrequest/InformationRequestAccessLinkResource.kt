@@ -8,36 +8,17 @@ import com.docuhyphen.app.api.resource.model.ReplaceInformationRequestAccessLink
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.service.command.CommandPreconditionException
 import com.docuhyphen.app.api.service.command.CommandReceiptConflictException
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestAccessContextFactory
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestBootstrapShareLinkIssuance
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestBootstrapShareLinkService
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestLifecycleException
-import com.docuhyphen.app.api.service.informationrequest.IssueInformationRequestBootstrapShareLinkCommand
-import com.docuhyphen.app.api.service.informationrequest.ReplaceInformationRequestBootstrapShareLinkCommand
-import com.docuhyphen.app.api.service.informationrequest.RevokeInformationRequestBootstrapShareLinkCommand
-import com.docuhyphen.app.api.service.informationrequest.RotateInformationRequestBootstrapShareLinkCommand
+import com.docuhyphen.app.api.service.informationrequest.*
 import io.quarkus.security.ForbiddenException
 import io.quarkus.security.UnauthorizedException
 import jakarta.inject.Inject
-import jakarta.ws.rs.Consumes
-import jakarta.ws.rs.HeaderParam
-import jakarta.ws.rs.POST
-import jakarta.ws.rs.Path
-import jakarta.ws.rs.PathParam
-import jakarta.ws.rs.Produces
-import jakarta.ws.rs.WebApplicationException
+import jakarta.ws.rs.*
 import jakarta.ws.rs.core.HttpHeaders.IF_MATCH
 import jakarta.ws.rs.core.MediaType.APPLICATION_JSON
 import jakarta.ws.rs.core.Response
-import jakarta.ws.rs.core.Response.Status.BAD_REQUEST
-import jakarta.ws.rs.core.Response.Status.CONFLICT
-import jakarta.ws.rs.core.Response.Status.CREATED
-import jakarta.ws.rs.core.Response.Status.FORBIDDEN
-import jakarta.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR
-import jakarta.ws.rs.core.Response.Status.NOT_FOUND
-import jakarta.ws.rs.core.Response.Status.UNAUTHORIZED
+import jakarta.ws.rs.core.Response.Status.*
 import org.slf4j.LoggerFactory
-import java.util.UUID
+import java.util.*
 
 /**
  * Authenticated, owner-facing REST adapter for a request party's
@@ -53,6 +34,23 @@ class InformationRequestAccessLinkResource @Inject constructor(
     private val accessContextFactory: InformationRequestAccessContextFactory,
 )
 {
+    @GET
+    fun list(@PathParam("id") id: String): Response
+    {
+        return try
+        {
+            val requestId = parseUuid(id) ?: return badRequest("Invalid information request id")
+            Response.ok(
+                bootstrapShareLinkService.links(requestId, accessContextFactory.currentAuthenticated())
+                    .map { InformationRequestAccessLinkDtoMapper.toDto(it.shareLink, it.partyId) },
+            ).build()
+        }
+        catch (exception: Exception)
+        {
+            handleException("Information Request access link listing failed", exception)
+        }
+    }
+
     @POST
     fun issue(
         @PathParam("id") id: String,

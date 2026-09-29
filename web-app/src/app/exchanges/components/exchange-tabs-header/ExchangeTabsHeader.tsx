@@ -1,6 +1,14 @@
 import React from "react";
 import {Button, ProgressBar, Tab, TabList, TabValue, Text, Tooltip} from "@fluentui/react-components";
-import {AuditIcon, DetailsIcon, DocumentsIcon, ExchangeWorkflowsTabIcon, SearchIcon, ZipDocumentsIcon} from "../../../components/IconBundles.tsx";
+import {
+    AuditIcon,
+    DetailsIcon,
+    DocumentsIcon,
+    ExchangeInformationRequestsTabIcon,
+    ExchangeWorkflowsTabIcon,
+    SearchIcon,
+    ZipDocumentsIcon,
+} from "../../../components/IconBundles.tsx";
 import {DocumentDetailedDto} from "../../../models/models.tsx";
 import {useExchangeTabsHeaderStyles} from "./ExchangeTabsHeaderStyles.tsx";
 
@@ -11,6 +19,7 @@ interface ExchangeTabsHeaderProps {
     canViewAudit: boolean;
     canViewDetails: boolean;
     canViewWorkflow: boolean;
+    canViewInformationRequests: boolean;
     isDocumentToolbarVisible: boolean;
     onTabChange: (value: TabValue) => void;
     onDownloadZip: () => void;
@@ -42,6 +51,13 @@ const ExchangeTabsHeader: React.FC<ExchangeTabsHeaderProps> = (props) => {
                              value="details"
                              icon={<DetailsIcon/>}>
                             Details
+                        </Tab>
+                    )}
+                    {props.canViewInformationRequests && (
+                        <Tab id="exchange-information-requests-tab-trigger"
+                             value="information-requests"
+                             icon={<ExchangeInformationRequestsTabIcon/>}>
+                            Information Requests
                         </Tab>
                     )}
                     {props.canViewWorkflow && (

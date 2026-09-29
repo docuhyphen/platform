@@ -18,6 +18,8 @@ data class InformationRequestAcceptedFactDto(
     @Serializable(with = UUIDSerializer::class) val id: UUID,
     @Serializable(with = UUIDSerializer::class) val subjectIdentityRefId: UUID,
     val purposeKey: String,
+    val policyBasisKey: String,
+    val evidenceVersionIds: List<@Serializable(with = UUIDSerializer::class) UUID>,
     @Serializable(with = UUIDSerializer::class) val fieldDefinitionId: UUID,
     val valueType: FieldValueType,
     val value: JsonElement,
@@ -46,8 +48,34 @@ data class InformationRequestAcceptedFactDto(
 data class InformationRequestAcceptedFactOfferDto(
     @Serializable(with = UUIDSerializer::class) val requirementId: UUID,
     val requirementKey: String,
-    val fact: InformationRequestAcceptedFactDto,
+    val fact: InformationRequestReusableFactDto,
     val reconfirmationRequired: Boolean,
+)
+
+@Serializable
+data class InformationRequestReusableFactDto(
+    @Serializable(with = UUIDSerializer::class) val id: UUID,
+    val purposeKey: String,
+    val policyBasisKey: String,
+    val valueType: FieldValueType,
+    val value: JsonElement,
+    val confidence: InformationRequestAcceptedFactConfidence,
+    @Serializable(with = TimestampSerializer::class) val validFrom: Timestamp,
+    @Serializable(with = TimestampSerializer::class) val validTo: Timestamp? = null,
+    @Serializable(with = TimestampSerializer::class) val expiresAt: Timestamp? = null,
+    val freshness: InformationRequestAcceptedFactFreshness,
+)
+
+@Serializable
+data class InformationRequestFactRecertificationDto(
+    @Serializable(with = UUIDSerializer::class) val id: UUID,
+    @Serializable(with = UUIDSerializer::class) val requirementId: UUID,
+    @Serializable(with = UUIDSerializer::class) val factId: UUID,
+    @Serializable(with = UUIDSerializer::class) val responseId: UUID,
+    val responseRevision: Long,
+    val valueType: FieldValueType,
+    val value: JsonElement,
+    @Serializable(with = TimestampSerializer::class) val assentedAt: Timestamp,
 )
 
 @Serializable

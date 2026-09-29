@@ -13,6 +13,7 @@ import {
     siblingOccurrenceIds,
 } from "./structuredResponseWorkspaceState.ts";
 import {OccurrenceCommandResult} from "./StructuredResponseWorkspaceTypes.ts";
+import {ResponseAnswerEdits} from "./responseAnswerState.ts";
 
 interface Props
 {
@@ -27,6 +28,8 @@ interface Props
     conditionByScope: Map<string, InformationRequestConditionEvaluationDto>;
     edits: ResponseEdits;
     setEdits: (edits: (previous: ResponseEdits) => ResponseEdits) => void;
+    answers: ResponseAnswerEdits;
+    setAnswers: (answers: (previous: ResponseAnswerEdits) => ResponseAnswerEdits) => void;
     onAddOccurrence: (
         requestId: string,
         request: {groupKey: string; parentOccurrenceId?: string},
@@ -59,6 +62,8 @@ const StructuredResponseOccurrenceList = ({
     conditionByScope,
     edits,
     setEdits,
+    answers,
+    setAnswers,
     onAddOccurrence,
     onRemoveOccurrence,
     onReorderOccurrences,
@@ -91,6 +96,8 @@ const StructuredResponseOccurrenceList = ({
                                                   conditionByScope={conditionByScope}
                                                   edits={edits}
                                                   setEdits={setEdits}
+                                                  answers={answers}
+                                                  setAnswers={setAnswers}
                                                   onAdd={(targetRequestId, groupKey, parentOccurrenceId, etag) =>
                                                       onAddOccurrence(targetRequestId, {groupKey, parentOccurrenceId}, etag)}
                                                   onRemove={onRemoveOccurrence}

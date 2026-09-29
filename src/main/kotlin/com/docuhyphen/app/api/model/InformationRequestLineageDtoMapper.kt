@@ -33,6 +33,8 @@ object InformationRequestLineageDtoMapper
         informationRequestId = view.request.id,
         source = view.source?.let(::toDto),
         successors = view.successors.map(::toDto),
+        recurrence = view.recurrence?.let(::toDto),
+        nextOccurrenceDueAt = view.nextOccurrenceDueAt?.let(java.sql.Timestamp::from),
     )
 
     fun toDto(offer: InformationRequestCarryForwardOffer) = InformationRequestCarryForwardDto(

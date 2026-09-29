@@ -5,6 +5,7 @@ import com.docuhyphen.app.api.model.entity.InformationRequestCarryForward
 import com.docuhyphen.app.api.model.entity.InformationRequestCarryForwardDecision
 import com.docuhyphen.app.api.model.entity.InformationRequestLineage
 import com.docuhyphen.app.api.model.entity.InformationRequestLineageKind
+import com.docuhyphen.app.api.model.entity.InformationRequestRecurrence
 import com.docuhyphen.app.api.model.entity.InformationRequestRecurrenceUnit
 import com.docuhyphen.app.api.model.entity.InformationRequestRequirementType
 import com.docuhyphen.app.api.model.fields.FieldValueRevisionValue
@@ -95,6 +96,8 @@ data class InformationRequestLineageView(
     val request: InformationRequest,
     val source: InformationRequestLineage?,
     val successors: List<InformationRequestLineage>,
+    val recurrence: InformationRequestRecurrence? = null,
+    val nextOccurrenceDueAt: Instant? = null,
 )
 
 data class InformationRequestCarryForwardOffer(

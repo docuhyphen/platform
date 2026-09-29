@@ -1,9 +1,6 @@
 package com.docuhyphen.app.api.resource.informationrequest
 
-import com.docuhyphen.app.api.model.dto.CreateInformationRequestTemplateRequest
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateConfigurationRequest
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateDto
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateSectionRequest
+import com.docuhyphen.app.api.model.dto.*
 import com.docuhyphen.app.api.model.entity.InformationRequestRequirementType
 import com.docuhyphen.app.api.model.entity.InformationRequestTemplateScopeKind
 import com.docuhyphen.app.api.model.entity.InformationRequestTemplateStatus
@@ -21,19 +18,12 @@ import jakarta.ws.rs.POST
 import jakarta.ws.rs.PUT
 import jakarta.ws.rs.Path
 import jakarta.ws.rs.core.Response
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertSame
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
-import org.mockito.kotlin.any
-import org.mockito.kotlin.eq
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.whenever
+import org.mockito.kotlin.*
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 /**
  * The Template administration resource exposes the service boundary without owning lifecycle or
@@ -218,11 +208,52 @@ class InformationRequestTemplateResourceContractTest
         assertMapped(Response.Status.INTERNAL_SERVER_ERROR, "Request failed")
     }
 
+    @Test
+    fun `a validation refusal names the part of the document it refuses`()
+    {
+        whenever(publicationService.publishTemplate(templateId))
+            .thenThrow(
+                InformationRequestTemplateValidationException(
+                    "Requirement recorded-note states no prompt",
+                    sectionKey = "collected-data",
+                    requirementKey = "recorded-note",
+                ),
+            )
+        whenever(authoringService.replaceDraftConfiguration(eq(templateId), any()))
+            .thenThrow(
+                InformationRequestTemplateValidationException(
+                    "Repeatable group entries names itself as its own parent",
+                    groupKey = "entries",
+                ),
+            )
+
+        val published = resource.publishDraft(templateId.toString())
+        val configured = resource.replaceDraftConfiguration(templateId.toString(), configurationRequest())
+
+        assertEquals(Response.Status.BAD_REQUEST.statusCode, published.status)
+        val publicationRefusal = published.entity as InformationRequestTemplateRefusalDto
+        assertEquals("Requirement recorded-note states no prompt", publicationRefusal.errorMessage)
+        assertEquals("INFORMATION_REQUEST_TEMPLATE_INVALID", publicationRefusal.reasonCode)
+        assertEquals("collected-data", publicationRefusal.sectionKey)
+        assertEquals("recorded-note", publicationRefusal.requirementKey)
+        assertEquals(null, publicationRefusal.groupKey)
+        assertEquals(null, publicationRefusal.reviewStageKey)
+        val configurationRefusal = configured.entity as InformationRequestTemplateRefusalDto
+        assertEquals(Response.Status.BAD_REQUEST.statusCode, configured.status)
+        assertEquals("entries", configurationRefusal.groupKey)
+        assertEquals(null, configurationRefusal.requirementKey)
+    }
+
     private fun assertMapped(status: Response.Status, message: String)
     {
         val response = resource.get(templateId.toString())
         assertEquals(status.statusCode, response.status)
-        assertEquals(message, (response.entity as ResponseError).errorMessage)
+        val errorMessage = when (val entity = response.entity)
+        {
+            is InformationRequestTemplateRefusalDto -> entity.errorMessage
+            else -> (entity as ResponseError).errorMessage
+        }
+        assertEquals(message, errorMessage)
     }
 
     private fun createRequest() = CreateInformationRequestTemplateRequest(
@@ -238,7 +269,7 @@ class InformationRequestTemplateResourceContractTest
                 sectionKey = "collected-data",
                 title = "Collected data",
                 requirements = listOf(
-                    com.docuhyphen.app.api.model.dto.InformationRequestTemplateRequirementRequest(
+                    InformationRequestTemplateRequirementRequest(
                         requirementKey = "recorded-note",
                         requirementType = InformationRequestRequirementType.FIELD,
                         prompt = "State the recorded note",

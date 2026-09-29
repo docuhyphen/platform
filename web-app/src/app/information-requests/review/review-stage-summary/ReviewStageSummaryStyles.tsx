@@ -26,4 +26,11 @@ export const useReviewStageSummaryStyles = makeStyles({
     detail: {
         color: tokens.colorNeutralForeground3,
     },
+    rules: {
+        margin: 0,
+        paddingLeft: tokens.spacingHorizontalL,
+        display: "flex",
+        flexDirection: "column",
+        gap: tokens.spacingVerticalXXS,
+    },
 });

@@ -6,17 +6,14 @@ import com.docuhyphen.app.api.migration.execute
 import com.docuhyphen.app.api.model.entity.InformationRequestClockUrgency
 import com.docuhyphen.app.api.model.entity.InformationRequestNoticeDeliveryState
 import com.docuhyphen.app.api.model.entity.InformationRequestOwnerType
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestOperationsException
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestOperationsFilter
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestOwnerRef
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestSlaStatus
-import com.docuhyphen.app.api.model.informationrequest.StartInformationRequestClockCommand
-import com.docuhyphen.app.api.repository.informationrequest.InformationRequestClockEventRepository
-import com.docuhyphen.app.api.repository.informationrequest.InformationRequestClockRepository
-import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
+import com.docuhyphen.app.api.model.entity.InformationRequestShareRoleKey
+import com.docuhyphen.app.api.model.informationrequest.*
+import com.docuhyphen.app.api.repository.informationrequest.*
 import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.service.command.CommandReceiptService
+import com.docuhyphen.app.api.service.identity.PrincipalDisplayService
 import com.docuhyphen.app.api.service.notification.DomainEventDeliveryStandingService
 import io.quarkus.narayana.jta.QuarkusTransaction
 import io.quarkus.security.ForbiddenException
@@ -31,7 +28,7 @@ import org.mockito.kotlin.whenever
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneOffset
-import java.util.UUID
+import java.util.*
 import javax.sql.DataSource
 
 @QuarkusTest
@@ -49,6 +46,20 @@ class InformationRequestOperationsTransactionTest
     @Inject lateinit var worker: InformationRequestNoticeWorker
     @Inject lateinit var noticeStates: InformationRequestNoticeStateReader
     @Inject lateinit var deliveries: DomainEventDeliveryStandingService
+    @Inject
+    lateinit var titleReader: InformationRequestTitleReader
+    @Inject
+    lateinit var partyRepository: InformationRequestPartyRepository
+    @Inject
+    lateinit var principalDisplayService: PrincipalDisplayService
+    @Inject
+    lateinit var gate: InformationRequestMutationGate
+    @Inject
+    lateinit var intentRepository: InformationRequestNoticeIntentRepository
+    @Inject
+    lateinit var transitionHistory: InformationRequestTransitionHistoryService
+    @Inject
+    lateinit var commandReceiptService: CommandReceiptService
 
     @Test
     fun `the queue states each request's service level, notices, and exceptions and orders by the nearest due instant`()
@@ -106,6 +117,113 @@ class InformationRequestOperationsTransactionTest
     }
 
     @Test
+    fun `the queue names each request, lists its acting assignees, and searches by title, request id prefix, and assignee`()
+    {
+        val fixture = fixture()
+        val service = service(fixture)
+
+        fun queue(filter: InformationRequestOperationsFilter) =
+            QuarkusTransaction.requiringNew().call { service.queue(filter) }
+
+        val page = queue(InformationRequestOperationsFilter())
+        assertEquals(
+            listOf("Collection pattern", "Collection pattern", "Collection pattern"),
+            page.rows.map { it.title })
+        assertEquals(
+            setOf(
+                InformationRequestShareRoleKey.ATTESTOR to fixture.attestorUserId,
+                InformationRequestShareRoleKey.CONTRIBUTOR to fixture.contributorUserId,
+                InformationRequestShareRoleKey.PREPARER to fixture.preparerGroupId,
+            ),
+            page.rows.single { it.request.id == fixture.overdueId }.assignees.map { it.roleKey to it.principalId }
+                .toSet(),
+        )
+        val member = page.rows.single { it.request.id == fixture.dueSoonId }.assignees.single()
+        assertEquals(fixture.userId, member.principalId)
+        assertEquals(true, member.label?.endsWith("@process.test"))
+        assertEquals(emptyList<Any>(), page.rows.single { it.request.id == fixture.quietId }.assignees)
+        assertEquals(3, queue(InformationRequestOperationsFilter(search = "COLLECTION")).total)
+        assertEquals(0, queue(InformationRequestOperationsFilter(search = "unrelated")).total)
+        assertEquals(
+            listOf(fixture.dueSoonId),
+            queue(
+                InformationRequestOperationsFilter(
+                    search = fixture.dueSoonId.toString().take(8).uppercase()
+                )
+            ).rows.map { it.request.id },
+        )
+        assertEquals(
+            listOf(fixture.overdueId),
+            queue(InformationRequestOperationsFilter(assigneeId = fixture.preparerGroupId)).rows.map { it.request.id })
+        assertEquals(
+            listOf(fixture.dueSoonId),
+            queue(InformationRequestOperationsFilter(assigneeId = fixture.userId)).rows.map { it.request.id })
+    }
+
+    @Test
+    fun `a sent reminder owes each responding party a notice the worker delivers and a batch naming unopen work sends nothing`()
+    {
+        val fixture = fixture()
+        val draftId = generateSequence { UUID.randomUUID() }.first { it > fixture.dueSoonId }
+        dataSource.connection.use { insertRequest(it, fixture.runtime, draftId, "DRAFT", START) }
+        val reminders = reminderService(fixture)
+
+        fun send(requestIds: List<UUID>, key: String) =
+            QuarkusTransaction.requiringNew()
+                .call { reminders.send(SendInformationRequestRemindersCommand(requestIds, key)) }
+
+        val sent = send(listOf(fixture.overdueId), "remind-overdue")
+        worker.dispatchForRequest(fixture.overdueId)
+        val replayed = send(listOf(fixture.overdueId), "remind-overdue")
+        val refused = assertThrows(InformationRequestLifecycleException::class.java) {
+            send(
+                listOf(draftId, fixture.dueSoonId),
+                "remind-mixed"
+            )
+        }
+
+        assertEquals(listOf(InformationRequestReminderResult(fixture.overdueId, 3)), sent)
+        assertEquals(sent, replayed)
+        assertEquals(
+            mapOf(
+                InformationRequestNoticeDeliveryState.DELIVERED to 4,
+                InformationRequestNoticeDeliveryState.UNDELIVERABLE to 2
+            ),
+            QuarkusTransaction.requiringNew().call { noticeStates.statesForRequests(listOf(fixture.overdueId)) }
+                .getValue(fixture.overdueId).groupingBy { it }.eachCount(),
+        )
+        assertEquals(
+            3,
+            count(
+                "SELECT count(*) FROM information_request_notice_intent WHERE transition_id IS NOT NULL AND information_request_id = ?",
+                fixture.overdueId
+            )
+        )
+        assertEquals(
+            1,
+            count(
+                "SELECT count(*) FROM information_request_transition WHERE mutation = 'SEND_REMINDER' AND information_request_id = ?",
+                fixture.overdueId
+            )
+        )
+        assertEquals(InformationRequestErrorCatalog.STATE_INVALID, refused.reasonCode)
+        assertEquals(
+            0,
+            count(
+                "SELECT count(*) FROM information_request_transition WHERE mutation = 'SEND_REMINDER' AND information_request_id = ?",
+                fixture.dueSoonId
+            )
+        )
+        assertEquals(
+            0,
+            count(
+                "SELECT count(*) FROM information_request_notice_intent WHERE information_request_id = ?",
+                fixture.dueSoonId
+            )
+        )
+    }
+
+    @Test
     fun `a caller who may not administer the owner's requests is refused`()
     {
         val fixture = fixture()
@@ -114,6 +232,9 @@ class InformationRequestOperationsTransactionTest
         whenever(access.requireAccess(fixture.owner, Action.INFORMATION_REQUEST_VIEW_OPERATIONS_QUEUE)).thenThrow(ForbiddenException("denied"))
         val service = InformationRequestOperationsService(
             access, requestRepository, clockRepository, eventRepository, policies, noticeStates, deliveries, Clock.fixed(NOW, ZoneOffset.UTC),
+            titleReader,
+            partyRepository,
+            principalDisplayService,
         )
 
         assertThrows(ForbiddenException::class.java) { QuarkusTransaction.requiringNew().call { service.queue(InformationRequestOperationsFilter()) } }
@@ -125,6 +246,7 @@ class InformationRequestOperationsTransactionTest
         val reminderVersion = UUID.randomUUID()
         val dueSoonId = UUID.randomUUID()
         val quietId = UUID.randomUUID()
+        val preparerGroupId = UUID.randomUUID()
         val runtimeFixture = dataSource.connection.use { connection ->
             val runtimeFixture = SubmissionRuntimeSqlFixture(connection)
             val clocks = ClockSqlFixture(connection, runtimeFixture)
@@ -141,9 +263,21 @@ class InformationRequestOperationsTransactionTest
                 """.trimIndent(),
                 UUID.randomUUID(),
                 runtimeFixture.requestId,
-                UUID.randomUUID(),
+                preparerGroupId,
             )
             insertRequest(connection, runtimeFixture, dueSoonId, "ISSUED", START.minusSeconds(HOUR))
+            execute(
+                connection,
+                """
+                INSERT INTO information_request_party
+                    (id, information_request_id, role_key, principal_kind, principal_id, active, party_revision,
+                     assigned_at, created_at, updated_at)
+                VALUES (?, ?, 'CONTRIBUTOR', 'USER', ?, TRUE, 1, now(), now(), now())
+                """.trimIndent(),
+                UUID.randomUUID(),
+                dueSoonId,
+                runtimeFixture.template.userId,
+            )
             insertRequest(connection, runtimeFixture, quietId, "IN_PROGRESS", START.plusSeconds(HOUR))
             insertUndeliveredEvent(connection, runtimeFixture, quietId)
             runtimeFixture
@@ -153,8 +287,12 @@ class InformationRequestOperationsTransactionTest
         processor.process(overdueClock, START.plusSeconds(HOUR + MINUTE))
         worker.dispatchForRequest(runtimeFixture.requestId)
         return OperationsFixture(
+            runtime = runtimeFixture,
             owner = InformationRequestOwnerRef(InformationRequestOwnerType.ORGANIZATION, runtimeFixture.template.organizationId),
             userId = runtimeFixture.template.userId,
+            contributorUserId = runtimeFixture.contributorUserId,
+            attestorUserId = runtimeFixture.attestorUserId,
+            preparerGroupId = preparerGroupId,
             overdueId = runtimeFixture.requestId,
             dueSoonId = dueSoonId,
             quietId = quietId,
@@ -240,12 +378,51 @@ class InformationRequestOperationsTransactionTest
         whenever(access.requireAccess(fixture.owner, Action.INFORMATION_REQUEST_VIEW_OPERATIONS_QUEUE)).thenReturn(PrincipalRef.user(fixture.userId))
         return InformationRequestOperationsService(
             access, requestRepository, clockRepository, eventRepository, policies, noticeStates, deliveries, Clock.fixed(NOW, ZoneOffset.UTC),
+            titleReader,
+            partyRepository,
+            principalDisplayService,
         )
     }
 
+    private fun reminderService(fixture: OperationsFixture): InformationRequestReminderService
+    {
+        val access = mock<InformationRequestOwnerScopeAccess>()
+        whenever(access.currentOwner()).thenReturn(fixture.owner)
+        whenever(
+            access.requireAccess(
+                fixture.owner,
+                Action.INFORMATION_REQUEST_SEND_REMINDERS
+            )
+        ).thenReturn(PrincipalRef.user(fixture.userId))
+        return InformationRequestReminderService(
+            access,
+            requestRepository,
+            gate,
+            partyRepository,
+            intentRepository,
+            transitionHistory,
+            commandReceiptService
+        )
+    }
+
+    private fun count(sql: String, requestId: UUID): Int =
+        dataSource.connection.use { connection ->
+            connection.prepareStatement(sql).use { statement ->
+                statement.setObject(1, requestId)
+                statement.executeQuery().use { result ->
+                    result.next()
+                    result.getInt(1)
+                }
+            }
+        }
+
     private data class OperationsFixture(
+        val runtime: SubmissionRuntimeSqlFixture,
         val owner: InformationRequestOwnerRef,
         val userId: UUID,
+        val contributorUserId: UUID,
+        val attestorUserId: UUID,
+        val preparerGroupId: UUID,
         val overdueId: UUID,
         val dueSoonId: UUID,
         val quietId: UUID,

@@ -51,6 +51,8 @@ import {InboxRole, ExchangeTabCounts} from "./components/exchange-list/ExchangeL
 import {useIsMobile} from "../../utils/useMediaQuery.ts";
 import ExchangeAuditTab from "./components/exchange-audit-tab/ExchangeAuditTab.tsx";
 import ExchangeWorkflowTab from "./components/exchange-workflow-tab/ExchangeWorkflowTab.tsx";
+import ExchangeInformationRequestsTab from "../information-requests/exchange-tab/exchange-information-requests-tab/ExchangeInformationRequestsTab.tsx";
+import {useExchangeInformationRequests} from "../information-requests/exchange-tab/useExchangeInformationRequests.ts";
 import ExchangeFieldsTab from "./components/exchange-fields-tab/ExchangeFieldsTab.tsx";
 import ExchangeTabsHeader from "./components/exchange-tabs-header/ExchangeTabsHeader.tsx";
 import {useExchangeRouteState} from './useExchangeRouteState';
@@ -106,6 +108,7 @@ const Exchanges: React.FC = () =>
     const [selectedSidebarExchangeDocument, setSelectedSidebarExchangeDocument] = React.useState<DocumentDetailedDto | undefined>(undefined);
     const [selectedUpdateExchangeDocument, setSelectedUpdateExchangeDocument] = React.useState<DocumentDetailedDto>(undefined);
     const [exchangeDetails, setExchangeDetails] = useState<ExchangeDetailedDto | null>(null);
+    const informationRequests = useExchangeInformationRequests(exchangeDetails?.id);
     const [fetchingDetails, setFetchingDetails] = useState<boolean>(true);
     const [isExchangeListLoading, setIsExchangeListLoading] = useState<boolean>(true);
     const [filteredDocuments, setFilteredDocuments] = useState<DocumentDetailedDto[]>([]);
@@ -218,11 +221,12 @@ const Exchanges: React.FC = () =>
             (detailsActiveTab === "details" && !canViewBusinessFields)
             || (detailsActiveTab === "workflow" && !canViewWorkflows)
             || (detailsActiveTab === "audit" && !canViewExchangeAudit)
+            || (detailsActiveTab === "information-requests" && !informationRequests.loading && !informationRequests.visible)
         )
         {
             setDetailsActiveTab("documents");
         }
-    }, [canViewBusinessFields, canViewExchangeAudit, canViewWorkflows, detailsActiveTab]);
+    }, [canViewBusinessFields, canViewExchangeAudit, canViewWorkflows, detailsActiveTab, informationRequests.loading, informationRequests.visible]);
 
     const checkAppUserExchanges = React.useCallback(async () =>
     {
@@ -986,6 +990,7 @@ const Exchanges: React.FC = () =>
                                             canViewAudit={canViewExchangeAudit}
                                             canViewDetails={canViewBusinessFields}
                                             canViewWorkflow={canViewWorkflows}
+                                            canViewInformationRequests={informationRequests.visible}
                                             isDocumentToolbarVisible={isDocumentToolbarVisible}
                                             onTabChange={setDetailsActiveTab}
                                             onDownloadZip={() => setIsDocumentZipDialogOpen(true)}
@@ -1049,6 +1054,15 @@ const Exchanges: React.FC = () =>
                             <div className={styles.documentsSectionContainer}>
                                 <div className={`${styles.documentsSection} ${styles.scrollableTabContent}`}>
                                     <ExchangeFieldsTab exchange={exchangeDetails}/>
+                                </div>
+                            </div>
+                        )}
+
+                        {detailsActiveTab === 'information-requests' && informationRequests.visible && (
+                            <div className={styles.documentsSectionContainer}>
+                                <div className={`${styles.documentsSection} ${styles.scrollableTabContent}`}>
+                                    <ExchangeInformationRequestsTab exchangeId={exchangeDetails.id}
+                                                                    state={informationRequests}/>
                                 </div>
                             </div>
                         )}

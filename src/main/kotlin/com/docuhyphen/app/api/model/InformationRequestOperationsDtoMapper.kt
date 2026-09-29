@@ -1,5 +1,6 @@
 package com.docuhyphen.app.api.model
 
+import com.docuhyphen.app.api.model.dto.InformationRequestOperationsAssigneeDto
 import com.docuhyphen.app.api.model.dto.InformationRequestOperationsPageDto
 import com.docuhyphen.app.api.model.dto.InformationRequestOperationsRowDto
 import com.docuhyphen.app.api.model.informationrequest.InformationRequestOperationsPage
@@ -18,6 +19,10 @@ object InformationRequestOperationsDtoMapper
     private fun toDto(row: InformationRequestOperationsRow) = InformationRequestOperationsRowDto(
         requestId = row.request.id,
         exchangeId = row.request.exchangeId,
+        title = row.title,
+        assignees = row.assignees.map {
+            InformationRequestOperationsAssigneeDto(it.roleKey, it.principalKind, it.principalId, it.label)
+        },
         templateVersionId = row.request.templateVersionId,
         state = row.request.state,
         gatesExchangeClosure = row.request.gatesExchangeClosure,

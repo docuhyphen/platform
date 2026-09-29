@@ -68,6 +68,10 @@ interface IdentityProviderStrategy
         codeVerifier: String? = null,
     ): OAuthTokenResponse
 
-    fun validateIdToken(idToken: String, expectedNonce: String, runtimeCredentials: RuntimeIdpCredentials? = null): OAuthUserInfo
+    fun validateIdToken(
+        idToken: String,
+        expectedNonce: String,
+        runtimeCredentials: RuntimeIdpCredentials? = null
+    ): OAuthUserInfo
 }
 

@@ -311,6 +311,982 @@ particular, do not rewrite or normalize the proposal while implementing this pla
 
 ## Implementation Journal
 
+### 2026-09-29: Phase 11 external sources, connectors, and exit gate (`P11-T11`, `P11-T12`)
+
+- Resumed work: the user asked for the rest of Phase 11. The plan's Status still named `P11-T8` as
+  next although this journal already recorded `P11-T8` through `P11-T10`; Status was corrected
+  first. The working tree held an interrupted, unjournaled start of `P11-T11` and `P11-T12` (last
+  file written 20:41): V148, its contract test, the connector port, registry, worker, and scheduler,
+  and the imported-value and generated-output services, with no service tests and no REST surface.
+  Local Flyway history showed V144 as head, so V148 was still editable, and it was checked again
+  before every edit. `quarkus:dev` was running from IntelliJ, so no `mvnw clean` was used. No commit
+  or push. The baseline run of the affected unit tests had 2 failures caused by that partial work:
+  `InformationRequestAuthorizationVocabularyTest` (the new action was not listed) and
+  `InformationRequestTransitionMatrixTest` (the new mutations were allowed on a CLOSED request,
+  which the terminal-state test forbade).
+- Design recorded before the tests as `### Phase 11 design decisions (2026-09-29)` in the plan,
+  including the characterization of the reusable integration components (`WorkflowWebhookEndpoint`,
+  `WebhookDeliveryService`, `WebhookDestinationPolicy` with its existing `WebhookDestinationPolicyTest`,
+  and Application identity) and why the connector contract stays separate.
+- Connector threat model (the security gate asks for one per connector; none is shipped, so it
+  applies to the contract every future adapter implements): egress is limited to identifiers and the
+  requester's optional lookup reference, never a response value; a remote adapter must pass
+  `WebhookDestinationPolicy.validate` before every call (loopback, link-local, private, and metadata
+  addresses refused); every result is untrusted input, validated against the declared result keys and
+  age limit, canonicalized by the Field contract, and length-bounded, and it never writes an answer
+  or fact; retries are bounded (ten attempts, linear backoff, a five-minute claim lease, batches of
+  fifty) and stale workers are detected by attempt number; audit and transition details carry
+  identifiers and keys only, never values or lookup references; only the requesting side reads the
+  records, managers and reviewers hold separate capabilities, and a manual value's author cannot
+  decide it; records are exported with the request and removed at disposal. Live integrations remain
+  out of scope and need their own review.
+- `P11-T11` and `P11-T12` complete; Phase 11 complete. What changed:
+  - V148 (edited while unapplied): `information_request_connector_exchange` gains
+    `lookup_reference` (non-blank when present, immutable) and a required Requirement guarded to the
+    exchange's own request; imported values gain a value-type check; discrepancies require their
+    response and response value; decisions, discrepancies (value and response of the same
+    Requirement), and resolutions each have an insert guard that refuses another request's rows.
+  - Connector port and registry reshaped (`InformationRequestConnectorContract` as data; duplicate
+    keys refused; `installedKeys`). Connector service: lookup reference, one open exchange per
+    Requirement and connector (`INFORMATION_REQUEST_CONNECTOR_EXCHANGE_OPEN`), continuation
+    entitlement, unique history keys. Worker: request state, installed connector, and contract
+    version checked at claim before any call (`request_not_accepting_values`,
+    `connector_unavailable`, `contract_version_changed`), ten attempts, pending and completed
+    external references validated, result validation through the imported value service.
+    `%test.app.information-request.connectors.every=off`.
+  - `InformationRequestImportedValueCanonicalizer` (new) and a rewritten
+    `InformationRequestImportedValueService`: Field-contract canonicalization, scalar values for
+    Requirements without a Field, verification time not in the future (five-minute tolerance),
+    already-expired values refused, declared result keys and result age enforced for connector
+    results, decisions through the new `INFORMATION_REQUEST_DECIDE_EXTERNAL_VALUES` action with
+    separation of duties (`REVIEW_SEPARATION_OF_DUTIES`) and `INFORMATION_REQUEST_IMPORTED_VALUE_EXPIRED`,
+    reconciliation outcomes including `NOT_COMPARABLE` and `EXPIRED`, reason length limits, and
+    history keys unique per record (the audit outbox refuses a repeated idempotency key).
+  - Generated outputs: length limits, no future production time, lowercase hash.
+  - REST: `InformationRequestConnectorExchangeResource`, `InformationRequestImportedValueResource`
+    (with `/{valueId}/decisions`), `InformationRequestImportedValueReconciliationResource`,
+    `InformationRequestDiscrepancyResolutionResource`, `InformationRequestGeneratedOutputResource`;
+    DTOs in `InformationRequestExternalSourceDtos.kt` stating `...ByCaller` instead of principal
+    identifiers; `InformationRequestExternalSourceDtoMapper`; request models in
+    `InformationRequestExternalSourceRequests.kt`.
+  - Record export schema version 2: `recertifications` and `externalSources` (new
+    `InformationRequestExternalSourceRecordAssembler`).
+  - Authorization defect fix: `InformationRequestParentPolicy.closedRecordActions` exempted from the
+    archived refusal in `DefaultAuthorizationService` for the request resource only.
+  - Transition matrix: external-source mutations refused while the parent Exchange is a draft.
+    Audit catalog version 28. Audit payload allow-list gains the external-source identifiers and
+    keys. Configuration bundle: `resultFieldKeys` renamed `resultKeys`, `requiresReview` removed.
+  - Help: new article "External sources and imported values" (76 lines), outcomes article states
+    when facts and decisions can be recorded (61 lines), Templates article describes connector
+    contracts (96 lines); section 30 lines, registry 24.
+- TDD record (every command `.\mvnw.cmd "-Dtest=..." test -DskipFrontend=true` unless stated):
+  - Red, matrix, catalog, bundle, and V148 contract: 46 tests, 5 failures and 1 error (value type
+    and lookup reference absent, catalog 27, `resultKeys` absent, draft parent allowed). Green after
+    the changes; one contract assertion was changed to read nullability from `information_schema`
+    because the new insert guard refuses a missing Requirement before the NOT NULL check.
+  - Canonicalizer: red 6 of 6 against a shape that threw `UnsupportedOperationException`; green 6
+    after implementation and one corrected expectation (a multi-select canonical form follows option
+    order).
+  - Services: red against the interrupted session's code, 14 tests with 9 failures and 1 error
+    (audit keys withheld; lookup reference not stored and worker claims returning null; future
+    verification accepted; no separation of duties; `NO_ANSWER` instead of `NOT_COMPARABLE`;
+    Forbidden recording an output on a CLOSED request). The worker nulls were partly a test defect:
+    PostgreSQL rounds a 100 ns `Instant` to the nearest microsecond, sometimes later, so the test
+    clocks are truncated to microseconds. Green 23 tests after implementation.
+  - Authorization: `InformationRequestClosedRecordAuthorizationTest` red 1 of 3 (fact promotion on a
+    closed request refused as archived), green 3.
+  - Resources: red 5 of 6 against 501 shapes, green 6. Export: red (schema version 1; no
+    `recertifications`), green 15 in the two affected classes.
+  - Mutation proofs for tests that passed against earlier code, each restored from a saved copy with
+    an empty no-index diff: (1) confidence forced to `ASSERTED`, the resolved check disabled, the
+    propose state check skipped, the requesting-side check disabled, the closed-record exemption
+    widened to every action, and the decide action mapped to the read capability: 7 targeted tests
+    failed (10 run); (2) the worker dropping the lookup reference and the export omitting external
+    sources: both extended scenarios failed; (3) response and package attribution forced to `USER`:
+    both unregistered-respondent variants failed while their registered twins passed.
+  - Final affected run of every changed class and all eight scenarios: 98 tests, 0 failures.
+- Phase 11 exit gate:
+  - Full backend `.\mvnw.cmd -o test -DskipFrontend=true`: 3,285 tests, 0 failures, 0 errors, 0
+    skipped, 492 classes, BUILD SUCCESS in 35:07 (compiled before the participant variants, which
+    then ran with all eight scenarios: `-Dtest=*RequestConformanceTest`, 13 tests, 0 failures).
+  - Frontend from `web-app`: `npm.cmd test -- --maxWorkers=2` passed 730 tests in 173 files
+    (355.61 s, run while the backend suite was running, no timeouts); `npx.cmd vitest run
+    src/app/components/help-docs/helpDocs.test.tsx` red 3 of 26 then green 26; `npx.cmd tsc
+    --noEmit` passed; `npm.cmd run typecheck:app` 346 reviewed unrelated and 0 Information Request
+    diagnostics; `npm.cmd run build` passed; `npx.cmd eslint` on the changed help files reported
+    nothing; `npm.cmd run lint` 109 problems (61 errors, 48 warnings) and `npm.cmd run buildWithTs`
+    346 diagnostics, both identical to the recorded baselines and not claimed as passing.
+  - Traceability matrix written under `### Phase 11 capability traceability`; the connector and
+    imported-value capability is proven in the multi-party scenario (connector verification of a
+    contributed answer, requesting-side-only reads, reconciliation, reviewer decision) and the
+    timed, retained, exported scenario (manual value on a document Requirement, generated output,
+    export, disposal counts). Registered and unregistered participation is proven in the itemized
+    scenario (both variants) and the parallel review scenario (unregistered respondent);
+    `PublishedRequestSupport.issue` gained `participants`.
+  - Neutrality audit of every file changed in this session found no industry vocabulary (near hits
+    were a claim lease and a register or registry as a neutral source name). No fixture identifier
+    appears in production code. Two forbidden characters were found in lines this session did not
+    touch and that are already in HEAD (an em dash in `application.properties` line 417 and an arrow
+    in an `OAuthConfigService.kt` comment); reported, not changed.
+  - Browser verification was not attempted: help is reachable only after sign-in, and the rendered
+    article is covered by the jsdom help test.
+- Local database: V148 was still unapplied (head V144) at the end; `quarkus:dev` applies V145
+  through V148 on its next reload. Flyway head V148; V149 through V160 unallocated.
+- No commit or push. Exact next task: `P12-T1`, only when the user asks for Phase 12.
+- Files for the next agent: the plan's `### Phase 11 design decisions (2026-09-29)` and
+  `### Phase 11 capability traceability`; `InformationRequestConnector*.kt`,
+  `InformationRequestImportedValue*.kt`, `InformationRequestGeneratedOutputService.kt`,
+  `InformationRequestExternalSourceRecordAssembler.kt`, V148, and the matching tests.
+
+- `P11-T10` complete: `TimedRetainedExportRequestConformanceTest` starts a calendar clock pinned to
+  its first policy version (a second version is published and never recalculates it), pauses for
+  three hours and resumes (due moves by exactly the paused time), extends by two hours (due cycle 1),
+  records a reminder point from the pinned version, delivers its notices, and proves notices and
+  clock events refuse deletion or change. After submission closes the request, two exports of the
+  unchanged record have the same content hash, which equals the SHA-256 of the read content, and
+  reading the export is recorded in the request's audit access history. A subject access request
+  finds the request. With a zero-day retention schedule, a preservation hold on the Exchange keeps
+  the record through a disposal pass and refuses subject erasure (`RECORD_HELD`); after the hold is
+  released, the next pass disposes the record with a `RETENTION_SCHEDULE` tombstone. Mutation proof:
+  removing the service-level hold check made the disposal claim fail at the database guard ("a held
+  record cannot be claimed for disposal") and the test failed; restored, diff empty.
+- Command: `.\mvnw.cmd "-Dtest=TimedRetainedExportRequestConformanceTest" test -DskipFrontend=true` (1 test, passed).
+- Exact next task: `P11-T11` (generic connector contracts), then `P11-T12`.
+
+### 2026-09-29: Phase 11 recurring and supplemental scenario and successor subject fix (`P11-T9`)
+
+- Defect found by the scenario and fixed: a follow-up (supplement, superseding request, recurrence,
+  or refresh) copied only parties with an acting principal, so the source request's subject was
+  dropped and no reusable fact about that subject could ever be offered to the follow-up, contrary
+  to the documented "same parties". `InformationRequestPartyService.materializeSubjectParties`
+  creates subject parties (subject identity only, no Share) after checking the subject belongs to the
+  request's owner, and `InformationRequestSuccessorService.copyParties` now copies the source's active
+  subjects too. TDD: the new `InformationRequestLineageTransactionTest` case failed (`expected:
+  <[subject]> but was: <[]>`) and passes after the fix; the other 4 lineage tests,
+  `InformationRequestPartyServiceTest` (26), and the scenario pass.
+- `P11-T9` complete: `RecurringSupplementalRequestConformanceTest` submits a source request (no
+  review, closed), promotes its answer as a current responding-party fact, and adds a newer fact whose
+  valid period has lapsed. A supplement preserves the source package (still one package, source still
+  closed), offers the answer and invalidates the evidence and assertion with their reasons, and
+  offers the current fact (with reconfirmation required) but not the lapsed one. After issue, a
+  Version whose meaning changed for the document Requirement amends the supplement, requires
+  reconfirmation, and clears once the answer is saved again. A monthly recurrence creates its first
+  occurrence from the same source package and refuses an early second one. Superseding the supplement
+  and cancelling the occurrence both keep their transitions, and the source's lineage lists both
+  follow-ups and the recurrence. The scenario issues the supplement directly in SQL because the stub
+  grant service does not persist a grant; issuance itself is proven elsewhere.
+- Also found: `SubmissionRuntimeSqlFixture.publishNextVersion { }` binds a trailing lambda to its last
+  parameter (`adjustCapabilities`), so a caller must pass `adjust =` by name for changes that must be
+  seen by capability derivation.
+- Commands: `.\mvnw.cmd "-Dtest=InformationRequestLineageTransactionTest,RecurringSupplementalRequestConformanceTest,InformationRequestSuccessorService*Test,InformationRequestPartyServiceTest,InformationRequestFollowUpService*Test" "-Dsurefire.failIfNoSpecifiedTests=false" test -DskipFrontend=true`
+  then `.\mvnw.cmd "-Dtest=RecurringSupplementalRequestConformanceTest" test -DskipFrontend=true`; all passed.
+- Help: the submission article already says a follow-up is for "the same parties", which the fix
+  makes true for subjects. No edit needed.
+- Exact next task: `P11-T10`.
+
+### 2026-09-29: Phase 11 multi-stage review scenario and occurrence-scoped findings (`P11-T8`, `P11-T5` closed)
+
+- Test-only `conformance/ConformanceReviewSupport.kt` assigns reviewers, saves and records worksheets,
+  records findings and retests, and lists a stage's undecided items (excluding items already carried
+  into that stage). `PublishedRequestSupport` now supports several parties of one role
+  (`ROLE#label`), returns party IDs, and adds group occurrences through the real service.
+- `P11-T8` complete: `MultiStageReviewCorrectionRequestConformanceTest` runs with real central
+  authorization. Sequential test: two entry occurrences and a summary are reviewed by a first stage
+  that returns only the first entry (major finding plus an observation); the review is
+  `CHANGES_REQUESTED`, two findings aggregate on the review, the correction lists only the first
+  entry's Requirement, edits to the other entry and the summary are `CORRECTION_SCOPE_DENIED`, the
+  resubmission marks the correction `RESUBMITTED`, records remediation of the finding, and carries
+  the unchanged items' outcomes into the retest review; the retest resolves the finding, the first
+  stage settles, the prior reviewer is refused for the second stage (`REVIEW_SEPARATION_OF_DUTIES`),
+  and a second reviewer closes the request. Parallel test: two stages covering different sections
+  open together, the review stays unsettled after one stage decides, settles
+  `SATISFIED_WITH_EXCEPTION` when both have, closes the request, and lists both stages' findings.
+  Mutation proof: disabling the prior-reviewer exclusion failed the sequential test; restored, diff
+  empty.
+- `P11-T5` closed: `RepeatableConditionalRequestConformanceTest` gained a reviewed variant in which a
+  finding on one entry occurrence (its item carries that occurrence path) returns only that
+  occurrence's Requirement for correction while the other occurrence stays locked and keeps its
+  value. Mutation proof: opening corrections for every decided item failed it; restored, diff empty.
+- Commands: `.\mvnw.cmd "-Dtest=MultiStageReviewCorrectionRequestConformanceTest" test -DskipFrontend=true` (2 tests)
+  and `.\mvnw.cmd "-Dtest=RepeatableConditionalRequestConformanceTest" test -DskipFrontend=true` (2 tests), all passed.
+- Exact next task: `P11-T9`.
+
+### 2026-09-29: Phase 11 materialization defect fix and repeatable, evidence, and itemized scenarios (`P11-T6`, `P11-T7`; `P11-T5` partial)
+
+- Defect found by the repeatable scenario and fixed: creating a request from a Template with a
+  Field Requirement was refused for its Exchange owner. `InformationRequestTemplateMaterializer`
+  assigned the Template's Schema Version through `SchemaAssignmentService.assignPublishedSchemaVersion`,
+  which demands the caller's request edit capability (`INFORMATION_REQUEST_EDIT`, WRITE), while the
+  Exchange owner holds only request create, read, cancel, and administer capabilities by design.
+  Every creation service (Template, Blueprint, ad hoc, successor) already authorizes creation first.
+  Added `SchemaAssignmentService.assignSchemaVersionForCreation`, which keeps every published-version,
+  visibility, and resource validation and records the creator as assigner but asks for no second
+  Field management capability; the materializer uses it, and the public
+  `assignPublishedSchemaVersion` still authorizes the caller. TDD: the new
+  `InformationRequestTemplateMaterializationTransactionTest` failed (`Access denied to edit request
+  fields`) for the owner case and passed its guard case (the public command still refuses the owner);
+  after the fix both pass, and `InformationRequestTemplateMaterializerTest` (9) and
+  `SchemaAssignmentExactVersionTest` (1) pass with the renamed verification.
+- Test-only `conformance/PublishedRequestSupport.kt` publishes a real Template through the
+  configuration writer and publication service, creates a personal Exchange with its owner Share, a
+  draft request, materializes it as the owner, issues it, and assigns real request Shares and parties.
+  `InformationRequestRuntimeTestServices.build` gained `responseValidation` for registering a
+  structured-response validator.
+- `P11-T5` partial: `RepeatableConditionalRequestConformanceTest` (real groups and conditions) adds two
+  entry occurrences and a nested detail occurrence under each through the real occurrence service,
+  proves condition state `UNKNOWN` before the source Field is answered, then `TRUE` and `FALSE` per
+  occurrence from each entry's own value, refuses a save that gives two entries the same label
+  through a registered cross-occurrence validator (nothing stored), keeps each entry's value in its
+  own occurrence value set, reports the record Requirement missing per occurrence until that
+  occurrence's own conforming file exists, and after removing an entry never reuses its path.
+  Mutation proof: returning `FALSE` instead of `UNKNOWN` for an unanswered Field predicate failed the
+  test; restored, diff empty. Occurrence-scoped findings remain, to be proven with the review
+  infrastructure `P11-T8` builds; `P11-T5` stays open until then.
+- `P11-T6` complete: `MultiFileEvidencePolicyRequestConformanceTest` uploads real PDFs through the
+  evidence upload service with real authorization. One file of a two-file policy is incomplete; two
+  files with continuous coverage satisfy it; replacements that break issuer acceptance, issue age,
+  remaining validity, certification, and coverage continuity each leave it incomplete with the
+  matching finding, and a restoring replacement satisfies it again. A test scanner adapter marks a
+  third file malware-detected: it is `QUARANTINED` with a blocking finding and its content cannot be
+  released; withdrawing it restores satisfaction. A submitted package keeps its exact evidence
+  versions after withdrawal, replacement, and resubmission, and the replaced version is `SUPERSEDED`.
+  A second test proves a configured alternative satisfies the primary evidence by substitution and a
+  review-approval waiver is `WAIVER_REQUESTED` and ready for submission. Mutation proof: suppressing
+  the coverage-continuity finding failed the coverage case; restored, diff empty.
+- `P11-T7` complete: `ItemizedStagedSubmissionRequestConformanceTest` refuses a disposition an item
+  does not permit and a partial answer without a reason, records provided, partial, unavailable,
+  exception-requested, referenced, and waived dispositions with their own narratives and responder,
+  submits the first stage with a content hash equal to its ETag and exactly those items, locks those
+  items (`SUBMISSION_LOCKED`) while the later stage is still edited and submitted, and re-reads the
+  first package with the same manifest and item hashes. Mutation proof: skipping the permitted
+  disposition check failed the test; restored, diff empty.
+- Commands: `.\mvnw.cmd "-Dtest=InformationRequestTemplateMaterializationTransactionTest,InformationRequestTemplateMaterializerTest,SchemaAssignmentExactVersionTest,RepeatableConditionalRequestConformanceTest" test -DskipFrontend=true`
+  (13 tests); `.\mvnw.cmd "-Dtest=MultiFileEvidencePolicyRequestConformanceTest" test -DskipFrontend=true` (2);
+  `.\mvnw.cmd "-Dtest=ItemizedStagedSubmissionRequestConformanceTest" test -DskipFrontend=true` (1). All passed.
+- Exact next task: `P11-T8`, then add the occurrence-scoped finding test to `P11-T5`.
+
+### 2026-09-29: Phase 11 basic and multi-party conformance scenarios (`P11-T3`, `P11-T4`)
+
+- Shared test-only support: `conformance/ConformanceRequestSupport.kt` builds a neutral request from
+  `SubmissionRuntimeSqlFixture` and an unanswered `FieldAnswerSqlFixture`
+  (`materializeUnanswered` was split out of `materialize`), makes the reused Field binding
+  respondent-visible, gives the contributor and attestor real request Shares, and records an
+  execution grant, so Field writes run through the real Fields adapter. `InformationRequestRuntimeTestServices.build`
+  gained an optional `centralAuthorization` so a scenario can drive every service with the real
+  `AuthorizationService` instead of the stub.
+- `P11-T3` complete: `BasicFieldDocumentResponseAttestationRequestConformanceTest` saves a sparse
+  draft (a note only), proves readiness names the incomplete Field and missing attestation and that
+  an early submission is refused, answers the Field through the real Fields path, assents, submits,
+  and proves one package of exactly the three Requirements with the current Field Value Revision,
+  the evidence version, and the attestation, a content hash equal to the attested ETag, closure to
+  `CLOSED` in the same submit command with no review, `SUBMIT` and `CLOSE` transitions, idempotent
+  replay, refusal of a later answer (`STATE_INVALID`), and database refusal of package changes.
+  Mutation proof: removing the satisfaction call from `InformationRequestSubmissionService` left the
+  request `IN_PROGRESS` and failed the test; restored, no-index diff empty. (A first mutation attempt
+  did not apply because of CRLF line endings and is not counted.)
+- `P11-T4` complete: `MultiPartyStagedEvidenceRequestConformanceTest` uses real central authorization
+  for a distinct subject, contributor, attestor, reviewer, delegate (a request Share without a party
+  assignment), and outsider. It proves each role acts only within its assignment, an already-expired
+  delegated authority grants nothing, a current authority scoped to the Field Requirement lets the
+  delegate answer it (through the real response and Fields paths) but not the Document Requirement,
+  revocation removes that authority and a later delegate write is forbidden, and a staged request
+  submits its record stage (then locked, `SUBMISSION_LOCKED`) and its confirmation stage separately
+  before closing. Diagnostics during development showed the delegate needs a request Share; they were
+  removed. Mutation proof: dropping the expiry filter in `InformationRequestDelegatedAuthorityFactSource`
+  let the expired authority allow the delegate and failed the test; restored, diff empty.
+- Commands: `.\mvnw.cmd "-Dtest=BasicFieldDocumentResponseAttestationRequestConformanceTest" test -DskipFrontend=true`
+  and `.\mvnw.cmd "-Dtest=MultiPartyStagedEvidenceRequestConformanceTest" test -DskipFrontend=true`,
+  each 1 test, 0 failures.
+- Exact next task: `P11-T5`.
+
+### 2026-09-29: Phase 11 configuration-bundle format (`P11-T2`)
+
+- `P11-T2` complete. `InformationRequestConfigurationBundle` (format version 1) is a
+  kotlinx-serializable document with a machine `bundleKey`, positive `bundleVersion`, a display name,
+  and typed sections: Template Version references (key, version, SHA-256 content hash, and keyed
+  references to the bundle's own presets and policies), validation policies (Field value or evidence
+  target, with typed rules), customer-authored reason-code vocabularies by generic purpose, role
+  presets over the existing party roles with separated roles, clock policies mirroring the existing
+  clock policy version (type, time zone, durations, escalation, due effect, business periods,
+  holidays, reminder offsets), retention defaults, and connector contracts (structured evidence or
+  external verification, contract version, result keys, result age limit, review requirement).
+- `InformationRequestConfigurationBundleValidator` parses strictly (unknown keys refused, unsupported
+  format versions refused) and validates every element with a path and code: machine keys,
+  duplicates, rule parameters and rule/target fit, blank labels, empty collections, time zones,
+  durations, periods, dates, retention order, versions, content hashes, and unresolved references.
+  It never branches on customer vocabulary. `POST /information-request-configuration-bundles/validations`
+  is a thin authenticated adapter returning `{valid, problems}`; 400 for an absent body.
+- TDD: the validator test failed 3 of 4 against an empty shape (the no-shipped-bundle check already
+  held), then passed 4 with two materially different neutral bundles (staged multi-party review with
+  a business clock and retention; recurring single-party with a calendar clock and a verification
+  connector) and a structural case asserting 21 exact path and code pairs. The resource test was
+  written after the code and proven by removing the authentication call (the anonymous case returned
+  200 instead of 403); the file was restored and a no-index diff was empty.
+  `.\mvnw.cmd "-Dtest=InformationRequestConfigurationBundle*Test" test -DskipFrontend=true` passed
+  6 tests.
+- Help: the Templates article gained a Configuration bundles section (94 lines). No migration.
+- Exact next task: `P11-T3`.
+
+### 2026-09-29: Phase 11 respondent reuse UI and author evidence selection (`P11-T1d`, `P11-T1` closed)
+
+- `P11-T1d` complete, which closes the parent `P11-T1`. No backend change in this step.
+- Frontend transport: `informationRequestReuseService.ts` reads offers and posts recertifications on
+  the signed-in and access-link surfaces with `If-Match`, `Idempotency-Key`, and the link and session
+  headers, and maps a 412 stale refusal to `STALE`. Models gained
+  `RecertifyInformationRequestAcceptedFactRequest` and `InformationRequestFactRecertificationDto`.
+- Respondent workspace: `InformationRequestStructuredResponsePanel` provides a `ReusableAnswerContext`
+  loaded by `useReusableAnswers` (reloaded whenever the response ETag changes). `ReusableAnswerSlot`
+  shows `ReusableAnswerOffer` beside a Field Requirement only when an offer names that runtime
+  Requirement and the current value differs. The offer shows the value, how it was accepted, and its
+  validity, never the purpose or policy key or any source identifier; **Use this answer** stays
+  disabled until **I confirm this answer is still accurate** is ticked and while another command
+  runs. A saved recertification clears that item's unsaved edits and refreshes the workspace; a stale
+  refusal keeps them. The occurrence result callback was widened to `ResponseETagResult`.
+- Author: the promotion dialog lists **Supporting evidence to keep with the fact**, limited to
+  conforming evidence versions of Requirements linked as supporting the promoted answer in the same
+  package (`supportingEvidenceChoices`), and sends `evidenceVersionIds` only when some are chosen.
+- Defect fixed in passing: the shared `CheckList` let Fluent `Field` context name every checkbox
+  with the group label, so options had no distinct accessible names. Options now sit inside
+  `FieldContextProvider value={undefined}` and keep their own labels; the template-document and
+  settings tests that use it still pass.
+- TDD: the service test failed 3 of 3 against a rejecting shape, then passed 3. The offer component
+  test failed 4 of 4 against a null component, then passed 4. The outcomes evidence test failed
+  because the evidence group was absent, then (after the `CheckList` fix) passed.
+  `ReusableAnswerSlot.test.tsx` was written after the wiring and proven by a temporary mutation
+  (offering the first offer regardless of Requirement failed 1 of 2); the file was restored and a
+  no-index diff against the saved copy was empty.
+- Commands (from `web-app`): `npx.cmd vitest run src/services/__tests__/informationRequestReuseService.test.ts`;
+  `npx.cmd vitest run src/app/information-requests/reusable-answer src/app/information-requests/structured-response-workspace`
+  (9 files, 40 tests); `npx.cmd vitest run src/app/information-requests/authoring src/app/information-requests/template-document src/app/settings/information-request-templates-tab`
+  (12 files, 62 tests); `npx.cmd vitest run src/app/information-requests src/services src/app/components/help-docs src/app/settings/information-request-templates-tab src/app/settings/blueprints-tab --maxWorkers=2`
+  first failed 1 of 312 because the help test still expected the old outcomes wording, then the
+  updated help test passed 25 of 25. `npx.cmd tsc --noEmit` passed; `npm.cmd run typecheck:app`
+  reported 346 reviewed unrelated diagnostics and 0 Information Request diagnostics; `npx.cmd eslint`
+  on every changed frontend path reported nothing.
+- Help: read the outcomes and submission articles in full. The outcomes article now describes
+  evidence selection and that only responding-party facts are offered and used after confirmation;
+  the submission article describes the respondent's confirmation and refusal behaviour. Articles are
+  59 and 116 lines, the section 28, the registry 24. `helpDocs.test.tsx` now asserts the new wording.
+- Exact next task: `P11-T2` (versioned generic configuration-bundle format).
+
+### 2026-09-29: Phase 11 respondent recertification (`P11-T1c`)
+
+- The user asked for the rest of Phase 11. Inspected the dirty working tree first and preserved all
+  staged and unstaged Phase 10 and earlier Phase 11 work. `quarkus:dev` was running, so no
+  `mvnw clean` was used; local Flyway history was checked (head V144) before and after creating V147,
+  which is therefore still editable locally. No commit or push.
+- `P11-T1c` complete. `InformationRequestFactRecertificationService.recertify` rejects a command
+  without explicit assent, runs once per idempotency key, locks the target request (parent Exchange
+  first) and then the selected fact row, revalidates the fact against the current offer list for the
+  target Requirement (owner, subject, purpose, freshness, supersession, revocation, restriction,
+  visibility, and Requirement view access), refuses a fact kept to the requesting side even when the
+  caller can see it, derives the target Field contract from the target request's schema assignment
+  and refuses a value-type mismatch, and writes the value with disposition `PROVIDED` through
+  `InformationRequestResponseDraftService.patch`, so the caller's response ETag, Requirement respond
+  authorization, stage locks, conditions, and Field audience rules all apply unchanged. It then saves
+  an append-only `InformationRequestFactRecertification` copying the fact ID, purpose, policy basis,
+  value, source request, package, item, Requirement, Field Value Revision, and review, plus one row per
+  promoted evidence version, and records a `RECERTIFY_FACT` transition audited as
+  `information_request.fact.recertify`. Revocation and supersession now lock the fact row before they
+  read its standing.
+- REST: `POST /information-requests/{id}/accepted-fact-offers/{factId}/recertifications` and the
+  no-auth equivalent under `no-auth/`, both through `InformationRequestFactRecertificationEndpoint`.
+  Body `{ requirementId, assented }`, `If-Match` response ETag, and `Idempotency-Key`; 201 with the
+  new response ETag. The DTO carries the recertification, Requirement, fact, response, revision,
+  value, and assent time and never source or evidence identifiers.
+- V147 adds the `RECERTIFY_FACT` transition mutation, the recertification and recertification
+  evidence tables, insert guards that require the copied provenance to match a current, unrevoked,
+  unsuperseded, responding-party fact and the named response revision, append-only triggers, and a
+  replacement disposal function that deletes and counts a request's own recertifications. A source
+  request's disposal leaves recertifications made by other requests intact, because they carry
+  copied identifiers rather than foreign keys.
+- TDD: `InformationRequestFactRecertificationTransactionTest` first ran against a service shape that
+  refused every call: 4 failures and 2 errors, each an `UnsupportedOperationException` or a missing
+  write, plus one impossible fixture (a fact about another subject from the same source is refused by
+  the V138 guard; that case was removed because `P11-T1a` already proves subject isolation). The
+  implementation then exposed three fixture gaps, each fixed in the test only: the later request's
+  contributor needed a real request Share, the reused Field binding needed respondent-visible
+  classification, and V147 needed the transition mutation check. Final run: 6 tests, 0 failures.
+  Mutation proof: with the fact `FOR UPDATE` lock replaced by a plain read, the race test first still
+  passed because both transactions also locked the same Exchange initiator's user row; after giving
+  the later Exchange its own initiator, the mutation failed the race test (the recertification
+  succeeded after the revocation), and restoring the lock passed. The service file was restored from
+  its saved copy.
+- `InformationRequestFactRecertificationContractTest` failed with `relation
+  "information_request_fact_recertification" does not exist` when V147 and its compiled copy were
+  moved aside, and passed 2 tests with V147 restored. `InformationRequestFactRecertificationResourceContractTest`
+  failed 2 of 3 against a 501 endpoint shape and passed 3 after implementation.
+  `InformationRequestTransitionMatrixTest` gained an equivalence test written after the code, which
+  asserts that `RECERTIFY_FACT` is permitted exactly where `SAVE_RESPONSE` is.
+- Affected run: `.\mvnw.cmd "-Dtest=InformationRequestFactRecertification*Test,InformationRequestAcceptedFact*Test,InformationRequestTransitionMatrixTest,AuditEventTypeTest,InformationRequestAuthorizationVocabularyTest,ShareResourceScopedRoleContractTest,RecordPreservationDisposalContractTest,InformationRequestPrivacyContractTest,InformationRequestDisposalTransactionTest,InformationRequestResponseDraftServiceTest,InformationRequestTransitionHistory*Test,InformationRequestErrorCatalog*Test" "-Dsurefire.failIfNoSpecifiedTests=false" test -DskipFrontend=true`
+  passed 123 tests in 16 classes, zero failures, errors, or skips. The full backend suite has not run.
+- Industry neutrality: identifiers describe reusable facts, recertification, provenance, and
+  evidence; test data uses `profile.reuse`, `policy.reuse`, and synthetic answers. No new AWS
+  service or paid resource type.
+- Exact next task: `P11-T1d` (respondent offer and recertification UI, author evidence selection,
+  help), then `P11-T2` through `P11-T12` and the Phase 11 exit matrix.
+
+### 2026-09-29: Phase 11 offer source-visibility checkpoint
+
+- Resumed the open `P11-T1c` prerequisite from the preceding entry after inspecting the dirty
+  working tree. Preserved all pre-existing staged and unstaged changes. No commit or push.
+- Added serialized-response assertions to `InformationRequestAcceptedFactResourceContractTest`.
+  The initial red run failed 1 of 6 tests because an authenticated offer exposed
+  `sourceInformationRequestId`; the same DTO also carried source package, item, Requirement, review,
+  and evidence version identifiers to both authenticated and link-based callers.
+- Offers now use `InformationRequestReusableFactDto`, a respondent-facing projection containing the
+  fact ID, proposed value, purpose, policy basis, confidence, validity, expiry, and freshness. The
+  full `InformationRequestAcceptedFactDto` remains on the source request's promoted-fact view. The
+  final contract asserts that both offer surfaces serialize the same safe payload, including the
+  proposed value while omitting subject, Field Definition, source, and evidence identifiers.
+- Verification: `.\mvnw.cmd "-Dtest=InformationRequestAcceptedFactResourceContractTest" test
+  -DskipFrontend=true` passed 6 tests, zero failures, after the red run. `npx.cmd tsc --noEmit`
+  passed. `npm.cmd run typecheck:app` reported 346 reviewed unrelated baseline diagnostics and zero
+  Information Request diagnostics. `git -c core.safecrlf=false diff --check --` on the four changed
+  DTO, mapper, model, and test paths passed. The help search found Accepted Fact, Template, and
+  preservation articles; the outcomes article was read and its existing description of source
+  provenance and later respondent confirmation remains accurate. No help edit was needed for the
+  serialization boundary.
+- The source-safe offer prerequisite is complete, but `P11-T1c` is not. Exact next step: write a
+  failing behavioral test for a recertification command requiring explicit assent and both response
+  and Field preconditions; then implement an atomic write through the existing response draft
+  service. Lock the selected fact row before revalidating offer eligibility so a concurrent
+  revocation cannot pass between validation and the response write. Persist exact source fact,
+  package, item, requirement, review, and selected evidence provenance with the respondent's assent;
+  add disposal and retention handling for that reference. Prove stale, revoked, expired, superseded,
+  out-of-scope, and no-auth refusal cases before checking `P11-T1c`. `P11-T1d` and `P11-T2` through
+  `P11-T12` remain open. The Phase 11 exit matrix and full suites have not run. Flyway head remains
+  V146 and V147 is the next free version.
+
+### 2026-09-29: Phase 11 Accepted Fact eligibility and promotion provenance checkpoint
+
+- The user requested the rest of Phase 11. Inspected the dirty working tree before editing, including
+  the untracked `InformationRequestAcceptedFactEligibilityTest.kt` and its saved red run under
+  `.codex-temp/`. Preserved the existing staged and unstaged Phase 10 work. No commit or push.
+- `P11-T1a` complete. The saved red run had 4 behavioral failures in 7 tests. The standing service
+  now treats expiry and valid-to as exclusive, while valid-from remains inclusive. Offers include
+  only current, unrevoked, unsuperseded facts; promotion conflict checks still see the existing
+  unsuperseded history. The new test proves expired and future facts remain in history, a stale
+  newer fact does not conceal a current one, an expired successor cannot resurrect its predecessor,
+  and owner, subject, field, purpose, audience, and requirement access are isolated. The focused
+  green run passed 7 tests. The affected transaction plus eligibility run passed 11 tests.
+- `P11-T1b` complete. Promotion now requires an explicit lowercase reuse policy basis. It can
+  select exact supporting evidence versions from its source Submission Package, and refuses
+  unknown, duplicate, unrelated, or nonconforming versions. The immutable reference row records
+  both the submitted evidence membership and evidence version. Its database guard requires the
+  same source package and request, a configured support link to the fact's source Requirement,
+  and conforming evidence. Fact ownership and subject provenance are inherited from the source
+  fact; revocation preserves historical references and excludes the fact from offers. The fact DTO
+  exposes the basis and linked version IDs. The author dialog collects the policy basis; evidence
+  selection in that dialog remains for `P11-T1d`.
+- TDD results: the missing-basis transaction test failed because promotion succeeded; the clean
+  schema test failed because `policy_basis_key` was absent; the authoring test failed because the
+  basis field was absent; and the unsupported-evidence test failed because promotion ignored the
+  selected ID. After implementation, the targeted service, eligibility, and REST run passed 19
+  tests; the evidence-selection unit test passed 1; the authoring test passed 8; and the frontend
+  outcome API test passed 3. One backend verification attempt stopped at a transition-detail type
+  compile error; a later attempt passed after storing the IDs as a string.
+- V145 adds the non-null policy basis and immutable evidence-reference table. A clean PostgreSQL
+  run of `InformationRequestAcceptedFactContractTest` passed 5 tests, including real supporting
+  evidence and rejection of a forged version. The first disposal test failed for the intended
+  reason: the tombstone omitted the new reference table. V146 replaces the disposal function and
+  deletes and counts those references before their parent fact. The focused green disposal test
+  passed 1. The combined `InformationRequestAcceptedFactContractTest`,
+  `RecordPreservationDisposalContractTest`, `InformationRequestPrivacyContractTest`, and
+  `InformationRequestDisposalTransactionTest` run passed 20 tests, zero failures or skips, applying
+  a clean schema through V146. A separate first migration-contract attempt stopped at a missing
+  test assertion import; the subsequent run passed.
+- Commands: `.\mvnw.cmd "-Dtest=InformationRequestAcceptedFactEligibilityTest" test -DskipFrontend=true`;
+  `.\mvnw.cmd "-Dtest=InformationRequestAcceptedFactTransactionTest,InformationRequestAcceptedFactEligibilityTest" test -DskipFrontend=true`;
+  `.\mvnw.cmd "-Dtest=InformationRequestAcceptedFactContractTest" test -DskipFrontend=true`;
+  `.\mvnw.cmd "-Dtest=InformationRequestAcceptedFactTransactionTest,InformationRequestAcceptedFactEligibilityTest,InformationRequestAcceptedFactResourceContractTest" test -DskipFrontend=true`;
+  `.\mvnw.cmd "-Dtest=InformationRequestAcceptedFactEvidenceServiceTest" test -DskipFrontend=true`;
+  `.\mvnw.cmd "-Dtest=InformationRequestAcceptedFactContractTest,RecordPreservationDisposalContractTest,InformationRequestPrivacyContractTest,InformationRequestDisposalTransactionTest" test -DskipFrontend=true`.
+  The focused red selectors and their failures are described above. An initial `mvn.cmd` run and an
+  offline wrapper run could not resolve dependencies under the sandbox; the elevated wrapper runs
+  completed. Backend full suite was not run because Phase 11 is not complete.
+- Frontend commands: `npm.cmd test -- src/app/information-requests/authoring/request-outcomes-panel/RequestOutcomesPanel.test.tsx`
+  passed 8 tests after a red test and a follow-up test-input repair;
+  `npm.cmd test -- src/services/__tests__/informationRequestOutcomeService.test.ts` passed 3;
+  `npx.cmd tsc --noEmit` passed. `npm.cmd run typecheck:app` first found 2 new Information Request
+  diagnostics in service test inputs, then passed with 346 reviewed unrelated diagnostics and zero
+  Information Request diagnostics. The sandboxed Node attempt failed with `EPERM` before Vitest
+  started; elevated runs succeeded. Full frontend tests, lint, and `buildWithTs` remain phase-gate
+  work and were not run in this checkpoint.
+- Help search found the outcomes, Template, and record preservation articles. Read each in full and
+  updated the outcomes article for policy basis and exact supporting evidence provenance. Article
+  lengths are 55, 84, and 72 lines; the section is 28 lines and the registry is 24, all within
+  limits. `npx.cmd tsc --noEmit` passed after the help edit. Changed identifiers and neutral test
+  data describe reusable information, policy, evidence, and process records; no industry-specific
+  name, fixture branch, shipped Template, or new AWS service was introduced.
+- This is a checkpoint, not Phase 11 completion. `P11-T1c` is next: add a transactional respondent
+  recertification command that revalidates current fact standing, owner, subject, purpose, target
+  Field, source visibility, and target response precondition while serializing against revocation;
+  record exact fact and evidence provenance; require explicit assent; and prove authenticated and
+  no-auth parity plus refusal races. First prevent the offer DTO from exposing source identifiers or
+  evidence references to a caller without source read access. `P11-T1d` then adds respondent offers
+  and author evidence selection in the UI. `P11-T2` through `P11-T12` and the Phase 11 exit matrix
+  remain unchecked. The Phase 10 Personal Request Schema entitlement decision and earlier AWS
+  disposal and V84 trigger findings remain open.
+
+### 2026-09-28: Phase 10 continuation verification
+
+- Request: finish the rest of Phase 10, preserve the working tree, verify actual implementation and
+  tests, and leave a resumable handoff. The existing plan already records every Phase 10 task as
+  complete. Reviewed Template authoring, author management, respondent recovery, reviewer controls,
+  operations, Exchange listing, the V144 migration, and relevant journey tests. The request-switch
+  isolation fix and its regression are present. No unfinished implementation was identified in
+  the reviewed scope, so no artificial production change or test-first cycle was introduced.
+- Preserved all staged, unstaged, and unrelated changes. Only the two planning documents changed in
+  this session; local verification logs were added under `.codex-temp/`. No migration was added,
+  no local database was migrated, and no commit or push was made.
+- Initial sandbox `npm.cmd test` failed before Vitest could start because Node reported
+  `EPERM: operation not permitted, lstat 'C:\Users\Black'`. The elevated retry ran the suite.
+  This environmental failure was not a behavioral red test.
+- Full frontend commands, from `web-app`:
+  - `npm.cmd test`: exit 1, 716 passed and 3 failed across 170 files, 180.67 seconds. All failures
+    were 5-second timeouts: `AuditEventDetail` rendering, operations-detail history rendering, and
+    the Template editor publication-blocker navigation case. Other checks ran concurrently.
+    Log: `.codex-temp/phase10-resume-tests.log`.
+  - `npm.cmd test -- --maxWorkers=2`: exit 0, all 719 tests in 170 files passed, 251.54 seconds.
+    No test assertion or timeout changed. Log: `.codex-temp/phase10-resume-tests-bounded.log`.
+    The timeouts did not reproduce with bounded concurrency; default-run reliability is not proven.
+  - `npx.cmd tsc --noEmit`: passed, empty output in
+    `.codex-temp/phase10-resume-root-types.log`. The root check alone does not compile the app.
+  - `npm.cmd run typecheck:app`: passed, 346 reviewed unrelated diagnostics, zero Information
+    Request diagnostics. Log: `.codex-temp/phase10-resume-types.log`.
+  - `npm.cmd run lint`: failed with the existing 109 problems, 61 errors and 48 warnings.
+    Log: `.codex-temp/phase10-resume-lint.log`.
+  - `npm.cmd run buildWithTs`: failed with 346 TypeScript diagnostics.
+    Log: `.codex-temp/phase10-resume-buildWithTs.log`.
+  - `npm.cmd run build`: passed in 40.94 seconds, with the existing duplicate `metaText` key
+    and chunk-size warnings. Log: `.codex-temp/phase10-resume-build.log`.
+- Inspected all 468 saved Surefire XML reports: 3,202 tests, zero failures, errors, or skips;
+  timestamps range from 2026-09-28 01:33:31 to 02:08:48 local time. These are prior results, not
+  a new backend run. Backend and website suites were not rerun because no such files changed here.
+- `git diff --check` and `git diff --cached --check` passed before the handoff edit. Read the
+  submission and access help articles in full; no behavior changed and their wording remains
+  accurate. All article files are under 150 lines, section files under 300, registry 24 lines.
+- Industry-neutrality: no production code, tests, fixtures, migrations, APIs, events, or shipped
+  configuration changed in this session, so no new domain vocabulary or embedded rule was added.
+- Outcome: Phase 10 remains complete under the recorded diagnostic baseline and the user's earlier
+  four-width manual-check waiver. No visual check was performed and no new gate was waived or
+  advanced. Personal Request Schema entitlement and the carried Phase 9 issues remain open.
+- Exact next task: `P11-T1`, only when the user requests Phase 11. Read AGENTS.md, the active plan's
+  Status and Phase 11 tasks, this entry, and the original Phase 10 implementation evidence first.
+  If resuming Phase 10 verification, use `npm.cmd test -- --maxWorkers=2`; investigate any reproducible
+  behavioral failure with a focused failing regression before changing production code.
+
+### 2026-09-28: Phase 10 request isolation recheck
+
+- Request: continue unfinished Phase 10 work in the existing working tree. The implementation was
+  already present with staged and unstaged changes. Preserved those changes and all unrelated edits.
+- Finding: the structured response controller retained its draft when the component's request ID
+  changed. This could display and autosave one request's field edit against another request using
+  the same field contract. Added the regression before production edits.
+- Red command (web-app): `npm.cmd test -- src/app/information-requests/structured-response-workspace/StructuredResponseAutosave.test.tsx`.
+  Result: 1 failed, 5 passed; the new case expected an empty second-request input but received `12`.
+  Log: `.codex-temp/phase10-isolation-red.log`.
+- Change: `InformationRequestStructuredResponseWorkspace.tsx` delegates to form content keyed by
+  `props.request.id`, isolating controller state and cancelling the old autosave timer on a switch.
+  `StructuredResponseAutosave.test.tsx` proves no draft or pending autosave crosses request IDs,
+  no second-request storage is created, and returning restores and saves the original draft.
+- Green command (web-app): `npm.cmd test -- src/app/information-requests/structured-response-workspace src/app/information-requests/respondent-workspace`.
+  Result: 40 tests in 10 files passed. Log: `.codex-temp/phase10-isolation-green.log`.
+- Before the new test, `npm.cmd test` passed 718 tests in 170 files. After the fix, `npm.cmd test`
+  passed 719 tests in 170 files (206.72 seconds). Final log: `.codex-temp/phase10-final-tests.log`.
+- `npx.cmd tsc --noEmit`: exit 0. `npm.cmd run typecheck:app`: exit 0, 346 unrelated diagnostics,
+  zero Information Request diagnostics, no additions to the reviewed baseline.
+  Log: `.codex-temp/phase10-final-types.log`.
+- `npm.cmd run lint`: exit 1, 109 existing problems (61 errors, 48 warnings).
+  `npm.cmd run buildWithTs`: exit 1, 346 TypeScript diagnostics. These failures are unchanged
+  baseline debt; neither command is described as passing.
+  Logs: `.codex-temp/phase10-final-lint.log`, `.codex-temp/phase10-final-buildWithTs.log`.
+- `npx.cmd eslint src/app/information-requests/structured-response-workspace/InformationRequestStructuredResponseWorkspace.tsx src/app/information-requests/structured-response-workspace/StructuredResponseAutosave.test.tsx`:
+  no diagnostics. `npm.cmd run build`: passed, with existing duplicate-key and chunk-size warnings.
+  Log: `.codex-temp/phase10-final-build.log`.
+- Initial sandbox `npm test` could not start Node because lstat on `C:\Users\Black` returned EPERM.
+  The authorized elevated runs above executed successfully; this was an environment failure, not
+  the required behavioral red test.
+- Inspected all 468 existing Surefire XML reports: 3,202 tests, zero failures, errors, or skips,
+  written 2026-09-28 01:33 through 02:08 local time. This verifies the prior session's saved result,
+  not a new backend run. No backend or website files changed this session; their suites were not
+  rerun. No migration added; V144 remains the implementation head.
+- Help: read the submission and access articles in full; the fix restores documented draft recovery,
+  so no user-facing copy changed. Every article is under 150 lines; help registry is 24 lines.
+  Changed production/test lines use neutral request and field concepts, no industry rules,
+  compatibility behavior, descriptive comments, or forbidden glyphs.
+- Visual gate: asked which local URL had a signed-in test session and a database at V144. The user
+  answered "You can skip this" on 2026-09-28. The four-width browser matrix is explicitly waived,
+  not executed or claimed as passing. No local database migration was performed.
+- Outcome: Phase 10 remains complete under the existing baseline gates and this explicit exception.
+  Exact next task: `P11-T1`, only after the user requests Phase 11. Personal Schema authoring needs
+  the entitlement decision already recorded in Status; carried Phase 9 issues remain unchanged.
+- Resume files: AGENTS.md, the active plan's Status and Phase 11 task list, this entry, the structured
+  workspace component and autosave test, and the Phase 10 implementation entry below.
+- No commit or push was made. The immediately preceding active-plan result is preserved below.
+
+### 2026-09-28: Phase 10 complete
+
+- Phase 10 is complete: every task `P10-T1` through `P10-T9`, with V144 created once. The journal
+  entry "2026-09-27: Phase 10 implementation session" records which parts were observed red first,
+  which tests were written after their code, and the temporary mutations that prove those tests fail
+  on a regression.
+- Authoring and creation: Settings edits a whole Template Version (sections, typed, document, and
+  confirmation requirements, groups, conditions, review stages, settings, `Before publishing`, and
+  Versions); a refusal names its part. `POST /information-requests` takes a Template Version, a
+  Blueprint, or a one-off configuration; parties, subjects, access links (shown once, resent by
+  rotation), clocks, follow-ups, cancellation, and supersession have their management page.
+- Respondents and reviewers: one workspace for both surfaces with section navigation, dispositions,
+  notes, two-second autosave beside `Save responses`, stale-save recovery that keeps unsaved
+  changes, interrupted-upload retry, and review before submit; the reviewer workspace manages
+  assignments, overrides, reconsideration, comments, stage rules, and exact evidence versions. The
+  management page records accepted facts, business decisions, and privacy corrections.
+- Operations and records: search, assignee filter, row titles and assignees, bulk reminders under
+  `INFORMATION_REQUEST_OPERATIONS_MANAGE`, CSV export of the authorized queue, due date policies,
+  privacy requests and restrictions, owner-scope audit search, and hold scope change.
+- Exchange tab, accessibility, help, and pricing: one `Information Requests` tab per Exchange with a
+  server-derived next action; shared time and number formatting; named controls and regions checked
+  by a sweep; a dedicated help section; a pricing row from the plan catalog.
+- Verification: the full backend suite passed 3,202 tests, 0 failures, 0 errors, 0 skipped (BUILD
+  SUCCESS in 37:09, `.\mvnw.cmd -o test -DskipFrontend=true`); the one later backend edit, removing a
+  comment, was recompiled and its catalog and resource tests rerun green. The frontend passed `npx
+  vitest run` (718 tests in 170 files, after the two
+  longest Template editor journeys were given a 20-second timeout for full-suite load), `npm run
+  typecheck:app` (346 reviewed unrelated diagnostics, 0 Information Request), ESLint on all 351
+  changed or new web-app files (0 problems), and `npm run build`; `npm run buildWithTs` and a
+  repository-wide `npm run lint` fail only on their older baselines (346 and 109, none in a changed
+  file). The website passed `npm run lint` and `npm run build`. The character, comment, and
+  industry-neutrality audit of every added line found one descriptive comment, now removed.
+- Open for the user: the manual width check at 1440, 1024, 768, and 360 CSS pixels; whether the
+  Personal plan gains personal Request Schema authoring (typed answers otherwise need a platform
+  Request Schema); and the items carried from Phase 9 in `## Status`.
+- No commit or push was made.
+- Next task: `P11-T1`, only when the user asks for Phase 11.
+
+
+
+### 2026-09-27: Phase 10 implementation session
+
+This entry is written progressively so an interruption leaves an exact resume point. The user asked
+for the whole of Phase 10 in one session ("implement the rest of the phase 10 in one go"); Phase 10
+had not started, so every task is in scope.
+
+- Starting state verified against code, not checkboxes: last commit `8ac8f0e6` ("info req p9") holds
+  Phase 9. The working tree has nine modified files that are IDE reformatting of unrelated OAuth,
+  identity provider, configuration, contact, organization, and storage code; they are not part of
+  this program and are left untouched. Flyway head V143. `quarkus:dev` is running (started
+  2026-09-25), so no `mvnw.cmd clean` is run.
+- Surveyed facts the Phase 10 design rests on (recorded in the plan's `### Phase 10 design
+  decisions`): Template authoring saves one Field Requirement only; the Template API reported
+  Document evidence policy as "not available in this deployment" although evidence shipped in Phase
+  6; a publish that breaks a storage completeness rule surfaced as a bare "Request failed"; there is
+  no REST endpoint to add, reassign, or revoke request parties, nothing creates a
+  `SubjectIdentityRef`, `InformationRequestBlueprintInstantiationService.createFromBlueprint` has no
+  caller, nothing sends a reminder on demand, the operations queue has no search, assignee, or names,
+  no endpoint lists an Exchange's requests, the respondent workspace has no autosave, section
+  navigation, dispositions other than `PROVIDED`, narrative, or upload retry, and shows raw keys,
+  and the reviewer workspace has no assignment, override, reconsideration, comment, or evidence
+  preview control.
+- `P10-T1` backend, test first. `InformationRequestTemplateResourceContractTest` gained "a validation
+  refusal names the part of the document it refuses", red on behavior (`ClassCastException`: the
+  resource answered a plain `ResponseError`) against the new `InformationRequestTemplateRefusalDto`
+  shape, then green (10 of 10) once the resource maps `InformationRequestTemplateValidationException`
+  to that DTO with `INFORMATION_REQUEST_TEMPLATE_INVALID` and the section, requirement, group, and
+  review stage keys. `InformationRequestTemplateDtoMapperTest` asserted the stale
+  "document-evidence-policy" control; changed to expect none, red (`expected: <true> but was:
+  <false>`), then the whole `unsupportedPolicyControls` shape was removed from the DTO and mapper and
+  the case now checks the definition identity (2 of 2). `InformationRequestTemplatePublicationServiceTest`
+  gained four cases (a document without an evidence policy, typed data without a Schema Version, a
+  waiver rule and a permitted waived answer that disagree in both directions, and a ready draft still
+  publishing); three were red on behavior against an empty `InformationRequestTemplatePublicationReadiness`
+  ("nothing was thrown"), then green (8 of 8) once readiness refuses each with its section and
+  requirement key before any capability row is written.
+- `P10-T1` frontend, tests first. `templateDraftDocument.test.ts` (6) and `templateDraftValidation.test.ts`
+  (9) were red on behavior against stub modules (5 of 6 and 8 of 9 failing), then green; the Template
+  editor journey `TemplateEditor.test.tsx` (5) was red at 5 of 5 against a skeleton editor (missing
+  tabs and controls), then green; the rewritten `InformationRequestTemplatesTab.test.tsx` (6) was red
+  at 5 of 6 against the old single-field tab, then green. A sixth editor case (a group, a condition,
+  and a review stage the requirements use) was written after its code; with a surviving no-op control,
+  four mutations were each killed (group maximum dropped, condition tests dropped, quorum dropped,
+  repeat choice ignored) and every restore was verified by SHA-256. The document editing parts live in
+  `web-app/src/app/information-requests/template-document/` for reuse by ad hoc request creation; the
+  shared form parts in `information-requests/shared/`. `npm run typecheck:app` 346 diagnostics, 0
+  Information Request; ESLint clean on the new folders. The superseded single-field draft panel,
+  list, unsupported-control, and draft utility files were removed.
+- Creation sources (decision 2), tests first. `InformationRequestResourceContractTest` gained three
+  cases (each source reaches its own service and none or two answer 400; an ad hoc configuration
+  refusal answers the Template refusal with its keys; an unavailable Version and exhausted capacity
+  answer 409 with stable codes); all three were red (each answered 500), then green (13 of 13).
+  `InformationRequestBlueprintInstantiationServiceTest` gained the owner entitlement case, red
+  ("nothing was thrown"), then green once `createFromBlueprint` calls
+  `InformationRequestEntitlementGuard.requireRequestMutation`. `InformationRequestTemplateInstantiationServiceTest`
+  (4) was red against a stub, then green: a published Version held by the Exchange owner (or the
+  platform) becomes a pinned draft once per Idempotency-Key; another owner's Version is refused as
+  `INFORMATION_REQUEST_TEMPLATE_VERSION_NOT_FOUND`; an owner without the entitlement or a caller
+  without `INFORMATION_REQUEST_CREATE` creates nothing. New catalog code
+  `INFORMATION_REQUEST_CAPACITY_EXHAUSTED`, also mapped in `InformationRequestCommandHttp.refused`.
+- V144 (`P10-T2`, `P10-T6`), test first: `InformationRequestAuthorActionsContractTest` (2) was red for
+  the intended reason (the new mutations refused by `ck_information_request_transition_mutation`),
+  then green with `V144__information_request_author_actions.sql` (party assignment, party revocation,
+  and sent-reminder mutations; a `transition_id` source on notice intents for sent reminders, unique
+  per transition and party); `InformationRequestOutboundNoticeContractTest` and
+  `InformationRequestEventConsumptionContractTest` stay green. Local development database head is
+  still V131.
+- Vocabulary, tests first: `AuditEventTypeTest` (catalog version 27 and the keys
+  `information_request.party.assign`, `information_request.party.revoke`, `information_request.request.remind`)
+  and `InformationRequestTransitionMatrixTest` (party changes on open work, a reminder only on issued
+  work of an accepted Exchange) were red (2 and 1 failures), then green.
+- Parties (decision 4), tests first. `InformationRequestPartyServiceTest` gained three cases (assignment
+  of a user and of a contact records `ASSIGN_PARTY` history with the party and its audit event;
+  revocation records `REVOKE_PARTY`; a cancelled request takes no party and keeps its parties), red,
+  then green (26 of 26); the party concurrency and ownership-change transaction tests stay green.
+  `InformationRequestPartyResourceContractTest` was rewritten for `POST /parties`,
+  `/{partyId}/reassignment`, `/{partyId}/revocation`, and the parties `ETag` on `GET`; red at 4 of 5
+  against stubs, then green (one expectation was corrected: an absent `If-Match` is refused inside the
+  service, so the resource test checks the absent precondition is passed through). The management
+  listing labels parties the caller may identify (`label`); its test was written after the code, and
+  with a surviving control the ETag mutation was killed (a label mutation did not compile and is not
+  counted). A mutation harness defect was found and fixed on the way: invoking `mvnw.cmd` without its
+  absolute path from Python never ran Maven, so the first two results were discarded.
+- Subjects (decision 5), tests first. `InformationRequestSubjectServiceTest` (5) was red against a
+  stub, then green: a new subject is created in the request owner's scope with its authorized
+  reference and assigned as the Subject party; a known reference names the same subject; a retried
+  command without a reference creates the subject once (its identifier is derived from the request
+  and the Idempotency-Key); a caller without `INFORMATION_REQUEST_MANAGE_PARTIES` creates nothing; the
+  owner's subjects are listed only under `INFORMATION_REQUEST_MANAGE_PRIVACY`.
+  `InformationRequestSubjectResourceContractTest` (3) was red, then green
+  (`POST /information-requests/{id}/subjects`, `GET /information-request-subjects`). The management
+  listing names a Subject party by its reference (test first, red then green).
+- Exchange tab listing (decision 7), tests first against stubs returning neutral values:
+  `InformationRequestTitleReaderTest` (1), `InformationRequestCallerStandingServiceTest` (5),
+  `InformationRequestExchangeSummaryServiceTest` (3), and
+  `InformationRequestExchangeListingResourceContractTest` (2) were red at 11 of 11 on assertions, then
+  green. `GET /exchanges/{exchangeId}/information-requests` answers `InformationRequestExchangeListingDto`:
+  `canCreate` (the caller may create, the Exchange takes new drafts, and the owner's plan allows it) and
+  one `InformationRequestSummaryDto` per request the existing view rule lets the caller see, with the
+  Template Definition title, state, issue time, the nearest running clock's due instant, required
+  progress counted over requirements the caller may view, the caller's party roles (including through a
+  group), server-derived permissions, and a next action (`COMPLETE_SETUP`, `RESPOND`, `REVIEW`, `MANAGE`,
+  `VIEW`; a submitted package waits for review until a correction or an unsubmitted stage reopens it).
+  No count of hidden requests exists in the shape.
+- Titles elsewhere, tests first: the response workspace carries `title` on both surfaces (red on the
+  empty title, then green, 16 of 16). The operations row carries `title` and acting `assignees`, and the
+  queue takes `search` (title, or request id prefix, case-insensitive) and `assigneeId`; the PostgreSQL
+  operations test and the resource contract test were red (blank titles; an invalid assignee id reached
+  the service as 500 once the already-written mapping lines were neutralized), then green.
+- On-demand reminders (decision 10), tests first. `InformationRequestAuthorizationVocabularyTest` (owner
+  scope now includes `INFORMATION_REQUEST_SEND_REMINDERS` requiring the new capability
+  `INFORMATION_REQUEST_OPERATIONS_MANAGE`, held only by Organization Owners and Administrators),
+  `InformationRequestReminderServiceTest` (3), and `InformationRequestReminderResourceContractTest` (2)
+  were red on assertions, then green. `POST /information-request-reminders` (Idempotency-Key required)
+  locks each named request in id order and, under one receipt per request, records `SEND_REMINDER`
+  history with its audit event and owes a `RESPONSE_REMINDER` Notice Intent (sourced by `transition_id`)
+  to each active Subject, Contributor, Preparer, or Attestor party with a principal. The command is
+  atomic: a named request of another owner answers 404 and work that is not open answers 409 with
+  nothing sent. A PostgreSQL case written after the code proves the intents persist, dispatch (2
+  delivered and 1 undeliverable for a group party), replay without new intents, and roll back as a
+  batch; a mutation making `transition_id` non-insertable was killed and the restore was verified by
+  SHA-256.
+- Access links read, test first: `GET /information-requests/{id}/access-links` answers each party's
+  bootstrap links without any secret (`partyId`, status, rotation count) under
+  `INFORMATION_REQUEST_MANAGE_PARTIES`, so an author can resend (rotate) or revoke a link after reload;
+  `InformationRequestBootstrapShareLinkServiceTest` and `InformationRequestAccessLinkResourceContractTest`
+  were red (empty list, 501), then green (30 of 30).
+- Lineage recurrence, test first: `GET /information-requests/{id}/successors` now carries the request's
+  recurrence and the next occurrence's due instant (`InformationRequestRecurrenceSchedule`, shared with
+  the follow-up service); the PostgreSQL lineage test was red (null recurrence), then green (4 of 4).
+- Frontend, tests first (each red against a stub before its implementation): authoring transport
+  (5), administration transport (4, written with its code; two mutations killed with a passing control
+  and verified restores), formatting helpers (2), the Exchange `Information Requests` tab and its hook
+  (6), the tab header (2 new), the create dialog (5: Template, Blueprint, one-off with the document
+  editor, refusal with same-key retry, Decision Maker naming failure), the author workspace (6: parties
+  by name, Decision Maker notice, issue under the request ETag, stale reload, show-once link with resend
+  and revoke, preview as recipient, cancel with reason), the add-party dialog (3), the clock panel (3),
+  the follow-up panel (3), and the Blueprint editor Information Request tab (3). The reviewer workspace
+  and queue no longer apply the viewer's own plan (the owner funds the request); their tests were
+  rewritten first and observed red. `EditorDialog` now labels its surface by its title (dialogs had no
+  accessible name). `npm run typecheck:app` 346 total, 0 Information Request.
+- Respondent workspace (`P10-T3`, `P10-T4`), tests first against stubs. `responseAnswerState.test.ts`
+  (5) was red at 5 of 5, then green: a chosen answer other than a value (`NOT_APPLICABLE`
+  in the case) is sent with its explanation and no Field values, a value may carry a
+  note and an emptied note is cleared, a document requirement is answered by disposition alone, only
+  edits saved unchanged are forgotten, and groups and occurrences are named in words.
+  `StructuredResponseAutosave.test.tsx` (5) was red at 5 of 5, then green: a save two seconds after
+  the last edit announced in a polite live region, saved edits cleared once the latest answers arrive,
+  unsaved edits kept through a stale save while the latest answers load and the respondent saves
+  again, unsaved edits kept in the tab's session storage until saved, and the reason asked for when an
+  answer other than a value is chosen. Two existing structured workspace suites then failed for
+  shape reasons (an id prefix collision, a helper that picked the new radio input, the reworded stale
+  notice, and the new answer props) and were corrected without weakening an assertion (32 of 32).
+  The respondent shell now shows the request title as its heading and a section navigation with
+  required progress per section (`sectionSummaries.test.ts` and the shell test were red, 2 files, then
+  green); a verified access-link respondent gets the same workspace as a signed-in one (5 of 5).
+  Evidence upload keeps an interrupted file and retries it under the same Idempotency-Key, and offers
+  no retry once a stale upload asks for the latest files (red at 3, then green; 43 of 43 with the
+  structured workspace). Submission shows a review step that states each answer in words before
+  Submit, and the readiness list links each blocker to its item (the panel suite was red at 2, then
+  green, 6 of 6); `submissionReview.ts` was written with its test, so two mutations (a document
+  answer no longer stated as files attached, and an explanation dropped from its answer) were each killed with a passing control and every
+  restore verified by SHA-256. The respondent sees the conversation on each returned finding and
+  can reply (red at 1, then green, 8 of 8).
+- Reviewer workspace (`P10-T5`), tests first. The review transport gained reviewer assignment and
+  the recusal, delegation, and revocation changes (red at 1, then green, 5 of 5).
+  `ReviewWorkspaceManagement.test.tsx` (5) was red at 5 of 5 against stub components, then green:
+  items are named by their prompts and the exact evidence version previews or downloads through the
+  owner-scoped content route; a manager assigns a reviewer party to a stage and the assigned reviewer
+  recuses with a reason; a manager overrides an item where the stage permits it and reconsiders a
+  settled review; each item shows its conversation and comments go to reviewers only; each stage
+  states its separation-of-duties rules and the decision and remediation history is listed. The
+  review suites are 13 of 13; `npm run typecheck:app` 346 total, 0 Information Request; ESLint on the
+  changed Information Request paths reports nothing.
+- Accepted Facts and Business Decisions in the management workspace (`P10-T5`), tests first. A fact is
+  promoted from one submission item, and the package read shape did not name its items:
+  `InformationRequestSubmissionDtoMapperTest` (1) was red on behavior against a nil-id stub
+  (`expected: <[...]> but was: <[00000000-...]>`), then green once each visible item carries its `id`;
+  `InformationRequestSubmissionResourceContractTest` stays green. The outcome transport
+  (`informationRequestOutcomeService.ts`) was red at 3 of 3 against a stub, then green. The
+  `RequestOutcomesPanel` journey test (5) was red at 5 of 5 against an empty section, then green:
+  only answered values of current packages (not withdrawn, not followed by a resubmission, typed data
+  holding a value) are offered, and one is promoted with its purpose key (validated as a lowercase
+  machine key before it is sent) and visibility; each fact states its confidence, freshness,
+  visibility, validity, conflict, and revocation, and an unrevoked fact is revoked with a reason and
+  note; an original decision is recorded and the latest decision of a process is reconsidered or
+  appealed against that decision; a caller whose accepted-fact listing is refused (it requires
+  `INFORMATION_REQUEST_PROMOTE_FACT`, the same `INFORMATION_REQUEST_ADMIN` capability that recording a
+  decision requires) sees decisions without any promotion or recording control; a refused promotion
+  is stated in an alert and a decision time that has not happened yet is refused before sending. The
+  author workspace mounts the panel for every request that is not a draft; that wiring case was
+  written after the code, so two mutations (the panel removed, the draft condition dropped) were each
+  killed with the other six cases passing, and both restores were verified by SHA-256. Requirement
+  prompts now come from one shared `requirementPromptsOf` used by the reviewer labels too.
+- Operations (`P10-T6`), tests first. The queue transport now sends `search` and `assigneeId` (red at 1,
+  with an unset-filter control passing, then green). `operationsCsv.test.ts` (2) was red at 2 of 2
+  against an empty stub, then green: one header and one line per row in words with machine-readable
+  times, values holding a comma, semicolon, quote, or line break are quoted, and a value starting
+  with `=`, `+`, `-`, `@`, tab, or carriage return is prefixed so a spreadsheet never reads it as a
+  formula. The queue page suite (8) had six new cases red against the previous queue, then green:
+  rows show the title, state, and acting assignees; search applies 400 ms after typing and the
+  assignee filter offers `Me` and every assignee seen; reminders for selected requests are sent
+  after a confirmation and the result says how many notices were queued (never delivered); a
+  refused batch keeps the selection; a member without `INFORMATION_REQUEST_OPERATIONS_MANAGE` gets
+  no selection or reminders; `Export CSV` collects every matching row of the authorized queue at 200
+  per page. Two mutations of the export paging (first page only, truncated rows) were each killed
+  and both restores verified by SHA-256.
+- Preservation hold scope change, shape first: the row action and a dialog with a no-op confirm were
+  added, and the two new cases were red on behavior (the change never sent, the confirm enabled for
+  an unchanged scope), then green (6 of 6).
+- Due date (clock) policies: `clockPolicyForm.test.ts` (4) was red at 4 of 4 against stubs, then green
+  (hours to minutes, business working periods and holidays, a calendar clock without either, every
+  problem the server refuses named before sending, a published version read back into the form).
+  `ClockPoliciesPanel.test.tsx` (5) was red at 5 of 5 against an empty section, then green: each
+  policy with its latest version in words, a new calendar policy with a validated key, a new version
+  starting from the latest one, a refusal kept in the open dialog, and a read-only viewer. Editing
+  follows `INFORMATION_REQUEST_TEMPLATE_WRITE`, the capability behind the server's
+  `INFORMATION_REQUEST_TEMPLATE_EDIT`; the client capability enum now mirrors the template read and
+  write capabilities.
+- Privacy: `PrivacyPanel.test.tsx` (3) was red at 3 of 3 against an empty section, then green: subjects
+  named by kind and reference; access, export, restriction, and deletion requests recorded with
+  letter-led purpose and policy basis keys; a deletion warns that it cannot be undone and states a
+  refused outcome with its reason; privacy requests listed with their outcomes; an active
+  restriction lifted with a reason. A correction targets one submitted item, so it is recorded from
+  the management workspace: the outcomes panel gained a `Corrections` section (one new case red, a
+  hidden-section control passing, then green), shown only when the request names a subject and the
+  current session owns the request (`mayCorrectAsOwner`, 2 cases, red then green; an organization
+  owner also needs `INFORMATION_REQUEST_PRIVACY_MANAGE`); `correctionValue.ts` keeps the submitted
+  value's type and was tested after it was written, so two mutations were each killed and restored.
+- Owner-scope audit search: `AuditSearchPanel.test.tsx` (3) was red at 3 of 3 against an empty section,
+  then green (a default search, filters by request, class, type, actor, and period, paging, and a
+  period that ends before it starts refused before searching). The event row is shared with the
+  per-request audit history (a refactor; the detail suite stays green).
+- The operations page shows `Queue`, `Due date policies`, `Privacy` (only with the privacy capability),
+  and `Audit search` tabs (2 cases red, then green). The operations detail links to the management
+  workspace, where clocks are paused, resumed, or extended with a reason (red, then green).
+  `npm run typecheck:app` 346 total, 0 Information Request; ESLint on the changed paths is clean.
+- Accessibility and formatting (`P10-T8`), tests first. Five surfaces still printed times with
+  `toLocaleString` and no time zone (operations labels, review header, review queue, amendment
+  summary, submission packages); assertions against the shared `formatInformationRequestTime` were
+  red at 5, then green, and because Testing Library normalizes the helper's narrow no-break space only
+  on the page side, the expected strings are normalized too; reverting each of four surfaces to
+  `toLocaleString` as a mutation was killed with its restore verified. Counts are stated by locale
+  (progress, pager ranges, found events, confirmations; two cases with 1,000 and more were red, then
+  green). The evidence upload progress bar is named with its percentage (red, then green). A shared
+  test sweep (`shared/testing/unnamedControls.ts`) checks that every button, link, input, select,
+  tab, switch, progress bar, dialog, and section on a page has an accessible name; run on the queue,
+  author workspace, respondent shell and form, reviewer workspace, Exchange tab, due date policies,
+  privacy, audit search, and outcomes, it was red on four gaps (the operations page section, the
+  respondent page section, the review stage section, and the response form's field input, which the
+  shared `FieldValueEditor` now names through an optional `labelledBy` bound to the requirement
+  prompt), then green. A refusal that names a part already moves focus there: the Template editor's
+  refusal offers `Show`, an ad hoc create refusal opens the named part, and submission blockers link
+  to their items; a response save refusal names no part, so it is announced as an alert.
+  Information Request, Exchange, and record preservation suites: 66 files, 277 tests passing.
+- Help and pricing (`P10-T9`), tests first. `helpDocsRegistry.tsx` is 24 lines and names no section.
+  `helpDocs.test.tsx` gained eleven cases and a changed order case, red at 12, then green (25 of 25): a
+  dedicated `Information Requests` section now holds the overview, Templates, creating and managing a
+  request, access links and respondent sessions, answering and submitting, evidence, review, accepted
+  facts with decisions and corrections, operations, and record preservation; `Fields & Schemas` keeps
+  only its two Field articles. The statements checked are the Phase 10 behavior: where requests
+  appear and for which plans, the Template editor tabs and `Before publishing` (the removed
+  single-Field and unavailable-control text is gone), the `New Information Request` sources, `Make me
+  the Decision Maker`, the show-once link with `Resend link`, `Preview as recipient`, verification
+  rules, two-second autosave with `Save responses` and kept unsaved changes, upload `Retry`, reviewer
+  assignment through reconsideration, outcomes, operations reminders through audit search, and
+  privacy requests recorded on the Privacy tab rather than through the API. Every article is under
+  150 lines and every section under 300. The respondent workspace does not yet show accepted-fact
+  offers (reuse is `P11-T1`), so the outcomes article states only the reconfirmation rule. The website
+  pricing table gained `Information Requests` (Free not included, Personal included, Business included
+  with organization Templates) from `PlanCatalog`; website `npm run lint` (one unrelated existing
+  warning) and `npm run build` pass.
+- Displaced from the active plan's status when Phase 10 completed, kept here verbatim (the Phase 10
+  handoff from Phase 9): request Workflow triggers with durable, ordered, receipted consumption (V139),
+  requirement-scoped Workflow operands, Exchange completion gates, versioned request clocks (V140),
+  immutable outbound notices (V141), the operations projection, audit history, search, reconciliation,
+  and verified record exports, neutral record-preservation holds, retention, and claimed disposal
+  (V142), privacy requests, restrictions, and corrections (V143), storage, transfer, and
+  ownership-change policies, both Phase 9 walking fixtures, and the minimal operations and record
+  preservation UI are done. Phase 10 inherits these gaps: clock policy authoring, clock commands
+  (pause, resume, extend), privacy requests and subject restrictions, hold scope change, and the
+  owner-scope audit search have REST resources but no UI; the operations queue has no search,
+  assignee, or bulk reminder action (`P10-T6`); the reviewer UI still lacks assignment, override,
+  reconsideration, and comment controls, and Accepted Facts and Business Decisions still have no UI.
+  Decision 14 keeps a request's details with the Exchange owner or a decision maker; letting
+  organization administrators open every request is a permission decision for the user.
+  Organization hold and retention changes require `AUDIT_GOVERNANCE` on both the audit API and the
+  record preservation API, and personal ones require `INFORMATION_REQUESTS`; reads and privacy
+  handling have no subscription check. Reported and not changed: the AWS `DocumentsBucket` is
+  versioned and the application role lacks `s3:ListBucketVersions` and `s3:DeleteObjectVersion`, so
+  an AWS disposal claim stays `CLAIMED` and retries until that IAM change (within existing services)
+  is approved; the V84 legacy-owner triggers on five audit tables are a compatibility shim no Phase 9
+  task touched.
+- The plan's `## Latest Implementation Result` still held the "2026-09-26: Phase 8 complete" block,
+  which the Phase 9 session did not replace; its facts are already recorded in the Phase 8 entry
+  ("Result: Phase 8 complete" and its verification), so it is replaced by the Phase 10 result without
+  copying it again.
+- Verification: the full backend suite passed 3,202 tests, 0 failures, 0 errors, 0 skipped (BUILD
+  SUCCESS in 37:09, `.\mvnw.cmd -o test -DskipFrontend=true`); the one later backend edit, removing a
+  comment, was recompiled and its catalog and resource tests rerun green. Frontend: `npx vitest run`
+  passed 718 tests in 170 files. A first full run had
+  two 5-second timeouts in the two longest Template editor journeys (3.4 s and 2.2 s alone), which
+  pass alone; they now carry a 20-second timeout and the rerun was green. `npm run typecheck:app`:
+  346 total, 346 unrelated, 0 Information Request. ESLint on all 351 changed or new web-app files: 0
+  problems. `npm run build` passes; `npm run buildWithTs` fails only on the same 346 baseline
+  diagnostics and a repository-wide `npm run lint` reports its 109 older problems, none in a changed
+  file. Website `npm run lint` and `npm run build` pass.
+- Audit: every line added since `8ac8f0e6` in Kotlin, TypeScript, and SQL was checked for em dashes,
+  arrows, emoji, descriptive comments, and industry vocabulary. One descriptive KDoc on the new
+  `CAPACITY_EXHAUSTED` catalog code was removed; nothing else was found. Production identifiers,
+  routes, capabilities, and copy stay process-neutral.
+- Manual width check not run: the plan asks for 1440, 1024, 768, and 360 CSS pixel checks of the
+  author, respondent, reviewer, authenticated, and no-auth journeys. They need a signed-in local
+  session, and the local development database is at V131 (checked read-only), so running the new
+  code there would migrate the user's database; left for the user.
+- Result: Phase 10 complete. No commit or push was made. Next task: `P11-T1`, only when the user
+  asks for Phase 11. Open for the user: the manual width check, whether the Personal plan gains
+  personal Request Schema authoring (every Schema mutation requires `BUSINESS_FIELDS_AND_SCHEMAS`, and
+  no platform Request Schema is seeded, so a Personal author's typed answers need one), and the Phase
+  9 items still listed in the plan's Status.
+
 ### 2026-09-26: Phase 9 implementation session
 
 This entry is written progressively so an interruption leaves an exact resume point. The user asked

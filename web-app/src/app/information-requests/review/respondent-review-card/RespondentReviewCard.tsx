@@ -1,6 +1,11 @@
 import {Badge, Button, Text} from "@fluentui/react-components";
-import {InformationRequestCorrectionState, InformationRequestRespondentReviewDto} from "../../../models/models.tsx";
-import {findingSeverityLabels, reviewKindLabels, reviewStatePresentation} from "../reviewLabels.ts";
+import {
+    InformationRequestCorrectionState,
+    InformationRequestRespondentReviewDto,
+    InformationRequestReviewFindingDto,
+} from "../../../models/models.tsx";
+import RespondentFinding from "../respondent-finding/RespondentFinding.tsx";
+import {reviewKindLabels, reviewStatePresentation} from "../reviewLabels.ts";
 import {useRespondentReviewCardStyles} from "./RespondentReviewCardStyles.tsx";
 
 interface Props
@@ -9,9 +14,10 @@ interface Props
     requirementLabels: Record<string, string>;
     busy: boolean;
     onAppeal: () => void;
+    onReply: (finding: InformationRequestReviewFindingDto, body: string) => void;
 }
 
-const RespondentReviewCard = ({result, requirementLabels, busy, onAppeal}: Props) =>
+const RespondentReviewCard = ({result, requirementLabels, busy, onAppeal, onReply}: Props) =>
 {
     const styles = useRespondentReviewCardStyles();
     const {review, findings, correction} = result;
@@ -38,15 +44,14 @@ const RespondentReviewCard = ({result, requirementLabels, busy, onAppeal}: Props
                 <ul id={`${id}-findings`}
                     className={styles.list}>
                     {findings.map(finding => (
-                        <li id={`${id}-finding-${finding.id}`}
-                            key={finding.id}
-                            className={styles.finding}>
-                            <Text id={`${id}-finding-${finding.id}-requirement`}
-                                  weight={"semibold"}>
-                                {`${labelOf(finding.requirementId)} (${findingSeverityLabels[finding.severity].toLowerCase()})`}
-                            </Text>
-                            <Text id={`${id}-finding-${finding.id}-narrative`}>{finding.narrative}</Text>
-                        </li>
+                        <RespondentFinding key={finding.id}
+                                           idPrefix={id}
+                                           finding={finding}
+                                           label={labelOf(finding.requirementId)}
+                                           comments={result.comments.filter(comment => comment.findingId === finding.id)}
+                                           canReply={result.canComment}
+                                           busy={busy}
+                                           onReply={onReply}/>
                     ))}
                 </ul>
             )}
@@ -63,6 +68,14 @@ const RespondentReviewCard = ({result, requirementLabels, busy, onAppeal}: Props
                             </li>
                         ))}
                     </ul>
+                    {correction.evidenceVersionIds.length > 0 && (
+                        <Text id={`${id}-correction-files`}
+                              className={styles.detail}>
+                            {correction.evidenceVersionIds.length === 1
+                                ? "1 returned file can be replaced or withdrawn."
+                                : `${correction.evidenceVersionIds.length} returned files can be replaced or withdrawn.`}
+                        </Text>
+                    )}
                     {correction.undisclosedItemCount > 0 && (
                         <Text id={`${id}-correction-undisclosed`}
                               className={styles.detail}>

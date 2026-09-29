@@ -29,6 +29,7 @@ enum class InformationRequestMutation
     RECORD_FIRST_VIEW,
     START_RESPONSE,
     SAVE_RESPONSE,
+    RECERTIFY_FACT,
     ATTEST_RESPONSE,
     ADMINISTER_EVIDENCE,
     SUBMIT,
@@ -60,6 +61,13 @@ enum class InformationRequestMutation
     RECORD_REMINDER,
     RECORD_OVERDUE,
     RECORD_ESCALATION,
+    ASSIGN_PARTY,
+    REVOKE_PARTY,
+    SEND_REMINDER,
+    REQUEST_EXTERNAL_SOURCE,
+    RECORD_EXTERNAL_VALUE,
+    DECIDE_EXTERNAL_VALUE,
+    RECORD_GENERATED_OUTPUT,
 }
 
 enum class InformationRequestReadActor
@@ -123,6 +131,7 @@ object InformationRequestTransitionMatrix
         InformationRequestMutation.RECORD_FIRST_VIEW,
         InformationRequestMutation.START_RESPONSE,
         InformationRequestMutation.SAVE_RESPONSE,
+        InformationRequestMutation.RECERTIFY_FACT,
         InformationRequestMutation.ATTEST_RESPONSE,
         InformationRequestMutation.ADMINISTER_EVIDENCE,
         InformationRequestMutation.SUBMIT,
@@ -157,6 +166,13 @@ object InformationRequestTransitionMatrix
         InformationRequestState.ISSUED,
         InformationRequestState.IN_PROGRESS,
         InformationRequestState.CLOSED,
+    )
+
+    private val EXTERNAL_SOURCE_MUTATIONS = setOf(
+        InformationRequestMutation.REQUEST_EXTERNAL_SOURCE,
+        InformationRequestMutation.RECORD_EXTERNAL_VALUE,
+        InformationRequestMutation.DECIDE_EXTERNAL_VALUE,
+        InformationRequestMutation.RECORD_GENERATED_OUTPUT,
     )
 
     private val RECORD_MUTATIONS = setOf(
@@ -247,11 +263,15 @@ object InformationRequestTransitionMatrix
         {
             return deny(InformationRequestErrorCatalog.PARENT_STATE_INVALID)
         }
-        if (parent.status == ExchangeStatus.INITIATED && mutation in RESPONSE_MUTATIONS + REVIEW_MUTATIONS + RECORD_MUTATIONS)
+        if (parent.status == ExchangeStatus.INITIATED &&
+            mutation in RESPONSE_MUTATIONS + REVIEW_MUTATIONS + RECORD_MUTATIONS + EXTERNAL_SOURCE_MUTATIONS +
+            InformationRequestMutation.SEND_REMINDER
+        )
         {
             return deny(InformationRequestErrorCatalog.PARENT_STATE_INVALID)
         }
-        if (mutation == InformationRequestMutation.PROMOTE_FACT || mutation == InformationRequestMutation.REVOKE_FACT)
+        if (mutation == InformationRequestMutation.PROMOTE_FACT || mutation == InformationRequestMutation.REVOKE_FACT ||
+            mutation in EXTERNAL_SOURCE_MUTATIONS)
         {
             return if (currentState != null && currentState in FACT_STATES) allow()
             else deny(InformationRequestErrorCatalog.STATE_INVALID)
@@ -296,6 +316,7 @@ object InformationRequestTransitionMatrix
                 InformationRequestState.IN_PROGRESS,
             )
             InformationRequestMutation.SAVE_RESPONSE,
+            InformationRequestMutation.RECERTIFY_FACT,
             InformationRequestMutation.ATTEST_RESPONSE,
             InformationRequestMutation.ADMINISTER_EVIDENCE,
             -> allowSameFrom(currentState, ACTIVE_RESPONSE_STATES)
@@ -330,6 +351,10 @@ object InformationRequestTransitionMatrix
             InformationRequestMutation.PROMOTE_FACT,
             InformationRequestMutation.REVOKE_FACT,
             InformationRequestMutation.RECORD_BUSINESS_DECISION,
+            InformationRequestMutation.REQUEST_EXTERNAL_SOURCE,
+            InformationRequestMutation.RECORD_EXTERNAL_VALUE,
+            InformationRequestMutation.DECIDE_EXTERNAL_VALUE,
+            InformationRequestMutation.RECORD_GENERATED_OUTPUT,
             -> deny(InformationRequestErrorCatalog.STATE_INVALID)
             InformationRequestMutation.CHANGE_COMPLETION_GATE,
             InformationRequestMutation.START_CLOCK,
@@ -341,6 +366,11 @@ object InformationRequestTransitionMatrix
             InformationRequestMutation.RECORD_OVERDUE,
             InformationRequestMutation.RECORD_ESCALATION,
             -> allowSameFrom(currentState, ACTIVE_RESPONSE_STATES)
+            InformationRequestMutation.ASSIGN_PARTY,
+            InformationRequestMutation.REVOKE_PARTY,
+                -> allowSameFrom(currentState, nonTerminalStates())
+
+            InformationRequestMutation.SEND_REMINDER -> allowSameFrom(currentState, ACTIVE_RESPONSE_STATES)
         }
     }
 

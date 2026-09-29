@@ -125,7 +125,23 @@ describe("RequirementEvidencePanel", () =>
         chooseFile(`${panelId}-upload-button-input`, file);
 
         await waitFor(() => expect(commands.list).toHaveBeenCalledTimes(2));
-        expect(commands.upload).toHaveBeenCalledWith("request-a", "requirement-a", file, "\"requirement-a:1\"", expect.any(Function));
+        expect(commands.upload).toHaveBeenCalledWith("request-a", "requirement-a", file, "\"requirement-a:1\"", expect.any(Function), expect.any(String));
+    });
+
+    it("names the upload's progress for assistive technology while the file is sent", async () =>
+    {
+        commands.upload.mockImplementation((_request: string, _requirement: string, _file: File, _etag: string, onProgress: (percent: number) => void) =>
+        {
+            onProgress(40);
+            return new Promise(() => undefined);
+        });
+        renderPanel();
+        await screen.findByText("record.pdf");
+
+        chooseFile(`${panelId}-upload-button-input`, new File(["second"], "second.pdf", {type: "application/pdf"}));
+
+        const progress = await screen.findByRole("progressbar", {name: "Uploading, 40 percent sent"});
+        expect(progress.getAttribute("aria-valuenow")).toBe("0.4");
     });
 
     it("explains a stale precondition and a refusal in plain language", async () =>
@@ -140,6 +156,44 @@ describe("RequirementEvidencePanel", () =>
         commands.upload.mockRejectedValueOnce({reasonCode: "INFORMATION_REQUEST_EVIDENCE_DUPLICATE_CONTENT"});
         chooseFile(`${panelId}-upload-button-input`, new File(["a"], "a.pdf"));
         expect(await screen.findByText("This file has already been provided for this Requirement.")).toBeTruthy();
+    });
+
+    it("keeps a file whose upload was interrupted and retries it under the same Idempotency-Key", async () =>
+    {
+        commands.list.mockResolvedValue(listed([]));
+        commands.upload
+            .mockRejectedValueOnce({errorMessage: "The connection was lost"})
+            .mockResolvedValueOnce({outcome: "SAVED", result: {}});
+        renderPanel();
+        await screen.findByText("No files yet.");
+        const file = new File(["record"], "record.pdf", {type: "application/pdf"});
+
+        chooseFile(`${panelId}-upload-button-input`, file);
+        fireEvent.click(await screen.findByRole("button", {name: "Retry uploading record.pdf"}));
+
+        await waitFor(() => expect(commands.upload).toHaveBeenCalledTimes(2));
+        const [first, second] = commands.upload.mock.calls;
+        expect(second[2]).toBe(file);
+        expect(second[5]).toBe(first[5]);
+        await waitFor(() => expect(screen.queryByRole("button", {name: "Retry uploading record.pdf"})).toBeNull());
+    });
+
+    it("offers no retry once a stale upload asks for the latest files, and discards a kept file on request", async () =>
+    {
+        commands.list.mockResolvedValue(listed([]));
+        commands.upload
+            .mockResolvedValueOnce({outcome: "STALE"})
+            .mockRejectedValueOnce({errorMessage: "The connection was lost"});
+        renderPanel();
+        await screen.findByText("No files yet.");
+
+        chooseFile(`${panelId}-upload-button-input`, new File(["a"], "a.pdf"));
+        await screen.findByText(/This evidence changed while you were working/);
+        expect(screen.queryByRole("button", {name: "Retry uploading a.pdf"})).toBeNull();
+
+        chooseFile(`${panelId}-upload-button-input`, new File(["b"], "b.pdf"));
+        fireEvent.click(await screen.findByRole("button", {name: "Discard b.pdf"}));
+        expect(screen.queryByRole("button", {name: "Retry uploading b.pdf"})).toBeNull();
     });
 
     it("withdraws a file with a reason under the file's own revision", async () =>

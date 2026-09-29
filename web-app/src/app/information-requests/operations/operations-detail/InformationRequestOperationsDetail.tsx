@@ -1,5 +1,5 @@
 import {useState} from "react";
-import {Button, Tab, TabList, Title2} from "@fluentui/react-components";
+import {Button, Tab, TabList, Text, Title2} from "@fluentui/react-components";
 import {useNavigate, useParams} from "react-router-dom";
 import {BackIcon} from "../../../components/IconBundles.tsx";
 import InformationRequestFeatureGate from "../../feature-gate/InformationRequestFeatureGate.tsx";
@@ -22,6 +22,7 @@ const InformationRequestOperationsDetail = () =>
 
     return (
         <section id={"information-request-operations-detail-page"}
+                 aria-labelledby={"information-request-operations-detail-title"}
                  className={styles.page}>
             <div id={"information-request-operations-detail-header"}
                  className={styles.header}>
@@ -32,9 +33,18 @@ const InformationRequestOperationsDetail = () =>
                         aria-label={"Back to the operations queue"}
                         title={"Back to the operations queue"}
                         onClick={() => navigate("/information-request-operations")}/>
-                <Title2 id={"information-request-operations-detail-title"}>
+                <Title2 id={"information-request-operations-detail-title"}
+                        className={styles.title}>
                     {requestId ? `Request ${shortId(requestId)}` : "Request"}
                 </Title2>
+                {requestId && (
+                    <Button id={"information-request-operations-detail-manage-btn"}
+                            appearance={"secondary"}
+                            shape={"circular"}
+                            onClick={() => navigate(`/information-requests/${requestId}/manage`)}>
+                        Manage this request
+                    </Button>
+                )}
             </div>
             <InformationRequestFeatureGate idPrefix={"information-request-operations-detail"}>
                 {requestId && (
@@ -61,7 +71,16 @@ const InformationRequestOperationsDetail = () =>
                                 Records
                             </Tab>
                         </TabList>
-                        {tab === "clocks" && <ClockHistoryPanel requestId={requestId}/>}
+                        {tab === "clocks" && (
+                            <>
+                                <Text id={"information-request-operations-detail-clock-note"}
+                                      className={styles.note}>
+                                    Clock changes are made where the request is managed: pause, resume, or extend a
+                                    clock there with a reason, and each change appears in this history.
+                                </Text>
+                                <ClockHistoryPanel requestId={requestId}/>
+                            </>
+                        )}
                         {tab === "notices" && <NoticeHistoryPanel requestId={requestId}/>}
                         {tab === "audit" && <AuditHistoryPanel requestId={requestId}/>}
                         {tab === "records" && <RecordStandingPanel requestId={requestId}/>}

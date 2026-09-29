@@ -202,7 +202,9 @@ class DefaultAuthorizationService @Inject constructor(
             if (resourceCtx.isArchived && !(resource.type in setOf(
                     com.docuhyphen.app.api.model.entity.ResourceType.INFORMATION_REQUEST,
                     com.docuhyphen.app.api.model.entity.ResourceType.INFORMATION_REQUEST_REQUIREMENT,
-                ) && action in com.docuhyphen.app.api.service.informationrequest.InformationRequestParentPolicy.readActions))
+                ) && action in com.docuhyphen.app.api.service.informationrequest.InformationRequestParentPolicy.readActions) &&
+                !(resource.type == com.docuhyphen.app.api.model.entity.ResourceType.INFORMATION_REQUEST &&
+                    action in com.docuhyphen.app.api.service.informationrequest.InformationRequestParentPolicy.closedRecordActions))
             {
                 return Decision.Deny(Decision.REASON_EXCHANGE_ARCHIVED, "Exchange ${resource.id} is archived")
             }

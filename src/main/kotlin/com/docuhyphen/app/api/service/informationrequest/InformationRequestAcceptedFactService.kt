@@ -48,6 +48,7 @@ class InformationRequestAcceptedFactService @Inject constructor(
     private val bindingRepository: InformationRequestTemplateRequirementBindingRepository,
     private val fieldValueRevisions: FieldValueRevisionQueryService,
     private val facts: InformationRequestAcceptedFactStanding,
+    private val evidenceReferences: InformationRequestAcceptedFactEvidenceService,
     private val restrictions: InformationRequestSubjectRestrictionService,
     private val commandReceiptService: CommandReceiptService,
     private val transitionHistory: InformationRequestTransitionHistoryService,
@@ -70,6 +71,8 @@ class InformationRequestAcceptedFactService @Inject constructor(
                     command.packageId,
                     command.submissionItemId,
                     purpose,
+                    command.policyBasisKey?.trim()?.lowercase() ?: "",
+                    command.evidenceVersionIds.sorted().joinToString(","),
                     command.visibility,
                     command.validFrom ?: "",
                     command.validTo ?: "",
@@ -132,11 +135,17 @@ class InformationRequestAcceptedFactService @Inject constructor(
         gate.requireMutation(locked, InformationRequestMutation.PROMOTE_FACT)
         gate.authorizeRequest(command.access, listOf(Action.INFORMATION_REQUEST_PROMOTE_FACT), request.id)
         if (!PURPOSE.matches(purpose)) throw InformationRequestCommandRequestException("A fact purpose is a lowercase machine key")
+        val policyBasis = command.policyBasisKey?.trim()?.lowercase()
+        if (policyBasis == null || !PURPOSE.matches(policyBasis))
+        {
+            throw InformationRequestCommandRequestException("A fact states its reuse policy basis as a lowercase machine key")
+        }
         val submission = lockService.activePackages(request.id).firstOrNull { it.id == command.packageId }
             ?: refuse("An accepted fact is promoted from a current Submission Package")
         val view = packageReader.view(request.id, submission.id)
         val item = view.items.firstOrNull { it.id == command.submissionItemId }?.takeIf(::answersField)
             ?: refuse("An accepted fact is promoted from an answered typed-data item")
+        val selectedEvidence = evidenceReferences.select(view, item.informationRequestRequirementId, command.evidenceVersionIds)
         val (confidence, reviewId) = acceptanceOf(request, submission.id, submission.reviewRequired, item)
         val subject = partyRepository.findActiveForRequestRole(request.id, InformationRequestShareRoleKey.SUBJECT)
             .mapNotNull { it.subjectIdentityRefId }
@@ -168,6 +177,7 @@ class InformationRequestAcceptedFactService @Inject constructor(
         {
             throw InformationRequestCommandRequestException("A fact expires in the future")
         }
+        command.supersedesFactId?.let(factRepository::findByIdForUpdate)
         val active = facts.activeForKey(request.ownerType, ownerIdOf(request), subject, listOf(fieldDefinitionId), purpose)
         command.supersedesFactId?.let { superseded ->
             if (active.none { it.id == superseded })
@@ -187,6 +197,7 @@ class InformationRequestAcceptedFactService @Inject constructor(
                 ownerUserId = request.ownerUserId
                 subjectIdentityRefId = subject
                 purposeKey = purpose
+                policyBasisKey = policyBasis
                 this.fieldDefinitionId = fieldDefinitionId
                 valueType = value.valueType
                 canonicalValue = canonical
@@ -212,6 +223,7 @@ class InformationRequestAcceptedFactService @Inject constructor(
                 promotedAt = Timestamp.from(now)
             },
         )
+        evidenceReferences.save(fact.id, selectedEvidence)
         transitionHistory.record(
             InformationRequestTransitionHistoryCommand(
                 request = request,
@@ -227,6 +239,7 @@ class InformationRequestAcceptedFactService @Inject constructor(
                     "submissionItemId" to item.id.toString(),
                     "factConfidence" to confidence.name,
                     "conflictState" to fact.conflictState.name,
+                    "evidenceVersionIds" to selectedEvidence.joinToString(",") { it.evidenceVersionId.toString() },
                 ),
             ),
         )
@@ -244,6 +257,7 @@ class InformationRequestAcceptedFactService @Inject constructor(
         gate.authorizeRequest(command.access, listOf(Action.INFORMATION_REQUEST_PROMOTE_FACT), request.id)
         if (reasonCode.isEmpty()) throw InformationRequestCommandRequestException("A revocation states its reason")
         val fact = requireFact(request.id, command.factId)
+        factRepository.findByIdForUpdate(fact.id)
         if (revocationRepository.findForFacts(listOf(fact.id)).isNotEmpty())
         {
             throw InformationRequestLifecycleException(

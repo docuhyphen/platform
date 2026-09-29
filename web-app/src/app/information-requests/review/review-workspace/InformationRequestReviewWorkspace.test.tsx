@@ -23,6 +23,9 @@ import {
     InformationRequestState,
 } from "../../../models/models.tsx";
 import InformationRequestReviewWorkspace from "./InformationRequestReviewWorkspace.tsx";
+import {formatInformationRequestTime} from "../../shared/informationRequestFormatting.ts";
+
+const shownTime = (value: string): string => formatInformationRequestTime(value).replace(/\s+/g, " ");
 
 vi.mock("../../../../services/informationRequestReviewService.ts", () => ({
     getInformationRequestReview: vi.fn(),
@@ -31,6 +34,12 @@ vi.mock("../../../../services/informationRequestReviewService.ts", () => ({
     recordInformationRequestReviewFinding: vi.fn(),
 }));
 vi.mock("../../../../hooks/subscription/usePlanFeature.ts", () => ({usePlanFeature: vi.fn()}));
+vi.mock("../../../../services/informationRequestRuntimeService.ts", () => ({
+    getInformationRequestResponseWorkspace: vi.fn().mockRejectedValue({errorMessage: "Not shown"}),
+}));
+vi.mock("../../../../services/informationRequestAuthoringService.ts", () => ({
+    getInformationRequestParties: vi.fn().mockResolvedValue({parties: [], partiesETag: ""}),
+}));
 
 const summary = (state: InformationRequestReviewState) => ({
     id: "review-a",
@@ -166,6 +175,7 @@ describe("InformationRequestReviewWorkspace", () =>
 
         renderWorkspace();
         expect(within(await card("item-a")).getByText("Synthetic summary")).toBeTruthy();
+        expect(screen.getByText(`Opened ${shownTime("2026-09-26T08:00:00Z")}.`, {exact: false})).toBeTruthy();
         fireEvent.click(within(await card("item-a")).getByLabelText("Satisfied"));
         fireEvent.click(within(await card("item-b")).getByLabelText("Satisfied"));
         fireEvent.click(screen.getByRole("button", {name: "Record decisions"}));
@@ -216,13 +226,13 @@ describe("InformationRequestReviewWorkspace", () =>
         expect(transport.recordInformationRequestReviewDecisions).not.toHaveBeenCalled();
     });
 
-    it("stays closed to a caller whose plan does not include Information Requests", async () =>
+    it("opens assigned review work whatever the reviewer's own plan, since the owner funds the request", async () =>
     {
         vi.mocked(usePlanFeature).mockReturnValue(availability(false));
 
         renderWorkspace();
 
-        expect(await screen.findByText("Information Requests are not included in your plan.")).toBeTruthy();
-        expect(transport.getInformationRequestReview).not.toHaveBeenCalled();
+        await waitFor(() => expect(transport.getInformationRequestReview).toHaveBeenCalledWith("request-a", "review-a"));
+        expect(screen.queryByText("Information Requests are not included in your plan.")).toBeNull();
     });
 });

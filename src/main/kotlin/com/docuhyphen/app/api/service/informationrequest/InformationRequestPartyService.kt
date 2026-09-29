@@ -1,18 +1,6 @@
 package com.docuhyphen.app.api.service.informationrequest
 
-import com.docuhyphen.app.api.model.entity.InformationRequest
-import com.docuhyphen.app.api.model.entity.InformationRequestOwnerType
-import com.docuhyphen.app.api.model.entity.InformationRequestParty
-import com.docuhyphen.app.api.model.entity.InformationRequestShareRoleKey
-import com.docuhyphen.app.api.model.entity.PrincipalKind
-import com.docuhyphen.app.api.model.entity.RequestExecutionGrant
-import com.docuhyphen.app.api.model.entity.RequestExecutionUsageKind
-import com.docuhyphen.app.api.model.entity.RequestExecutionUsageReservation
-import com.docuhyphen.app.api.model.entity.ResourceType
-import com.docuhyphen.app.api.model.entity.SubjectIdentityOwnerType
-import com.docuhyphen.app.api.model.entity.AppUser
-import com.docuhyphen.app.api.model.entity.Exchange
-import com.docuhyphen.app.api.model.entity.ExchangeRecipientSelectionType
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestPartyRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
@@ -20,32 +8,16 @@ import com.docuhyphen.app.api.repository.informationrequest.SubjectIdentityRefRe
 import com.docuhyphen.app.api.resource.model.ExchangeRecipientSelectionRequest
 import com.docuhyphen.app.api.resource.model.TrustedGroupRecipientSelectionRequest
 import com.docuhyphen.app.api.resource.model.TrustedPersonRecipientSelectionRequest
-import com.docuhyphen.app.api.service.auth.authz.Action
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.Decision
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import com.docuhyphen.app.api.service.auth.authz.ResourceRef
-import com.docuhyphen.app.api.service.command.CommandPrecondition
-import com.docuhyphen.app.api.service.command.CommandReceiptDecision
-import com.docuhyphen.app.api.service.command.CommandReceiptRequest
-import com.docuhyphen.app.api.service.command.CommandReceiptService
-import com.docuhyphen.app.api.service.command.CommandActorRef
-import com.docuhyphen.app.api.service.command.CommandMutationResult
-import com.docuhyphen.app.api.service.command.CommandRequestFingerprint
-import com.docuhyphen.app.api.service.command.CommandResultReference
-import com.docuhyphen.app.api.service.exchange.ExternalParticipantOwner
-import com.docuhyphen.app.api.service.exchange.ExternalParticipantService
-import com.docuhyphen.app.api.service.exchange.ExchangeRecipientService
-import com.docuhyphen.app.api.service.exchange.ExchangeRecipientSelectionResolver
-import com.docuhyphen.app.api.service.exchange.ResolvedExchangeRecipientSelection
-import com.docuhyphen.app.api.service.exchange.ShareService
+import com.docuhyphen.app.api.service.auth.authz.*
+import com.docuhyphen.app.api.service.command.*
+import com.docuhyphen.app.api.service.exchange.*
 import io.quarkus.security.ForbiddenException
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 data class AssignInformationRequestPartyCommand(
     val requestId: UUID,
@@ -249,11 +221,40 @@ class InformationRequestPartyService @Inject constructor(
             ).party
         }
 
+    fun materializeSubjectParties(
+        request: InformationRequest,
+        subjectIdentityRefIds: List<UUID>,
+        access: RequestAccessContext,
+    ): List<InformationRequestParty>
+    {
+        if (subjectIdentityRefIds.isEmpty()) return emptyList()
+        val now = Timestamp.from(Instant.now())
+        val parties = subjectIdentityRefIds.distinct().map { subjectIdentityRefId ->
+            requireSubjectOwnedByRequest(subjectIdentityRefId, request)
+            partyRepository.save(
+                InformationRequestParty().apply {
+                    informationRequestId = request.id
+                    roleKey = InformationRequestShareRoleKey.SUBJECT
+                    this.subjectIdentityRefId = subjectIdentityRefId
+                    assignedByAppUserId = access.principal.id.takeIf { access.principal.kind == PrincipalKind.USER }
+                    assignedAt = now
+                    createdAt = now
+                    updatedAt = now
+                },
+            )
+        }
+        request.partyRevision += 1
+        request.updatedAt = now
+        requestRepository.update(request)
+        return parties
+    }
+
     private fun assignMutation(command: AssignInformationRequestPartyCommand): InformationRequestPartyAssignmentResult
     {
-        val (_, request) = lockPartyMutationRequest(command.requestId)
+        val (exchange, request) = lockPartyMutationRequest(command.requestId)
         command.precondition.requireSatisfiedBy(InformationRequestETag.partiesOf(request))
         authorize(command.access, request.id)
+        requirePartyChangeAllowed(exchange, request.state, InformationRequestMutation.ASSIGN_PARTY)
 
         val now = Timestamp.from(Instant.now())
         val party = InformationRequestParty().apply {
@@ -310,6 +311,13 @@ class InformationRequestPartyService @Inject constructor(
                 request.partyRevision += 1
                 request.updatedAt = now
                 requestRepository.update(request)
+                recordPartyHistory(
+                    request,
+                    saved,
+                    InformationRequestMutation.ASSIGN_PARTY,
+                    command.access.principal,
+                    command.idempotencyKey
+                )
                 return InformationRequestPartyAssignmentResult(
                     party = saved,
                     partiesETag = InformationRequestETag.partiesOf(request),
@@ -327,6 +335,13 @@ class InformationRequestPartyService @Inject constructor(
         request.partyRevision += 1
         request.updatedAt = now
         requestRepository.update(request)
+        recordPartyHistory(
+            request,
+            saved,
+            InformationRequestMutation.ASSIGN_PARTY,
+            command.access.principal,
+            command.idempotencyKey
+        )
         return InformationRequestPartyAssignmentResult(
             party = saved,
             partiesETag = InformationRequestETag.partiesOf(request),
@@ -338,9 +353,10 @@ class InformationRequestPartyService @Inject constructor(
         command: AssignExternalParticipantInformationRequestPartyCommand,
     ): InformationRequestPartyAssignmentResult
     {
-        val (_, request) = lockPartyMutationRequest(command.requestId)
+        val (exchange, request) = lockPartyMutationRequest(command.requestId)
         command.precondition.requireSatisfiedBy(InformationRequestETag.partiesOf(request))
         authorize(command.access, request.id)
+        requirePartyChangeAllowed(exchange, request.state, InformationRequestMutation.ASSIGN_PARTY)
         require(command.roleKey != InformationRequestShareRoleKey.SUBJECT) {
             "An external participant cannot be assigned as the subject party"
         }
@@ -386,6 +402,13 @@ class InformationRequestPartyService @Inject constructor(
             request.partyRevision += 1
             request.updatedAt = now
             requestRepository.update(request)
+            recordPartyHistory(
+                request,
+                saved,
+                InformationRequestMutation.ASSIGN_PARTY,
+                command.access.principal,
+                command.idempotencyKey
+            )
             return InformationRequestPartyAssignmentResult(
                 party = saved,
                 partiesETag = InformationRequestETag.partiesOf(request),
@@ -403,9 +426,10 @@ class InformationRequestPartyService @Inject constructor(
         command: AssignTrustedRecipientInformationRequestPartyCommand,
     ): InformationRequestPartyAssignmentResult
     {
-        val (_, request) = lockPartyMutationRequest(command.requestId)
+        val (exchange, request) = lockPartyMutationRequest(command.requestId)
         command.precondition.requireSatisfiedBy(InformationRequestETag.partiesOf(request))
         authorize(command.access, request.id)
+        requirePartyChangeAllowed(exchange, request.state, InformationRequestMutation.ASSIGN_PARTY)
         require(command.roleKey != InformationRequestShareRoleKey.SUBJECT) {
             "A trusted recipient selection cannot be assigned as the subject party"
         }
@@ -435,7 +459,15 @@ class InformationRequestPartyService @Inject constructor(
             principal = principal,
             exchangeRecipientId = recipient.id,
             assignedBy = command.access.principal,
-        )
+        ).also { result ->
+            recordPartyHistory(
+                request,
+                result.party,
+                InformationRequestMutation.ASSIGN_PARTY,
+                command.access.principal,
+                command.idempotencyKey,
+            )
+        }
     }
 
     private fun reassignMutation(command: ReassignInformationRequestPartyCommand): InformationRequestPartyAssignmentResult
@@ -445,7 +477,7 @@ class InformationRequestPartyService @Inject constructor(
         authorize(command.access, request.id)
         requireSupportedActingPrincipal(command.principal)
 
-        requireReassignable(exchange, request.state)
+        requirePartyChangeAllowed(exchange, request.state, InformationRequestMutation.REASSIGN)
 
         val party = partyRepository.findByIdForUpdate(command.partyId)
             ?: throw IllegalArgumentException("Information Request party not found")
@@ -512,9 +544,10 @@ class InformationRequestPartyService @Inject constructor(
 
     private fun revokeMutation(command: RevokeInformationRequestPartyCommand): InformationRequestPartyAssignmentResult
     {
-        val (_, request) = lockPartyMutationRequest(command.requestId)
+        val (exchange, request) = lockPartyMutationRequest(command.requestId)
         command.precondition.requireSatisfiedBy(InformationRequestETag.partiesOf(request))
         authorize(command.access, request.id)
+        requirePartyChangeAllowed(exchange, request.state, InformationRequestMutation.REVOKE_PARTY)
 
         val party = partyRepository.findByIdForUpdate(command.partyId)
             ?: throw IllegalArgumentException("Information Request party not found")
@@ -522,6 +555,13 @@ class InformationRequestPartyService @Inject constructor(
         require(party.active) { "Information Request party is already revoked" }
 
         val saved = revokeParty(request, party, command.access.principal)
+        recordPartyHistory(
+            request,
+            saved,
+            InformationRequestMutation.REVOKE_PARTY,
+            command.access.principal,
+            command.idempotencyKey
+        )
         return InformationRequestPartyAssignmentResult(
             party = saved,
             partiesETag = InformationRequestETag.partiesOf(request),
@@ -679,7 +719,11 @@ class InformationRequestPartyService @Inject constructor(
         }
     }
 
-    private fun requireReassignable(exchange: Exchange, requestState: InformationRequestState)
+    private fun requirePartyChangeAllowed(
+        exchange: Exchange,
+        requestState: InformationRequestState,
+        mutation: InformationRequestMutation,
+    )
     {
         val decision = InformationRequestTransitionMatrix.canMutate(
             InformationRequestParentSnapshot(
@@ -688,15 +732,36 @@ class InformationRequestPartyService @Inject constructor(
                 lockedForUpdate = true,
             ),
             requestState,
-            InformationRequestMutation.REASSIGN,
+            mutation,
         )
         if (decision is InformationRequestPolicyDecision.Deny)
         {
             throw InformationRequestLifecycleException(
                 decision.reasonCode,
-                "Information Request party reassignment is not allowed",
+                "This Information Request party change is not allowed",
             )
         }
+    }
+
+    private fun recordPartyHistory(
+        request: InformationRequest,
+        party: InformationRequestParty,
+        mutation: InformationRequestMutation,
+        actor: PrincipalRef,
+        idempotencyKey: String,
+    )
+    {
+        transitionHistory.record(
+            InformationRequestTransitionHistoryCommand(
+                request = request,
+                fromState = request.state,
+                toState = request.state,
+                mutation = mutation,
+                actor = actor,
+                partyId = party.id,
+                idempotencyKey = "information_request.${mutation.name.lowercase()}|${request.id}|${party.id}|$idempotencyKey",
+            ),
+        )
     }
 
     private fun reassignHistoryIdempotencyKey(requestId: UUID, partyId: UUID, idempotencyKey: String): String =

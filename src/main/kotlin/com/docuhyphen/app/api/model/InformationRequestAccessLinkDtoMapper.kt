@@ -4,6 +4,7 @@ import com.docuhyphen.app.api.model.dto.InformationRequestAccessLinkDto
 import com.docuhyphen.app.api.model.dto.InformationRequestAccessLinkIssuedDto
 import com.docuhyphen.app.api.model.entity.ShareLink
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestBootstrapShareLinkIssuance
+import java.util.*
 
 object InformationRequestAccessLinkDtoMapper
 {
@@ -17,12 +18,14 @@ object InformationRequestAccessLinkDtoMapper
             rotationCount = issuance.shareLink.rotationCount,
         )
 
-    fun toDto(shareLink: ShareLink): InformationRequestAccessLinkDto =
+    fun toDto(shareLink: ShareLink, partyId: UUID? = null): InformationRequestAccessLinkDto =
         InformationRequestAccessLinkDto(
             shareLinkId = shareLink.id,
             status = shareLink.status,
             expiresAt = shareLink.expiresAt,
             maxUses = shareLink.maxUses,
             rotationCount = shareLink.rotationCount,
+            partyId = partyId,
+            createdAt = shareLink.createdAt,
         )
 }

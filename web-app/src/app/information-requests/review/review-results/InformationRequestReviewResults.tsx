@@ -3,8 +3,13 @@ import {MessageBar, MessageBarBody, Text} from "@fluentui/react-components";
 import {
     appealInformationRequestReview,
     getInformationRequestReviewResults,
+    recordInformationRequestReviewComment,
 } from "../../../../services/informationRequestReviewService.ts";
-import {InformationRequestRespondentReviewDto} from "../../../models/models.tsx";
+import {
+    InformationRequestRespondentReviewDto,
+    InformationRequestReviewFindingDto,
+    InformationRequestReviewVisibility,
+} from "../../../models/models.tsx";
 import {submissionErrorMessage} from "../../submission/submissionLabels.ts";
 import RespondentReviewCard from "../respondent-review-card/RespondentReviewCard.tsx";
 import ReviewAppealDialog from "../review-appeal-dialog/ReviewAppealDialog.tsx";
@@ -71,6 +76,36 @@ const InformationRequestReviewResults = ({requestId, accessLinkToken, refreshKey
         }
     };
 
+    const reply = async (result: InformationRequestRespondentReviewDto, finding: InformationRequestReviewFindingDto, body: string) =>
+    {
+        setBusy(true);
+        try
+        {
+            await recordInformationRequestReviewComment(
+                requestId,
+                result.review.id,
+                {
+                    submissionItemId: finding.submissionItemId,
+                    findingId: finding.id,
+                    visibility: InformationRequestReviewVisibility.RESPONDENT_VISIBLE,
+                    body,
+                },
+                crypto.randomUUID(),
+                accessLinkToken,
+            );
+            setMessage({intent: "success", text: "Your reply was sent."});
+            load();
+        }
+        catch (caught: unknown)
+        {
+            setMessage({intent: "error", text: submissionErrorMessage(caught, "The reply could not be sent.")});
+        }
+        finally
+        {
+            setBusy(false);
+        }
+    };
+
     if (results.length === 0 && !message) return null;
 
     return (
@@ -91,7 +126,8 @@ const InformationRequestReviewResults = ({requestId, accessLinkToken, refreshKey
                                       result={result}
                                       requirementLabels={requirementLabels}
                                       busy={busy}
-                                      onAppeal={() => setAppealing(result)}/>
+                                      onAppeal={() => setAppealing(result)}
+                                      onReply={(finding, body) => void reply(result, finding, body)}/>
             ))}
             {appealing && (
                 <ReviewAppealDialog busy={busy}

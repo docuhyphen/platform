@@ -33,6 +33,9 @@ class InformationRequestAcceptedFact
     @Column(name = "purpose_key", nullable = false, length = 128)
     lateinit var purposeKey: String
 
+    @Column(name = "policy_basis_key", nullable = false, length = 128)
+    lateinit var policyBasisKey: String
+
     @Column(name = "field_definition_id", nullable = false)
     lateinit var fieldDefinitionId: UUID
 

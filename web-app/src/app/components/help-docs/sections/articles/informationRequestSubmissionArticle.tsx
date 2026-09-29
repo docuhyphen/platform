@@ -6,12 +6,44 @@ export const informationRequestSubmissionArticle = (
             exact file versions, the supporting links, and the confirmations given.
         </p>
 
+        <h3 id={"information-request-submission-answering-heading"}>Answering</h3>
+        <ul id={"information-request-submission-answering-list"}>
+            <li>
+                The workspace lists its sections with how many required answers each still needs;
+                selecting a section opens its first item.
+            </li>
+            <li>
+                Each item takes a value, or another answer the Template allows, such as not
+                applicable, unavailable, or an exception request, with the reason it asks for. An
+                item can also take a note.
+            </li>
+            <li>
+                Answers save two seconds after you stop typing, and <b>Save responses</b> saves at
+                once. The status beside it says whether changes are waiting or saved.
+            </li>
+            <li>
+                If the answers changed somewhere else, for example on another device, saving stops and
+                keeps your unsaved changes: review them against the latest answers, then select
+                <b> Save responses</b> again. Nothing you typed is overwritten, and unsaved changes stay
+                in the browser tab until they are saved.
+            </li>
+            <li>
+                When the requesting side has kept an earlier accepted answer about the same subject,
+                the item shows <b>An earlier accepted answer is available</b> with how it was accepted
+                and how long it is valid. Nothing is used until you tick <b>I confirm this answer is
+                still accurate</b> and select <b>Use this answer</b>, which saves it as your answer.
+                If the answer is withdrawn or lapses first, it is refused and your answers stay as
+                they were.
+            </li>
+        </ul>
+
         <h3 id={"information-request-submission-review-heading"}>Review and submit</h3>
         <ul id={"information-request-submission-review-list"}>
             <li>
                 <b>Review and submit</b> in the response workspace lists what still blocks the
                 submission, such as an unanswered item, a file that does not meet the request, or a
-                missing confirmation. Items handled by other parties are counted but not named.
+                missing confirmation, each linked to its item. Items handled by other parties are
+                counted but not named. Before you submit, each answer is stated in words.
             </li>
             <li>
                 <b>Submit</b> is available once everything is complete. If anything changes after

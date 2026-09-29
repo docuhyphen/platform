@@ -2,10 +2,13 @@ package com.docuhyphen.app.api.model
 
 import com.docuhyphen.app.api.model.dto.InformationRequestAcceptedFactDto
 import com.docuhyphen.app.api.model.dto.InformationRequestAcceptedFactOfferDto
+import com.docuhyphen.app.api.model.dto.InformationRequestReusableFactDto
 import com.docuhyphen.app.api.model.dto.InformationRequestBusinessDecisionDto
+import com.docuhyphen.app.api.model.dto.InformationRequestFactRecertificationDto
 import com.docuhyphen.app.api.model.entity.InformationRequestBusinessDecision
 import com.docuhyphen.app.api.model.informationrequest.InformationRequestAcceptedFactOffer
 import com.docuhyphen.app.api.model.informationrequest.InformationRequestAcceptedFactView
+import com.docuhyphen.app.api.model.informationrequest.InformationRequestFactRecertificationView
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import kotlinx.serialization.json.Json
 
@@ -18,6 +21,8 @@ object InformationRequestAcceptedFactDtoMapper
             id = fact.id,
             subjectIdentityRefId = fact.subjectIdentityRefId,
             purposeKey = fact.purposeKey,
+            policyBasisKey = fact.policyBasisKey,
+            evidenceVersionIds = view.evidenceVersionIds,
             fieldDefinitionId = fact.fieldDefinitionId,
             valueType = fact.valueType,
             value = Json.parseToJsonElement(fact.canonicalValue),
@@ -47,8 +52,31 @@ object InformationRequestAcceptedFactDtoMapper
         InformationRequestAcceptedFactOfferDto(
             requirementId = offer.requirementId,
             requirementKey = offer.requirementKey,
-            fact = toDto(offer.fact),
+            fact = InformationRequestReusableFactDto(
+                id = offer.fact.fact.id,
+                purposeKey = offer.fact.fact.purposeKey,
+                policyBasisKey = offer.fact.fact.policyBasisKey,
+                valueType = offer.fact.fact.valueType,
+                value = Json.parseToJsonElement(offer.fact.fact.canonicalValue),
+                confidence = offer.fact.fact.confidence,
+                validFrom = offer.fact.fact.validFrom,
+                validTo = offer.fact.fact.validTo,
+                expiresAt = offer.fact.fact.expiresAt,
+                freshness = offer.fact.freshness,
+            ),
             reconfirmationRequired = offer.reconfirmationRequired,
+        )
+
+    fun toDto(view: InformationRequestFactRecertificationView): InformationRequestFactRecertificationDto =
+        InformationRequestFactRecertificationDto(
+            id = view.recertification.id,
+            requirementId = view.recertification.informationRequestRequirementId,
+            factId = view.recertification.factId,
+            responseId = view.recertification.responseId,
+            responseRevision = view.recertification.responseRevision,
+            valueType = view.recertification.valueType,
+            value = Json.parseToJsonElement(view.recertification.canonicalValue),
+            assentedAt = view.recertification.assentedAt,
         )
 
     fun toDto(decision: InformationRequestBusinessDecision, caller: PrincipalRef): InformationRequestBusinessDecisionDto =

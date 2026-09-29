@@ -15,6 +15,7 @@ import {
 } from "../../models/models.tsx";
 import {buildSparseFieldValuePayload} from "../../exchanges/components/exchange-fields-tab/fieldValuePayload.ts";
 import {storedFieldValues} from "../../exchanges/components/exchange-fields-tab/fieldEditorState.ts";
+import {answersWithValue, ResponseAnswerEdit, ResponseAnswerEdits} from "./responseAnswerState.ts";
 
 export type ResponseEdits = Record<string, Record<string, unknown>>;
 
@@ -158,6 +159,30 @@ export const workspaceOccurrences = (
     ];
 };
 
+const fieldValueChanges = (
+    requirement: InformationRequestTemplateRequirementDto,
+    occurrencePath: string,
+    bindings: SchemaFieldBindingDto[],
+    response: InformationRequestResponseDto | undefined,
+    edits: ResponseEdits,
+) =>
+{
+    if (requirement.requirementType !== InformationRequestRequirementType.FIELD) return null;
+    const binding = bindings.find(candidate => candidate.fieldDefinitionId === requirement.collectedFieldDefinitionId);
+    if (!binding) return null;
+    const state = shownFieldValues(binding, occurrencePath, requirement.id, response, edits);
+    const values = buildSparseFieldValuePayload([binding], firstValueSet(binding, response), state);
+    return values.length === 0 ? null : {etag: response?.fieldValueSetETag, values};
+};
+
+const narrativeChange = (answer: ResponseAnswerEdit | undefined, response: InformationRequestResponseDto | undefined) =>
+{
+    if (answer?.narrative === undefined) return {};
+    const narrative = answer.narrative.trim();
+    if (narrative === (response?.narrative ?? "").trim()) return {};
+    return narrative ? {narrative} : {clearNarrative: true};
+};
+
 export const buildResponsePatches = (
     occurrences: InformationRequestGroupOccurrenceDto[],
     groups: InformationRequestTemplateGroupDto[],
@@ -166,31 +191,30 @@ export const buildResponsePatches = (
     responses: InformationRequestResponseDto[],
     conditionByScope: Map<string, InformationRequestConditionEvaluationDto>,
     edits: ResponseEdits,
+    answers: ResponseAnswerEdits = {},
 ) =>
     occurrences.flatMap(occurrence =>
         requirements
-            .filter(requirement => requirement.requirementType === InformationRequestRequirementType.FIELD)
+            .filter(requirement => requirement.requirementType !== InformationRequestRequirementType.RESPONSE_ATTESTATION)
             .filter(requirement =>
                 requirementOccurrenceAnchorKey(requirement) === occurrenceGroupKeyFromTemplate(occurrence, groups))
             .filter(requirement => isRequirementActive(requirement, occurrence.occurrencePath, conditionByScope))
             .map(requirement =>
             {
-                const binding = bindings.find(candidate =>
-                    candidate.fieldDefinitionId === requirement.collectedFieldDefinitionId);
-                if (!binding) return null;
-                const response = responseForFieldRequirement(
-                    responses,
-                    requirement,
-                    occurrence.occurrencePath,
-                );
-                const storedValues = firstValueSet(binding, response);
-                const state = shownFieldValues(binding, occurrence.occurrencePath, requirement.id, response, edits);
-                const values = buildSparseFieldValuePayload([binding], storedValues, state);
-                if (values.length === 0) return null;
+                const response = responseForFieldRequirement(responses, requirement, occurrence.occurrencePath);
+                const answer = answers[responseKey(requirement.id, occurrence.occurrencePath)];
+                const disposition = answer?.disposition ?? InformationRequestResponseDisposition.PROVIDED;
+                const fieldValues = answersWithValue(disposition)
+                    ? fieldValueChanges(requirement, occurrence.occurrencePath, bindings, response, edits)
+                    : null;
+                const narrative = narrativeChange(answer, response);
+                if (!answer?.disposition && !fieldValues && Object.keys(narrative).length === 0) return null;
+                if (!response && requirement.requirementType !== InformationRequestRequirementType.FIELD) return null;
                 return {
                     requirementId: response?.informationRequestRequirementId ?? requirement.id,
-                    disposition: InformationRequestResponseDisposition.PROVIDED,
-                    fieldValues: {etag: response?.fieldValueSetETag, values},
+                    disposition,
+                    ...narrative,
+                    ...(fieldValues ? {fieldValues} : {}),
                 };
             })
             .filter(patch => patch !== null),

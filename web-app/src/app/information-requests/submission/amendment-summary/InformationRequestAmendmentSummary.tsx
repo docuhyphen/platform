@@ -4,6 +4,7 @@ import {getInformationRequestAmendments} from "../../../../services/informationR
 import {InformationRequestAmendmentDto} from "../../../models/models.tsx";
 import {changeKindLabels, humanizedKey, noticeStateLabels} from "../submissionLabels.ts";
 import {useInformationRequestAmendmentSummaryStyles} from "./InformationRequestAmendmentSummaryStyles.tsx";
+import {formatInformationRequestTime} from "../../shared/informationRequestFormatting.ts";
 
 interface Props
 {
@@ -40,7 +41,7 @@ const InformationRequestAmendmentSummary = ({requestId, accessLinkToken, refresh
                     <div id={`information-request-amendment-${amendment.id}-header`}
                          className={styles.header}>
                         <Text weight={"semibold"}>{`Amendment ${amendment.amendmentNumber}`}</Text>
-                        <Text className={styles.detail}>{new Date(amendment.amendedAt).toLocaleString()}</Text>
+                        <Text className={styles.detail}>{formatInformationRequestTime(amendment.amendedAt)}</Text>
                         {amendment.notices.map(notice => (
                             <Badge id={`information-request-amendment-notice-${notice.id}`}
                                    key={notice.id}

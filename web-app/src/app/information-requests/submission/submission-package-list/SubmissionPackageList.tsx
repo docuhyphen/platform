@@ -2,6 +2,7 @@ import {Badge, Button, Text} from "@fluentui/react-components";
 import {InformationRequestSubmissionPackageDto} from "../../../models/models.tsx";
 import {humanizedKey} from "../submissionLabels.ts";
 import {useSubmissionPackageListStyles} from "./SubmissionPackageListStyles.tsx";
+import {formatInformationRequestTime} from "../../shared/informationRequestFormatting.ts";
 
 interface Props
 {
@@ -35,7 +36,7 @@ const SubmissionPackageList = ({packages, busy, closed, onWithdraw}: Props) =>
                             {submission.stageKey && ` - ${humanizedKey(submission.stageKey)}`}
                         </Text>
                         <Text className={styles.detail}>
-                            {new Date(submission.submittedAt).toLocaleString()}
+                            {formatInformationRequestTime(submission.submittedAt)}
                         </Text>
                     </div>
                     <Badge id={`information-request-submission-package-${submission.id}-state`}

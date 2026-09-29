@@ -7,26 +7,14 @@ import com.docuhyphen.app.api.resource.command.CommandPreconditionResponse
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.service.command.CommandPreconditionException
 import com.docuhyphen.app.api.service.command.CommandReceiptConflictException
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestCapabilityNotInstalledException
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestLifecycleException
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestNoAuthReadAccessService
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestSubmissionIncompleteException
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestTemplateValidationException
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestTemplateVersionUnavailableException
-import com.docuhyphen.app.api.service.informationrequest.RequestAccessContext
+import com.docuhyphen.app.api.service.informationrequest.*
 import io.quarkus.security.ForbiddenException
 import io.quarkus.security.UnauthorizedException
 import jakarta.ws.rs.WebApplicationException
 import jakarta.ws.rs.core.Response
-import jakarta.ws.rs.core.Response.Status.BAD_REQUEST
-import jakarta.ws.rs.core.Response.Status.CONFLICT
-import jakarta.ws.rs.core.Response.Status.FORBIDDEN
-import jakarta.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR
-import jakarta.ws.rs.core.Response.Status.NOT_FOUND
-import jakarta.ws.rs.core.Response.Status.UNAUTHORIZED
+import jakarta.ws.rs.core.Response.Status.*
 import org.slf4j.Logger
-import java.util.UUID
+import java.util.*
 
 object InformationRequestCommandHttp
 {
@@ -76,6 +64,11 @@ object InformationRequestCommandHttp
             is InformationRequestTemplateVersionUnavailableException -> error(CONFLICT, exception.message, exception.code)
             is CommandPreconditionException -> CommandPreconditionResponse.refused(exception)
             is CommandReceiptConflictException -> error(CONFLICT, exception.message, exception.reasonCode)
+            is RequestExecutionUsageExhaustedException -> error(
+                CONFLICT,
+                "This request has no acting-party capacity left in its execution grant",
+                InformationRequestErrorCatalog.CAPACITY_EXHAUSTED,
+            )
             is InformationRequestSubmissionIncompleteException -> Response.status(UNPROCESSABLE_CONTENT)
                 .entity(
                     InformationRequestSubmissionDtoMapper.refusal(

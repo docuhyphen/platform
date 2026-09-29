@@ -1,16 +1,6 @@
 package com.docuhyphen.app.api.service.informationrequest
 
-import com.docuhyphen.app.api.model.entity.CommandReceipt
-import com.docuhyphen.app.api.model.entity.Exchange
-import com.docuhyphen.app.api.model.entity.ExchangeStatus
-import com.docuhyphen.app.api.model.entity.InformationRequest
-import com.docuhyphen.app.api.model.entity.InformationRequestOwnerType
-import com.docuhyphen.app.api.model.entity.InformationRequestParty
-import com.docuhyphen.app.api.model.entity.InformationRequestShareRoleKey
-import com.docuhyphen.app.api.model.entity.PrincipalKind
-import com.docuhyphen.app.api.model.entity.ShareLink
-import com.docuhyphen.app.api.model.entity.ShareLinkMode
-import com.docuhyphen.app.api.model.entity.ShareLinkStatus
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
 import com.docuhyphen.app.api.repository.exchange.ShareLinkRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestPartyRepository
@@ -19,28 +9,14 @@ import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
 import com.docuhyphen.app.api.service.auth.authz.Decision
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import com.docuhyphen.app.api.service.auth.authz.ResourceRef
-import com.docuhyphen.app.api.service.command.CommandPrecondition
-import com.docuhyphen.app.api.service.command.CommandPreconditionException
-import com.docuhyphen.app.api.service.command.CommandReceiptRequest
-import com.docuhyphen.app.api.service.command.CommandReceiptService
-import com.docuhyphen.app.api.service.command.CommandReceiptStore
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNotEquals
-import org.junit.jupiter.api.Assertions.assertNotNull
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Assertions.assertThrows
-import org.junit.jupiter.api.Assertions.assertTrue
+import com.docuhyphen.app.api.service.command.*
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
-import org.mockito.kotlin.any
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.times
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.whenever
+import org.mockito.kotlin.*
 import java.security.MessageDigest
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 class InformationRequestBootstrapShareLinkServiceTest
 {
@@ -56,6 +32,23 @@ class InformationRequestBootstrapShareLinkServiceTest
         assertEquals(ShareLinkMode.VERIFICATION_BOOTSTRAP, issuance.shareLink.linkMode)
         assertTrue(issuance.rawToken.isNotBlank())
         assertEquals(sha256Hex(issuance.rawToken), issuance.shareLink.tokenHash)
+    }
+
+    @Test
+    fun `the author lists each party's access links without their secrets and a caller who may not manage parties cannot`()
+    {
+        val fixture = Fixture()
+        val party = fixture.activeActingParty()
+        val issuance = fixture.service.issue(fixture.command(party.id))
+
+        val links = fixture.service.links(fixture.request.id, fixture.access)
+        whenever(fixture.authorizationService.authorize(any(), any(), any(), any()))
+            .thenReturn(Decision.Deny(Decision.REASON_NO_GRANT, "denied"))
+
+        assertEquals(listOf(issuance.shareLink.id to party.id), links.map { it.shareLink.id to it.partyId })
+        assertThrows(io.quarkus.security.ForbiddenException::class.java) {
+            fixture.service.links(fixture.request.id, fixture.access)
+        }
     }
 
     @Test
@@ -427,6 +420,11 @@ class InformationRequestBootstrapShareLinkServiceTest
             }
             whenever(shareLinkRepository.findById(any())).thenAnswer { invocation ->
                 savedShareLinks.firstOrNull { it.id == invocation.getArgument<UUID>(0) }
+            }
+            whenever(partyRepository.findForRequest(request.id)).thenAnswer { savedParties.values.toList() }
+            whenever(shareLinkRepository.findBootstrapLinksForShares(any())).thenAnswer { invocation ->
+                val shareIds = invocation.getArgument<Collection<UUID>>(0)
+                savedShareLinks.filter { it.shareId in shareIds && it.linkMode == ShareLinkMode.VERIFICATION_BOOTSTRAP }
             }
             whenever(shareLinkRepository.findActiveBootstrapLinksForShare(any())).thenAnswer { invocation ->
                 savedShareLinks.filter {

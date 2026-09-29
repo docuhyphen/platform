@@ -29,13 +29,15 @@ const StructuredResponseInactiveConditionNotices = ({
 
     return (
         <>
-            {inactiveRules.map(ruleKey => (
-                <Text id={`information-request-inactive-condition-${toFieldElementId(ruleKey)}`}
-                      key={ruleKey}
-                      className={styles.notice}>
-                    {ruleKey} is inactive
-                </Text>
-            ))}
+            {inactiveRules.flatMap(ruleKey => requirements
+                .filter(requirement => requirement.conditionalRuleKey === ruleKey)
+                .map(requirement => (
+                    <Text id={`information-request-inactive-condition-${toFieldElementId(ruleKey)}-${toFieldElementId(requirement.requirementKey)}`}
+                          key={`${ruleKey}-${requirement.id}`}
+                          className={styles.notice}>
+                        {`"${requirement.prompt}" is not asked because of an earlier answer.`}
+                    </Text>
+                )))}
         </>
     );
 };

@@ -1,10 +1,11 @@
-import {Badge, Button, Text} from "@fluentui/react-components";
+import {Badge, Button, Checkbox, Text} from "@fluentui/react-components";
 import {useNavigate} from "react-router-dom";
 import {
     InformationRequestNoticeDeliveryState,
     InformationRequestOperationsException,
     InformationRequestOperationsRowDto,
 } from "../../../models/models.tsx";
+import {assigneeLabel} from "../operationsCsv.ts";
 import {
     exceptionLabels,
     formattedDuration,
@@ -19,9 +20,12 @@ import {useOperationsQueueRowStyles} from "./OperationsQueueRowStyles.tsx";
 interface OperationsQueueRowProps
 {
     row: InformationRequestOperationsRowDto;
+    selectable: boolean;
+    selected: boolean;
+    onToggle: () => void;
 }
 
-const OperationsQueueRow = ({row}: OperationsQueueRowProps) =>
+const OperationsQueueRow = ({row, selectable, selected, onToggle}: OperationsQueueRowProps) =>
 {
     const styles = useOperationsQueueRowStyles();
     const navigate = useNavigate();
@@ -37,11 +41,21 @@ const OperationsQueueRow = ({row}: OperationsQueueRowProps) =>
     return (
         <li id={id}
             className={styles.row}>
+            {selectable && (
+                <Checkbox id={`${id}-select`}
+                          checked={selected}
+                          aria-label={`Select ${row.title}`}
+                          onChange={onToggle}/>
+            )}
             <div id={`${id}-summary`}
                  className={styles.summary}>
                 <Text id={`${id}-title`}
                       weight={"semibold"}>
-                    {`Request ${shortId(row.requestId)}, ${requestStateLabels[row.state]}`}
+                    {row.title}
+                </Text>
+                <Text id={`${id}-state`}
+                      className={styles.detail}>
+                    {`${requestStateLabels[row.state]}, request ${shortId(row.requestId)}`}
                 </Text>
                 <Text id={`${id}-timing`}
                       className={styles.detail}>
@@ -49,6 +63,12 @@ const OperationsQueueRow = ({row}: OperationsQueueRowProps) =>
                         ? `Open ${formattedDuration(row.ageSeconds)}, due ${formattedTime(row.nearestDueAt)}, ${row.reminderCount} reminders`
                         : `Open ${formattedDuration(row.ageSeconds)}, ${row.reminderCount} reminders`}
                 </Text>
+                {row.assignees.length > 0 && (
+                    <Text id={`${id}-assignees`}
+                          className={styles.detail}>
+                        {`Assigned to ${row.assignees.map(assigneeLabel).join(", ")}`}
+                    </Text>
+                )}
                 {notices.length > 0 && (
                     <Text id={`${id}-notices`}
                           className={styles.detail}>
@@ -70,6 +90,7 @@ const OperationsQueueRow = ({row}: OperationsQueueRowProps) =>
             <Button id={`${id}-open`}
                     appearance={"primary"}
                     shape={"circular"}
+                    aria-label={`Open ${row.title}`}
                     onClick={() => navigate(`/information-request-operations/${row.requestId}`)}>
                 Open
             </Button>

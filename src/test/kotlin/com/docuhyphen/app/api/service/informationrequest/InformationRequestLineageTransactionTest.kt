@@ -1,5 +1,6 @@
 package com.docuhyphen.app.api.service.informationrequest
 
+import com.docuhyphen.app.api.model.entity.InformationRequestShareRoleKey
 import com.docuhyphen.app.api.migration.SubmissionRuntimeSqlFixture
 import com.docuhyphen.app.api.model.entity.InformationRequestAttestationDecision
 import com.docuhyphen.app.api.model.entity.InformationRequestCarryForwardDecision
@@ -81,6 +82,28 @@ class InformationRequestLineageTransactionTest
     }
 
     @Test
+    fun `a follow-up keeps the subject its source request is about`()
+    {
+        val subjectId = UUID.randomUUID()
+        val fixture = dataSource.connection.use { connection ->
+            SubmissionRuntimeSqlFixture(connection).also { it.insertSubject(subjectId, UUID.randomUUID()) }
+        }
+        val services = runtime.build(fixture.requestId)
+        submitWhole(services, fixture)
+
+        val result = QuarkusTransaction.requiringNew().call {
+            services.successors.create(successor(fixture, InformationRequestLineageKind.SUPPLEMENT, "supplement-subject"))
+        }
+
+        QuarkusTransaction.requiringNew().run {
+            assertEquals(
+                listOf(subjectId),
+                partyRepository.findActiveForRequestRole(result.successor.id, InformationRequestShareRoleKey.SUBJECT).map { it.subjectIdentityRefId },
+            )
+        }
+    }
+
+    @Test
     fun `a superseding request supersedes an open source and cancellation keeps a submitted stage readable`()
     {
         val superseded = fixture(staged = true)
@@ -138,6 +161,10 @@ class InformationRequestLineageTransactionTest
             )
         }
 
+        val scheduled = QuarkusTransaction.requiringNew().call { services.lineageQueries.lineage(fixture.requestId, owner(fixture)) }
+        assertEquals(recurrence.id, scheduled.recurrence?.id)
+        assertEquals(services.followUps.dueAt(requireNotNull(scheduled.recurrence), 1), scheduled.nextOccurrenceDueAt)
+
         val first = QuarkusTransaction.requiringNew().call {
             services.followUps.createNextOccurrence(
                 CreateNextInformationRequestOccurrenceCommand(fixture.requestId, recurrence.id, owner(fixture), "first-occurrence"),
@@ -145,6 +172,8 @@ class InformationRequestLineageTransactionTest
         }
         assertEquals(InformationRequestLineageKind.RECURRENCE, first.lineage.lineageKind)
         assertEquals(1, first.lineage.recurrenceSequence)
+        val afterFirst = QuarkusTransaction.requiringNew().call { services.lineageQueries.lineage(fixture.requestId, owner(fixture)) }
+        assertEquals(services.followUps.dueAt(requireNotNull(afterFirst.recurrence), 2), afterFirst.nextOccurrenceDueAt)
 
         val early = assertThrows(InformationRequestLifecycleException::class.java)
         {

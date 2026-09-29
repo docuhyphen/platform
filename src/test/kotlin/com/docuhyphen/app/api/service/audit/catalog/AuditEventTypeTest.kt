@@ -82,6 +82,7 @@ class AuditEventTypeTest
             "information_request.request.correction",
             "information_request.fact.promote",
             "information_request.fact.revoke",
+            "information_request.fact.recertify",
             "information_request.decision.record",
         ).forEach { key ->
             val eventType = AuditEventType.findByKey(key)
@@ -138,9 +139,38 @@ class AuditEventTypeTest
     }
 
     @Test
+    fun `assigning and revoking a party and sending a reminder are their own events`()
+    {
+        listOf(
+            "information_request.party.assign",
+            "information_request.party.revoke",
+            "information_request.request.remind",
+        ).forEach { key ->
+            val eventType = AuditEventType.findByKey(key)
+            assertEquals(key, eventType?.key)
+            assertEquals(AuditCategory.INFORMATION_REQUEST, eventType?.category)
+        }
+    }
+
+    @Test
+    fun `requesting an external source, recording and deciding an imported value, and recording a generated output are their own events`()
+    {
+        listOf(
+            "information_request.external.request",
+            "information_request.external.record",
+            "information_request.external.decide",
+            "information_request.output.record",
+        ).forEach { key ->
+            val eventType = AuditEventType.findByKey(key)
+            assertEquals(key, eventType?.key)
+            assertEquals(AuditCategory.INFORMATION_REQUEST, eventType?.category)
+        }
+    }
+
+    @Test
     fun `catalog version reflects the added runtime request vocabulary`()
     {
-        assertEquals(26, AuditEventType.CATALOG_VERSION)
+        assertEquals(28, AuditEventType.CATALOG_VERSION)
     }
 
     @Test

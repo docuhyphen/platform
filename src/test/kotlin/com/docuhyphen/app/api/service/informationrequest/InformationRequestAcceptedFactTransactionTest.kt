@@ -43,6 +43,36 @@ class InformationRequestAcceptedFactTransactionTest
     @Inject lateinit var transitionRepository: InformationRequestTransitionRepository
 
     @Test
+    fun `promotion refuses an unstated reuse policy basis`()
+    {
+        val fixture = fixture()
+        val services = runtime.build(fixture.requestId, denies = respondentDenials(fixture))
+        assertThrows(InformationRequestCommandRequestException::class.java) {
+            QuarkusTransaction.requiringNew().call {
+                services.acceptedFacts.promote(
+                    promote(fixture, InformationRequestAcceptedFactVisibility.RESPONDING_PARTIES, "missing-basis")
+                        .copy(policyBasisKey = null),
+                )
+            }
+        }
+    }
+
+    @Test
+    fun `promotion refuses evidence outside the exact supporting package`()
+    {
+        val fixture = fixture()
+        val services = runtime.build(fixture.requestId, denies = respondentDenials(fixture))
+        assertThrows(InformationRequestCommandRequestException::class.java) {
+            QuarkusTransaction.requiringNew().call {
+                services.acceptedFacts.promote(
+                    promote(fixture, InformationRequestAcceptedFactVisibility.RESPONDING_PARTIES, "unrelated-evidence")
+                        .copy(evidenceVersionIds = listOf(UUID.randomUUID())),
+                )
+            }
+        }
+    }
+
+    @Test
     fun `a promoted fact is offered to a later request of the same subject for reconfirmation until it is revoked`()
     {
         val fixture = fixture()
@@ -254,12 +284,12 @@ class InformationRequestAcceptedFactTransactionTest
                 connection,
                 """
                 INSERT INTO information_request_accepted_fact
-                    (id, owner_type, owner_organization_id, subject_identity_ref_id, purpose_key, field_definition_id, value_type,
+                    (id, owner_type, owner_organization_id, subject_identity_ref_id, purpose_key, policy_basis_key, field_definition_id, value_type,
                      canonical_value, source_information_request_id, source_package_id, source_submission_item_id,
                      source_requirement_id, source_response_id, source_response_revision, source_field_value_revision_id,
                      visibility, confidence, valid_from, conflict_state, promoted_by_principal_kind, promoted_by_principal_id,
                      promoted_at)
-                VALUES (?, 'ORGANIZATION', ?, ?, 'profile.reuse', ?, 'SHORT_TEXT', ?, ?, ?, ?, ?, ?, 2, ?,
+                VALUES (?, 'ORGANIZATION', ?, ?, 'profile.reuse', 'policy.reuse', ?, 'SHORT_TEXT', ?, ?, ?, ?, ?, ?, 2, ?,
                         'RESPONDING_PARTIES', 'DECLARED', now() - INTERVAL '1 day', 'NONE', 'USER', ?, now() - INTERVAL '1 day')
                 """.trimIndent(),
                 id,
@@ -293,6 +323,7 @@ class InformationRequestAcceptedFactTransactionTest
             packageId = fixture.facts.packageId,
             submissionItemId = fixture.facts.itemId,
             purposeKey = "profile.reuse",
+            policyBasisKey = "policy.reuse",
             visibility = visibility,
             validTo = Instant.now().plus(Duration.ofDays(365)),
             access = owner(fixture),
