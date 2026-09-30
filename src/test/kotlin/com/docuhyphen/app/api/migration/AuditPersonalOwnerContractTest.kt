@@ -46,22 +46,14 @@ class AuditPersonalOwnerContractTest
     }
 
     @Test
-    fun `legacy writers gain explicit owners during a rolling deployment`()
+    fun `a writer that names no owner is refused rather than given one`()
     {
         withPostgres { postgres ->
             flyway(postgres).migrate()
-            val organizationId = UUID.randomUUID()
-            val platformEventId = UUID.randomUUID()
-            val organizationEventId = UUID.randomUUID()
 
             postgres.createConnection("").use { connection ->
-                insertOutbox(connection, platformEventId, null)
-                insertOutbox(connection, organizationEventId, organizationId)
-
-                assertEquals("PLATFORM", ownerType(connection, "audit_outbox", platformEventId))
-                assertNull(ownerId(connection, "audit_outbox", platformEventId))
-                assertEquals("ORGANIZATION", ownerType(connection, "audit_outbox", organizationEventId))
-                assertEquals(organizationId, ownerId(connection, "audit_outbox", organizationEventId))
+                refused(connection, "owner_type") { insertOutbox(connection, UUID.randomUUID(), null) }
+                refused(connection, "owner_type") { insertOutbox(connection, UUID.randomUUID(), UUID.randomUUID()) }
             }
         }
     }

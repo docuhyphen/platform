@@ -1,12 +1,11 @@
 import {useMemo, useState} from "react";
 import {Button, MessageBar, MessageBarBody} from "@fluentui/react-components";
-import {usePlanFeature} from "../../../../hooks/subscription/usePlanFeature.ts";
 import {createInformationRequestSupplement} from "../../../../services/informationRequestSubmissionService.ts";
 import {
+    InformationRequestExecutionStandingKind,
     InformationRequestResponseWorkspaceDto,
     InformationRequestState,
     InformationRequestTemplateRequirementDto,
-    PlanFeature,
 } from "../../../models/models.tsx";
 import InformationRequestReviewResults from "../../review/review-results/InformationRequestReviewResults.tsx";
 import InformationRequestAmendmentSummary from "../amendment-summary/InformationRequestAmendmentSummary.tsx";
@@ -30,7 +29,6 @@ const FOLLOW_UP_STATES = new Set([InformationRequestState.ISSUED, InformationReq
 const InformationRequestSubmissionSection = ({workspace, requirements, accessLinkToken, onChanged}: Props) =>
 {
     const styles = useInformationRequestSubmissionSectionStyles();
-    const followUpFeature = usePlanFeature(PlanFeature.INFORMATION_REQUESTS);
     const [dialogOpen, setDialogOpen] = useState(false);
     const [busy, setBusy] = useState(false);
     const [message, setMessage] = useState<{intent: "success" | "error"; text: string} | null>(null);
@@ -42,7 +40,9 @@ const InformationRequestSubmissionSection = ({workspace, requirements, accessLin
             [response.informationRequestRequirementId, prompts.get(response.sourceTemplateBindingId) ?? "Requested item"]));
     }, [requirements, workspace.responses]);
     const reviewItems = useMemo(() => submissionReviewItems(workspace.responses, requirements), [requirements, workspace.responses]);
-    const canRequestSupplement = !accessLinkToken && followUpFeature.isAvailable && FOLLOW_UP_STATES.has(request.state);
+    const canRequestSupplement = !accessLinkToken &&
+        workspace.executionStanding.kind === InformationRequestExecutionStandingKind.ACTIVE &&
+        FOLLOW_UP_STATES.has(request.state);
 
     const requestSupplement = async (reason: string) =>
     {

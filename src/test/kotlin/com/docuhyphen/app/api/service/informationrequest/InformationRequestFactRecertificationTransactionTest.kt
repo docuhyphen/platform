@@ -600,7 +600,7 @@ class InformationRequestFactRecertificationTransactionTest
             """
             INSERT INTO request_execution_grant
                 (id, request_id, owner_type, owner_organization_id, plan_code, subscription_status,
-                 enforcement_mode, additional_recipient_cap, issued_at, created_at)
+                 enforcement_mode, acting_party_cap, issued_at, created_at)
             VALUES (?, ?, 'ORGANIZATION', ?, 'BUSINESS', 'ACTIVE', 'ENFORCE', 5, now(), now())
             """.trimIndent(),
             UUID.randomUUID(),

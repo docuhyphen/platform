@@ -1,5 +1,7 @@
 package com.docuhyphen.app.api.service.exchange
 
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertTrue
 import com.docuhyphen.app.api.exception.ExchangeRecipientEligibilityException
 import com.docuhyphen.app.api.exception.OrganizationTrustNotFoundException
 import com.docuhyphen.app.api.model.entity.*
@@ -98,6 +100,26 @@ class ExchangeRecipientServiceTest
             )
         }
         verify(attestationService, never()).findForRecipient(any())
+    }
+
+    @Test
+    fun `a trusted recipient reports its suspended relationship and any other recipient reports none`()
+    {
+        val trusted = pendingRecipient(UUID.randomUUID()).apply {
+            selectionType = ExchangeRecipientSelectionType.TRUSTED_PERSON
+        }
+        val registered = pendingRecipient(UUID.randomUUID()).apply {
+            selectionType = ExchangeRecipientSelectionType.REGISTERED_USER
+        }
+        val attestation = trustedAttestation().apply { relationshipId = UUID.randomUUID() }
+        whenever(repository.findById(trusted.id)).thenReturn(trusted)
+        whenever(repository.findById(registered.id)).thenReturn(registered)
+        whenever(attestationService.findForRecipient(trusted.id)).thenReturn(attestation)
+        whenever(validationService.isRelationshipSuspended(attestation.relationshipId)).thenReturn(true)
+
+        assertTrue(service.trustSuspended(trusted.id))
+        assertFalse(service.trustSuspended(registered.id))
+        verify(attestationService, never()).findForRecipient(registered.id)
     }
 
     @Test

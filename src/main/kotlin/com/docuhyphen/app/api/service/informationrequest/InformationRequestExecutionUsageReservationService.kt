@@ -78,7 +78,7 @@ class InformationRequestExecutionUsageReservationService @Inject constructor(
             this.reservedAt = now
             this.createdAt = now
         }
-        return reservationRepository.save(reservation)
+        return reservationRepository.insertNow(reservation)
     }
 
     /** Idempotent: consuming an already-consumed reservation returns it unchanged. */
@@ -135,6 +135,19 @@ class InformationRequestExecutionUsageReservationService @Inject constructor(
         }
     }
 
+    @Transactional
+    fun returnCapacity(grantId: UUID, usageKind: RequestExecutionUsageKind, reservationKey: String)
+    {
+        val reservation = reservationRepository.findByGrantIdAndUsageKindAndKey(grantId, usageKind, reservationKey) ?: return
+        when (statusOf(reservation))
+        {
+            RequestExecutionUsageReservationStatus.RESERVED -> release(reservation.id)
+            RequestExecutionUsageReservationStatus.CONSUMED -> rollback(reservation.id)
+            RequestExecutionUsageReservationStatus.RELEASED,
+            RequestExecutionUsageReservationStatus.ROLLED_BACK -> Unit
+        }
+    }
+
     private fun requireReservation(reservationId: UUID): RequestExecutionUsageReservation =
         reservationRepository.findByIdForUpdate(reservationId)
             ?: throw IllegalStateException("Usage reservation $reservationId not found")
@@ -153,6 +166,6 @@ class InformationRequestExecutionUsageReservationService @Inject constructor(
     private fun capacityFor(grant: RequestExecutionGrant, usageKind: RequestExecutionUsageKind): Long? =
         when (usageKind)
         {
-            RequestExecutionUsageKind.ADDITIONAL_RECIPIENT -> grant.additionalRecipientCap
+            RequestExecutionUsageKind.ACTING_PARTY -> grant.actingPartyCap
         }
 }

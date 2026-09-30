@@ -2,8 +2,9 @@
 import {cleanup, fireEvent, render, screen, waitFor} from "@testing-library/react";
 import {afterEach, beforeAll, beforeEach, describe, expect, it, vi} from "vitest";
 import * as transport from "../../../../services/informationRequestSubmissionService.ts";
-import {usePlanFeature} from "../../../../hooks/subscription/usePlanFeature.ts";
 import {
+    InformationRequestExecutionStandingDto,
+    InformationRequestExecutionStandingKind,
     InformationRequestOwnerType,
     InformationRequestResponseWorkspaceDto,
     InformationRequestState,
@@ -17,13 +18,15 @@ vi.mock("../../../../services/informationRequestSubmissionService.ts", () => ({
     getInformationRequestCarryForwards: vi.fn(),
     createInformationRequestSupplement: vi.fn(),
 }));
-vi.mock("../../../../hooks/subscription/usePlanFeature.ts", () => ({usePlanFeature: vi.fn()}));
 vi.mock("../../../../services/informationRequestReviewService.ts", () => ({
     getInformationRequestReviewResults: vi.fn().mockResolvedValue([]),
     appealInformationRequestReview: vi.fn(),
 }));
 
-const workspace = (state: InformationRequestState): InformationRequestResponseWorkspaceDto => ({
+const workspace = (
+    state: InformationRequestState,
+    standing: InformationRequestExecutionStandingDto = active,
+): InformationRequestResponseWorkspaceDto => ({
     request: {
         id: "request-a",
         exchangeId: "exchange-a",
@@ -55,16 +58,10 @@ const workspace = (state: InformationRequestState): InformationRequestResponseWo
     supportingEvidenceLinks: [],
     evidenceUploadAvailable: true,
     evidenceMalwareScanning: false,
+    executionStanding: standing,
 });
 
-const availability = (isAvailable: boolean) => ({
-    isKnown: true,
-    isIncluded: isAvailable,
-    isEnforced: true,
-    isDiscoverable: isAvailable,
-    isAvailable,
-    upgradePlanCode: null,
-});
+const active: InformationRequestExecutionStandingDto = {kind: InformationRequestExecutionStandingKind.ACTIVE};
 
 describe("InformationRequestSubmissionSection", () =>
 {
@@ -87,9 +84,8 @@ describe("InformationRequestSubmissionSection", () =>
     });
     afterEach(cleanup);
 
-    it("lets a signed-in caller with the feature request a supplement under the request ETag", async () =>
+    it("lets a signed-in caller request a supplement of an active request under the request ETag", async () =>
     {
-        vi.mocked(usePlanFeature).mockReturnValue(availability(true));
         vi.mocked(transport.createInformationRequestSupplement).mockResolvedValue({outcome: "SAVED", responseETag: "", data: {} as never});
 
         render(<InformationRequestSubmissionSection workspace={workspace(InformationRequestState.CLOSED)}
@@ -107,9 +103,8 @@ describe("InformationRequestSubmissionSection", () =>
         expect(await screen.findByText(/A supplemental request was created as a draft/)).toBeTruthy();
     });
 
-    it("offers no supplement on an access link, without the feature, or before issuance", () =>
+    it("offers no supplement on an access link, before issuance, or once the owner can start no new work", () =>
     {
-        vi.mocked(usePlanFeature).mockReturnValue(availability(true));
         render(<InformationRequestSubmissionSection workspace={workspace(InformationRequestState.CLOSED)}
                                                     requirements={[]}
                                                     accessLinkToken={"bootstrap"}
@@ -123,8 +118,10 @@ describe("InformationRequestSubmissionSection", () =>
         expect(screen.queryByRole("button", {name: "Request more information"})).toBeNull();
         cleanup();
 
-        vi.mocked(usePlanFeature).mockReturnValue(availability(false));
-        render(<InformationRequestSubmissionSection workspace={workspace(InformationRequestState.CLOSED)}
+        render(<InformationRequestSubmissionSection workspace={workspace(
+                                                        InformationRequestState.CLOSED,
+                                                        {kind: InformationRequestExecutionStandingKind.CONTINUING_AFTER_LAPSE},
+                                                    )}
                                                     requirements={[]}
                                                     onChanged={vi.fn()}/>);
         expect(screen.queryByRole("button", {name: "Request more information"})).toBeNull();

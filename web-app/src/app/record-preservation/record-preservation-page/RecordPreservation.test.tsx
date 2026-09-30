@@ -2,7 +2,6 @@
 import {cleanup, fireEvent, render, screen, waitFor, within} from "@testing-library/react";
 import {MemoryRouter} from "react-router-dom";
 import {afterEach, beforeAll, beforeEach, describe, expect, it, vi} from "vitest";
-import {usePlanFeature} from "../../../hooks/subscription/usePlanFeature.ts";
 import * as records from "../../../services/recordPreservationService.ts";
 import {
     RecordDisposalState,
@@ -10,6 +9,8 @@ import {
     RecordPreservationHoldStatus,
     RecordPreservationScope,
 } from "../../models/models.tsx";
+import {useInformationRequestCapabilities} from "../../information-requests/capabilities/useInformationRequestCapabilities.ts";
+import {capabilitiesWithoutTheFeature, informationRequestCapabilities} from "../../information-requests/shared/testing/capabilityFixtures.ts";
 import RecordPreservation from "./RecordPreservation.tsx";
 
 const mockSession = vi.fn();
@@ -23,7 +24,7 @@ vi.mock("../../../services/recordPreservationService.ts", () => ({
     publishRecordRetentionSchedule: vi.fn(),
     getRecordDisposals: vi.fn(),
 }));
-vi.mock("../../../hooks/subscription/usePlanFeature.ts", () => ({usePlanFeature: vi.fn()}));
+vi.mock("../../information-requests/capabilities/useInformationRequestCapabilities.ts", () => ({useInformationRequestCapabilities: vi.fn()}));
 vi.mock("../../../context/AuthContext.tsx", () => ({
     useAuth: () => ({currentSession: mockSession(), hasCapability: () => false}),
 }));
@@ -57,9 +58,7 @@ describe("RecordPreservation", () =>
     {
         vi.clearAllMocks();
         mockSession.mockReturnValue({activeOrganizationId: null});
-        vi.mocked(usePlanFeature).mockReturnValue({
-            isKnown: true, isIncluded: true, isEnforced: true, isDiscoverable: true, isAvailable: true, upgradePlanCode: null,
-        });
+        vi.mocked(useInformationRequestCapabilities).mockReturnValue(informationRequestCapabilities());
         vi.mocked(records.getRecordPreservationHolds).mockResolvedValue([hold]);
         vi.mocked(records.getRecordRetentionSchedule).mockResolvedValue({resourceType: "INFORMATION_REQUEST", versions: []});
         vi.mocked(records.getRecordDisposals).mockResolvedValue([{
@@ -70,6 +69,17 @@ describe("RecordPreservation", () =>
     });
 
     afterEach(cleanup);
+
+    it("keeps holds readable after the owner loses the feature", async () =>
+    {
+        vi.mocked(useInformationRequestCapabilities).mockReturnValue(capabilitiesWithoutTheFeature({holdsRequests: true}));
+
+        renderRecords();
+
+        expect(await screen.findByText("Pending review (case case-7)")).toBeTruthy();
+        expect(document.getElementById("record-preservation-scope-standing")?.textContent)
+            .toMatch(/Your plan does not include creating Information Requests/);
+    });
 
     it("lists active holds and releases one with a stated reason", async () =>
     {

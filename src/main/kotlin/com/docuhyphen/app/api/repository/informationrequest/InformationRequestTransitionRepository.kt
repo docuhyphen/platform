@@ -2,7 +2,9 @@ package com.docuhyphen.app.api.repository.informationrequest
 
 import com.docuhyphen.app.api.model.entity.InformationRequestTransition
 import com.docuhyphen.app.api.repository.BaseRepository
+import com.docuhyphen.app.api.service.informationrequest.InformationRequestMutation
 import jakarta.enterprise.context.ApplicationScoped
+import java.sql.Timestamp
 import java.util.UUID
 
 @ApplicationScoped
@@ -21,6 +23,20 @@ class InformationRequestTransitionRepository :
         )
             .setParameter("requestId", requestId)
             .resultList
+
+    fun latestOccurrence(requestId: UUID, mutation: InformationRequestMutation): Timestamp? =
+        entityManager.createQuery(
+            """
+            SELECT MAX(transition.occurredAt)
+            FROM InformationRequestTransition transition
+            WHERE transition.informationRequestId = :requestId
+              AND transition.mutation = :mutation
+            """.trimIndent(),
+            Timestamp::class.java,
+        )
+            .setParameter("requestId", requestId)
+            .setParameter("mutation", mutation)
+            .singleResult
 
     fun nextSequenceNumber(requestId: UUID): Int =
         entityManager.createQuery(

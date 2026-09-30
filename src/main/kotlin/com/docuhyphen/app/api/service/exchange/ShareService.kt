@@ -44,6 +44,9 @@ class ShareService @Inject constructor(
 
     fun getById(shareId: UUID): Share? = shareRepository.findById(shareId)
 
+    fun holdsActiveShareOn(resourceType: ResourceType, principal: PrincipalRef): Boolean =
+        shareRepository.existsActiveForPrincipalOnResourceType(principal.kind, principal.id, resourceType)
+
     fun findDirectForPrincipalOnResource(
         principalKind: PrincipalKind,
         principalId: UUID,

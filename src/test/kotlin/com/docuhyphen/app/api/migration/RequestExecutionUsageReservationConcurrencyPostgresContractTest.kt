@@ -143,7 +143,7 @@ class RequestExecutionUsageReservationConcurrencyPostgresContractTest
             """
             INSERT INTO request_execution_usage_reservation
                 (id, grant_id, usage_kind, reservation_key, quantity, status, reserved_at, created_at)
-            VALUES (?, ?, 'ADDITIONAL_RECIPIENT', ?, ?, 'RESERVED', ?, ?)
+            VALUES (?, ?, 'ACTING_PARTY', ?, ?, 'RESERVED', ?, ?)
             """.trimIndent(),
         ).use { statement ->
             val now = Timestamp.from(Instant.now())
@@ -199,7 +199,7 @@ class RequestExecutionUsageReservationConcurrencyPostgresContractTest
             """
             INSERT INTO request_execution_grant
                 (id, request_id, owner_type, owner_organization_id, plan_code, subscription_status,
-                 enforcement_mode, additional_recipient_cap, issued_at, created_at)
+                 enforcement_mode, acting_party_cap, issued_at, created_at)
             VALUES (?, ?, 'ORGANIZATION', ?, 'BUSINESS', 'ACTIVE', 'ENFORCE', ?, ?, ?)
             """.trimIndent(),
         ).use { statement ->

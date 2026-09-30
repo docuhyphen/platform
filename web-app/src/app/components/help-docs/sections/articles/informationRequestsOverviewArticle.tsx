@@ -13,15 +13,60 @@ export const informationRequestsOverviewArticle = (
             complete, and your roles. Its button names your next action: <b>Finish setup</b>,
             <b> Respond</b>, <b>Review</b>, <b>Manage</b>, or <b>View</b>. The tab shows nothing about
             requests you cannot see. It appears when the Exchange has a request for you or when you may
-            create one, and <b>New Information Request</b> appears only when you may create one.
+            create one. When you may create requests but the owner cannot right now, the tab says why,
+            and if the list cannot be loaded the tab stays and says so. <b>New Information Request</b>
+            appears only when you may create one.
         </p>
 
         <h3 id={"information-requests-overview-plans-heading"}>Plans</h3>
         <p id={"information-requests-overview-plans-help"}>
             The Personal and Business plans include Information Requests; the Free plan does not. The
             request&apos;s owner provides the plan: parties who respond or review work on the requests
-            assigned to them whatever their own plan. When the owner&apos;s plan lapses, requests already
-            issued stay visible and can still be answered, but new requests cannot be created.
+            assigned to them whatever their own plan. A plan change never hides a request: everything
+            recorded stays readable to the people allowed to see it, and permitted exports stay
+            available. When a request cannot continue normally, its page and its row in the Exchange tab
+            show its standing:
+        </p>
+        <ul id={"information-requests-overview-standing-list"}>
+            <li>
+                <b>Continuing as issued</b>: the owner&apos;s plan lapsed or its trial ended. Parties can
+                still answer, review, and decide, but new requests and follow-ups are unavailable.
+            </li>
+            <li><b>Read only</b>: a draft that its owner cannot issue or change right now.</li>
+            <li>
+                <b>Changes paused</b>: the owner&apos;s account is suspended, so nothing on the request can
+                change until it is restored.
+            </li>
+            <li><b>Stopped</b>: a platform administrator stopped the request.</li>
+        </ul>
+        <p id={"information-requests-overview-standing-reason-help"}>
+            Only people who manage the request see the owner&apos;s reason. Other parties see a lapse as
+            normal work, and see only that changes are paused or that the request was stopped.
+        </p>
+
+        <h3 id={"information-requests-overview-allowances-heading"}>Allowances</h3>
+        <ul id={"information-requests-overview-allowances-list"}>
+            <li>
+                <b>Personal</b>: 25 open requests at a time, drafts included; 10 acting parties, 100
+                evidence files, and 250 MiB of evidence per request; 5 GiB of evidence across your requests.
+            </li>
+            <li>
+                <b>Business</b>: open requests are not capped; 100 acting parties, 200 evidence files, and
+                500 MiB of evidence per request; 100 GiB of evidence across the organization&apos;s requests.
+            </li>
+        </ul>
+        <p id={"information-requests-overview-allowances-help"}>
+            Issuing a request sets aside its evidence allowance until it finishes; a finished request then
+            counts only the evidence it stores. Issuing is refused when it would pass the total. An issued
+            request keeps the allowances it was issued with, even when the plan later changes.
+        </p>
+
+        <h3 id={"information-requests-overview-fields-heading"}>Exchange Fields and request answers</h3>
+        <p id={"information-requests-overview-fields-help"}>
+            The Fields on an Exchange&apos;s <b>Details</b> tab describe the Exchange itself. They are
+            never turned into a request, an answer, a submission, or a review decision, and creating,
+            answering, submitting, or reviewing a request never changes them. A request&apos;s typed
+            answers are recorded against the request.
         </p>
 
         <h3 id={"information-requests-overview-roles-heading"}>Parties</h3>

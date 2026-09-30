@@ -697,10 +697,6 @@ export enum PlanFeature
     ORGANIZATION_ADMINISTRATION = 'ORGANIZATION_ADMINISTRATION',
     AUDIT_GOVERNANCE = 'AUDIT_GOVERNANCE',
     IDENTITY_AND_INTEGRATIONS = 'IDENTITY_AND_INTEGRATIONS',
-    /**
-     * Held back from every plan while the capability is built. An owner only holds it through an
-     * explicit platform-administered grant recorded against that owner.
-     */
     INFORMATION_REQUESTS = 'INFORMATION_REQUESTS',
 }
 
@@ -724,6 +720,7 @@ export enum SubscriptionDenialReason
     SUBSCRIPTION_PAST_DUE = 'SUBSCRIPTION_PAST_DUE',
     SUBSCRIPTION_SUSPENDED = 'SUBSCRIPTION_SUSPENDED',
     SUBSCRIPTION_CANCELED = 'SUBSCRIPTION_CANCELED',
+    TRIAL_ENDED = 'TRIAL_ENDED',
     SEAT_LIMIT_REACHED = 'SEAT_LIMIT_REACHED',
     ORGANIZATION_SUBSCRIPTION_REQUIRED = 'ORGANIZATION_SUBSCRIPTION_REQUIRED',
 }
@@ -739,6 +736,11 @@ export interface SubscriptionLimitsDto
     maxAdditionalParticipantsPerExchange?: number | null
     seatCapacity?: number | null
     seatsArePurchased: boolean
+    maxOpenInformationRequests?: number | null
+    maxActingPartiesPerInformationRequest?: number | null
+    maxEvidenceFilesPerInformationRequest?: number | null
+    maxEvidenceBytesPerInformationRequest?: number | null
+    maxCommittedEvidenceBytes?: number | null
 }
 
 /**
@@ -2520,6 +2522,7 @@ export interface InformationRequestResponseWorkspaceDto
     supportingEvidenceLinks: InformationRequestSupportingEvidenceLinkDto[];
     evidenceUploadAvailable: boolean;
     evidenceMalwareScanning: boolean;
+    executionStanding: InformationRequestExecutionStandingDto;
 }
 
 export interface InformationRequestSupportingEvidenceLinkDto
@@ -4109,6 +4112,47 @@ export enum InformationRequestNextAction
     VIEW = "VIEW",
 }
 
+export enum InformationRequestExecutionStandingKind
+{
+    ACTIVE = "ACTIVE",
+    NEW_WORK_UNAVAILABLE = "NEW_WORK_UNAVAILABLE",
+    CONTINUING_AFTER_LAPSE = "CONTINUING_AFTER_LAPSE",
+    OPERATIONALLY_SUSPENDED = "OPERATIONALLY_SUSPENDED",
+    EXECUTION_GRANT_REVOKED = "EXECUTION_GRANT_REVOKED",
+}
+
+export enum InformationRequestStandingReason
+{
+    FEATURE_NOT_INCLUDED = "FEATURE_NOT_INCLUDED",
+    TRIAL_ENDED = "TRIAL_ENDED",
+    SUBSCRIPTION_PAST_DUE = "SUBSCRIPTION_PAST_DUE",
+    SUBSCRIPTION_CANCELED = "SUBSCRIPTION_CANCELED",
+    SUBSCRIPTION_SUSPENDED = "SUBSCRIPTION_SUSPENDED",
+    EXECUTION_GRANT_REVOKED = "EXECUTION_GRANT_REVOKED",
+}
+
+export interface InformationRequestExecutionStandingDto
+{
+    kind: InformationRequestExecutionStandingKind;
+    reason?: InformationRequestStandingReason;
+}
+
+export interface InformationRequestCapabilitiesDto
+{
+    ownerType: SubscriptionOwnerType;
+    planCode: PlanCode;
+    subscriptionStatus: SubscriptionStatus;
+    enforcementMode: SubscriptionEnforcementMode;
+    featureIncluded: boolean;
+    newWorkAvailable: boolean;
+    newWorkUnavailableReason?: InformationRequestStandingReason;
+    operationallySuspended: boolean;
+    typedAnswersAvailable: boolean;
+    personalTemplatesAvailable: boolean;
+    assignedWork: boolean;
+    holdsRequests: boolean;
+}
+
 export interface InformationRequestSummaryPermissionsDto
 {
     canManage: boolean;
@@ -4129,12 +4173,14 @@ export interface InformationRequestSummaryDto
     callerRoles: InformationRequestShareRoleKey[];
     permissions: InformationRequestSummaryPermissionsDto;
     nextAction: InformationRequestNextAction;
+    executionStanding: InformationRequestExecutionStandingDto;
 }
 
 export interface InformationRequestExchangeListingDto
 {
     requests: InformationRequestSummaryDto[];
     canCreate: boolean;
+    creationUnavailableReason?: InformationRequestStandingReason;
 }
 
 export interface CreateInformationRequestRequest
@@ -4165,6 +4211,7 @@ export interface InformationRequestPartyDto
     partyRevision: number;
     partyETag: string;
     label?: string;
+    trustSuspended?: boolean;
 }
 
 export interface InformationRequestPartyListingDto
@@ -4268,6 +4315,7 @@ export interface InformationRequestReminderResultDto
 {
     requestId: string;
     noticeCount: number;
+    cooldownUntil?: string;
 }
 
 export enum InformationRequestClockType

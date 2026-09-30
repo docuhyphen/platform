@@ -1,17 +1,16 @@
 import {Button} from "@fluentui/react-components";
 import {useNavigate} from "react-router-dom";
-import {usePlanFeature} from "../../../../hooks/subscription/usePlanFeature.ts";
+import {useInformationRequestCapabilities} from "../../../information-requests/capabilities/useInformationRequestCapabilities.ts";
 import {useOperationsAccess} from "../../../information-requests/operations/useOperationsAccess.ts";
-import {PlanFeature} from "../../../models/models.tsx";
 import {RequestOperationsIcon} from "../../IconBundles.tsx";
 
 const OperationsNavigation = () =>
 {
     const navigate = useNavigate();
-    const feature = usePlanFeature(PlanFeature.INFORMATION_REQUESTS);
+    const capabilities = useInformationRequestCapabilities();
     const access = useOperationsAccess();
 
-    if (!feature.isAvailable || !access.canViewOperations) return null;
+    if (!capabilities || !(capabilities.featureIncluded || capabilities.holdsRequests) || !access.canViewOperations) return null;
 
     return (
         <Button id={"information-request-operations-nav-btn"}

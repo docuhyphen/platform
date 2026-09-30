@@ -110,6 +110,28 @@ class PlanCatalogTest
     }
 
     @Test
+    fun `information request quotas are the documented starting point for each plan`()
+    {
+        val free = PlanCatalog.definitionOf(PlanCode.FREE).limits
+        val personal = PlanCatalog.definitionOf(PlanCode.PERSONAL).limits
+        val business = PlanCatalog.definitionOf(PlanCode.BUSINESS).limits
+        val mebibyte = 1024L * 1024L
+        val gibibyte = 1024L * mebibyte
+
+        assertEquals(listOf(0L, 0L, 0L, 0L, 0L), informationRequestQuotas(free))
+        assertEquals(listOf(25L, 10L, 100L, 250L * mebibyte, 5L * gibibyte), informationRequestQuotas(personal))
+        assertEquals(listOf(null, 100L, 200L, 500L * mebibyte, 100L * gibibyte), informationRequestQuotas(business))
+    }
+
+    private fun informationRequestQuotas(limits: PlanLimits): List<Long?> = listOf(
+        limits.maxOpenInformationRequests,
+        limits.maxActingPartiesPerInformationRequest,
+        limits.maxEvidenceFilesPerInformationRequest,
+        limits.maxEvidenceBytesPerInformationRequest,
+        limits.maxCommittedEvidenceBytes,
+    )
+
+    @Test
     fun `business is a superset of personal which is a superset of free`()
     {
         val free = PlanCatalog.definitionOf(PlanCode.FREE).features

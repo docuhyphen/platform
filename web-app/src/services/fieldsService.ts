@@ -211,20 +211,27 @@ export const getExchangeSchema = async (
     }
 };
 
-export const assignExchangeSchema = (
-    exchangeId: string,
-    request: AssignSchemaRequest,
-): Promise<SchemaAssignmentDto> =>
-    executeRequest(() => apiClient.put(`/exchanges/${exchangeId}/schema`, request));
-
-export const unassignExchangeSchema = (exchangeId: string): Promise<void> =>
-    executeRequest(() => apiClient.delete(`/exchanges/${exchangeId}/schema`));
-
 /** The header a conditional save states the version of the values it read in. */
 const IF_MATCH_HEADER = 'If-Match';
 
 /** The validator standing for whichever version is current, which excludes no version. */
 const ANY_VERSION = '*';
+
+export const assignExchangeSchema = (
+    exchangeId: string,
+    request: AssignSchemaRequest,
+): Promise<SchemaAssignmentDto> =>
+    executeRequest(() => apiClient.put(
+        `/exchanges/${exchangeId}/schema`,
+        request,
+        {headers: {[IF_MATCH_HEADER]: ANY_VERSION}},
+    ));
+
+export const unassignExchangeSchema = (exchangeId: string, expectedETag: string): Promise<void> =>
+    executeRequest(() => apiClient.delete(
+        `/exchanges/${exchangeId}/schema`,
+        {headers: {[IF_MATCH_HEADER]: expectedETag}},
+    ));
 
 /** The machine code the server states when the version a save named is no longer the current one. */
 const STALE_VERSION_CODE = 'FIELDS_PRECONDITION_STALE';

@@ -1,5 +1,6 @@
 package com.docuhyphen.app.api.model.informationrequest
 
+import java.time.Instant
 import java.util.UUID
 
 data class SendInformationRequestRemindersCommand(
@@ -10,6 +11,7 @@ data class SendInformationRequestRemindersCommand(
 data class InformationRequestReminderResult(
     val requestId: UUID,
     val noticeCount: Int,
+    val cooldownUntil: Instant? = null,
 )
 
 const val MAXIMUM_REMINDER_REQUESTS = 100

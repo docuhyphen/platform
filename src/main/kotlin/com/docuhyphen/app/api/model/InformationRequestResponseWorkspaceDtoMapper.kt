@@ -2,6 +2,7 @@ package com.docuhyphen.app.api.model
 
 import com.docuhyphen.app.api.model.dto.*
 import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.informationrequest.InformationRequestExecutionStanding
 import java.sql.Timestamp
 
 object InformationRequestResponseWorkspaceDtoMapper
@@ -17,6 +18,7 @@ object InformationRequestResponseWorkspaceDtoMapper
         supportingEvidenceLinks: List<InformationRequestSupportingEvidenceLinkDto> = emptyList(),
         evidenceUploadAvailable: Boolean = false,
         evidenceMalwareScanning: Boolean = false,
+        executionStanding: InformationRequestExecutionStanding,
     ): InformationRequestResponseWorkspaceDto =
         InformationRequestResponseWorkspaceDto(
             request = request,
@@ -29,6 +31,7 @@ object InformationRequestResponseWorkspaceDtoMapper
             supportingEvidenceLinks = supportingEvidenceLinks,
             evidenceUploadAvailable = evidenceUploadAvailable,
             evidenceMalwareScanning = evidenceMalwareScanning,
+            executionStanding = InformationRequestExecutionStandingDtoMapper.toDto(executionStanding),
         )
 
     fun linkDto(link: InformationRequestSupportingEvidenceLink): InformationRequestSupportingEvidenceLinkDto =

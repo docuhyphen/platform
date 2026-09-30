@@ -49,8 +49,14 @@ class RequestExecutionGrant
     @Column(name = "mutation_allowance_expires_at")
     var mutationAllowanceExpiresAt: Timestamp? = null
 
-    @Column(name = "additional_recipient_cap")
-    var additionalRecipientCap: Long? = null
+    @Column(name = "acting_party_cap")
+    var actingPartyCap: Long? = null
+
+    @Column(name = "evidence_file_allowance")
+    var evidenceFileAllowance: Long? = null
+
+    @Column(name = "evidence_byte_allowance")
+    var evidenceByteAllowance: Long? = null
 
     @Column(name = "revoked_at")
     var revokedAt: Timestamp? = null

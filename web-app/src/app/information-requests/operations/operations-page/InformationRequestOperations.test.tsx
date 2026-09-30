@@ -2,7 +2,6 @@
 import {cleanup, fireEvent, render, screen, waitFor, within} from "@testing-library/react";
 import {MemoryRouter, Route, Routes} from "react-router-dom";
 import {afterEach, beforeAll, beforeEach, describe, expect, it, vi} from "vitest";
-import {usePlanFeature} from "../../../../hooks/subscription/usePlanFeature.ts";
 import * as administration from "../../../../services/informationRequestAdministrationService.ts";
 import * as transport from "../../../../services/informationRequestOperationsService.ts";
 import {
@@ -14,7 +13,9 @@ import {
     InformationRequestSlaStatus,
     InformationRequestState,
 } from "../../../models/models.tsx";
+import {useInformationRequestCapabilities} from "../../capabilities/useInformationRequestCapabilities.ts";
 import InformationRequestOperations from "./InformationRequestOperations.tsx";
+import {capabilitiesWithoutTheFeature, informationRequestCapabilities} from "../../shared/testing/capabilityFixtures.ts";
 import {formatInformationRequestCount} from "../../shared/informationRequestFormatting.ts";
 import {unnamedControls} from "../../shared/testing/unnamedControls.ts";
 
@@ -22,7 +23,7 @@ const mockAuth = vi.fn();
 
 vi.mock("../../../../services/informationRequestOperationsService.ts", () => ({getInformationRequestOperations: vi.fn()}));
 vi.mock("../../../../services/informationRequestAdministrationService.ts", () => ({sendInformationRequestReminders: vi.fn()}));
-vi.mock("../../../../hooks/subscription/usePlanFeature.ts", () => ({usePlanFeature: vi.fn()}));
+vi.mock("../../capabilities/useInformationRequestCapabilities.ts", () => ({useInformationRequestCapabilities: vi.fn()}));
 vi.mock("../../../../context/AuthContext.tsx", () => ({useAuth: () => mockAuth()}));
 vi.mock("../clock-policies/ClockPoliciesPanel.tsx", () => ({
     default: ({canManage}: {canManage: boolean}) => <p>{canManage ? "Policies you manage" : "Policies you view"}</p>,
@@ -30,14 +31,6 @@ vi.mock("../clock-policies/ClockPoliciesPanel.tsx", () => ({
 vi.mock("../privacy/PrivacyPanel.tsx", () => ({default: () => <p>Privacy records</p>}));
 vi.mock("../audit-search/AuditSearchPanel.tsx", () => ({default: () => <p>Audit search results</p>}));
 
-const availability = (isAvailable: boolean) => ({
-    isKnown: true,
-    isIncluded: isAvailable,
-    isEnforced: true,
-    isDiscoverable: isAvailable,
-    isAvailable,
-    upgradePlanCode: null,
-});
 
 const row: InformationRequestOperationsRowDto = {
     requestId: "request-a-0000",
@@ -99,7 +92,7 @@ describe("InformationRequestOperations", () =>
     {
         vi.clearAllMocks();
         signedInPersonally();
-        vi.mocked(usePlanFeature).mockReturnValue(availability(true));
+        vi.mocked(useInformationRequestCapabilities).mockReturnValue(informationRequestCapabilities());
         vi.mocked(transport.getInformationRequestOperations).mockResolvedValue({items: [row, second], total: 2, limit: 25, offset: 0});
     });
 
@@ -286,13 +279,14 @@ describe("InformationRequestOperations", () =>
         expect(unnamedControls(document.body)).toEqual([]);
     });
 
-    it("stays closed without the plan feature", () =>
+    it("keeps the queue readable and says why new work is unavailable when the plan lacks the feature", async () =>
     {
-        vi.mocked(usePlanFeature).mockReturnValue(availability(false));
+        vi.mocked(useInformationRequestCapabilities).mockReturnValue(capabilitiesWithoutTheFeature({holdsRequests: true}));
 
         renderOperations();
 
-        expect(screen.getByText("Information Requests are not included in your plan.")).toBeTruthy();
-        expect(transport.getInformationRequestOperations).not.toHaveBeenCalled();
+        expect(await screen.findByText("Periodic records request")).toBeTruthy();
+        expect(document.getElementById("information-request-operations-scope-standing")?.textContent)
+            .toMatch(/Your plan does not include creating Information Requests/);
     });
 });

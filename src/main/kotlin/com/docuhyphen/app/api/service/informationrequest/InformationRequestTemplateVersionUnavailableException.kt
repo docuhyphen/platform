@@ -24,6 +24,8 @@ class InformationRequestTemplateVersionUnavailableException(
 
         /** The Version was withdrawn from new use. What was already created from it is unaffected. */
         const val RETIRED = "INFORMATION_REQUEST_TEMPLATE_VERSION_RETIRED"
+
+        const val PLATFORM_COPY_REQUIRED = "INFORMATION_REQUEST_TEMPLATE_VERSION_PLATFORM_COPY_REQUIRED"
     }
 }
 

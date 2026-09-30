@@ -8,6 +8,7 @@ import com.docuhyphen.app.api.model.entity.InformationRequestNoticeDeliveryState
 import com.docuhyphen.app.api.model.entity.InformationRequestOwnerType
 import com.docuhyphen.app.api.model.entity.InformationRequestShareRoleKey
 import com.docuhyphen.app.api.model.informationrequest.*
+import com.docuhyphen.app.api.model.informationrequest.InformationRequestAbuseLimits
 import com.docuhyphen.app.api.repository.informationrequest.*
 import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
@@ -20,16 +21,18 @@ import io.quarkus.security.ForbiddenException
 import io.quarkus.test.common.QuarkusTestResource
 import io.quarkus.test.junit.QuarkusTest
 import jakarta.inject.Inject
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertThrows
-import org.junit.jupiter.api.Test
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.whenever
 import java.time.Clock
+import java.time.Duration
 import java.time.Instant
 import java.time.ZoneOffset
 import java.util.*
 import javax.sql.DataSource
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertThrows
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Test
+import org.mockito.kotlin.mock
+import org.mockito.kotlin.whenever
 
 @QuarkusTest
 @QuarkusTestResource(InformationRequestOperationsPostgreSQLResource::class)
@@ -175,6 +178,7 @@ class InformationRequestOperationsTransactionTest
         val sent = send(listOf(fixture.overdueId), "remind-overdue")
         worker.dispatchForRequest(fixture.overdueId)
         val replayed = send(listOf(fixture.overdueId), "remind-overdue")
+        val coolingDown = send(listOf(fixture.overdueId), "remind-overdue-again").single()
         val refused = assertThrows(InformationRequestLifecycleException::class.java) {
             send(
                 listOf(draftId, fixture.dueSoonId),
@@ -184,6 +188,8 @@ class InformationRequestOperationsTransactionTest
 
         assertEquals(listOf(InformationRequestReminderResult(fixture.overdueId, 3)), sent)
         assertEquals(sent, replayed)
+        assertEquals(0, coolingDown.noticeCount)
+        assertTrue(requireNotNull(coolingDown.cooldownUntil).isAfter(Instant.now().plus(Duration.ofHours(23))))
         assertEquals(
             mapOf(
                 InformationRequestNoticeDeliveryState.DELIVERED to 4,
@@ -401,7 +407,9 @@ class InformationRequestOperationsTransactionTest
             partyRepository,
             intentRepository,
             transitionHistory,
-            commandReceiptService
+            commandReceiptService,
+            InformationRequestAbuseLimits(reminderCooldown = Duration.ofHours(24)),
+            Clock.systemUTC(),
         )
     }
 

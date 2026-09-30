@@ -134,23 +134,15 @@ class InformationRequestTemplateAuthoringServiceTest
     }
 
     @Test
-    fun `every scope answers to the gates, including one that names no owner`()
+    fun `a platform Template is never created through the owner API, whatever the enforcement mode`()
     {
         val fixture = fixture()
-        doThrow(
-            InformationRequestTemplateValidationException("A PLATFORM template has no owner"),
-        ).whenever(fixture.entitlementGuard)
-            .requireTemplateMutation(any(), anyOrNull(), anyOrNull(), anyOrNull())
 
         assertThrows<InformationRequestTemplateValidationException> {
             fixture.service.createTemplate(createRequest(InformationRequestTemplateScopeKind.PLATFORM))
         }
 
-        // The scope reaches the gate rather than being special-cased into an allowance here, which
-        // is what keeps one place answering the question for every owner.
-        verify(fixture.entitlementGuard).requireTemplateMutation(
-            InformationRequestTemplateScopeKind.PLATFORM, null, null, null,
-        )
+        verify(fixture.entitlementGuard, never()).requireTemplateMutation(any(), anyOrNull(), anyOrNull(), anyOrNull())
         verify(fixture.definitionRepository, never()).save(any())
     }
 

@@ -5,6 +5,7 @@ import com.docuhyphen.app.api.model.informationrequest.InformationRequestNextAct
 import com.docuhyphen.app.api.serializer.TimestampSerializer
 import com.docuhyphen.app.api.serializer.UUIDSerializer
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestState
+import com.docuhyphen.app.api.model.informationrequest.InformationRequestStandingReason
 import kotlinx.serialization.Serializable
 import java.sql.Timestamp
 import java.util.UUID
@@ -22,6 +23,7 @@ data class InformationRequestSummaryDto(
     val callerRoles: List<InformationRequestShareRoleKey>,
     val permissions: InformationRequestSummaryPermissionsDto,
     val nextAction: InformationRequestNextAction,
+    val executionStanding: InformationRequestExecutionStandingDto,
 )
 
 @Serializable
@@ -35,4 +37,5 @@ data class InformationRequestSummaryPermissionsDto(
 data class InformationRequestExchangeListingDto(
     val requests: List<InformationRequestSummaryDto>,
     val canCreate: Boolean,
+    val creationUnavailableReason: InformationRequestStandingReason? = null,
 )

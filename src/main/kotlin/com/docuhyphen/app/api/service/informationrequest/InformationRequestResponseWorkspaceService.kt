@@ -5,6 +5,7 @@ import com.docuhyphen.app.api.model.InformationRequestGroupOccurrenceDtoMapper
 import com.docuhyphen.app.api.model.InformationRequestResponseWorkspaceDtoMapper
 import com.docuhyphen.app.api.model.dto.*
 import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.informationrequest.InformationRequestExecutionStanding
 import com.docuhyphen.app.api.repository.informationrequest.*
 import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
@@ -33,6 +34,7 @@ class InformationRequestResponseWorkspaceService @Inject constructor(
     private val evidenceDeploymentPolicy: InformationRequestEvidenceDeploymentPolicy,
     private val firstViewService: InformationRequestFirstViewService,
     private val titleReader: InformationRequestTitleReader,
+    private val standingService: InformationRequestExecutionStandingService,
 )
 {
     fun loadRequest(requestId: UUID, access: RequestAccessContext): InformationRequestDto
@@ -110,7 +112,20 @@ class InformationRequestResponseWorkspaceService @Inject constructor(
                 .map(InformationRequestResponseWorkspaceDtoMapper::linkDto),
             evidenceUploadAvailable = evidenceDeploymentPolicy.uploadAvailable(),
             evidenceMalwareScanning = evidenceDeploymentPolicy.malwareScanningConfigured(),
+            executionStanding = executionStandingFor(request, access),
         )
+    }
+
+    private fun executionStandingFor(request: InformationRequest, access: RequestAccessContext): InformationRequestExecutionStanding
+    {
+        val standing = standingService.standingOf(request, standingService.ownerStanding(request))
+        val manages = authorizationService.authorize(
+            access.principal,
+            Action.INFORMATION_REQUEST_MANAGE_PARTIES,
+            ResourceRef.informationRequest(request.id),
+            access.authorization,
+        ) is Decision.Allow
+        return if (manages) standing else standing.forParticipant()
     }
 
     private companion object

@@ -383,7 +383,7 @@ class InformationRequestLifecycleServiceTest
         val grant = RequestExecutionGrant().apply {
             id = UUID.randomUUID()
             requestId = fixture.request.id
-            additionalRecipientCap = 2
+            actingPartyCap = 2
         }
         whenever(fixture.executionGrantService.issueGrant(fixture.request, fixture.exchange)).thenReturn(grant)
         val contributorReservation = RequestExecutionUsageReservation().apply { id = UUID.randomUUID() }
@@ -391,7 +391,7 @@ class InformationRequestLifecycleServiceTest
         whenever(
             fixture.executionUsageReservationService.reserve(
                 grant.id,
-                RequestExecutionUsageKind.ADDITIONAL_RECIPIENT,
+                RequestExecutionUsageKind.ACTING_PARTY,
                 "information_request.party|${contributor.id}",
                 1L,
             ),
@@ -399,7 +399,7 @@ class InformationRequestLifecycleServiceTest
         whenever(
             fixture.executionUsageReservationService.reserve(
                 grant.id,
-                RequestExecutionUsageKind.ADDITIONAL_RECIPIENT,
+                RequestExecutionUsageKind.ACTING_PARTY,
                 "information_request.party|${reviewer.id}",
                 1L,
             ),
@@ -417,7 +417,7 @@ class InformationRequestLifecycleServiceTest
         verify(fixture.executionUsageReservationService).consume(reviewerReservation.id)
         verify(fixture.executionUsageReservationService, never()).reserve(
             grant.id,
-            RequestExecutionUsageKind.ADDITIONAL_RECIPIENT,
+            RequestExecutionUsageKind.ACTING_PARTY,
             "information_request.party|${subject.id}",
             1L,
         )
@@ -434,14 +434,14 @@ class InformationRequestLifecycleServiceTest
         val grant = RequestExecutionGrant().apply {
             id = UUID.randomUUID()
             requestId = fixture.request.id
-            additionalRecipientCap = 1
+            actingPartyCap = 1
         }
         whenever(fixture.executionGrantService.issueGrant(fixture.request, fixture.exchange)).thenReturn(grant)
         val contributorReservation = RequestExecutionUsageReservation().apply { id = UUID.randomUUID() }
         whenever(
             fixture.executionUsageReservationService.reserve(
                 grant.id,
-                RequestExecutionUsageKind.ADDITIONAL_RECIPIENT,
+                RequestExecutionUsageKind.ACTING_PARTY,
                 "information_request.party|${contributor.id}",
                 1L,
             ),
@@ -449,14 +449,14 @@ class InformationRequestLifecycleServiceTest
         whenever(
             fixture.executionUsageReservationService.reserve(
                 grant.id,
-                RequestExecutionUsageKind.ADDITIONAL_RECIPIENT,
+                RequestExecutionUsageKind.ACTING_PARTY,
                 "information_request.party|${reviewer.id}",
                 1L,
             ),
         ).thenThrow(
             RequestExecutionUsageExhaustedException(
                 grantId = grant.id,
-                usageKind = RequestExecutionUsageKind.ADDITIONAL_RECIPIENT,
+                usageKind = RequestExecutionUsageKind.ACTING_PARTY,
                 cap = 1L,
                 activeUsage = 1L,
                 requested = 1L,
@@ -585,7 +585,8 @@ class InformationRequestLifecycleServiceTest
             if (commercialGrant) mapOf(PlanFeature.INFORMATION_REQUESTS to true) else emptyMap(),
         )
         return InformationRequestEntitlementGuard(
-            SubscriptionAccessService(
+            requestRepository = mock(),
+            subscriptionAccessService = SubscriptionAccessService(
                 subscriptionPolicyService = policyService,
                 subscriptionUsageService = SubscriptionUsageService(
                     mock<ExchangeUsageCounter>(),

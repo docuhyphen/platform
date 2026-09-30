@@ -91,8 +91,8 @@ class AuditConcurrencyPostgresContractTest
                 """
                 INSERT INTO audit_export
                     (id, requested_by_user_id, requested_at, categories_csv, occurred_after,
-                     occurred_before, purpose, status, download_limit, created_at, updated_at)
-                VALUES (?, ?, now(), 'SECURITY', ?, ?, 'concurrency contract', ?, ?, now(), now())
+                     occurred_before, purpose, status, download_limit, owner_type, created_at, updated_at)
+                VALUES (?, ?, now(), 'SECURITY', ?, ?, 'concurrency contract', ?, ?, 'PLATFORM', now(), now())
                 """.trimIndent(),
             ).use { statement ->
                 statement.setObject(1, id)

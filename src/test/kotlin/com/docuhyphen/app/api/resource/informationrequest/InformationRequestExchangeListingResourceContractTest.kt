@@ -4,6 +4,9 @@ import com.docuhyphen.app.api.model.dto.InformationRequestExchangeListingDto
 import com.docuhyphen.app.api.model.entity.InformationRequest
 import com.docuhyphen.app.api.model.entity.InformationRequestShareRoleKey
 import com.docuhyphen.app.api.model.informationrequest.InformationRequestCallerStanding
+import com.docuhyphen.app.api.model.informationrequest.InformationRequestExecutionStanding
+import com.docuhyphen.app.api.model.informationrequest.InformationRequestExecutionStandingKind
+import com.docuhyphen.app.api.model.informationrequest.InformationRequestStandingReason
 import com.docuhyphen.app.api.model.informationrequest.InformationRequestExchangeListing
 import com.docuhyphen.app.api.model.informationrequest.InformationRequestNextAction
 import com.docuhyphen.app.api.model.informationrequest.InformationRequestSummary
@@ -66,9 +69,14 @@ class InformationRequestExchangeListingResourceContractTest
                             permissions = InformationRequestSummaryPermissions(canManage = false, canRespond = true, canReview = false),
                             nextAction = InformationRequestNextAction.RESPOND,
                         ),
+                        executionStanding = InformationRequestExecutionStanding(
+                            InformationRequestExecutionStandingKind.CONTINUING_AFTER_LAPSE,
+                            InformationRequestStandingReason.TRIAL_ENDED,
+                        ),
                     ),
                 ),
-                canCreate = true,
+                canCreate = false,
+                creationUnavailableReason = InformationRequestStandingReason.TRIAL_ENDED,
             ),
         )
 
@@ -79,7 +87,8 @@ class InformationRequestExchangeListingResourceContractTest
         assertTrue(InformationRequestExchangeListingResource::class.java.declaredMethods.single { it.name == "list" }.isAnnotationPresent(GET::class.java))
         assertEquals(Response.Status.OK.statusCode, listed.status)
         val body = listed.entity as InformationRequestExchangeListingDto
-        assertEquals(true, body.canCreate)
+        assertEquals(false, body.canCreate)
+        assertEquals(InformationRequestStandingReason.TRIAL_ENDED, body.creationUnavailableReason)
         val summary = body.requests.single()
         assertEquals(request.id, summary.id)
         assertEquals("Periodic records request", summary.title)
@@ -89,6 +98,8 @@ class InformationRequestExchangeListingResourceContractTest
         assertEquals(listOf(InformationRequestShareRoleKey.CONTRIBUTOR), summary.callerRoles)
         assertEquals(true, summary.permissions.canRespond)
         assertEquals(InformationRequestNextAction.RESPOND, summary.nextAction)
+        assertEquals(InformationRequestExecutionStandingKind.CONTINUING_AFTER_LAPSE, summary.executionStanding.kind)
+        assertEquals(InformationRequestStandingReason.TRIAL_ENDED, summary.executionStanding.reason)
         assertEquals(Response.Status.BAD_REQUEST.statusCode, invalid.status)
     }
 
@@ -105,5 +116,6 @@ class InformationRequestExchangeListingResourceContractTest
         assertEquals(Response.Status.NOT_FOUND.statusCode, missing.status)
         assertEquals("Exchange not found", (missing.entity as ResponseError).errorMessage)
         assertEquals(Response.Status.FORBIDDEN.statusCode, denied.status)
+        assertEquals("INFORMATION_REQUEST_FORBIDDEN", (denied.entity as ResponseError).reasonCode)
     }
 }

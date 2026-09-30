@@ -1,7 +1,7 @@
 import {Button, MessageBar, MessageBarBody, Title2} from "@fluentui/react-components";
 import {useNavigate} from "react-router-dom";
 import {BackIcon} from "../../components/IconBundles.tsx";
-import InformationRequestFeatureGate from "../../information-requests/feature-gate/InformationRequestFeatureGate.tsx";
+import InformationRequestScopeNotice from "../../information-requests/capabilities/scope-standing-notice/InformationRequestScopeNotice.tsx";
 import {useOperationsAccess} from "../../information-requests/operations/useOperationsAccess.ts";
 import RecordDisposalList from "../disposal-list/RecordDisposalList.tsx";
 import RecordHoldList from "../hold-list/RecordHoldList.tsx";
@@ -28,23 +28,22 @@ const RecordPreservation = () =>
                         onClick={() => navigate("/information-request-operations")}/>
                 <Title2 id={"record-preservation-title"}>Record preservation</Title2>
             </div>
-            <InformationRequestFeatureGate idPrefix={"record-preservation"}>
-                {access.canReadRecords
-                    ? (
-                        <div id={"record-preservation-content"}
-                             className={styles.content}>
-                            <RecordHoldList canManage={access.canManageHolds}/>
-                            <RetentionScheduleCard canManage={access.canManageRetention}/>
-                            <RecordDisposalList/>
-                        </div>
-                    )
-                    : (
-                        <MessageBar id={"record-preservation-forbidden"}
-                                    intent={"warning"}>
-                            <MessageBarBody>You do not have access to record preservation for this account.</MessageBarBody>
-                        </MessageBar>
-                    )}
-            </InformationRequestFeatureGate>
+            <InformationRequestScopeNotice idPrefix={"record-preservation"}/>
+            {access.canReadRecords
+                ? (
+                    <div id={"record-preservation-content"}
+                         className={styles.content}>
+                        <RecordHoldList canManage={access.canManageHolds}/>
+                        <RetentionScheduleCard canManage={access.canManageRetention}/>
+                        <RecordDisposalList/>
+                    </div>
+                )
+                : (
+                    <MessageBar id={"record-preservation-forbidden"}
+                                intent={"warning"}>
+                        <MessageBarBody>You do not have access to record preservation for this account.</MessageBarBody>
+                    </MessageBar>
+                )}
         </section>
     );
 };

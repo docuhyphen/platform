@@ -2,6 +2,7 @@ import {useMemo} from "react";
 import {InformationRequestResponseWorkspaceDto, InformationRequestTemplateRequirementDto} from "../../../models/models.tsx";
 import InformationRequestStructuredResponsePanel from "../../structured-response-workspace/InformationRequestStructuredResponsePanel.tsx";
 import InformationRequestSubmissionSection from "../../submission/follow-up-section/InformationRequestSubmissionSection.tsx";
+import ExecutionStandingNotice from "../../shared/execution-standing-notice/ExecutionStandingNotice.tsx";
 import ResponseSectionNavigation from "../response-section-navigation/ResponseSectionNavigation.tsx";
 import {sectionSummaries} from "../sectionSummaries.ts";
 import {useRespondentWorkspaceBodyStyles} from "./RespondentWorkspaceBodyStyles.tsx";
@@ -28,6 +29,8 @@ const RespondentWorkspaceBody = ({workspace, requirements, accessLinkToken, onRe
             <ResponseSectionNavigation summaries={summaries}/>
             <div id={"information-request-respondent-main"}
                  className={styles.main}>
+                <ExecutionStandingNotice idPrefix={"information-request-respondent"}
+                                         standing={workspace.executionStanding}/>
                 <InformationRequestStructuredResponsePanel request={workspace.request}
                                                            responseETag={workspace.responseETag}
                                                            groups={workspace.templateVersion.groups}

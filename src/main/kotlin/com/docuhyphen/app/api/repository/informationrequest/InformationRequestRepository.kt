@@ -64,6 +64,42 @@ class InformationRequestRepository :
             .resultList
     }
 
+    fun existsForOwner(ownerType: InformationRequestOwnerType, ownerId: UUID): Boolean
+    {
+        val ownerClause = when (ownerType)
+        {
+            InformationRequestOwnerType.ORGANIZATION -> "request.ownerOrganizationId = :ownerId"
+            InformationRequestOwnerType.USER -> "request.ownerUserId = :ownerId"
+        }
+        return entityManager.createQuery(
+            "SELECT COUNT(request) FROM InformationRequest request WHERE request.ownerType = :ownerType AND $ownerClause",
+            java.lang.Long::class.java,
+        )
+            .setParameter("ownerType", ownerType)
+            .setParameter("ownerId", ownerId)
+            .singleResult
+            .toLong() > 0
+    }
+
+    fun countOpenForOwner(ownerType: InformationRequestOwnerType, ownerId: UUID): Long
+    {
+        val ownerClause = when (ownerType)
+        {
+            InformationRequestOwnerType.ORGANIZATION -> "request.ownerOrganizationId = :ownerId"
+            InformationRequestOwnerType.USER -> "request.ownerUserId = :ownerId"
+        }
+        return entityManager.createQuery(
+            "SELECT COUNT(request) FROM InformationRequest request " +
+                "WHERE request.ownerType = :ownerType AND $ownerClause AND request.state IN :openStates",
+            java.lang.Long::class.java,
+        )
+            .setParameter("ownerType", ownerType)
+            .setParameter("ownerId", ownerId)
+            .setParameter("openStates", InformationRequestState.entries.filterNot { it.isTerminal })
+            .singleResult
+            .toLong()
+    }
+
     fun findFinishedIdsBefore(ownerType: InformationRequestOwnerType, ownerId: UUID, finishedBefore: Timestamp, limit: Int): List<UUID>
     {
         val ownerClause = when (ownerType)

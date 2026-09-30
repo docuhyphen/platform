@@ -127,11 +127,17 @@ const commands = (): TemplateEditorCommands => ({
     clone: vi.fn(async () => template()),
 });
 
-const renderEditor = (current: InformationRequestTemplateDto, editorCommands = commands(), canManage = true) =>
+const renderEditor = (
+    current: InformationRequestTemplateDto,
+    editorCommands = commands(),
+    canManage = true,
+    copyTargets: InformationRequestTemplateScopeKind[] = canManage ? [InformationRequestTemplateScopeKind.ORGANIZATION] : [],
+) =>
 {
     render(<TemplateEditor template={current}
                            schemas={[schema()]}
                            canManage={canManage}
+                           copyTargets={copyTargets}
                            commands={editorCommands}
                            onClose={vi.fn()}/>);
     return editorCommands;
@@ -341,6 +347,17 @@ describe("TemplateEditor", () =>
             displayName: "Second pattern",
             scopeKind: InformationRequestTemplateScopeKind.ORGANIZATION,
         }));
+    });
+
+    it("lets a reader who authors elsewhere copy a Template without changing it", () =>
+    {
+        renderEditor(template(false), commands(), false, [InformationRequestTemplateScopeKind.PERSONAL]);
+
+        fireEvent.click(screen.getByRole("tab", {name: "Versions"}));
+
+        expect(screen.queryByRole("button", {name: "Start a new draft from version 1"})).toBeNull();
+        expect(screen.queryByRole("button", {name: "Retire version 1"})).toBeNull();
+        expect(screen.getByRole("button", {name: "Copy as a new Template"})).toBeTruthy();
     });
 
     it("never offers lifecycle commands to a reader who cannot manage the Template", () =>

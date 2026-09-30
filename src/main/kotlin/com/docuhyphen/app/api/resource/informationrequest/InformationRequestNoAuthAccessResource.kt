@@ -3,9 +3,12 @@ package com.docuhyphen.app.api.resource.informationrequest
 import com.docuhyphen.app.api.model.InformationRequestAccessSessionDtoMapper
 import com.docuhyphen.app.api.resource.ResourceEndpointDelayHelper
 import com.docuhyphen.app.api.resource.model.ResponseError
+import com.docuhyphen.app.api.model.informationrequest.InformationRequestNoAuthAttempt
 import com.docuhyphen.app.api.resource.model.VerifyInformationRequestContactProofRequest
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestContactProofService
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestLifecycleException
+import com.docuhyphen.app.api.service.informationrequest.InformationRequestNoAuthRateLimit
+import com.docuhyphen.app.api.service.informationrequest.InformationRequestRateLimitedException
 import io.quarkus.security.ForbiddenException
 import io.quarkus.security.UnauthorizedException
 import jakarta.inject.Inject
@@ -23,6 +26,7 @@ import jakarta.ws.rs.core.Response.Status.FORBIDDEN
 import jakarta.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR
 import jakarta.ws.rs.core.Response.Status.NOT_FOUND
 import jakarta.ws.rs.core.Response.Status.NO_CONTENT
+import jakarta.ws.rs.core.Response.Status.TOO_MANY_REQUESTS
 import jakarta.ws.rs.core.Response.Status.UNAUTHORIZED
 import org.slf4j.LoggerFactory
 
@@ -42,6 +46,7 @@ import org.slf4j.LoggerFactory
 @Consumes(APPLICATION_JSON)
 class InformationRequestNoAuthAccessResource @Inject constructor(
     private val contactProofService: InformationRequestContactProofService,
+    private val rateLimit: InformationRequestNoAuthRateLimit,
 )
 {
     @POST
@@ -53,6 +58,7 @@ class InformationRequestNoAuthAccessResource @Inject constructor(
         return ResourceEndpointDelayHelper.withFixedFloor(1000) {
             try
             {
+                rateLimit.requireWithinLimit(InformationRequestNoAuthAttempt.CHALLENGE)
                 val token = requiredToken(accessLinkToken)
                     ?: return@withFixedFloor missingTokenResponse()
                 contactProofService.issueChallenge(token)
@@ -74,6 +80,7 @@ class InformationRequestNoAuthAccessResource @Inject constructor(
     {
         return try
         {
+            rateLimit.requireWithinLimit(InformationRequestNoAuthAttempt.SESSION)
             val token = requiredToken(accessLinkToken)
                 ?: return missingTokenResponse()
             val session = contactProofService.verifyChallenge(token, request.otp)
@@ -98,6 +105,9 @@ class InformationRequestNoAuthAccessResource @Inject constructor(
     private fun handleException(message: String, exception: Exception): Response =
         when (exception)
         {
+            is InformationRequestRateLimitedException -> Response.status(TOO_MANY_REQUESTS)
+                .header(RETRY_AFTER_HEADER, exception.retryAfterSeconds)
+                .entity(ResponseError(exception.message, exception.reasonCode)).build()
             is InformationRequestLifecycleException -> Response.status(CONFLICT)
                 .entity(ResponseError(exception.message, exception.reasonCode)).build()
             is IllegalStateException -> Response.status(CONFLICT)
@@ -118,6 +128,7 @@ class InformationRequestNoAuthAccessResource @Inject constructor(
     private companion object
     {
         const val ACCESS_LINK_TOKEN_HEADER = "X-Request-Access-Token"
+        const val RETRY_AFTER_HEADER = "Retry-After"
         val logger = LoggerFactory.getLogger(InformationRequestNoAuthAccessResource::class.java)
     }
 }

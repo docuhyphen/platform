@@ -6,6 +6,8 @@ import * as authoring from "../../../../services/informationRequestAuthoringServ
 import * as runtime from "../../../../services/informationRequestRuntimeService.ts";
 import {
     InformationRequestAccessLinkStatus,
+    InformationRequestExecutionStandingKind,
+    InformationRequestStandingReason,
     InformationRequestContributorRole,
     InformationRequestOwnerType,
     InformationRequestPartyDto,
@@ -110,6 +112,7 @@ const workspace = (state = InformationRequestState.DRAFT): InformationRequestRes
     supportingEvidenceLinks: [],
     evidenceUploadAvailable: true,
     evidenceMalwareScanning: false,
+    executionStanding: {kind: InformationRequestExecutionStandingKind.ACTIVE},
 });
 
 const contributor: InformationRequestPartyDto = {
@@ -176,6 +179,37 @@ describe("InformationRequestAuthorWorkspace", () =>
             "\"parties-2\"",
             expect.any(String),
         ));
+    });
+
+    it("says why a paused request takes no changes and offers none", async () =>
+    {
+        vi.mocked(runtime.getInformationRequestResponseWorkspace).mockResolvedValue({
+            ...workspace(InformationRequestState.IN_PROGRESS),
+            executionStanding: {
+                kind: InformationRequestExecutionStandingKind.OPERATIONALLY_SUSPENDED,
+                reason: InformationRequestStandingReason.SUBSCRIPTION_SUSPENDED,
+            },
+        });
+        renderWorkspace();
+
+        expect(await screen.findByText(/Changes to this request are paused/)).toBeTruthy();
+        expect(screen.getByText(/account is suspended/)).toBeTruthy();
+        expect(screen.queryByRole("button", {name: "Add party"})).toBeNull();
+    });
+
+    it("keeps an issued request workable after a lapse and says so", async () =>
+    {
+        vi.mocked(runtime.getInformationRequestResponseWorkspace).mockResolvedValue({
+            ...workspace(InformationRequestState.IN_PROGRESS),
+            executionStanding: {
+                kind: InformationRequestExecutionStandingKind.CONTINUING_AFTER_LAPSE,
+                reason: InformationRequestStandingReason.TRIAL_ENDED,
+            },
+        });
+        renderWorkspace();
+
+        expect(await screen.findByText(/continues as it was issued/)).toBeTruthy();
+        expect(screen.getByRole("button", {name: "Add party"})).toBeTruthy();
     });
 
     it("issues under the request ETag and states a refusal", async () =>

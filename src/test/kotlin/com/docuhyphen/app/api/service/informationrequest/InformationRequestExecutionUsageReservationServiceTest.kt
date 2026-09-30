@@ -29,16 +29,16 @@ class InformationRequestExecutionUsageReservationServiceTest
     {
         val grantId = UUID.randomUUID()
         val grant = grantWithCap(grantId, cap = 4L)
-        whenever(reservationRepository.findByGrantIdAndUsageKindAndKey(grantId, RequestExecutionUsageKind.ADDITIONAL_RECIPIENT, "party-1"))
+        whenever(reservationRepository.findByGrantIdAndUsageKindAndKey(grantId, RequestExecutionUsageKind.ACTING_PARTY, "party-1"))
             .thenReturn(null)
         whenever(grantRepository.findByIdForUpdate(grantId)).thenReturn(grant)
-        whenever(reservationRepository.sumActiveQuantity(grantId, RequestExecutionUsageKind.ADDITIONAL_RECIPIENT)).thenReturn(2L)
-        whenever(reservationRepository.save(any())).thenAnswer { it.getArgument(0) }
+        whenever(reservationRepository.sumActiveQuantity(grantId, RequestExecutionUsageKind.ACTING_PARTY)).thenReturn(2L)
+        whenever(reservationRepository.insertNow(any())).thenAnswer { it.getArgument(0) }
 
-        val reservation = service.reserve(grantId, RequestExecutionUsageKind.ADDITIONAL_RECIPIENT, "party-1", 1L)
+        val reservation = service.reserve(grantId, RequestExecutionUsageKind.ACTING_PARTY, "party-1", 1L)
 
         assertEquals(grantId, reservation.grantId)
-        assertEquals(RequestExecutionUsageKind.ADDITIONAL_RECIPIENT.name, reservation.usageKind)
+        assertEquals(RequestExecutionUsageKind.ACTING_PARTY.name, reservation.usageKind)
         assertEquals("party-1", reservation.reservationKey)
         assertEquals(1L, reservation.quantity)
         assertEquals("RESERVED", reservation.status)
@@ -51,20 +51,20 @@ class InformationRequestExecutionUsageReservationServiceTest
     {
         val grantId = UUID.randomUUID()
         val grant = grantWithCap(grantId, cap = 2L)
-        whenever(reservationRepository.findByGrantIdAndUsageKindAndKey(grantId, RequestExecutionUsageKind.ADDITIONAL_RECIPIENT, "party-3"))
+        whenever(reservationRepository.findByGrantIdAndUsageKindAndKey(grantId, RequestExecutionUsageKind.ACTING_PARTY, "party-3"))
             .thenReturn(null)
         whenever(grantRepository.findByIdForUpdate(grantId)).thenReturn(grant)
-        whenever(reservationRepository.sumActiveQuantity(grantId, RequestExecutionUsageKind.ADDITIONAL_RECIPIENT)).thenReturn(2L)
+        whenever(reservationRepository.sumActiveQuantity(grantId, RequestExecutionUsageKind.ACTING_PARTY)).thenReturn(2L)
 
         val failure = assertThrows<RequestExecutionUsageExhaustedException> {
-            service.reserve(grantId, RequestExecutionUsageKind.ADDITIONAL_RECIPIENT, "party-3", 1L)
+            service.reserve(grantId, RequestExecutionUsageKind.ACTING_PARTY, "party-3", 1L)
         }
 
         assertEquals(grantId, failure.grantId)
         assertEquals(2L, failure.cap)
         assertEquals(2L, failure.activeUsage)
         assertEquals(1L, failure.requested)
-        verify(reservationRepository, never()).save(any())
+        verify(reservationRepository, never()).insertNow(any())
     }
 
     @Test
@@ -74,9 +74,9 @@ class InformationRequestExecutionUsageReservationServiceTest
         val grant = grantWithCap(grantId, cap = null)
         whenever(reservationRepository.findByGrantIdAndUsageKindAndKey(any(), any(), any())).thenReturn(null)
         whenever(grantRepository.findByIdForUpdate(grantId)).thenReturn(grant)
-        whenever(reservationRepository.save(any())).thenAnswer { it.getArgument(0) }
+        whenever(reservationRepository.insertNow(any())).thenAnswer { it.getArgument(0) }
 
-        val reservation = service.reserve(grantId, RequestExecutionUsageKind.ADDITIONAL_RECIPIENT, "party-9", 1000L)
+        val reservation = service.reserve(grantId, RequestExecutionUsageKind.ACTING_PARTY, "party-9", 1000L)
 
         assertEquals(1000L, reservation.quantity)
         verify(reservationRepository, never()).sumActiveQuantity(any(), any())
@@ -87,14 +87,14 @@ class InformationRequestExecutionUsageReservationServiceTest
     {
         val grantId = UUID.randomUUID()
         val existing = RequestExecutionUsageReservation().apply { this.grantId = grantId }
-        whenever(reservationRepository.findByGrantIdAndUsageKindAndKey(grantId, RequestExecutionUsageKind.ADDITIONAL_RECIPIENT, "party-1"))
+        whenever(reservationRepository.findByGrantIdAndUsageKindAndKey(grantId, RequestExecutionUsageKind.ACTING_PARTY, "party-1"))
             .thenReturn(existing)
 
-        val reservation = service.reserve(grantId, RequestExecutionUsageKind.ADDITIONAL_RECIPIENT, "party-1", 1L)
+        val reservation = service.reserve(grantId, RequestExecutionUsageKind.ACTING_PARTY, "party-1", 1L)
 
         assertSame(existing, reservation)
         verify(grantRepository, never()).findByIdForUpdate(any())
-        verify(reservationRepository, never()).save(any())
+        verify(reservationRepository, never()).insertNow(any())
     }
 
     @Test
@@ -176,9 +176,33 @@ class InformationRequestExecutionUsageReservationServiceTest
         assertThrows<IllegalStateException> { service.release(reservationId) }
     }
 
+    @Test
+    fun `returning capacity releases a reserved slot, rolls back a consumed one, and ignores one never taken`()
+    {
+        val grantId = UUID.randomUUID()
+        val reserved = reservationInStatus("RESERVED").apply { id = UUID.randomUUID() }
+        val consumed = reservationInStatus("CONSUMED").apply { id = UUID.randomUUID() }
+        val kind = RequestExecutionUsageKind.ACTING_PARTY
+        whenever(reservationRepository.findByGrantIdAndUsageKindAndKey(grantId, kind, "reserved-party")).thenReturn(reserved)
+        whenever(reservationRepository.findByGrantIdAndUsageKindAndKey(grantId, kind, "consumed-party")).thenReturn(consumed)
+        whenever(reservationRepository.findByGrantIdAndUsageKindAndKey(grantId, kind, "absent-party")).thenReturn(null)
+        whenever(reservationRepository.findByIdForUpdate(reserved.id)).thenReturn(reserved)
+        whenever(reservationRepository.findByIdForUpdate(consumed.id)).thenReturn(consumed)
+        whenever(reservationRepository.update(any())).thenAnswer { it.getArgument(0) }
+
+        service.returnCapacity(grantId, kind, "reserved-party")
+        service.returnCapacity(grantId, kind, "consumed-party")
+        service.returnCapacity(grantId, kind, "absent-party")
+
+        assertEquals("RELEASED", reserved.status)
+        assertEquals("ROLLED_BACK", consumed.status)
+        verify(reservationRepository, never()).insertNow(any())
+        verify(grantRepository, never()).findByIdForUpdate(any())
+    }
+
     private fun grantWithCap(grantId: UUID, cap: Long?) = RequestExecutionGrant().apply {
         id = grantId
-        additionalRecipientCap = cap
+        actingPartyCap = cap
     }
 
     private fun reservationInStatus(status: String) = RequestExecutionUsageReservation().apply {

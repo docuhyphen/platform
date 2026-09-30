@@ -3,6 +3,7 @@ import {
     SubscriptionStatus,
 } from "../../../models/models.tsx";
 import {useCurrentSubscription} from "../../../../hooks/subscription/useCurrentSubscription.ts";
+import BillingInformationRequestAllowances from "./BillingInformationRequestAllowances.tsx";
 import BillingPlanHeader from "./BillingPlanHeader.tsx";
 import BillingTrialDetails from "./BillingTrialDetails.tsx";
 import BillingUsageSummary from "./BillingUsageSummary.tsx";
@@ -75,6 +76,8 @@ const BillingPlanSummary = () =>
                 usage={usage}
                 usageRowClassName={styles.usageRow}
                 usageLabelsClassName={styles.usageLabels}/>
+            <BillingInformationRequestAllowances limits={limits}
+                                                 className={styles.planFacts}/>
             {!isTrial && <BillingTrialRequestAction ownerType={subscription.ownerType}/>}
         </section>
     );

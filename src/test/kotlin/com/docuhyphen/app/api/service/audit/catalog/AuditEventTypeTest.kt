@@ -168,9 +168,17 @@ class AuditEventTypeTest
     }
 
     @Test
+    fun `reading the Information Request health report is a platform event`()
+    {
+        val eventType = AuditEventType.findByKey("platform.information_request_health.view")
+        assertEquals(AuditEventType.PLATFORM_INFORMATION_REQUEST_HEALTH_VIEW, eventType)
+        assertEquals(AuditCategory.PLATFORM, eventType?.category)
+    }
+
+    @Test
     fun `catalog version reflects the added runtime request vocabulary`()
     {
-        assertEquals(28, AuditEventType.CATALOG_VERSION)
+        assertEquals(29, AuditEventType.CATALOG_VERSION)
     }
 
     @Test

@@ -49,6 +49,11 @@ object SubscriptionDtoMapper
             maxAdditionalParticipantsPerExchange = subscription.limits.maxAdditionalParticipantsPerExchange,
             seatCapacity = subscription.effectiveSeatCapacity(),
             seatsArePurchased = subscription.limits.seatsArePurchased,
+            maxOpenInformationRequests = subscription.limits.maxOpenInformationRequests,
+            maxActingPartiesPerInformationRequest = subscription.limits.maxActingPartiesPerInformationRequest,
+            maxEvidenceFilesPerInformationRequest = subscription.limits.maxEvidenceFilesPerInformationRequest,
+            maxEvidenceBytesPerInformationRequest = subscription.limits.maxEvidenceBytesPerInformationRequest,
+            maxCommittedEvidenceBytes = subscription.limits.maxCommittedEvidenceBytes,
         )
     }
 

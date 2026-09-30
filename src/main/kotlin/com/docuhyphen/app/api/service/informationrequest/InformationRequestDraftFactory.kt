@@ -37,7 +37,7 @@ class InformationRequestDraftFactory @Inject constructor(
         {
             throw InformationRequestLifecycleException(decision.reasonCode, "Information Request draft creation is not allowed")
         }
-        entitlementGuard.requireRequestMutation(exchange)
+        entitlementGuard.requireRequestCreation(exchange)
 
         val now = Timestamp.from(clock.instant())
         val request = requestRepository.save(

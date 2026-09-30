@@ -288,11 +288,130 @@ describe('help documentation states what the platform actually does', () =>
         expect(text).not.toMatch(/through the API/i);
     });
 
-    it('limits the concurrent-save protection to saves that state the version they read', () =>
+    it('keeps Exchange Fields as Exchange metadata apart from request answers', () =>
+    {
+        const text = articleText('information-requests-overview');
+
+        expect(text).toMatch(/Details tab/);
+        expect(text).toMatch(/never turned into/i);
+        expect(text).toMatch(/never changes them/i);
+    });
+
+    it('pins a request to the Version its Blueprint named when the request was created', () =>
+    {
+        const text = articleText('request-creating');
+
+        expect(text).toMatch(/created afterwards/i);
+        expect(text).toMatch(/Signer becomes Attestor/i);
+        expect(text).toMatch(/not submitted answers/i);
+    });
+
+    it('explains request standings and that no plan change hides a recorded request', () =>
+    {
+        const text = articleText('information-requests-overview');
+
+        for (const standing of ['Continuing as issued', 'Read only', 'Changes paused', 'Stopped'])
+        {
+            expect(text).toContain(standing);
+        }
+        expect(text).toMatch(/never hides a request/i);
+        expect(text).toMatch(/Only people who manage the request see the owner's reason/i);
+        expect(text).toMatch(/the tab says why/i);
+    });
+
+    it('keeps an issued workspace readable when its changes are paused or stopped', () =>
+    {
+        const text = articleText('request-access');
+
+        expect(text).toMatch(/stays readable/i);
+        expect(text).not.toMatch(/still stops access/i);
+    });
+
+    it('shows the operations, review, and record pages from the account rather than the viewer plan', () =>
+    {
+        const operations = articleText('request-operations');
+        const review = articleText('request-review');
+        const records = articleText('record-preservation');
+
+        expect(operations).toMatch(/still owns requests/i);
+        expect(operations).not.toMatch(/When your plan includes Information Requests/);
+        expect(review).toMatch(/assigned request work/i);
+        expect(review).not.toMatch(/When your plan includes Information Requests/);
+        expect(records).toMatch(/stays readable/i);
+    });
+
+    it('describes when parties can be added and how a suspended trusted relationship shows', () =>
+    {
+        const text = articleText('request-creating');
+
+        expect(text).toMatch(/Trusted relationship suspended/);
+        expect(text).toMatch(/Removing a party is always possible/i);
+        expect(text).toMatch(/only while the request is active/i);
+    });
+
+    it('keeps the Information Requests settings tab for everyone and says who authors Templates', () =>
+    {
+        const text = articleText('request-templates');
+
+        expect(text).toMatch(/every signed-in user/i);
+        expect(text).toMatch(/respond to and review/i);
+        expect(text).toMatch(/active organization whose plan includes Information Requests/i);
+    });
+
+    it("states each plan's Information Request allowances and that an issued request keeps its own", () =>
+    {
+        const text = articleText('information-requests-overview');
+
+        for (const allowance of ['25 open requests', '10 acting parties', '250 MiB', '5 GiB', '100 acting parties', '500 MiB', '100 GiB'])
+        {
+            expect(text).toContain(allowance);
+        }
+        expect(text).toMatch(/keeps the allowances it was issued with/i);
+    });
+
+    it('explains access link defaults and the limit on verification attempts', () =>
+    {
+        const text = articleText('request-access');
+
+        expect(text).toMatch(/30 days/);
+        expect(text).toMatch(/25 verifications/);
+        expect(text).toMatch(/Too many verification attempts/);
+    });
+
+    it('explains the reminder cooldown, the daily export limit, and upload allowances', () =>
+    {
+        const operations = articleText('request-operations');
+        const evidence = articleText('request-evidence');
+
+        expect(operations).toMatch(/reminded in the last 24 hours/i);
+        expect(operations).toMatch(/100 record exports a day/i);
+        expect(evidence).toMatch(/evidence allowance it was issued with/i);
+    });
+
+    it('explains copying a platform Template before use and which Schemas a Template can use', () =>
+    {
+        const templates = articleText('request-templates');
+        const creating = articleText('request-creating');
+
+        expect(templates).toMatch(/copy it into My Templates or the organization/i);
+        expect(templates).toMatch(/platform Schema/i);
+        expect(templates).toMatch(/personal Fields and Schemas cannot be authored yet/i);
+        expect(creating).toMatch(/copy a platform Template first/i);
+        expect(creating).toMatch(/answers to that person's plan/i);
+    });
+
+    it("says Billing states the plan's Information Request allowances", () =>
+    {
+        expect(articleText('exchange-lifecycle')).toMatch(/Plans that include Information Requests also list their allowances/);
+    });
+
+    it('states that every Fields change names the version it read, with no last-save-wins route', () =>
     {
         const text = articleText('using-exchange-fields');
 
         expect(text).toMatch(/(states|stating) the version/i);
-        expect(text).toMatch(/(last save wins|the last save|older integration)/i);
+        expect(text).toMatch(/removing the schema/i);
+        expect(text).toMatch(/If-Match/);
+        expect(text).not.toMatch(/(last save wins|older route|older integration)/i);
     });
 });

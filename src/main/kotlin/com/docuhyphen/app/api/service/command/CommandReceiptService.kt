@@ -99,6 +99,8 @@ class CommandReceiptService @Inject constructor(
     private val receipts: CommandReceiptStore,
 )
 {
+    fun isRecorded(request: CommandReceiptRequest): Boolean = receipts.findForCommand(request) != null
+
     @Transactional
     fun <T> runOnce(
         request: CommandReceiptRequest,

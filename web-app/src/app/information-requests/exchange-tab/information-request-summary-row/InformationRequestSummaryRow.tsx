@@ -1,6 +1,7 @@
 import {Badge, Button, ProgressBar, Spinner, Text} from "@fluentui/react-components";
 import {InformationRequestNextAction, InformationRequestSummaryDto} from "../../../models/models.tsx";
 import {requestStateLabels} from "../../operations/operationsLabels.ts";
+import {executionStandingBadge} from "../../shared/executionStandingText.ts";
 import {formatInformationRequestTime} from "../../shared/informationRequestFormatting.ts";
 import {nextActionLabels, rolesSentence} from "../../shared/informationRequestLabels.ts";
 import {useInformationRequestSummaryRowStyles} from "./InformationRequestSummaryRowStyles.tsx";
@@ -24,6 +25,7 @@ const InformationRequestSummaryRow = ({summary, opening, onOpen}: Props) =>
     const styles = useInformationRequestSummaryRowStyles();
     const actionLabel = nextActionLabels[summary.nextAction];
     const idPrefix = `information-request-summary-${summary.id}`;
+    const standingBadge = executionStandingBadge(summary.executionStanding);
 
     return (
         <li id={idPrefix}
@@ -42,6 +44,14 @@ const InformationRequestSummaryRow = ({summary, opening, onOpen}: Props) =>
                            shape={"circular"}>
                         {requestStateLabels[summary.state]}
                     </Badge>
+                    {standingBadge && (
+                        <Badge id={`${idPrefix}-standing`}
+                               appearance={"outline"}
+                               color={"warning"}
+                               shape={"circular"}>
+                            {standingBadge}
+                        </Badge>
+                    )}
                 </div>
                 <div id={`${idPrefix}-meta`}
                      className={styles.meta}>

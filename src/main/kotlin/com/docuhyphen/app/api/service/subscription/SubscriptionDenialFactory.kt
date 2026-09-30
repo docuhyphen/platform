@@ -70,6 +70,7 @@ object SubscriptionDenialFactory
             SubscriptionStatus.PAST_DUE -> SubscriptionDenialReason.SUBSCRIPTION_PAST_DUE
             SubscriptionStatus.SUSPENDED -> SubscriptionDenialReason.SUBSCRIPTION_SUSPENDED
             SubscriptionStatus.CANCELED -> SubscriptionDenialReason.SUBSCRIPTION_CANCELED
+            SubscriptionStatus.TRIALING -> SubscriptionDenialReason.TRIAL_ENDED
             else -> SubscriptionDenialReason.SUBSCRIPTION_SUSPENDED
         }
 
@@ -82,6 +83,10 @@ object SubscriptionDenialFactory
             SubscriptionDenialReason.SUBSCRIPTION_CANCELED ->
                 "This subscription has been canceled, so new changes are paused. Existing " +
                     "content stays available to read and export."
+
+            SubscriptionDenialReason.TRIAL_ENDED ->
+                "The trial has ended, so new changes are paused. Existing content stays " +
+                    "available to read and export."
 
             else ->
                 "This subscription is suspended, so new changes are paused. Existing content " +

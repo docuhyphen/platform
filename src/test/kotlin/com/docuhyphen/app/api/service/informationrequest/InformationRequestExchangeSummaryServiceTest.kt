@@ -1,6 +1,5 @@
 package com.docuhyphen.app.api.service.informationrequest
 
-import com.docuhyphen.app.api.exception.SubscriptionDenialException
 import com.docuhyphen.app.api.model.entity.Exchange
 import com.docuhyphen.app.api.model.entity.ExchangeStatus
 import com.docuhyphen.app.api.model.entity.InformationRequest
@@ -10,6 +9,10 @@ import com.docuhyphen.app.api.model.entity.InformationRequestReview
 import com.docuhyphen.app.api.model.entity.InformationRequestReviewAssignment
 import com.docuhyphen.app.api.model.entity.InformationRequestShareRoleKey
 import com.docuhyphen.app.api.model.informationrequest.InformationRequestCallerStanding
+import com.docuhyphen.app.api.model.informationrequest.InformationRequestExecutionStanding
+import com.docuhyphen.app.api.model.informationrequest.InformationRequestExecutionStandingKind
+import com.docuhyphen.app.api.model.informationrequest.InformationRequestOwnerStanding
+import com.docuhyphen.app.api.model.informationrequest.InformationRequestStandingReason
 import com.docuhyphen.app.api.model.informationrequest.InformationRequestNextAction
 import com.docuhyphen.app.api.model.informationrequest.InformationRequestReviewQueueEntry
 import com.docuhyphen.app.api.model.informationrequest.InformationRequestSummaryPermissions
@@ -25,14 +28,12 @@ import com.docuhyphen.app.api.service.informationrequest.model.InformationReques
 import com.docuhyphen.app.api.service.informationrequest.model.InformationRequestCompletenessItemState
 import com.docuhyphen.app.api.service.informationrequest.model.InformationRequestProgressProjection
 import com.docuhyphen.app.api.service.subscription.PlanCode
-import com.docuhyphen.app.api.service.subscription.SubscriptionDenial
-import com.docuhyphen.app.api.service.subscription.SubscriptionDenialReason
+import com.docuhyphen.app.api.service.subscription.SubscriptionEnforcementMode
+import com.docuhyphen.app.api.service.subscription.SubscriptionStatus
 import com.docuhyphen.app.api.service.subscription.SubscriptionOwnerType
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
-import org.mockito.kotlin.doNothing
-import org.mockito.kotlin.doThrow
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
@@ -56,10 +57,14 @@ class InformationRequestExchangeSummaryServiceTest
     private val reviewQueryService = mock<InformationRequestReviewQueryService>()
     private val gate = mock<InformationRequestMutationGate>()
     private val authorizationService = mock<AuthorizationService>()
-    private val entitlementGuard = mock<InformationRequestEntitlementGuard>()
+    private val standingService = mock<InformationRequestExecutionStandingService>()
     private val service = InformationRequestExchangeSummaryService(
         queryService, exchangeRepository, titleReader, clockRepository, progressService, callerStanding,
-        reviewQueryService, gate, authorizationService, entitlementGuard,
+        reviewQueryService, gate, authorizationService, standingService,
+    )
+    private val continuing = InformationRequestExecutionStanding(
+        InformationRequestExecutionStandingKind.CONTINUING_AFTER_LAPSE,
+        InformationRequestStandingReason.SUBSCRIPTION_PAST_DUE,
     )
     private val standing = InformationRequestCallerStanding(
         roles = listOf(InformationRequestShareRoleKey.CONTRIBUTOR),
@@ -73,6 +78,8 @@ class InformationRequestExchangeSummaryServiceTest
         whenever(reviewQueryService.queue(access)).thenReturn(emptyList())
         whenever(clockRepository.findForRequests(any())).thenReturn(emptyList())
         whenever(authorizationService.authorize(any(), any(), any<ResourceRef>(), any())).thenReturn(Decision.Allow())
+        whenever(standingService.ownerStanding(exchange)).thenReturn(owner(null))
+        whenever(standingService.standingOf(any(), any())).thenReturn(continuing)
     }
 
     @Test
@@ -115,8 +122,36 @@ class InformationRequestExchangeSummaryServiceTest
         assertEquals(2, summary.completedCount)
         assertEquals(3, summary.requiredCount)
         assertEquals(standing, summary.standing)
+        assertEquals(InformationRequestExecutionStanding(InformationRequestExecutionStandingKind.ACTIVE), summary.executionStanding)
         assertEquals(null, listing.requests.last().nextDueAt)
         assertEquals(0, listing.requests.last().requiredCount)
+    }
+
+    @Test
+    fun `a manager sees why a request continues after a lapse while a party only sees whether it can act`()
+    {
+        val issued = request(InformationRequestState.IN_PROGRESS)
+        val suspended = request(InformationRequestState.IN_PROGRESS)
+        whenever(queryService.listForExchange(exchange.id, access)).thenReturn(listOf(issued, suspended))
+        whenever(titleReader.titlesOf(listOf(issued, suspended))).thenReturn(mapOf(issued.id to "Records", suspended.id to "Records"))
+        whenever(progressService.evaluate(any())).thenReturn(progress())
+        val managing = standing.copy(permissions = standing.permissions.copy(canManage = true))
+        whenever(callerStanding.standingOf(eq(issued), eq(access), any())).thenReturn(managing)
+        whenever(callerStanding.standingOf(eq(suspended), eq(access), any())).thenReturn(standing)
+        whenever(standingService.standingOf(eq(suspended), any())).thenReturn(
+            InformationRequestExecutionStanding(
+                InformationRequestExecutionStandingKind.OPERATIONALLY_SUSPENDED,
+                InformationRequestStandingReason.SUBSCRIPTION_SUSPENDED,
+            ),
+        )
+
+        val summaries = service.listForExchange(exchange.id, access).requests
+
+        assertEquals(continuing, summaries.first().executionStanding)
+        assertEquals(
+            InformationRequestExecutionStanding(InformationRequestExecutionStandingKind.OPERATIONALLY_SUSPENDED),
+            summaries.last().executionStanding,
+        )
     }
 
     @Test
@@ -157,16 +192,18 @@ class InformationRequestExchangeSummaryServiceTest
         val denied = service.listForExchange(exchange.id, access).canCreate
         whenever(authorizationService.authorize(access.principal, Action.INFORMATION_REQUEST_CREATE, ResourceRef.exchange(exchange.id), access.authorization))
             .thenReturn(Decision.Allow())
-        doThrow(denial()).whenever(entitlementGuard).requireRequestMutation(exchange)
-        val lapsed = service.listForExchange(exchange.id, access).canCreate
-        doNothing().whenever(entitlementGuard).requireRequestMutation(exchange)
+        whenever(standingService.ownerStanding(exchange)).thenReturn(owner(InformationRequestStandingReason.FEATURE_NOT_INCLUDED))
+        val lapsed = service.listForExchange(exchange.id, access)
+        whenever(standingService.ownerStanding(exchange)).thenReturn(owner(null))
         exchange.status = ExchangeStatus.ENDED
-        val ended = service.listForExchange(exchange.id, access).canCreate
+        val ended = service.listForExchange(exchange.id, access)
 
         assertEquals(true, offered)
         assertEquals(false, denied)
-        assertEquals(false, lapsed)
-        assertEquals(false, ended)
+        assertEquals(false, lapsed.canCreate)
+        assertEquals(InformationRequestStandingReason.FEATURE_NOT_INCLUDED, lapsed.creationUnavailableReason)
+        assertEquals(false, ended.canCreate)
+        assertEquals(null, ended.creationUnavailableReason)
         assertEquals(emptyList<Any>(), service.listForExchange(exchange.id, access).requests)
     }
 
@@ -200,13 +237,15 @@ class InformationRequestExchangeSummaryServiceTest
         items = items.toList(),
     )
 
-    private fun denial() = SubscriptionDenialException(
-        SubscriptionDenial(
-            reason = SubscriptionDenialReason.FEATURE_NOT_INCLUDED,
-            planCode = PlanCode.FREE,
-            ownerType = SubscriptionOwnerType.ORGANIZATION,
-            message = "Not included",
-        ),
+    private fun owner(reason: InformationRequestStandingReason?) = InformationRequestOwnerStanding(
+        ownerType = SubscriptionOwnerType.ORGANIZATION,
+        ownerId = exchange.ownerOrganizationId!!,
+        planCode = PlanCode.BUSINESS,
+        status = SubscriptionStatus.ACTIVE,
+        enforcementMode = SubscriptionEnforcementMode.ENFORCE,
+        featureIncluded = reason == null,
+        operationallySuspended = false,
+        newWorkUnavailableReason = reason,
     )
 
     private companion object

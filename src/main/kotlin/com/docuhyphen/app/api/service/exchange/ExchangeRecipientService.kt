@@ -140,6 +140,14 @@ class ExchangeRecipientService @Inject constructor(
         return recipient
     }
 
+    fun trustSuspended(recipientId: UUID): Boolean
+    {
+        val recipient = exchangeRecipientRepository.findById(recipientId) ?: return false
+        if (!recipient.isTrusted()) return false
+        val attestation = attestationService.findForRecipient(recipient.id) ?: return false
+        return trustedRecipientValidationService.isRelationshipSuspended(attestation.relationshipId)
+    }
+
     fun pendingTrustedParticipantShareIds(exchangeId: UUID): Set<UUID> =
         exchangeRecipientRepository.findPendingTrustedParticipants(exchangeId)
             .mapTo(mutableSetOf()) { it.directShareId }

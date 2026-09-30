@@ -19,7 +19,9 @@ export const informationRequestAccessArticle = (
             Repeated invalid contact codes temporarily lock verification for that link. A link can send
             at most three contact codes; its manager must resend the link to allow another challenge.
             Resending a code never clears failed attempts. When a link has a use limit, each successful
-            verification uses one; saving and reading use the verified session instead.
+            verification uses one; saving and reading use the verified session instead. A link created
+            without its own expiry or use limit works for 30 days and for 25 verifications. Too many
+            verification attempts from one network are paused for about a minute.
         </p>
 
         <h3 id={"information-request-access-accounts-heading"}>Signed-in parties and groups</h3>
@@ -35,8 +37,9 @@ export const informationRequestAccessArticle = (
         <p id={"information-request-access-plans-help"}>
             Once a request is issued, response work uses the owner&apos;s request grant. A signed-in
             party can open and save assigned items even when their own account is on Free. Later changes
-            to the owner&apos;s plan do not hide an issued workspace, but an operational suspension or an
-            explicit grant revocation still stops access. Creating and issuing new requests still need
+            to the owner&apos;s plan do not hide an issued workspace. An operational suspension or an
+            explicit grant revocation stops further answers and changes, but everything already recorded
+            stays readable. Creating and issuing new requests still need
             the owner&apos;s current Information Requests access. The same grant sets how many acting
             parties a request can have: issuing uses one place for each active acting party, later
             assignments use any places left, and removing an acting party frees its place.

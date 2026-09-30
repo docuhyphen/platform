@@ -152,28 +152,42 @@ class FieldsPreconditionTest
     // ── Choosing and removing a Schema ────────────────────────────────────────
 
     @Test
-    fun `removing a Schema while naming the assignment that was read is accepted`()
+    fun `removing a Schema while naming the answers that were read is accepted`()
     {
-        val fixture = SchemaAssignmentFieldsFixture(principal = author)
+        val fixture = SchemaAssignmentFieldsFixture(principal = author, rootSetRevision = 4)
+        val read = requireNotNull(requireNotNull(fixture.read()).etag)
 
-        fixture.unassign(
-            precondition = FieldsPrecondition.ExpectedRevision("\"${fixture.assignmentId}\""),
-        )
+        fixture.unassign(precondition = FieldsPrecondition.ExpectedRevision(read))
 
         assertTrue(fixture.deletedSets.isNotEmpty(), "The assignment and its sets were removed")
     }
 
     @Test
-    fun `removing a Schema while naming an assignment that was replaced is refused as stale`()
+    fun `removing a Schema while naming answers that have since changed is refused as stale`()
+    {
+        val fixture = SchemaAssignmentFieldsFixture(principal = author, rootSetRevision = 4)
+        val read = requireNotNull(requireNotNull(fixture.read()).etag)
+        fixture.save(listOf(fixture.entry(fixture.noteContractId, "Answer recorded after the read")))
+
+        val failure = assertThrows<FieldsPreconditionException> {
+            fixture.unassign(precondition = FieldsPrecondition.ExpectedRevision(read))
+        }
+
+        assertEquals(FieldsPreconditionException.Kind.STALE, failure.kind)
+        assertEquals(FieldValueSetETag.of(fixture.rootSet), failure.currentETag)
+        assertTrue(fixture.deletedSets.isEmpty(), "A refused removal removes nothing")
+    }
+
+    @Test
+    fun `removing a Schema while naming the assignment identity rather than its answers is refused as stale`()
     {
         val fixture = SchemaAssignmentFieldsFixture(principal = author)
 
         val failure = assertThrows<FieldsPreconditionException> {
-            fixture.unassign(precondition = FieldsPrecondition.ExpectedRevision("\"${UUID.randomUUID()}\""))
+            fixture.unassign(precondition = FieldsPrecondition.ExpectedRevision("\"${fixture.assignmentId}\""))
         }
 
         assertEquals(FieldsPreconditionException.Kind.STALE, failure.kind)
-        assertEquals("\"${fixture.assignmentId}\"", failure.currentETag)
         assertTrue(fixture.deletedSets.isEmpty(), "A refused removal removes nothing")
     }
 

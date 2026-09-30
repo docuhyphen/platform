@@ -145,7 +145,7 @@ class InformationRequestAdHocCreationServiceTest
     fun `creation is denied and nothing persisted when the entitlement guard refuses it`()
     {
         val deniedGuard = mock<InformationRequestEntitlementGuard>()
-        whenever(deniedGuard.requireRequestMutation(any())).thenThrow(
+        whenever(deniedGuard.requireRequestCreation(any())).thenThrow(
             SubscriptionDenialException(
                 SubscriptionDenial(
                     reason = SubscriptionDenialReason.FEATURE_NOT_INCLUDED,
@@ -166,7 +166,7 @@ class InformationRequestAdHocCreationServiceTest
 
         assertThrows<SubscriptionDenialException> { fixture.service.createAdHoc(command) }
 
-        verify(deniedGuard).requireRequestMutation(any())
+        verify(deniedGuard).requireRequestCreation(any())
         verifyNoInteractions(fixture.authorizationService)
         verify(fixture.requestRepository, never()).save(any())
         verify(fixture.definitionRepository, never()).save(any())
@@ -206,7 +206,8 @@ class InformationRequestAdHocCreationServiceTest
             if (commercialGrant) mapOf(PlanFeature.INFORMATION_REQUESTS to true) else emptyMap(),
         )
         return InformationRequestEntitlementGuard(
-            SubscriptionAccessService(
+            requestRepository = mock(),
+            subscriptionAccessService = SubscriptionAccessService(
                 subscriptionPolicyService = policyService,
                 subscriptionUsageService = SubscriptionUsageService(
                     mock<ExchangeUsageCounter>(),

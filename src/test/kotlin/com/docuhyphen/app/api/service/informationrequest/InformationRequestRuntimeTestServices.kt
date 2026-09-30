@@ -218,7 +218,7 @@ class InformationRequestRuntimeTestServices
         }
         val gate = InformationRequestMutationGate(requestRepository, exchangeRepository, authorization, mock(), grants)
         val readiness = InformationRequestSubmissionReadinessEvaluator(completenessProgressService, attestationEvaluationService, gate)
-        val queries = InformationRequestQueryService(exchangeRepository, requestRepository, authorization, mock(), grants)
+        val queries = InformationRequestQueryService(exchangeRepository, requestRepository, authorization)
         val lifecycle = InformationRequestLifecycleService(
             requestRepository, exchangeRepository, authorization, commandReceiptService, capabilityGate, history, mock(), grants,
             partyRepository, executionUsageReservationService,

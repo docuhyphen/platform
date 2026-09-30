@@ -1,5 +1,15 @@
 package com.docuhyphen.app.api.service.informationrequest
 
+import org.mockito.kotlin.never
+import org.mockito.kotlin.doThrow
+import org.junit.jupiter.api.assertThrows
+import org.junit.jupiter.api.Assertions.assertFalse
+import com.docuhyphen.app.api.service.subscription.SubscriptionOwnerType
+import com.docuhyphen.app.api.service.subscription.SubscriptionDenialReason
+import com.docuhyphen.app.api.service.subscription.SubscriptionDenial
+import com.docuhyphen.app.api.service.subscription.PlanCode
+import com.docuhyphen.app.api.exception.SubscriptionDenialException
+import com.docuhyphen.app.api.exception.OrganizationTrustNotFoundException
 import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestPartyRepository
@@ -658,14 +668,14 @@ class InformationRequestPartyServiceTest
         val grant = RequestExecutionGrant().apply {
             id = UUID.randomUUID()
             requestId = fixture.request.id
-            additionalRecipientCap = 1
+            actingPartyCap = 1
         }
         whenever(fixture.executionGrantService.findForRequest(fixture.request.id)).thenReturn(grant)
         val reservation = RequestExecutionUsageReservation().apply { id = UUID.randomUUID() }
         whenever(
             fixture.executionUsageReservationService.reserve(
                 eq(grant.id),
-                eq(RequestExecutionUsageKind.ADDITIONAL_RECIPIENT),
+                eq(RequestExecutionUsageKind.ACTING_PARTY),
                 any(),
                 eq(1L),
             ),
@@ -695,14 +705,14 @@ class InformationRequestPartyServiceTest
         val grant = RequestExecutionGrant().apply {
             id = UUID.randomUUID()
             requestId = fixture.request.id
-            additionalRecipientCap = 1
+            actingPartyCap = 1
         }
         whenever(fixture.executionGrantService.findForRequest(fixture.request.id)).thenReturn(grant)
         val reservation = RequestExecutionUsageReservation().apply { id = UUID.randomUUID() }
         whenever(
             fixture.executionUsageReservationService.reserve(
                 eq(grant.id),
-                eq(RequestExecutionUsageKind.ADDITIONAL_RECIPIENT),
+                eq(RequestExecutionUsageKind.ACTING_PARTY),
                 any(),
                 eq(1L),
             ),
@@ -723,7 +733,7 @@ class InformationRequestPartyServiceTest
 
         verify(fixture.executionUsageReservationService, times(1)).reserve(
             eq(grant.id),
-            eq(RequestExecutionUsageKind.ADDITIONAL_RECIPIENT),
+            eq(RequestExecutionUsageKind.ACTING_PARTY),
             any(),
             eq(1L),
         )
@@ -738,14 +748,14 @@ class InformationRequestPartyServiceTest
         val grant = RequestExecutionGrant().apply {
             id = UUID.randomUUID()
             requestId = fixture.request.id
-            additionalRecipientCap = 1
+            actingPartyCap = 1
         }
         whenever(fixture.executionGrantService.findForRequest(fixture.request.id)).thenReturn(grant)
         val reservation = RequestExecutionUsageReservation().apply { id = UUID.randomUUID() }
         whenever(
             fixture.executionUsageReservationService.reserve(
                 eq(grant.id),
-                eq(RequestExecutionUsageKind.ADDITIONAL_RECIPIENT),
+                eq(RequestExecutionUsageKind.ACTING_PARTY),
                 any(),
                 eq(1L),
             ),
@@ -828,18 +838,9 @@ class InformationRequestPartyServiceTest
         val grant = RequestExecutionGrant().apply {
             id = UUID.randomUUID()
             requestId = fixture.request.id
-            additionalRecipientCap = 1
+            actingPartyCap = 1
         }
-        val reservation = RequestExecutionUsageReservation().apply { id = UUID.randomUUID() }
         whenever(fixture.executionGrantService.findForRequest(fixture.request.id)).thenReturn(grant)
-        whenever(
-            fixture.executionUsageReservationService.reserve(
-                grant.id,
-                RequestExecutionUsageKind.ADDITIONAL_RECIPIENT,
-                "information_request.party|${existingParty.id}",
-                1L,
-            ),
-        ).thenReturn(reservation)
 
         fixture.service.revoke(
             RevokeInformationRequestPartyCommand(
@@ -851,8 +852,128 @@ class InformationRequestPartyServiceTest
             ),
         )
 
-        verify(fixture.executionUsageReservationService).rollback(reservation.id)
+        verify(fixture.executionUsageReservationService).returnCapacity(
+            grant.id,
+            RequestExecutionUsageKind.ACTING_PARTY,
+            "information_request.party|${existingParty.id}",
+        )
+        verify(fixture.executionUsageReservationService, never()).reserve(any(), any(), any(), any())
     }
+
+    @Test
+    fun `revoking a subject after issuance takes no capacity it never held`()
+    {
+        val fixture = Fixture()
+        fixture.request.state = InformationRequestState.ISSUED
+        val subject = InformationRequestParty().apply {
+            informationRequestId = fixture.request.id
+            roleKey = InformationRequestShareRoleKey.SUBJECT
+            subjectIdentityRefId = UUID.randomUUID()
+        }
+        fixture.partyRepository.save(subject)
+        whenever(fixture.executionGrantService.findForRequest(fixture.request.id)).thenReturn(
+            RequestExecutionGrant().apply { requestId = fixture.request.id },
+        )
+
+        val revoked = fixture.service.revoke(
+            RevokeInformationRequestPartyCommand(
+                requestId = fixture.request.id,
+                partyId = subject.id,
+                access = RequestAccessContext(PrincipalRef.user(UUID.randomUUID()), fixture.authorizationContext),
+                precondition = CommandPrecondition.ExpectedRevision(InformationRequestETag.partiesOf(fixture.request)),
+                idempotencyKey = "revoke-issued-subject",
+            ),
+        )
+
+        assertFalse(revoked.party.active)
+        verify(fixture.executionUsageReservationService, never()).reserve(any(), any(), any(), any())
+    }
+
+    @Test
+    fun `a new party answers to the continuation gate while a revocation does not`()
+    {
+        val fixture = Fixture()
+        fixture.request.state = InformationRequestState.ISSUED
+        val existingParty = fixture.activeActingParty()
+        doThrow(
+            SubscriptionDenialException(
+                SubscriptionDenial(
+                    reason = SubscriptionDenialReason.SUBSCRIPTION_SUSPENDED,
+                    planCode = PlanCode.BUSINESS,
+                    ownerType = SubscriptionOwnerType.ORGANIZATION,
+                    message = "This subscription is suspended.",
+                ),
+            ),
+        ).whenever(fixture.mutationGate).requireContinuationEntitlement(any())
+        val access = RequestAccessContext(PrincipalRef.user(UUID.randomUUID()), fixture.authorizationContext)
+
+        assertThrows<SubscriptionDenialException> {
+            fixture.service.assign(
+                AssignInformationRequestPartyCommand(
+                    requestId = fixture.request.id,
+                    roleKey = InformationRequestShareRoleKey.CONTRIBUTOR,
+                    principal = PrincipalRef.participant(UUID.randomUUID()),
+                    access = access,
+                    precondition = CommandPrecondition.ExpectedRevision(InformationRequestETag.partiesOf(fixture.request)),
+                    idempotencyKey = "assign-while-suspended",
+                ),
+            )
+        }
+        val revoked = fixture.service.revoke(
+            RevokeInformationRequestPartyCommand(
+                requestId = fixture.request.id,
+                partyId = existingParty.id,
+                access = access,
+                precondition = CommandPrecondition.ExpectedRevision(InformationRequestETag.partiesOf(fixture.request)),
+                idempotencyKey = "revoke-while-suspended",
+            ),
+        )
+
+        assertFalse(revoked.party.active)
+    }
+
+    @Test
+    fun `a suspended trust relationship refuses a trusted recipient with a stable reason`()
+    {
+        val fixture = Fixture()
+        val recipient = fixture.exchangeRecipient()
+        whenever(fixture.exchangeRecipientService.trustSuspended(recipient.id)).thenReturn(true)
+
+        val refusal = assertThrows<InformationRequestLifecycleException> {
+            fixture.service.assign(assignRecipient(fixture, recipient.id, "assign-suspended-trust"))
+        }
+
+        assertEquals(InformationRequestErrorCatalog.TRUST_SUSPENDED, refusal.reasonCode)
+        verify(fixture.shareService, never()).grantRoleKeyWithPrincipalProvenance(
+            any(), any(), any(), any(), any(), anyOrNull(), any(), anyOrNull(), anyOrNull(), any(), anyOrNull(),
+        )
+    }
+
+    @Test
+    fun `any other unavailable trusted recipient is refused with a stable reason`()
+    {
+        val fixture = Fixture()
+        val recipient = fixture.exchangeRecipient()
+        whenever(fixture.exchangeRecipientService.requireAssignablePartyRecipient(eq(recipient.id), any(), any()))
+            .thenThrow(OrganizationTrustNotFoundException("Published trusted group is unavailable"))
+
+        val refusal = assertThrows<InformationRequestLifecycleException> {
+            fixture.service.assign(assignRecipient(fixture, recipient.id, "assign-unavailable-trust"))
+        }
+
+        assertEquals(InformationRequestErrorCatalog.TRUSTED_RECIPIENT_UNAVAILABLE, refusal.reasonCode)
+    }
+
+    private fun assignRecipient(fixture: Fixture, recipientId: UUID, key: String) =
+        AssignInformationRequestPartyCommand(
+            requestId = fixture.request.id,
+            roleKey = InformationRequestShareRoleKey.CONTRIBUTOR,
+            principal = PrincipalRef.user(UUID.randomUUID()),
+            exchangeRecipientId = recipientId,
+            access = RequestAccessContext(PrincipalRef.user(UUID.randomUUID()), fixture.authorizationContext),
+            precondition = CommandPrecondition.ExpectedRevision(InformationRequestETag.partiesOf(fixture.request)),
+            idempotencyKey = key,
+        )
 
     @Test
     fun `reassigning a party revokes the old Share grants a new Share and advances party revision`()
@@ -1180,6 +1301,7 @@ class InformationRequestPartyServiceTest
         val transitionRepository = mock<InformationRequestTransitionRepository>()
         val executionGrantService = mock<InformationRequestExecutionGrantService>()
         val executionUsageReservationService = mock<InformationRequestExecutionUsageReservationService>()
+        val mutationGate = mock<InformationRequestMutationGate>()
         val auditRecorder = mock<AuditRecorder>()
         val receiptStore = InMemoryCommandReceiptStore()
         val commandReceiptService = CommandReceiptService(receiptStore)
@@ -1211,6 +1333,7 @@ class InformationRequestPartyServiceTest
             transitionHistory = transitionHistory,
             executionGrantService = executionGrantService,
             executionUsageReservationService = executionUsageReservationService,
+            mutationGate = mutationGate,
         )
 
         init

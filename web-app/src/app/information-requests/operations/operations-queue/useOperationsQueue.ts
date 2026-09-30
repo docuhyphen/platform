@@ -10,13 +10,11 @@ import {
 } from "../../../models/models.tsx";
 import {informationRequestRefusalMessage} from "../../shared/informationRequestRefusal.ts";
 import {OPERATIONS_CSV_FILE_NAME, operationsCsv, saveCsvFile} from "../operationsCsv.ts";
+import {reminderOutcomeSentence} from "./reminderOutcome.ts";
 
 export const OPERATIONS_PAGE_SIZE = 25;
 const EXPORT_PAGE_SIZE = 200;
 const SEARCH_DELAY_MS = 400;
-
-const queuedSentence = (notices: number, requests: number): string =>
-    `${notices} reminder ${notices === 1 ? "notice was" : "notices were"} queued for ${requests} ${requests === 1 ? "request" : "requests"}.`;
 
 export const useOperationsQueue = () =>
 {
@@ -106,7 +104,7 @@ export const useOperationsQueue = () =>
         keys.current.set(signature, key);
         const results = await sendInformationRequestReminders(requestIds, key);
         keys.current.delete(signature);
-        setNotice(queuedSentence(results.reduce((total, result) => total + result.noticeCount, 0), results.length));
+        setNotice(reminderOutcomeSentence(results));
         setSelected(new Set());
         page.reload();
     });

@@ -1,14 +1,42 @@
 package com.docuhyphen.app.api.repository.informationrequest
 
 import com.docuhyphen.app.api.model.entity.InformationRequestRecordExport
+import com.docuhyphen.app.api.model.entity.InformationRequestRecordExportKind
+import com.docuhyphen.app.api.model.entity.RecordOwnerKind
+import com.docuhyphen.app.api.model.informationrequest.InformationRequestExportWindow
 import com.docuhyphen.app.api.repository.BaseRepository
 import jakarta.enterprise.context.ApplicationScoped
+import java.sql.Timestamp
 import java.util.UUID
 
 @ApplicationScoped
 class InformationRequestRecordExportRepository :
     BaseRepository<InformationRequestRecordExport>(InformationRequestRecordExport::class.java)
 {
+    fun windowSince(ownerKind: RecordOwnerKind, ownerId: UUID, since: Timestamp): InformationRequestExportWindow
+    {
+        val row = entityManager.createQuery(
+            """
+            SELECT COUNT(export), MIN(export.requestedAt)
+            FROM InformationRequestRecordExport export
+            WHERE export.exportKind = :exportKind
+              AND export.ownerKind = :ownerKind
+              AND export.ownerId = :ownerId
+              AND export.requestedAt >= :since
+            """.trimIndent(),
+            Array<Any?>::class.java,
+        )
+            .setParameter("exportKind", InformationRequestRecordExportKind.REQUEST_RECORD)
+            .setParameter("ownerKind", ownerKind)
+            .setParameter("ownerId", ownerId)
+            .setParameter("since", since)
+            .singleResult
+        return InformationRequestExportWindow(
+            count = (row[0] as Number).toLong(),
+            oldestRequestedAt = (row[1] as Timestamp?)?.toInstant(),
+        )
+    }
+
     fun findForRequest(requestId: UUID): List<InformationRequestRecordExport> =
         entityManager.createNativeQuery(
             """

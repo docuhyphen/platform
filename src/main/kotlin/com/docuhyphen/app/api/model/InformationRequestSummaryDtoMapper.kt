@@ -13,6 +13,7 @@ object InformationRequestSummaryDtoMapper
         InformationRequestExchangeListingDto(
             requests = listing.requests.map(::toDto),
             canCreate = listing.canCreate,
+            creationUnavailableReason = listing.creationUnavailableReason,
         )
 
     fun toDto(summary: InformationRequestSummary): InformationRequestSummaryDto =
@@ -32,5 +33,6 @@ object InformationRequestSummaryDtoMapper
                 canReview = summary.standing.permissions.canReview,
             ),
             nextAction = summary.standing.nextAction,
+            executionStanding = InformationRequestExecutionStandingDtoMapper.toDto(summary.executionStanding),
         )
 }

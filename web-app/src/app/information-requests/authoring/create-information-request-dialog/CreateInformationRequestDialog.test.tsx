@@ -135,7 +135,8 @@ describe("CreateInformationRequestDialog", () =>
         const {onCreated} = renderDialog();
 
         await screen.findByRole("option", {name: "Periodic records"});
-        expect(screen.getByRole("option", {name: "Platform collection"})).toBeTruthy();
+        expect(screen.queryByRole("option", {name: "Platform collection"})).toBeNull();
+        expect(screen.getByText(/To start from a platform Template, copy it first/)).toBeTruthy();
         expect(screen.queryByRole("option", {name: "Unpublished draft"})).toBeNull();
         choose("Template", "Periodic records");
         fireEvent.click(screen.getByRole("button", {name: "Create"}));

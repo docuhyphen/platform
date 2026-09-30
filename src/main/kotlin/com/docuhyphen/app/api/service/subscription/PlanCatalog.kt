@@ -9,6 +9,9 @@ package com.docuhyphen.app.api.service.subscription
  */
 object PlanCatalog
 {
+    private const val MEBIBYTE = 1024L * 1024L
+    private const val GIBIBYTE = 1024L * MEBIBYTE
+
     private val FREE = PlanDefinition(
         planCode = PlanCode.FREE,
         ownerType = SubscriptionOwnerType.USER,
@@ -22,6 +25,11 @@ object PlanCatalog
             maxAdditionalParticipantsPerExchange = 0,
             includedSeats = 1,
             seatsArePurchased = false,
+            maxOpenInformationRequests = 0,
+            maxActingPartiesPerInformationRequest = 0,
+            maxEvidenceFilesPerInformationRequest = 0,
+            maxEvidenceBytesPerInformationRequest = 0,
+            maxCommittedEvidenceBytes = 0,
         ),
         upgradePlanCode = PlanCode.PERSONAL,
     )
@@ -57,6 +65,11 @@ object PlanCatalog
             maxAdditionalParticipantsPerExchange = null,
             includedSeats = 1,
             seatsArePurchased = false,
+            maxOpenInformationRequests = 25,
+            maxActingPartiesPerInformationRequest = 10,
+            maxEvidenceFilesPerInformationRequest = 100,
+            maxEvidenceBytesPerInformationRequest = 250 * MEBIBYTE,
+            maxCommittedEvidenceBytes = 5 * GIBIBYTE,
         ),
         upgradePlanCode = PlanCode.BUSINESS,
     )
@@ -79,6 +92,11 @@ object PlanCatalog
             maxAdditionalParticipantsPerExchange = null,
             includedSeats = null,
             seatsArePurchased = true,
+            maxOpenInformationRequests = null,
+            maxActingPartiesPerInformationRequest = 100,
+            maxEvidenceFilesPerInformationRequest = 200,
+            maxEvidenceBytesPerInformationRequest = 500 * MEBIBYTE,
+            maxCommittedEvidenceBytes = 100 * GIBIBYTE,
         ),
         upgradePlanCode = null,
     )

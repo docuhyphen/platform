@@ -33,9 +33,10 @@ const request: InformationRequestDto = {
     conditionEvaluations: [],
 };
 
-const renderPanel = () => render(
+const renderPanel = (canCreate = true) => render(
     <MemoryRouter>
         <FollowUpPanel request={request}
+                       canCreate={canCreate}
                        onChanged={vi.fn()}/>
     </MemoryRouter>,
 );
@@ -117,6 +118,46 @@ describe("FollowUpPanel", () =>
 
         await waitFor(() => expect(authoring.createNextInformationRequestOccurrence)
             .toHaveBeenCalledWith("request-a", "recurrence-a", expect.any(String)));
+    });
+
+    it("keeps the follow-up history but offers no new follow-ups while new work is unavailable", async () =>
+    {
+        vi.mocked(authoring.getInformationRequestLineage).mockResolvedValue({
+            informationRequestId: "request-a",
+            successors: [{
+                id: "lineage-a",
+                lineageKind: InformationRequestLineageKind.RECURRENCE,
+                sourceRequestId: "request-a",
+                successorRequestId: "request-b",
+                recurrenceId: "recurrence-a",
+                recurrenceSequence: 1,
+                createdAt: "2026-09-10T08:00:00Z",
+            }],
+            recurrence: {
+                id: "recurrence-a",
+                originRequestId: "request-a",
+                intervalUnit: InformationRequestRecurrenceUnit.MONTH,
+                intervalCount: 1,
+                firstDueAt: "2026-09-10T08:00:00Z",
+                createdAt: "2026-09-01T08:00:00Z",
+            },
+            nextOccurrenceDueAt: "2026-09-26T08:00:00Z",
+        });
+        renderPanel(false);
+
+        expect(await screen.findByText("Recurring request 1")).toBeTruthy();
+        expect(screen.getByText(/^Repeats every 1 month/)).toBeTruthy();
+        expect(screen.queryByRole("button", {name: "Create the next request"})).toBeNull();
+        expect(screen.queryByRole("button", {name: "Request a supplement"})).toBeNull();
+    });
+
+    it("offers no schedule while new work is unavailable", async () =>
+    {
+        vi.mocked(authoring.getInformationRequestLineage).mockResolvedValue({informationRequestId: "request-a", successors: []});
+        renderPanel(false);
+
+        await waitFor(() => expect(authoring.getInformationRequestLineage).toHaveBeenCalled());
+        expect(document.getElementById("information-request-recurrence-form")).toBeNull();
     });
 
     it("asks for a supplement with the reason stated", async () =>

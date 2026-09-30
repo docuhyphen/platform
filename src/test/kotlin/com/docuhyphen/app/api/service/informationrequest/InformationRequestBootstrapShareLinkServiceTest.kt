@@ -1,6 +1,7 @@
 package com.docuhyphen.app.api.service.informationrequest
 
 import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.informationrequest.InformationRequestAbuseLimits
 import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
 import com.docuhyphen.app.api.repository.exchange.ShareLinkRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestPartyRepository
@@ -15,6 +16,7 @@ import org.junit.jupiter.api.Test
 import org.mockito.kotlin.*
 import java.security.MessageDigest
 import java.sql.Timestamp
+import java.time.Duration
 import java.time.Instant
 import java.util.*
 
@@ -49,6 +51,37 @@ class InformationRequestBootstrapShareLinkServiceTest
         assertThrows(io.quarkus.security.ForbiddenException::class.java) {
             fixture.service.links(fixture.request.id, fixture.access)
         }
+    }
+
+    @Test
+    fun `a link issued or replaced without an expiry or use limit takes the configured defaults`()
+    {
+        val fixture = Fixture()
+        val party = fixture.activeActingParty()
+        val before = Instant.now()
+
+        val issued = fixture.service.issue(fixture.command(party.id)).shareLink
+        val replaced = fixture.service.replace(fixture.replaceCommand(fixture.activeBootstrapShareLink(party), party)).shareLink
+
+        listOf(issued, replaced).forEach { link ->
+            assertEquals(25, link.maxUses)
+            val expiresAt = requireNotNull(link.expiresAt).toInstant()
+            assertFalse(expiresAt.isBefore(before.plus(Duration.ofDays(30))))
+            assertFalse(expiresAt.isAfter(Instant.now().plus(Duration.ofDays(30))))
+        }
+    }
+
+    @Test
+    fun `an author's own expiry and use limit are kept`()
+    {
+        val fixture = Fixture()
+        val party = fixture.activeActingParty()
+        val expiresAt = Timestamp.from(Instant.now().plus(Duration.ofDays(2)))
+
+        val link = fixture.service.issue(fixture.command(party.id).copy(expiresAt = expiresAt, maxUses = 3)).shareLink
+
+        assertEquals(expiresAt, link.expiresAt)
+        assertEquals(3, link.maxUses)
     }
 
     @Test
@@ -401,6 +434,7 @@ class InformationRequestBootstrapShareLinkServiceTest
             authorizationService = authorizationService,
             commandReceiptService = commandReceiptService,
             requestAccessSessionService = requestAccessSessionService,
+            abuseLimits = InformationRequestAbuseLimits(accessLinkLifetime = Duration.ofDays(30), accessLinkUses = 25),
         )
 
         init

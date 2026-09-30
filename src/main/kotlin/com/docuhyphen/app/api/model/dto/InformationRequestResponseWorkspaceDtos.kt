@@ -16,6 +16,7 @@ data class InformationRequestResponseWorkspaceDto(
     val supportingEvidenceLinks: List<InformationRequestSupportingEvidenceLinkDto> = emptyList(),
     val evidenceUploadAvailable: Boolean = false,
     val evidenceMalwareScanning: Boolean = false,
+    val executionStanding: InformationRequestExecutionStandingDto,
 )
 
 @Serializable

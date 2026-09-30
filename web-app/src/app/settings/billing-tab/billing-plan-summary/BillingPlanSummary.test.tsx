@@ -108,4 +108,44 @@ describe("BillingPlanSummary", () =>
         expect(trialDaysRemaining(null)).toBe(0);
         expect(trialDaysRemaining("not-a-date")).toBe(0);
     });
+    it("states the plan's Information Request allowances", () =>
+    {
+        subscriptionMock.value = {
+            ...subscription(PlanCode.PERSONAL, SubscriptionOwnerType.USER, SubscriptionStatus.ACTIVE, "2026-09-16T12:00:00Z"),
+            limits: {
+                seatsArePurchased: false,
+                maxOpenInformationRequests: 25,
+                maxActingPartiesPerInformationRequest: 10,
+                maxEvidenceFilesPerInformationRequest: 100,
+                maxEvidenceBytesPerInformationRequest: 250 * 1024 * 1024,
+                maxCommittedEvidenceBytes: 5 * 1024 * 1024 * 1024,
+            },
+        };
+
+        render(<BillingPlanSummary/>);
+
+        const allowances = document.getElementById("settings-billing-information-request-allowances")?.textContent;
+        expect(allowances).toContain("Up to 25 open Information Requests at a time");
+        expect(allowances).toContain("10 acting parties, 100 evidence files, and 250 MiB per request");
+        expect(allowances).toContain("5 GiB of evidence across requests");
+    });
+
+    it("states no Information Request allowances for a plan without them", () =>
+    {
+        subscriptionMock.value = {
+            ...subscription(PlanCode.FREE, SubscriptionOwnerType.USER, SubscriptionStatus.ACTIVE, "2026-09-16T12:00:00Z"),
+            limits: {
+                seatsArePurchased: false,
+                maxOpenInformationRequests: 0,
+                maxActingPartiesPerInformationRequest: 0,
+                maxEvidenceFilesPerInformationRequest: 0,
+                maxEvidenceBytesPerInformationRequest: 0,
+                maxCommittedEvidenceBytes: 0,
+            },
+        };
+
+        render(<BillingPlanSummary/>);
+
+        expect(document.getElementById("settings-billing-information-request-allowances")).toBeNull();
+    });
 });

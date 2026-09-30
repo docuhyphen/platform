@@ -3,14 +3,16 @@ import {act, renderHook, waitFor} from "@testing-library/react";
 import {beforeEach, describe, expect, it, vi} from "vitest";
 import * as authoring from "../../../services/informationRequestAuthoringService.ts";
 import {
+    InformationRequestExecutionStandingKind,
     InformationRequestNextAction,
     InformationRequestState,
+    InformationRequestSummaryDto,
 } from "../../models/models.tsx";
 import {useExchangeInformationRequests} from "./useExchangeInformationRequests.ts";
 
 vi.mock("../../../services/informationRequestAuthoringService.ts", () => ({getExchangeInformationRequests: vi.fn()}));
 
-const retained = {
+const retained: InformationRequestSummaryDto = {
     id: "request-a",
     exchangeId: "exchange-a",
     title: "Periodic records request",
@@ -20,6 +22,7 @@ const retained = {
     callerRoles: [],
     permissions: {canManage: false, canRespond: false, canReview: false},
     nextAction: InformationRequestNextAction.VIEW,
+    executionStanding: {kind: InformationRequestExecutionStandingKind.ACTIVE},
 };
 
 describe("useExchangeInformationRequests", () =>
@@ -44,9 +47,22 @@ describe("useExchangeInformationRequests", () =>
         expect(authoring.getExchangeInformationRequests).toHaveBeenCalledWith("exchange-a");
     });
 
-    it("hides the tab when the listing is refused and loads nothing without an Exchange", async () =>
+    it("keeps the tab, with its error, when the listing fails for any reason but access", async () =>
     {
-        vi.mocked(authoring.getExchangeInformationRequests).mockRejectedValueOnce({errorMessage: "Access denied to list Information Requests"});
+        vi.mocked(authoring.getExchangeInformationRequests).mockRejectedValueOnce({errorMessage: "Request failed"});
+
+        const {result} = renderHook(() => useExchangeInformationRequests("exchange-a"));
+
+        await waitFor(() => expect(result.current.error).toBe("Request failed"));
+        expect(result.current.visible).toBe(true);
+    });
+
+    it("hides the tab when access to the listing is refused and loads nothing without an Exchange", async () =>
+    {
+        vi.mocked(authoring.getExchangeInformationRequests).mockRejectedValueOnce({
+            errorMessage: "Access denied to list Information Requests",
+            reasonCode: "INFORMATION_REQUEST_FORBIDDEN",
+        });
 
         const {result, rerender} = renderHook(({exchangeId}: {exchangeId?: string}) => useExchangeInformationRequests(exchangeId), {
             initialProps: {exchangeId: "exchange-a" as string | undefined},

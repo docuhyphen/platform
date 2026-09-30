@@ -1,6 +1,6 @@
 package com.docuhyphen.app.api.resource.informationrequest
 
-import com.docuhyphen.app.api.model.dto.InformationRequestReminderResultDto
+import com.docuhyphen.app.api.model.InformationRequestReminderDtoMapper
 import com.docuhyphen.app.api.model.informationrequest.SendInformationRequestRemindersCommand
 import com.docuhyphen.app.api.resource.model.SendInformationRequestRemindersRequest
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestReminderService
@@ -36,7 +36,7 @@ class InformationRequestReminderResource @Inject constructor(
                 ),
             )
             Response.status(Response.Status.CREATED)
-                .entity(results.map { InformationRequestReminderResultDto(it.requestId, it.noticeCount) })
+                .entity(results.map(InformationRequestReminderDtoMapper::toDto))
                 .build()
         }
         catch (exception: Exception)

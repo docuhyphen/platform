@@ -1,78 +1,21 @@
-import {useState} from "react";
-import {Button, Tab, TabList} from "@fluentui/react-components";
-import {AddIcon} from "../../components/IconBundles.tsx";
-import {InformationRequestTemplateScopeKind} from "../../models/models.tsx";
-import TemplateCreateDialog from "./template-create-dialog/TemplateCreateDialog.tsx";
-import TemplateEditor from "./template-editor/TemplateEditor.tsx";
-import TemplateList from "./template-list/TemplateList.tsx";
+import {useInformationRequestCapabilities} from "../../information-requests/capabilities/useInformationRequestCapabilities.ts";
+import {scopeStandingNotice} from "../../information-requests/capabilities/scopeStandingText.ts";
+import StandingNotice from "../../information-requests/shared/standing-notice/StandingNotice.tsx";
+import TemplateAdministration from "./template-administration/TemplateAdministration.tsx";
 import {useInformationRequestTemplatesTabStyles} from "./InformationRequestTemplatesTabStyles.tsx";
-import {useInformationRequestTemplateAdministration} from "./useInformationRequestTemplateAdministration.ts";
 
 const InformationRequestTemplatesTab = () =>
 {
     const styles = useInformationRequestTemplatesTabStyles();
-    const state = useInformationRequestTemplateAdministration();
-    const [creating, setCreating] = useState(false);
-
-    if (state.openTemplate && state.commands)
-    {
-        return (
-            <div id={"settings-information-request-templates-tab"}
-                 className={styles.root}>
-                <TemplateEditor template={state.openTemplate}
-                                schemas={state.schemas}
-                                canManage={state.canManageScope}
-                                commands={state.commands}
-                                onClose={state.close}/>
-            </div>
-        );
-    }
+    const capabilities = useInformationRequestCapabilities();
+    const respondOnly = capabilities !== null && !capabilities.featureIncluded && !capabilities.personalTemplatesAvailable;
 
     return (
         <div id={"settings-information-request-templates-tab"}
              className={styles.root}>
-            <div id={"information-request-template-header"}
-                 className={styles.header}>
-                <TabList id={"information-request-template-scope-tabs"}
-                         selectedValue={state.scope ?? undefined}
-                         onTabSelect={(_, data) => state.setScope(data.value as InformationRequestTemplateScopeKind)}>
-                    <Tab id={"information-request-template-personal-scope"}
-                         value={InformationRequestTemplateScopeKind.PERSONAL}>
-                        My Templates
-                    </Tab>
-                    {state.hasOrg && (
-                        <Tab id={"information-request-template-organization-scope"}
-                             value={InformationRequestTemplateScopeKind.ORGANIZATION}>
-                            Organization
-                        </Tab>
-                    )}
-                    <Tab id={"information-request-template-platform-scope"}
-                         value={InformationRequestTemplateScopeKind.PLATFORM}>
-                        Platform
-                    </Tab>
-                </TabList>
-                {state.canManageScope && (
-                    <Button id={"information-request-template-create"}
-                            appearance={"primary"}
-                            shape={"circular"}
-                            icon={<AddIcon/>}
-                            onClick={() => setCreating(true)}>
-                        New Template
-                    </Button>
-                )}
-            </div>
-            <div id={"information-request-template-content"}
-                 className={styles.content}>
-                <TemplateList templates={state.templates}
-                              loading={state.loading}
-                              error={state.error}
-                              onOpen={template => void state.open(template)}/>
-            </div>
-            {creating && state.scope && (
-                <TemplateCreateDialog scopeKind={state.scope}
-                                      onCreate={state.create}
-                                      onDismiss={() => setCreating(false)}/>
-            )}
+            <StandingNotice id={"information-request-templates-scope-standing"}
+                            notice={capabilities ? scopeStandingNotice(capabilities) : null}/>
+            {!respondOnly && <TemplateAdministration capabilities={capabilities}/>}
         </div>
     );
 };

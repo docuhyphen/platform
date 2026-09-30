@@ -2,19 +2,16 @@
 import {cleanup, fireEvent, render, screen} from "@testing-library/react";
 import {MemoryRouter, Route, Routes} from "react-router-dom";
 import {afterEach, describe, expect, it, vi} from "vitest";
-import {usePlanFeature} from "../../../../hooks/subscription/usePlanFeature.ts";
+import {useInformationRequestCapabilities} from "../../../information-requests/capabilities/useInformationRequestCapabilities.ts";
+import {
+    capabilitiesWithoutTheFeature,
+    informationRequestCapabilities,
+} from "../../../information-requests/shared/testing/capabilityFixtures.ts";
 import ReviewQueueNavigation from "./ReviewQueueNavigation.tsx";
 
-vi.mock("../../../../hooks/subscription/usePlanFeature.ts", () => ({usePlanFeature: vi.fn()}));
-
-const availability = (isAvailable: boolean) => ({
-    isKnown: true,
-    isIncluded: isAvailable,
-    isEnforced: true,
-    isDiscoverable: isAvailable,
-    isAvailable,
-    upgradePlanCode: null,
-});
+vi.mock("../../../information-requests/capabilities/useInformationRequestCapabilities.ts", () => ({
+    useInformationRequestCapabilities: vi.fn(),
+}));
 
 const renderNavigation = () => render(
     <MemoryRouter initialEntries={["/exchanges"]}>
@@ -27,20 +24,39 @@ const renderNavigation = () => render(
     </MemoryRouter>,
 );
 
+const reviewsLink = () => screen.queryByRole("button", {name: "Reviews assigned to you"});
+
 describe("ReviewQueueNavigation", () =>
 {
     afterEach(cleanup);
 
-    it("opens the reviewer queue only for a caller whose plan includes Information Requests", async () =>
+    it("opens the reviewer queue for a caller whose active scope includes Information Requests", async () =>
     {
-        vi.mocked(usePlanFeature).mockReturnValue(availability(false));
+        vi.mocked(useInformationRequestCapabilities).mockReturnValue(informationRequestCapabilities());
         renderNavigation();
-        expect(screen.queryByRole("button", {name: "Reviews assigned to you"})).toBeNull();
+
+        fireEvent.click(reviewsLink()!);
+
+        expect(await screen.findByText("Review queue")).toBeTruthy();
+    });
+
+    it("stays available to a caller without the feature who holds assigned work", () =>
+    {
+        vi.mocked(useInformationRequestCapabilities).mockReturnValue(capabilitiesWithoutTheFeature({assignedWork: true}));
+        renderNavigation();
+
+        expect(reviewsLink()).not.toBeNull();
+    });
+
+    it("stays hidden while the capabilities are unknown or offer no reviews", () =>
+    {
+        vi.mocked(useInformationRequestCapabilities).mockReturnValue(null);
+        renderNavigation();
+        expect(reviewsLink()).toBeNull();
         cleanup();
 
-        vi.mocked(usePlanFeature).mockReturnValue(availability(true));
+        vi.mocked(useInformationRequestCapabilities).mockReturnValue(capabilitiesWithoutTheFeature());
         renderNavigation();
-        fireEvent.click(screen.getByRole("button", {name: "Reviews assigned to you"}));
-        expect(await screen.findByText("Review queue")).toBeTruthy();
+        expect(reviewsLink()).toBeNull();
     });
 });

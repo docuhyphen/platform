@@ -1,10 +1,11 @@
-import {Button, Text} from "@fluentui/react-components";
+import {Badge, Button, Text} from "@fluentui/react-components";
 import {
     InformationRequestAccessLinkDto,
     InformationRequestAccessLinkStatus,
     InformationRequestPartyDto,
     InformationRequestShareRoleKey,
 } from "../../../models/models.tsx";
+import {formatInformationRequestTime} from "../../shared/informationRequestFormatting.ts";
 import {shareRoleLabels} from "../../shared/informationRequestLabels.ts";
 import {partyLabel} from "../author-workspace/useAuthorWorkspace.ts";
 import {usePartyRowStyles} from "./PartyRowStyles.tsx";
@@ -24,7 +25,10 @@ interface Props
 const linkStatus = (link?: InformationRequestAccessLinkDto): string =>
 {
     if (!link) return "No access link";
-    return link.rotationCount > 0 ? `Access link active, resent ${link.rotationCount} times` : "Access link active";
+    const active = link.expiresAt
+        ? `Access link active until ${formatInformationRequestTime(link.expiresAt)}`
+        : "Access link active";
+    return link.rotationCount > 0 ? `${active}, resent ${link.rotationCount} times` : active;
 };
 
 const PartyRow = ({party, links, busy, editable, onIssueLink, onResendLink, onRevokeLink, onRemove}: Props) =>
@@ -50,6 +54,22 @@ const PartyRow = ({party, links, busy, editable, onIssueLink, onResendLink, onRe
                       className={styles.meta}>
                     {acting ? `${shareRoleLabels[party.roleKey]}. ${linkStatus(activeLink)}` : shareRoleLabels[party.roleKey]}
                 </Text>
+                {party.trustSuspended && (
+                    <>
+                        <Badge id={`${idPrefix}-trust-suspended`}
+                               appearance={"outline"}
+                               color={"warning"}
+                               className={styles.trustBadge}>
+                            Trusted relationship suspended
+                        </Badge>
+                        <Text id={`${idPrefix}-trust-suspended-note`}
+                              size={200}
+                              className={styles.meta}>
+                            This party keeps answering what was already issued. New trusted assignments are paused until
+                            the relationship is restored.
+                        </Text>
+                    </>
+                )}
             </div>
             {editable && (
                 <div id={`${idPrefix}-actions`}

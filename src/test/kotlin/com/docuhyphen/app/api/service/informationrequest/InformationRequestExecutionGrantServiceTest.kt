@@ -1,5 +1,6 @@
 package com.docuhyphen.app.api.service.informationrequest
 
+import com.docuhyphen.app.api.exception.SubscriptionDenialException
 import com.docuhyphen.app.api.model.entity.Exchange
 import com.docuhyphen.app.api.model.entity.InformationRequest
 import com.docuhyphen.app.api.model.entity.InformationRequestTemplateRequirementBinding
@@ -13,6 +14,8 @@ import com.docuhyphen.app.api.service.subscription.PlanFeature
 import com.docuhyphen.app.api.service.subscription.PlanLimits
 import com.docuhyphen.app.api.service.subscription.SubscriptionAccessService
 import com.docuhyphen.app.api.service.subscription.SubscriptionContext
+import com.docuhyphen.app.api.service.subscription.SubscriptionDenial
+import com.docuhyphen.app.api.service.subscription.SubscriptionDenialReason
 import com.docuhyphen.app.api.service.subscription.SubscriptionEnforcementMode
 import com.docuhyphen.app.api.service.subscription.SubscriptionOwnerType
 import com.docuhyphen.app.api.service.subscription.SubscriptionStatus
@@ -21,6 +24,10 @@ import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertSame
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
+import org.mockito.kotlin.any
+import org.mockito.kotlin.argumentCaptor
+import org.mockito.kotlin.doThrow
+import org.mockito.kotlin.eq
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
@@ -62,7 +69,7 @@ class InformationRequestExecutionGrantServiceTest
                 ),
             )
         whenever(subscriptionAccessService.enforcementMode()).thenReturn(SubscriptionEnforcementMode.ENFORCE)
-        whenever(grantRepository.save(org.mockito.kotlin.any())).thenAnswer { it.getArgument(0) }
+        whenever(grantRepository.insertNow(org.mockito.kotlin.any())).thenAnswer { it.getArgument(0) }
 
         val grant = service.issueGrant(request, exchange)
 
@@ -75,8 +82,62 @@ class InformationRequestExecutionGrantServiceTest
         assertEquals(SubscriptionEnforcementMode.ENFORCE.name, grant.enforcementMode)
         assertNull(grant.trialExpiresAt)
         assertNull(grant.mutationAllowanceExpiresAt)
-        assertEquals(4L, grant.additionalRecipientCap)
+        assertEquals(100L, grant.actingPartyCap)
+        assertEquals(200L, grant.evidenceFileAllowance)
+        assertEquals(500L * MEBIBYTE, grant.evidenceByteAllowance)
         assertNull(grant.revokedAt)
+    }
+
+    @Test
+    fun `issuing checks the request's evidence allowance against the owner's committed evidence first`()
+    {
+        val userId = UUID.randomUUID()
+        val request = requestFor(UUID.randomUUID())
+        val context = SubscriptionContext.forUser(userId)
+        whenever(grantRepository.findByRequestId(request.id)).thenReturn(null)
+        whenever(subscriptionAccessService.resolve(context))
+            .thenReturn(subscription(SubscriptionOwnerType.USER, userId, SubscriptionStatus.ACTIVE))
+        whenever(subscriptionAccessService.enforcementMode()).thenReturn(SubscriptionEnforcementMode.ENFORCE)
+        whenever(grantRepository.committedEvidenceBytes(SubscriptionOwnerType.USER, userId)).thenReturn(7L)
+        doThrow(
+            SubscriptionDenialException(
+                SubscriptionDenial(
+                    reason = SubscriptionDenialReason.PLAN_LIMIT_REACHED,
+                    planCode = PlanCode.PERSONAL,
+                    ownerType = SubscriptionOwnerType.USER,
+                    message = "The committed evidence allowance is reached.",
+                ),
+            ),
+        ).whenever(subscriptionAccessService).requireCommittedEvidenceCapacity(eq(context), any())
+
+        assertThrows<SubscriptionDenialException> { service.issueGrant(request, personalExchange(userId)) }
+
+        val committed = argumentCaptor<() -> Long>()
+        verify(subscriptionAccessService).requireCommittedEvidenceCapacity(eq(context), committed.capture())
+        assertEquals(7L, committed.firstValue.invoke())
+        verify(grantRepository, never()).insertNow(any())
+    }
+
+    @Test
+    fun `a grant issued while enforcement does not refuse freezes no allowance`()
+    {
+        for (mode in listOf(SubscriptionEnforcementMode.REPORT_ONLY, SubscriptionEnforcementMode.OFF))
+        {
+            val organizationId = UUID.randomUUID()
+            val request = requestFor(UUID.randomUUID())
+            whenever(grantRepository.findByRequestId(request.id)).thenReturn(null)
+            whenever(subscriptionAccessService.resolve(SubscriptionContext.forOrganization(organizationId)))
+                .thenReturn(subscription(SubscriptionOwnerType.ORGANIZATION, organizationId, SubscriptionStatus.ACTIVE))
+            whenever(subscriptionAccessService.enforcementMode()).thenReturn(mode)
+            whenever(grantRepository.insertNow(org.mockito.kotlin.any())).thenAnswer { it.getArgument(0) }
+
+            val grant = service.issueGrant(request, organizationExchange(organizationId))
+
+            assertEquals(mode.name, grant.enforcementMode)
+            assertNull(grant.actingPartyCap)
+            assertNull(grant.evidenceFileAllowance)
+            assertNull(grant.evidenceByteAllowance)
+        }
     }
 
     @Test
@@ -98,7 +159,7 @@ class InformationRequestExecutionGrantServiceTest
                 ),
             )
         whenever(subscriptionAccessService.enforcementMode()).thenReturn(SubscriptionEnforcementMode.ENFORCE)
-        whenever(grantRepository.save(org.mockito.kotlin.any())).thenAnswer { it.getArgument(0) }
+        whenever(grantRepository.insertNow(org.mockito.kotlin.any())).thenAnswer { it.getArgument(0) }
 
         service.issueGrant(request, exchange)
 
@@ -127,7 +188,7 @@ class InformationRequestExecutionGrantServiceTest
                 ),
             )
         whenever(subscriptionAccessService.enforcementMode()).thenReturn(SubscriptionEnforcementMode.ENFORCE)
-        whenever(grantRepository.save(org.mockito.kotlin.any())).thenAnswer { it.getArgument(0) }
+        whenever(grantRepository.insertNow(org.mockito.kotlin.any())).thenAnswer { it.getArgument(0) }
 
         service.issueGrant(request, exchange)
 
@@ -156,7 +217,7 @@ class InformationRequestExecutionGrantServiceTest
                 ),
             )
         whenever(subscriptionAccessService.enforcementMode()).thenReturn(SubscriptionEnforcementMode.ENFORCE)
-        whenever(grantRepository.save(org.mockito.kotlin.any())).thenAnswer { it.getArgument(0) }
+        whenever(grantRepository.insertNow(org.mockito.kotlin.any())).thenAnswer { it.getArgument(0) }
 
         service.issueGrant(request, exchange)
 
@@ -164,7 +225,7 @@ class InformationRequestExecutionGrantServiceTest
             org.mockito.kotlin.any(),
             org.mockito.kotlin.eq(PlanFeature.BUSINESS_FIELDS_AND_SCHEMAS),
         )
-        verify(grantRepository).save(org.mockito.kotlin.any())
+        verify(grantRepository).insertNow(org.mockito.kotlin.any())
     }
 
     @Test
@@ -185,7 +246,7 @@ class InformationRequestExecutionGrantServiceTest
         ).thenThrow(IllegalStateException("Business Fields and schemas is not included"))
 
         assertThrows<IllegalStateException> { service.issueGrant(request, exchange) }
-        verify(grantRepository, never()).save(org.mockito.kotlin.any())
+        verify(grantRepository, never()).insertNow(org.mockito.kotlin.any())
     }
 
     @Test
@@ -206,7 +267,7 @@ class InformationRequestExecutionGrantServiceTest
                 ),
             )
         whenever(subscriptionAccessService.enforcementMode()).thenReturn(SubscriptionEnforcementMode.ENFORCE)
-        whenever(grantRepository.save(org.mockito.kotlin.any())).thenAnswer { it.getArgument(0) }
+        whenever(grantRepository.insertNow(org.mockito.kotlin.any())).thenAnswer { it.getArgument(0) }
 
         val grant = service.issueGrant(request, exchange)
 
@@ -234,7 +295,7 @@ class InformationRequestExecutionGrantServiceTest
                 ),
             )
         whenever(subscriptionAccessService.enforcementMode()).thenReturn(SubscriptionEnforcementMode.ENFORCE)
-        whenever(grantRepository.save(org.mockito.kotlin.any())).thenAnswer { it.getArgument(0) }
+        whenever(grantRepository.insertNow(org.mockito.kotlin.any())).thenAnswer { it.getArgument(0) }
 
         val grant = service.issueGrant(request, exchange)
 
@@ -255,7 +316,7 @@ class InformationRequestExecutionGrantServiceTest
 
         assertSame(existing, grant)
         verify(subscriptionAccessService, never()).resolve(org.mockito.kotlin.any())
-        verify(grantRepository, never()).save(org.mockito.kotlin.any())
+        verify(grantRepository, never()).insertNow(org.mockito.kotlin.any())
     }
 
     @Test
@@ -340,6 +401,11 @@ class InformationRequestExecutionGrantServiceTest
         maxAdditionalParticipantsPerExchange = maxAdditionalParticipants,
         includedSeats = null,
         seatsArePurchased = false,
+        maxOpenInformationRequests = null,
+        maxActingPartiesPerInformationRequest = 100L,
+        maxEvidenceFilesPerInformationRequest = 200L,
+        maxEvidenceBytesPerInformationRequest = 500L * MEBIBYTE,
+        maxCommittedEvidenceBytes = 100L * 1024L * MEBIBYTE,
     )
 
     private fun subscription(
@@ -363,4 +429,9 @@ class InformationRequestExecutionGrantServiceTest
         purchasedSeats = null,
         upgradePlanCode = null,
     )
+
+    private companion object
+    {
+        const val MEBIBYTE = 1024L * 1024L
+    }
 }

@@ -82,6 +82,18 @@ class SubscriptionDtoMapperTest
     }
 
     @Test
+    fun `a plan states its Information Request quotas`()
+    {
+        val dto = SubscriptionDtoMapper.toDto(subscription(PlanCode.PERSONAL))
+
+        assertEquals(25L, dto.maxOpenInformationRequests)
+        assertEquals(10L, dto.maxActingPartiesPerInformationRequest)
+        assertEquals(100L, dto.maxEvidenceFilesPerInformationRequest)
+        assertEquals(250L * 1024L * 1024L, dto.maxEvidenceBytesPerInformationRequest)
+        assertEquals(5L * 1024L * 1024L * 1024L, dto.maxCommittedEvidenceBytes)
+    }
+
+    @Test
     fun `an organization plan reports purchased seat capacity and active seats`()
     {
         val dto = SubscriptionDtoMapper.toDto(

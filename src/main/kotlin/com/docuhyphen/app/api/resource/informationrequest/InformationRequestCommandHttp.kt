@@ -21,6 +21,7 @@ object InformationRequestCommandHttp
     const val IDEMPOTENCY_KEY_HEADER = "Idempotency-Key"
     const val ACCESS_LINK_TOKEN_HEADER = "X-Request-Access-Token"
     const val SESSION_TOKEN_HEADER = "X-Request-Session-Token"
+    private const val RETRY_AFTER_HEADER = "Retry-After"
     private const val UNPROCESSABLE_CONTENT = 422
 
     fun uuid(raw: String, name: String): UUID =
@@ -64,6 +65,10 @@ object InformationRequestCommandHttp
             is InformationRequestTemplateVersionUnavailableException -> error(CONFLICT, exception.message, exception.code)
             is CommandPreconditionException -> CommandPreconditionResponse.refused(exception)
             is CommandReceiptConflictException -> error(CONFLICT, exception.message, exception.reasonCode)
+            is InformationRequestRateLimitedException -> Response.status(TOO_MANY_REQUESTS)
+                .header(RETRY_AFTER_HEADER, exception.retryAfterSeconds)
+                .entity(ResponseError(exception.message, exception.reasonCode))
+                .build()
             is RequestExecutionUsageExhaustedException -> error(
                 CONFLICT,
                 "This request has no acting-party capacity left in its execution grant",
@@ -85,7 +90,7 @@ object InformationRequestCommandHttp
                     error(CONFLICT, exception.message, exception.reasonCode)
             is IllegalArgumentException -> error(NOT_FOUND, exception.message)
             is IllegalStateException -> error(CONFLICT, exception.message)
-            is ForbiddenException -> error(FORBIDDEN, exception.message)
+            is ForbiddenException -> error(FORBIDDEN, exception.message, InformationRequestErrorCatalog.FORBIDDEN)
             is UnauthorizedException -> error(UNAUTHORIZED, exception.message)
             else ->
             {

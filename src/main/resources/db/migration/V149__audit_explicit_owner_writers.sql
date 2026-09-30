@@ -1,0 +1,7 @@
+DROP TRIGGER audit_outbox_legacy_owner ON audit_outbox;
+DROP TRIGGER audit_ledger_event_legacy_owner ON audit_ledger_event;
+DROP TRIGGER audit_analytics_fact_legacy_owner ON audit_analytics_fact;
+DROP TRIGGER audit_export_legacy_owner ON audit_export;
+DROP TRIGGER audit_retention_policy_legacy_owner ON audit_retention_policy;
+
+DROP FUNCTION audit_owner_from_legacy_organization();

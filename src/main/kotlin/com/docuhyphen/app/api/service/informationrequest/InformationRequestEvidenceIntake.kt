@@ -11,6 +11,7 @@ import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceAttribute
 import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceCollectionState
 import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceVersion
 import com.docuhyphen.app.api.model.entity.InformationRequestRequirement
+import com.docuhyphen.app.api.model.informationrequest.InformationRequestAbuseControl
 import com.docuhyphen.app.api.model.informationrequest.InformationRequestEvidenceFile
 import com.docuhyphen.app.api.model.informationrequest.InformationRequestEvidenceFindingCode
 import com.docuhyphen.app.api.model.informationrequest.InformationRequestEvidenceInspectionFacts
@@ -31,6 +32,7 @@ import java.time.Clock
 class InformationRequestEvidenceIntake @Inject constructor(
     private val deploymentPolicy: InformationRequestEvidenceDeploymentPolicy,
     private val limits: InformationRequestEvidenceUploadLimits,
+    private val executionGrantService: InformationRequestExecutionGrantService,
     private val policyLoader: InformationRequestEvidencePolicyLoader,
     private val inspector: InformationRequestEvidenceContentInspector,
     private val artifactRepository: InformationRequestEvidenceArtifactRepository,
@@ -109,14 +111,17 @@ class InformationRequestEvidenceIntake @Inject constructor(
         }
         if (digest.length > fileLimit) limitExceeded("An evidence file is at most $fileLimit bytes")
 
+        val grant = executionGrantService.findForRequest(request.id)
+        val requestFiles = minOf(limits.maximumRequestFiles, grant?.evidenceFileAllowance ?: Long.MAX_VALUE)
+        val requestBytes = minOf(limits.maximumRequestBytes, grant?.evidenceByteAllowance ?: Long.MAX_VALUE)
         val requestUsage = versionRepository.storedUsageForRequest(request.id)
-        if (requestUsage.files + 1 > limits.maximumRequestFiles)
+        if (requestUsage.files + 1 > requestFiles)
         {
-            limitExceeded("This request holds at most ${limits.maximumRequestFiles} evidence files")
+            limitExceeded("This request holds at most $requestFiles evidence files")
         }
-        if (requestUsage.bytes + digest.length > limits.maximumRequestBytes)
+        if (requestUsage.bytes + digest.length > requestBytes)
         {
-            limitExceeded("This request holds at most ${limits.maximumRequestBytes} bytes of evidence")
+            limitExceeded("This request holds at most $requestBytes bytes of evidence")
         }
 
         val partyUsage = versionRepository.storedUsageForUploader(request.id, access.principal)
@@ -177,8 +182,11 @@ class InformationRequestEvidenceIntake @Inject constructor(
     private fun DocumentVersion.describes(digest: DocumentVersionContentDigest): Boolean =
         contentHashAlgorithm == digest.algorithm && contentHash == digest.value && contentLength == digest.length
 
-    private fun limitExceeded(message: String): Nothing =
+    private fun limitExceeded(message: String): Nothing
+    {
+        InformationRequestAbuseLog.refused(InformationRequestAbuseControl.EVIDENCE_UPLOAD_LIMIT)
         throw InformationRequestLifecycleException(InformationRequestErrorCatalog.EVIDENCE_UPLOAD_LIMIT_EXCEEDED, message)
+    }
 
     private fun policyRefused(code: InformationRequestEvidenceFindingCode, detail: String): Nothing =
         throw InformationRequestLifecycleException(

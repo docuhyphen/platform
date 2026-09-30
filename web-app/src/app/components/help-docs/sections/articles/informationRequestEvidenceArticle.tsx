@@ -10,7 +10,8 @@ export const informationRequestEvidenceArticle = (
         <ul id={"information-request-evidence-providing-list"}>
             <li>
                 Select <b>Upload file</b> to add one file. Each upload becomes its own item,
-                so a Requirement can hold several independent files.
+                so a Requirement can hold several independent files. A request stores files within the
+                evidence allowance it was issued with and the platform&apos;s upload limits.
             </li>
             <li>
                 Select <b>Replace</b> on an item to add a corrected file as its next version.

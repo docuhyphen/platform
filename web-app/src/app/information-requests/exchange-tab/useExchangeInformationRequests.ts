@@ -1,7 +1,9 @@
 import {useCallback, useEffect, useRef, useState} from "react";
 import {getExchangeInformationRequests} from "../../../services/informationRequestAuthoringService.ts";
 import {InformationRequestExchangeListingDto} from "../../models/models.tsx";
-import {informationRequestRefusalMessage} from "../shared/informationRequestRefusal.ts";
+import {informationRequestRefusalCode, informationRequestRefusalMessage} from "../shared/informationRequestRefusal.ts";
+
+const ACCESS_REFUSED = "INFORMATION_REQUEST_FORBIDDEN";
 
 export interface ExchangeInformationRequestsState
 {
@@ -17,6 +19,7 @@ export const useExchangeInformationRequests = (exchangeId?: string): ExchangeInf
     const [listing, setListing] = useState<InformationRequestExchangeListingDto | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [accessRefused, setAccessRefused] = useState(false);
     const latestLoad = useRef(0);
 
     const reload = useCallback(async () =>
@@ -30,6 +33,7 @@ export const useExchangeInformationRequests = (exchangeId?: string): ExchangeInf
         }
         setLoading(true);
         setError(null);
+        setAccessRefused(false);
         try
         {
             const loaded = await getExchangeInformationRequests(exchangeId);
@@ -39,6 +43,7 @@ export const useExchangeInformationRequests = (exchangeId?: string): ExchangeInf
         {
             if (load !== latestLoad.current) return;
             setListing(null);
+            setAccessRefused(informationRequestRefusalCode(caught) === ACCESS_REFUSED);
             setError(informationRequestRefusalMessage(caught, "The Information Requests could not be loaded."));
         }
         finally
@@ -56,7 +61,9 @@ export const useExchangeInformationRequests = (exchangeId?: string): ExchangeInf
         listing,
         loading,
         error,
-        visible: Boolean(listing && (listing.requests.length > 0 || listing.canCreate)),
+        visible: listing
+            ? listing.requests.length > 0 || listing.canCreate || Boolean(listing.creationUnavailableReason)
+            : Boolean(error && !accessRefused),
         reload,
     };
 };

@@ -144,41 +144,31 @@ describe("useSettingsPlanAvailability", () =>
         expect(result.current.visibleTabs.has(tabIds.fields)).toBe(false);
     });
 
-    it("shows Information Request Template settings only when the feature is discoverable", () =>
+    it("keeps Information Request settings discoverable to every signed-in user", () =>
     {
+        subscriptionMock.current = subscription(
+            PlanCode.FREE,
+            SubscriptionOwnerType.USER,
+            [PlanFeature.EXCHANGE_CREATE],
+        );
+
+        const {result, rerender} = renderHook(() => useSettingsPlanAvailability());
+
+        expect(result.current.visibleTabs.has(tabIds.informationRequestTemplates)).toBe(true);
+
         subscriptionMock.current = subscription(
             PlanCode.BUSINESS,
             SubscriptionOwnerType.ORGANIZATION,
-            [
-                PlanFeature.EXCHANGE_CREATE,
-                PlanFeature.INFORMATION_REQUESTS,
-            ],
+            [PlanFeature.EXCHANGE_CREATE, PlanFeature.INFORMATION_REQUESTS],
         );
         authMock.currentSession = {
             activeOrganizationId: "org-1",
             availableOrganizations: [],
-            capabilities: [Capability.ORG_POLICY_MANAGE],
-            effectiveSubscription: subscriptionMock.current,
-        } as CurrentSessionDto;
+            capabilities: [],
+        } as unknown as CurrentSessionDto;
         authMock.appUserPersonOrganization = {isActive: true};
-        authMock.capabilities = [Capability.ORG_POLICY_MANAGE];
-
-        const {result, rerender} = renderHook(() => useSettingsPlanAvailability());
-
-        expect(result.current.visibleTabs.has("InformationRequestTemplatesTab")).toBe(true);
-
-        authMock.capabilities = [];
         rerender();
 
-        expect(result.current.visibleTabs.has("InformationRequestTemplatesTab")).toBe(true);
-
-        subscriptionMock.current = subscription(
-            PlanCode.BUSINESS,
-            SubscriptionOwnerType.ORGANIZATION,
-            [PlanFeature.EXCHANGE_CREATE],
-        );
-        rerender();
-
-        expect(result.current.visibleTabs.has("InformationRequestTemplatesTab")).toBe(false);
+        expect(result.current.visibleTabs.has(tabIds.informationRequestTemplates)).toBe(true);
     });
 });

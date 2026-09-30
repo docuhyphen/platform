@@ -610,7 +610,7 @@ class InformationRequestSubmissionTransactionTest
         val grants = mock<InformationRequestExecutionGrantService>()
         val gate = InformationRequestMutationGate(requestRepository, exchangeRepository, authorization, mock(), grants)
         return InformationRequestSubmissionQueryService(
-            queryService = InformationRequestQueryService(exchangeRepository, requestRepository, authorization, mock(), grants),
+            queryService = InformationRequestQueryService(exchangeRepository, requestRepository, authorization),
             exchangeRepository = exchangeRepository,
             packageReader = packageReader,
             contentCollector = contentCollector,

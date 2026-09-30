@@ -1,6 +1,5 @@
 package com.docuhyphen.app.api.service.informationrequest
 
-import com.docuhyphen.app.api.exception.SubscriptionDenialException
 import com.docuhyphen.app.api.model.entity.Exchange
 import com.docuhyphen.app.api.model.entity.InformationRequestClockState
 import com.docuhyphen.app.api.model.informationrequest.InformationRequestExchangeListing
@@ -26,7 +25,7 @@ class InformationRequestExchangeSummaryService @Inject constructor(
     private val reviewQueryService: InformationRequestReviewQueryService,
     private val gate: InformationRequestMutationGate,
     private val authorizationService: AuthorizationService,
-    private val entitlementGuard: InformationRequestEntitlementGuard,
+    private val standingService: InformationRequestExecutionStandingService,
 )
 {
     fun listForExchange(exchangeId: UUID, access: RequestAccessContext): InformationRequestExchangeListing
@@ -41,6 +40,8 @@ class InformationRequestExchangeSummaryService @Inject constructor(
             .mapValues { entry -> entry.value.minOf { it.dueAt.toInstant() } }
         val reviewAwaited = if (requests.isEmpty()) emptySet()
         else reviewQueryService.queue(access).map { it.request.id }.toSet()
+        val owner = standingService.ownerStanding(exchange)
+        val creationPermitted = creationPermitted(exchange, access)
         return InformationRequestExchangeListing(
             requests = requests.map { request ->
                 val visibleItems = progressService.evaluate(request.id).items.filter { item ->
@@ -48,20 +49,24 @@ class InformationRequestExchangeSummaryService @Inject constructor(
                         gate.permitsRequirement(access, Action.INFORMATION_REQUEST_REQUIREMENT_VIEW, it)
                     } ?: true
                 }
+                val caller = callerStanding.standingOf(request, access, reviewAwaited)
+                val execution = standingService.standingOf(request, owner)
                 InformationRequestSummary(
                     request = request,
                     title = titles.getValue(request.id),
                     nextDueAt = dueByRequest[request.id],
                     completedCount = visibleItems.count { it.contributesToNumerator },
                     requiredCount = visibleItems.count { it.contributesToDenominator },
-                    standing = callerStanding.standingOf(request, access, reviewAwaited),
+                    standing = caller,
+                    executionStanding = if (caller.permissions.canManage) execution else execution.forParticipant(),
                 )
             },
-            canCreate = canCreate(exchange, access),
+            canCreate = creationPermitted && owner.newWorkAvailable,
+            creationUnavailableReason = owner.newWorkUnavailableReason.takeIf { creationPermitted },
         )
     }
 
-    private fun canCreate(exchange: Exchange, access: RequestAccessContext): Boolean
+    private fun creationPermitted(exchange: Exchange, access: RequestAccessContext): Boolean
     {
         val decision = authorizationService.authorize(
             access.principal,
@@ -75,19 +80,6 @@ class InformationRequestExchangeSummaryService @Inject constructor(
             null,
             InformationRequestMutation.CREATE_DRAFT,
         )
-        if (creation is InformationRequestPolicyDecision.Deny) return false
-        return try
-        {
-            entitlementGuard.requireRequestMutation(exchange)
-            true
-        }
-        catch (_: SubscriptionDenialException)
-        {
-            false
-        }
-        catch (_: InformationRequestLifecycleException)
-        {
-            false
-        }
+        return creation !is InformationRequestPolicyDecision.Deny
     }
 }

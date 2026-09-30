@@ -113,6 +113,7 @@ enum class AuditEventType(val key: String, val category: AuditCategory)
     PLATFORM_ORG_FEATURE_ENTITLEMENTS_UPDATE("platform.org_feature_entitlements.update", AuditCategory.PLATFORM),
     PLATFORM_USER_FEATURE_ENTITLEMENTS_VIEW("platform.user_feature_entitlements.view", AuditCategory.PLATFORM),
     PLATFORM_USER_FEATURE_ENTITLEMENTS_UPDATE("platform.user_feature_entitlements.update", AuditCategory.PLATFORM),
+    PLATFORM_INFORMATION_REQUEST_HEALTH_VIEW("platform.information_request_health.view", AuditCategory.PLATFORM),
 
     SCIM_USER_CREATE("scim.user.create", AuditCategory.SCIM),
     SCIM_USER_DEPROVISION("scim.user.deprovision", AuditCategory.SCIM),
@@ -371,7 +372,7 @@ enum class AuditEventType(val key: String, val category: AuditCategory)
          * consumers (ledger, exports, projections) can reason about which catalog shape produced
          * a given event.
          */
-        const val CATALOG_VERSION: Int = 28
+        const val CATALOG_VERSION: Int = 29
 
         private val byKey: Map<String, AuditEventType> = entries.associateBy { it.key }
 

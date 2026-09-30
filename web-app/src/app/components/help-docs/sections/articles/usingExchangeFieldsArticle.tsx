@@ -53,11 +53,12 @@ export const usingExchangeFieldsArticle = (
             touched simply shows the newer value.
         </p>
         <p>
-            That protection belongs to a save stating the version it read, and the current save
-            route refuses one that does not. A registered application still using the older route
-            without stating a version keeps the behaviour it has always had, where the last save
-            wins and can replace a change made while it was working. Those calls are recorded so
-            the older route can be withdrawn once nothing reaches it.
+            Every change to an Exchange&apos;s Fields carries that protection: saving values,
+            choosing a schema, and removing the schema each states the version it read in the{" "}
+            <b>If-Match</b> header, and a change stating no version is refused. Removing the schema
+            also removes its values, so it is refused when the values changed after they were read.
+            A registered application reads the version from the <b>ETag</b> of the schema it loaded,
+            or states <b>*</b> when it read no schema at all.
         </p>
         <p>
             Every change to a value is recorded against the person, application, or recipient that

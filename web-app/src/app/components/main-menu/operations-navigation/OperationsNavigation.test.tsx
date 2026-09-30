@@ -2,7 +2,11 @@
 import {cleanup, fireEvent, render, screen} from "@testing-library/react";
 import {MemoryRouter, useLocation} from "react-router-dom";
 import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
-import {usePlanFeature} from "../../../../hooks/subscription/usePlanFeature.ts";
+import {useInformationRequestCapabilities} from "../../../information-requests/capabilities/useInformationRequestCapabilities.ts";
+import {
+    capabilitiesWithoutTheFeature,
+    informationRequestCapabilities,
+} from "../../../information-requests/shared/testing/capabilityFixtures.ts";
 import {Capability} from "../../../models/models.tsx";
 import OperationsNavigation from "./OperationsNavigation.tsx";
 
@@ -15,16 +19,9 @@ vi.mock("../../../../context/AuthContext.tsx", () => ({
         hasCapability: mockHasCapability,
     }),
 }));
-vi.mock("../../../../hooks/subscription/usePlanFeature.ts", () => ({usePlanFeature: vi.fn()}));
-
-const availability = (isAvailable: boolean) => ({
-    isKnown: true,
-    isIncluded: isAvailable,
-    isEnforced: true,
-    isDiscoverable: isAvailable,
-    isAvailable,
-    upgradePlanCode: null,
-});
+vi.mock("../../../information-requests/capabilities/useInformationRequestCapabilities.ts", () => ({
+    useInformationRequestCapabilities: vi.fn(),
+}));
 
 const CurrentPath = () =>
 {
@@ -43,7 +40,7 @@ describe("OperationsNavigation", () =>
 {
     beforeEach(() =>
     {
-        vi.mocked(usePlanFeature).mockReturnValue(availability(true));
+        vi.mocked(useInformationRequestCapabilities).mockReturnValue(informationRequestCapabilities());
         mockHasCapability.mockReturnValue(false);
     });
 
@@ -76,12 +73,25 @@ describe("OperationsNavigation", () =>
         expect(screen.getByLabelText("Information Request operations")).toBeTruthy();
     });
 
-    it("stays hidden without the plan feature", () =>
+    it("stays available to an owner that still holds requests after losing the feature", () =>
     {
         mockSession.mockReturnValue({activeOrganizationId: null});
-        vi.mocked(usePlanFeature).mockReturnValue(availability(false));
+        vi.mocked(useInformationRequestCapabilities).mockReturnValue(capabilitiesWithoutTheFeature({holdsRequests: true}));
         renderNavigation();
 
+        expect(screen.getByLabelText("Information Request operations")).toBeTruthy();
+    });
+
+    it("stays hidden for an owner with neither the feature nor requests, or while unknown", () =>
+    {
+        mockSession.mockReturnValue({activeOrganizationId: null});
+        vi.mocked(useInformationRequestCapabilities).mockReturnValue(capabilitiesWithoutTheFeature());
+        renderNavigation();
+        expect(screen.queryByLabelText("Information Request operations")).toBeNull();
+        cleanup();
+
+        vi.mocked(useInformationRequestCapabilities).mockReturnValue(null);
+        renderNavigation();
         expect(screen.queryByLabelText("Information Request operations")).toBeNull();
     });
 });

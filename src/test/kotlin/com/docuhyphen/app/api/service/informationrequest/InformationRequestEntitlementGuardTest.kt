@@ -2,6 +2,8 @@ package com.docuhyphen.app.api.service.informationrequest
 
 import com.docuhyphen.app.api.exception.SubscriptionDenialException
 import com.docuhyphen.app.api.model.entity.Exchange
+import com.docuhyphen.app.api.model.entity.InformationRequestOwnerType
+import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
 import com.docuhyphen.app.api.model.entity.OrganizationSubscriptionPolicy
 import com.docuhyphen.app.api.model.entity.UserSubscriptionPolicy
 import com.docuhyphen.app.api.service.subscription.ExchangeUsageCounter
@@ -35,6 +37,21 @@ class InformationRequestEntitlementGuardTest
     private val otherOrganizationId: UUID = UUID.randomUUID()
 
     private val policyService: SubscriptionPolicyService = mock()
+    private val requestRepository: InformationRequestRepository = mock()
+
+    @Test
+    fun `a request is created only within the owner's open request allowance`()
+    {
+        givenUserPlan(commercialGrant = true)
+        val exchange = personalExchange(appUserId)
+        whenever(requestRepository.countOpenForOwner(InformationRequestOwnerType.USER, appUserId)).thenReturn(25L)
+
+        val denial = assertThrows<SubscriptionDenialException> { guard().requireRequestCreation(exchange) }.denial
+
+        assertEquals(SubscriptionDenialReason.PLAN_LIMIT_REACHED, denial.reason)
+        whenever(requestRepository.countOpenForOwner(InformationRequestOwnerType.USER, appUserId)).thenReturn(24L)
+        assertDoesNotThrow { guard().requireRequestCreation(exchange) }
+    }
 
     @Test
     fun `an organization owned exchange with an admin entitlement reaches the capability`()
@@ -71,13 +88,6 @@ class InformationRequestEntitlementGuardTest
     }
 
     @Test
-    fun `a read answers to the same entitlement as a write`()
-    {
-        givenUserPlan(commercialGrant = true)
-        assertDoesNotThrow { guard().requireRequestAccess(personalExchange(appUserId)) }
-    }
-
-    @Test
     fun `disabled enforcement allows an entitled capability`()
     {
         givenUserPlan(commercialGrant = true)
@@ -94,9 +104,6 @@ class InformationRequestEntitlementGuardTest
 
         assertDoesNotThrow {
             guard.requireRequestMutation(personalExchange(appUserId))
-        }
-        assertDoesNotThrow {
-            guard.requireRequestAccess(personalExchange(appUserId))
         }
     }
 
@@ -136,6 +143,18 @@ class InformationRequestEntitlementGuardTest
     }
 
     @Test
+    fun `a suspended owner cannot change a draft even when enforcement is disabled`()
+    {
+        givenUserPlan(commercialGrant = true, status = SubscriptionStatus.SUSPENDED)
+        val guard = guard(mode = SubscriptionEnforcementMode.OFF)
+
+        val refusal = assertThrows<SubscriptionDenialException> {
+            guard.requireRequestMutation(personalExchange(appUserId))
+        }
+        assertEquals(SubscriptionDenialReason.SUBSCRIPTION_SUSPENDED, refusal.denial.reason)
+    }
+
+    @Test
     fun `a past-due owner is not treated as operationally suspended`()
     {
         givenUserPlan(commercialGrant = true, status = SubscriptionStatus.PAST_DUE)
@@ -158,7 +177,8 @@ class InformationRequestEntitlementGuardTest
     private fun guard(
         mode: SubscriptionEnforcementMode = SubscriptionEnforcementMode.ENFORCE,
     ) = InformationRequestEntitlementGuard(
-        SubscriptionAccessService(
+        requestRepository = requestRepository,
+        subscriptionAccessService = SubscriptionAccessService(
             subscriptionPolicyService = policyService,
             subscriptionUsageService = SubscriptionUsageService(
                 mock<ExchangeUsageCounter>(),

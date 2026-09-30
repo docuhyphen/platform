@@ -45,6 +45,23 @@ class InformationRequestReminderResourceContractTest
     }
 
     @Test
+    fun `a request still cooling down is answered with the time it can be reminded again`()
+    {
+        val requestId = UUID.randomUUID()
+        whenever(reminderService.send(any())).thenReturn(
+            listOf(InformationRequestReminderResult(requestId, 0, java.time.Instant.parse("2026-10-01T11:00:00Z"))),
+        )
+
+        val sent = resource.send(SendInformationRequestRemindersRequest(listOf(requestId)), "remind-2")
+
+        @Suppress("UNCHECKED_CAST")
+        assertEquals(
+            listOf(InformationRequestReminderResultDto(requestId, 0, "2026-10-01T11:00:00Z")),
+            sent.entity as List<InformationRequestReminderResultDto>,
+        )
+    }
+
+    @Test
     fun `a refused reminder keeps its status`()
     {
         whenever(reminderService.send(any()))

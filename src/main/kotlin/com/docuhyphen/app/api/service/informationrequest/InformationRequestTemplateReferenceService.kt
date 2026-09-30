@@ -1,6 +1,7 @@
 package com.docuhyphen.app.api.service.informationrequest
 
 import com.docuhyphen.app.api.model.entity.InformationRequestTemplateDefinition
+import com.docuhyphen.app.api.model.entity.InformationRequestTemplateScopeKind
 import com.docuhyphen.app.api.model.entity.InformationRequestTemplateStatus
 import com.docuhyphen.app.api.model.entity.InformationRequestTemplateVersion
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestTemplateDefinitionRepository
@@ -94,12 +95,15 @@ class InformationRequestTemplateReferenceService @Inject constructor(
                 InformationRequestTemplateVersionUnavailableException.NOT_FOUND,
                 "Information request template not found: ${version.templateDefinitionId}",
             )
-        entitlementGuard.requireTemplateAccess(
-            definition.scopeKind,
-            definition.scopeOrgId,
-            definition.scopeUserId,
-            null,
-        )
+        if (definition.scopeKind != InformationRequestTemplateScopeKind.PLATFORM)
+        {
+            entitlementGuard.requireTemplateAccess(
+                definition.scopeKind,
+                definition.scopeOrgId,
+                definition.scopeUserId,
+                null,
+            )
+        }
         return version to definition
     }
 

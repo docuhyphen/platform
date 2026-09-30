@@ -2,7 +2,6 @@
 import {cleanup, fireEvent, render, screen, waitFor, within} from "@testing-library/react";
 import {MemoryRouter, Route, Routes} from "react-router-dom";
 import {afterEach, beforeAll, beforeEach, describe, expect, it, vi} from "vitest";
-import {usePlanFeature} from "../../../../hooks/subscription/usePlanFeature.ts";
 import * as transport from "../../../../services/informationRequestOperationsService.ts";
 import * as records from "../../../../services/recordPreservationService.ts";
 import {
@@ -13,6 +12,8 @@ import {
     RecordPreservationHoldStatus,
     RecordPreservationScope,
 } from "../../../models/models.tsx";
+import {useInformationRequestCapabilities} from "../../capabilities/useInformationRequestCapabilities.ts";
+import {capabilitiesWithoutTheFeature, informationRequestCapabilities} from "../../shared/testing/capabilityFixtures.ts";
 import InformationRequestOperationsDetail from "./InformationRequestOperationsDetail.tsx";
 
 vi.mock("../../../../services/informationRequestOperationsService.ts", () => ({
@@ -29,7 +30,7 @@ vi.mock("../../../../services/recordPreservationService.ts", () => ({
     INFORMATION_REQUEST_RECORD_TYPE: "INFORMATION_REQUEST",
     placeRecordPreservationHold: vi.fn(),
 }));
-vi.mock("../../../../hooks/subscription/usePlanFeature.ts", () => ({usePlanFeature: vi.fn()}));
+vi.mock("../../capabilities/useInformationRequestCapabilities.ts", () => ({useInformationRequestCapabilities: vi.fn()}));
 vi.mock("../../../../context/AuthContext.tsx", () => ({
     useAuth: () => ({currentSession: {activeOrganizationId: null}, hasCapability: () => false}),
 }));
@@ -60,9 +61,7 @@ describe("InformationRequestOperationsDetail", () =>
     beforeEach(() =>
     {
         vi.clearAllMocks();
-        vi.mocked(usePlanFeature).mockReturnValue({
-            isKnown: true, isIncluded: true, isEnforced: true, isDiscoverable: true, isAvailable: true, upgradePlanCode: null,
-        });
+        vi.mocked(useInformationRequestCapabilities).mockReturnValue(informationRequestCapabilities());
         vi.mocked(transport.getInformationRequestClocks).mockResolvedValue([{
             id: "clock-a", clockKey: "response-window", policyVersionId: "policy-a", policyVersionNumber: 2,
             clockType: "CALENDAR", urgency: "STANDARD", receivedAt: "2026-09-20T08:00:00Z",
@@ -97,6 +96,17 @@ describe("InformationRequestOperationsDetail", () =>
     });
 
     afterEach(cleanup);
+
+    it("keeps a request's operations readable after its owner loses the feature", async () =>
+    {
+        vi.mocked(useInformationRequestCapabilities).mockReturnValue(capabilitiesWithoutTheFeature({holdsRequests: true}));
+
+        renderDetail();
+
+        expect(await screen.findByText("response window")).toBeTruthy();
+        expect(document.getElementById("information-request-operations-detail-scope-standing")?.textContent)
+            .toMatch(/Your plan does not include creating Information Requests/);
+    });
 
     it("shows the request's clocks, notice history, and audit history with its reconciliation", async () =>
     {

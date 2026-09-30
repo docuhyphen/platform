@@ -6,6 +6,7 @@ import com.docuhyphen.app.api.repository.informationrequest.InformationRequestPa
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
 import com.docuhyphen.app.api.repository.informationrequest.SubjectIdentityExternalIdentifierRepository
 import com.docuhyphen.app.api.service.auth.authz.*
+import com.docuhyphen.app.api.service.exchange.ExchangeRecipientService
 import com.docuhyphen.app.api.service.identity.PrincipalDisplayService
 import io.quarkus.security.ForbiddenException
 import org.junit.jupiter.api.Assertions.*
@@ -42,13 +43,30 @@ class InformationRequestPartyQueryServiceTest
     private val authorizationService = mock<AuthorizationService>()
     private val principalDisplayService = mock<PrincipalDisplayService>()
     private val identifierRepository = mock<SubjectIdentityExternalIdentifierRepository>()
+    private val exchangeRecipientService = mock<ExchangeRecipientService>()
     private val service = InformationRequestPartyQueryService(
         requestRepository = requestRepository,
         partyRepository = partyRepository,
         authorizationService = authorizationService,
         principalDisplayService = principalDisplayService,
         identifierRepository = identifierRepository,
+        exchangeRecipientService = exchangeRecipientService,
     )
+
+    @Test
+    fun `the management listing marks a party whose trust relationship is suspended`()
+    {
+        whenever(requestRepository.findById(requestId)).thenReturn(request)
+        whenever(authorizationService.authorize(any(), any(), any<ResourceRef>(), any())).thenReturn(Decision.Allow())
+        whenever(partyRepository.findActiveForRequest(requestId)).thenReturn(listOf(viewerParty, peerParty))
+        whenever(principalDisplayService.display(any())).thenReturn(PrincipalDisplay(name = "Person", email = "person@example.test"))
+        whenever(exchangeRecipientService.trustSuspended(peerParty.exchangeRecipientId!!)).thenReturn(true)
+
+        val listing = service.listForManagement(requestId, access)
+
+        assertTrue(listing.parties.single { it.id == peerParty.id }.trustSuspended)
+        assertFalse(listing.parties.single { it.id == viewerParty.id }.trustSuspended)
+    }
 
     @Test
     fun `the management listing names a subject by its reference`()

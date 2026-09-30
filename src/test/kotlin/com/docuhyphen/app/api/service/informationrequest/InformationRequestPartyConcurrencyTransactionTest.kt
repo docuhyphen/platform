@@ -207,6 +207,7 @@ class InformationRequestPartyConcurrencyTransactionTest
             history,
             mock<InformationRequestExecutionGrantService>(),
             mock<InformationRequestExecutionUsageReservationService>(),
+            mock<InformationRequestMutationGate>(),
         )
 
         val requirement = InformationRequestRequirement().apply {

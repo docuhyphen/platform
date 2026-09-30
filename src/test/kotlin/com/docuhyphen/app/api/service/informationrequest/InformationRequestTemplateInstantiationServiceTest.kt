@@ -69,18 +69,21 @@ class InformationRequestTemplateInstantiationServiceTest
         val recorded = argumentCaptor<InformationRequestTransitionHistoryCommand>()
         verify(fixture.transitionHistory).record(recorded.capture())
         assertEquals(InformationRequestMutation.CREATE_DRAFT, recorded.firstValue.mutation)
-        verify(fixture.entitlementGuard).requireRequestMutation(fixture.exchange)
+        verify(fixture.entitlementGuard).requireRequestCreation(fixture.exchange)
         verify(fixture.materializer).materialize(any(), any())
     }
 
     @Test
-    fun `a platform Version may be used by any owner`()
+    fun `a platform Version is refused until the owner copies it into its own Templates`()
     {
         val fixture = fixture(InformationRequestTemplateScopeKind.PLATFORM, null)
 
-        val created = fixture.service.createFromTemplateVersion(command())
+        val refusal = assertThrows<InformationRequestTemplateVersionUnavailableException> {
+            fixture.service.createFromTemplateVersion(command())
+        }
 
-        assertEquals(templateVersionId, created.request.templateVersionId)
+        assertEquals(InformationRequestTemplateVersionUnavailableException.PLATFORM_COPY_REQUIRED, refusal.code)
+        verify(fixture.requestRepository, never()).save(any())
     }
 
     @Test
@@ -100,7 +103,7 @@ class InformationRequestTemplateInstantiationServiceTest
     fun `an owner without the entitlement or a caller who may not create on the Exchange creates nothing`()
     {
         val unentitled = fixture(InformationRequestTemplateScopeKind.ORGANIZATION, organizationId)
-        whenever(unentitled.entitlementGuard.requireRequestMutation(any())).thenThrow(IllegalStateException("not included"))
+        whenever(unentitled.entitlementGuard.requireRequestCreation(any())).thenThrow(IllegalStateException("not included"))
         val unauthorized = fixture(InformationRequestTemplateScopeKind.ORGANIZATION, organizationId, allowed = false)
 
         assertThrows<IllegalStateException> { unentitled.service.createFromTemplateVersion(command()) }

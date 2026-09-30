@@ -1,6 +1,7 @@
 package com.docuhyphen.app.api.service.informationrequest
 
 import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.informationrequest.InformationRequestAbuseLimits
 import com.docuhyphen.app.api.model.informationrequest.InformationRequestAccessLinkView
 import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
 import com.docuhyphen.app.api.repository.exchange.ShareLinkRepository
@@ -76,6 +77,7 @@ class InformationRequestBootstrapShareLinkService @Inject constructor(
     private val authorizationService: AuthorizationService,
     private val commandReceiptService: CommandReceiptService,
     private val requestAccessSessionService: RequestAccessSessionService,
+    private val abuseLimits: InformationRequestAbuseLimits,
 )
 {
     @Transactional
@@ -159,8 +161,8 @@ class InformationRequestBootstrapShareLinkService @Inject constructor(
             this.shareId = shareId
             tokenHash = hash(rawToken)
             linkMode = ShareLinkMode.VERIFICATION_BOOTSTRAP
-            expiresAt = command.expiresAt
-            maxUses = command.maxUses
+            expiresAt = command.expiresAt ?: defaultExpiry()
+            maxUses = command.maxUses ?: abuseLimits.accessLinkUses
             status = ShareLinkStatus.ACTIVE
             createdByAppUserId = command.access.principal.id.takeIf {
                 command.access.principal.kind == PrincipalKind.USER
@@ -282,8 +284,8 @@ class InformationRequestBootstrapShareLinkService @Inject constructor(
             shareId = oldShareLink.shareId
             tokenHash = hash(rawToken)
             linkMode = ShareLinkMode.VERIFICATION_BOOTSTRAP
-            expiresAt = command.expiresAt
-            maxUses = command.maxUses
+            expiresAt = command.expiresAt ?: defaultExpiry()
+            maxUses = command.maxUses ?: abuseLimits.accessLinkUses
             status = ShareLinkStatus.ACTIVE
             replacesShareLinkId = oldShareLink.id
             createdByAppUserId = command.access.principal.id.takeIf {
@@ -422,6 +424,8 @@ class InformationRequestBootstrapShareLinkService @Inject constructor(
             throw ForbiddenException("Access denied to issue an Information Request access link")
         }
     }
+
+    private fun defaultExpiry(): Timestamp = Timestamp.from(Instant.now().plus(abuseLimits.accessLinkLifetime))
 
     private fun generateToken(): String
     {

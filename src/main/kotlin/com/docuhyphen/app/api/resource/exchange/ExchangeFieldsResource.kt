@@ -23,8 +23,8 @@ import java.util.*
  * All business logic is delegated to [SchemaAssignmentService] through the EXCHANGE resource adapter.
  *
  *   GET    /exchanges/{id}/schema  - current assignment + resolved values (204 if none)
- *   PUT    /exchanges/{id}/schema  - assign a published schema to the exchange
- *   DELETE /exchanges/{id}/schema  - remove the assignment and its values
+ *   PUT    /exchanges/{id}/schema  - assign a published schema to the exchange, conditioned on `If-Match`
+ *   DELETE /exchanges/{id}/schema  - remove the assignment and its values, conditioned on `If-Match`
  *   PATCH  /exchanges/{id}/fields  - sparse update of typed field values, conditioned on `If-Match`
  *
  * The read and every successful mutation carry an `ETag` naming the exact state of the exchange's
@@ -58,7 +58,11 @@ class ExchangeFieldsResource @Inject constructor(
 
     @PUT
     @Path("/{id}/schema")
-    fun assignSchema(@PathParam("id") id: String, request: AssignSchemaRequest): Response = guard {
+    fun assignSchema(
+        @PathParam("id") id: String,
+        request: AssignSchemaRequest,
+        @HeaderParam(IF_MATCH) ifMatch: String?,
+    ): Response = guard {
         val exchangeId = parseUuid(id)
             ?: return@guard Response.status(BAD_REQUEST).entity(ResponseError("Invalid exchange id")).build()
         val assignment = schemaAssignmentService.applySchemaAssignment(
@@ -67,6 +71,7 @@ class ExchangeFieldsResource @Inject constructor(
                 access = fieldsAccessContextFactory.current(),
                 operation = SchemaAssignmentOperation.ASSIGN,
                 schemaDefinitionId = request.schemaDefinitionId,
+                precondition = FieldsPreconditionHeader.required(ifMatch),
             ),
         ) ?: return@guard Response.status(NO_CONTENT).build()
         validated(assignment)
@@ -74,7 +79,7 @@ class ExchangeFieldsResource @Inject constructor(
 
     @DELETE
     @Path("/{id}/schema")
-    fun unassignSchema(@PathParam("id") id: String): Response = guard {
+    fun unassignSchema(@PathParam("id") id: String, @HeaderParam(IF_MATCH) ifMatch: String?): Response = guard {
         val exchangeId = parseUuid(id)
             ?: return@guard Response.status(BAD_REQUEST).entity(ResponseError("Invalid exchange id")).build()
         schemaAssignmentService.applySchemaAssignment(
@@ -82,6 +87,7 @@ class ExchangeFieldsResource @Inject constructor(
                 resource = resource(exchangeId),
                 access = fieldsAccessContextFactory.current(),
                 operation = SchemaAssignmentOperation.UNASSIGN,
+                precondition = FieldsPreconditionHeader.required(ifMatch),
             ),
         )
         Response.status(NO_CONTENT).build()

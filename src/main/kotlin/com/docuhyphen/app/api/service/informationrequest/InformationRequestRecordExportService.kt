@@ -7,6 +7,8 @@ import com.docuhyphen.app.api.model.entity.RecordOwnerKind
 import com.docuhyphen.app.api.model.entity.RecordTransferDecision
 import com.docuhyphen.app.api.model.entity.ResourceType
 import com.docuhyphen.app.api.model.informationrequest.CreateInformationRequestRecordExportCommand
+import com.docuhyphen.app.api.model.informationrequest.InformationRequestAbuseControl
+import com.docuhyphen.app.api.model.informationrequest.InformationRequestAbuseLimits
 import com.docuhyphen.app.api.model.informationrequest.InformationRequestRecordExportView
 import com.docuhyphen.app.api.model.recordpreservation.RecordOwnerRef
 import com.docuhyphen.app.api.model.recordpreservation.RecordPreservationResourceTypes
@@ -40,6 +42,7 @@ import kotlinx.serialization.json.put
 import java.security.MessageDigest
 import java.sql.Timestamp
 import java.time.Clock
+import java.time.Duration
 import java.util.UUID
 
 @ApplicationScoped
@@ -53,6 +56,7 @@ class InformationRequestRecordExportService @Inject constructor(
     private val auditRecorder: AuditRecorder,
     private val requestRepository: InformationRequestRepository,
     private val clock: Clock,
+    private val abuseLimits: InformationRequestAbuseLimits = InformationRequestAbuseLimits(),
 )
 {
     @Transactional
@@ -175,6 +179,7 @@ class InformationRequestRecordExportService @Inject constructor(
     {
         gate.authorizeRequest(command.access, listOf(Action.INFORMATION_REQUEST_EXPORT), request.id)
         val owner = InformationRequestDisposalEligibility.ownerOf(request)
+        requireWithinDailyCeiling(owner)
         if (region != null && transfers.decide(owner, region) != RecordTransferVerdict.PERMITTED)
         {
             throw InformationRequestLifecycleException(
@@ -215,6 +220,20 @@ class InformationRequestRecordExportService @Inject constructor(
             "${AuditEventType.INFORMATION_REQUEST_EXPORT.key}|${export.id}",
         )
         return export
+    }
+
+    private fun requireWithinDailyCeiling(owner: RecordOwnerRef)
+    {
+        val now = clock.instant()
+        val window = exportRepository.windowSince(owner.kind, requireNotNull(owner.id), Timestamp.from(now.minus(EXPORT_WINDOW)))
+        if (window.count < abuseLimits.exportDailyCeiling) return
+        val reopensAt = (window.oldestRequestedAt ?: now).plus(EXPORT_WINDOW)
+        InformationRequestAbuseLog.refused(InformationRequestAbuseControl.EXPORT_DAILY_CEILING, "owner=${owner.kind}:${owner.id}")
+        throw InformationRequestRateLimitedException(
+            InformationRequestErrorCatalog.EXPORT_LIMIT_REACHED,
+            maxOf(1L, Duration.between(now, reopensAt).seconds),
+            "This owner has made ${abuseLimits.exportDailyCeiling} record exports in the last day. Try again later.",
+        )
     }
 
     @Suppress("LongParameterList")
@@ -266,6 +285,7 @@ class InformationRequestRecordExportService @Inject constructor(
 
     private companion object
     {
+        val EXPORT_WINDOW: Duration = Duration.ofDays(1)
         const val CREATE_OPERATION = "information_request.record_export.create"
     }
 }

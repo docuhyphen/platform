@@ -6,6 +6,8 @@ import OneOffRequestFields from "../one-off-request-fields/OneOffRequestFields.t
 import RequestSourceChoice from "../request-source-choice/RequestSourceChoice.tsx";
 import {useCreateInformationRequest} from "./useCreateInformationRequest.ts";
 
+const PLATFORM_COPY_HINT = "To start from a platform Template, copy it first in Settings, under Information Requests, Platform.";
+
 interface Props
 {
     open: boolean;
@@ -41,7 +43,9 @@ const CreateInformationRequestDialogContent = ({exchangeId, onDismiss, onCreated
                               label={"Template"}
                               value={state.templateId}
                               placeholder={"Choose a Template"}
-                              hint={loaded && templates.length === 0 ? "No published Template is available yet." : undefined}
+                              hint={loaded && templates.length === 0
+                                  ? `No published Template is available yet. ${PLATFORM_COPY_HINT}`
+                                  : PLATFORM_COPY_HINT}
                               disabled={state.busy}
                               options={templates.map(template => ({value: template.id, label: template.displayName}))}
                               onChange={state.setTemplateId}/>

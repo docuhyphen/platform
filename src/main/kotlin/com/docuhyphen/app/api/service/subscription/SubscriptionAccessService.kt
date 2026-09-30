@@ -199,6 +199,61 @@ class SubscriptionAccessService @Inject constructor(
         }
     }
 
+    /** Counts under the owner's subscription row lock so concurrent creations cannot both take the last place. */
+    fun requireInformationRequestCapacity(context: SubscriptionContext, openRequests: () -> Long)
+    {
+        if (!enforcementMode().evaluatesDecisions)
+        {
+            return
+        }
+
+        val subscription = resolve(context)
+        val limit = subscription.limits.maxOpenInformationRequests ?: return
+        lockAllowances(context)
+        val open = openRequests()
+        if (open >= limit)
+        {
+            apply(
+                SubscriptionDenialFactory.limitReached(
+                    subscription = subscription,
+                    feature = PlanFeature.INFORMATION_REQUESTS,
+                    allowanceDescription = "$limit open Information Requests at a time. " +
+                        "Close or cancel a request to free capacity",
+                    currentValue = open,
+                    limit = limit,
+                ),
+            )
+        }
+    }
+
+    /** Counts under the owner's subscription row lock so concurrent issuances cannot both take the last capacity. */
+    fun requireCommittedEvidenceCapacity(context: SubscriptionContext, committedBytes: () -> Long)
+    {
+        if (!enforcementMode().evaluatesDecisions)
+        {
+            return
+        }
+
+        val subscription = resolve(context)
+        val limit = subscription.limits.maxCommittedEvidenceBytes ?: return
+        val reserved = subscription.limits.maxEvidenceBytesPerInformationRequest ?: 0
+        lockAllowances(context)
+        val committed = committedBytes()
+        if (committed + reserved > limit)
+        {
+            apply(
+                SubscriptionDenialFactory.limitReached(
+                    subscription = subscription,
+                    feature = PlanFeature.INFORMATION_REQUESTS,
+                    allowanceDescription = "${describeBytes(limit)} of Information Request evidence, and each " +
+                        "issued request reserves ${describeBytes(reserved)} until it finishes",
+                    currentValue = committed,
+                    limit = limit,
+                ),
+            )
+        }
+    }
+
     /**
      * Checks whether the subject may add participants beyond the required primary recipient.
      */
@@ -262,6 +317,27 @@ class SubscriptionAccessService @Inject constructor(
         if (!subscription.hasFeature(feature))
         {
             apply(SubscriptionDenialFactory.featureNotIncluded(subscription, feature))
+        }
+    }
+
+    private fun lockAllowances(context: SubscriptionContext)
+    {
+        when (context.ownerType)
+        {
+            SubscriptionOwnerType.USER -> subscriptionPolicyService.findUserPolicyForUpdate(context.ownerId)
+            SubscriptionOwnerType.ORGANIZATION -> subscriptionPolicyService.findOrganizationPolicyForUpdate(context.ownerId)
+        }
+    }
+
+    private fun describeBytes(bytes: Long): String
+    {
+        val mebibyte = 1024L * 1024L
+        val gibibyte = 1024L * mebibyte
+        return when
+        {
+            bytes >= gibibyte && bytes % gibibyte == 0L -> "${bytes / gibibyte} GiB"
+            bytes >= mebibyte && bytes % mebibyte == 0L -> "${bytes / mebibyte} MiB"
+            else -> "$bytes bytes"
         }
     }
 

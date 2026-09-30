@@ -32,9 +32,11 @@ data class InformationRequestSummary(
     val completedCount: Int,
     val requiredCount: Int,
     val standing: InformationRequestCallerStanding,
+    val executionStanding: InformationRequestExecutionStanding,
 )
 
 data class InformationRequestExchangeListing(
     val requests: List<InformationRequestSummary>,
     val canCreate: Boolean,
+    val creationUnavailableReason: InformationRequestStandingReason?,
 )

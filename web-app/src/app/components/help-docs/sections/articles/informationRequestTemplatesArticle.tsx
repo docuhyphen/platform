@@ -14,6 +14,13 @@ export const informationRequestTemplatesArticle = (
             Administrators manage the organization&apos;s Templates. Select <b>New Template</b> to create
             a draft in the chosen scope.
         </p>
+        <p id={"information-request-templates-availability-help"}>
+            The tab is there for every signed-in user. If neither your plan nor your active organization
+            includes Information Requests, the tab says so and that you can still respond to and review
+            Information Requests shared with you. You author personal Templates on the Personal plan, or
+            while an active organization whose plan includes Information Requests is selected. When new
+            requests cannot be created, Templates stay readable but <b>New Template</b> is not offered.
+        </p>
 
         <h3 id={"information-request-templates-editor-heading"}>The editor</h3>
         <p id={"information-request-templates-editor-help"}>
@@ -44,7 +51,9 @@ export const informationRequestTemplatesArticle = (
             </li>
             <li>
                 <b>Settings</b>: the request schema, whether the request is submitted whole or in parts,
-                and the purpose under which accepted answers may be reused.
+                and the purpose under which accepted answers may be reused. A Template can use a platform
+                Schema, and an organization Template can also use the organization&apos;s Schemas; personal
+                Fields and Schemas cannot be authored yet.
             </li>
         </ul>
 
@@ -56,7 +65,9 @@ export const informationRequestTemplatesArticle = (
             draft, its message names the section, item, group, or review stage, and <b>Show</b> opens
             it. Publishing freezes the Version; later changes need a new draft.
             <b> Copy as a new Template</b> starts another Template from this one, and <b>Retire</b>
-            stops a Version from being used for new requests while requests made from it continue.
+            stops a Version from being used for new requests while requests made from it continue. A
+            platform Template is a starting point that requests never use directly: open it, select
+            <b> Copy as a new Template</b>, and copy it into My Templates or the organization.
         </p>
 
         <h3 id={"information-request-conditional-answers-heading"}>Conditional answers</h3>

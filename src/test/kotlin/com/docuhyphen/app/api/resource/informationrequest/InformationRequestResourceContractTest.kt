@@ -320,7 +320,7 @@ class InformationRequestResourceContractTest
         whenever(lifecycleService.issue(any())).thenThrow(
             RequestExecutionUsageExhaustedException(
                 grantId = UUID.randomUUID(),
-                usageKind = RequestExecutionUsageKind.ADDITIONAL_RECIPIENT,
+                usageKind = RequestExecutionUsageKind.ACTING_PARTY,
                 cap = 1,
                 activeUsage = 1,
                 requested = 1,

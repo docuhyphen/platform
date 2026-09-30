@@ -155,6 +155,13 @@ class InformationRequestTemplateAuthoringService @Inject constructor(
     {
         val principal = requireUserPrincipal()
         val scopeKind = request.scopeKind ?: defaultScopeKind()
+        if (scopeKind == InformationRequestTemplateScopeKind.PLATFORM)
+        {
+            throw InformationRequestTemplateValidationException(
+                "Platform Templates are not created here. Copy a platform Template into your own or your " +
+                    "organization's Templates instead",
+            )
+        }
         val organizationId = if (scopeKind == InformationRequestTemplateScopeKind.ORGANIZATION)
             requireSelectedOrganization(principal, Action.INFORMATION_REQUEST_TEMPLATE_EDIT)
         else

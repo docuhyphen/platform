@@ -2,10 +2,13 @@ package com.docuhyphen.app.api.service.informationrequest
 
 import com.docuhyphen.app.api.exception.SubscriptionDenialException
 import com.docuhyphen.app.api.model.entity.Exchange
+import com.docuhyphen.app.api.model.entity.InformationRequestOwnerType
+import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
 import com.docuhyphen.app.api.service.subscription.PlanFeature
 import com.docuhyphen.app.api.service.subscription.SubscriptionAccessService
 import com.docuhyphen.app.api.service.subscription.SubscriptionContext
 import com.docuhyphen.app.api.service.subscription.SubscriptionDenialFactory
+import com.docuhyphen.app.api.service.subscription.SubscriptionOwnerType
 import com.docuhyphen.app.api.service.subscription.SubscriptionStatus
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
@@ -22,16 +25,26 @@ import jakarta.inject.Inject
 @ApplicationScoped
 class InformationRequestEntitlementGuard @Inject constructor(
     private val subscriptionAccessService: SubscriptionAccessService,
+    private val requestRepository: InformationRequestRepository,
 )
 {
-    /** Reads answer to both gates too, so an unreleased capability exposes no runtime request. */
-    fun requireRequestAccess(exchange: Exchange)
+    fun requireRequestCreation(exchange: Exchange)
     {
-        subscriptionAccessService.requireFeature(owner(exchange), PlanFeature.INFORMATION_REQUESTS)
+        requireRequestMutation(exchange)
+        val owner = owner(exchange)
+        val ownerType = when (owner.ownerType)
+        {
+            SubscriptionOwnerType.ORGANIZATION -> InformationRequestOwnerType.ORGANIZATION
+            SubscriptionOwnerType.USER -> InformationRequestOwnerType.USER
+        }
+        subscriptionAccessService.requireInformationRequestCapacity(owner) {
+            requestRepository.countOpenForOwner(ownerType, owner.ownerId)
+        }
     }
 
     fun requireRequestMutation(exchange: Exchange)
     {
+        requireNotOperationallySuspended(exchange)
         val owner = owner(exchange)
         subscriptionAccessService.requireMutationAllowed(owner)
         subscriptionAccessService.requireFeature(owner, PlanFeature.INFORMATION_REQUESTS)

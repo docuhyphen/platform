@@ -13,7 +13,8 @@ export const recordPreservationArticle = (
             management, and publishing retention needs retention management. Organization Owners
             and Administrators hold all three. Changing holds or retention also needs audit
             governance in the organization&apos;s Business subscription, or Information Requests in
-            your plan for personal records.
+            your plan for personal records. The page stays readable when the plan no longer includes
+            Information Requests, and it says why new requests cannot be created.
         </p>
 
         <h3 id={"record-preservation-holds-heading"}>Preservation holds</h3>

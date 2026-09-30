@@ -1,5 +1,8 @@
 package com.docuhyphen.app.api.service.informationrequest
 
+import com.docuhyphen.app.api.model.informationrequest.InformationRequestExecutionStanding
+import com.docuhyphen.app.api.model.informationrequest.InformationRequestExecutionStandingKind
+import com.docuhyphen.app.api.model.informationrequest.InformationRequestStandingReason
 import com.docuhyphen.app.api.model.dto.*
 import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.informationrequest.InformationRequestNoAuthAccess
@@ -105,6 +108,43 @@ class InformationRequestResponseWorkspaceServiceTest
         val unscanned = fixture.service.load(fixture.request.id, fixture.access)
         assertFalse(unscanned.evidenceUploadAvailable)
         assertFalse(unscanned.evidenceMalwareScanning)
+    }
+
+    @Test
+    fun `the workspace states why changes are paused only to a caller who manages the request`()
+    {
+        val fixture = Fixture()
+        whenever(fixture.conditions.evaluate(fixture.request.id)).thenReturn(emptyList())
+        whenever(fixture.standing.standingOf(eq(fixture.request), anyOrNull())).thenReturn(
+            InformationRequestExecutionStanding(
+                InformationRequestExecutionStandingKind.OPERATIONALLY_SUSPENDED,
+                InformationRequestStandingReason.SUBSCRIPTION_SUSPENDED,
+            ),
+        )
+
+        whenever(
+            fixture.authorization.authorize(
+                fixture.access.principal,
+                Action.INFORMATION_REQUEST_MANAGE_PARTIES,
+                ResourceRef.informationRequest(fixture.request.id),
+                fixture.access.authorization,
+            ),
+        ).thenReturn(Decision.Deny("NOT_MANAGER", "not a manager"))
+        val participant = fixture.service.load(fixture.request.id, fixture.access).executionStanding
+        whenever(
+            fixture.authorization.authorize(
+                fixture.access.principal,
+                Action.INFORMATION_REQUEST_MANAGE_PARTIES,
+                ResourceRef.informationRequest(fixture.request.id),
+                fixture.access.authorization,
+            ),
+        ).thenReturn(Decision.Allow())
+        val manager = fixture.service.load(fixture.request.id, fixture.access).executionStanding
+
+        assertEquals(InformationRequestExecutionStandingKind.OPERATIONALLY_SUSPENDED, participant.kind)
+        assertEquals(null, participant.reason)
+        assertEquals(InformationRequestExecutionStandingKind.OPERATIONALLY_SUSPENDED, manager.kind)
+        assertEquals(InformationRequestStandingReason.SUBSCRIPTION_SUSPENDED, manager.reason)
     }
 
     @Test
@@ -418,6 +458,7 @@ class InformationRequestResponseWorkspaceServiceTest
         val supportingLinks = InformationRequestSupportingEvidenceLinkService(templateLinks, requirements, linkRepository)
         val evidenceUpload = mock<InformationRequestEvidenceDeploymentPolicy>()
         val titleReader = mock<InformationRequestTitleReader>()
+        val standing = mock<InformationRequestExecutionStandingService>()
         val service = InformationRequestResponseWorkspaceService(query, versions, templates, occurrenceRepository, requirements,
             responses,
             bindingRepository,
@@ -428,7 +469,8 @@ class InformationRequestResponseWorkspaceServiceTest
             supportingLinks,
             evidenceUpload,
             mock(),
-            titleReader
+            titleReader,
+            standing,
         )
 
         fun updateTemplate(transform: (InformationRequestTemplateVersionDto) -> InformationRequestTemplateVersionDto)
@@ -548,6 +590,9 @@ class InformationRequestResponseWorkspaceServiceTest
                     }
             }
             whenever(authorization.authorize(any(), any(), any(), any())).thenReturn(Decision.Allow())
+            whenever(standing.standingOf(any(), anyOrNull())).thenReturn(
+                InformationRequestExecutionStanding(InformationRequestExecutionStandingKind.ACTIVE),
+            )
             whenever(fields.getAssignment(any<FieldValueReadCommand>())).thenReturn(
                 responseFieldProjection(request.id, listOf(hiddenFieldId to "retained-secret", visibleFieldId to "visible-answer")))
         }

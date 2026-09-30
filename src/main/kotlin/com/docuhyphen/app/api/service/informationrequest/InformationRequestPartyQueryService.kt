@@ -8,6 +8,7 @@ import com.docuhyphen.app.api.repository.informationrequest.InformationRequestPa
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
 import com.docuhyphen.app.api.repository.informationrequest.SubjectIdentityExternalIdentifierRepository
 import com.docuhyphen.app.api.service.auth.authz.*
+import com.docuhyphen.app.api.service.exchange.ExchangeRecipientService
 import com.docuhyphen.app.api.service.identity.PrincipalDisplayService
 import io.quarkus.security.ForbiddenException
 import jakarta.enterprise.context.ApplicationScoped
@@ -28,6 +29,7 @@ class InformationRequestPartyQueryService @Inject constructor(
     private val authorizationService: AuthorizationService,
     private val principalDisplayService: PrincipalDisplayService,
     private val identifierRepository: SubjectIdentityExternalIdentifierRepository,
+    private val exchangeRecipientService: ExchangeRecipientService,
 )
 {
     fun listForRequest(requestId: UUID, access: RequestAccessContext): List<InformationRequestPartyDto>
@@ -68,7 +70,10 @@ class InformationRequestPartyQueryService @Inject constructor(
         val subjectReferences = identifierRepository
             .findForSubjects(listed.mapNotNull { it.subjectIdentityRefId })
             .groupBy { it.subjectIdentityRefId }
-        val parties = listed.map { party ->
+        val parties = listed.map { listedParty ->
+            val party = listedParty.copy(
+                trustSuspended = listedParty.exchangeRecipientId?.let(exchangeRecipientService::trustSuspended) ?: false,
+            )
             val principalId = party.principalId
             val principalKind = party.principalKind
             val subjectId = party.subjectIdentityRefId

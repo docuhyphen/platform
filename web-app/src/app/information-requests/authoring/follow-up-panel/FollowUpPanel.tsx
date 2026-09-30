@@ -12,10 +12,11 @@ import {useFollowUps} from "./useFollowUps.ts";
 interface Props
 {
     request: InformationRequestDto;
+    canCreate: boolean;
     onChanged: () => void;
 }
 
-const FollowUpPanel = ({request, onChanged}: Props) =>
+const FollowUpPanel = ({request, canCreate, onChanged}: Props) =>
 {
     const styles = useFollowUpPanelStyles();
     const state = useFollowUps(request, onChanged);
@@ -55,36 +56,40 @@ const FollowUpPanel = ({request, onChanged}: Props) =>
                                 : "Every scheduled request has been created."}
                         </Text>
                     </div>
-                    <Button id={"information-request-follow-up-next"}
-                            appearance={"secondary"}
-                            shape={"circular"}
-                            disabled={state.busy || !state.nextOccurrenceReady}
-                            onClick={() => void state.createNext(recurrence.id)}>
-                        Create the next request
-                    </Button>
+                    {canCreate && (
+                        <Button id={"information-request-follow-up-next"}
+                                appearance={"secondary"}
+                                shape={"circular"}
+                                disabled={state.busy || !state.nextOccurrenceReady}
+                                onClick={() => void state.createNext(recurrence.id)}>
+                            Create the next request
+                        </Button>
+                    )}
                 </div>
             )}
-            {state.lineage && !recurrence && (
+            {canCreate && state.lineage && !recurrence && (
                 <RecurrenceForm busy={state.busy}
                                 onSchedule={definition => void state.schedule(definition)}/>
             )}
-            <div id={"information-request-follow-up-supplement"}
-                 className={styles.supplement}>
-                <TextField id={"information-request-follow-up-supplement-reason"}
-                           label={"Reason for the supplement"}
-                           hint={"A supplement asks for more on a submitted response."}
-                           value={reason}
-                           className={styles.supplementReason}
-                           maxLength={120}
-                           onChange={setReason}/>
-                <Button id={"information-request-follow-up-supplement-submit"}
-                        appearance={"secondary"}
-                        shape={"circular"}
-                        disabled={state.busy || !reason.trim()}
-                        onClick={() => void state.supplement(reason.trim())}>
-                    Request a supplement
-                </Button>
-            </div>
+            {canCreate && (
+                <div id={"information-request-follow-up-supplement"}
+                     className={styles.supplement}>
+                    <TextField id={"information-request-follow-up-supplement-reason"}
+                               label={"Reason for the supplement"}
+                               hint={"A supplement asks for more on a submitted response."}
+                               value={reason}
+                               className={styles.supplementReason}
+                               maxLength={120}
+                               onChange={setReason}/>
+                    <Button id={"information-request-follow-up-supplement-submit"}
+                            appearance={"secondary"}
+                            shape={"circular"}
+                            disabled={state.busy || !reason.trim()}
+                            onClick={() => void state.supplement(reason.trim())}>
+                        Request a supplement
+                    </Button>
+                </div>
+            )}
         </section>
     );
 };

@@ -2,11 +2,13 @@ import {beforeEach, describe, expect, it, vi} from 'vitest';
 
 const patch = vi.fn();
 const put = vi.fn();
+const remove = vi.fn();
 
 vi.mock('../apiClient.ts', () => ({
     default: {
         patch: (...args: unknown[]) => patch(...args),
         put: (...args: unknown[]) => put(...args),
+        delete: (...args: unknown[]) => remove(...args),
     },
 }));
 
@@ -40,6 +42,7 @@ beforeEach(() =>
 {
     patch.mockReset();
     put.mockReset();
+    remove.mockReset();
 });
 
 describe('saveExchangeFieldValues', () =>
@@ -114,5 +117,35 @@ describe('saveExchangeFieldValues', () =>
         const module = await import('../fieldsService.ts');
 
         expect(Object.keys(module)).not.toContain('setExchangeFieldValues');
+    });
+});
+
+describe('Exchange schema assignment', () =>
+{
+    it('states that it accepts whichever version is current when choosing a schema', async () =>
+    {
+        put.mockResolvedValueOnce({data: savedAssignment});
+        const {assignExchangeSchema} = await import('../fieldsService.ts');
+
+        await assignExchangeSchema('exchange-1', {schemaDefinitionId: 'definition-1'});
+
+        expect(put).toHaveBeenCalledWith(
+            '/exchanges/exchange-1/schema',
+            {schemaDefinitionId: 'definition-1'},
+            {headers: {'If-Match': '*'}},
+        );
+    });
+
+    it('states the version of the answers it read when removing a schema', async () =>
+    {
+        remove.mockResolvedValueOnce({data: undefined});
+        const {unassignExchangeSchema} = await import('../fieldsService.ts');
+
+        await unassignExchangeSchema('exchange-1', '"set-1:7"');
+
+        expect(remove).toHaveBeenCalledWith(
+            '/exchanges/exchange-1/schema',
+            {headers: {'If-Match': '"set-1:7"'}},
+        );
     });
 });

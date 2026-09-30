@@ -72,7 +72,9 @@ export const exchangesSection: HelpDocSectionInput = {
                     <p>
                         Open Settings, then Billing, to see the current plan. Free shows Exchanges
                         created this month, open Exchanges, and the monthly reset date. Authorized
-                        Business billing users also see active seats and purchased capacity.
+                        Business billing users also see active seats and purchased capacity. Plans that
+                        include Information Requests also list their allowances: open requests, acting
+                        parties and evidence per request, and evidence across requests.
                         An active Personal or Business trial is labeled as a trial and shows its
                         end date and whole days remaining. An expired trial shows zero days remaining.
                         Ending a Personal trial changes the current plan to Free. Ending a Business

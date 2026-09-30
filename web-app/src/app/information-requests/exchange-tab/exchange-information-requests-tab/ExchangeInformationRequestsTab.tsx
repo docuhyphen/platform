@@ -3,6 +3,7 @@ import {useNavigate} from "react-router-dom";
 import {Button, MessageBar, MessageBarBody, Spinner, Text, Title3} from "@fluentui/react-components";
 import {AddRegular} from "@fluentui/react-icons";
 import CreateInformationRequestDialog from "../../authoring/create-information-request-dialog/CreateInformationRequestDialog.tsx";
+import {standingReasonSentence} from "../../shared/executionStandingText.ts";
 import {informationRequestManagePath} from "../../shared/informationRequestWorkspacePaths.ts";
 import InformationRequestSummaryRow from "../information-request-summary-row/InformationRequestSummaryRow.tsx";
 import {ExchangeInformationRequestsState} from "../useExchangeInformationRequests.ts";
@@ -40,6 +41,14 @@ const ExchangeInformationRequestsTab = ({exchangeId, state}: Props) =>
                     </Button>
                 )}
             </div>
+            {state.listing?.creationUnavailableReason && (
+                <MessageBar id={"exchange-information-requests-creation-unavailable"}
+                            intent={"info"}>
+                    <MessageBarBody>
+                        {`New Information Requests cannot be created here right now. ${standingReasonSentence[state.listing.creationUnavailableReason]}`}
+                    </MessageBarBody>
+                </MessageBar>
+            )}
             {state.error && (
                 <MessageBar id={"exchange-information-requests-error"}
                             intent={"error"}>

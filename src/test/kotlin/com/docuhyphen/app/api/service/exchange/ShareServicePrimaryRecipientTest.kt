@@ -36,6 +36,22 @@ class ShareServicePrimaryRecipientTest
     }
 
     @Test
+    fun `holding an active Share on a resource type is answered for the principal alone`()
+    {
+        val principal = PrincipalRef.user(UUID.randomUUID())
+        whenever(
+            shareRepository.existsActiveForPrincipalOnResourceType(
+                principal.kind,
+                principal.id,
+                ResourceType.INFORMATION_REQUEST,
+            ),
+        ).thenReturn(true)
+
+        assertEquals(true, service.holdsActiveShareOn(ResourceType.INFORMATION_REQUEST, principal))
+        assertEquals(false, service.holdsActiveShareOn(ResourceType.DOCUMENT, principal))
+    }
+
+    @Test
     fun `primary user lookup follows the recipient binding instead of another direct Share`()
     {
         val exchangeId = UUID.randomUUID()

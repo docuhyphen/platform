@@ -54,6 +54,11 @@ class InformationRequestExecutionGrantService @Inject constructor(
             subscriptionAccessService.requireFeature(context, PlanFeature.BUSINESS_FIELDS_AND_SCHEMAS)
         }
         val subscription = subscriptionAccessService.resolve(context)
+        subscriptionAccessService.requireCommittedEvidenceCapacity(context) {
+            grantRepository.committedEvidenceBytes(context.ownerType, context.ownerId)
+        }
+        val mode = subscriptionAccessService.enforcementMode()
+        val limits = subscription.limits.takeIf { mode.refusesDeniedRequests }
         val now = Timestamp.from(Instant.now())
 
         val grant = RequestExecutionGrant().apply {
@@ -66,17 +71,19 @@ class InformationRequestExecutionGrantService @Inject constructor(
             }
             planCode = subscription.planCode.name
             subscriptionStatus = subscription.status.name
-            enforcementMode = subscriptionAccessService.enforcementMode().name
+            enforcementMode = mode.name
             trialExpiresAt = subscription.currentPeriodEnd
                 ?.takeIf { subscription.status == SubscriptionStatus.TRIALING }
                 ?.let(Timestamp::from)
             mutationAllowanceExpiresAt = mutationAllowanceExpiry(subscription)
-            additionalRecipientCap = subscription.limits.maxAdditionalParticipantsPerExchange
+            actingPartyCap = limits?.maxActingPartiesPerInformationRequest
+            evidenceFileAllowance = limits?.maxEvidenceFilesPerInformationRequest
+            evidenceByteAllowance = limits?.maxEvidenceBytesPerInformationRequest
             issuedAt = now
             createdAt = now
         }
 
-        return grantRepository.save(grant)
+        return grantRepository.insertNow(grant)
     }
 
     /**

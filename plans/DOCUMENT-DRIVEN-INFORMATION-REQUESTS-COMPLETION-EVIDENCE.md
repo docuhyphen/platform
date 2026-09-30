@@ -311,6 +311,664 @@ particular, do not rewrite or normalize the proposal while implementing this pla
 
 ## Implementation Journal
 
+### 2026-09-30: Phase 12 final verification and exit gate
+
+- Phase 12 complete. Final verification:
+  - `.\mvnw.cmd -o test -DskipFrontend=true`: 3,379 tests, 0 failures, 0 errors, 0 skipped (35:14).
+    During the run one comment in `SubscriptionAccessService` was shortened, so its tests were
+    run again below.
+  - `.\mvnw.cmd -o verify -DskipITs=false -DskipFrontend=true` with
+    `-Dtest=SubscriptionAccessServiceTest,InformationRequestQuotaConcurrencyTest`: 29 tests green,
+    the jar and Quarkus build succeeded, and failsafe reported "No tests to run" because the
+    repository has no `*IT` classes. The unit suite ran separately above.
+  - `RequestExecutionQuotaMigrationUpgradeTest` (new) migrates a PostgreSQL database to V149, writes
+    a grant with a recipient cap and a consumed `ADDITIONAL_RECIPIENT` reservation, then upgrades
+    to V150. The cap survives as `acting_party_cap`, the evidence allowances are empty, and the
+    reservation becomes `ACTING_PARTY`. Mutation proof: a scratch copy of the migrations without the
+    data update made the upgrade fail on `ck_request_execution_usage_reservation_usage_kind`. The
+    migration files were never edited, the test was restored, and its no-index diff is empty. The
+    local database's Flyway history ends at V144, so V145 through V150 are unapplied there.
+  - Web app:
+    - `npx vitest run --maxWorkers=2`: 180 files, 786 tests green.
+    - `npx tsc --noEmit`: exit 0. `npm run build`: exit 0.
+    - `npm run typecheck:app`: 345 diagnostics, 0 Information Request, none added. One reviewed
+      baseline diagnostic is gone.
+    - `npm run lint`: 109 problems (61 errors, 48 warnings), identical to the baseline. The only
+      changed file with problems is `fieldsService.ts`, whose two unused-directive warnings were
+      already in `HEAD`.
+    - `npm run buildWithTs`: exit 2 with 345 TypeScript diagnostics, none added against the reviewed
+      baseline.
+    - lint and `buildWithTs` fail on existing debt and are not claimed as passing.
+  - Website: `npm run lint` 0 errors (one existing warning), `npm run build` exit 0. There is no
+    website test script.
+- Neutrality: a scan of every changed and new file outside `plans/` and `website/` found no
+  industry-specific vocabulary. The pricing rows use generic capability wording.
+- Exit criteria:
+  - Migrations: `CleanSchemaMigrationContractTest` applies the whole set in one pass, and the V150
+    upgrade test covers populated grants and reservations.
+  - Existing meanings: the full suite is green.
+  - Lapse and trial continuation: `InformationRequestTrialContinuationTest` and
+    `InformationRequestReadAvailabilityTest`.
+  - Quotas, abuse controls, retention, recovery, and diagnostics are documented and tested.
+  - The eight conformance scenarios pass inside the full suite.
+  - Manual browser width checks for the changed screens were not run. The responsive review was
+    code-level, and accessibility used `unnamedControls` in jsdom. This is not claimed as a manual
+    check (Phase 10's width check had been waived by the user).
+- Open for the user:
+  - The Exchange listing costs about 60 ms per request; a separate task was offered.
+  - The two new CloudWatch alarms need a stack deploy.
+  - The app IAM role lacks `s3:ListBucketVersions` and `s3:DeleteObjectVersion` (carried over).
+  - The Personal Request Schema entitlement decision.
+  - The audit tables' dual `organization_id` column.
+- No commit or push.
+
+### 2026-09-30: Operator guide, API reference, migration notes, and release notes (`P12-T9`)
+
+- `P12-T9` complete. `docs/information-requests/` now holds:
+  - `operator-guide.md`: commercial and operational states; the quota table and where each quota is
+    checked; every `app.information-request.*` key with its default; abuse controls and their
+    answers; workers; and a support diagnostics table mapping common questions to the capability
+    endpoint, standings, stable codes, and the health report.
+  - `api-reference.md`: conventions (`If-Match` answers `428` when missing and `412` when stale,
+    `Idempotency-Key`, the no-auth headers, and `Retry-After`), refusal bodies and denial reasons,
+    and all 154 Information Request and record preservation endpoints, generated from the resource
+    annotations and grouped by purpose.
+  - `migration-notes.md`: how the program's migrations (V76 to V150) are applied, V149 and V150 in
+    detail, and what to check after upgrading.
+  - `release-notes.md`: Phase 12 changes for people who use Information Requests and for operators,
+    the defects fixed, and known limitations.
+  - `recovery-runbook.md` (from `P12-T8`).
+- Statements were checked against the code: health indicator names, the hourly disposal worker, the
+  connector exchange endpoint (external sources have no screen), precondition statuses, and the
+  evidence limit status.
+- Help: every Phase 12 behavior change already carries its help update and `helpDocs.test.tsx`
+  case (38 tests).
+- The character scan of every changed and new file found no em dash, arrow, or emoji, apart from
+  one em dash on an unchanged line already in `HEAD` (`application.properties` line 417, a comment
+  about removed feature flags), which was left alone.
+- Next: final verification.
+
+### 2026-09-30: Performance, concurrency, security, accessibility, and recovery verification (`P12-T8`)
+
+- `P12-T8` complete, using existing infrastructure only.
+- Volume (`InformationRequestVolumeTest`, PostgreSQL, 501 requests on one organization):
+  - Operations queue: first page 1,560 ms (including warm-up), last page 131 ms.
+  - Open-request and committed-evidence counts: 7 ms.
+  - The Exchange listing with 25 requests: 1,681 ms. Each step is asserted under 5 s.
+  - Finding: the Exchange listing costs about 60 to 67 ms per request. The first run put all 500
+    requests on one Exchange and listed them in 30.4 s. Each request pays one view decision, three or
+    four capability decisions, one decision per requirement, a completeness evaluation, and a grant
+    lookup. `DefaultAuthorizationService` caches nothing.
+  - Changing authorization is security-sensitive, so it was not attempted here. It is offered as a
+    separate task ("Batch authorization in the Exchange request listing"). The test now asserts the
+    listing at a realistic 25 requests.
+- Concurrency (`InformationRequestQuotaConcurrencyTest`, PostgreSQL, real beans): a Personal owner
+  with 24 open requests has two creations racing for the 25th place. The first holds the owner's
+  subscription row while it inserts. The second waits, counts 25, and is refused
+  `PLAN_LIMIT_REACHED`, and exactly 25 requests exist. Mutation proof: without `lockAllowances` both
+  creations succeed and the test fails; restored, the no-index diff is empty. The acting-party
+  reservation lock keeps its existing PostgreSQL concurrency contract (2 tests green after the rename).
+- Security:
+  - `/information-request-capabilities` and `/platform/information-request-health` are not on the
+    endpoint filter's no-auth list, so both need an access token.
+  - The health report is for platform administrators only, and every read and denial is audited.
+  - The no-auth challenge and session endpoints are rate limited.
+  - A platform Template cannot be created or pinned through the owner API.
+  - The security and authorization suites run in the final full backend run.
+- Accessibility and responsive:
+  - `unnamedControls` checks were added for a read-only Template with its copy dialog, and for a
+    party row with a link and a trust marker. The existing operations queue check still passes
+    (21 tests green).
+  - A code review of the changed screens' styles found no fixed widths. The notices are full-width
+    message bars, the party row keeps its single-column breakpoint, and the Template header and
+    billing facts wrap.
+- Audit, retention, and export: covered by `P12-T4d` (health reads audited), `P12-T5e` (retention
+  owner-defined), and `P12-T5d` (the export ceiling leaves replays and subject exports alone).
+- Disaster recovery: `docs/information-requests/recovery-runbook.md` states what protects each kind
+  of data, how breaches are detected, and procedures for stopped workers, stalled disposals, a
+  point-in-time database restore (including reconciling disposals and uploads made after the
+  restore point), mistaken object deletion, and mistaken suspension or revocation. Every
+  infrastructure statement was checked against `infra/cloudformation.yml`:
+  - RDS: 7-day backups, snapshots on delete or replace, deletion protection, encryption, and a single
+    Availability Zone.
+  - Buckets: the documents bucket is versioned; the audit archive has Object Lock in governance mode
+    for 2555 days.
+  - Logs are kept 30 days.
+  - While checking, disposal was confirmed to delete every S3 version and delete marker, which suits
+    the versioned bucket.
+  - Limits that need approval to change: a single-AZ database, 7-day recovery, and no cross-Region
+    copies.
+- Next: `P12-T9`.
+
+### 2026-09-30: Pricing, billing summary, and plan discoverability (`P12-T7`)
+
+- `P12-T7` complete. The plan catalog quotas (`P12-T5a`) are now stated wherever plans are
+  described:
+  - `website/src/pages/PricingPageData.ts`:
+    - Free's Information Requests cell says "Respond to requests shared with you".
+    - Four rows are added: open requests (Personal up to 25, Business unlimited under reasonable
+      use), parties per request (10 and 100), evidence per request (100 files and 250 MiB; 200 files
+      and 500 MiB), and evidence across requests (5 GiB; 100 GiB per organization).
+    - The wording is generic product capability, with no industry examples.
+  - The in-app billing summary gains `BillingInformationRequestAllowances`, shown only for a plan
+    with Information Request allowances.
+  - The billing help paragraph says so.
+- Settings discoverability and respond-only messaging were delivered in `P12-T4e`: the tab is
+  visible to every signed-in user and says who can still respond and review.
+- Tests:
+  - `BillingPlanSummary.test.tsx`: 1 red of 2 new cases, then 9 with the billing folder.
+  - `helpDocs.test.tsx`: 1 red, then 38.
+- Website `npm run lint`: 0 errors. One warning in `HowItWorksSection.tsx`, a file not changed here.
+- Website `npm run build`: exit 0 (asset generation, `tsc -b`, client and server builds, and 13
+  pre-rendered routes). It changed no tracked file. The website has no automated test script, so
+  no website test was run.
+- Next: `P12-T8`.
+
+### 2026-09-30: Personal Information Requests, platform Templates copied before use, and an issuance defect (`P12-T6`)
+
+- `P12-T6` complete, per revised decision 11.
+- Platform Templates:
+  - `InformationRequestTemplateAuthoringService.createTemplate` refuses the `PLATFORM` scope before
+    any gate, whatever the enforcement mode. Before, it reached the guard, which let it through
+    under `OFF`. This also covers copying into the platform scope.
+  - `POST /information-requests` refuses a platform Version with the new stable code
+    `INFORMATION_REQUEST_TEMPLATE_VERSION_PLATFORM_COPY_REQUIRED`.
+  - Reading a platform Version no longer asks the owner entitlement guard (a platform Template has
+    no subscription owner and is readable to every signed-in user). Before, it failed with a
+    validation error whenever enforcement evaluated decisions.
+  - Blueprint selection already refused a Version its owner does not hold.
+- Defect fixed: issuing a request that has any acting party failed through the real stack.
+  `BaseRepository.findByIdForUpdate` refreshes the entity with a pessimistic lock, and the grant,
+  then each usage reservation, had been persisted in the same transaction but not flushed, so
+  Hibernate answered "No row with the given identifier exists". The conformance scenarios never
+  saw it because they insert grants with SQL. The code at `HEAD` has the same flow.
+  `RequestExecutionGrantRepository.insertNow` and `RequestExecutionUsageReservationRepository.insertNow`
+  persist and flush. `issueGrant` and `reserve` use them, so the row exists before it is locked.
+  Assigning a party after issuance used the same reserve-then-consume path and is fixed too.
+- `InformationRequestPersonalOwnerTest` (new, PostgreSQL, real beans):
+  - A Personal-plan person with a personal Template on a platform Schema creates a request on their
+    personally owned Exchange, names themselves Decision Maker, and issues it. The grant is `USER`,
+    `PERSONAL`, 10 acting parties, 100 files, and 250 MiB.
+  - A published platform Version on the same Exchange is refused with the copy code.
+  - Red was observed three ways before this passed: the missing Decision Maker for the issue action,
+    the validation error on reading a platform Version, and the lock on the unflushed grant and then
+    the unflushed reservation.
+- Web app:
+  - The create dialog lists only the owner's Templates and says to copy a platform Template first
+    in Settings.
+  - A read-only Template (such as a platform one) offers "Copy as a new Template" whenever the
+    caller can author somewhere. The targets are My Templates (Personal plan or a sponsoring active
+    organization) and the organization (policy manage and new work available), and the dialog asks
+    "Copy into" when both apply. Starting a draft and retiring still need manage rights.
+- Tests:
+  - `InformationRequestTemplateAuthoringServiceTest` and `InformationRequestTemplateInstantiationServiceTest`:
+    each red 1, then 22 and 4.
+  - The Template, lifecycle, and request resource contracts: 56 green.
+  - Grant and reservation unit tests now stub `insertNow`: 14 and 11.
+  - Issuance, reservation concurrency, and party tests: 45 green.
+  - Web app: the dialog test red 1 then 5, the Templates tab platform copy test red 1, and the editor
+    tests take copy targets (a reader copy case added). Settings, Information Requests, and
+    components: 84 files and 414 tests green.
+  - `npm run typecheck:app`: 0 Information Request.
+- Help: Templates (Schemas a Template can use, personal Fields and Schemas not yet authorable, and
+  copying a platform Template) and managing (copy first; a personal Exchange's request answers to
+  that person's plan). `helpDocs.test.tsx`: 1 red, then 37.
+- Next: `P12-T7`.
+
+### 2026-09-30: Trial continuation, an ended trial's refusal, retention, and quota help (`P12-T5e`, `P12-T5` closed)
+
+- `P12-T5e` complete, which closes `P12-T5`.
+- `InformationRequestTrialContinuationTest` (new, PostgreSQL, real beans) covers a Business
+  organization in a trial:
+  - The real `issueGrant` freezes `TRIALING`, the trial end, and the plan allowances (100 acting
+    parties, 200 files, 500 MiB).
+  - After the trial ends, a party still answers under the grant.
+  - Creating a new request is refused.
+- Defect fixed: an ended trial was refused with `SUBSCRIPTION_SUSPENDED` and the text "This
+  subscription is suspended". `SubscriptionDenialReason.TRIAL_ENDED` (Kotlin and the web app enum)
+  is added, and `SubscriptionDenialFactory.mutationsNotAllowed` maps an ended trial to it with
+  "The trial has ended, so new changes are paused". The standings already said `TRIAL_ENDED`.
+  Tests:
+  - `SubscriptionAccessServiceTest` red 1, then 28.
+  - The trial continuation case is red only on the reason, then green.
+  - `Subscription*Test`, the trial case, the standing service, and the DTO mapper: 99 green.
+- Retention: `RecordPreservationEntitlementGuard` checks the plan feature only before a hold or
+  retention change. Retention periods come from the owner's published schedules, and no plan limit
+  shortens them, so nothing changed.
+- Help:
+  - Overview: an Allowances section with each plan's quotas. Issuing sets aside the evidence
+    allowance until the request finishes and is refused past the total, and an issued request keeps
+    its allowances.
+  - Access: link defaults (30 days, 25 verifications) and the pause after too many verification
+    attempts.
+  - Operations: the 24-hour reminder cooldown and the 100 record exports a day.
+  - Evidence: uploads within the issued allowance and the platform limits.
+  - `helpDocs.test.tsx` 3 red, then 36. Articles stay under 150 lines.
+- `npm run typecheck:app`: 345, 0 Information Request (the one reviewed baseline diagnostic that
+  left in `P12-T4e` is still gone).
+- Next: `P12-T6`.
+
+### 2026-09-30: Abuse controls (`P12-T5d`)
+
+- `P12-T5d` complete. The limits are one configuration object, `InformationRequestAbuseLimits`,
+  produced from `app.information-request.*` keys. Each default below can be overridden by an
+  environment variable.
+- Controls:
+  - Access links: an access link issued or replaced without an expiry or use limit takes
+    `access-link.default-lifetime` (P30D) and `default-uses` (25). An author's own values are kept.
+    Each successful contact proof is one use, as before. The party row now says until when an active
+    link works.
+  - No-auth challenges and sessions: rate limited per client address through the existing Redis
+    limiter (`AuthRateLimitService`, with its progressive backoff and global switch).
+    `no-auth.challenges-per-minute` is 10 and `sessions-per-minute` is 20. The address comes from
+    `AuthTokenContext.clientIp`, which the endpoint filter resolves for no-auth paths too. A limited
+    call answers `429` with `Retry-After: 60` and `INFORMATION_REQUEST_RATE_LIMITED` before any code
+    is sent or checked.
+  - Reminders: a reminder for a request that was reminded within `reminder.cooldown` (PT24H) is
+    skipped. The result names `cooldownUntil`, and no transition or notice is owed. A retried
+    Idempotency-Key still replays the original result, because the cooldown is checked only for a
+    command without a receipt (`CommandReceiptService.isRecorded`). The web app states the skipped
+    requests and when they can be reminded again.
+  - Record exports: an owner's request-record exports are bounded by `export.daily-ceiling` (100) in
+    a rolling day. The next one answers `429 INFORMATION_REQUEST_EXPORT_LIMIT_REACHED` with a
+    `Retry-After` until the oldest export in the window ages out. The ceiling is plan-independent,
+    and replays and subject exports are unaffected.
+  - Markers: every refusal logs `INFORMATION_REQUEST_ABUSE_REFUSED control=<control>`, including
+    evidence upload limit refusals. `infra/cloudformation.yml` adds a metric filter and alarm on the
+    existing log group (50 in 5 minutes). No new AWS service.
+- Error catalog: `RATE_LIMITED` and `EXPORT_LIMIT_REACHED` added. `allCodes()` now also lists
+  `TRUST_SUSPENDED` and `TRUSTED_RECIPIENT_UNAVAILABLE`, which `P12-T4b` left out.
+- TDD, red then green:
+  - `InformationRequestAbuseLogTest` 1.
+  - `InformationRequestNoAuthRateLimitTest` 2.
+  - `InformationRequestNoAuthAccessResourceContractTest` 2 of 8.
+  - `InformationRequestBootstrapShareLinkServiceTest` 1 of 25.
+  - `InformationRequestRecordExportServiceTest` (new) 1 of 2.
+  - `InformationRequestReminderServiceTest` 1 of 5.
+  - `InformationRequestReminderResourceContractTest` 1 of 3.
+  - `InformationRequestOperationsTransactionTest`: the reminder case now also sends under a new key
+    and is skipped, against PostgreSQL.
+  - Web app: `reminderOutcome` 2 of 2 and `PartyRow` 1 of 3. The expected text needed whitespace
+    normalization for the narrow no-break space in the formatted time.
+- Green:
+  - The batch (a) set: 56.
+  - Reminders, exports, and privacy transaction and conformance tests: 22.
+  - Web app authoring and operations: 81.
+- Next: `P12-T5e`.
+
+### 2026-09-30: Uploads draw on the grant beneath the platform ceiling (`P12-T5c`)
+
+- `P12-T5c` complete. `InformationRequestEvidenceIntake` reads the request's execution grant and
+  admits a file only within the lower of each configured platform ceiling
+  (`app.information-request.evidence.upload.maximum-request-files` and `-bytes`) and the grant's
+  frozen `evidence_file_allowance` and `evidence_byte_allowance`. A request without a grant, or
+  with a grant issued while enforcement did not refuse, is bounded by the ceiling alone. Per-file
+  and per-respondent ceilings are unchanged. Uploads never consult the owner's live plan, so a later
+  lapse cannot withdraw issued capacity.
+- TDD: `InformationRequestEvidenceIntakeTest` gains the grant allowance case, red 1, then 11.
+  `InformationRequestEvidence*Test` and the two evidence conformance scenarios: 198 tests green.
+- Next: `P12-T5d`.
+
+### 2026-09-30: Open-request cap and committed evidence at issuance (`P12-T5b`)
+
+- `P12-T5b` complete.
+- `SubscriptionAccessService`:
+  - `requireInformationRequestCapacity` refuses a creation once the owner's open requests (draft,
+    issued, or in progress) reach the plan's allowance.
+  - `requireCommittedEvidenceCapacity` refuses an issuance whose per-request evidence allowance
+    would take the owner past its committed evidence.
+  - Both count only when the plan caps the allowance, report without refusing in `REPORT_ONLY`,
+    are skipped when enforcement is `OFF`, and count under the owner's subscription row lock
+    (`findUserPolicyForUpdate` or `findOrganizationPolicyForUpdate`), so concurrent creations or
+    issuances cannot both take the last place.
+- `InformationRequestEntitlementGuard.requireRequestCreation` adds the open-request check to the
+  live-plan check. The ad hoc, Template, and Blueprint creation paths and follow-up drafts
+  (`InformationRequestDraftFactory`) use it.
+- `InformationRequestExecutionGrantService.issueGrant` checks committed evidence before it freezes
+  the grant.
+- Queries:
+  - `InformationRequestRepository.countOpenForOwner` (JPQL over non-terminal states).
+  - `RequestExecutionGrantRepository.committedEvidenceBytes` (native). For an open request it
+    counts the frozen byte allowance, or what the request stores when it was issued without one.
+    For a finished request it counts only what it stores. A disposed request's grant is deleted, so
+    it counts nothing.
+- TDD, red then green:
+  - `SubscriptionAccessServiceTest` 2 of 4 new cases, then 27.
+  - `InformationRequestEntitlementGuardTest` 1, then 12.
+  - `InformationRequestExecutionGrantServiceTest` 1, then 14.
+  - The ad hoc, Blueprint, and Template creation tests now expect `requireRequestCreation`: 4 red,
+    then 3, 3, and 4.
+  - `InformationRequestQuotaUsageTest` (new, PostgreSQL) 2 red against stub queries, then 2 green.
+    The first green attempt needed `closed_at` for a closed request (`ck_information_request_terminal_dates`).
+- Regression: lifecycle, Blueprint pinning, Exchange metadata separation, read availability, and
+  every `*ConformanceTest`: 38 tests green.
+- Next: `P12-T5c`.
+
+### 2026-09-30: Plan quotas, V150, and frozen grant allowances (`P12-T5a`)
+
+- `P12-T5` split into `P12-T5a` through `P12-T5e` in the plan. `P12-T5a` complete.
+- `PlanLimits` gains the Information Request quotas from decision 9, with `PlanCatalog` values:
+  - Personal: 25 open requests, 10 acting parties, 100 files and 250 MiB per request, 5 GiB
+    committed evidence.
+  - Business: open requests uncapped, 100 acting parties, 200 files and 500 MiB, 100 GiB.
+  - Free: 0 for each.
+- The session limits DTO (Kotlin and TypeScript) states the new quotas.
+- V150 (`V150__request_execution_quotas.sql`):
+  - Renames the grant's recipient cap to `acting_party_cap`.
+  - Adds `evidence_file_allowance` and `evidence_byte_allowance` (non-negative when present).
+  - Moves the usage kind to `ACTING_PARTY`: existing local rows are updated, and the check admits
+    only that kind.
+  - Adds `request_execution_grant_frozen`, a trigger that refuses rewriting any frozen column and
+    writes only a first revocation. Deleting a grant during disposal is unaffected.
+- `InformationRequestExecutionGrantService.issueGrant` freezes the plan's acting-party cap and
+  evidence allowances only while enforcement refuses. A grant issued under `REPORT_ONLY` or `OFF` is
+  uncapped. The acting-party cap no longer derives from the Exchange participant allowance, and the
+  health query uses the new names.
+- TDD:
+  - `PlanCatalogTest` red 1, then 13.
+  - `InformationRequestExecutionGrantServiceTest`: the freeze case red (4 against the old
+    participant cap), then 13 with the unenforced case.
+  - `SubscriptionDtoMapperTest` red 1, then 5.
+  - `CleanSchemaMigrationContractTest` (18) adds the grant guard case. The first draft inserted the
+    grant under replica mode, so the foreign-key trigger refused the later update of a row that
+    names no request; the case now uses a real request from `SubmissionRuntimeSqlFixture`. Mutation
+    proof: the test dropped `request_execution_grant_frozen` and failed; restored, the no-index diff
+    is empty.
+- Regression: party, lifecycle, reservation, health, resource contract, fact recertification,
+  every `*ConformanceTest`, read availability, and party concurrency: 105 tests green.
+- Next: `P12-T5b`.
+
+### 2026-09-30: Help for standings, capability, and trust; follow-up controls follow the standing (`P12-T4f`, `P12-T4` closed)
+
+- `P12-T4f` complete, which closes `P12-T4`.
+- Follow-up controls: `FollowUpPanel` takes `canCreate`. The author workspace passes `true` only for
+  an `ACTIVE` request, so "Create the next request", the recurrence form, and the supplement form
+  are hidden once new work is unavailable, and the follow-up history stays visible. The backend
+  already refuses these under a lapse: `InformationRequestSuccessorService.follow` creates the
+  successor through `InformationRequestDraftFactory.createAlongside`, which checks the owner's live
+  plan. Tests: `FollowUpPanel` 2 of 5 red, then 5; authoring folder 41 green.
+- Help, with the size limits checked (every article under 150 lines):
+  - Overview: a plan change never hides a request, the four standings with their badges, and the
+    owner's reason shown only to people who manage the request. The Exchange tab says why creation
+    is unavailable and stays when its list cannot load.
+  - Access: suspension or revocation stops further answers and changes, but everything recorded
+    stays readable (the old text said access stops).
+  - Operations: the link appears when the active account's plan includes the feature or the account
+    still owns requests, and the page says why new requests are unavailable.
+  - Review: the link appears with the feature or assigned request work.
+  - Record preservation: the page stays readable.
+  - Managing: the page says why it cannot be changed; adding or reassigning a party answers to the
+    owner's plan for a draft and the grant afterwards; removal is always possible; the trusted
+    relationship marker; follow-ups offered only while active.
+  - Templates: the Settings tab is there for every signed-in user, the respond-only message, who
+    authors personal Templates (the Personal plan or an active organization whose plan includes the
+    feature), and read-only Templates when new requests cannot be created.
+- `helpDocs.test.tsx`: 5 new cases red, then 33 green. `npx tsc --noEmit` in `web-app`: exit 0.
+- Next: `P12-T5`.
+
+### 2026-09-30: Standing, capability, and trust state in the web app (`P12-T4e`)
+
+- `P12-T4e` complete.
+- Standing notices: `shared/executionStandingText.ts` maps each execution standing to a notice, a
+  badge, and whether changes are allowed (`ACTIVE` and `CONTINUING_AFTER_LAPSE` only).
+  `StandingNotice` (a polite `role="status"` region) renders it: `ExecutionStandingNotice` on the
+  author and respondent workspaces, and `InformationRequestScopeNotice` for the caller's active
+  scope. The author workspace edits only while the standing allows changes. The follow-up action is
+  offered only to an `ACTIVE` request, instead of the viewer's own plan. Each Exchange tab row shows
+  a standing badge, and the tab states why creation is unavailable.
+- Exchange tab: kept visible when the listing fails for any reason other than a refusal. The backend
+  now answers a `ForbiddenException` from any Information Request resource with the stable
+  `INFORMATION_REQUEST_FORBIDDEN` code (`InformationRequestCommandHttp.refused`), which the tab reads
+  as a refusal.
+- Capability discovery now also states `holdsRequests`, through the new
+  `InformationRequestRepository.existsForOwner` for the active scope. The web app reads the
+  capabilities through `informationRequestCapabilityService.ts` and
+  `useInformationRequestCapabilities`. The hook shares one in-flight read across consumers that mount
+  together, reads again when the scope, plan, status, or enforcement mode changes, never answers with
+  another scope's value, and leaves the value unknown on failure.
+- Gates:
+  - `InformationRequestFeatureGate` is removed. The operations queue, operations detail, and record
+    preservation pages always render for an authorized caller and state the scope notice when new
+    work is unavailable.
+  - The operations link shows when the scope includes the feature or still holds requests. The
+    reviews link shows when the scope includes the feature or the caller holds assigned work.
+  - The Settings Information Requests tab is visible to every signed-in user (the
+    `canUseInformationRequests` prop is gone). A caller with neither the feature nor personal
+    Template authoring sees only the respond-only notice, and no Templates are read. Otherwise
+    Templates stay readable, and authoring follows `personalTemplatesAvailable` (My Templates) or
+    the organization's new-work availability.
+- Party trust: `PartyRow` marks `trustSuspended` with a "Trusted relationship suspended" badge. It
+  also says the party keeps answering what was issued while new trusted assignments are paused.
+- TDD, red then green:
+  - `useInformationRequestCapabilities` 3 of 4 red, then 4.
+  - `scopeStandingText` 3 of 4, then 4.
+  - `InformationRequestScopeNotice` 1 of 2, then 2.
+  - Operations, operations detail, and record preservation 20 of 23 (new readable-after-lapse cases),
+    then 23.
+  - Both navigation links 6 of 7, then 7.
+  - Templates tab 2 of 8, then 8.
+  - `useSettingsPlanAvailability` 1 of 4, then 4.
+  - `PartyRow` 1 of 2, then 2.
+  - Earlier in this subtask: `executionStandingText` 4, `ExecutionStandingNotice` 2, author workspace
+    10 (2 new), respondent workspace 7 (1 new), submission section 8, Exchange tab hook and tab 20
+    (4 new).
+  - Backend: `InformationRequestCapabilityServiceTest` holds-requests case red, then 5 green;
+    capability contract 2; `InformationRequestReadAvailabilityTest` 4 green against PostgreSQL;
+    139 Information Request resource contract tests green after the forbidden code.
+- Verification:
+  - `npx vitest run src/app/information-requests src/app/settings src/app/record-preservation src/app/components/main-menu src/hooks`:
+    81 files, 372 tests green.
+  - `npm run typecheck:app`: 345 diagnostics, 0 Information Request. One reviewed baseline diagnostic
+    disappeared: the `CurrentSessionDto` cast in the rewritten `useSettingsPlanAvailability` test.
+  - ESLint on the 53 changed files: 0 errors. Two warnings for unused disable directives in
+    `fieldsService.ts` were already there at `HEAD`.
+- Next: `P12-T4f` help.
+
+### 2026-09-30: Party gates and trust suspension, capability discovery, health report (`P12-T4b` to `P12-T4d`)
+
+- `P12-T4b` complete. `InformationRequestPartyService` assignment, external-participant assignment,
+  trusted-selection assignment, and reassignment now call `InformationRequestMutationGate.requireContinuationEntitlement`
+  (the owner's live plan for a draft, the grant afterwards, never while operationally suspended or
+  revoked); revocation stays possible because it only reduces access. A trusted recipient whose
+  relationship is effectively suspended is refused `409 INFORMATION_REQUEST_TRUST_SUSPENDED`
+  (checked first through the new `ExchangeRecipientService.trustSuspended` and
+  `TrustedRecipientValidationService.isRelationshipSuspended`), and any other trust refusal
+  (`OrganizationTrustException`, previously an unhandled 500) becomes `409
+  INFORMATION_REQUEST_TRUSTED_RECIPIENT_UNAVAILABLE`. Already-assigned trusted parties keep working,
+  matching the existing trust policy (suspension pauses new trusted operations). The management
+  party listing marks `trustSuspended`. Defect fixed: revoking a party after issuance reserved
+  capacity in order to roll it back, so revoking a subject (never reserved) threw; the new
+  `InformationRequestExecutionUsageReservationService.returnCapacity` releases a reserved slot, rolls
+  back a consumed one, and ignores one never taken. Tests: `InformationRequestPartyServiceTest` red 5
+  (continuation gate, trust suspension, other trust refusal, subject revocation, capacity return)
+  then green 30; `InformationRequestExecutionUsageReservationServiceTest` red 1, green 11;
+  `ExchangeRecipientServiceTest` new case, 36; `InformationRequestPartyQueryServiceTest` red 1,
+  green 7; regression over recipient, trust, party, and reservation suites: 175 then 48 tests green.
+- `P12-T4c` complete. `GET /information-request-capabilities` (`InformationRequestCapabilityResource`,
+  `InformationRequestCapabilityService`, `InformationRequestCapabilitiesDto`) answers for the caller's
+  active scope (the selected organization, otherwise the person): plan, status, enforcement mode,
+  whether the feature is included, whether new work is available and why not, operational suspension,
+  typed answers (Business Fields for an organization, always for a person), personal Templates (the
+  person's plan or a sponsoring active organization), and assigned work (any active request Share,
+  through the new `ShareService.holdsActiveShareOn` and `ShareRepository.existsActiveForPrincipalOnResourceType`).
+  Tests: service red 3 of 4 then green 4, resource contract 2, `ShareServicePrimaryRecipientTest`
+  red 1 then green 5, and a real-stack case in `InformationRequestReadAvailabilityTest` (a
+  contributor without the feature discovers assigned work; 4 tests).
+- `P12-T4d` complete. `InformationRequestHealthService` counts six invariant breaches through
+  `InformationRequestHealthRepository` (issued requests without an execution grant, grants whose
+  active reservations exceed the cap, notice intents without an outbound notice after 60 minutes,
+  connector exchanges that failed operationally in 24 hours, disposal claims unfinished after 24
+  hours, and request events pending over 15 minutes; windows configurable under
+  `app.information-request.health.*`). `GET /platform/information-request-health` is for platform
+  administrators only; reads and denials are audited as `platform.information_request_health.view`
+  (audit catalog version 29). `InformationRequestHealthMonitorScheduler` (every 15 minutes, off in
+  tests) logs `INFORMATION_REQUEST_HEALTH_BREACH indicator=... count=...` per breach, and
+  `infra/cloudformation.yml` gains a metric filter and alarm for that marker on the existing log
+  group (no new AWS service). A Quarkus boot caught that a `@Scheduled` method must return void, so
+  `tick()` delegates to a testable `check()`. Tests: service red 2 then green 2, scheduler 2,
+  resource contract 2, `AuditEventTypeTest` red 1 then green 12, and
+  `InformationRequestHealthReportTest` (PostgreSQL: all six queries run; a grant-less issued request
+  and a stuck request event each add exactly one).
+- Next: `P12-T4e` (UI), then `P12-T4f` (help).
+
+### 2026-09-30: Reads never hidden by commercial or operational state; execution standing (`P12-T4a`)
+
+- `P12-T4` split into `P12-T4a` through `P12-T4f` in the plan. `P12-T4a` complete.
+- `InformationRequestQueryService` no longer consults the entitlement guard or the execution grant:
+  a request, its workspace, and the Exchange listing are readable to any authorized caller while
+  the owner is suspended, has lapsed, lost the feature, or had the grant revoked (before, an issued
+  request's reads were refused under suspension or revocation, and the listing silently dropped a
+  draft whose owner lost the feature). `InformationRequestEntitlementGuard.requireRequestAccess` was
+  removed (its only caller was that read gate), and `requireRequestMutation` now checks operational
+  suspension first, so a suspended owner's drafts are frozen whatever the enforcement mode.
+- New `InformationRequestExecutionStandingService` evaluates the owner without writing subscription
+  decision logs (`InformationRequestOwnerStanding`: plan, status, mode, feature, suspension, and the
+  reason new work is unavailable) and each request's standing: `ACTIVE`, `NEW_WORK_UNAVAILABLE`,
+  `CONTINUING_AFTER_LAPSE`, `OPERATIONALLY_SUSPENDED`, or `EXECUTION_GRANT_REVOKED`, with a reason
+  (`FEATURE_NOT_INCLUDED`, `TRIAL_ENDED`, `SUBSCRIPTION_PAST_DUE`, `SUBSCRIPTION_CANCELED`,
+  `SUBSCRIPTION_SUSPENDED`, `EXECUTION_GRANT_REVOKED`). An ended trial is a lapse (`TRIAL_ENDED`),
+  never an operational suspension. `REPORT_ONLY` and `OFF` report no commercial refusal; suspension
+  is independent of the mode.
+- Audience: the owner's commercial reason is withheld from parties who cannot manage the request
+  (`INFORMATION_REQUEST_MANAGE_PARTIES`): for them a lapse reads `ACTIVE`, and a suspension or
+  revocation keeps its kind without the reason (`InformationRequestExecutionStanding.forParticipant`).
+- Projections: `InformationRequestResponseWorkspaceDto.executionStanding` (author and respondent
+  pages), `InformationRequestSummaryDto.executionStanding`, and
+  `InformationRequestExchangeListingDto.creationUnavailableReason` (the owner's reason, only when the
+  caller may create and the Exchange takes new requests). The listing's creation check now uses the
+  owner standing instead of catching a guard refusal.
+- TDD: `InformationRequestQueryServiceTest` rewritten to the new contract (red 4 of 16 against the
+  read gates, green 15 after, one redundant case removed), `InformationRequestExecutionStandingServiceTest`
+  (red 5 of 7, green 7), `InformationRequestEntitlementGuardTest` (suspended draft under `OFF`, red 1,
+  green 11), `InformationRequestExchangeSummaryServiceTest` (red 2, green 4 with the audience case),
+  `InformationRequestExchangeListingResourceContractTest` (2), and
+  `InformationRequestResponseWorkspaceServiceTest` (red 1, green 17 after a default standing stub).
+  A Kotlin default time parameter defeated Mockito stubs and was removed from the service API.
+  `InformationRequestReadAvailabilityTest` (conformance package, real CDI beans and PostgreSQL):
+  a suspended owner's request stays in the workspace and the listing while a response save is
+  refused `SUBSCRIPTION_SUSPENDED`; a revoked grant keeps it readable while a save is refused
+  `EXECUTION_GRANT_REVOKED`; with the feature switched off by a platform override, issued work still
+  saves and the party sees `ACTIVE`. Mutation proof: the participant view temporarily dropped the
+  paused kind; 2 of 3 failed; restored, no-index diff empty.
+- Commands: `.\mvnw.cmd -o "-Dtest=InformationRequestResponseWorkspaceServiceTest,InformationRequest*ResourceContractTest" test -DskipFrontend=true`
+  (154 tests, 0 failures) and `-Dtest=InformationRequestReadAvailabilityTest` (3 tests).
+- Next: `P12-T4b`.
+
+### 2026-09-30: Exchange metadata stays metadata and Blueprints pin only later requests (`P12-T2`, `P12-T3`)
+
+- `P12-T2` complete. `ExchangeMetadataSeparationTest` (conformance package, PostgreSQL) prepares the
+  basic Field, document, and confirmation request, then gives its Exchange its own `EXCHANGE`
+  Schema Assignment bound to the same Field with a stored answer. After the request is answered,
+  attested, submitted, and closed, the Exchange assignment, answer, set revision and time, and
+  revision count are unchanged; its resource type stays `EXCHANGE`; the Exchange has exactly one
+  request; no package item references the Exchange assignment; and the Field item references the
+  request's own `INFORMATION_REQUEST` assignment. No conversion path exists and none was added.
+  The test passed against existing code. Mutation proof: submission temporarily bumped the
+  Exchange's root set revision; the test failed on the metadata snapshot (revision 1 to 2); the
+  file was restored from a saved copy and the no-index diff was empty.
+- `P12-T3` complete. `InformationRequestBlueprintVersionPinningTest` (PostgreSQL, real
+  `InformationRequestBlueprintInstantiationService`) gives a personal owner the Personal plan,
+  publishes two Template Versions, names the first on a personal Blueprint, creates a request,
+  re-points the Blueprint, and creates another: the first keeps its Version, Requirement revision
+  sources, and Requirement key, and the second pins the new Version. It passed against existing code
+  (and is the first real-stack proof that a personally owned Exchange can create a request).
+  Mutation proof: instantiation temporarily re-pinned earlier requests on the Exchange; the test
+  failed on the pinned Version; restored, no-index diff empty.
+- Found while tracing: the V96 guard `information_request_owner_and_template_guard` refuses any
+  request whose Template owner differs from its own owner, so a platform-scope Template can never be
+  pinned. Decision 11 was revised: platform Templates are copied into an owner's scope before use,
+  which `P12-T6` implements. `information_request.template_version_id` is not immutable in the
+  database because an amendment legitimately moves it; the pinning guarantee is therefore proven at
+  the service boundary.
+- Existing coverage relied on and not duplicated: `BlueprintTemplateVersionReferenceTest` (naming,
+  re-pointing, retiring, copying), `InformationRequestBlueprintInstantiationServiceTest` (default
+  mappings and replay), `BlueprintTemplateVersionReferenceContractTest` (V90), and the web app's
+  `creationFieldsUtils.test.ts` (Blueprint Field defaults for Exchange creation).
+- Help: `helpDocs.test.tsx` gained two cases, red 2 of 28 and then green 28: the overview article
+  states that Exchange Fields are never turned into requests, answers, submissions, or decisions and
+  that request activity never changes them (73 lines); the managing article states that a request
+  keeps the Version it was created from, that re-pointing or retiring affects only requests created
+  afterwards, the Blueprint participant role mapping, and that defaults are starting values, not
+  submitted answers (81 lines).
+- Commands: `.\mvnw.cmd -o "-Dtest=ExchangeMetadataSeparationTest" test -DskipFrontend=true` and
+  `-Dtest=InformationRequestBlueprintVersionPinningTest,ExchangeMetadataSeparationTest`: 2 tests,
+  0 failures; `npx vitest run src/app/components/help-docs/helpDocs.test.tsx`: 28 passed.
+- Exact next task: `P12-T4`.
+
+### 2026-09-30: Phase 12 started; `If-Match` on every Field mutation and the clean-schema migration contract (`P12-T1`)
+
+- Session start: the user asked for the rest of Phase 12 (nothing of Phase 12 existed; the working
+  tree was clean at `17cee539`). `quarkus:dev` was running from IntelliJ, so no `mvnw clean` was used;
+  local Flyway history was at V144. Four read-only surveys (migration tests, entitlement and
+  suspension states, quotas and abuse controls, personal support and pricing) were run first; their
+  verified facts and the fourteen decisions are recorded in the plan under
+  `### Phase 12 design decisions (2026-09-30)` before any test.
+- `P12-T1` complete.
+  - `If-Match` on every Field mutation path. `PUT` and `DELETE /exchanges/{id}/schema` took no
+    precondition. Both now require `If-Match` (`428 FIELDS_PRECONDITION_REQUIRED` without it) and
+    compare it with the answers tag a read of the schema serves (the root value set tag), so a removal
+    that would discard answers changed after the read is refused `412`; `*` states any version.
+    `SchemaAssignmentETag` (the assignment id, which no client was ever served) was removed and
+    `SchemaAssignmentService` compares assign and remove preconditions with `answersETagOf`. The web
+    app's `assignExchangeSchema` states `*` (the assign panel is shown only when no schema was read)
+    and `unassignExchangeSchema` states the tag it read. Internal writers keep `Unconditioned`.
+  - Clean-schema contract: `CleanSchemaMigrationContractTest` (17 tests) starts one PostgreSQL
+    container, applies every migration to an empty database in one pass, checks the applied count
+    and head against the files on disk, and runs each check in a rolled-back transaction with
+    savepoints. It asserts the refusal of the replaced shapes that were only proven on upgrade paths
+    or not at all: Field and Template scope spellings other than `PLATFORM`, `ORGANIZATION`, and
+    `PERSONAL`; the dropped App User attribution columns; one stable Field per Schema Version;
+    object-store-only Document Version locators, canonical creator, and dropped legacy columns; the
+    five Exchange states; the four Share-bearing resource types and resource-aware roles; ShareLink
+    `DIRECT_GRANT` and `VERIFICATION_BOOTSTRAP` only; one External Participant owner; the unchanged
+    `exchange_recipient` binding trigger on a clean schema (including a request-party Share); owner
+    kind on domain events; explicit owners on all five audit tables; the one generalized hold table
+    with personal owners; `$` refused on Requirements, revisions, and responses (the revision and
+    response checks are reached with `session_replication_role = replica` because their guard
+    triggers refuse first); owner-scoped feature entitlements; Information Request trigger
+    descriptors without personal data; and the Blueprint Template Version reference with its three
+    default tables.
+  - Compatibility mechanism found and removed: V84's five `*_legacy_owner` triggers filled
+    `owner_type` and `owner_id` for an audit writer that named only an organization, and
+    `AuditPersonalOwnerContractTest` asserted it ("legacy writers gain explicit owners during a
+    rolling deployment"). Every production writer is a JPA entity that always sets `owner_type`, so
+    nothing depended on them. V149 drops the triggers and their function; that test now asserts the
+    refusal, and `AuditConcurrencyPostgresContractTest`, whose fixture relied on the trigger, states
+    its owner.
+  - Reviewed and kept: V81's `field_value_set.revision DEFAULT 1`, whose comment gives a
+    rolling-deploy reason, but which also states a new set's first revision and is current behavior.
+    Reported and not changed: the five audit tables still carry `organization_id` beside
+    `owner_type` and `owner_id` (V84 kept it "for readers that have not yet moved"). The owner checks
+    keep it equal to the organization owner, so it cannot disagree with the owner pair, but 222
+    references in 24 audit files, including the hash-chained ledger and stream partitioning, read
+    it; removing it is an audit-subsystem refactor left for the user to schedule.
+- TDD record (backend commands `.\mvnw.cmd -o "-Dtest=..." test -DskipFrontend=true`):
+  - `FieldsPreconditionTest`, `ExchangeFieldsConditionalWriteTest`, `ExchangeFieldsResourceETagTest`
+    after adding only the header parameters: 30 tests, 6 failures and 1 error (missing `If-Match`
+    accepted with 200 and 204, a stale version accepted, the removal compared with the assignment
+    id). Green after the change: 74 tests with the neighbouring Fields classes.
+  - `fieldsService.test.ts`: red 2 of 9 (no header sent), green 9; with the Fields tab tests 66
+    passed.
+  - `CleanSchemaMigrationContractTest`: after fixture corrections (column names and the two guard
+    triggers), red 1 of 17 for the intended reason (an audit write naming only an organization was
+    accepted); green 17 after V149, with `AuditPersonalOwnerContractTest` (4),
+    `AuditConcurrencyPostgresContractTest` (1), and `AuditMigrationUpgradeContractTest` (3).
+  - Mutation proof: fifteen named constraints, the binding trigger, and the Field binding index were
+    dropped inside the test after migrating; 15 of 17 tests failed (the one-pass count and the
+    dropped-column checks are unaffected by that mutation). Restored from a saved copy; the no-index
+    diff was empty.
+  - Regression: `service/fields/**`, `resource/exchange/**`, `resource/fields/**`,
+    `repository/fields/**`, and the Fields migration contracts: 330 tests, 0 failures.
+- Help: `usingExchangeFieldsArticle` still described the "older route" DS-T4 removed, where the last
+  save wins. `helpDocs.test.tsx` now requires the article to state that every Fields change states
+  the version it read (saving, choosing, and removing the schema), mention `If-Match`, and never
+  describe a last-save-wins route: red 1 of 26, green 26 after the paragraph was replaced (article
+  129 lines).
+- Migration: V149 created and recorded in the ledger; not applied to the local database (head V144).
+  `quarkus:dev` applies V145 through V149 on its next reload; V149 must not be edited once the local
+  history shows it.
+- Exact next task: `P12-T2`.
+
 ### 2026-09-29: Phase 11 external sources, connectors, and exit gate (`P11-T11`, `P11-T12`)
 
 - Resumed work: the user asked for the rest of Phase 11. The plan's Status still named `P11-T8` as

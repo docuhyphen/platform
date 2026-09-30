@@ -20,6 +20,7 @@ import jakarta.inject.Inject
 import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
+import java.util.UUID
 
 data class InformationRequestTransitionHistoryCommand(
     val request: InformationRequest,
@@ -43,6 +44,9 @@ class InformationRequestTransitionHistoryService @Inject constructor(
     private val responseStart: InformationRequestResponseStart,
 )
 {
+    fun latestOccurrence(requestId: UUID, mutation: InformationRequestMutation): Instant? =
+        transitionRepository.latestOccurrence(requestId, mutation)?.toInstant()
+
     fun record(command: InformationRequestTransitionHistoryCommand): InformationRequestTransition
     {
         if (!responseStart.startsWith(command)) return recordOne(command)

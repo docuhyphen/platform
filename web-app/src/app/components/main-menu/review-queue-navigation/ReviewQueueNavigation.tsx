@@ -1,15 +1,14 @@
 import {Button} from "@fluentui/react-components";
 import {useNavigate} from "react-router-dom";
-import {usePlanFeature} from "../../../../hooks/subscription/usePlanFeature.ts";
-import {PlanFeature} from "../../../models/models.tsx";
+import {useInformationRequestCapabilities} from "../../../information-requests/capabilities/useInformationRequestCapabilities.ts";
 import {ReviewQueueIcon} from "../../IconBundles.tsx";
 
 const ReviewQueueNavigation = () =>
 {
     const navigate = useNavigate();
-    const feature = usePlanFeature(PlanFeature.INFORMATION_REQUESTS);
+    const capabilities = useInformationRequestCapabilities();
 
-    if (!feature.isAvailable) return null;
+    if (!capabilities || !(capabilities.featureIncluded || capabilities.assignedWork)) return null;
 
     return (
         <Button id={"information-request-reviews-nav-btn"}

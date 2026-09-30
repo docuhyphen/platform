@@ -4,11 +4,14 @@ import com.docuhyphen.app.api.model.dto.InformationRequestAccessSessionDto
 import com.docuhyphen.app.api.model.entity.PrincipalKind
 import com.docuhyphen.app.api.model.entity.RequestAccessSession
 import com.docuhyphen.app.api.model.entity.RequestAccessSessionVerificationStrength
+import com.docuhyphen.app.api.model.informationrequest.InformationRequestNoAuthAttempt
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.resource.model.VerifyInformationRequestContactProofRequest
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestContactProofService
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestLifecycleException
+import com.docuhyphen.app.api.service.informationrequest.InformationRequestNoAuthRateLimit
+import com.docuhyphen.app.api.service.informationrequest.InformationRequestRateLimitedException
 import io.quarkus.security.ForbiddenException
 import jakarta.ws.rs.POST
 import jakarta.ws.rs.Path
@@ -37,7 +40,35 @@ import java.util.UUID
 class InformationRequestNoAuthAccessResourceContractTest
 {
     private val contactProofService = mock<InformationRequestContactProofService>()
-    private val resource = InformationRequestNoAuthAccessResource(contactProofService)
+    private val rateLimit = mock<InformationRequestNoAuthRateLimit>()
+    private val resource = InformationRequestNoAuthAccessResource(contactProofService, rateLimit)
+
+    @Test
+    fun `an address over its challenge budget is answered 429 with Retry-After before any code is sent`()
+    {
+        doThrow(rateLimited()).whenever(rateLimit).requireWithinLimit(InformationRequestNoAuthAttempt.CHALLENGE)
+
+        val response = resource.issueContactProofChallenge("raw-token-value")
+
+        assertEquals(429, response.status)
+        assertEquals("60", response.headers.getFirst("Retry-After").toString())
+        assertEquals(InformationRequestErrorCatalog.RATE_LIMITED, (response.entity as ResponseError).reasonCode)
+        verify(contactProofService, never()).issueChallenge(any())
+    }
+
+    @Test
+    fun `an address over its session budget is answered 429 before any code is checked`()
+    {
+        doThrow(rateLimited()).whenever(rateLimit).requireWithinLimit(InformationRequestNoAuthAttempt.SESSION)
+
+        val response = resource.verifyContactProofChallenge("raw-token-value", VerifyInformationRequestContactProofRequest("123456"))
+
+        assertEquals(429, response.status)
+        verify(contactProofService, never()).verifyChallenge(any(), any(), anyOrNull())
+    }
+
+    private fun rateLimited() =
+        InformationRequestRateLimitedException(InformationRequestErrorCatalog.RATE_LIMITED, 60, "Too many attempts")
 
     @Test
     fun `resource exposes challenge and session sub-resources under the no-auth prefix`()

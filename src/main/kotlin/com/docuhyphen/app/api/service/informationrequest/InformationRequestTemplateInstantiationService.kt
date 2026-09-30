@@ -94,7 +94,7 @@ class InformationRequestTemplateInstantiationService @Inject constructor(
             throw IllegalStateException("Information Requests cannot be created for a deleted Exchange")
         }
         requireDraftCreationAllowed(exchange)
-        entitlementGuard.requireRequestMutation(exchange)
+        entitlementGuard.requireRequestCreation(exchange)
         authorize(command)
         val reference = templateReferenceService.requireInstantiableVersion(command.templateVersionId)
         requireHeldForOwner(reference, exchange)
@@ -143,9 +143,16 @@ class InformationRequestTemplateInstantiationService @Inject constructor(
 
     private fun requireHeldForOwner(reference: InformationRequestTemplateVersionReference, exchange: Exchange)
     {
+        if (reference.ownerScopeKind == InformationRequestTemplateScopeKind.PLATFORM)
+        {
+            throw InformationRequestTemplateVersionUnavailableException(
+                InformationRequestTemplateVersionUnavailableException.PLATFORM_COPY_REQUIRED,
+                "A platform Template is copied into the owner's Templates before a request uses it",
+            )
+        }
         val held = when (reference.ownerScopeKind)
         {
-            InformationRequestTemplateScopeKind.PLATFORM -> true
+            InformationRequestTemplateScopeKind.PLATFORM -> false
             InformationRequestTemplateScopeKind.ORGANIZATION ->
                 exchange.ownerOrganizationId != null && reference.ownerOrganizationId == exchange.ownerOrganizationId
             InformationRequestTemplateScopeKind.PERSONAL ->

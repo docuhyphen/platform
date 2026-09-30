@@ -2,6 +2,7 @@ import {useCallback, useEffect, useMemo, useState} from "react";
 import {
     Capability,
     CreateInformationRequestTemplateRequest,
+    InformationRequestCapabilitiesDto,
     InformationRequestTemplateDto,
     InformationRequestTemplateScopeKind,
     InformationRequestTemplateSummaryDto,
@@ -35,7 +36,7 @@ const refusalText = (caught: unknown, fallback: string): string =>
     return fallback;
 };
 
-export const useInformationRequestTemplateAdministration = () =>
+export const useInformationRequestTemplateAdministration = (capabilities: InformationRequestCapabilitiesDto | null) =>
 {
     const {currentSession, hasCapability} = useAuth();
     const activeOrganizationId = currentSession?.activeOrganizationId ?? null;
@@ -46,7 +47,16 @@ export const useInformationRequestTemplateAdministration = () =>
     const [scopeSelection, setScopeSelection] = useState({contextKey, scope: defaultScope});
     const scope = contextKey === null ? null : scopeSelection.contextKey === contextKey ? scopeSelection.scope : defaultScope;
     const canManageScope = scope === InformationRequestTemplateScopeKind.PERSONAL
-        || (scope === InformationRequestTemplateScopeKind.ORGANIZATION && hasCapability(Capability.ORG_POLICY_MANAGE));
+        ? capabilities?.personalTemplatesAvailable ?? true
+        : scope === InformationRequestTemplateScopeKind.ORGANIZATION
+            && hasCapability(Capability.ORG_POLICY_MANAGE)
+            && (capabilities?.newWorkAvailable ?? true);
+    const copyTargets = useMemo<InformationRequestTemplateScopeKind[]>(() => [
+        ...(capabilities?.personalTemplatesAvailable ?? true ? [InformationRequestTemplateScopeKind.PERSONAL] : []),
+        ...(activeOrganizationId !== null && hasCapability(Capability.ORG_POLICY_MANAGE) && (capabilities?.newWorkAvailable ?? true)
+            ? [InformationRequestTemplateScopeKind.ORGANIZATION]
+            : []),
+    ], [activeOrganizationId, capabilities, hasCapability]);
     const [templates, setTemplates] = useState<InformationRequestTemplateSummaryDto[]>([]);
     const [openTemplate, setOpenTemplate] = useState<InformationRequestTemplateDto | null>(null);
     const [schemas, setSchemas] = useState<SchemaDefinitionDto[]>([]);
@@ -110,6 +120,7 @@ export const useInformationRequestTemplateAdministration = () =>
         scope,
         setScope: (next: InformationRequestTemplateScopeKind) => setScopeSelection({contextKey, scope: next}),
         canManageScope,
+        copyTargets,
         templates,
         loading,
         error,

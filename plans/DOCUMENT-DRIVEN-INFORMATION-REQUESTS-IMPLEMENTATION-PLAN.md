@@ -2,8 +2,8 @@
 
 ## Status
 
-- Overall status: In progress. Phases 1 through 11 and the repeated remediation gate are complete; Phase 12
-  has not started. Phase 10's manual width check (1440, 1024, 768, and 360 CSS pixels across the
+- Overall status: Complete. Phases 1 through 12 and the repeated remediation gate are complete; Phase 12
+  finished on 2026-09-30 (design decisions under `### Phase 12 design decisions (2026-09-30)`). Phase 10's manual width check (1440, 1024, 768, and 360 CSS pixels across the
   author, respondent, reviewer, authenticated, and no-auth journeys) was explicitly waived by the user
   on 2026-09-28 ("You can skip this"). It was not run and is not claimed as passing.
 - Scanner decision (user, 2026-09-25): the Information Request feature and every other feature must
@@ -16,17 +16,19 @@
 - Review checkpoint: the 2026-09-13 [Phases 1-5 recheck](DOCUMENT-DRIVEN-INFORMATION-REQUESTS-PHASES-1-5-RECHECK.md)
   found seven remaining gaps. The original P5-R01 through P5-R20 completion records remain
   historical evidence; they do not establish that the integrated implementation is gap-free.
-- Current work: none in progress. Phase 11 was requested in full by the user and completed on
-  2026-09-29: `P11-T1` through `P11-T12` and the exit gate (full backend suite 3,285 tests green,
-  full frontend suite 730 tests green, eight conformance scenarios in 13 tests green, traceability
-  matrix under `### Phase 11 capability traceability`). V148 was not applied to the local database
-  when the session ended; `quarkus:dev` applies it on its next reload, and it must not be edited once
-  the local history shows it.
+- Current work: none in progress. Phase 12 was requested in full by the user and completed on
+  2026-09-30. Its final verification: full backend suite 3,379 tests green, full frontend suite 786
+  tests green, `verify -DskipITs=false` green with no integration test classes, and a V150 upgrade
+  test on populated data. V149 and V150 are not applied to the local database, whose history ends at
+  V144; `quarkus:dev` applies V145 through V150 on its next reload, and none may be edited once the
+  local history shows it.
 - Development stage: the platform has no production users and is in active development. No
   backwards-compatibility code may be written, and the compatibility mechanisms already shipped are
   now defect work. See `## Development-Stage Constraint` and
   `## Development-Stage Compatibility Removal`.
-- Exact next task: `P12-T1`, only when the user asks for Phase 12. Flyway head is V148; V149
+- Exact next task: none. The program is complete. Follow-ups are recorded under the Phase 12 exit gate in
+  the evidence file (listing performance task, CloudWatch alarm deploy, IAM, Personal Request Schema
+  decision, audit `organization_id`). Flyway head is V150 (created, not yet applied locally); V151
   through V160 remain unallocated.
 - Latest implementation result: see `## Latest Implementation Result`.
 - Carried into Phase 12: external sources have REST and help but no screen (Phase 11 decision 12);
@@ -842,7 +844,7 @@ reason summary.
 | 9     | Time, Workflow, audit, retention, and export                 | Phase 8                                | Complete    | Events, clocks, immutable notices, preservation holds, disposal, and downstream use are reliable.                                                                |
 | 10    | Author, respondent, reviewer, and operations UX              | Phases 2-9                             | Complete    | All primary journeys are responsive, accessible, and documented (manual width check waived by the user on 2026-09-28).                                          |
 | 11    | Generic capability conformance and extension contracts       | Phases 2-10                            | Complete    | Eight neutral conformance scenarios pass.                                                                                                                        |
-| 12    | Compatibility, packaging, rollout, and final hardening       | Phases 1-11                            | Not started | Migration, entitlement, quotas, documentation, and release gates pass.                                                                                           |
+| 12    | Compatibility, packaging, rollout, and final hardening       | Phases 1-11                            | Complete    | Migration, entitlement, quotas, documentation, and release gates pass.                                                                                           |
 
 ### Progress rules
 
@@ -3927,9 +3929,119 @@ S8 `TimedRetainedExportRequestConformanceTest`.
 Release the feature without corrupting existing Exchange metadata, surprising customers, or leaving
 operational and cost controls undefined.
 
+### Phase 12 design decisions (2026-09-30)
+
+Recorded before the Phase 12 tests. Verified facts they rest on (read-only surveys of the code and
+tests on 2026-09-30):
+
+- The Exchange Schema assign and remove endpoints accept a write with no `If-Match`; the answers
+  `PATCH` already requires one.
+- No test applies the whole migration set to an empty database in one pass. `share_link.link_mode`,
+  the `exchange_recipient` binding trigger on a clean schema, `exchange_status_check`, the V127
+  revision and response root-path checks, and the audit owner checks other than the outbox are not
+  asserted anywhere.
+- Reads refuse or silently drop requests on commercial or operational grounds:
+  `InformationRequestQueryService` refuses an issued request's reads under operational suspension or
+  grant revocation, and `listForExchange` drops a request whose owner lost the feature. The
+  operations and record-preservation pages and two menu links hide behind the viewer's own plan, and
+  the Exchange tab disappears when its listing call fails.
+- Party assignment, reassignment, and revocation check no entitlement, suspension, or revocation.
+  A trust suspension met at party assignment surfaces as an unhandled 500.
+- The execution grant freezes only a recipient cap taken from the Exchange participant limit
+  ("beyond the primary recipient") while the ledger charges every acting party. Upload and storage
+  limits are global configuration never frozen into a grant, and no owner-level request count,
+  storage, or export quota exists. Revoking a subject party after issuance throws, because its
+  capacity was never reserved.
+- No-auth request endpoints have no IP rate limit and no `429`; bootstrap links default to no expiry
+  and unlimited uses, and the author UI issues them with no limit.
+- Platform Template instantiation fails whenever enforcement is not `OFF` (the reference resolution
+  and the materializer both refuse a platform owner), and while enforcement is `OFF` any user can
+  create a platform-scope Template. No test proves a personally owned Exchange creating and issuing a
+  request, or a personal Template bound to a real personal or platform Schema.
+- No web-app text addresses respond-only users; the help docs lack the sponsorship and Schema
+  selection text the 2026-09-21 evidence entry describes.
+
+Decisions:
+
+1. Every Field mutation path requires `If-Match`. Choosing and removing an Exchange Schema compare
+   the stated validator with the answers tag that `GET /exchanges/{id}/schema` serves, so a removal
+   is refused when the answers it would discard changed after the read; `*` states "whichever
+   version is current" (the assign panel, which read no assignment). `SchemaAssignmentETag` is
+   removed. Internal writers keep stating `Unconditioned`.
+2. One clean-schema contract class migrates an empty database once, in one pass, to the highest file
+   on disk, then asserts that the final constraints refuse every replaced shape. A test written after
+   its migration is proven by dropping the named constraint inside that test and observing the
+   failure, never by adding a migration file, because `quarkus:dev` applies new migrations to the
+   local database.
+3. Exchange Schema Assignments stay Exchange metadata. A request with Field Requirements on an
+   Exchange that holds its own assignment leaves that assignment, its answers, and its tag untouched
+   through creation, issue, answering, and submission; nothing converts one into the other.
+4. Blueprints: re-pointing a Blueprint's Template Version changes only later instantiations; a
+   created request keeps its pinned Version and snapshot, and the Blueprint's Exchange Schema and
+   Field defaults keep governing Exchanges created from it.
+5. Reads answer to authorization alone. Commercial lapse, a removed feature, operational
+   suspension, and grant revocation never hide a request, its records, or its permitted exports from
+   an authorized reader; they refuse mutations with a stable reason. Every request projection states
+   an execution standing: `ACTIVE`, `NEW_WORK_UNAVAILABLE` (a draft whose owner cannot issue or
+   change it), `CONTINUING_AFTER_LAPSE`, `OPERATIONALLY_SUSPENDED`, or `EXECUTION_GRANT_REVOKED`, with
+   the reason code, and the UI shows it.
+6. Capability discovery: `GET /information-request-capabilities` answers for the caller's active
+   scope (the selected organization, otherwise the person): whether new work is available and the
+   stable reason when it is not, the owner's plan, status, enforcement mode, whether typed answers are
+   available, the plan quotas, and whether the caller holds assigned work. Settings, the operations
+   and record-preservation pages, the menu links, and respond-only messaging use it instead of the
+   viewer's own plan.
+7. Party assignment and reassignment answer to the continuation gate (live plan for a draft, the
+   grant afterwards, never while operationally suspended or revoked); revoking a party always stays
+   possible because it only reduces access. A trust suspension met at assignment answers `409
+   INFORMATION_REQUEST_TRUST_SUSPENDED`. Existing trust policy pauses new trusted operations only, so
+   an already-issued trusted party keeps responding; the party panel shows the suspended relationship.
+8. Observability and support diagnostics: `GET /platform/information-request-health` (platform
+   administrators) reports invariant breaches that a migration, backfill, or failed worker would leave
+   behind (requests past draft without an execution grant, reservations above their cap, overdue notice
+   intents, exhausted connector exchanges, stalled disposal claims, and the request event backlog). A
+   scheduler logs a stable marker per breach kind for log metric filters. No new AWS service.
+9. Quotas are code-owned plan limits resolved for the Exchange owner. Personal: 25 open requests
+   (draft, issued, or in progress), 10 acting parties per request, 100 evidence files and 250 MiB per
+   request, 5 GiB committed evidence per owner. Business: open requests uncapped, 100 acting parties,
+   200 files and 500 MiB per request, 100 GiB committed evidence per organization. Free includes no
+   Information Requests. Open-request count answers to the live plan at creation; the per-request
+   allowances are frozen into the grant at issuance, and issuance reserves the request's evidence
+   allowance against the owner's committed evidence (open requests commit their allowance, finished
+   ones only what they store, disposed ones nothing). Uploads draw only on the grant, so a later lapse,
+   trial end, or plan change never withdraws issued capacity. A database guard refuses rewriting a
+   grant's frozen columns; only a first revocation may be written. The recipient cap is replaced by an
+   acting-party cap and usage kind. Retention is owner-defined and never shortened by a plan, and
+   record exports are bounded by a plan-independent daily ceiling, because permitted exports must stay
+   available after a lapse. These values are the documented starting point for the user to adjust.
+10. Abuse controls: the configured upload limits remain the platform ceiling beneath every grant
+    allowance; bootstrap links take a default expiry and use limit when the author gives none; the
+    no-auth challenge and session endpoints are rate limited per client address through the existing
+    Redis limiter and answer `429` with `Retry-After`; a reminder for one request is refused inside a
+    cooldown; every abuse refusal logs a stable marker.
+11. Personal support: a platform-scope Template is a starting point an owner copies into its own
+    scope, never a Version a request pins. The V96 guard already refuses a request whose Template owner
+    differs from the request owner, so the owner API never creates a platform Template (refused
+    whatever the enforcement mode), `POST /information-requests` refuses a platform Version with the
+    stable unavailable code, and the create dialog offers platform Templates only through copying. The
+    sponsorship of the Personal Settings scope by an active organization covers Template authoring
+    only, and a request on a personally owned Exchange answers to that person's plan. Personal Field
+    and Schema authoring stays closed. (Revised on 2026-09-30 during `P12-T3`, when the V96 guard was
+    found; the first text made platform Versions instantiable.)
+12. Plan catalog, pricing, and Settings: the website pricing table and the in-app billing summary
+    state the Information Request quotas from the plan catalog; the Settings tab stays discoverable
+    for every signed-in user and tells a user without the feature that they can still respond to and
+    review requests shared with them.
+13. Verification uses existing infrastructure only: a PostgreSQL-backed volume test for the queue and
+    listing, concurrency tests for the new reservation kinds, the security gates, a responsive and
+    accessibility sweep of changed screens, and a recovery runbook checked against
+    `infra/cloudformation.yml`.
+14. Documentation: help articles, an operator guide, an API reference, migration notes, and release
+    notes under `docs/information-requests/`.
+
 ### Tasks
 
-- [ ] `P12-T1` Aggregate the clean-schema migration tests already added by each owning phase across
+- [x] `P12-T1` Aggregate the clean-schema migration tests already added by each owning phase across
   Fields and their exact scope checks, Blueprints and existing defaults, Documents, every Exchange
   state, the three Share-bearing ResourceTypes and the widened Share resource-type and role-name
   checks, ShareLink direct and bootstrap modes, the External Participant owner column, the unchanged
@@ -3940,39 +4052,90 @@ operational and cost controls undefined.
   development-stage constraint removes both, and `DS-T4` owns the sweep that proves no compatibility
   mechanism survives. Require `If-Match` on every Field mutation path rather than measuring an
   unknown client's use of a tolerated alias.
-- [ ] `P12-T2` Keep legacy Exchange Schema Assignments as Exchange metadata. Do not create synthetic
+  Done: `CleanSchemaMigrationContractTest` migrates an empty database once, in one pass, and proves
+  the final constraints refuse every replaced shape (17 tests). It found one surviving compatibility
+  mechanism, the V84 triggers that filled an audit owner for a writer that named only an
+  organization, which V149 removes. The Exchange Schema assign and remove endpoints now require
+  `If-Match` against the answers tag, and the web app states it.
+- [x] `P12-T2` Keep legacy Exchange Schema Assignments as Exchange metadata. Do not create synthetic
   satisfied requests or fabricated review decisions. Allow explicit owner-driven conversion only if
   a later product requirement defines its meaning.
-- [ ] `P12-T3` Define compatibility for existing mutable Blueprint Definitions. Do not fabricate
+  Done: `ExchangeMetadataSeparationTest` answers, attests, and submits a request on an Exchange that
+  holds its own assignment and answer for the same Field, and proves the Exchange assignment, answer,
+  set revision, and history are unchanged, that no other request exists, and that the package
+  references only the request's own assignment. No conversion path exists or was added.
+- [x] `P12-T3` Define compatibility for existing mutable Blueprint Definitions. Do not fabricate
   version history. Existing Definitions retain stable Schema Definition and Field default behavior;
   an optional exact Request Template Version reference affects only future instantiations, while
   created requests retain their pinned snapshot. Participant, Document, Field, and Document
   Library-derived defaults retain their existing meaning and use explicit request mappings.
-- [ ] `P12-T4` Add capability discovery, data backfill observability, and
+  Done: `InformationRequestBlueprintVersionPinningTest` creates a request from a Blueprint through
+  the real service and PostgreSQL, re-points the Blueprint, and proves the created request keeps its
+  Version and Requirement snapshot while the next request pins the new Version. Existing coverage of
+  the defaults is cited in the evidence; the help states the role mapping and the pinning.
+- [x] `P12-T4` Add capability discovery, data backfill observability, and
   safe disable behavior. Paid lapse or trial expiry prevents new or expanding work but does not
   strand already-issued respondents or reviewers. Global subscription enforcement mode, emergency
   operational suspension, and Trusted Organization suspension are
   separate, explicit, auditable states with tested effects visible in the UI. None silently hides
   retained records or permitted exports from authorized readers.
-- [ ] `P12-T5` Finalize plan-tier storage, upload, request-count, recipient, retention, and export
+  Split on 2026-09-30; do not check `P12-T4` until every subtask is done:
+  - [x] `P12-T4a` Reads answer to authorization alone; operational suspension refuses draft changes
+    whatever the enforcement mode; every workspace and Exchange listing row states its execution
+    standing (the reason only to a caller who manages the request), and the listing states why
+    creation is unavailable.
+  - [x] `P12-T4b` Party assignment and reassignment answer to the continuation gate (revocation
+    stays possible); a trust suspension met at assignment answers `409
+    INFORMATION_REQUEST_TRUST_SUSPENDED`; the party projection marks a suspended relationship.
+  - [x] `P12-T4c` `GET /information-request-capabilities` for the caller's active scope.
+  - [x] `P12-T4d` Platform health report and scheduled breach markers.
+  - [x] `P12-T4e` UI: standing notices, the Exchange tab kept on a failed listing, capability-driven
+    Settings, operations, record-preservation, and menu gates, and party trust state.
+    Done: standing notices and badges; the tab kept unless the listing is refused; capability
+    discovery (with `holdsRequests`) drives the pages, menu links, and Settings instead of the
+    viewer's plan; the respond-only notice; the party trust marker.
+  - [x] `P12-T4f` Help for the standings, suspension, revocation, and capability behavior.
+    Done: seven articles updated; follow-up controls hidden unless the request is `ACTIVE`.
+- [x] `P12-T5` Finalize plan-tier storage, upload, request-count, recipient, retention, and export
   quotas against the owning Exchange subscription. Configure issuance-time reservation amounts and
   release rules for future `RequestExecutionGrant` records without rewriting an existing grant or
   withdrawing its reserved completion capacity. Include trial-sourced grants and trial-expiry
   continuation in final quota verification. Tune and operationalize the baseline request, upload,
   and retry abuse controls introduced in Phases 4 and 6.
-- [ ] `P12-T6` Complete Personal Information Request support. Personal owners may create Templates
+  Split on 2026-09-30; do not check `P12-T5` until every subtask is done:
+  - [x] `P12-T5a` Plan quotas in `PlanLimits` (decision 9 values, Free zero) and the session limits
+    DTO; V150 renames the recipient cap to `acting_party_cap`, adds frozen evidence file and byte
+    allowances, renames the usage kind to `ACTING_PARTY`, and adds a guard that refuses rewriting a
+    grant's frozen columns (only a first revocation is written). Grants freeze the plan's allowances
+    only while enforcement refuses; otherwise they are uncapped. Done; V150 created.
+  - [x] `P12-T5b` Open-request cap at every creation path and the committed-evidence reservation at
+    issuance, both serialized on the owner's subscription row. Done.
+  - [x] `P12-T5c` Uploads draw on the grant's allowances beneath the configured platform ceiling. Done.
+  - [x] `P12-T5d` Abuse controls: access-link default expiry and use limit, per-address rate limits
+    on the no-auth challenge and session endpoints (`429` with `Retry-After`), a reminder cooldown,
+    a per-owner daily record-export ceiling, stable `INFORMATION_REQUEST_ABUSE_REFUSED` markers, and
+    a log metric filter and alarm on the existing log group. Done.
+  - [x] `P12-T5e` Trial-sourced grant continuation verified against PostgreSQL, retention checked
+    to be owner-defined, and help for quotas and abuse controls. Done; an ended trial now refuses
+    with `TRIAL_ENDED`.
+- [x] `P12-T6` Complete Personal Information Request support. Personal owners may create Templates
   from personal or platform Schemas and may create and issue Information Requests. The Personal plan
   includes `INFORMATION_REQUESTS`, while an active organization entitlement may also sponsor the
   Personal Settings scope without a separate user grant. Personal Field and Schema authoring remains
   a separate incomplete decision. Personal response-only access remains governed by assignment and
   an issued execution grant, not by the respondent's plan.
-- [ ] `P12-T7` Update plan catalog, pricing page, Settings discoverability, and respond-only messaging
+  Done: platform Templates are copied before use (owner API and creation refuse them), personal
+  create and issue proven against PostgreSQL, and the issuance lock defect fixed.
+- [x] `P12-T7` Update plan catalog, pricing page, Settings discoverability, and respond-only messaging
   only when the implemented entitlement behavior is proven. Preserve the boundary between generic
   product capabilities and explanatory marketing examples; do not add or spread legacy non-neutral
   code identifiers.
-- [ ] `P12-T8` Complete performance, load, concurrency, security, accessibility, responsive, audit,
+  Done: pricing rows and the billing summary state the quotas; website lint and build pass.
+- [x] `P12-T8` Complete performance, load, concurrency, security, accessibility, responsive, audit,
   retention, export, and disaster-recovery verification using existing infrastructure.
-- [ ] `P12-T9` Complete all help documentation, operator guidance, support diagnostics, API
+  Done: volume and concurrency tests, security and accessibility checks, and the recovery runbook.
+  The Exchange listing's per-request authorization cost is recorded and offered as a separate task.
+- [x] `P12-T9` Complete all help documentation, operator guidance, support diagnostics, API
   documentation, migration notes, and release notes.
 
 ### Final verification
@@ -4320,10 +4483,12 @@ link it follows. |
 | `P11-T1b` | `V146__information_request_fact_evidence_disposal.sql` | 2026-09-29 | Created and PostgreSQL contract-tested. Disposal counts promoted evidence references before deleting their parent facts. |
 | `P11-T1c` | `V147__information_request_fact_recertification.sql` | 2026-09-29 | Created and PostgreSQL contract-tested. Append-only respondent recertification records with copied source provenance and evidence, insert guards, the `RECERTIFY_FACT` transition mutation, and disposal of a request's own recertifications. |
 | `P11-T11`, `P11-T12` | `V148__information_request_external_sources.sql` | 2026-09-29 | Created and PostgreSQL contract-tested (3 tests). Connector exchanges with a forward-only state guard and a same-request Requirement guard, append-only imported values, decisions, discrepancies, and resolutions with same-request guards, generated output references, four transition mutations, and disposal of every external source record. Not applied to the local database when created. |
+| `P12-T1` | `V149__audit_explicit_owner_writers.sql` | 2026-09-30 | Created and PostgreSQL contract-tested (`CleanSchemaMigrationContractTest`, `AuditPersonalOwnerContractTest`). Drops the five V84 triggers that filled `owner_type` and `owner_id` for an audit writer naming only an organization, and their function, so such a write is refused. Not applied to the local database when created. |
+| `P12-T5a` | `V150__request_execution_quotas.sql` | 2026-09-30 | Created and PostgreSQL contract-tested (`CleanSchemaMigrationContractTest`, and `RequestExecutionQuotaMigrationUpgradeTest` upgrading populated grants and reservations from V149). Renames the grant's recipient cap to the acting-party cap, adds frozen evidence file and byte allowances, moves the usage kind to `ACTING_PARTY`, and adds a guard that refuses rewriting a grant's frozen columns and writes only a first revocation. Not applied to the local database when created. |
 
 The provisional program range ended at V139. On 2026-09-26, before the second Phase 9 migration, it
 was extended to V139 through V160; the head was V138 and no other initiative had taken a number
-above it. Remaining unallocated program range: V149 through V160. Flyway head is V148.
+above it. Remaining unallocated program range: V151 through V160. Flyway head is V150.
 V118 and V119 were taken by prior P5 remediation work before this row was written.
 
 When verifying that a migration contract test is genuinely red, remove the migration from
@@ -4517,40 +4682,39 @@ Keep only the newest product implementation result in this section. Full histori
 in `plans/DOCUMENT-DRIVEN-INFORMATION-REQUESTS-COMPLETION-EVIDENCE.md`. When a newer implementation session finishes,
 make sure this result is present in the evidence file, then replace it here with the new latest result.
 
-### 2026-09-29: Phase 11 external sources, connectors, and exit gate
+### 2026-09-30: Phase 12 packaging, rollout, and final hardening
 
-- Resumed an interrupted, unjournaled start of `P11-T11` and `P11-T12` and corrected the stale
-  Status (it still named `P11-T8` although the journal recorded `P11-T8` through `P11-T10`). The
-  design was recorded first as `### Phase 11 design decisions (2026-09-29)`.
-- `P11-T11`: `InformationRequestConnector` states its contract as data (key, kind, version, result
-  keys, optional result age limit), and the registry refuses two adapters under one key and is empty
-  outside tests. A connector exchange carries an optional lookup reference, allows one open exchange
-  per Requirement and connector, and checks continuation entitlement. A scheduled worker (off in the
-  test profile) checks the request state, the installed connector, and the contract version before
-  any call, then records `PENDING`, `COMPLETED`, or `FAILED` under the request lock with bounded
-  retries.
-- `P11-T12`: imported values are canonicalized by the collected Field's contract
-  (`InformationRequestImportedValueCanonicalizer`) or validated as scalars, and keep their source,
-  confidence, verification time, expiry, and provenance. A reviewer decides each once (never the
-  author of a manual value, never accepting an expired one); reconciliation reports `MATCHES`,
-  `DIFFERS`, `NO_ANSWER`, `NOT_COMPARABLE`, or `EXPIRED` and records discrepancies once per answer
-  revision, each resolved once. Nothing writes an answer or an Accepted Fact. Generated output
-  references are recorded without fetching or storing anything. REST lives under
-  `/information-requests/{id}/` (`connector-exchanges`, `imported-values` with `/{valueId}/decisions`,
-  `imported-value-reconciliations`, `imported-value-discrepancies/{discrepancyId}/resolutions`,
-  `generated-outputs`). The record export (schema version 2) now includes external sources and the
-  request's own recertifications. V148 was tightened before its first application, and a help
-  article was added.
-- Defect fixed: the authorizer refused every non-read action on a CLOSED request, so fact promotion,
-  business decisions, and external-source records failed there despite the transition matrix. Those
-  record actions are now exempt from the archived refusal for the request resource only.
-- Exit gate: full backend `.\mvnw.cmd -o test -DskipFrontend=true` passed 3,285 tests (0 failures,
-  errors, or skips, 35:07); the eight conformance scenarios passed 13 tests after the participant
-  variants were added; `npm.cmd test -- --maxWorkers=2` passed 730 tests in 173 files;
-  `npx.cmd tsc --noEmit`, `npm.cmd run typecheck:app` (346 reviewed unrelated, 0 Information
-  Request), and `npm.cmd run build` passed; `npm.cmd run lint` (109 problems) and `buildWithTs` (346
-  diagnostics) match their recorded baselines. Neutrality audit clean. No commit or push.
-- Exact next task: `P12-T1`, only when the user asks for Phase 12.
+- `P12-T1` through `P12-T9`, split into journaled subtasks.
+- Compatibility:
+  - Every Field mutation path requires `If-Match`.
+  - The clean-schema contract, and V149 removing the last compatibility triggers.
+  - Exchange metadata stays metadata, and Blueprints pin only later requests.
+- Safe disable:
+  - Reads are never hidden.
+  - Execution standings, capability discovery, and the platform health report with log-marker alarms.
+  - The capability-driven UI and the party trust state.
+- Quotas:
+  - Plan quotas and V150's frozen grant allowances with a freeze trigger.
+  - The open-request cap and committed evidence under the owner lock.
+  - Uploads beneath the platform ceiling.
+- Abuse controls: no-auth rate limits, access link defaults, the reminder cooldown, the export
+  ceiling, and markers.
+- Personal support: platform Templates are copied before use, and personal create and issue are
+  proven.
+- Pricing, billing, verification, and documentation in `docs/information-requests/`.
+- Defects fixed:
+  - Issuing with any acting party failed (a lock on unflushed rows).
+  - An ended trial was refused as a suspension.
+  - Subject revocation after issuance failed.
+  - Trust refusals answered `500`.
+  - Platform Versions were unreadable while enforcement evaluated decisions.
+- Exit gate:
+  - Backend 3,379 tests green (35:14). `verify -DskipITs=false` green (no `*IT` classes).
+  - The V150 upgrade test is proven by mutation.
+  - Frontend 786 tests green. `tsc --noEmit` and `build` pass. `typecheck:app` 0 Information Request.
+  - Lint (109) and `buildWithTs` (345, none added) match their baselines.
+  - Website lint and build pass. Neutrality scan clean. No commit or push.
+- Exact next task: none; the program is complete.
 
 ## Continuation Prompt
 

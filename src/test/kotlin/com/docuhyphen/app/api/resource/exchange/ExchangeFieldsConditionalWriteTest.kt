@@ -3,6 +3,7 @@ package com.docuhyphen.app.api.resource.exchange
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.model.entity.AppUser
 import com.docuhyphen.app.api.model.entity.AuthToken
+import com.docuhyphen.app.api.resource.model.AssignSchemaRequest
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.resource.model.SetFieldValuesRequest
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
@@ -14,6 +15,7 @@ import kotlinx.serialization.json.JsonPrimitive
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.never
@@ -134,6 +136,89 @@ class ExchangeFieldsConditionalWriteTest
         )
         assertEquals("second recorded answer", storedSecondNote())
     }
+
+    @Test
+    fun `removing the schema without stating the version it read is refused and keeps every answer`()
+    {
+        val response = resource.unassignSchema(exchangeId, null)
+
+        assertEquals(428, response.status)
+        assertEquals("FIELDS_PRECONDITION_REQUIRED", (response.entity as ResponseError).reasonCode)
+        assertTrue(fixture.deletedValues.isEmpty(), "A refused removal removes no answer")
+    }
+
+    @Test
+    fun `removing the schema stating a version the answers have moved past is refused as stale`()
+    {
+        val stateAsRead = versionAsRead
+        resource.patchValues(exchangeId, answering("answer recorded after the read"), stateAsRead)
+
+        val response = resource.unassignSchema(exchangeId, stateAsRead)
+
+        assertEquals(412, response.status)
+        assertEquals("FIELDS_PRECONDITION_STALE", (response.entity as ResponseError).reasonCode)
+        assertEquals(versionAsRead, response.getHeaderString("ETag"))
+        assertTrue(fixture.deletedValues.isEmpty(), "A refused removal removes no answer")
+    }
+
+    @Test
+    fun `removing the schema stating the version it read removes it with its answers`()
+    {
+        val response = resource.unassignSchema(exchangeId, versionAsRead)
+
+        assertEquals(204, response.status)
+        assertTrue(fixture.deletedValues.isNotEmpty(), "The answers go with the schema that asked them")
+    }
+
+    @Test
+    fun `assigning a schema without stating a version is refused and assigns nothing`()
+    {
+        val unassigned = SchemaAssignmentFieldsFixture(principal = principal, assigned = false, rootSetExists = false)
+
+        val response = resourceFor(unassigned)
+            .assignSchema(unassigned.resourceId.toString(), AssignSchemaRequest(unassigned.schemaDefinitionId), null)
+
+        assertEquals(428, response.status)
+        assertEquals("FIELDS_PRECONDITION_REQUIRED", (response.entity as ResponseError).reasonCode)
+        assertTrue(unassigned.savedAssignments.isEmpty(), "A refused assignment assigns nothing")
+    }
+
+    @Test
+    fun `assigning a schema to an exchange read with none may accept whichever version is current`()
+    {
+        val unassigned = SchemaAssignmentFieldsFixture(principal = principal, assigned = false, rootSetExists = false)
+
+        val response = resourceFor(unassigned)
+            .assignSchema(unassigned.resourceId.toString(), AssignSchemaRequest(unassigned.schemaDefinitionId), "*")
+
+        assertEquals(200, response.status)
+        assertEquals(1, unassigned.savedAssignments.size)
+    }
+
+    @Test
+    fun `assigning a schema stating a version the exchange no longer holds is refused as stale`()
+    {
+        val unassigned = SchemaAssignmentFieldsFixture(principal = principal, assigned = false, rootSetExists = false)
+
+        val response = resourceFor(unassigned).assignSchema(
+            unassigned.resourceId.toString(),
+            AssignSchemaRequest(unassigned.schemaDefinitionId),
+            "\"${UUID.randomUUID()}:3\"",
+        )
+
+        assertEquals(412, response.status)
+        assertTrue(unassigned.savedAssignments.isEmpty(), "A refused assignment assigns nothing")
+    }
+
+    private fun resourceFor(target: SchemaAssignmentFieldsFixture) = ExchangeFieldsResource(
+        authTokenContext = AuthTokenContext().apply {
+            authToken = AuthToken().apply { appUser = AppUser() }
+        },
+        schemaAssignmentService = target.service,
+        fieldsAccessContextFactory = mock<FieldsAccessContextFactory>().also {
+            whenever(it.current()).thenReturn(target.access)
+        },
+    )
 
     private fun answering(text: String) = SetFieldValuesRequest(
         listOf(FieldValueEntry(fixture.secondNoteContractId, JsonPrimitive(text))),

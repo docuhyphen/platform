@@ -101,7 +101,7 @@ class InformationRequestBlueprintInstantiationServiceTest
     fun `blueprint instantiation answers to the owner's Information Requests entitlement`()
     {
         val fixture = fixture()
-        whenever(fixture.entitlementGuard.requireRequestMutation(any())).thenThrow(IllegalStateException("not included"))
+        whenever(fixture.entitlementGuard.requireRequestCreation(any())).thenThrow(IllegalStateException("not included"))
 
         assertThrows<IllegalStateException> {
             fixture.service.createFromBlueprint(

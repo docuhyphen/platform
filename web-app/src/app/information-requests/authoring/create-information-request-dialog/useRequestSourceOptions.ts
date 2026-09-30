@@ -40,7 +40,7 @@ export const useRequestSourceOptions = (): RequestSourceOptions =>
     useEffect(() =>
     {
         let active = true;
-        const templateScopes = [ownerScope, InformationRequestTemplateScopeKind.PLATFORM];
+        const templateScopes = [ownerScope];
         const blueprintScopes = [ownerScope === InformationRequestTemplateScopeKind.ORGANIZATION ? "ORG" : "PERSONAL", "APP"];
         Promise.all([
             Promise.all(templateScopes.map(scopeKind => listInformationRequestTemplates({scopeKind}).catch(() => []))),

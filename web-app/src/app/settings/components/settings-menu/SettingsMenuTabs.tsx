@@ -53,14 +53,12 @@ const SettingsMenuTabs = (props: SettingsMenuProps) =>
         ...(props.canManageOrganization && props.canUseBusinessFields
             ? [{id: "FieldsTab", icon: <SettingsFieldsTabIcon/>, value: props.tabIds.fields, label: "Fields"}]
             : []),
-        ...(props.canUseInformationRequests
-            ? [{
-                id: "InformationRequestTemplatesTab",
-                icon: <SettingsInformationRequestsTabIcon/>,
-                value: props.tabIds.informationRequestTemplates,
-                label: "Information Requests",
-            }]
-            : []),
+        {
+            id: "InformationRequestTemplatesTab",
+            icon: <SettingsInformationRequestsTabIcon/>,
+            value: props.tabIds.informationRequestTemplates,
+            label: "Information Requests",
+        },
     ];
     const automationItems: MenuItemDefinition[] = [
         ...(props.canUseWorkflows

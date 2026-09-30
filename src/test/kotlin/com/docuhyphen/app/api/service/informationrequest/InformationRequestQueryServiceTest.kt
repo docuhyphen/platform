@@ -2,8 +2,6 @@ package com.docuhyphen.app.api.service.informationrequest
 
 import com.docuhyphen.app.api.model.entity.Exchange
 import com.docuhyphen.app.api.model.entity.InformationRequest
-import com.docuhyphen.app.api.exception.SubscriptionDenialException
-import com.docuhyphen.app.api.model.entity.RequestExecutionGrant
 import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
 import com.docuhyphen.app.api.service.auth.authz.Action
@@ -12,10 +10,6 @@ import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
 import com.docuhyphen.app.api.service.auth.authz.Decision
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.auth.authz.ResourceRef
-import com.docuhyphen.app.api.service.subscription.PlanCode
-import com.docuhyphen.app.api.service.subscription.SubscriptionDenial
-import com.docuhyphen.app.api.service.subscription.SubscriptionDenialReason
-import com.docuhyphen.app.api.service.subscription.SubscriptionOwnerType
 import io.quarkus.security.ForbiddenException
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
@@ -23,10 +17,7 @@ import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.mock
-import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
-import java.sql.Timestamp
-import java.time.Instant
 import java.util.UUID
 
 class InformationRequestQueryServiceTest
@@ -43,14 +34,10 @@ class InformationRequestQueryServiceTest
     private val exchangeRepository = mock<ExchangeRepository>()
     private val requestRepository = mock<InformationRequestRepository>()
     private val authorizationService = mock<AuthorizationService>()
-    private val entitlementGuard = mock<InformationRequestEntitlementGuard>()
-    private val executionGrantService = mock<InformationRequestExecutionGrantService>()
     private val service = InformationRequestQueryService(
         exchangeRepository = exchangeRepository,
         requestRepository = requestRepository,
         authorizationService = authorizationService,
-        entitlementGuard = entitlementGuard,
-        executionGrantService = executionGrantService,
     )
 
     @Test
@@ -106,6 +93,25 @@ class InformationRequestQueryServiceTest
         assertEquals(request, service.findById(request.id, access))
     }
 
+    private fun readableIssuedRequest(): InformationRequest
+    {
+        val request = InformationRequest().apply {
+            this.exchangeId = this@InformationRequestQueryServiceTest.exchangeId
+            state = InformationRequestState.ISSUED
+        }
+        whenever(requestRepository.findById(request.id)).thenReturn(request)
+        whenever(exchangeRepository.findById(exchangeId)).thenReturn(exchange)
+        whenever(
+            authorizationService.authorize(
+                access.principal,
+                Action.INFORMATION_REQUEST_VIEW,
+                ResourceRef.informationRequest(request.id),
+                access.authorization,
+            ),
+        ).thenReturn(Decision.Allow())
+        return request
+    }
+
     private fun parentPolicyDecision(
         requestId: UUID,
         vararg capabilities: com.docuhyphen.app.api.service.auth.authz.Capability,
@@ -144,11 +150,10 @@ class InformationRequestQueryServiceTest
         val result = service.listForExchange(exchangeId, access)
 
         assertEquals(requests, result)
-        verify(entitlementGuard).requireRequestAccess(exchange)
     }
 
     @Test
-    fun `a caller denied on the exchange and on every request never reaches the entitlement gate`()
+    fun `a caller denied on the exchange and on every request is refused`()
     {
         val hidden = InformationRequest().apply { this.exchangeId = this@InformationRequestQueryServiceTest.exchangeId }
         whenever(exchangeRepository.findById(exchangeId)).thenReturn(exchange)
@@ -163,8 +168,6 @@ class InformationRequestQueryServiceTest
         ).thenReturn(Decision.Deny("reason", "denied"))
 
         assertThrows(ForbiddenException::class.java) { service.listForExchange(exchangeId, access) }
-
-        verify(entitlementGuard, org.mockito.kotlin.never()).requireRequestAccess(org.mockito.kotlin.any())
     }
 
     @Test
@@ -202,11 +205,10 @@ class InformationRequestQueryServiceTest
         val result = service.listForExchange(exchangeId, access)
 
         assertEquals(listOf(readable), result)
-        verify(entitlementGuard).requireRequestAccess(exchange)
     }
 
     @Test
-    fun `listing keeps issued work on a frozen grant while dropping drafts blocked by live gates`()
+    fun `listing keeps every readable request whatever the owner's commercial or operational standing`()
     {
         val issued = InformationRequest().apply {
             this.exchangeId = this@InformationRequestQueryServiceTest.exchangeId
@@ -226,25 +228,10 @@ class InformationRequestQueryServiceTest
                 eq(access.authorization),
             ),
         ).thenReturn(Decision.Allow())
-        whenever(executionGrantService.findForRequest(issued.id)).thenReturn(
-            RequestExecutionGrant().apply { requestId = issued.id },
-        )
-        whenever(executionGrantService.findForRequest(draft.id)).thenReturn(null)
-        whenever(entitlementGuard.requireRequestAccess(exchange)).thenThrow(
-            SubscriptionDenialException(
-                SubscriptionDenial(
-                    reason = SubscriptionDenialReason.FEATURE_NOT_INCLUDED,
-                    planCode = PlanCode.BUSINESS,
-                    ownerType = SubscriptionOwnerType.ORGANIZATION,
-                    message = "This capability is not yet released.",
-                ),
-            ),
-        )
 
         val result = service.listForExchange(exchangeId, access)
 
-        assertEquals(listOf(issued), result)
-        verify(entitlementGuard).requireNotOperationallySuspended(exchange)
+        assertEquals(listOf(issued, draft), result)
     }
 
     @Test
@@ -265,7 +252,6 @@ class InformationRequestQueryServiceTest
         }
         whenever(requestRepository.findById(requestId)).thenReturn(request)
         whenever(exchangeRepository.findById(exchangeId)).thenReturn(exchange)
-        whenever(executionGrantService.findForRequest(requestId)).thenReturn(null)
         whenever(
             authorizationService.authorize(
                 access.principal,
@@ -278,125 +264,34 @@ class InformationRequestQueryServiceTest
         val result = service.findById(requestId, access)
 
         assertEquals(request, result)
-        verify(entitlementGuard).requireRequestAccess(exchange)
     }
 
     @Test
-    fun `an issued request remains readable when the owner's live feature gate is withdrawn`()
+    fun `an issued request stays readable after its execution grant is revoked`()
     {
-        val requestId = UUID.randomUUID()
-        val request = InformationRequest().apply {
-            id = requestId
-            this.exchangeId = this@InformationRequestQueryServiceTest.exchangeId
-            state = InformationRequestState.ISSUED
-        }
-        whenever(requestRepository.findById(requestId)).thenReturn(request)
-        whenever(exchangeRepository.findById(exchangeId)).thenReturn(exchange)
-        whenever(executionGrantService.findForRequest(requestId)).thenReturn(
-            RequestExecutionGrant().apply { this.requestId = requestId },
-        )
-        whenever(
-            authorizationService.authorize(
-                access.principal,
-                Action.INFORMATION_REQUEST_VIEW,
-                ResourceRef.informationRequest(requestId),
-                access.authorization,
-            ),
-        ).thenReturn(Decision.Allow())
-        whenever(entitlementGuard.requireRequestAccess(exchange)).thenThrow(
-            SubscriptionDenialException(
-                SubscriptionDenial(
-                    reason = SubscriptionDenialReason.FEATURE_NOT_INCLUDED,
-                    planCode = PlanCode.BUSINESS,
-                    ownerType = SubscriptionOwnerType.ORGANIZATION,
-                    message = "This capability is not yet released.",
-                ),
-            ),
-        )
+        val request = readableIssuedRequest()
 
-        val result = service.findById(requestId, access)
-
-        assertEquals(request, result)
-        verify(entitlementGuard, org.mockito.kotlin.never()).requireRequestAccess(exchange)
-        verify(entitlementGuard).requireNotOperationallySuspended(exchange)
+        assertEquals(request, service.findById(request.id, access))
     }
 
     @Test
-    fun `an issued request read is denied when its execution grant is explicitly revoked`()
+    fun `an issued request stays readable during an operational suspension`()
     {
-        val requestId = UUID.randomUUID()
-        val request = InformationRequest().apply {
-            id = requestId
-            this.exchangeId = this@InformationRequestQueryServiceTest.exchangeId
-            state = InformationRequestState.ISSUED
-        }
-        whenever(requestRepository.findById(requestId)).thenReturn(request)
-        whenever(exchangeRepository.findById(exchangeId)).thenReturn(exchange)
-        whenever(executionGrantService.findForRequest(requestId)).thenReturn(
-            RequestExecutionGrant().apply {
-                this.requestId = requestId
-                revokedAt = Timestamp.from(Instant.now())
-                revokedReason = "targeted-operational-revocation"
-            },
-        )
-        whenever(
-            authorizationService.authorize(
-                access.principal,
-                Action.INFORMATION_REQUEST_VIEW,
-                ResourceRef.informationRequest(requestId),
-                access.authorization,
-            ),
-        ).thenReturn(Decision.Allow())
+        val request = readableIssuedRequest()
 
-        val failure = assertThrows(InformationRequestLifecycleException::class.java) {
-            service.findById(requestId, access)
-        }
-
-        assertEquals(InformationRequestErrorCatalog.EXECUTION_GRANT_REVOKED, failure.reasonCode)
-        verify(entitlementGuard, org.mockito.kotlin.never()).requireRequestAccess(exchange)
+        assertEquals(request, service.findById(request.id, access))
     }
 
     @Test
-    fun `an operational suspension still blocks issued request reads`()
+    fun `a draft stays readable after its owner loses the feature`()
     {
-        val requestId = UUID.randomUUID()
-        val request = InformationRequest().apply {
-            id = requestId
-            this.exchangeId = this@InformationRequestQueryServiceTest.exchangeId
-            state = InformationRequestState.ISSUED
-        }
-        whenever(requestRepository.findById(requestId)).thenReturn(request)
-        whenever(exchangeRepository.findById(exchangeId)).thenReturn(exchange)
-        whenever(executionGrantService.findForRequest(requestId)).thenReturn(
-            RequestExecutionGrant().apply { this.requestId = requestId },
-        )
-        whenever(
-            authorizationService.authorize(
-                access.principal,
-                Action.INFORMATION_REQUEST_VIEW,
-                ResourceRef.informationRequest(requestId),
-                access.authorization,
-            ),
-        ).thenReturn(Decision.Allow())
-        whenever(entitlementGuard.requireNotOperationallySuspended(exchange)).thenThrow(
-            SubscriptionDenialException(
-                SubscriptionDenial(
-                    reason = SubscriptionDenialReason.SUBSCRIPTION_SUSPENDED,
-                    planCode = PlanCode.BUSINESS,
-                    ownerType = SubscriptionOwnerType.ORGANIZATION,
-                    message = "This subscription is suspended.",
-                ),
-            ),
-        )
+        val request = readableIssuedRequest().apply { state = InformationRequestState.DRAFT }
 
-        assertThrows(SubscriptionDenialException::class.java) {
-            service.findById(requestId, access)
-        }
-        verify(entitlementGuard, org.mockito.kotlin.never()).requireRequestAccess(exchange)
+        assertEquals(request, service.findById(request.id, access))
     }
 
     @Test
-    fun `a recipient-bound session reads issued work through the owner-funded frozen grant`()
+    fun `a recipient-bound session reads issued work`()
     {
         val requestId = UUID.randomUUID()
         val sessionAccess = RequestAccessContext(
@@ -410,9 +305,6 @@ class InformationRequestQueryServiceTest
         }
         whenever(requestRepository.findById(requestId)).thenReturn(request)
         whenever(exchangeRepository.findById(exchangeId)).thenReturn(exchange)
-        whenever(executionGrantService.findForRequest(requestId)).thenReturn(
-            RequestExecutionGrant().apply { this.requestId = requestId },
-        )
         whenever(
             authorizationService.authorize(
                 sessionAccess.principal,
@@ -421,26 +313,14 @@ class InformationRequestQueryServiceTest
                 sessionAccess.authorization,
             ),
         ).thenReturn(Decision.Allow())
-        whenever(entitlementGuard.requireRequestAccess(exchange)).thenThrow(
-            SubscriptionDenialException(
-                SubscriptionDenial(
-                    reason = SubscriptionDenialReason.FEATURE_NOT_INCLUDED,
-                    planCode = PlanCode.BUSINESS,
-                    ownerType = SubscriptionOwnerType.ORGANIZATION,
-                    message = "This capability is not yet released.",
-                ),
-            ),
-        )
 
         val result = service.findById(requestId, sessionAccess)
 
         assertEquals(request, result)
-        verify(entitlementGuard, org.mockito.kotlin.never()).requireRequestAccess(exchange)
-        verify(entitlementGuard).requireNotOperationallySuspended(exchange)
     }
 
     @Test
-    fun `a caller denied by the central authorizer never reaches the entitlement gate when fetching by id`()
+    fun `a caller denied by the central authorizer is refused when fetching by id`()
     {
         val requestId = UUID.randomUUID()
         val request = InformationRequest().apply {
@@ -459,8 +339,6 @@ class InformationRequestQueryServiceTest
         ).thenReturn(Decision.Deny("reason", "denied"))
 
         assertThrows(ForbiddenException::class.java) { service.findById(requestId, access) }
-
-        verify(entitlementGuard, org.mockito.kotlin.never()).requireRequestAccess(org.mockito.kotlin.any())
     }
 
     @Test

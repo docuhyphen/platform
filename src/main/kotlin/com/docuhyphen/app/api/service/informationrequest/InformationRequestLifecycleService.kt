@@ -311,7 +311,7 @@ class InformationRequestLifecycleService @Inject constructor(
     ): RequestExecutionUsageReservation =
         executionUsageReservationService.reserve(
             grant.id,
-            RequestExecutionUsageKind.ADDITIONAL_RECIPIENT,
+            RequestExecutionUsageKind.ACTING_PARTY,
             partyCapacityReservationKey(party.id),
             1L,
         )

@@ -145,7 +145,7 @@ internal class PublishedRequestSupport(
                 """
                 INSERT INTO request_execution_grant
                     (id, request_id, owner_type, owner_user_id, plan_code, subscription_status,
-                     enforcement_mode, additional_recipient_cap, issued_at, created_at)
+                     enforcement_mode, acting_party_cap, issued_at, created_at)
                 VALUES (?, ?, 'USER', ?, 'PERSONAL', 'ACTIVE', 'ENFORCE', 5, now(), now())
                 """.trimIndent(),
                 UUID.randomUUID(),

@@ -11,6 +11,13 @@ import java.util.UUID
 class RequestExecutionUsageReservationRepository :
     BaseRepository<RequestExecutionUsageReservation>(RequestExecutionUsageReservation::class.java)
 {
+    fun insertNow(reservation: RequestExecutionUsageReservation): RequestExecutionUsageReservation
+    {
+        entityManager.persist(reservation)
+        entityManager.flush()
+        return reservation
+    }
+
     fun findByGrantIdAndUsageKindAndKey(
         grantId: UUID,
         usageKind: RequestExecutionUsageKind,

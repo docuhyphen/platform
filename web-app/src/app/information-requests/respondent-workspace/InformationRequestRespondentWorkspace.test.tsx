@@ -3,6 +3,7 @@ import {cleanup, fireEvent, render, screen} from "@testing-library/react";
 import {afterEach, beforeAll, describe, expect, it, vi} from "vitest";
 import {
     InformationRequestContributorRole,
+    InformationRequestExecutionStandingKind,
     InformationRequestOwnerType,
     InformationRequestRequiredness,
     InformationRequestRequirementType,
@@ -75,6 +76,7 @@ const workspace: InformationRequestResponseWorkspaceDto = {
     supportingEvidenceLinks: [],
     evidenceUploadAvailable: true,
     evidenceMalwareScanning: false,
+    executionStanding: {kind: InformationRequestExecutionStandingKind.ACTIVE},
 };
 
 vi.mock("./useInformationRequestRespondentWorkspace.ts", () => ({
@@ -112,7 +114,20 @@ describe("InformationRequestRespondentWorkspace", () =>
         Element.prototype.scrollIntoView = vi.fn();
     });
 
-    afterEach(cleanup);
+    afterEach(() =>
+    {
+        cleanup();
+        workspace.executionStanding = {kind: InformationRequestExecutionStandingKind.ACTIVE};
+    });
+
+    it("tells a party that changes are paused without stating the owner's reason", () =>
+    {
+        workspace.executionStanding = {kind: InformationRequestExecutionStandingKind.OPERATIONALLY_SUSPENDED};
+        render(<InformationRequestRespondentWorkspace accessMode={"no-auth"}/>);
+
+        expect(screen.getByText(/Changes to this request are paused/)).toBeTruthy();
+        expect(screen.queryByText(/suspended/)).toBeNull();
+    });
 
     it("names the request and lists its sections with their progress, each opening its first item", () =>
     {

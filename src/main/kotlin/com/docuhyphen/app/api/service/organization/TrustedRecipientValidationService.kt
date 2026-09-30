@@ -174,6 +174,8 @@ class TrustedRecipientValidationService @Inject constructor(
     fun isPersonAttestationCurrentlyEligible(attestation: ExchangeRecipientAttestation): Boolean =
         runCatching { validatePersonAttestation(attestation) }.isSuccess
 
+    fun isRelationshipSuspended(relationshipId: UUID): Boolean = relationshipService.isEffectivelySuspended(relationshipId)
+
     private fun validatePolicies(
         callerOrganizationId: UUID,
         targetOrganizationId: UUID,

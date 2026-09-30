@@ -74,7 +74,7 @@ class ExchangeFieldsResourceETagTest
         whenever(schemaAssignmentService.applySchemaAssignment(any())).thenReturn(assignment(etag))
 
         val response = resource.assignSchema(
-            exchangeId.toString(), AssignSchemaRequest(UUID.randomUUID()),
+            exchangeId.toString(), AssignSchemaRequest(UUID.randomUUID()), "*",
         )
 
         assertEquals(Response.Status.OK.statusCode, response.status)

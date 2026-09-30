@@ -2,7 +2,7 @@ import {useState} from "react";
 import {Button, Tab, TabList, Text, Title2} from "@fluentui/react-components";
 import {useNavigate, useParams} from "react-router-dom";
 import {BackIcon} from "../../../components/IconBundles.tsx";
-import InformationRequestFeatureGate from "../../feature-gate/InformationRequestFeatureGate.tsx";
+import InformationRequestScopeNotice from "../../capabilities/scope-standing-notice/InformationRequestScopeNotice.tsx";
 import AuditHistoryPanel from "../audit-history/AuditHistoryPanel.tsx";
 import ClockHistoryPanel from "../clock-history/ClockHistoryPanel.tsx";
 import NoticeHistoryPanel from "../notice-history/NoticeHistoryPanel.tsx";
@@ -46,47 +46,46 @@ const InformationRequestOperationsDetail = () =>
                     </Button>
                 )}
             </div>
-            <InformationRequestFeatureGate idPrefix={"information-request-operations-detail"}>
-                {requestId && (
-                    <div id={"information-request-operations-detail-content"}
-                         className={styles.content}>
-                        <TabList id={"information-request-operations-detail-tabs"}
-                                 className={styles.tabs}
-                                 selectedValue={tab}
-                                 onTabSelect={(_, data) => setTab(DETAIL_TABS.find(candidate => candidate === data.value) ?? "clocks")}>
-                            <Tab id={"information-request-operations-detail-clocks-tab"}
-                                 value={"clocks"}>
-                                Clocks
-                            </Tab>
-                            <Tab id={"information-request-operations-detail-notices-tab"}
-                                 value={"notices"}>
-                                Notices
-                            </Tab>
-                            <Tab id={"information-request-operations-detail-audit-tab"}
-                                 value={"audit"}>
-                                Audit history
-                            </Tab>
-                            <Tab id={"information-request-operations-detail-records-tab"}
-                                 value={"records"}>
-                                Records
-                            </Tab>
-                        </TabList>
-                        {tab === "clocks" && (
-                            <>
-                                <Text id={"information-request-operations-detail-clock-note"}
-                                      className={styles.note}>
-                                    Clock changes are made where the request is managed: pause, resume, or extend a
-                                    clock there with a reason, and each change appears in this history.
-                                </Text>
-                                <ClockHistoryPanel requestId={requestId}/>
-                            </>
-                        )}
-                        {tab === "notices" && <NoticeHistoryPanel requestId={requestId}/>}
-                        {tab === "audit" && <AuditHistoryPanel requestId={requestId}/>}
-                        {tab === "records" && <RecordStandingPanel requestId={requestId}/>}
-                    </div>
-                )}
-            </InformationRequestFeatureGate>
+            <InformationRequestScopeNotice idPrefix={"information-request-operations-detail"}/>
+            {requestId && (
+                <div id={"information-request-operations-detail-content"}
+                     className={styles.content}>
+                    <TabList id={"information-request-operations-detail-tabs"}
+                             className={styles.tabs}
+                             selectedValue={tab}
+                             onTabSelect={(_, data) => setTab(DETAIL_TABS.find(candidate => candidate === data.value) ?? "clocks")}>
+                        <Tab id={"information-request-operations-detail-clocks-tab"}
+                             value={"clocks"}>
+                            Clocks
+                        </Tab>
+                        <Tab id={"information-request-operations-detail-notices-tab"}
+                             value={"notices"}>
+                            Notices
+                        </Tab>
+                        <Tab id={"information-request-operations-detail-audit-tab"}
+                             value={"audit"}>
+                            Audit history
+                        </Tab>
+                        <Tab id={"information-request-operations-detail-records-tab"}
+                             value={"records"}>
+                            Records
+                        </Tab>
+                    </TabList>
+                    {tab === "clocks" && (
+                        <>
+                            <Text id={"information-request-operations-detail-clock-note"}
+                                  className={styles.note}>
+                                Clock changes are made where the request is managed: pause, resume, or extend a
+                                clock there with a reason, and each change appears in this history.
+                            </Text>
+                            <ClockHistoryPanel requestId={requestId}/>
+                        </>
+                    )}
+                    {tab === "notices" && <NoticeHistoryPanel requestId={requestId}/>}
+                    {tab === "audit" && <AuditHistoryPanel requestId={requestId}/>}
+                    {tab === "records" && <RecordStandingPanel requestId={requestId}/>}
+                </div>
+            )}
         </section>
     );
 };

@@ -1,4 +1,8 @@
-import {InformationRequestTemplateDto, SchemaDefinitionDto} from "../../../models/models.tsx";
+import {
+    InformationRequestTemplateDto,
+    InformationRequestTemplateScopeKind,
+    SchemaDefinitionDto,
+} from "../../../models/models.tsx";
 import TemplateDocumentEditor from "../../../information-requests/template-document/template-document-editor/TemplateDocumentEditor.tsx";
 import {useTemplateDocumentEditor} from "../../../information-requests/template-document/useTemplateDocumentEditor.ts";
 import TemplateEditorHeader from "../template-editor-header/TemplateEditorHeader.tsx";
@@ -14,11 +18,12 @@ interface TemplateEditorProps
     template: InformationRequestTemplateDto;
     schemas: SchemaDefinitionDto[];
     canManage: boolean;
+    copyTargets: InformationRequestTemplateScopeKind[];
     commands: TemplateEditorCommands;
     onClose: () => void;
 }
 
-const TemplateEditor = ({template, schemas, canManage, commands, onClose}: TemplateEditorProps) =>
+const TemplateEditor = ({template, schemas, canManage, copyTargets, commands, onClose}: TemplateEditorProps) =>
 {
     const styles = useTemplateEditorStyles();
     const readOnly = !canManage || !template.draftVersion;
@@ -47,6 +52,7 @@ const TemplateEditor = ({template, schemas, canManage, commands, onClose}: Templ
                                         content: (
                                             <TemplateVersionsPanel template={template}
                                                                    canManage={canManage}
+                                                                   copyTargets={copyTargets}
                                                                    busy={lifecycle.busy}
                                                                    onStartDraft={lifecycle.startDraft}
                                                                    onRetire={lifecycle.retire}

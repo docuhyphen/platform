@@ -114,7 +114,7 @@ class SchemaAssignmentService @Inject constructor(
             throw IllegalStateException("This resource can no longer have its schema changed")
 
         val existing = assignmentRepository.findByResource(resourceType, resourceId)
-        command.precondition.requireSatisfiedBy(existing?.let(SchemaAssignmentETag::of))
+        command.precondition.requireSatisfiedBy(existing?.let(::answersETagOf))
         if (existing != null)
             throw IllegalStateException("A schema is already assigned; remove it before assigning another")
 
@@ -161,7 +161,7 @@ class SchemaAssignmentService @Inject constructor(
         if (!adapter.mutationEntitlementFrozen(resourceId))
             subscriptionGuard.requireResourceMutation(adapter.subscriptionContext(resourceId))
         val existing = assignmentRepository.findByResource(resourceType, resourceId)
-        command.precondition.requireSatisfiedBy(existing?.let(SchemaAssignmentETag::of))
+        command.precondition.requireSatisfiedBy(existing?.let(::answersETagOf))
         if (existing != null)
             throw IllegalStateException("A schema is already assigned; remove it before assigning another")
 
@@ -237,7 +237,7 @@ class SchemaAssignmentService @Inject constructor(
 
         val assignment = assignmentRepository.findByResource(resourceType, resourceId)
             ?: throw IllegalArgumentException("No schema is assigned")
-        command.precondition.requireSatisfiedBy(SchemaAssignmentETag.of(assignment))
+        command.precondition.requireSatisfiedBy(answersETagOf(assignment))
         val schemaDisplayName = schemaDisplayNameOf(assignment)
         // Recorded revisions are deliberately left in place. What a resource once answered stays
         // part of the record even after its Schema is removed, which is what later records pointing
@@ -604,6 +604,9 @@ class SchemaAssignmentService @Inject constructor(
             fieldValueSetRepository.findOccurrenceForUpdate(assignment.id, ref.occurrencePath)
                 ?: throw FieldValidationException("This resource has no repetition named ${ref.occurrencePath}")
     }
+
+    private fun answersETagOf(assignment: SchemaAssignment): String? =
+        fieldValueSetRepository.findRootForUpdate(assignment.id)?.let(FieldValueSetETag::of)
 
     private fun createRootValueSet(assignment: SchemaAssignment): FieldValueSet =
         fieldValueSetRepository.save(

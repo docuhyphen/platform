@@ -107,7 +107,7 @@ class InformationRequestAdHocCreationService @Inject constructor(
             throw IllegalStateException("Information Requests cannot be created for a deleted Exchange")
         }
         requireDraftCreationAllowed(exchange)
-        entitlementGuard.requireRequestMutation(exchange)
+        entitlementGuard.requireRequestCreation(exchange)
         authorize(command)
 
         val requestId = UUID.randomUUID()

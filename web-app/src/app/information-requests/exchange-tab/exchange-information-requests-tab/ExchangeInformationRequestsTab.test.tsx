@@ -5,6 +5,8 @@ import {afterEach, beforeAll, beforeEach, describe, expect, it, vi} from "vitest
 import * as reviews from "../../../../services/informationRequestReviewService.ts";
 import {
     InformationRequestExchangeListingDto,
+    InformationRequestExecutionStandingKind,
+    InformationRequestStandingReason,
     InformationRequestNextAction,
     InformationRequestReviewState,
     InformationRequestShareRoleKey,
@@ -33,6 +35,7 @@ const summary = (overrides: Partial<InformationRequestSummaryDto> = {}): Informa
     callerRoles: [InformationRequestShareRoleKey.CONTRIBUTOR],
     permissions: {canManage: false, canRespond: true, canReview: false},
     nextAction: InformationRequestNextAction.RESPOND,
+    executionStanding: {kind: InformationRequestExecutionStandingKind.ACTIVE},
     ...overrides,
 });
 
@@ -153,6 +156,29 @@ describe("ExchangeInformationRequestsTab", () =>
         expect(screen.queryByRole("button", {name: "New Information Request"})).toBeNull();
         expect(screen.getByText("Periodic records request")).toBeTruthy();
         expect(screen.getByRole("button", {name: "View: Periodic records request"})).toBeTruthy();
+    });
+
+    it("tells an owner why a new request cannot be created", () =>
+    {
+        renderTab(state({
+            requests: [],
+            canCreate: false,
+            creationUnavailableReason: InformationRequestStandingReason.FEATURE_NOT_INCLUDED,
+        }));
+
+        expect(screen.queryByRole("button", {name: "New Information Request"})).toBeNull();
+        expect(screen.getByText(/New Information Requests cannot be created/)).toBeTruthy();
+        expect(screen.getByText(/does not include Information Requests/)).toBeTruthy();
+    });
+
+    it("marks a request whose changes are paused", () =>
+    {
+        renderTab(state({
+            requests: [summary({executionStanding: {kind: InformationRequestExecutionStandingKind.OPERATIONALLY_SUSPENDED}})],
+            canCreate: false,
+        }));
+
+        expect(screen.getByText("Changes paused")).toBeTruthy();
     });
 
     it("tells a caller with no visible request so, and states a refusal", () =>

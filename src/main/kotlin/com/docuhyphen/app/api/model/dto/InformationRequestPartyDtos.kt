@@ -29,4 +29,5 @@ data class InformationRequestPartyDto(
     val partyRevision: Long,
     val partyETag: String,
     val label: String? = null,
+    val trustSuspended: Boolean = false,
 )

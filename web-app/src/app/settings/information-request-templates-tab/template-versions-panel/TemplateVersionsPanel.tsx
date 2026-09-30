@@ -4,6 +4,7 @@ import {AddIcon, CopyIcon, DeleteIcon} from "../../../components/IconBundles.tsx
 import {
     CreateInformationRequestTemplateRequest,
     InformationRequestTemplateDto,
+    InformationRequestTemplateScopeKind,
     InformationRequestTemplateStatus,
 } from "../../../models/models.tsx";
 import TemplateRetireDialog from "../template-retire-dialog/TemplateRetireDialog.tsx";
@@ -18,11 +19,12 @@ interface TemplateVersionsPanelProps
     onStartDraft: (versionNumber: number) => Promise<unknown>;
     onRetire: (versionNumber: number) => Promise<boolean>;
     onClone: (versionNumber: number, target: CreateInformationRequestTemplateRequest) => Promise<boolean>;
+    copyTargets: InformationRequestTemplateScopeKind[];
 }
 
 const dateText = (value?: string): string => value ? new Date(value).toLocaleDateString() : "";
 
-const TemplateVersionsPanel = ({template, canManage, busy, onStartDraft, onRetire, onClone}: TemplateVersionsPanelProps) =>
+const TemplateVersionsPanel = ({template, canManage, copyTargets, busy, onStartDraft, onRetire, onClone}: TemplateVersionsPanelProps) =>
 {
     const styles = useTemplateVersionsPanelStyles();
     const [dialog, setDialog] = useState<"retire" | "clone" | null>(null);
@@ -50,10 +52,10 @@ const TemplateVersionsPanel = ({template, canManage, busy, onStartDraft, onRetir
                     {`Published on ${dateText(published.publishedAt)}. Requests already created keep the version they started with.`}
                 </Text>
             )}
-            {canManage && (
+            {(canManage || copyTargets.length > 0) && (
                 <div id={"information-request-template-versions-actions"}
                      className={styles.actions}>
-                    {published && !draft && (
+                    {canManage && published && !draft && (
                         <Button id={"information-request-template-start-draft"}
                                 appearance={"primary"}
                                 shape={"circular"}
@@ -63,7 +65,7 @@ const TemplateVersionsPanel = ({template, canManage, busy, onStartDraft, onRetir
                             {`Start a new draft from version ${published.versionNumber}`}
                         </Button>
                     )}
-                    {published && retirable && (
+                    {canManage && published && retirable && (
                         <Button id={"information-request-template-retire"}
                                 appearance={"secondary"}
                                 shape={"circular"}
@@ -73,7 +75,7 @@ const TemplateVersionsPanel = ({template, canManage, busy, onStartDraft, onRetir
                             {`Retire version ${published.versionNumber}`}
                         </Button>
                     )}
-                    {copySource !== undefined && (
+                    {copySource !== undefined && copyTargets.length > 0 && (
                         <Button id={"information-request-template-clone"}
                                 appearance={"secondary"}
                                 shape={"circular"}
@@ -96,6 +98,7 @@ const TemplateVersionsPanel = ({template, canManage, busy, onStartDraft, onRetir
             )}
             {dialog === "clone" && copySource !== undefined && (
                 <TemplateCloneDialog template={template}
+                                     targets={copyTargets}
                                      busy={busy}
                                      onConfirm={async target =>
                                      {

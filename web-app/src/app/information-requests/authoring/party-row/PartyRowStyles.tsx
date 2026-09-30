@@ -26,6 +26,9 @@ export const usePartyRowStyles = makeStyles({
     meta: {
         color: tokens.colorNeutralForeground2,
     },
+    trustBadge: {
+        alignSelf: "flex-start",
+    },
     actions: {
         display: "flex",
         flexWrap: "wrap",

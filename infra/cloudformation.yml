@@ -1106,6 +1106,56 @@ Resources:
       ComparisonOperator: GreaterThanOrEqualToThreshold
       TreatMissingData: notBreaching
 
+  InformationRequestHealthBreachMetricFilter:
+    Type: AWS::Logs::MetricFilter
+    Properties:
+      LogGroupName: !Ref CloudWatchLogGroup
+      FilterPattern: '"INFORMATION_REQUEST_HEALTH_BREACH"'
+      MetricTransformations:
+        - MetricName: InformationRequestHealthBreach
+          MetricNamespace: !Sub ${AppName}/InformationRequestHealth
+          MetricValue: "1"
+          DefaultValue: 0
+
+  InformationRequestHealthBreachAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub ${AppName}-information-request-health-breach
+      AlarmDescription: Fires when an Information Request health indicator counts records a worker, migration, or command left inconsistent.
+      Namespace: !Sub ${AppName}/InformationRequestHealth
+      MetricName: InformationRequestHealthBreach
+      Statistic: Sum
+      Period: 900
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+
+  InformationRequestAbuseRefusalMetricFilter:
+    Type: AWS::Logs::MetricFilter
+    Properties:
+      LogGroupName: !Ref CloudWatchLogGroup
+      FilterPattern: '"INFORMATION_REQUEST_ABUSE_REFUSED"'
+      MetricTransformations:
+        - MetricName: InformationRequestAbuseRefusal
+          MetricNamespace: !Sub ${AppName}/InformationRequestHealth
+          MetricValue: "1"
+          DefaultValue: 0
+
+  InformationRequestAbuseRefusalAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub ${AppName}-information-request-abuse-refusals
+      AlarmDescription: Fires when Information Request abuse controls refuse an unusual number of attempts, such as contact-code probing or repeated exports.
+      Namespace: !Sub ${AppName}/InformationRequestHealth
+      MetricName: InformationRequestAbuseRefusal
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 50
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+
 # ─── OUTPUTS ──────────────────────────────────────────────────────────────────
 
 Outputs:

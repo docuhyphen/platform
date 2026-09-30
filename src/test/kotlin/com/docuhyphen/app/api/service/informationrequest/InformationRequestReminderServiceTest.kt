@@ -12,6 +12,7 @@ import com.docuhyphen.app.api.model.entity.InformationRequestParty
 import com.docuhyphen.app.api.model.entity.InformationRequestShareRoleKey
 import com.docuhyphen.app.api.model.entity.InformationRequestTransition
 import com.docuhyphen.app.api.model.entity.PrincipalKind
+import com.docuhyphen.app.api.model.informationrequest.InformationRequestAbuseLimits
 import com.docuhyphen.app.api.model.informationrequest.InformationRequestOwnerRef
 import com.docuhyphen.app.api.model.informationrequest.InformationRequestReminderResult
 import com.docuhyphen.app.api.model.informationrequest.LockedInformationRequest
@@ -36,6 +37,10 @@ import org.mockito.kotlin.never
 import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
+import java.time.Clock
+import java.time.Duration
+import java.time.Instant
+import java.time.ZoneOffset
 import java.util.UUID
 
 class InformationRequestReminderServiceTest
@@ -52,9 +57,12 @@ class InformationRequestReminderServiceTest
     private val partyRepository = mock<InformationRequestPartyRepository>()
     private val intentRepository = mock<InformationRequestNoticeIntentRepository>()
     private val transitionHistory = mock<InformationRequestTransitionHistoryService>()
+    private val now = Instant.parse("2026-09-30T12:00:00Z")
     private val service = InformationRequestReminderService(
         ownerAccess, requestRepository, gate, partyRepository, intentRepository, transitionHistory,
         CommandReceiptService(InMemoryReminderCommandReceiptStore()),
+        InformationRequestAbuseLimits(reminderCooldown = Duration.ofHours(24)),
+        Clock.fixed(now, ZoneOffset.UTC),
     )
     private val transitions = mutableMapOf<UUID, InformationRequestTransition>()
 
@@ -119,6 +127,34 @@ class InformationRequestReminderServiceTest
         assertEquals(sent, replayed)
         verify(transitionHistory, times(1)).record(any())
         verify(intentRepository, times(1)).save(any())
+    }
+
+    @Test
+    fun `a request reminded inside the cooldown is skipped and says when it can be reminded again`()
+    {
+        val request = openRequest()
+        whenever(partyRepository.findActiveForRequest(request.id)).thenReturn(listOf(party(request, InformationRequestShareRoleKey.CONTRIBUTOR)))
+        whenever(transitionHistory.latestOccurrence(request.id, InformationRequestMutation.SEND_REMINDER))
+            .thenReturn(now.minus(Duration.ofHours(1)))
+
+        val results = service.send(SendInformationRequestRemindersCommand(listOf(request.id), "remind-again"))
+
+        assertEquals(listOf(InformationRequestReminderResult(request.id, 0, now.plus(Duration.ofHours(23)))), results)
+        verify(transitionHistory, never()).record(any())
+        verify(intentRepository, never()).save(any())
+    }
+
+    @Test
+    fun `a request is reminded again once its cooldown has passed`()
+    {
+        val request = openRequest()
+        whenever(partyRepository.findActiveForRequest(request.id)).thenReturn(listOf(party(request, InformationRequestShareRoleKey.CONTRIBUTOR)))
+        whenever(transitionHistory.latestOccurrence(request.id, InformationRequestMutation.SEND_REMINDER))
+            .thenReturn(now.minus(Duration.ofHours(25)))
+
+        val results = service.send(SendInformationRequestRemindersCommand(listOf(request.id), "remind-later"))
+
+        assertEquals(listOf(InformationRequestReminderResult(request.id, 1)), results)
     }
 
     @Test

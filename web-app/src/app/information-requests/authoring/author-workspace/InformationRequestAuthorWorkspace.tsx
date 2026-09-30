@@ -2,7 +2,13 @@ import {useState} from "react";
 import {MessageBar, MessageBarBody, Spinner} from "@fluentui/react-components";
 import {useParams} from "react-router-dom";
 import {useAuth} from "../../../../context/AuthContext.tsx";
-import {InformationRequestShareRoleKey, InformationRequestState} from "../../../models/models.tsx";
+import {
+    InformationRequestExecutionStandingKind,
+    InformationRequestShareRoleKey,
+    InformationRequestState,
+} from "../../../models/models.tsx";
+import ExecutionStandingNotice from "../../shared/execution-standing-notice/ExecutionStandingNotice.tsx";
+import {mayChangeUnderStanding} from "../../shared/executionStandingText.ts";
 import {requirementPromptsOf} from "../../shared/requirementPrompts.ts";
 import AccessLinkDialog from "../access-link-dialog/AccessLinkDialog.tsx";
 import AuthorWorkspaceHeader from "../author-workspace-header/AuthorWorkspaceHeader.tsx";
@@ -26,7 +32,7 @@ const InformationRequestAuthorWorkspace = () =>
     const state = useAuthorWorkspace(requestId);
     const [previewing, setPreviewing] = useState(false);
     const workspace = state.workspace;
-    const editable = Boolean(workspace && EDITABLE_STATES.has(workspace.request.state));
+    const editable = Boolean(workspace && EDITABLE_STATES.has(workspace.request.state) && mayChangeUnderStanding(workspace.executionStanding));
     const hasDecisionMaker = state.parties.some(party => party.active && party.roleKey === InformationRequestShareRoleKey.DECISION_MAKER);
     const {currentSession, hasCapability} = useAuth();
     const subjectId = state.parties
@@ -42,6 +48,10 @@ const InformationRequestAuthorWorkspace = () =>
                                        state={workspace.request.state}
                                        exchangeId={workspace.request.exchangeId}
                                        onPreview={() => setPreviewing(true)}/>
+            )}
+            {workspace && (
+                <ExecutionStandingNotice idPrefix={"information-request-author"}
+                                         standing={workspace.executionStanding}/>
             )}
             {state.error && (
                 <MessageBar id={"information-request-author-error"}
@@ -93,6 +103,7 @@ const InformationRequestAuthorWorkspace = () =>
                     </div>
                     {workspace.request.state !== InformationRequestState.DRAFT && (
                         <FollowUpPanel request={workspace.request}
+                                       canCreate={workspace.executionStanding.kind === InformationRequestExecutionStandingKind.ACTIVE}
                                        onChanged={() => void state.reload()}/>
                     )}
                     {workspace.request.state !== InformationRequestState.DRAFT && (

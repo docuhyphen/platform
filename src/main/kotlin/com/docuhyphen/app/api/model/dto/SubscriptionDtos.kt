@@ -43,6 +43,11 @@ data class SubscriptionLimitsDto(
     val maxAdditionalParticipantsPerExchange: Long? = null,
     val seatCapacity: Long? = null,
     val seatsArePurchased: Boolean,
+    val maxOpenInformationRequests: Long? = null,
+    val maxActingPartiesPerInformationRequest: Long? = null,
+    val maxEvidenceFilesPerInformationRequest: Long? = null,
+    val maxEvidenceBytesPerInformationRequest: Long? = null,
+    val maxCommittedEvidenceBytes: Long? = null,
 )
 
 /**

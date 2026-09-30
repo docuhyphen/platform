@@ -1,5 +1,7 @@
 package com.docuhyphen.app.api.service.informationrequest
 
+import com.docuhyphen.app.api.exception.OrganizationTrustException
+import com.docuhyphen.app.api.model.informationrequest.LockedInformationRequest
 import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestPartyRepository
@@ -90,6 +92,7 @@ class InformationRequestPartyService @Inject constructor(
     private val transitionHistory: InformationRequestTransitionHistoryService,
     private val executionGrantService: InformationRequestExecutionGrantService,
     private val executionUsageReservationService: InformationRequestExecutionUsageReservationService,
+    private val mutationGate: InformationRequestMutationGate,
 )
 {
     @Transactional
@@ -255,6 +258,7 @@ class InformationRequestPartyService @Inject constructor(
         command.precondition.requireSatisfiedBy(InformationRequestETag.partiesOf(request))
         authorize(command.access, request.id)
         requirePartyChangeAllowed(exchange, request.state, InformationRequestMutation.ASSIGN_PARTY)
+        mutationGate.requireContinuationEntitlement(LockedInformationRequest(exchange, request))
 
         val now = Timestamp.from(Instant.now())
         val party = InformationRequestParty().apply {
@@ -289,7 +293,7 @@ class InformationRequestPartyService @Inject constructor(
             party.principalKind = principal.kind
             party.principalId = principal.id
             party.exchangeRecipientId = command.exchangeRecipientId?.also {
-                exchangeRecipientService.requireAssignablePartyRecipient(it, request.exchangeId, principal)
+                requireAssignableRecipient(it, request.exchangeId, principal)
             }
             val reservation = reserveRecipientCapacityIfIssued(request, party)
             var consumedReservation = false
@@ -357,6 +361,7 @@ class InformationRequestPartyService @Inject constructor(
         command.precondition.requireSatisfiedBy(InformationRequestETag.partiesOf(request))
         authorize(command.access, request.id)
         requirePartyChangeAllowed(exchange, request.state, InformationRequestMutation.ASSIGN_PARTY)
+        mutationGate.requireContinuationEntitlement(LockedInformationRequest(exchange, request))
         require(command.roleKey != InformationRequestShareRoleKey.SUBJECT) {
             "An external participant cannot be assigned as the subject party"
         }
@@ -430,6 +435,7 @@ class InformationRequestPartyService @Inject constructor(
         command.precondition.requireSatisfiedBy(InformationRequestETag.partiesOf(request))
         authorize(command.access, request.id)
         requirePartyChangeAllowed(exchange, request.state, InformationRequestMutation.ASSIGN_PARTY)
+        mutationGate.requireContinuationEntitlement(LockedInformationRequest(exchange, request))
         require(command.roleKey != InformationRequestShareRoleKey.SUBJECT) {
             "A trusted recipient selection cannot be assigned as the subject party"
         }
@@ -451,7 +457,7 @@ class InformationRequestPartyService @Inject constructor(
         ) ?: throw IllegalArgumentException("Trusted recipient must be invited on the parent Exchange before assignment")
         val recipient = exchangeRecipientService.findByDirectShareId(directShare.id)
             ?: throw IllegalArgumentException("Trusted recipient Exchange binding was not found")
-        exchangeRecipientService.requireAssignablePartyRecipient(recipient.id, request.exchangeId, principal)
+        requireAssignableRecipient(recipient.id, request.exchangeId, principal)
 
         return createActingParty(
             request = request,
@@ -478,6 +484,7 @@ class InformationRequestPartyService @Inject constructor(
         requireSupportedActingPrincipal(command.principal)
 
         requirePartyChangeAllowed(exchange, request.state, InformationRequestMutation.REASSIGN)
+        mutationGate.requireContinuationEntitlement(LockedInformationRequest(exchange, request))
 
         val party = partyRepository.findByIdForUpdate(command.partyId)
             ?: throw IllegalArgumentException("Information Request party not found")
@@ -488,7 +495,7 @@ class InformationRequestPartyService @Inject constructor(
         }
 
         command.exchangeRecipientId?.also {
-            exchangeRecipientService.requireAssignablePartyRecipient(it, request.exchangeId, command.principal)
+            requireAssignableRecipient(it, request.exchangeId, command.principal)
         }
         party.shareId?.let { shareId ->
             bootstrapShareLinkService.revokeAllForShare(shareId)
@@ -680,8 +687,33 @@ class InformationRequestPartyService @Inject constructor(
     private fun rollbackRecipientCapacityIfIssued(request: InformationRequest, party: InformationRequestParty)
     {
         val grant = executionGrantService.findForRequest(request.id) ?: return
-        val reservation = reserveRecipientCapacity(grant, party)
-        executionUsageReservationService.rollback(reservation.id)
+        executionUsageReservationService.returnCapacity(
+            grant.id,
+            RequestExecutionUsageKind.ACTING_PARTY,
+            partyCapacityReservationKey(party.id),
+        )
+    }
+
+    private fun requireAssignableRecipient(recipientId: UUID, exchangeId: UUID, principal: PrincipalRef)
+    {
+        if (exchangeRecipientService.trustSuspended(recipientId))
+        {
+            throw InformationRequestLifecycleException(
+                InformationRequestErrorCatalog.TRUST_SUSPENDED,
+                "The trust relationship with this recipient's organization is suspended",
+            )
+        }
+        try
+        {
+            exchangeRecipientService.requireAssignablePartyRecipient(recipientId, exchangeId, principal)
+        }
+        catch (_: OrganizationTrustException)
+        {
+            throw InformationRequestLifecycleException(
+                InformationRequestErrorCatalog.TRUSTED_RECIPIENT_UNAVAILABLE,
+                "This trusted recipient can no longer be assigned",
+            )
+        }
     }
 
     private fun reserveRecipientCapacity(
@@ -690,7 +722,7 @@ class InformationRequestPartyService @Inject constructor(
     ): RequestExecutionUsageReservation =
         executionUsageReservationService.reserve(
             grant.id,
-            RequestExecutionUsageKind.ADDITIONAL_RECIPIENT,
+            RequestExecutionUsageKind.ACTING_PARTY,
             partyCapacityReservationKey(party.id),
             1L,
         )

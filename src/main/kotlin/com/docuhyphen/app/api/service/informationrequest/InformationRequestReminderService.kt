@@ -5,6 +5,8 @@ import com.docuhyphen.app.api.model.entity.InformationRequestNoticeIntent
 import com.docuhyphen.app.api.model.entity.InformationRequestNoticeKind
 import com.docuhyphen.app.api.model.entity.InformationRequestShareRoleKey
 import com.docuhyphen.app.api.model.entity.ResourceType
+import com.docuhyphen.app.api.model.informationrequest.InformationRequestAbuseControl
+import com.docuhyphen.app.api.model.informationrequest.InformationRequestAbuseLimits
 import com.docuhyphen.app.api.model.informationrequest.InformationRequestOwnerRef
 import com.docuhyphen.app.api.model.informationrequest.InformationRequestReminderResult
 import com.docuhyphen.app.api.model.informationrequest.LockedInformationRequest
@@ -26,6 +28,8 @@ import com.docuhyphen.app.api.service.command.CommandResultReference
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
+import java.time.Clock
+import java.time.Instant
 import java.util.UUID
 
 @ApplicationScoped
@@ -37,6 +41,8 @@ class InformationRequestReminderService @Inject constructor(
     private val intentRepository: InformationRequestNoticeIntentRepository,
     private val transitionHistory: InformationRequestTransitionHistoryService,
     private val commandReceiptService: CommandReceiptService,
+    private val abuseLimits: InformationRequestAbuseLimits,
+    private val clock: Clock,
 )
 {
     @Transactional
@@ -76,6 +82,13 @@ class InformationRequestReminderService @Inject constructor(
             idempotencyKey = idempotencyKey,
             requestFingerprint = CommandRequestFingerprint.sha256Hex("$SEND_OPERATION|${request.id}"),
         )
+        if (!commandReceiptService.isRecorded(receipt))
+        {
+            cooldownUntil(request.id)?.let { reopensAt ->
+                InformationRequestAbuseLog.refused(InformationRequestAbuseControl.REMINDER_COOLDOWN, "request=${request.id}")
+                return InformationRequestReminderResult(request.id, 0, reopensAt)
+            }
+        }
         return when (
             val decision = commandReceiptService.runOnce(receipt) {
                 gate.requireMutation(locked, InformationRequestMutation.SEND_REMINDER)
@@ -113,6 +126,11 @@ class InformationRequestReminderService @Inject constructor(
                 InformationRequestReminderResult(request.id, requireNotNull(decision.result.revision).toInt())
         }
     }
+
+    private fun cooldownUntil(requestId: UUID): Instant? =
+        transitionHistory.latestOccurrence(requestId, InformationRequestMutation.SEND_REMINDER)
+            ?.plus(abuseLimits.reminderCooldown)
+            ?.takeIf { it.isAfter(clock.instant()) }
 
     private companion object
     {

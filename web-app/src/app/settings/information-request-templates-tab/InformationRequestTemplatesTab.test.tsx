@@ -4,10 +4,19 @@ import {afterEach, beforeAll, beforeEach, describe, expect, it, vi} from "vitest
 import {
     CurrentSessionDto,
     FieldScopeKind,
+    InformationRequestStandingReason,
     InformationRequestTemplateDto,
     InformationRequestTemplateScopeKind,
     InformationRequestTemplateStatus,
+    PlanCode,
+    SubscriptionOwnerType,
 } from "../../models/models.tsx";
+import {useInformationRequestCapabilities} from "../../information-requests/capabilities/useInformationRequestCapabilities.ts";
+import {
+    capabilitiesWithoutTheFeature,
+    informationRequestCapabilities,
+} from "../../information-requests/shared/testing/capabilityFixtures.ts";
+import {unnamedControls} from "../../information-requests/shared/testing/unnamedControls.ts";
 import InformationRequestTemplatesTab from "./InformationRequestTemplatesTab.tsx";
 
 const templateApi = vi.hoisted(() => ({
@@ -45,6 +54,10 @@ vi.mock("../../../services/informationRequestTemplateService.ts", () => ({
 
 vi.mock("../../../services/fieldsService.ts", () => ({
     listSchemas: (...args: unknown[]) => fieldApi.listSchemas(...args),
+}));
+
+vi.mock("../../information-requests/capabilities/useInformationRequestCapabilities.ts", () => ({
+    useInformationRequestCapabilities: vi.fn(),
 }));
 
 vi.mock("../../../context/AuthContext.tsx", () => ({
@@ -115,6 +128,10 @@ describe("InformationRequestTemplatesTab", () =>
             activeOrganizationId: "organization-1",
         } as CurrentSessionDto;
         authState.canManageOrganization = true;
+        vi.mocked(useInformationRequestCapabilities).mockReturnValue(informationRequestCapabilities({
+            ownerType: SubscriptionOwnerType.ORGANIZATION,
+            planCode: PlanCode.BUSINESS,
+        }));
     });
 
     it("lists Templates, opens one in the editor, saves it against its own id, and returns to the list", async () =>
@@ -186,6 +203,57 @@ describe("InformationRequestTemplatesTab", () =>
         expect(screen.queryByRole("button", {name: "Add section"})).toBeNull();
     });
 
+    it("copies a read-only platform Template into the caller's own Templates", async () =>
+    {
+        templateApi.get.mockResolvedValue({
+            ...draftTemplate(),
+            scopeKind: InformationRequestTemplateScopeKind.PLATFORM,
+        });
+        templateApi.clone.mockResolvedValue({
+            ...draftTemplate(),
+            id: "template-copy",
+            displayName: "Personal copy",
+            scopeKind: InformationRequestTemplateScopeKind.PERSONAL,
+        });
+        render(<InformationRequestTemplatesTab/>);
+
+        expect(await screen.findByText("Collection pattern")).toBeTruthy();
+        fireEvent.click(screen.getByRole("tab", {name: "Platform"}));
+        fireEvent.click(await screen.findByRole("button", {name: "Open Collection pattern"}));
+        fireEvent.click(await screen.findByRole("tab", {name: "Versions"}));
+        fireEvent.click(await screen.findByRole("button", {name: "Copy as a new Template"}));
+        fireEvent.change(within(dialog()).getByLabelText("Copy into"), {target: {value: InformationRequestTemplateScopeKind.PERSONAL}});
+        fireEvent.change(within(dialog()).getByLabelText("Name"), {target: {value: "Personal copy"}});
+        fireEvent.click(within(dialog()).getByRole("button", {name: "Copy"}));
+
+        await waitFor(() => expect(templateApi.clone).toHaveBeenCalledWith("template-1", {
+            sourceVersionNumber: 1,
+            target: {
+                namespace: "process",
+                templateKey: "personal-copy",
+                displayName: "Personal copy",
+                scopeKind: InformationRequestTemplateScopeKind.PERSONAL,
+            },
+        }));
+    });
+
+    it("names every control of a read-only Template and its copy dialog", async () =>
+    {
+        templateApi.get.mockResolvedValue({
+            ...draftTemplate(),
+            scopeKind: InformationRequestTemplateScopeKind.PLATFORM,
+        });
+        render(<InformationRequestTemplatesTab/>);
+
+        expect(await screen.findByText("Collection pattern")).toBeTruthy();
+        fireEvent.click(screen.getByRole("tab", {name: "Platform"}));
+        fireEvent.click(await screen.findByRole("button", {name: "Open Collection pattern"}));
+        fireEvent.click(await screen.findByRole("tab", {name: "Versions"}));
+        fireEvent.click(await screen.findByRole("button", {name: "Copy as a new Template"}));
+
+        expect(unnamedControls(document.body)).toEqual([]);
+    });
+
     it("keeps Personal Templates as a separate owner scope", async () =>
     {
         render(<InformationRequestTemplatesTab/>);
@@ -210,6 +278,42 @@ describe("InformationRequestTemplatesTab", () =>
         fireEvent.click(screen.getByRole("button", {name: "Open Collection pattern"}));
         expect(await screen.findByText("Read only")).toBeTruthy();
         expect(screen.queryByRole("button", {name: "Save draft"})).toBeNull();
+    });
+
+    it("tells a person without the feature that shared requests stay open to them and reads no Templates", () =>
+    {
+        authState.currentSession = {activeOrganizationId: null} as CurrentSessionDto;
+        vi.mocked(useInformationRequestCapabilities).mockReturnValue(capabilitiesWithoutTheFeature());
+
+        render(<InformationRequestTemplatesTab/>);
+
+        expect(screen.getByRole("status").textContent).toMatch(
+            /Your plan does not include creating Information Requests. You can still respond to and review Information Requests shared with you/,
+        );
+        expect(templateApi.list).not.toHaveBeenCalled();
+        expect(screen.queryByRole("button", {name: "New Template"})).toBeNull();
+    });
+
+    it("keeps Templates readable but offers no authoring while the organization cannot create new work", async () =>
+    {
+        vi.mocked(useInformationRequestCapabilities).mockReturnValue(informationRequestCapabilities({
+            ownerType: SubscriptionOwnerType.ORGANIZATION,
+            planCode: PlanCode.BUSINESS,
+            newWorkAvailable: false,
+            newWorkUnavailableReason: InformationRequestStandingReason.SUBSCRIPTION_PAST_DUE,
+            personalTemplatesAvailable: false,
+        }));
+
+        render(<InformationRequestTemplatesTab/>);
+
+        expect(await screen.findByText("Collection pattern")).toBeTruthy();
+        expect(screen.getByRole("status").textContent).toMatch(/Payment for the subscription is overdue/);
+        expect(screen.queryByRole("button", {name: "New Template"})).toBeNull();
+        fireEvent.click(screen.getByRole("tab", {name: "My Templates"}));
+        await waitFor(() => expect(templateApi.list).toHaveBeenLastCalledWith({
+            scopeKind: InformationRequestTemplateScopeKind.PERSONAL,
+        }));
+        expect(screen.queryByRole("button", {name: "New Template"})).toBeNull();
     });
 
     it("says why the list could not be read", async () =>

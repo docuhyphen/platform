@@ -19,6 +19,7 @@ import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceConformance
 import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceVersion
 import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceWaiverPolicy
 import com.docuhyphen.app.api.model.entity.PrincipalKind
+import com.docuhyphen.app.api.model.entity.RequestExecutionGrant
 import com.docuhyphen.app.api.model.informationrequest.InformationRequestDocumentVersionEvidenceSource
 import com.docuhyphen.app.api.model.informationrequest.InformationRequestEvidenceCapturedAttribute
 import com.docuhyphen.app.api.model.informationrequest.InformationRequestEvidenceFile
@@ -65,6 +66,7 @@ class InformationRequestEvidenceIntakeTest
     private val versionRepository: InformationRequestEvidenceVersionRepository = mock()
     private val assessmentRepository: InformationRequestEvidenceAssessmentRepository = mock()
     private val recordingService: DocumentVersionRecordingService = mock()
+    private val executionGrantService: InformationRequestExecutionGrantService = mock()
     private val limits = InformationRequestEvidenceUploadLimits(
         maximumFileBytes = 1_000,
         maximumNoAuthFileBytes = 500,
@@ -128,6 +130,34 @@ class InformationRequestEvidenceIntakeTest
         whenever(versionRepository.storedUsageForUploader(eq(fixture.request.id), eq(fixture.respondent)))
             .thenReturn(InformationRequestEvidenceStoredUsage(1, 1_950))
         assertRefused(InformationRequestErrorCatalog.EVIDENCE_UPLOAD_LIMIT_EXCEEDED) { admit(sized(100)) }
+    }
+
+    @Test
+    fun `an issued request holds only what its grant allows, beneath the platform ceiling`()
+    {
+        whenever(executionGrantService.findForRequest(fixture.request.id)).thenReturn(
+            RequestExecutionGrant().apply {
+                evidenceFileAllowance = 1
+                evidenceByteAllowance = 1_000
+            },
+        )
+        whenever(versionRepository.storedUsageForRequest(fixture.request.id)).thenReturn(InformationRequestEvidenceStoredUsage(1, 10))
+        assertRefused(InformationRequestErrorCatalog.EVIDENCE_UPLOAD_LIMIT_EXCEEDED) { admit(sized(100)) }
+
+        whenever(versionRepository.storedUsageForRequest(fixture.request.id)).thenReturn(InformationRequestEvidenceStoredUsage(0, 950))
+        assertRefused(InformationRequestErrorCatalog.EVIDENCE_UPLOAD_LIMIT_EXCEEDED) { admit(sized(100)) }
+
+        whenever(executionGrantService.findForRequest(fixture.request.id)).thenReturn(
+            RequestExecutionGrant().apply {
+                evidenceFileAllowance = 10
+                evidenceByteAllowance = 10_000
+            },
+        )
+        whenever(versionRepository.storedUsageForRequest(fixture.request.id)).thenReturn(InformationRequestEvidenceStoredUsage(3, 10))
+        assertRefused(InformationRequestErrorCatalog.EVIDENCE_UPLOAD_LIMIT_EXCEEDED) { admit(sized(100)) }
+
+        whenever(versionRepository.storedUsageForRequest(fixture.request.id)).thenReturn(InformationRequestEvidenceStoredUsage(2, 10))
+        admit(sized(100))
     }
 
     @Test
@@ -215,6 +245,7 @@ class InformationRequestEvidenceIntakeTest
     private fun intake() = InformationRequestEvidenceIntake(
         deploymentPolicy = deploymentPolicy,
         limits = limits,
+        executionGrantService = executionGrantService,
         policyLoader = policyLoader,
         inspector = InformationRequestEvidenceContentInspector(),
         artifactRepository = artifactRepository,

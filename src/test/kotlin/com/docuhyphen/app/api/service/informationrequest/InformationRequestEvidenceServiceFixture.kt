@@ -231,6 +231,7 @@ internal class InformationRequestEvidenceServiceFixture
     val intake = InformationRequestEvidenceIntake(
         deploymentPolicy = deploymentPolicy,
         limits = uploadLimits,
+        executionGrantService = executionGrantService,
         policyLoader = policyLoader,
         inspector = InformationRequestEvidenceContentInspector(),
         artifactRepository = artifactRepository,

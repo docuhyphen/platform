@@ -321,6 +321,14 @@ object InformationRequestErrorCatalog
 
     const val CAPACITY_EXHAUSTED = "INFORMATION_REQUEST_CAPACITY_EXHAUSTED"
 
+    const val TRUST_SUSPENDED = "INFORMATION_REQUEST_TRUST_SUSPENDED"
+
+    const val TRUSTED_RECIPIENT_UNAVAILABLE = "INFORMATION_REQUEST_TRUSTED_RECIPIENT_UNAVAILABLE"
+
+    const val RATE_LIMITED = "INFORMATION_REQUEST_RATE_LIMITED"
+
+    const val EXPORT_LIMIT_REACHED = "INFORMATION_REQUEST_EXPORT_LIMIT_REACHED"
+
     /** Every declared code, used to prove the catalog stays unique and namespaced. */
     fun allCodes(): List<String> = listOf(
         NOT_FOUND,
@@ -441,6 +449,10 @@ object InformationRequestErrorCatalog
         CAPACITY_EXHAUSTED,
         EXPORT_INTEGRITY_FAILED,
         RECORD_REFERENCED,
+        TRUST_SUSPENDED,
+        TRUSTED_RECIPIENT_UNAVAILABLE,
+        RATE_LIMITED,
+        EXPORT_LIMIT_REACHED,
     )
 }
 

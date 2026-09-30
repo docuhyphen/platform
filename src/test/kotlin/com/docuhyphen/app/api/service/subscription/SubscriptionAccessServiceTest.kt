@@ -8,6 +8,8 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.mockito.kotlin.any
 import org.mockito.kotlin.mock
+import org.mockito.kotlin.never
+import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import java.sql.Timestamp
 import java.time.Instant
@@ -240,6 +242,19 @@ class SubscriptionAccessServiceTest
     }
 
     @Test
+    fun `an ended trial is refused as an ended trial rather than a suspension`()
+    {
+        givenUserPlan(PlanCode.PERSONAL, SubscriptionStatus.TRIALING)
+
+        val denial = assertThrows<SubscriptionDenialException> {
+            service(SubscriptionEnforcementMode.ENFORCE).requireMutationAllowed(userContext(), now)
+        }.denial
+
+        assertEquals(SubscriptionDenialReason.TRIAL_ENDED, denial.reason)
+        assertTrue(denial.message.contains("trial has ended"))
+    }
+
+    @Test
     fun `a past due owner may still work until the grace period ends`()
     {
         givenUserPlan(PlanCode.PERSONAL, SubscriptionStatus.PAST_DUE, now.plusSeconds(3600))
@@ -294,6 +309,78 @@ class SubscriptionAccessServiceTest
         assertDoesNotThrow {
             service(SubscriptionEnforcementMode.ENFORCE).requireExchangeCapacity(userContext(), now)
         }
+    }
+
+    @Test
+    fun `the open Information Request allowance is refused once reached, counted under the owner's lock`()
+    {
+        givenUserPlan(PlanCode.PERSONAL)
+
+        val denial = assertThrows<SubscriptionDenialException> {
+            service(SubscriptionEnforcementMode.ENFORCE).requireInformationRequestCapacity(userContext()) { 25 }
+        }.denial
+
+        assertEquals(SubscriptionDenialReason.PLAN_LIMIT_REACHED, denial.reason)
+        assertEquals(PlanFeature.INFORMATION_REQUESTS, denial.feature)
+        assertEquals(25L, denial.currentValue)
+        assertEquals(25L, denial.limit)
+        verify(policyService).findUserPolicyForUpdate(appUserId)
+        assertDoesNotThrow {
+            service(SubscriptionEnforcementMode.ENFORCE).requireInformationRequestCapacity(userContext()) { 24 }
+        }
+    }
+
+    @Test
+    fun `an organization's open Information Requests are never counted`()
+    {
+        givenOrganizationPlan()
+        var counted = false
+
+        service(SubscriptionEnforcementMode.ENFORCE).requireInformationRequestCapacity(organizationContext()) {
+            counted = true
+            1_000
+        }
+
+        assertFalse(counted)
+        verify(policyService, never()).findOrganizationPolicyForUpdate(organizationId)
+    }
+
+    @Test
+    fun `issuing is refused when its evidence allowance would pass the owner's committed evidence`()
+    {
+        givenOrganizationPlan()
+        val gibibyte = 1024L * 1024L * 1024L
+        val committed = 100L * gibibyte - 100L * 1024L * 1024L
+
+        val denial = assertThrows<SubscriptionDenialException> {
+            service(SubscriptionEnforcementMode.ENFORCE).requireCommittedEvidenceCapacity(organizationContext()) { committed }
+        }.denial
+
+        assertEquals(SubscriptionDenialReason.PLAN_LIMIT_REACHED, denial.reason)
+        assertEquals(committed, denial.currentValue)
+        assertEquals(100L * gibibyte, denial.limit)
+        verify(policyService).findOrganizationPolicyForUpdate(organizationId)
+        assertDoesNotThrow {
+            service(SubscriptionEnforcementMode.ENFORCE)
+                .requireCommittedEvidenceCapacity(organizationContext()) { 99L * gibibyte }
+        }
+    }
+
+    @Test
+    fun `Information Request allowances are reported, not refused, and skipped when enforcement is off`()
+    {
+        givenUserPlan(PlanCode.PERSONAL)
+        var counted = false
+
+        assertDoesNotThrow {
+            service(SubscriptionEnforcementMode.REPORT_ONLY).requireInformationRequestCapacity(userContext()) { 99 }
+            service(SubscriptionEnforcementMode.REPORT_ONLY).requireCommittedEvidenceCapacity(userContext()) { Long.MAX_VALUE / 2 }
+        }
+        service(SubscriptionEnforcementMode.OFF).requireInformationRequestCapacity(userContext()) {
+            counted = true
+            99
+        }
+        assertFalse(counted)
     }
 
     @Test

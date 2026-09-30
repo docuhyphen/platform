@@ -255,7 +255,7 @@ class InformationRequestPartyResourceContractTest
         whenever(partyService.assign(any())).thenThrow(
             RequestExecutionUsageExhaustedException(
                 UUID.randomUUID(),
-                RequestExecutionUsageKind.ADDITIONAL_RECIPIENT,
+                RequestExecutionUsageKind.ACTING_PARTY,
                 1,
                 1,
                 1

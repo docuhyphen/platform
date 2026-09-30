@@ -7,8 +7,10 @@ export const informationRequestOperationsArticle = (
 
         <h3 id={"information-request-operations-access-heading"}>Who sees it</h3>
         <p id={"information-request-operations-access-help"}>
-            When your plan includes Information Requests, select <b>Information Request
-            operations</b> in the top menu. Your personal requests are always visible to you. In an
+            Select <b>Information Request operations</b> in the top menu. It appears when the active
+            account&apos;s plan includes Information Requests or the account still owns requests. When new
+            requests cannot be created, the page says why, and existing requests, their records, and
+            their exports stay available. Your personal requests are always visible to you. In an
             organization, Organization Owners and Administrators see the queue for all of the
             organization&apos;s requests. A request&apos;s clocks, notices, audit history, and
             records open only for someone who manages that request: the Exchange owner or a
@@ -37,7 +39,8 @@ export const informationRequestOperationsArticle = (
             Select requests and choose <b>Send reminders</b>: after you confirm, each responding party
             of each selected request is owed a reminder notice, and the page says how many notices were
             queued. Delivery then shows in each request&apos;s Notices tab. If any selected request is no
-            longer open, nothing is sent. Organization Owners and Administrators send reminders for the
+            longer open, nothing is sent. A request reminded in the last 24 hours is skipped, and the page
+            says when it can be reminded again. Organization Owners and Administrators send reminders for the
             organization&apos;s requests, and you send them for your personal requests. <b>Export
             CSV</b> downloads every request that matches the current filters, as the queue shows it.
         </p>
@@ -93,7 +96,8 @@ export const informationRequestOperationsArticle = (
             becomes eligible, and lets people who manage preservation holds place one. <b>Create
             export</b> freezes the request&apos;s whole record with a SHA-256 hash. <b>Download</b>
             checks that hash again first, and an export whose content no longer matches is not
-            downloaded.
+            downloaded. Each owner can make up to 100 record exports a day; the next export then says when
+            to try again.
         </p>
     </>
 );
