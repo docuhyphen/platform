@@ -39,6 +39,14 @@ export const startHereSection: HelpDocSectionInput = {
                         </li>
                     </ol>
 
+                    <h3>Registering your organization</h3>
+                    <p>
+                        If you do not belong to an organization yet, open <b>Settings</b> and select
+                        <b> Register your org</b> under <b>Organization</b>. The registration form shows on
+                        the right, like any other settings page. After you register, the same entry reads
+                        <b> Administration</b> and shows your organization&apos;s review status.
+                    </p>
+
                     <h3>Who should read what</h3>
                     <ul>
                         <li><b>Organization Admin:</b> Start with IdP and Role & Permission Matrix, then read the full Workflows section and Variables & Sequences overview.</li>

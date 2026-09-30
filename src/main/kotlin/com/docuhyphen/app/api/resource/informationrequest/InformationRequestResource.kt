@@ -49,7 +49,7 @@ class InformationRequestResource @Inject constructor(
             val exchangeId = exchangeIdParam?.let(::parseUuid)
                 ?: return badRequest("exchangeId is required")
             val requests = queryService.listForExchange(exchangeId, accessContextFactory.currentAuthenticated())
-            Response.ok(requests.map(InformationRequestDtoMapper::toDto)).build()
+            Response.ok(requests.map(InformationRequestDtoMapper::toDto).toTypedArray()).build()
         }
         catch (exception: Exception)
         {
@@ -105,12 +105,14 @@ class InformationRequestResource @Inject constructor(
                 return badRequest("State exactly one of configuration, blueprintDefinitionId, or templateVersionId")
             }
             val access = accessContextFactory.currentAuthenticated()
+            val blueprintDefinitionId = request.blueprintDefinitionId
+            val templateVersionId = request.templateVersionId
             created(
                 when
                 {
-                    request.blueprintDefinitionId != null -> blueprintInstantiationService.createFromBlueprint(
+                    blueprintDefinitionId != null -> blueprintInstantiationService.createFromBlueprint(
                         CreateInformationRequestFromBlueprintCommand(
-                            blueprintDefinitionId = request.blueprintDefinitionId,
+                            blueprintDefinitionId = blueprintDefinitionId,
                             exchangeId = request.exchangeId,
                             gatesExchangeClosure = request.gatesExchangeClosure,
                             access = access,
@@ -118,9 +120,9 @@ class InformationRequestResource @Inject constructor(
                         ),
                     )
 
-                    request.templateVersionId != null -> templateInstantiationService.createFromTemplateVersion(
+                    templateVersionId != null -> templateInstantiationService.createFromTemplateVersion(
                         CreateInformationRequestFromTemplateVersionCommand(
-                            templateVersionId = request.templateVersionId,
+                            templateVersionId = templateVersionId,
                             exchangeId = request.exchangeId,
                             gatesExchangeClosure = request.gatesExchangeClosure,
                             access = access,

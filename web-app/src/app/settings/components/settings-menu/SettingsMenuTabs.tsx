@@ -53,12 +53,14 @@ const SettingsMenuTabs = (props: SettingsMenuProps) =>
         ...(props.canManageOrganization && props.canUseBusinessFields
             ? [{id: "FieldsTab", icon: <SettingsFieldsTabIcon/>, value: props.tabIds.fields, label: "Fields"}]
             : []),
-        {
-            id: "InformationRequestTemplatesTab",
-            icon: <SettingsInformationRequestsTabIcon/>,
-            value: props.tabIds.informationRequestTemplates,
-            label: "Information Requests",
-        },
+        ...(props.canUseInformationRequests
+            ? [{
+                id: "InformationRequestTemplatesTab",
+                icon: <SettingsInformationRequestsTabIcon/>,
+                value: props.tabIds.informationRequestTemplates,
+                label: "Information Requests",
+            }]
+            : []),
     ];
     const automationItems: MenuItemDefinition[] = [
         ...(props.canUseWorkflows
@@ -76,7 +78,7 @@ const SettingsMenuTabs = (props: SettingsMenuProps) =>
     ];
     const organizationItems: MenuItemDefinition[] = [
         ...(props.canSeeOrganizationAdminTab
-            ? [{id: "OrganizationTab", icon: <SettingsOrganizationTabIcon/>, value: props.tabIds.organization, label: "Administration"}]
+            ? [{id: "OrganizationTab", icon: <SettingsOrganizationTabIcon/>, value: props.tabIds.organization, label: props.registersOrganization ? "Register your org" : "Administration"}]
             : []),
         ...(props.hasOrg && props.canSeeBillingTab
             ? [{id: "OrganizationBillingTab", icon: <SettingsOrganizationBillingTabIcon/>, value: props.tabIds.organizationBilling, label: "Billing"}]

@@ -30,6 +30,7 @@ import com.docuhyphen.app.api.service.command.CommandReceiptStore
 import com.docuhyphen.app.api.service.exchange.*
 import com.docuhyphen.app.api.service.notification.DomainEvent
 import com.docuhyphen.app.api.service.notification.DomainEventPublisher
+import com.docuhyphen.app.api.service.user.AppUserService
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.*
@@ -314,6 +315,36 @@ class InformationRequestPartyServiceTest
         verify(fixture.partyRepository).save(party.capture())
         assertEquals(PrincipalKind.PARTICIPANT, party.firstValue.principalKind)
         assertEquals(participantId, party.firstValue.principalId)
+    }
+
+    @Test
+    fun `email assignment on a sign-in-required Exchange grants the matching account access`()
+    {
+        val fixture = Fixture()
+        fixture.requireRecipientSignIn()
+        val actor = PrincipalRef.user(UUID.randomUUID())
+        val recipient = AppUser().apply {
+            id = UUID.randomUUID()
+            email = "recipient@example.test"
+        }
+        whenever(fixture.appUserService.findByEmail("recipient@example.test")).thenReturn(recipient)
+
+        fixture.service.assignExternalParticipant(
+            AssignExternalParticipantInformationRequestPartyCommand(
+                requestId = fixture.request.id,
+                roleKey = InformationRequestShareRoleKey.CONTRIBUTOR,
+                email = "recipient@example.test",
+                access = RequestAccessContext(actor, fixture.authorizationContext),
+                precondition = CommandPrecondition.ExpectedRevision(InformationRequestETag.partiesOf(fixture.request)),
+                idempotencyKey = "assign-signed-in-recipient",
+            ),
+        )
+
+        val party = argumentCaptor<InformationRequestParty>()
+        verify(fixture.partyRepository).save(party.capture())
+        assertEquals(PrincipalKind.USER, party.firstValue.principalKind)
+        assertEquals(recipient.id, party.firstValue.principalId)
+        verify(fixture.externalParticipantService, never()).findOrCreate(any(), any(), anyOrNull())
     }
 
     @Test
@@ -1285,6 +1316,11 @@ class InformationRequestPartyServiceTest
             status = parentStatus
             isDeleted = false
         }
+
+        fun requireRecipientSignIn()
+        {
+            exchange.requireRecipientSignIn = true
+        }
         val authorizationContext = com.docuhyphen.app.api.service.auth.authz.AuthorizationContext(
             activeOrgId = request.ownerOrganizationId,
         )
@@ -1292,6 +1328,7 @@ class InformationRequestPartyServiceTest
         val partyRepository = mock<InformationRequestPartyRepository>()
         val subjectIdentityRefRepository = mock<SubjectIdentityRefRepository>()
         val externalParticipantService = mock<ExternalParticipantService>()
+        val appUserService = mock<AppUserService>()
         val exchangeRecipientService = mock<ExchangeRecipientService>()
         val exchangeRecipientSelectionResolver = mock<ExchangeRecipientSelectionResolver>()
         val shareService = mock<ShareService>()
@@ -1323,6 +1360,7 @@ class InformationRequestPartyServiceTest
             partyRepository = partyRepository,
             subjectIdentityRefRepository = subjectIdentityRefRepository,
             externalParticipantService = externalParticipantService,
+            appUserService = appUserService,
             exchangeRecipientService = exchangeRecipientService,
             exchangeRecipientSelectionResolver = exchangeRecipientSelectionResolver,
             shareService = shareService,

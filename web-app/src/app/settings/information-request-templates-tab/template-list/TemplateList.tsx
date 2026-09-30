@@ -61,10 +61,6 @@ const TemplateList = ({templates, loading, error, onOpen}: TemplateListProps) =>
                               weight={"semibold"}>
                             {template.displayName}
                         </Text>
-                        <Text id={`information-request-template-card-${template.id}-key`}
-                              className={styles.key}>
-                            {`${template.namespace}:${template.templateKey}`}
-                        </Text>
                         {template.description && (
                             <Text id={`information-request-template-card-${template.id}-description`}
                                   className={styles.muted}>
@@ -78,7 +74,7 @@ const TemplateList = ({templates, loading, error, onOpen}: TemplateListProps) =>
                                    color={template.status === InformationRequestTemplateStatus.PUBLISHED ? "success" : "warning"}>
                                 {statusText[template.status]}
                             </Badge>
-                            {template.latestPublishedVersionNumber !== undefined && (
+                            {template.latestPublishedVersionNumber && (
                                 <Badge id={`information-request-template-card-${template.id}-published`}
                                        appearance={"outline"}
                                        color={"informative"}>

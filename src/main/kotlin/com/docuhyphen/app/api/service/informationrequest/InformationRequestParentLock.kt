@@ -10,7 +10,7 @@ import java.util.UUID
  * request row lock second. Exchange termination locks the same rows in the same order, so the two
  * command families serialize instead of deadlocking on inverted lock acquisition.
  */
-internal fun lockParentExchangeOf(
+fun lockParentExchangeOf(
     requestId: UUID,
     requestRepository: InformationRequestRepository,
     exchangeRepository: ExchangeRepository,

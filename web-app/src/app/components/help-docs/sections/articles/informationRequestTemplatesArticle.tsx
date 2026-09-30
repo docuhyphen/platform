@@ -15,8 +15,8 @@ export const informationRequestTemplatesArticle = (
             a draft in the chosen scope.
         </p>
         <p id={"information-request-templates-availability-help"}>
-            The tab is there for every signed-in user. If neither your plan nor your active organization
-            includes Information Requests, the tab says so and that you can still respond to and review
+            The tab appears only when your plan or your active organization includes Information
+            Requests. Without it, the tab is not shown, and you can still respond to and review
             Information Requests shared with you. You author personal Templates on the Personal plan, or
             while an active organization whose plan includes Information Requests is selected. When new
             requests cannot be created, Templates stay readable but <b>New Template</b> is not offered.

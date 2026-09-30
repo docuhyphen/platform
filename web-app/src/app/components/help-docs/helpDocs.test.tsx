@@ -349,11 +349,12 @@ describe('help documentation states what the platform actually does', () =>
         expect(text).toMatch(/only while the request is active/i);
     });
 
-    it('keeps the Information Requests settings tab for everyone and says who authors Templates', () =>
+    it('shows the Information Requests settings tab only with the feature and says who authors Templates', () =>
     {
         const text = articleText('request-templates');
 
-        expect(text).toMatch(/every signed-in user/i);
+        expect(text).not.toMatch(/every signed-in user/i);
+        expect(text).toMatch(/appears only when your plan or your active organization includes Information\s+Requests/i);
         expect(text).toMatch(/respond to and review/i);
         expect(text).toMatch(/active organization whose plan includes Information Requests/i);
     });

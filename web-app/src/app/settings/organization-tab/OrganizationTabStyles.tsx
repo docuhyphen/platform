@@ -88,4 +88,7 @@ export const useOrganizationTabStyles = makeStyles({
     onboardingRow: {
         marginTop: tokens.spacingVerticalS,
     },
+    registrationForm: {
+        width: "100%",
+    },
 });

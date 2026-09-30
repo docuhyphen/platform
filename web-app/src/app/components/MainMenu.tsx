@@ -17,7 +17,7 @@ const LAST_EXCHANGES_QUERY_STORAGE_KEY = "exchanges.lastRoute.query";
 
 const MainMenu: React.FC<{onToggleHelpSidebar: () => void}> = ({onToggleHelpSidebar}) =>
 {
-    const {appUserPersonOrganization} = useAuth();
+    const {currentSession} = useAuth();
     const navigate = useNavigate();
     const styles = useGlobalStyles();
     const menuStyles = useMainMenuStyles();
@@ -39,12 +39,12 @@ const MainMenu: React.FC<{onToggleHelpSidebar: () => void}> = ({onToggleHelpSide
                 id={"main-menu-brand"}
                 className={styles.mainHeaderAppLogo}>
                 <AppLogo/>
-                {appUserPersonOrganization?.isActive &&
-                    appUserPersonOrganization.verificationComplete && (
+                {currentSession && (
                         <Text
                             id={"main-menu-organization-name"}
                             className={styles.mainHeaderOrgTitle}>
-                            {appUserPersonOrganization.name}
+                            {currentSession.availableOrganizations?.find(organization =>
+                                organization.organizationId === currentSession.activeOrganizationId)?.name ?? 'Personal'}
                         </Text>
                     )}
             </span>

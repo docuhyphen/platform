@@ -5,6 +5,7 @@ import {
     Capability,
     CurrentSessionDto,
     EffectiveSubscriptionDto,
+    InformationRequestCapabilitiesDto,
     PlanCode,
     PlanFeature,
     SubscriptionEnforcementMode,
@@ -17,6 +18,7 @@ import {tabIds} from "./settingsTabs.ts";
 const authMock = vi.hoisted(() => ({
     currentSession: null as CurrentSessionDto | null,
     appUserPersonOrganization: null as {isActive?: boolean} | null,
+    appUser: null as {organizationRoles: string[]} | null,
     capabilities: [] as Capability[],
 }));
 
@@ -24,10 +26,19 @@ const subscriptionMock = vi.hoisted(() => ({
     current: null as EffectiveSubscriptionDto | null,
 }));
 
+const informationRequestCapabilitiesMock = vi.hoisted(() => ({
+    current: null as InformationRequestCapabilitiesDto | null,
+}));
+
+vi.mock("../information-requests/capabilities/useInformationRequestCapabilities.ts", () => ({
+    useInformationRequestCapabilities: () => informationRequestCapabilitiesMock.current,
+}));
+
 vi.mock("../../context/AuthContext.tsx", () => ({
     useAuth: () => ({
         currentSession: authMock.currentSession,
         appUserPersonOrganization: authMock.appUserPersonOrganization,
+        appUser: authMock.appUser,
         hasCapability: (capability: Capability) => authMock.capabilities.includes(capability),
     }),
 }));
@@ -58,8 +69,10 @@ describe("useSettingsPlanAvailability", () =>
     {
         authMock.currentSession = null;
         authMock.appUserPersonOrganization = null;
+        authMock.appUser = null;
         authMock.capabilities = [];
         subscriptionMock.current = null;
+        informationRequestCapabilitiesMock.current = null;
     });
 
     it("keeps Free settings limited to account basics and billing", () =>
@@ -144,18 +157,26 @@ describe("useSettingsPlanAvailability", () =>
         expect(result.current.visibleTabs.has(tabIds.fields)).toBe(false);
     });
 
-    it("keeps Information Request settings discoverable to every signed-in user", () =>
+    it("hides Information Request settings from a person whose plan does not include them", () =>
     {
         subscriptionMock.current = subscription(
             PlanCode.FREE,
             SubscriptionOwnerType.USER,
             [PlanFeature.EXCHANGE_CREATE],
         );
+        informationRequestCapabilitiesMock.current = {
+            featureIncluded: false,
+            personalTemplatesAvailable: false,
+        } as InformationRequestCapabilitiesDto;
 
-        const {result, rerender} = renderHook(() => useSettingsPlanAvailability());
+        const {result} = renderHook(() => useSettingsPlanAvailability());
 
-        expect(result.current.visibleTabs.has(tabIds.informationRequestTemplates)).toBe(true);
+        expect(result.current.canUseInformationRequests).toBe(false);
+        expect(result.current.visibleTabs.has(tabIds.informationRequestTemplates)).toBe(false);
+    });
 
+    it("shows Information Request settings when the plan includes them", () =>
+    {
         subscriptionMock.current = subscription(
             PlanCode.BUSINESS,
             SubscriptionOwnerType.ORGANIZATION,
@@ -167,8 +188,43 @@ describe("useSettingsPlanAvailability", () =>
             capabilities: [],
         } as unknown as CurrentSessionDto;
         authMock.appUserPersonOrganization = {isActive: true};
-        rerender();
+
+        const {result} = renderHook(() => useSettingsPlanAvailability());
 
         expect(result.current.visibleTabs.has(tabIds.informationRequestTemplates)).toBe(true);
+    });
+
+    it("shows Information Request settings when an organization sponsors personal Templates", () =>
+    {
+        subscriptionMock.current = subscription(
+            PlanCode.FREE,
+            SubscriptionOwnerType.USER,
+            [PlanFeature.EXCHANGE_CREATE],
+        );
+        informationRequestCapabilitiesMock.current = {
+            featureIncluded: false,
+            personalTemplatesAvailable: true,
+        } as InformationRequestCapabilitiesDto;
+
+        const {result} = renderHook(() => useSettingsPlanAvailability());
+
+        expect(result.current.visibleTabs.has(tabIds.informationRequestTemplates)).toBe(true);
+    });
+    it("offers organization registration only to a person with no organization", () =>
+    {
+        subscriptionMock.current = subscription(PlanCode.FREE, SubscriptionOwnerType.USER, [PlanFeature.EXCHANGE_CREATE]);
+        authMock.appUser = {organizationRoles: []};
+
+        const {result, rerender} = renderHook(() => useSettingsPlanAvailability());
+        expect(result.current.registersOrganization).toBe(true);
+
+        authMock.appUserPersonOrganization = {isActive: false};
+        rerender();
+        expect(result.current.registersOrganization).toBe(false);
+
+        authMock.appUserPersonOrganization = null;
+        authMock.appUser = {organizationRoles: ["ORG_ADMIN"]};
+        rerender();
+        expect(result.current.registersOrganization).toBe(false);
     });
 });

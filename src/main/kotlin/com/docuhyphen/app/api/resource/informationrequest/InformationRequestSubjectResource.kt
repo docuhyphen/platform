@@ -22,7 +22,7 @@ class InformationRequestSubjectResource @Inject constructor(
     {
         return try
         {
-            Response.ok(subjectService.listForOwner()).build()
+            Response.ok(subjectService.listForOwner().toTypedArray()).build()
         }
         catch (exception: Exception)
         {

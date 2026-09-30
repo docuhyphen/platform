@@ -89,4 +89,23 @@ describe("PartyRow", () =>
 
         expect(screen.queryByText("Trusted relationship suspended")).toBeNull();
     });
+
+    it("shows account access without offering a bootstrap link to a signed-in user", () =>
+    {
+        render(
+            <ul>
+                <PartyRow party={{...party(), principalKind: "USER"}}
+                          links={[]}
+                          busy={false}
+                          editable={true}
+                          onIssueLink={vi.fn()}
+                          onResendLink={vi.fn()}
+                          onRevokeLink={vi.fn()}
+                          onRemove={vi.fn()}/>
+            </ul>,
+        );
+
+        expect(screen.getByText("Contributor. Signs in")).toBeTruthy();
+        expect(screen.queryByRole("button", {name: "Create link for Counterparty desk"})).toBeNull();
+    });
 });

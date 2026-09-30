@@ -280,16 +280,15 @@ describe("InformationRequestTemplatesTab", () =>
         expect(screen.queryByRole("button", {name: "Save draft"})).toBeNull();
     });
 
-    it("tells a person without the feature that shared requests stay open to them and reads no Templates", () =>
+    it("shows no plan notice and reads no Templates for a person without the feature", () =>
     {
         authState.currentSession = {activeOrganizationId: null} as CurrentSessionDto;
         vi.mocked(useInformationRequestCapabilities).mockReturnValue(capabilitiesWithoutTheFeature());
 
         render(<InformationRequestTemplatesTab/>);
 
-        expect(screen.getByRole("status").textContent).toMatch(
-            /Your plan does not include creating Information Requests. You can still respond to and review Information Requests shared with you/,
-        );
+        expect(screen.queryByRole("status")).toBeNull();
+        expect(screen.queryByText(/does not include creating Information Requests/)).toBeNull();
         expect(templateApi.list).not.toHaveBeenCalled();
         expect(screen.queryByRole("button", {name: "New Template"})).toBeNull();
     });

@@ -4,10 +4,11 @@ import {useAuth} from "../../context/AuthContext.tsx";
 import {useCurrentSubscription} from "../../hooks/subscription/useCurrentSubscription.ts";
 import {usePlanFeature} from "../../hooks/subscription/usePlanFeature.ts";
 import {tabIds} from "./settingsTabs.ts";
+import {useInformationRequestCapabilities} from "../information-requests/capabilities/useInformationRequestCapabilities.ts";
 
 export const useSettingsPlanAvailability = () =>
 {
-    const {appUserPersonOrganization, currentSession, hasCapability} = useAuth();
+    const {appUser, appUserPersonOrganization, currentSession, hasCapability} = useAuth();
     const subscription = useCurrentSubscription();
     const documents = usePlanFeature(PlanFeature.DOCUMENT_LIBRARY_USE);
     const blueprints = usePlanFeature(PlanFeature.BLUEPRINT_USE);
@@ -16,10 +17,18 @@ export const useSettingsPlanAvailability = () =>
     const variables = usePlanFeature(PlanFeature.VARIABLES_AND_SEQUENCES);
     const administration = usePlanFeature(PlanFeature.ORGANIZATION_ADMINISTRATION);
     const audit = usePlanFeature(PlanFeature.AUDIT_GOVERNANCE);
+    const informationRequests = usePlanFeature(PlanFeature.INFORMATION_REQUESTS);
+    const informationRequestCapabilities = useInformationRequestCapabilities();
+    const canUseInformationRequests = informationRequests.isDiscoverable
+        || informationRequestCapabilities?.featureIncluded === true
+        || informationRequestCapabilities?.personalTemplatesAvailable === true;
     const hasOrg = appUserPersonOrganization?.isActive === true
         || (currentSession?.availableOrganizations?.length ?? 0) > 0
         || subscription?.ownerType === SubscriptionOwnerType.ORGANIZATION;
     const canManageOrganization = hasOrg && hasCapability(Capability.ORG_POLICY_MANAGE);
+    const registersOrganization = !hasOrg
+        && appUser?.organizationRoles.length === 0
+        && !appUserPersonOrganization;
     const canSeeBillingTab = !hasOrg || hasCapability(Capability.ORG_BILLING_MANAGE);
     const canSeeOrganizationAdminTab = !hasOrg || (
         canManageOrganization && administration.isDiscoverable
@@ -40,7 +49,7 @@ export const useSettingsPlanAvailability = () =>
         ...(documents.isDiscoverable ? [tabIds.documents] : []),
         ...(blueprints.isDiscoverable ? [tabIds.blueprints] : []),
         ...(canManageOrganization && fields.isDiscoverable ? [tabIds.fields] : []),
-        tabIds.informationRequestTemplates,
+        ...(canUseInformationRequests ? [tabIds.informationRequestTemplates] : []),
         ...(canDiscoverWorkflows ? [tabIds.workflows, tabIds.communications] : []),
         ...(variables.isDiscoverable ? [tabIds.variables] : []),
         ...(hasOrg && variables.isDiscoverable ? [tabIds.sequences] : []),
@@ -53,6 +62,7 @@ export const useSettingsPlanAvailability = () =>
         canSeeBillingTab,
         canSeeAuditTab,
         canSeeOrganizationAdminTab,
+        canUseInformationRequests,
         documents.isDiscoverable,
         fields.isDiscoverable,
         hasOrg,
@@ -70,6 +80,8 @@ export const useSettingsPlanAvailability = () =>
         canUseBusinessFields: fields.isDiscoverable,
         canUseWorkflows: canDiscoverWorkflows,
         canUseVariables: variables.isDiscoverable,
+        canUseInformationRequests,
+        registersOrganization,
         visibleTabs,
     };
 };

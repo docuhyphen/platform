@@ -55,7 +55,7 @@ const TemplateAdministration = ({capabilities}: Props) =>
                 </TabList>
                 {state.canManageScope && (
                     <Button id={"information-request-template-create"}
-                            appearance={"primary"}
+                            appearance={"subtle"}
                             shape={"circular"}
                             icon={<AddIcon/>}
                             onClick={() => setCreating(true)}>

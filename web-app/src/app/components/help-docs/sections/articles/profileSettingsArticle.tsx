@@ -5,6 +5,13 @@ export const profileSettingsArticle = (
             security and sign-in alerts.
         </p>
 
+        <h3>Choosing a workspace</h3>
+        <p>
+            Open the account menu in the top bar and choose <b>Personal workspace</b> or an
+            organization you belong to. New Exchanges and Information Requests use the selected
+            workspace as their owner. The selected workspace stays in effect when you return later.
+        </p>
+
         <h3>Updating your basic details</h3>
         <ol>
             <li>Open <b>Settings</b> and select <b>Profile</b>.</li>

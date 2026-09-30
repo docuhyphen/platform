@@ -2,7 +2,18 @@
 
 ## Status
 
-- Overall status: Complete. Phases 1 through 12 and the repeated remediation gate are complete; Phase 12
+- Overall status: Incomplete. The program was reopened on 2026-09-30.
+  - A code-level audit against commit `23ed5d04` found 166 verified gaps (11 high, 65 medium, 90
+    low) behind tasks that are checked below. The register, with evidence, fix outlines and 28 open
+    decisions, is [the gap audit](DOCUMENT-DRIVEN-INFORMATION-REQUESTS-GAP-AUDIT.md).
+  - `## Phase 13: Exchanges Started from Information Request Blueprints` was added for two defects
+    no earlier task covered: every Exchange requires at least one document even when its Blueprint's
+    Information Request collects the documents, and starting an Exchange from such a Blueprint never
+    creates the request, leaving its Information Requests tab empty. They are also recorded as
+    GA-167 and GA-168 in the gap audit.
+  - The phase checkmarks below record what was claimed, not what the audit verified. The program is
+    not complete until Phase 13 passes and every audit gap is closed or explicitly waived.
+- Previous status (superseded by the audit): Phases 1 through 12 and the repeated remediation gate were marked complete; Phase 12
   finished on 2026-09-30 (design decisions under `### Phase 12 design decisions (2026-09-30)`). Phase 10's manual width check (1440, 1024, 768, and 360 CSS pixels across the
   author, respondent, reviewer, authenticated, and no-auth journeys) was explicitly waived by the user
   on 2026-09-28 ("You can skip this"). It was not run and is not claimed as passing.
@@ -16,7 +27,7 @@
 - Review checkpoint: the 2026-09-13 [Phases 1-5 recheck](DOCUMENT-DRIVEN-INFORMATION-REQUESTS-PHASES-1-5-RECHECK.md)
   found seven remaining gaps. The original P5-R01 through P5-R20 completion records remain
   historical evidence; they do not establish that the integrated implementation is gap-free.
-- Current work: none in progress. Phase 12 was requested in full by the user and completed on
+- Phase 12 history: Phase 12 was requested in full by the user and completed on
   2026-09-30. Its final verification: full backend suite 3,379 tests green, full frontend suite 786
   tests green, `verify -DskipITs=false` green with no integration test classes, and a V150 upgrade
   test on populated data. V149 and V150 are not applied to the local database, whose history ends at
@@ -26,7 +37,12 @@
   backwards-compatibility code may be written, and the compatibility mechanisms already shipped are
   now defect work. See `## Development-Stage Constraint` and
   `## Development-Stage Compatibility Removal`.
-- Exact next task: none. The program is complete. Follow-ups are recorded under the Phase 12 exit gate in
+- Current work: none in progress. The paragraph below about Phase 12 completion is historical.
+- Exact next task: confirm the Phase 13 design decisions and the open decisions in the gap audit.
+  Then start `P13-T1` (which also closes GA-002), continue through `P13-T8`, and close the remaining
+  high-severity gaps GA-001 and GA-003 through GA-011, followed by the medium and low gaps, all
+  under the mandatory TDD protocol.
+- Earlier follow-ups: recorded under the Phase 12 exit gate in
   the evidence file (listing performance task, CloudWatch alarm deploy, IAM, Personal Request Schema
   decision, audit `organization_id`). Flyway head is V150 (created, not yet applied locally); V151
   through V160 remain unallocated.
@@ -845,6 +861,7 @@ reason summary.
 | 10    | Author, respondent, reviewer, and operations UX              | Phases 2-9                             | Complete    | All primary journeys are responsive, accessible, and documented (manual width check waived by the user on 2026-09-28).                                          |
 | 11    | Generic capability conformance and extension contracts       | Phases 2-10                            | Complete    | Eight neutral conformance scenarios pass.                                                                                                                        |
 | 12    | Compatibility, packaging, rollout, and final hardening       | Phases 1-11                            | Complete    | Migration, entitlement, quotas, documentation, and release gates pass.                                                                                           |
+| 13    | Exchanges started from Information Request Blueprints        | Phases 2, 3, 10; GA-002                | Not started | Blueprint start creates the pinned draft request atomically, and the document rule no longer blocks it.                                                          |
 
 ### Progress rules
 
@@ -4168,6 +4185,169 @@ that unchanged build does not authorize new industry-specific identifiers or an 
 - All automated suites, required manual checks, help documentation, and eight neutral conformance
   scenarios pass.
 
+## Phase 13: Exchanges Started from Information Request Blueprints
+
+### Goal
+
+Starting an Exchange from a Blueprint that pins an Information Request Template Version must
+produce that Information Request, and must not demand Exchange documents that the request itself
+collects. This phase reopens the program. It was added on 2026-09-30 after a code investigation
+found two user-visible defects that no earlier task covered.
+
+### Findings that reopened the program (verified 2026-09-30 against commit `23ed5d04`)
+
+1. The "at least one document" rule applies to every Exchange.
+   - Web app: `ExchangeInitiation.tsx:568-573` refuses when `documents.length === 0`. The message
+     says "when requesting documents", but the check reads neither the start mode nor the selected
+     Blueprint.
+   - Server: `ExchangeInitiationService.validateExchangeFields` throws "Session documents cannot be
+     empty" (`ExchangeInitiationService.kt:757-760`, reached from `:133`), with no exception.
+   - Blueprints may be saved with no document slots (`BlueprintDtos.kt:123`). A locked Organization
+     or Platform Blueprint (`ExchangeInitiation.tsx:292`) hides Add Document
+     (`ExchangeInitiationDocumentsTab.tsx:80`). A locked Blueprint whose Information Request collects
+     the documents therefore cannot be started at all.
+2. Starting an Exchange from such a Blueprint never creates the Information Request, so the
+   Exchange's Information Requests tab is empty.
+   - `handleBlueprintSelect` (`ExchangeInitiation.tsx:262-339`) copies settings, documents,
+     participants, and the Schema, but never reads `blueprint.id` or
+     `informationRequestTemplateVersionId`.
+   - Neither `ExchangeInitiationRequest` (`models.tsx:172-195`) nor `ExchangeInitiationDto`
+     (`RequestsResponses.kt:320-343`) carries a Blueprint id, and `ExchangeInitiationService` has no
+     Information Request dependency.
+   - The only creator from a Blueprint is `InformationRequestBlueprintInstantiationService.createFromBlueprint`,
+     reached only through `POST /information-requests` from the manual New Information Request
+     dialog (`useCreateInformationRequest.ts:56`, `:91`).
+     `BlueprintDefinitionService.resolveInformationRequestTemplateVersionForInstantiation`
+     (`:106-116`) has only test callers.
+   - The Blueprint editor promises the opposite: "Exchanges from this Blueprint start an Information
+     Request from ..." (`BlueprintInformationRequestTab.tsx:38-39`).
+   - The plan never scheduled this: Phase 10 decision 2 defined only explicit creation through
+     `POST /information-requests`. This is a plan gap as well as a broken UI promise.
+3. Gap audit item GA-002 is a hard prerequisite. The placeholder table's `NOT NULL` foreign key to
+   `blueprint_document_default` has no `ON DELETE` action (V100), and every Blueprint save deletes
+   and re-inserts its document defaults (`BlueprintDefinitionService.kt:531-533`). Once one request
+   exists for a Blueprint with document defaults, every later save of that Blueprint fails with a
+   500. Automatic creation would make this happen after the Blueprint's first use.
+
+### Phase 13 design decisions (recommended, pending user confirmation)
+
+These are recommended defaults. Record the user's confirmation or change in the completion evidence
+before implementing the task that depends on each one.
+
+1. Automatic creation. When the selected Blueprint pins an instantiable Template Version, Exchange
+   initiation creates exactly one `DRAFT` Information Request pinned to that Version, in the same
+   transaction as the Exchange. This supersedes Phase 10 decision 2 for the Blueprint start path
+   only. The manual New Information Request dialog is unchanged.
+2. Atomic failure. If the request cannot be created (missing `INFORMATION_REQUESTS` entitlement,
+   exhausted capacity, retired or unavailable Version, owner mismatch), the whole Exchange start is
+   refused with the request path's stable reason code, and no Exchange row remains. A half-configured
+   Exchange that silently lacks its request is the defect this phase removes.
+3. Decision Maker. The initiator is assigned `DECISION_MAKER` on the server inside the same
+   transaction, mirroring what the manual dialog does in the UI (`useCreateInformationRequest.ts:64-81`).
+   This supersedes Phase 10 decision 4 for the Blueprint start path only, and never widens the
+   Exchange owner grant.
+4. Closure gate. The created request uses the same `gatesExchangeClosure` default as the manual
+   Blueprint path (`true`).
+5. Document rule. An Exchange may have zero documents only when its selected Blueprint pins an
+   instantiable Template Version. Every other Exchange keeps the current rule. The message becomes
+   "Add at least one document", and the server and web app apply the same condition.
+6. Blueprint document slots continue to become Exchange document slots, as today. Whether they also
+   become request placeholders follows the GA-002 decision in the gap audit.
+7. Owner mismatch. Until `WORKSPACE-SCOPED-PERSONAL-ITEMS-DESIGN.md` is settled, a Personal
+   Blueprint whose pinned Template is owned by someone other than the Exchange owner is refused
+   before any row is written, with a stable reason code and a message telling the user to choose an
+   Organization Blueprint or switch workspace. The owner-equality invariant (V96 and the
+   materializer) is not relaxed.
+8. Blueprint scope. Only the start path changes. Re-pointing a Blueprint still affects only later
+   instantiations (Phase 12 decision 4).
+
+### Tasks
+
+- [ ] `P13-T1` Close GA-002 as a prerequisite. In a new forward migration allocated from the
+  unallocated range immediately before creating it, drop `information_request_document_placeholder_default_fkey`
+  and `source_blueprint_document_default_id`, since the placeholder is already a full snapshot.
+  Remove the field from `InformationRequestDocumentPlaceholder` and its assignment in
+  `InformationRequestBlueprintInstantiationService.materializeDocumentPlaceholders`. Test first: a
+  PostgreSQL test that instantiates a request from a Blueprint with document defaults, then updates
+  the Blueprint's documents through `BlueprintDefinitionService.updateBlueprint`, and asserts that
+  the update succeeds and the placeholder is unchanged.
+- [ ] `P13-T2` Carry the selected Blueprint into Exchange initiation.
+  - Add `blueprintDefinitionId` to `ExchangeInitiationDto` and to the web-app
+    `ExchangeInitiationRequest`.
+  - Keep the selected Blueprint id and its `informationRequestTemplateVersionId` in a small new hook
+    under `exchange-initiation/hooks/` (`ExchangeInitiation.tsx` is already about 1,200 lines). Set
+    it in `handleBlueprintSelect`, clear it in `resetInitiationForm`, and send the id.
+  - The server resolves the Version only through
+    `BlueprintDefinitionService.resolveInformationRequestTemplateVersionForInstantiation`, which
+    already checks read access and retirement. It never trusts a Version id sent by the client.
+- [ ] `P13-T3` Apply the document rule from decision 5 in `ExchangeInitiationService.validateExchangeFields`
+  and in `ExchangeInitiation.tsx`, with the corrected message. The locked-Blueprint dead end must be
+  gone. Tests first: server refusal for no Blueprint and for a Blueprint without a Version, and
+  acceptance for a Blueprint with an instantiable Version. Vitest for the same three cases, plus a
+  locked Blueprint with no document slots that can be started.
+- [ ] `P13-T4` Create the draft request at Exchange start.
+  - Add an `@ApplicationScoped` collaborator, for example `ExchangeBlueprintInformationRequestStarter`
+    in `service/exchange`, that calls Information Request services only (never their
+    repositories).
+  - Call it from `initiateExchange` after the owner Share (`:259`), Field defaults (`:264`), and
+    recipient binding, and before the `exchange.draft_submitted` Workflow trigger (`:276`), so
+    Workflows can see the request.
+  - Call `entityManager.flush()` first, because `findByIdForUpdate` refreshes from the database.
+  - Call `createFromBlueprint` with the idempotency key `exchange-initiation|<exchangeId>`, then
+    assign the initiator as `DECISION_MAKER` through `InformationRequestPartyService.assign` with the
+    request's current parties ETag.
+  - Run the owner pre-flight from decision 7 before the Exchange row is written.
+  - Audit, transition history, and domain events come from the existing creation and party paths.
+    Do not duplicate them.
+  - Tests first, as a PostgreSQL test modeled on `InformationRequestBlueprintVersionPinningTest`:
+    - An Organization Blueprint with a Version and no documents creates the Exchange and exactly one
+      `DRAFT` request pinned to that Version, with the initiator as `DECISION_MAKER`, Field defaults
+      applied, and the request listed for the owner by `InformationRequestExchangeSummaryService`.
+    - No Blueprint, or a Blueprint without a Version, creates no request.
+    - A retired Version, a missing entitlement, exhausted capacity, and a Personal Blueprint owner
+      mismatch each refuse the start and leave no Exchange and no request row.
+    - The Blueprint stays editable after the start (covers `P13-T1`).
+- [ ] `P13-T5` Map the new refusals in `ExchangeResource.initiateExchange`.
+  - `InformationRequestTemplateVersionUnavailableException` becomes 409 with its code; today it is
+    an `IllegalArgumentException` and would become 400.
+  - `InformationRequestLifecycleException`, `InformationRequestCapabilityNotInstalledException`, and
+    the owner-mismatch refusal become 409 with their codes instead of 500.
+  - `SubscriptionDenialException` keeps its existing 403 mapping.
+  - Each branch keeps the repository's `return try { } catch { }` structure with a unique log
+    message. Add a resource contract test for the mapping.
+- [ ] `P13-T6` Web-app follow-through. Each new component gets its own folder with a co-located
+  `*Styles.tsx` file, ids on every element, circular buttons, and a responsive layout.
+  - The documents tab shows a short note when the Blueprint's Information Request collects the
+    documents, stating that Exchange documents are optional.
+  - The success summary names the created request and links to its management workspace.
+  - The Blueprint picker marks Blueprints that start an Information Request.
+  - Refusals from `P13-T5` show their messages.
+  - `BlueprintInformationRequestTab.tsx` copy matches the implemented behavior.
+- [ ] `P13-T7` Help documentation.
+  - `usingBlueprintsArticle.tsx` "What gets pre-filled": the draft request, the Decision Maker, and
+    optional documents.
+  - `informationRequestManagingArticle.tsx`: automatic creation from a Blueprint versus manual
+    creation.
+  - `managingBlueprintsArticle.tsx`: five editor tabs and an Information Request tab section
+    (GA-092).
+  - Keep article files under 150 lines and run `npx tsc --noEmit` in `web-app`.
+- [ ] `P13-T8` Phase gate: run the full backend suite, the full web-app suite, `npx tsc --noEmit`,
+  `npm run typecheck:app` (no new Information Request diagnostics), and eslint on changed paths.
+  Record every command and result in the completion evidence, and audit the changed artifacts for
+  industry-neutral naming.
+
+### Exit criteria
+
+- An Exchange started from a Blueprint that pins an instantiable Template Version has exactly one
+  draft Information Request pinned to that Version, visible on its Information Requests tab to the
+  owner, with the initiator as Decision Maker.
+- Such an Exchange starts with zero Exchange documents, including from a locked Blueprint. Every
+  other Exchange still requires at least one document, and the server and web app agree.
+- Any refusal leaves neither an Exchange nor a request, and returns a stable reason code the UI
+  shows.
+- Blueprints remain editable after any number of instantiations.
+- The Blueprint editor, help articles, and product behavior say the same thing.
+
 ## Cross-Phase Test Matrix
 
 Every applicable row must be expanded with concrete tests before its owning task is implemented.
@@ -4714,7 +4894,8 @@ make sure this result is present in the evidence file, then replace it here with
   - Frontend 786 tests green. `tsc --noEmit` and `build` pass. `typecheck:app` 0 Information Request.
   - Lint (109) and `buildWithTs` (345, none added) match their baselines.
   - Website lint and build pass. Neutrality scan clean. No commit or push.
-- Exact next task: none; the program is complete.
+- Exact next task at the time: none. Superseded on 2026-09-30: the program was reopened. See
+  `## Status` and `## Phase 13: Exchanges Started from Information Request Blueprints`.
 
 ## Continuation Prompt
 
@@ -4727,14 +4908,17 @@ Use this instruction in a new implementation session:
 > `plans/DOCUMENT-DRIVEN-INFORMATION-REQUESTS-COMPLETION-EVIDENCE.md` for prior completion results,
 > evidence, and older decisions. Also read the 2026-09-13 recheck at
 > `plans/DOCUMENT-DRIVEN-INFORMATION-REQUESTS-PHASES-1-5-RECHECK.md`. Inspect the working tree and
-> preserve unrelated changes. `P5-R01` through `P5-R30`, `P5-R-GATE`, and Phases 6 through 11 are complete.
+> preserve unrelated changes. The program was reopened on 2026-09-30: read
+> `plans/DOCUMENT-DRIVEN-INFORMATION-REQUESTS-GAP-AUDIT.md` and
+> `## Phase 13: Exchanges Started from Information Request Blueprints`, and treat earlier
+> checkmarks as claims to verify against the code, not as proof. Start with the first unchecked
+> Phase 13 task once the user has confirmed its design decisions.
 > On 2026-09-25 the user made malware scanning optional and moved it to
 > `plans/INFORMATION-REQUEST-EVIDENCE-MALWARE-SCANNING-PLAN.md`; evidence collection works in
 > production without a scanner, and no file is ever described as scanned or safe without a scan.
 > The platform has no production users and is in active development: read
 > `## Development-Stage Constraint` and `## Development-Stage Compatibility Removal`, write no
-> backwards-compatibility code, and continue with the next incomplete task, which is P12-T1, when
-> the user asks for Phase 12; read the Phase 12 handoff in `## Status` first. Do not assume permission for
+> backwards-compatibility code. Do not assume permission for
 > a new AWS service or paid resource type. For implementation,
 > follow TDD: add a focused failing test, confirm the intended
 > failure, implement the smallest complete change, run focused and required regression tests, update

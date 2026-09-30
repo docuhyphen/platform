@@ -35,6 +35,11 @@ export const informationRequestManagingArticle = (
                 known subject or a new one described by its kind and an identifying reference.
             </li>
             <li>
+                On an Exchange that requires sign-in, a person added by email uses their account to
+                access the request. The email must already belong to an account or an invited Exchange
+                recipient. Other Exchanges can use an access link for an email-only participant.
+            </li>
+            <li>
                 A request needs a Decision Maker before it is issued; <b>Make me the Decision Maker</b>
                 names you.
             </li>
@@ -55,7 +60,8 @@ export const informationRequestManagingArticle = (
 
         <h3 id={"information-request-managing-links-heading"}>Access links</h3>
         <p id={"information-request-managing-links-help"}>
-            A party who responds without signing in uses an access link. After <b>Create link</b>, the
+            An email-only participant who responds without signing in uses an access link. Signed-in
+            users and groups do not need one. After <b>Create link</b>, the
             link is shown once, with <b>Copy link</b>; the platform does not send it, so share it
             yourself. It cannot be shown again: <b>Resend link</b> creates a new link and the earlier one stops
             working, and <b>Revoke link</b> ends it. See Access links and respondent sessions.

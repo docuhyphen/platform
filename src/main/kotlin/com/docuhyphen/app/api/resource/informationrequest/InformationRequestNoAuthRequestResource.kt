@@ -104,7 +104,7 @@ class InformationRequestNoAuthRequestResource @Inject constructor(
                 return notFound()
             }
             val parties = partyQueryService.listForRequest(requestId, noAuthAccess.access)
-            Response.ok(parties).build()
+            Response.ok(parties.toTypedArray()).build()
         }
         catch (exception: Exception)
         {

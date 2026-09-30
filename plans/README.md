@@ -18,6 +18,7 @@ phase and task numbers. Shipped code has to stand on its own.
 | [WEBHOOK-INTEGRATIONS-FEATURE.md](WEBHOOK-INTEGRATIONS-FEATURE.md) | Integrations settings, registered applications, outbound webhooks, durable delivery | Implementation design, awaiting review. |
 | [EXTERNAL-APPLICATION-INTEGRATION-BUSINESS-SPECIFICATION.md](EXTERNAL-APPLICATION-INTEGRATION-BUSINESS-SPECIFICATION.md) | Business requirements for external application integration | Requirements only. Architecture and sequencing deferred to a later plan. |
 | [INFRA-SECURITY-ANALYSIS.md](INFRA-SECURITY-ANALYSIS.md) | Static security review of `infra/` | 4 high-risk and 7 medium-risk findings, with a recommended remediation order. Nothing applied yet. |
+| [AUTH-SIGNUP-SIGNIN-SECURITY-REMEDIATION.md](AUTH-SIGNUP-SIGNIN-SECURITY-REMEDIATION.md) | Signup and sign-in security findings and remediation | Proposed, not implemented. |
 | [OBJECT-STORAGE-SECURITY-GAPS.md](OBJECT-STORAGE-SECURITY-GAPS.md) | Dead document-encryption path; absent tenant partitioning in object storage | Identified, not scheduled. Open questions must be answered before design starts. |
 | [DOCUHYPHEN-VALUE-SECTION-IMPLEMENTATION-PLAN.md](DOCUHYPHEN-VALUE-SECTION-IMPLEMENTATION-PLAN.md) | Marketing site value section | Paused for later continuation. No website source files changed. |
 

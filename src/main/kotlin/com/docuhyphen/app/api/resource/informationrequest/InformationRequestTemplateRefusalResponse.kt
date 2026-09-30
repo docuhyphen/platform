@@ -5,7 +5,7 @@ import com.docuhyphen.app.api.service.informationrequest.InformationRequestTempl
 import jakarta.ws.rs.core.Response
 import jakarta.ws.rs.core.Response.Status.BAD_REQUEST
 
-internal object InformationRequestTemplateRefusalResponse
+object InformationRequestTemplateRefusalResponse
 {
     const val TEMPLATE_INVALID = "INFORMATION_REQUEST_TEMPLATE_INVALID"
 

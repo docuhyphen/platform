@@ -1,6 +1,5 @@
 import React, {useEffect, useState} from "react";
 import {
-    Button,
     Divider,
     MessageBar,
     MessageBarBody, SelectTabData, SelectTabEvent,
@@ -26,7 +25,7 @@ import EmailManagementDialog, {EmailManagementMode} from "../../components/email
 import {useOrganizationTabStyles} from "./OrganizationTabStyles.tsx";
 import OrganizationDetailsEditDialog from "./details-edit-dialog/OrganizationDetailsEditDialog.tsx";
 import {AxiosError} from "axios";
-import OrganizationOnboardingDialog from "./organization-onboarding-dialog/OrganizationOnboardingDialog.tsx";
+import OrganizationOnboardingForm from "../../onboarding/organization-onboarding/OrganizationOnboardingForm.tsx";
 import {SecuritySessionPolicySection} from "./SecuritySessionPolicySection.tsx";
 import ProfileTab from "../profile-tab/ProfileTab.tsx";
 import LinkedAccountsTab from "../linked-accounts-tab/LinkedAccountsTab.tsx";
@@ -66,7 +65,6 @@ const OrganizationTab = () =>
     const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
     const [phoneManagementMode, setPhoneManagementMode] = useState(PhoneManagementMode.ADD);
     const [emailManagementMode, setEmailManagementMode] = useState(EmailManagementMode.ADD);
-    const [isOnboardingDialogOpen, setOnboardingDialogOpen] = useState(false);
     const [selectedValue, setSelectedValue] = useState<TabValue>(tabIds.organization);
 
     const onTabSelect = (_event: SelectTabEvent, data: SelectTabData) =>
@@ -294,24 +292,11 @@ const OrganizationTab = () =>
                     align={"center"}>
                     You are not part of an organization. You can onboard your organization to use the full potential of the platform.
                 </Text>
-                <div id={"organization-empty-state-action"}>
-                    <Button
-                        id={"button-org-register"}
-                        shape={"circular"}
-                        appearance={"primary"}
-                        onClick={() => setOnboardingDialogOpen(true)}
-                        icon={<></>}
-                    >
-                        Register your organization
-                    </Button>
+                <div id={"organization-empty-state-action"}
+                     className={styles.registrationForm}>
+                    <OrganizationOnboardingForm onOrganizationRegistered={() => getOrganization()}/>
                 </div>
             </section>
-            <OrganizationOnboardingDialog isOpen={isOnboardingDialogOpen}
-                                          onDismiss={() => {
-                                              setOnboardingDialogOpen(false);
-                                              getOrganization();
-                                          }}
-                                          onRegistered={() => getOrganization()}/>
         </>
         }
     </>

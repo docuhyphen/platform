@@ -27,7 +27,7 @@ const PartyHolderFields = ({form, groups, disabled, onChange}: Props) => (
         {form.holder === "email" && (
             <TextField id={"information-request-add-party-email"}
                        label={"Email address"}
-                       hint={"Someone without an account answers through an access link you send them."}
+                       hint={"Use the email address of the person who will answer this request."}
                        value={form.email}
                        disabled={disabled}
                        maxLength={320}

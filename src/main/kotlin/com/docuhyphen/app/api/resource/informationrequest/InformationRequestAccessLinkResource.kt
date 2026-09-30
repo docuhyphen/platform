@@ -42,7 +42,8 @@ class InformationRequestAccessLinkResource @Inject constructor(
             val requestId = parseUuid(id) ?: return badRequest("Invalid information request id")
             Response.ok(
                 bootstrapShareLinkService.links(requestId, accessContextFactory.currentAuthenticated())
-                    .map { InformationRequestAccessLinkDtoMapper.toDto(it.shareLink, it.partyId) },
+                    .map { InformationRequestAccessLinkDtoMapper.toDto(it.shareLink, it.partyId) }
+                    .toTypedArray(),
             ).build()
         }
         catch (exception: Exception)

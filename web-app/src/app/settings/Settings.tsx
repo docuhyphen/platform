@@ -70,6 +70,8 @@ const Settings = () =>
             canUseBusinessFields={planAvailability.canUseBusinessFields}
             canUseWorkflows={planAvailability.canUseWorkflows}
             canUseVariables={planAvailability.canUseVariables}
+            canUseInformationRequests={planAvailability.canUseInformationRequests}
+            registersOrganization={planAvailability.registersOrganization}
             onTabSelect={onTabSelect}
         />
     );

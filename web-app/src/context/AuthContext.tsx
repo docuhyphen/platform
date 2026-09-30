@@ -12,6 +12,7 @@ import SessionInactivityGuard from "../app/components/session-expiry-warning/Ses
 const AUTH_EVENT_STORAGE_KEY = 'docuhyphen:auth:event';
 const AUTH_USER_STORAGE_KEY = 'docuhyphen:auth:user-id';
 const AUTH_ACTIVE_ORG_STORAGE_KEY = 'docuhyphen:auth:active-org-id';
+const AUTH_PERSONAL_MODE_STORAGE_KEY = 'docuhyphen:auth:personal-mode';
 
 function readSessionEndReason(error: unknown): string | undefined
 {
@@ -33,8 +34,12 @@ export type OrgSelectionResolution =
     | { kind: "auto"; organizationId: string }
     | { kind: "picker"; organizations: SessionOrganizationOptionDto[] };
 
-export function resolveOrgSelection(session: CurrentSessionDto): OrgSelectionResolution
+export function resolveOrgSelection(session: CurrentSessionDto, personalMode = false): OrgSelectionResolution
 {
+    if (personalMode)
+    {
+        return {kind: "none"};
+    }
     const orgs = session.availableOrganizations ?? [];
     if (orgs.length === 0)
     {
@@ -118,7 +123,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({children}) =>
     // active org is set the resolution short-circuits to `none`, which prevents loops.
     const applyOrgResolution = useCallback((session: CurrentSessionDto) =>
     {
-        const resolution = resolveOrgSelection(session);
+        const resolution = resolveOrgSelection(session, localStorage.getItem(AUTH_PERSONAL_MODE_STORAGE_KEY) === 'true');
         if (resolution.kind === "auto")
         {
             setOrgPickerOptions(null);
@@ -201,6 +206,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({children}) =>
         setAppUserPersonOrganization(null);
         setCurrentSession(null);
         localStorage.removeItem(AUTH_ACTIVE_ORG_STORAGE_KEY);
+        localStorage.removeItem(AUTH_PERSONAL_MODE_STORAGE_KEY);
         setApiClientActiveOrganizationId(null);
         navigate(path);
     }, [setAccessToken, setIdToken, navigate]);
@@ -276,6 +282,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({children}) =>
             setAppUserPersonOrganization(null);
             setCurrentSession(null);
             localStorage.removeItem(AUTH_ACTIVE_ORG_STORAGE_KEY);
+            localStorage.removeItem(AUTH_PERSONAL_MODE_STORAGE_KEY);
             setApiClientActiveOrganizationId(null);
             const path = reason
                 ? `/app-session-expired?reason=${encodeURIComponent(reason)}`
@@ -594,10 +601,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({children}) =>
         if (orgId)
         {
             localStorage.setItem(AUTH_ACTIVE_ORG_STORAGE_KEY, orgId);
+            localStorage.removeItem(AUTH_PERSONAL_MODE_STORAGE_KEY);
         }
         else
         {
             localStorage.removeItem(AUTH_ACTIVE_ORG_STORAGE_KEY);
+            localStorage.setItem(AUTH_PERSONAL_MODE_STORAGE_KEY, 'true');
         }
         setApiClientActiveOrganizationId(orgId);
         setCurrentSession(null);

@@ -7,6 +7,7 @@ import {
     DialogSurface,
     DialogTitle,
     Menu,
+    MenuDivider,
     MenuItem,
     MenuList,
     MenuPopover,
@@ -49,10 +50,15 @@ interface AccountMenuProps
 
 const AccountMenu = ({onToggleHelpSidebar}: AccountMenuProps) =>
 {
-    const {appUser} = useAuth();
+    const {appUser, currentSession, switchOrganization} = useAuth();
     const navigate = useNavigate();
     const styles = useAccountMenuStyles();
     const [isSignOutDialogOpen, setIsSignOutDialogOpen] = useState(false);
+    const selectWorkspace = async (organizationId: string | null) =>
+    {
+        await switchOrganization(organizationId);
+        navigate('/exchanges?tab=inbox');
+    };
 
     return (
         <div
@@ -76,6 +82,20 @@ const AccountMenu = ({onToggleHelpSidebar}: AccountMenuProps) =>
                 </MenuTrigger>
                 <MenuPopover>
                     <MenuList id={"account-menu-list"}>
+                        <MenuItem id={"account-menu-personal-workspace"}
+                                  disabled={!currentSession || currentSession.activeOrganizationId === null}
+                                  onClick={() => void selectWorkspace(null)}>
+                            Personal workspace
+                        </MenuItem>
+                        {currentSession?.availableOrganizations?.map(organization => (
+                            <MenuItem id={`account-menu-organization-${organization.organizationId}`}
+                                      key={organization.organizationId}
+                                      disabled={currentSession.activeOrganizationId === organization.organizationId}
+                                      onClick={() => void selectWorkspace(organization.organizationId)}>
+                                {organization.name}
+                            </MenuItem>
+                        ))}
+                        <MenuDivider/>
                         <MenuItem
                             id={"account-menu-settings"}
                             onClick={() => navigate("/settings")}

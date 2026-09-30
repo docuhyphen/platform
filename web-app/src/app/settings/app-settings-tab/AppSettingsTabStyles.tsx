@@ -9,7 +9,7 @@ export const useAppSettingsTabStyles = makeStyles({
         minWidth: 0,
     },
     mainDivider: {
-        width: "100%",
+        width: "300px",
     },
     notificationList: {
         display: "flex",

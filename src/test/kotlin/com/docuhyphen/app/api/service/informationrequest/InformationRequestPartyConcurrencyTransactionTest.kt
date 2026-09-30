@@ -34,6 +34,7 @@ import com.docuhyphen.app.api.service.exchange.ExchangeRecipientSelectionResolve
 import com.docuhyphen.app.api.service.exchange.ExchangeRecipientService
 import com.docuhyphen.app.api.service.exchange.ExternalParticipantService
 import com.docuhyphen.app.api.service.exchange.ShareService
+import com.docuhyphen.app.api.service.user.AppUserService
 import com.docuhyphen.app.api.service.fields.SchemaAssignmentService
 import io.quarkus.narayana.jta.QuarkusTransaction
 import io.quarkus.test.common.QuarkusTestResource
@@ -197,6 +198,7 @@ class InformationRequestPartyConcurrencyTransactionTest
             partyRepository,
             mock<SubjectIdentityRefRepository>(),
             mock<ExternalParticipantService>(),
+            mock<AppUserService>(),
             mock<ExchangeRecipientService>(),
             mock<ExchangeRecipientSelectionResolver>(),
             shareService,

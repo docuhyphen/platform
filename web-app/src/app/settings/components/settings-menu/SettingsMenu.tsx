@@ -16,6 +16,8 @@ export interface SettingsMenuProps
     canUseBusinessFields: boolean;
     canUseWorkflows: boolean;
     canUseVariables: boolean;
+    canUseInformationRequests: boolean;
+    registersOrganization: boolean;
     onTabSelect: (event: SelectTabEvent, data: SelectTabData) => void;
 }
 
@@ -32,6 +34,8 @@ const SettingsMenu = ({
                           canUseBusinessFields,
                           canUseWorkflows,
                           canUseVariables,
+                          canUseInformationRequests,
+                          registersOrganization,
                           onTabSelect,
                       }: SettingsMenuProps) =>
 {
@@ -50,6 +54,8 @@ const SettingsMenu = ({
                 canUseBusinessFields={canUseBusinessFields}
                 canUseWorkflows={canUseWorkflows}
                 canUseVariables={canUseVariables}
+                canUseInformationRequests={canUseInformationRequests}
+                registersOrganization={registersOrganization}
                 onTabSelect={onTabSelect}
             />
         </div>

@@ -35,7 +35,7 @@ class InformationRequestPartyResource @Inject constructor(
         {
             val requestId = parseUuid(id) ?: return badRequest("Invalid information request id")
             val listing = partyQueryService.listForManagement(requestId, accessContextFactory.currentAuthenticated())
-            Response.ok(listing.parties).header("ETag", listing.partiesETag).build()
+            Response.ok(listing.parties.toTypedArray()).header("ETag", listing.partiesETag).build()
         }
         catch (exception: Exception)
         {
@@ -65,12 +65,13 @@ class InformationRequestPartyResource @Inject constructor(
             val precondition = CommandPreconditionHeader.required(ifMatch)
             val commandKey = InformationRequestCommandHttp.idempotencyKey(idempotencyKey)
             val access = accessContextFactory.currentAuthenticated()
-            val result = if (request.email != null)
+            val email = request.email
+            val result = if (email != null)
                 partyService.assignExternalParticipant(
                     AssignExternalParticipantInformationRequestPartyCommand(
                         requestId = requestId,
                         roleKey = request.roleKey,
-                        email = request.email,
+                        email = email,
                         displayName = request.displayName,
                         access = access,
                         precondition = precondition,

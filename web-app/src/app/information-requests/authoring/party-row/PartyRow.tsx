@@ -31,6 +31,13 @@ const linkStatus = (link?: InformationRequestAccessLinkDto): string =>
     return link.rotationCount > 0 ? `${active}, resent ${link.rotationCount} times` : active;
 };
 
+const accessStatus = (party: InformationRequestPartyDto, link?: InformationRequestAccessLinkDto): string =>
+{
+    if (party.principalKind === "USER") return "Signs in";
+    if (party.principalKind === "PRINCIPAL_GROUP") return "Group access";
+    return linkStatus(link);
+};
+
 const PartyRow = ({party, links, busy, editable, onIssueLink, onResendLink, onRevokeLink, onRemove}: Props) =>
 {
     const styles = usePartyRowStyles();
@@ -52,7 +59,7 @@ const PartyRow = ({party, links, busy, editable, onIssueLink, onResendLink, onRe
                 <Text id={`${idPrefix}-meta`}
                       size={200}
                       className={styles.meta}>
-                    {acting ? `${shareRoleLabels[party.roleKey]}. ${linkStatus(activeLink)}` : shareRoleLabels[party.roleKey]}
+                    {acting ? `${shareRoleLabels[party.roleKey]}. ${accessStatus(party, activeLink)}` : shareRoleLabels[party.roleKey]}
                 </Text>
                 {party.trustSuspended && (
                     <>
@@ -74,7 +81,7 @@ const PartyRow = ({party, links, busy, editable, onIssueLink, onResendLink, onRe
             {editable && (
                 <div id={`${idPrefix}-actions`}
                      className={styles.actions}>
-                    {acting && !activeLink && (
+                    {acting && party.principalKind === "PARTICIPANT" && !activeLink && (
                         <Button id={`${idPrefix}-link-create`}
                                 size={"small"}
                                 shape={"circular"}
@@ -84,7 +91,7 @@ const PartyRow = ({party, links, busy, editable, onIssueLink, onResendLink, onRe
                             Create link
                         </Button>
                     )}
-                    {acting && activeLink && (
+                    {acting && party.principalKind === "PARTICIPANT" && activeLink && (
                         <Button id={`${idPrefix}-link-resend`}
                                 size={"small"}
                                 shape={"circular"}
@@ -94,7 +101,7 @@ const PartyRow = ({party, links, busy, editable, onIssueLink, onResendLink, onRe
                             Resend link
                         </Button>
                     )}
-                    {acting && activeLink && (
+                    {acting && party.principalKind === "PARTICIPANT" && activeLink && (
                         <Button id={`${idPrefix}-link-revoke`}
                                 size={"small"}
                                 shape={"circular"}

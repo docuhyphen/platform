@@ -13,6 +13,7 @@ import com.docuhyphen.app.api.resource.model.TrustedPersonRecipientSelectionRequ
 import com.docuhyphen.app.api.service.auth.authz.*
 import com.docuhyphen.app.api.service.command.*
 import com.docuhyphen.app.api.service.exchange.*
+import com.docuhyphen.app.api.service.user.AppUserService
 import io.quarkus.security.ForbiddenException
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
@@ -82,6 +83,7 @@ class InformationRequestPartyService @Inject constructor(
     private val partyRepository: InformationRequestPartyRepository,
     private val subjectIdentityRefRepository: SubjectIdentityRefRepository,
     private val externalParticipantService: ExternalParticipantService,
+    private val appUserService: AppUserService,
     private val exchangeRecipientService: ExchangeRecipientService,
     private val exchangeRecipientSelectionResolver: ExchangeRecipientSelectionResolver,
     private val shareService: ShareService,
@@ -366,12 +368,21 @@ class InformationRequestPartyService @Inject constructor(
             "An external participant cannot be assigned as the subject party"
         }
 
-        val participant = externalParticipantService.findOrCreate(
-            owner = participantOwnerFor(request),
-            email = command.email,
-            displayName = command.displayName,
-        )
-        val principal = PrincipalRef.participant(participant.id)
+        val principal = if (exchange.requireRecipientSignIn)
+        {
+            val user = appUserService.findByEmail(command.email.trim())
+                ?: throw IllegalArgumentException("A sign-in-required Exchange needs a user account for this email")
+            PrincipalRef.user(user.id)
+        }
+        else
+        {
+            val participant = externalParticipantService.findOrCreate(
+                owner = participantOwnerFor(request),
+                email = command.email,
+                displayName = command.displayName,
+            )
+            PrincipalRef.participant(participant.id)
+        }
 
         val now = Timestamp.from(Instant.now())
         val party = InformationRequestParty().apply {
