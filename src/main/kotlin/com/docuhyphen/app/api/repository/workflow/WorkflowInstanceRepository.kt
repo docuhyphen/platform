@@ -1,12 +1,11 @@
 package com.docuhyphen.app.api.repository.workflow
 
-import com.docuhyphen.app.api.repository.BaseRepository
-
 import com.docuhyphen.app.api.model.entity.WorkflowInstance
 import com.docuhyphen.app.api.model.entity.WorkflowInstanceStatus
 import com.docuhyphen.app.api.model.entity.WorkflowStepStatus
+import com.docuhyphen.app.api.repository.BaseRepository
 import jakarta.enterprise.context.ApplicationScoped
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class WorkflowInstanceRepository :
@@ -152,8 +151,14 @@ class WorkflowInstanceRepository :
 
         val seen = mutableSetOf<UUID>()
         val merged = mutableListOf<WorkflowInstance>()
-        for (i in ownOrg) { if (seen.add(i.id)) merged.add(i) }
-        for (i in crossOrg) { if (seen.add(i.id)) merged.add(i) }
+        for (i in ownOrg)
+        {
+            if (seen.add(i.id)) merged.add(i)
+        }
+        for (i in crossOrg)
+        {
+            if (seen.add(i.id)) merged.add(i)
+        }
         return merged
     }
 

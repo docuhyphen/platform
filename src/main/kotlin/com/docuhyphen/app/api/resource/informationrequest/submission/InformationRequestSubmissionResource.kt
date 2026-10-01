@@ -53,7 +53,13 @@ class InformationRequestSubmissionResource @Inject constructor(
     {
         return try
         {
-            handler.submit(requestId(id), request?.stageKey, accessContextFactory.currentAuthenticated(), ifMatch, idempotencyKey)
+            handler.submit(
+                requestId(id),
+                request?.stageKey,
+                accessContextFactory.currentAuthenticated(),
+                ifMatch,
+                idempotencyKey
+            )
         }
         catch (exception: Exception)
         {

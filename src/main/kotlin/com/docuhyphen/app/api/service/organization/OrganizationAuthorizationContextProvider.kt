@@ -7,7 +7,7 @@ import com.docuhyphen.app.api.service.auth.authz.ResourceAuthorizationContextPro
 import com.docuhyphen.app.api.service.auth.authz.ResourceKind
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class OrganizationAuthorizationContextProvider : ResourceAuthorizationContextProvider

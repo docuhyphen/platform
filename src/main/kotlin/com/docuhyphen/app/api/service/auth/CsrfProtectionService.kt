@@ -5,7 +5,7 @@ import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
 import java.security.MessageDigest
 import java.security.SecureRandom
-import java.util.Base64
+import java.util.*
 
 @RequestScoped
 class CsrfProtectionService @Inject constructor(

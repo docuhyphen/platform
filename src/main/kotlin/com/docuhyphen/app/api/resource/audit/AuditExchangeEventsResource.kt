@@ -6,25 +6,13 @@ import com.docuhyphen.app.api.service.audit.AuditProjectionAccessDeniedException
 import com.docuhyphen.app.api.service.audit.AuditProjectionCursor
 import com.docuhyphen.app.api.service.audit.AuditProjectionNotFoundException
 import com.docuhyphen.app.api.service.audit.AuditSearchProjectionService
-import com.docuhyphen.app.api.service.auth.authz.Action
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.Decision
-import com.docuhyphen.app.api.service.auth.authz.OwnerContext
-import com.docuhyphen.app.api.service.auth.authz.ResourceAuthorizationContextRegistry
-import com.docuhyphen.app.api.service.auth.authz.ResourceRef
+import com.docuhyphen.app.api.service.auth.authz.*
 import jakarta.inject.Inject
-import jakarta.ws.rs.Consumes
-import jakarta.ws.rs.DefaultValue
-import jakarta.ws.rs.GET
-import jakarta.ws.rs.Path
-import jakarta.ws.rs.PathParam
-import jakarta.ws.rs.Produces
-import jakarta.ws.rs.QueryParam
+import jakarta.ws.rs.*
 import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 /** Given its own class-level path; see AuditOrganizationEventsResource for why this class is not merged with others. */
 @Path("/exchanges/{exchangeId}/audit-events")
@@ -50,7 +38,8 @@ class AuditExchangeEventsResource @Inject constructor(
             ?: return Response.status(Response.Status.NOT_FOUND).entity(ResponseError("Exchange not found")).build()
         if (owner !is OwnerContext.Organization)
         {
-            return Response.status(Response.Status.FORBIDDEN).entity(ResponseError("Exchange audit is not available for this scope")).build()
+            return Response.status(Response.Status.FORBIDDEN)
+                .entity(ResponseError("Exchange audit is not available for this scope")).build()
         }
         return withAuthorizedOrgAudit(owner.organizationId.toString()) { actor, orgId ->
             val page = auditSearchProjectionService.listExchangeEvents(
@@ -79,7 +68,13 @@ class AuditExchangeEventsResource @Inject constructor(
         val actor = AuditSearchProjectionService.AuditAccessActor(principal, context, capabilities)
         if (decision is Decision.Deny)
         {
-            auditSearchProjectionService.recordDeniedAttempt(actor, orgId, "ORGANIZATION", orgId.toString(), decision.reasonCode)
+            auditSearchProjectionService.recordDeniedAttempt(
+                actor,
+                orgId,
+                "ORGANIZATION",
+                orgId.toString(),
+                decision.reasonCode
+            )
             return Response.status(Response.Status.FORBIDDEN).entity(ResponseError("Insufficient privileges")).build()
         }
         return runGuarded { block(actor, orgId) }

@@ -1,26 +1,14 @@
 package com.docuhyphen.app.api.resource.organization
 
 import com.docuhyphen.app.api.model.PlatformSubscriptionTrialDtoMapper
-import com.docuhyphen.app.api.resource.model.PlatformSubscriptionTrialExtensionRequest
-import com.docuhyphen.app.api.resource.model.PlatformSubscriptionTrialEndRequest
-import com.docuhyphen.app.api.resource.model.PlatformSubscriptionTrialConversionRequest
-import com.docuhyphen.app.api.resource.model.PlatformSubscriptionTrialStartRequest
-import com.docuhyphen.app.api.resource.model.ResponseError
+import com.docuhyphen.app.api.resource.model.*
 import com.docuhyphen.app.api.service.auth.AdminApprovalContext
 import com.docuhyphen.app.api.service.subscription.PlatformSubscriptionTrialService
 import com.docuhyphen.app.api.service.subscription.PlatformSubscriptionTrialTransitionService
 import io.quarkus.security.ForbiddenException
 import io.quarkus.security.UnauthorizedException
 import jakarta.inject.Inject
-import jakarta.ws.rs.Consumes
-import jakarta.ws.rs.DELETE
-import jakarta.ws.rs.HeaderParam
-import jakarta.ws.rs.PATCH
-import jakarta.ws.rs.POST
-import jakarta.ws.rs.Path
-import jakarta.ws.rs.PathParam
-import jakarta.ws.rs.Produces
-import jakarta.ws.rs.WebApplicationException
+import jakarta.ws.rs.*
 import jakarta.ws.rs.core.MediaType.APPLICATION_JSON
 import jakarta.ws.rs.core.Response
 import org.slf4j.LoggerFactory
@@ -141,10 +129,13 @@ class PlatformOrganizationSubscriptionTrialResource @Inject constructor(
         {
             is UnauthorizedException -> Response.status(Response.Status.UNAUTHORIZED)
                 .entity(ResponseError(exception.message)).build()
+
             is ForbiddenException -> Response.status(Response.Status.FORBIDDEN)
                 .entity(ResponseError(exception.message)).build()
+
             is IllegalArgumentException -> Response.status(Response.Status.BAD_REQUEST)
                 .entity(ResponseError(exception.message)).build()
+
             else -> Response.status(Response.Status.INTERNAL_SERVER_ERROR)
                 .entity(ResponseError("An unexpected error occurred")).build()
         }

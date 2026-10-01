@@ -1,13 +1,13 @@
 package com.docuhyphen.app.api.repository.identity
 
-import com.docuhyphen.app.api.repository.BaseRepository
-
 import com.docuhyphen.app.api.model.entity.OrganizationIdentityProviderConfig
+import com.docuhyphen.app.api.repository.BaseRepository
 import jakarta.enterprise.context.RequestScoped
-import java.util.UUID
+import java.util.*
 
 @RequestScoped
-class OrganizationIdentityProviderConfigRepository : BaseRepository<OrganizationIdentityProviderConfig>(OrganizationIdentityProviderConfig::class.java)
+class OrganizationIdentityProviderConfigRepository :
+    BaseRepository<OrganizationIdentityProviderConfig>(OrganizationIdentityProviderConfig::class.java)
 {
     fun findByOrganizationId(organizationId: UUID): List<OrganizationIdentityProviderConfig>
     {
@@ -29,7 +29,10 @@ class OrganizationIdentityProviderConfigRepository : BaseRepository<Organization
             .resultList
     }
 
-    fun findActiveByOrganizationIdAndProvider(organizationId: UUID, provider: String): OrganizationIdentityProviderConfig?
+    fun findActiveByOrganizationIdAndProvider(
+        organizationId: UUID,
+        provider: String
+    ): OrganizationIdentityProviderConfig?
     {
         return entityManager.createQuery(
             "SELECT c FROM OrganizationIdentityProviderConfig c WHERE c.organization.id = :organizationId AND c.isActive = true AND UPPER(c.provider) = :provider",

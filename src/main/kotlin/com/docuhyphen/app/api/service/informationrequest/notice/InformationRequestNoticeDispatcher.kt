@@ -1,13 +1,6 @@
 package com.docuhyphen.app.api.service.informationrequest.notice
 
-import com.docuhyphen.app.api.model.entity.InformationRequest
-import com.docuhyphen.app.api.model.entity.InformationRequestNoticeAttemptOutcome
-import com.docuhyphen.app.api.model.entity.InformationRequestNoticeChannel
-import com.docuhyphen.app.api.model.entity.InformationRequestNoticeDeliveryAttempt
-import com.docuhyphen.app.api.model.entity.InformationRequestNoticeEndpointState
-import com.docuhyphen.app.api.model.entity.InformationRequestNoticeIntent
-import com.docuhyphen.app.api.model.entity.InformationRequestNoticeSequenceAllocation
-import com.docuhyphen.app.api.model.entity.InformationRequestOutboundNotice
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
 import com.docuhyphen.app.api.repository.informationrequest.amendment.InformationRequestNoticeIntentRepository
@@ -34,7 +27,7 @@ import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestNoticeDispatcher @Inject constructor(
@@ -75,7 +68,8 @@ class InformationRequestNoticeDispatcher @Inject constructor(
                 recipientPrincipalId = party.principalId
                 channel = InformationRequestNoticeChannel.EMAIL
                 recipientEndpoint = endpoint
-                endpointState = if (endpoint != null) InformationRequestNoticeEndpointState.RESOLVED else InformationRequestNoticeEndpointState.MISSING
+                endpointState =
+                    if (endpoint != null) InformationRequestNoticeEndpointState.RESOLVED else InformationRequestNoticeEndpointState.MISSING
                 renderedSubject = rendered.subject
                 renderedBody = rendered.body
                 renderedContentHash = rendered.renderedContentHash
@@ -131,7 +125,8 @@ class InformationRequestNoticeDispatcher @Inject constructor(
         {
             exception.javaClass.simpleName.ifBlank { DELIVERY_ERROR }
         }
-        val outcome = if (failure == null) InformationRequestNoticeAttemptOutcome.DELIVERED else InformationRequestNoticeAttemptOutcome.FAILED
+        val outcome =
+            if (failure == null) InformationRequestNoticeAttemptOutcome.DELIVERED else InformationRequestNoticeAttemptOutcome.FAILED
         val attempt = record(notice, attempts.size + 1, outcome, failure, now)
         val request = requireNotNull(requestRepository.findById(notice.informationRequestId))
         audit(

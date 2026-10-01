@@ -41,11 +41,14 @@ object InformationRequestSupportingEvidenceLinkResolver
     {
         if (InformationRequestOccurrencePath.isRoot(occurrencePath)) return listOf(InformationRequestOccurrencePath.ROOT)
         val segments = occurrencePath.split(PATH_SEPARATOR)
-        return segments.indices.reversed().map { depth -> segments.subList(0, depth + 1).joinToString(PATH_SEPARATOR) } +
-            InformationRequestOccurrencePath.ROOT
+        return segments.indices.reversed()
+            .map { depth -> segments.subList(0, depth + 1).joinToString(PATH_SEPARATOR) } +
+                InformationRequestOccurrencePath.ROOT
     }
 
     private fun isDescendant(candidatePath: String, occurrencePath: String): Boolean =
-        if (InformationRequestOccurrencePath.isRoot(occurrencePath)) !InformationRequestOccurrencePath.isRoot(candidatePath)
+        if (InformationRequestOccurrencePath.isRoot(occurrencePath)) !InformationRequestOccurrencePath.isRoot(
+            candidatePath
+        )
         else candidatePath.startsWith(occurrencePath + PATH_SEPARATOR)
 }

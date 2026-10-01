@@ -8,7 +8,7 @@ import com.docuhyphen.app.api.repository.BaseRepository
 import jakarta.enterprise.context.ApplicationScoped
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestEvidenceAssessmentRepository :
@@ -76,7 +76,8 @@ class InformationRequestEvidenceAssessmentRepository :
     override fun update(entity: InformationRequestEvidenceAssessment): InformationRequestEvidenceAssessment =
         throw UnsupportedOperationException(REWRITE_REFUSAL)
 
-    override fun delete(entity: InformationRequestEvidenceAssessment) = throw UnsupportedOperationException(REWRITE_REFUSAL)
+    override fun delete(entity: InformationRequestEvidenceAssessment) =
+        throw UnsupportedOperationException(REWRITE_REFUSAL)
 
     override fun deleteById(id: UUID) = throw UnsupportedOperationException(REWRITE_REFUSAL)
 
@@ -84,7 +85,8 @@ class InformationRequestEvidenceAssessmentRepository :
     {
         const val REWRITE_REFUSAL = "A recorded evidence assessment is append-only: record a new assessment instead"
 
-        val SETTLED_SCAN_OUTCOMES = InformationRequestEvidenceMalwareOutcome.entries.filter { it.settled }.map { it.name }
+        val SETTLED_SCAN_OUTCOMES =
+            InformationRequestEvidenceMalwareOutcome.entries.filter { it.settled }.map { it.name }
 
         val FINAL_SCAN_OUTCOMES = listOf(
             InformationRequestEvidenceMalwareOutcome.MALWARE_DETECTED.name,

@@ -3,37 +3,17 @@ package com.docuhyphen.app.api.service.informationrequest.evidence
 import com.docuhyphen.app.api.model.document.DocumentVersionContentDigest
 import com.docuhyphen.app.api.model.document.DocumentVersionContentDigests
 import com.docuhyphen.app.api.model.document.DocumentVersionUpload
-import com.docuhyphen.app.api.model.entity.DocumentVersion
-import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceArtifact
-import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceCollectionState
-import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceVersion
-import com.docuhyphen.app.api.model.entity.ResourceType
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.informationrequest.LockedInformationRequest
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestDocumentVersionEvidenceSource
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceAction
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceAttributes
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceAttributesMapper
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceCommandResult
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceFile
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceTransition
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceVersionSourceMapper
-import com.docuhyphen.app.api.model.informationrequest.evidence.ReplaceInformationRequestEvidenceCommand
-import com.docuhyphen.app.api.model.informationrequest.evidence.UploadInformationRequestEvidenceCommand
+import com.docuhyphen.app.api.model.informationrequest.evidence.*
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestMutation
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestTransitionHistoryCommand
 import com.docuhyphen.app.api.repository.informationrequest.evidence.InformationRequestEvidenceArtifactRepository
 import com.docuhyphen.app.api.repository.informationrequest.evidence.InformationRequestEvidenceVersionRepository
 import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.auth.authz.ResourceRef
-import com.docuhyphen.app.api.service.command.CommandActorRef
-import com.docuhyphen.app.api.service.command.CommandMutationResult
-import com.docuhyphen.app.api.service.command.CommandReceiptDecision
-import com.docuhyphen.app.api.service.command.CommandReceiptRequest
-import com.docuhyphen.app.api.service.command.CommandReceiptService
-import com.docuhyphen.app.api.service.command.CommandRequestFingerprint
-import com.docuhyphen.app.api.service.command.CommandResultReference
-import com.docuhyphen.app.api.service.command.RevisionETag
+import com.docuhyphen.app.api.service.command.*
 import com.docuhyphen.app.api.service.document.DocumentVersionRecordingService
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestETag
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
@@ -44,7 +24,7 @@ import jakarta.inject.Inject
 import jakarta.transaction.Transactional
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestEvidenceUploadService @Inject constructor(
@@ -163,14 +143,27 @@ class InformationRequestEvidenceUploadService @Inject constructor(
             },
         )
         val version = versionRepository.save(
-            evidenceVersion(artifact, FIRST_VERSION, documentVersion, command.file, command.attributes, command.access, now),
+            evidenceVersion(
+                artifact,
+                FIRST_VERSION,
+                documentVersion,
+                command.file,
+                command.attributes,
+                command.access,
+                now
+            ),
         )
         intake.recordInspection(version, documentVersion, inspection)
         recordTransition(
             locked,
             command.access,
             command.idempotencyKey,
-            InformationRequestEvidenceTransition(requirement.id, artifact.id, FIRST_VERSION, InformationRequestEvidenceAction.UPLOAD),
+            InformationRequestEvidenceTransition(
+                requirement.id,
+                artifact.id,
+                FIRST_VERSION,
+                InformationRequestEvidenceAction.UPLOAD
+            ),
         )
         return result(requirement.id, artifact)
     }
@@ -224,14 +217,27 @@ class InformationRequestEvidenceUploadService @Inject constructor(
         artifact.updatedAt = now
         artifactRepository.update(artifact)
         val version = versionRepository.save(
-            evidenceVersion(artifact, versionNumber, documentVersion, command.file, command.attributes, command.access, now),
+            evidenceVersion(
+                artifact,
+                versionNumber,
+                documentVersion,
+                command.file,
+                command.attributes,
+                command.access,
+                now
+            ),
         )
         intake.recordInspection(version, documentVersion, inspection)
         recordTransition(
             locked,
             command.access,
             command.idempotencyKey,
-            InformationRequestEvidenceTransition(requirement.id, artifact.id, versionNumber, InformationRequestEvidenceAction.REPLACE),
+            InformationRequestEvidenceTransition(
+                requirement.id,
+                artifact.id,
+                versionNumber,
+                InformationRequestEvidenceAction.REPLACE
+            ),
         )
         return result(requirement.id, artifact)
     }
@@ -266,10 +272,16 @@ class InformationRequestEvidenceUploadService @Inject constructor(
         )
     }
 
-    private fun result(requirementId: UUID, artifact: InformationRequestEvidenceArtifact): InformationRequestEvidenceCommandResult =
+    private fun result(
+        requirementId: UUID,
+        artifact: InformationRequestEvidenceArtifact
+    ): InformationRequestEvidenceCommandResult =
         InformationRequestEvidenceCommandResult(
             artifact = viewLoader.view(artifact),
-            evidenceETag = InformationRequestETag.evidenceOf(requirementId, artifactRepository.findForRequirement(requirementId)),
+            evidenceETag = InformationRequestETag.evidenceOf(
+                requirementId,
+                artifactRepository.findForRequirement(requirementId)
+            ),
             artifactETag = InformationRequestETag.artifactOf(artifact),
         )
 

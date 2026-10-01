@@ -8,7 +8,7 @@ import com.docuhyphen.app.api.repository.fields.SchemaVersionRepository
 import com.docuhyphen.app.api.service.auth.authz.ScopeReference
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
-import java.util.UUID
+import java.util.*
 
 /** One exact frozen typed-data contract, resolved for a stated owner and a stated resource kind. */
 data class PublishedSchemaVersionRef(
@@ -47,7 +47,7 @@ class SchemaVersionResolver @Inject constructor(
         {
             throw FieldValidationException(
                 "Schema version $schemaVersionId is not published, so nothing can be resolved " +
-                    "against it",
+                        "against it",
             )
         }
 
@@ -59,21 +59,21 @@ class SchemaVersionResolver @Inject constructor(
         {
             throw FieldValidationException(
                 "Schema ${definition.namespace}:${definition.schemaKey} is retired and cannot " +
-                    "govern configuration authored now",
+                        "govern configuration authored now",
             )
         }
         if (definition.targetResourceType != targetResourceType)
         {
             throw FieldValidationException(
                 "Schema version $schemaVersionId is written for ${definition.targetResourceType} " +
-                    "rather than $targetResourceType",
+                        "rather than $targetResourceType",
             )
         }
         if (!visibleTo(definition, owner))
         {
             throw FieldValidationException(
                 "Schema version $schemaVersionId belongs to a different owner and cannot govern " +
-                    "this configuration",
+                        "this configuration",
             )
         }
 
@@ -98,10 +98,11 @@ class SchemaVersionResolver @Inject constructor(
         {
             is ScopeReference.Organization ->
                 definition.scopeKind == FieldScopeKind.ORGANIZATION &&
-                    definition.scopeOrgId == owner.organizationId
+                        definition.scopeOrgId == owner.organizationId
+
             is ScopeReference.Personal ->
                 definition.scopeKind == FieldScopeKind.PERSONAL &&
-                    definition.scopeUserId == owner.userId
+                        definition.scopeUserId == owner.userId
             // The platform holds only what it published, which returned above.
             ScopeReference.Platform -> false
         }

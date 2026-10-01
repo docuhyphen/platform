@@ -1,7 +1,7 @@
 package com.docuhyphen.app.api.model
 
-import com.docuhyphen.app.api.model.dto.InformationRequestDto
 import com.docuhyphen.app.api.model.dto.InformationRequestConditionEvaluationDto
+import com.docuhyphen.app.api.model.dto.InformationRequestDto
 import com.docuhyphen.app.api.model.entity.InformationRequest
 import com.docuhyphen.app.api.model.informationrequest.condition.InformationRequestConditionEvaluationProjection
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestETag

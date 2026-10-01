@@ -109,7 +109,7 @@ class DefaultAuthorizationService @Inject constructor(
                 principalGroupMemberRepository.findGroupsForPrincipal(principal.kind, principal.id)
                     .filter {
                         it.groupRole == PrincipalGroupRoleName.OWNER ||
-                            it.groupRole == PrincipalGroupRoleName.MANAGER
+                                it.groupRole == PrincipalGroupRoleName.MANAGER
                     }
                     .forEach { membership ->
                         shareRepository.findDirectForPrincipalOnResource(
@@ -125,7 +125,10 @@ class DefaultAuthorizationService @Inject constructor(
         }
         if (grants.isEmpty())
         {
-            return Decision.Deny(Decision.REASON_NO_GRANT, "No grants for ${principal.kind}/${principal.id} on $resource")
+            return Decision.Deny(
+                Decision.REASON_NO_GRANT,
+                "No grants for ${principal.kind}/${principal.id} on $resource"
+            )
         }
 
         val capableGrants = grants.filter { action.required in it.capabilities }
@@ -204,7 +207,8 @@ class DefaultAuthorizationService @Inject constructor(
                     com.docuhyphen.app.api.model.entity.ResourceType.INFORMATION_REQUEST_REQUIREMENT,
                 ) && action in com.docuhyphen.app.api.service.informationrequest.parent.InformationRequestParentPolicy.readActions) &&
                 !(resource.type == com.docuhyphen.app.api.model.entity.ResourceType.INFORMATION_REQUEST &&
-                    action in com.docuhyphen.app.api.service.informationrequest.parent.InformationRequestParentPolicy.closedRecordActions))
+                        action in com.docuhyphen.app.api.service.informationrequest.parent.InformationRequestParentPolicy.closedRecordActions)
+            )
             {
                 return Decision.Deny(Decision.REASON_EXCHANGE_ARCHIVED, "Exchange ${resource.id} is archived")
             }
@@ -579,6 +583,7 @@ class DefaultAuthorizationService @Inject constructor(
         {
             ResourceType.PRINCIPAL_GROUP ->
                 principalGroupRepository.findById(resource.id)?.ownerOrganizationId
+
             else -> when (resolution)
             {
                 is ResourceContextResolution.Resolved ->
@@ -700,7 +705,8 @@ class DefaultAuthorizationService @Inject constructor(
             return Decision.Deny(Decision.REASON_SHARE_EXPIRED, "Share ${share.id} expired")
         }
         if (share.status != ShareStatus.ACTIVE &&
-            !(allowPendingApproval && share.status == ShareStatus.PENDING_APPROVAL))
+            !(allowPendingApproval && share.status == ShareStatus.PENDING_APPROVAL)
+        )
         {
             return Decision.Deny(Decision.REASON_SHARE_NOT_ACTIVE, "Share ${share.id} status=${share.status}")
         }

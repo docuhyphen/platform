@@ -1,19 +1,15 @@
 package com.docuhyphen.app.api.service.organization
 
 import com.docuhyphen.app.api.interceptor.EnforceAdminAction
-import com.docuhyphen.app.api.model.entity.PrincipalGroupRoleName
-import com.docuhyphen.app.api.model.entity.PrincipalGroup
-import com.docuhyphen.app.api.model.entity.PrincipalGroupMember
-import com.docuhyphen.app.api.model.entity.PrincipalGroupScope
-import com.docuhyphen.app.api.model.entity.PrincipalKind
+import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.repository.contactdetails.UserContactRepository
 import com.docuhyphen.app.api.repository.organization.PrincipalGroupMemberRepository
 import com.docuhyphen.app.api.repository.organization.PrincipalGroupRepository
-import com.docuhyphen.app.api.repository.contactdetails.UserContactRepository
 import com.docuhyphen.app.api.service.exchange.ShareService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
-import java.util.UUID
+import java.util.*
 
 /**
  * Write-side service for the new unified group model (`principal_group` /
@@ -232,7 +228,8 @@ class PrincipalGroupService @Inject constructor(
 
             // Prevent adding a role higher than MEMBER (only the owner should be OWNER).
             val effectiveRole = if (spec.groupRole == PrincipalGroupRoleName.OWNER)
-                PrincipalGroupRoleName.MEMBER else spec.groupRole
+                PrincipalGroupRoleName.MEMBER
+            else spec.groupRole
 
             val existing = memberRepository.findMembership(groupId, spec.principalKind, spec.principalId)
             if (existing == null)

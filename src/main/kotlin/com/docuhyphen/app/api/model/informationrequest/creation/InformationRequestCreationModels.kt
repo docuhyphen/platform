@@ -5,7 +5,7 @@ import com.docuhyphen.app.api.model.entity.InformationRequest
 import com.docuhyphen.app.api.model.entity.InformationRequestShareRoleKey
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import java.util.UUID
+import java.util.*
 
 data class CreateAdHocInformationRequestCommand(
     val exchangeId: UUID,

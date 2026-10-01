@@ -1,8 +1,7 @@
 package com.docuhyphen.app.api.repository.workflow
 
-import com.docuhyphen.app.api.repository.BaseRepository
-
 import com.docuhyphen.app.api.model.entity.WorkflowTriggerEventRegistry
+import com.docuhyphen.app.api.repository.BaseRepository
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.persistence.EntityManager

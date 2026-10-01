@@ -14,7 +14,8 @@ object InformationRequestAmendmentDtoMapper
     fun toDto(readable: InformationRequestReadableAmendment, caller: PrincipalRef): InformationRequestAmendmentDto
     {
         val amendment = readable.view.amendment
-        val visibleChanges = readable.view.changes.filter { it.templateRequirementId in readable.visibleTemplateRequirementIds }
+        val visibleChanges =
+            readable.view.changes.filter { it.templateRequirementId in readable.visibleTemplateRequirementIds }
         return InformationRequestAmendmentDto(
             id = amendment.id,
             amendmentNumber = amendment.amendmentNumber,

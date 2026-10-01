@@ -6,7 +6,7 @@ import jakarta.persistence.Id
 import jakarta.persistence.Table
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 /**
  * One dual-control approval of an [AuditExport]. Append-style: rows are only ever inserted, never

@@ -3,11 +3,9 @@
 import com.docuhyphen.app.api.model.entity.AppUser
 import com.docuhyphen.app.api.model.entity.AuthTokenType.ACCESS
 import com.docuhyphen.app.api.model.entity.AuthTokenType.ID
-import com.docuhyphen.app.api.model.entity.AuthTokenType.REFRESH
 import com.docuhyphen.app.api.service.config.ConfigurationService
 import io.jsonwebtoken.Claims
 import io.jsonwebtoken.Jwts
-import io.jsonwebtoken.security.Keys
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
 import org.mindrot.jbcrypt.BCrypt
@@ -301,7 +299,10 @@ class AuthenticationService @Inject constructor(
         refreshTokenRecordService.revokeByJti(jti, reasonCode)
     }
 
-    fun deleteAllRefreshTokensForUser(userId: UUID, reasonCode: RevocationReasonCode = RevocationReasonCode.SECURITY_POLICY)
+    fun deleteAllRefreshTokensForUser(
+        userId: UUID,
+        reasonCode: RevocationReasonCode = RevocationReasonCode.SECURITY_POLICY
+    )
     {
         refreshTokenStore.deleteAllByUserId(userId)
         refreshTokenRecordService.revokeUser(userId, reasonCode)

@@ -8,7 +8,7 @@ import com.docuhyphen.app.api.model.recordpreservation.RecordDisposalView
 import com.docuhyphen.app.api.model.recordpreservation.RecordOwnerRef
 import com.docuhyphen.app.api.model.recordpreservation.RecordPreservationKey
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 sealed interface InformationRequestDisposalAssessment
 {

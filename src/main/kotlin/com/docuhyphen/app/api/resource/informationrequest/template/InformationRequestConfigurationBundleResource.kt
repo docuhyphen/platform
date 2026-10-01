@@ -26,7 +26,11 @@ class InformationRequestConfigurationBundleResource @Inject constructor(
         }
         catch (exception: Exception)
         {
-            InformationRequestCommandHttp.refused(logger, "Information Request configuration bundle validation failed", exception)
+            InformationRequestCommandHttp.refused(
+                logger,
+                "Information Request configuration bundle validation failed",
+                exception
+            )
         }
     }
 

@@ -23,7 +23,8 @@ class InformationRequestGeneratedOutputResource @Inject constructor(
         {
             val access = accessContextFactory.currentAuthenticated()
             val listed = outputs.outputs(requestId(id), access)
-            Response.ok(listed.map { InformationRequestExternalSourceDtoMapper.toDto(it, access.principal) }.toTypedArray()).build()
+            Response.ok(listed.map { InformationRequestExternalSourceDtoMapper.toDto(it, access.principal) }
+                .toTypedArray()).build()
         }
         catch (exception: Exception)
         {
@@ -40,7 +41,8 @@ class InformationRequestGeneratedOutputResource @Inject constructor(
         return try
         {
             val requestId = requestId(id)
-            val body = request ?: throw InformationRequestCommandRequestException("A generated output states where it lives and what produced it")
+            val body = request
+                ?: throw InformationRequestCommandRequestException("A generated output states where it lives and what produced it")
             val key = InformationRequestCommandHttp.idempotencyKey(idempotencyKey)
             val access = accessContextFactory.currentAuthenticated()
             val output = outputs.record(
@@ -57,11 +59,16 @@ class InformationRequestGeneratedOutputResource @Inject constructor(
                     idempotencyKey = key,
                 ),
             )
-            Response.status(Response.Status.CREATED).entity(InformationRequestExternalSourceDtoMapper.toDto(output, access.principal)).build()
+            Response.status(Response.Status.CREATED)
+                .entity(InformationRequestExternalSourceDtoMapper.toDto(output, access.principal)).build()
         }
         catch (exception: Exception)
         {
-            InformationRequestCommandHttp.refused(logger, "Information Request generated output recording failed", exception)
+            InformationRequestCommandHttp.refused(
+                logger,
+                "Information Request generated output recording failed",
+                exception
+            )
         }
     }
 

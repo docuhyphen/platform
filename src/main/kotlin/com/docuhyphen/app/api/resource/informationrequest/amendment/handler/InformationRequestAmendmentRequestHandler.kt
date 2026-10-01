@@ -9,7 +9,7 @@ import com.docuhyphen.app.api.resource.model.AmendInformationRequestRequest
 import com.docuhyphen.app.api.service.informationrequest.amendment.InformationRequestAmendmentQueryService
 import com.docuhyphen.app.api.service.informationrequest.amendment.InformationRequestAmendmentService
 import jakarta.ws.rs.core.Response
-import java.util.UUID
+import java.util.*
 
 class InformationRequestAmendmentRequestHandler(
     private val amendmentService: InformationRequestAmendmentService,

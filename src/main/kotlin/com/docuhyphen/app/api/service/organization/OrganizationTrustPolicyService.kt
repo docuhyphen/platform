@@ -1,10 +1,6 @@
 package com.docuhyphen.app.api.service.organization
 
-import com.docuhyphen.app.api.exception.OrganizationTrustAuthorizationException
-import com.docuhyphen.app.api.exception.OrganizationTrustConflictException
-import com.docuhyphen.app.api.exception.OrganizationTrustNotFoundException
-import com.docuhyphen.app.api.exception.OrganizationTrustStaleVersionException
-import com.docuhyphen.app.api.exception.OrganizationTrustValidationException
+import com.docuhyphen.app.api.exception.*
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.model.entity.OrganizationTrustPartyPolicy
 import com.docuhyphen.app.api.model.entity.OrganizationTrustRelationship
@@ -17,11 +13,7 @@ import com.docuhyphen.app.api.service.audit.AuditRecorder
 import com.docuhyphen.app.api.service.audit.catalog.AuditActorKind
 import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
 import com.docuhyphen.app.api.service.audit.catalog.AuditOutcome
-import com.docuhyphen.app.api.service.auth.authz.Action
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.Decision
-import com.docuhyphen.app.api.service.auth.authz.ResourceRef
+import com.docuhyphen.app.api.service.auth.authz.*
 import com.docuhyphen.app.api.service.subscription.OrganizationFeatureSubscriptionGuard
 import com.docuhyphen.app.api.service.subscription.PlanFeature
 import jakarta.enterprise.context.ApplicationScoped
@@ -32,7 +24,7 @@ import jakarta.persistence.PersistenceException
 import jakarta.transaction.Transactional
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 data class OrganizationTrustPolicyUpdate(
     val allowExchangesToPartner: Boolean,
@@ -129,12 +121,14 @@ class OrganizationTrustPolicyService @Inject constructor(
         }
         subscriptionGuard.requireMutation(activeOrganizationId, PlanFeature.IDENTITY_AND_INTEGRATIONS)
         if (relationship.status != OrganizationTrustRelationshipStatus.PENDING &&
-            relationship.status != OrganizationTrustRelationshipStatus.ACTIVE)
+            relationship.status != OrganizationTrustRelationshipStatus.ACTIVE
+        )
         {
             throw OrganizationTrustConflictException("A terminal trust relationship policy cannot be changed")
         }
         if (relationship.status == OrganizationTrustRelationshipStatus.PENDING &&
-            !relationship.requestExpiresAt.toInstant().isAfter(now))
+            !relationship.requestExpiresAt.toInstant().isAfter(now)
+        )
         {
             throw OrganizationTrustConflictException("An expired trust request policy cannot be changed")
         }

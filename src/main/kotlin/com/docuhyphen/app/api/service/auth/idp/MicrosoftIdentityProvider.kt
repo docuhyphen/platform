@@ -3,7 +3,8 @@ package com.docuhyphen.app.api.service.auth.idp
 import com.docuhyphen.app.api.model.entity.IdentityProviderType
 import com.docuhyphen.app.api.model.entity.IdentityProviderType.MICROSOFT
 import com.docuhyphen.app.api.service.auth.idp.OAuthClaimField.*
-import com.docuhyphen.app.api.service.auth.idp.OAuthTokenField.*
+import com.docuhyphen.app.api.service.auth.idp.OAuthTokenField.ACCESS_TOKEN
+import com.docuhyphen.app.api.service.auth.idp.OAuthTokenField.ID_TOKEN
 import com.docuhyphen.app.api.service.config.ConfigurationService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
@@ -54,7 +55,12 @@ class MicrosoftIdentityProvider @Inject constructor(
             .orEmpty()
         val effectivePrompt = prompt?.takeIf { it.isNotBlank() } ?: "select_account"
 
-        return "https://login.microsoftonline.com/${URLEncoder.encode(tenantId, StandardCharsets.UTF_8)}/oauth2/v2.0/authorize" +
+        return "https://login.microsoftonline.com/${
+            URLEncoder.encode(
+                tenantId,
+                StandardCharsets.UTF_8
+            )
+        }/oauth2/v2.0/authorize" +
                 "?client_id=${URLEncoder.encode(clientId, StandardCharsets.UTF_8)}" +
                 "&response_type=code" +
                 "&redirect_uri=$encodedRedirectUri" +
@@ -87,7 +93,8 @@ class MicrosoftIdentityProvider @Inject constructor(
             ?: configurationService.microsoftOAuthClientSecret
         val scopes = runtimeCredentials?.scopes?.takeIf { it.isNotBlank() } ?: "openid email profile"
 
-        val tokenUrl = "https://login.microsoftonline.com/${URLEncoder.encode(tenantId, StandardCharsets.UTF_8)}/oauth2/v2.0/token"
+        val tokenUrl =
+            "https://login.microsoftonline.com/${URLEncoder.encode(tenantId, StandardCharsets.UTF_8)}/oauth2/v2.0/token"
 
         val verifierPart = codeVerifier?.takeIf { it.isNotBlank() }
             ?.let { "&code_verifier=${URLEncoder.encode(it, StandardCharsets.UTF_8)}" }
@@ -122,7 +129,11 @@ class MicrosoftIdentityProvider @Inject constructor(
         )
     }
 
-    override fun validateIdToken(idToken: String, expectedNonce: String, runtimeCredentials: RuntimeIdpCredentials?): OAuthUserInfo
+    override fun validateIdToken(
+        idToken: String,
+        expectedNonce: String,
+        runtimeCredentials: RuntimeIdpCredentials?
+    ): OAuthUserInfo
     {
         val decoded = oidcTokenValidator.decode(idToken, PROVIDER_LABEL)
         val kid = oidcTokenValidator.requireSupportedHeader(

@@ -27,13 +27,22 @@ class InformationRequestNoAuthSubmissionPreviewResource @Inject constructor(
     {
         return try
         {
-            InformationRequestCommandHttp.withNoAuthAccess(readAccessService, id, accessLinkToken, sessionToken) { requestId, access ->
+            InformationRequestCommandHttp.withNoAuthAccess(
+                readAccessService,
+                id,
+                accessLinkToken,
+                sessionToken
+            ) { requestId, access ->
                 handler.preview(requestId, stageKey, access)
             }
         }
         catch (exception: Exception)
         {
-            InformationRequestCommandHttp.refused(logger, "No-auth Information Request submission preview failed", exception)
+            InformationRequestCommandHttp.refused(
+                logger,
+                "No-auth Information Request submission preview failed",
+                exception
+            )
         }
     }
 

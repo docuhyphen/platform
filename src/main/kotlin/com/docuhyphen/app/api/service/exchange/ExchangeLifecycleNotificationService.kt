@@ -22,16 +22,19 @@ class ExchangeLifecycleNotificationService @Inject constructor(
                 "exchange.accepted",
                 "Exchange accepted",
             )
+
             ExchangeStatus.REJECTED -> NotificationDetails(
                 UserNotificationPreference.EXCHANGE_DECLINED,
                 "exchange.declined",
                 "Exchange declined",
             )
+
             ExchangeStatus.ENDED -> NotificationDetails(
                 UserNotificationPreference.EXCHANGE_ENDED,
                 "exchange.ended",
                 "Exchange ended",
             )
+
             else -> return
         }
 

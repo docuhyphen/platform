@@ -14,7 +14,7 @@ import jakarta.transaction.Status
 import jakarta.transaction.Synchronization
 import jakarta.transaction.TransactionSynchronizationRegistry
 import org.slf4j.LoggerFactory
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class ExchangeNotificationDeliveryService @Inject constructor(
@@ -71,7 +71,8 @@ class ExchangeNotificationDeliveryService @Inject constructor(
                         preferenceAppUserId,
                         UserNotificationPreference.EXCHANGE_INITIATED,
                         NotificationChannelType.EMAIL,
-                    ))
+                    )
+                )
                 {
                     return@forEach
                 }

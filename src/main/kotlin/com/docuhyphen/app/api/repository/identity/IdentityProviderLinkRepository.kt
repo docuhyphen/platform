@@ -1,11 +1,10 @@
 package com.docuhyphen.app.api.repository.identity
 
-import com.docuhyphen.app.api.repository.BaseRepository
-
 import com.docuhyphen.app.api.model.entity.IdentityProviderLink
 import com.docuhyphen.app.api.model.entity.IdentityProviderType
+import com.docuhyphen.app.api.repository.BaseRepository
 import jakarta.enterprise.context.RequestScoped
-import java.util.UUID
+import java.util.*
 
 @RequestScoped
 class IdentityProviderLinkRepository : BaseRepository<IdentityProviderLink>(IdentityProviderLink::class.java)

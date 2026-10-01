@@ -1,7 +1,7 @@
 package com.docuhyphen.app.api.model.informationrequest.template
 
 import com.docuhyphen.app.api.model.entity.InformationRequestTemplateScopeKind
-import java.util.UUID
+import java.util.*
 
 /**
  * One exact Information Request Template Version, named from outside the Information Request domain.

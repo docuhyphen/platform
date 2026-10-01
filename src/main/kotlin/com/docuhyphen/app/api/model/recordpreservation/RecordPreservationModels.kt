@@ -1,17 +1,9 @@
 package com.docuhyphen.app.api.model.recordpreservation
 
-import com.docuhyphen.app.api.model.entity.RecordDisposalBasis
-import com.docuhyphen.app.api.model.entity.RecordDisposalClaim
-import com.docuhyphen.app.api.model.entity.RecordDisposalObject
-import com.docuhyphen.app.api.model.entity.RecordDisposalTombstone
-import com.docuhyphen.app.api.model.entity.RecordOwnerKind
-import com.docuhyphen.app.api.model.entity.RecordPreservationHold
-import com.docuhyphen.app.api.model.entity.RecordPreservationHoldEvent
-import com.docuhyphen.app.api.model.entity.RecordPreservationScope
-import com.docuhyphen.app.api.model.entity.RecordRetentionSchedule
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 data class RecordOwnerRef(
     val kind: RecordOwnerKind,

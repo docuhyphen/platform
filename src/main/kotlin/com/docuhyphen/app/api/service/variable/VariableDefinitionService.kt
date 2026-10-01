@@ -10,13 +10,7 @@ import com.docuhyphen.app.api.repository.variable.VariableDefinitionRepository
 import com.docuhyphen.app.api.service.auth.AdminActionGuardService
 import com.docuhyphen.app.api.service.auth.AdminApprovalContext
 import com.docuhyphen.app.api.service.auth.UserRoleService
-import com.docuhyphen.app.api.service.auth.authz.Action
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.Decision
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import com.docuhyphen.app.api.service.auth.authz.ResourceRef
+import com.docuhyphen.app.api.service.auth.authz.*
 import io.quarkus.security.ForbiddenException
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
@@ -52,6 +46,7 @@ class VariableDefinitionService @Inject constructor(
                 else repository.findByScopeAndOrganizationIdAndIsDeletedFalse(scope, activeOrgId)
                     .map { it.toDto() }
             }
+
             VariableScope.PERSONAL ->
                 repository.findByScopeAndCreatedByAppUserIdAndIsDeletedFalse(scope, principal.id)
                     .map { it.toDto() }
@@ -83,6 +78,7 @@ class VariableDefinitionService @Inject constructor(
                 if (repository.findByOrganizationIdAndKeyAndIsDeletedFalse(organizationId, normalizedKey) != null)
                     throw IllegalArgumentException("Variable '$normalizedKey' already exists in this organization")
             }
+
             VariableScope.PERSONAL ->
             {
                 if (repository.findByCreatedByAppUserIdAndKeyAndIsDeletedFalse(principal.id, normalizedKey) != null)
@@ -153,6 +149,7 @@ class VariableDefinitionService @Inject constructor(
             VariableScope.PERSONAL ->
                 if (variable.createdByAppUserId != principal.id)
                     throw ForbiddenException("Access denied to variable ${variable.id}")
+
             VariableScope.ORG ->
             {
                 val decision = authorizationService.authorize(

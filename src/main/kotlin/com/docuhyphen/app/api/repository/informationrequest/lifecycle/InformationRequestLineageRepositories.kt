@@ -6,7 +6,7 @@ import com.docuhyphen.app.api.model.entity.InformationRequestRecurrence
 import com.docuhyphen.app.api.model.entity.InformationRequestRefreshRule
 import com.docuhyphen.app.api.repository.BaseRepository
 import jakarta.enterprise.context.ApplicationScoped
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestLineageRepository :

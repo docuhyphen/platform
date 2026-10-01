@@ -1,14 +1,14 @@
 package com.docuhyphen.app.api.service.identity
 
-import com.docuhyphen.app.api.service.auth.AuthAuditService
-import com.docuhyphen.app.api.service.auth.RevocationReasonCode
-import com.docuhyphen.app.api.service.security.SecurityIncidentService
+import com.docuhyphen.app.api.model.entity.OrganizationIdentityProviderConfig
 import com.docuhyphen.app.api.model.entity.SecurityIncidentSeverity
 import com.docuhyphen.app.api.model.entity.SecurityIncidentType
-import com.docuhyphen.app.api.model.entity.OrganizationIdentityProviderConfig
 import com.docuhyphen.app.api.repository.identity.OrganizationIdentityProviderConfigRepository
+import com.docuhyphen.app.api.service.auth.AuthAuditService
+import com.docuhyphen.app.api.service.auth.RevocationReasonCode
 import com.docuhyphen.app.api.service.config.AwsSecretsManagerService
 import com.docuhyphen.app.api.service.config.ConfigurationService
+import com.docuhyphen.app.api.service.security.SecurityIncidentService
 import io.quarkus.runtime.StartupEvent
 import jakarta.annotation.PreDestroy
 import jakarta.enterprise.context.ApplicationScoped
@@ -19,10 +19,10 @@ import java.security.SecureRandom
 import java.sql.Timestamp
 import java.time.Instant
 import java.time.temporal.ChronoUnit
+import java.util.*
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.TimeUnit
-import java.util.UUID
 
 data class OrganizationIdpRotationPreviewCandidate(
     val configId: UUID,
@@ -134,7 +134,11 @@ class OrganizationIdpSecretRotationSchedulerService @Inject constructor(
         )
     }
 
-    fun runManualRotationForOrganization(organizationId: UUID, actorId: UUID?, requestId: String?): OrganizationIdpRotationRunResult
+    fun runManualRotationForOrganization(
+        organizationId: UUID,
+        actorId: UUID?,
+        requestId: String?
+    ): OrganizationIdpRotationRunResult
     {
         val configs = organizationIdentityProviderConfigRepository.findByOrganizationId(organizationId)
             .filter { it.isActive }

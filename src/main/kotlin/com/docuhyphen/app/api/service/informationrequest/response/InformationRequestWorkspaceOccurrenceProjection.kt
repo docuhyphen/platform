@@ -1,13 +1,13 @@
 package com.docuhyphen.app.api.service.informationrequest.response
 
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateVersionDto
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateRequirementDto
 import com.docuhyphen.app.api.model.dto.InformationRequestTemplateConditionRuleDto
+import com.docuhyphen.app.api.model.dto.InformationRequestTemplateRequirementDto
+import com.docuhyphen.app.api.model.dto.InformationRequestTemplateVersionDto
 import com.docuhyphen.app.api.model.entity.InformationRequestGroupOccurrence
 import com.docuhyphen.app.api.model.entity.InformationRequestRequirement
 import com.docuhyphen.app.api.model.informationrequest.condition.InformationRequestConditionEvaluationProjection
 import com.docuhyphen.app.api.service.informationrequest.occurrence.InformationRequestOccurrencePath
-import java.util.UUID
+import java.util.*
 
 object InformationRequestWorkspaceOccurrenceProjection
 {
@@ -28,10 +28,10 @@ object InformationRequestWorkspaceOccurrenceProjection
         }.toSet()
         return occurrences.filter { occurrence ->
             occurrence.sourceTemplateGroupId in safeGroupIds && (
-                disclosedPaths.any { path -> isWithin(path, occurrence.occurrencePath) } ||
-                    (occurrence.sourceTemplateGroupId in creationGroupIds &&
-                        occupiedPaths.none { path -> isWithin(path, occurrence.occurrencePath) })
-                )
+                    disclosedPaths.any { path -> isWithin(path, occurrence.occurrencePath) } ||
+                            (occurrence.sourceTemplateGroupId in creationGroupIds &&
+                                    occupiedPaths.none { path -> isWithin(path, occurrence.occurrencePath) })
+                    )
         }
     }
 
@@ -69,11 +69,14 @@ object InformationRequestWorkspaceOccurrenceProjection
     ): Boolean = rule.predicates.all { predicate ->
         val sources = requirements.filter { requirement ->
             val binding = bindings[requirement.sourceTemplateBindingId]
-            (InformationRequestOccurrencePath.isRoot(requirement.occurrencePath) || isWithin(scope, requirement.occurrencePath)) &&
-                binding != null && (
-                (predicate.sourceRequirementKey != null && predicate.sourceRequirementKey == binding.requirementKey) ||
-                    (predicate.fieldDefinitionId != null && predicate.fieldDefinitionId == binding.collectedFieldDefinitionId)
-                )
+            (InformationRequestOccurrencePath.isRoot(requirement.occurrencePath) || isWithin(
+                scope,
+                requirement.occurrencePath
+            )) &&
+                    binding != null && (
+                    (predicate.sourceRequirementKey != null && predicate.sourceRequirementKey == binding.requirementKey) ||
+                            (predicate.fieldDefinitionId != null && predicate.fieldDefinitionId == binding.collectedFieldDefinitionId)
+                    )
         }
         sources.isNotEmpty() && sources.all { it.id in disclosedIds }
     }

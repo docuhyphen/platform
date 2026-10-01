@@ -56,7 +56,12 @@ class AuditAnalyticsProjector @Inject constructor(
             }
             catch (e: Exception)
             {
-                logger.error("AuditAnalyticsProjector failed to project ledgerEventId={}: {}", event.eventId, e.message, e)
+                logger.error(
+                    "AuditAnalyticsProjector failed to project ledgerEventId={}: {}",
+                    event.eventId,
+                    e.message,
+                    e
+                )
                 failed++
             }
         }
@@ -79,7 +84,12 @@ class AuditAnalyticsProjector @Inject constructor(
             }
             catch (e: Exception)
             {
-                logger.error("AuditAnalyticsProjector rebuild failed for ledgerEventId={}: {}", event.eventId, e.message, e)
+                logger.error(
+                    "AuditAnalyticsProjector rebuild failed for ledgerEventId={}: {}",
+                    event.eventId,
+                    e.message,
+                    e
+                )
                 failed++
             }
         }

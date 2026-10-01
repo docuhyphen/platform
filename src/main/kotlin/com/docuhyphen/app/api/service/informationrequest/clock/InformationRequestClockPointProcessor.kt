@@ -1,11 +1,6 @@
 package com.docuhyphen.app.api.service.informationrequest.clock
 
-import com.docuhyphen.app.api.model.entity.ExchangeStatus
-import com.docuhyphen.app.api.model.entity.InformationRequestClock
-import com.docuhyphen.app.api.model.entity.InformationRequestClockDueEffect
-import com.docuhyphen.app.api.model.entity.InformationRequestClockEventKind
-import com.docuhyphen.app.api.model.entity.InformationRequestClockState
-import com.docuhyphen.app.api.model.entity.PrincipalKind
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.informationrequest.LockedInformationRequest
 import com.docuhyphen.app.api.model.informationrequest.clock.InformationRequestClockPoint
 import com.docuhyphen.app.api.model.informationrequest.clock.InformationRequestClockPolicyVersionView
@@ -21,7 +16,7 @@ import jakarta.transaction.Transactional
 import java.sql.Timestamp
 import java.time.Duration
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestClockPointProcessor @Inject constructor(
@@ -41,10 +36,10 @@ class InformationRequestClockPointProcessor @Inject constructor(
         val clock = clockRepository.findForUpdate(clockId) ?: return false
         if (clock.state == InformationRequestClockState.STOPPED) return false
         val parentOpen = !locked.exchange.isDeleted &&
-            locked.exchange.status in setOf(
-                ExchangeStatus.INITIATED,
-                ExchangeStatus.ACCEPTED_STARTED,
-            )
+                locked.exchange.status in setOf(
+            ExchangeStatus.INITIATED,
+            ExchangeStatus.ACCEPTED_STARTED,
+        )
         if (locked.request.state.isTerminal || !parentOpen)
         {
             recorder.stop(clock, SYSTEM, now, if (parentOpen) "REQUEST_FINISHED" else "PARENT_FINISHED")
@@ -90,6 +85,7 @@ class InformationRequestClockPointProcessor @Inject constructor(
                     extra = mapOf("reminderOrdinal" to point.ordinal.toString(), NOTICE_COUNT to owed.toString()),
                 )
             }
+
             InformationRequestClockEventKind.OVERDUE ->
             {
                 clock.overdueAt = Timestamp.from(now)
@@ -106,6 +102,7 @@ class InformationRequestClockPointProcessor @Inject constructor(
                     return false
                 }
             }
+
             InformationRequestClockEventKind.ESCALATED ->
             {
                 recorder.append(clock, point.kind, SYSTEM, now, inputs)
@@ -114,6 +111,7 @@ class InformationRequestClockPointProcessor @Inject constructor(
                     "information_request.clock_escalation|${clock.id}|${clock.dueCycle}",
                 )
             }
+
             else -> Unit
         }
         return true
@@ -129,7 +127,13 @@ class InformationRequestClockPointProcessor @Inject constructor(
         request.updatedAt = nowStamp
         request.aggregateRevision += 1
         requestRepository.update(request)
-        recorder.append(clock, InformationRequestClockEventKind.EXPIRED, SYSTEM, now, mapOf("expiredAt" to now.toString()))
+        recorder.append(
+            clock,
+            InformationRequestClockEventKind.EXPIRED,
+            SYSTEM,
+            now,
+            mapOf("expiredAt" to now.toString())
+        )
         recorder.expiryTransition(request, fromState, clock, SYSTEM)
         recorder.stop(clock, SYSTEM, now, "REQUEST_EXPIRED")
     }

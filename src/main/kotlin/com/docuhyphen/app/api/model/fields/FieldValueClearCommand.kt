@@ -1,10 +1,10 @@
 package com.docuhyphen.app.api.model.fields
 
+import com.docuhyphen.app.api.service.fields.FieldValueSetRef
 import com.docuhyphen.app.api.service.fields.FieldsAccessContext
 import com.docuhyphen.app.api.service.fields.FieldsPrecondition
 import com.docuhyphen.app.api.service.fields.FieldsResourceRef
-import com.docuhyphen.app.api.service.fields.FieldValueSetRef
-import java.util.UUID
+import java.util.*
 
 data class FieldValueClearCommand(
     val resource: FieldsResourceRef,

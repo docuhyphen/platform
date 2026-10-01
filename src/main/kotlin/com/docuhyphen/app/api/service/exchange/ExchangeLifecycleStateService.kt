@@ -4,7 +4,7 @@ import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequ
 import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class ExchangeLifecycleStateService @Inject constructor(private val repository: ExchangeRepository)

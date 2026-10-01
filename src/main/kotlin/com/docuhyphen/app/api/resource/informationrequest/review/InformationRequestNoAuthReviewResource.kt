@@ -7,12 +7,7 @@ import com.docuhyphen.app.api.resource.informationrequest.review.operations.Info
 import com.docuhyphen.app.api.resource.model.RecordInformationRequestReviewCommentRequest
 import com.docuhyphen.app.api.resource.model.ReopenInformationRequestReviewRequest
 import com.docuhyphen.app.api.service.informationrequest.noauth.InformationRequestNoAuthReadAccessService
-import com.docuhyphen.app.api.service.informationrequest.review.InformationRequestReviewAssignmentService
-import com.docuhyphen.app.api.service.informationrequest.review.InformationRequestReviewCommentService
-import com.docuhyphen.app.api.service.informationrequest.review.InformationRequestReviewCycleService
-import com.docuhyphen.app.api.service.informationrequest.review.InformationRequestReviewDecisionService
-import com.docuhyphen.app.api.service.informationrequest.review.InformationRequestReviewFindingService
-import com.docuhyphen.app.api.service.informationrequest.review.InformationRequestReviewQueryService
+import com.docuhyphen.app.api.service.informationrequest.review.*
 import jakarta.inject.Inject
 import jakarta.ws.rs.core.Response
 import org.slf4j.LoggerFactory
@@ -27,7 +22,8 @@ class InformationRequestNoAuthReviewResource @Inject constructor(
     private val readAccessService: InformationRequestNoAuthReadAccessService,
 ) : InformationRequestNoAuthReviewResourceOperations
 {
-    private val handler = InformationRequestReviewRequestHandler(assignments, decisions, findings, comments, cycles, queries)
+    private val handler =
+        InformationRequestReviewRequestHandler(assignments, decisions, findings, comments, cycles, queries)
 
     override fun comment(
         id: String,
@@ -40,13 +36,22 @@ class InformationRequestNoAuthReviewResource @Inject constructor(
     {
         return try
         {
-            InformationRequestCommandHttp.withNoAuthAccess(readAccessService, id, accessLinkToken, sessionToken) { requestId, access ->
+            InformationRequestCommandHttp.withNoAuthAccess(
+                readAccessService,
+                id,
+                accessLinkToken,
+                sessionToken
+            ) { requestId, access ->
                 handler.comment(requestId, reviewId(reviewId), request, access, idempotencyKey)
             }
         }
         catch (exception: Exception)
         {
-            InformationRequestCommandHttp.refused(logger, "No-auth Information Request review comment failed", exception)
+            InformationRequestCommandHttp.refused(
+                logger,
+                "No-auth Information Request review comment failed",
+                exception
+            )
         }
     }
 
@@ -63,8 +68,21 @@ class InformationRequestNoAuthReviewResource @Inject constructor(
     {
         return try
         {
-            InformationRequestCommandHttp.withNoAuthAccess(readAccessService, id, accessLinkToken, sessionToken) { requestId, access ->
-                handler.reopen(requestId, reviewId(reviewId), InformationRequestReviewKind.APPEAL, request, access, ifMatch, idempotencyKey)
+            InformationRequestCommandHttp.withNoAuthAccess(
+                readAccessService,
+                id,
+                accessLinkToken,
+                sessionToken
+            ) { requestId, access ->
+                handler.reopen(
+                    requestId,
+                    reviewId(reviewId),
+                    InformationRequestReviewKind.APPEAL,
+                    request,
+                    access,
+                    ifMatch,
+                    idempotencyKey
+                )
             }
         }
         catch (exception: Exception)

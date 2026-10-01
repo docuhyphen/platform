@@ -3,11 +3,11 @@ package com.docuhyphen.app.api.service.subscription
 import com.docuhyphen.app.api.model.entity.SubscriptionTrialRequest
 import com.docuhyphen.app.api.model.entity.SubscriptionTrialRequestStatus
 import com.docuhyphen.app.api.repository.subscription.SubscriptionTrialRequestRepository
-import com.docuhyphen.app.api.service.user.AppUserService
 import com.docuhyphen.app.api.service.auth.UserRoleService
-import com.docuhyphen.app.api.service.notification.InAppNotificationService
 import com.docuhyphen.app.api.service.notification.AppAdminNotificationService
+import com.docuhyphen.app.api.service.notification.InAppNotificationService
 import com.docuhyphen.app.api.service.organization.OrganizationService
+import com.docuhyphen.app.api.service.user.AppUserService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.persistence.PersistenceException
@@ -16,7 +16,7 @@ import org.slf4j.LoggerFactory
 import java.sql.SQLException
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class SubscriptionTrialRequestService @Inject constructor(
@@ -152,7 +152,9 @@ class SubscriptionTrialRequestService @Inject constructor(
                 appUserId = adminId,
                 type = "subscription_trial_request.created",
                 title = "New trial request",
-                message = "${view.requesterName} requested a ${view.request.planCode.lowercase().replaceFirstChar(Char::uppercase)} trial for ${view.ownerName}.",
+                message = "${view.requesterName} requested a ${
+                    view.request.planCode.lowercase().replaceFirstChar(Char::uppercase)
+                } trial for ${view.ownerName}.",
                 data = mapOf(
                     "trialRequestId" to view.request.id.toString(),
                     "ownerType" to view.request.ownerType,

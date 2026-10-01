@@ -14,7 +14,7 @@ import jakarta.inject.Inject
 import jakarta.transaction.Transactional
 import java.sql.Timestamp
 import java.time.Clock
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestSubjectRestrictionService @Inject constructor(
@@ -24,7 +24,11 @@ class InformationRequestSubjectRestrictionService @Inject constructor(
 )
 {
     @Transactional(Transactional.TxType.MANDATORY)
-    fun restrict(owner: RecordOwnerRef, subjectIdentityRefId: UUID, privacyRequestId: UUID): InformationRequestSubjectRestriction =
+    fun restrict(
+        owner: RecordOwnerRef,
+        subjectIdentityRefId: UUID,
+        privacyRequestId: UUID
+    ): InformationRequestSubjectRestriction =
         restrictionRepository.findActive(owner.kind, requireNotNull(owner.id), subjectIdentityRefId)
             ?: restrictionRepository.save(
                 InformationRequestSubjectRestriction().apply {
@@ -44,10 +48,16 @@ class InformationRequestSubjectRestrictionService @Inject constructor(
         val record = InformationRequestOwnerScopeAccess.recordOwnerOf(owner)
         val restriction = restrictionRepository.findById(restrictionId)
             ?.takeIf { it.ownerKind == record.kind && it.ownerId == record.id }
-            ?: throw InformationRequestLifecycleException(InformationRequestErrorCatalog.NOT_FOUND, "Subject restriction not found")
+            ?: throw InformationRequestLifecycleException(
+                InformationRequestErrorCatalog.NOT_FOUND,
+                "Subject restriction not found"
+            )
         if (restriction.liftedAt != null)
         {
-            throw InformationRequestLifecycleException(InformationRequestErrorCatalog.PRIVACY_REQUEST_STATE_INVALID, "This restriction is already lifted")
+            throw InformationRequestLifecycleException(
+                InformationRequestErrorCatalog.PRIVACY_REQUEST_STATE_INVALID,
+                "This restriction is already lifted"
+            )
         }
         restriction.liftedAt = Timestamp.from(clock.instant())
         restriction.liftedByPrincipalKind = principal.kind

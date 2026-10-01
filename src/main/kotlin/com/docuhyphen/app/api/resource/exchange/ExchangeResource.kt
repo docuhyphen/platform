@@ -1,12 +1,6 @@
 package com.docuhyphen.app.api.resource.exchange
 
-import com.docuhyphen.app.api.exception.NoAuthOtpException
-import com.docuhyphen.app.api.exception.InvalidEmailException
-import com.docuhyphen.app.api.exception.ExchangeNotFoundException
-import com.docuhyphen.app.api.exception.AppUserNotFoundException
-import com.docuhyphen.app.api.exception.WorkflowConflictException
-import com.docuhyphen.app.api.exception.OrganizationTrustException
-import com.docuhyphen.app.api.exception.SubscriptionDenialException
+import com.docuhyphen.app.api.exception.*
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.model.BasicEntityToDtoTransformer.Companion.toDto
 import com.docuhyphen.app.api.model.DetailedEntityToDtoTransformer
@@ -16,28 +10,22 @@ import com.docuhyphen.app.api.model.dto.ExchangeBasicDto
 import com.docuhyphen.app.api.model.dto.ExchangeDetailedDto
 import com.docuhyphen.app.api.model.entity.DocumentType
 import com.docuhyphen.app.api.repository.organization.PrincipalGroupRepository
-import com.docuhyphen.app.api.resource.model.GrantSessionShareRequest
-import com.docuhyphen.app.api.resource.model.InviteTrustedParticipantRequest
-import com.docuhyphen.app.api.resource.model.ResponseError
-import com.docuhyphen.app.api.resource.model.ExchangeInitiationDto
-import com.docuhyphen.app.api.resource.model.UpdateSessionShareRoleRequest
-import com.docuhyphen.app.api.resource.model.ReplacePrimaryRecipientRequest
-import com.docuhyphen.app.api.resource.model.UpdateExchangeRequest
+import com.docuhyphen.app.api.resource.model.*
+import com.docuhyphen.app.api.service.auth.authz.ShareConstraints
 import com.docuhyphen.app.api.service.exchange.*
 import com.docuhyphen.app.api.service.fields.FieldValidationException
 import com.docuhyphen.app.api.service.informationrequest.parent.InformationRequestExchangeCompletionException
+import com.docuhyphen.app.api.service.storage.FileStorageService
 import com.docuhyphen.app.api.service.user.AppUserService
 import com.docuhyphen.app.api.service.workflow.WorkflowDefinitionService
-import com.docuhyphen.app.api.service.storage.FileStorageService
-import com.docuhyphen.app.api.service.auth.authz.ShareConstraints
 import io.quarkus.security.ForbiddenException
-import java.util.UUID
 import jakarta.inject.Inject
 import jakarta.ws.rs.*
 import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
 import jakarta.ws.rs.core.Response.Status.TOO_MANY_REQUESTS
 import org.slf4j.LoggerFactory
+import java.util.*
 
 @Path("/exchanges")
 @Produces(MediaType.APPLICATION_JSON)
@@ -56,7 +44,7 @@ class ExchangeResource @Inject constructor(
     private val appUserService: AppUserService,
     private val principalGroupRepository: PrincipalGroupRepository,
     private val workflowDefinitionService: WorkflowDefinitionService,
-    )
+)
 {
     companion object
     {
@@ -203,7 +191,8 @@ class ExchangeResource @Inject constructor(
         {
             val exchange = exchangeRetrievalService.getExchange(exchangeId)
             val exchangeDto = DetailedEntityToDtoTransformer.toDto(exchange)
-            val enriched = enrichSessionWithRecipient(enrichSessionWithPermissions(enrichSessionWithFileSizes(exchangeDto)))
+            val enriched =
+                enrichSessionWithRecipient(enrichSessionWithPermissions(enrichSessionWithFileSizes(exchangeDto)))
             Response.ok(enriched).build()
         }
         catch (exception: Exception)
@@ -468,7 +457,8 @@ class ExchangeResource @Inject constructor(
         return try
         {
             val exchangeDto = exchangeUpdateService.updateExchange(exchangeId, request)
-            val enriched = enrichSessionWithRecipient(enrichSessionWithPermissions(enrichSessionWithFileSizes(exchangeDto)))
+            val enriched =
+                enrichSessionWithRecipient(enrichSessionWithPermissions(enrichSessionWithFileSizes(exchangeDto)))
             Response.ok(enriched).build()
         }
         catch (exception: Exception)
@@ -477,7 +467,11 @@ class ExchangeResource @Inject constructor(
             {
                 is InformationRequestExchangeCompletionException ->
                 {
-                    logger.info("Exchange {} ending refused by its Information Requests: {}", exchangeId, exception.reasonCode)
+                    logger.info(
+                        "Exchange {} ending refused by its Information Requests: {}",
+                        exchangeId,
+                        exception.reasonCode
+                    )
                     Response
                         .status(Response.Status.CONFLICT)
                         .entity(InformationRequestCompletionDtoMapper.refusal(exception))
@@ -848,7 +842,11 @@ class ExchangeResource @Inject constructor(
         if (recipientUserId != null)
         {
             val recipient = appUserService.getById(recipientUserId) ?: return sessionDto
-            return sessionDto.copy(recipient = com.docuhyphen.app.api.model.DetailedEntityToDtoTransformer.toPublicDto(recipient))
+            return sessionDto.copy(
+                recipient = com.docuhyphen.app.api.model.DetailedEntityToDtoTransformer.toPublicDto(
+                    recipient
+                )
+            )
         }
         val recipientGroupId = shareService.primaryRecipientGroupIdForDisplay(sessionDto.id) ?: return sessionDto
         val groupName = principalGroupRepository.findById(recipientGroupId)?.name ?: return sessionDto
@@ -870,8 +868,8 @@ class ExchangeResource @Inject constructor(
         // The download key is `can_download` in the newer constraints but
         // `allow_document_download` in the legacy initiation flags, accept either.
         val downloadAllowed = c.canDownload != false &&
-            (constraintsJson.contains("\"allow_document_download\":true") ||
-                c.canDownload == true)
+                (constraintsJson.contains("\"allow_document_download\":true") ||
+                        c.canDownload == true)
         return sessionDto.copy(
             allowDocumentAddition = c.allowDocumentAddition == true,
             allowDocumentDeletion = c.allowDocumentDeletion == true,

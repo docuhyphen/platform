@@ -7,7 +7,10 @@ import com.docuhyphen.app.api.model.entity.SubjectIdentityRef
 
 object InformationRequestSubjectDtoMapper
 {
-    fun toDto(subject: SubjectIdentityRef, identifiers: List<SubjectIdentityExternalIdentifier>): InformationRequestSubjectDto =
+    fun toDto(
+        subject: SubjectIdentityRef,
+        identifiers: List<SubjectIdentityExternalIdentifier>
+    ): InformationRequestSubjectDto =
         InformationRequestSubjectDto(
             id = subject.id,
             subjectKind = subject.subjectKind,

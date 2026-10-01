@@ -1,8 +1,8 @@
 ﻿package com.docuhyphen.app.api.service.auth
 
+import com.docuhyphen.app.api.model.auth.SessionDeadlines
 import com.docuhyphen.app.api.model.entity.AppUser
 import com.docuhyphen.app.api.model.entity.UserSession
-import com.docuhyphen.app.api.model.auth.SessionDeadlines
 import com.docuhyphen.app.api.realtime.RealtimeEventService
 import com.docuhyphen.app.api.realtime.UserSessionInfo
 import com.docuhyphen.app.api.repository.auth.UserSessionRepository
@@ -11,7 +11,7 @@ import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 @RequestScoped
 class UserSessionService @Inject constructor(

@@ -71,18 +71,26 @@ object InformationRequestCommandHttp
             is InformationRequestTemplateValidationException -> error(BAD_REQUEST, exception.message)
             is InformationRequestCapabilityNotInstalledException ->
                 error(CONFLICT, exception.message, InformationRequestErrorCatalog.CAPABILITY_NOT_INSTALLED)
-            is InformationRequestTemplateVersionUnavailableException -> error(CONFLICT, exception.message, exception.code)
+
+            is InformationRequestTemplateVersionUnavailableException -> error(
+                CONFLICT,
+                exception.message,
+                exception.code
+            )
+
             is CommandPreconditionException -> CommandPreconditionResponse.refused(exception)
             is CommandReceiptConflictException -> error(CONFLICT, exception.message, exception.reasonCode)
             is InformationRequestRateLimitedException -> Response.status(TOO_MANY_REQUESTS)
                 .header(RETRY_AFTER_HEADER, exception.retryAfterSeconds)
                 .entity(ResponseError(exception.message, exception.reasonCode))
                 .build()
+
             is RequestExecutionUsageExhaustedException -> error(
                 CONFLICT,
                 "This request has no acting-party capacity left in its execution grant",
                 InformationRequestErrorCatalog.CAPACITY_EXHAUSTED,
             )
+
             is InformationRequestSubmissionIncompleteException -> Response.status(UNPROCESSABLE_CONTENT)
                 .entity(
                     InformationRequestSubmissionDtoMapper.refusal(
@@ -92,11 +100,13 @@ object InformationRequestCommandHttp
                     ),
                 )
                 .build()
+
             is InformationRequestLifecycleException ->
                 if (exception.reasonCode == InformationRequestErrorCatalog.NOT_FOUND)
                     error(NOT_FOUND, exception.message, exception.reasonCode)
                 else
                     error(CONFLICT, exception.message, exception.reasonCode)
+
             is IllegalArgumentException -> error(NOT_FOUND, exception.message)
             is IllegalStateException -> error(CONFLICT, exception.message)
             is ForbiddenException -> error(FORBIDDEN, exception.message, InformationRequestErrorCatalog.FORBIDDEN)

@@ -74,7 +74,8 @@ class InformationRequestPartyQueryService @Inject constructor(
             .groupBy { it.subjectIdentityRefId }
         val parties = listed.map { listedParty ->
             val party = listedParty.copy(
-                trustSuspended = listedParty.exchangeRecipientId?.let(exchangeRecipientService::trustSuspended) ?: false,
+                trustSuspended = listedParty.exchangeRecipientId?.let(exchangeRecipientService::trustSuspended)
+                    ?: false,
             )
             val principalId = party.principalId
             val principalKind = party.principalKind

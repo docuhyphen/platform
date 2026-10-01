@@ -20,13 +20,7 @@ import com.docuhyphen.app.api.repository.informationrequest.party.InformationReq
 import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.auth.authz.ResourceRef
-import com.docuhyphen.app.api.service.command.CommandActorRef
-import com.docuhyphen.app.api.service.command.CommandMutationResult
-import com.docuhyphen.app.api.service.command.CommandReceiptDecision
-import com.docuhyphen.app.api.service.command.CommandReceiptRequest
-import com.docuhyphen.app.api.service.command.CommandReceiptService
-import com.docuhyphen.app.api.service.command.CommandRequestFingerprint
-import com.docuhyphen.app.api.service.command.CommandResultReference
+import com.docuhyphen.app.api.service.command.*
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestMutationGate
 import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestOwnerScopeAccess
@@ -38,7 +32,7 @@ import jakarta.inject.Inject
 import jakarta.transaction.Transactional
 import java.time.Clock
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestReminderService @Inject constructor(
@@ -76,11 +70,18 @@ class InformationRequestReminderService @Inject constructor(
         val ownerId = request?.ownerOrganizationId ?: request?.ownerUserId
         if (request == null || request.ownerType != owner.ownerType || ownerId != owner.ownerId)
         {
-            throw InformationRequestLifecycleException(InformationRequestErrorCatalog.NOT_FOUND, "Information Request not found")
+            throw InformationRequestLifecycleException(
+                InformationRequestErrorCatalog.NOT_FOUND,
+                "Information Request not found"
+            )
         }
     }
 
-    private fun remind(locked: LockedInformationRequest, actor: PrincipalRef, idempotencyKey: String): InformationRequestReminderResult
+    private fun remind(
+        locked: LockedInformationRequest,
+        actor: PrincipalRef,
+        idempotencyKey: String
+    ): InformationRequestReminderResult
     {
         val request = locked.request
         val receipt = CommandReceiptRequest(
@@ -93,7 +94,10 @@ class InformationRequestReminderService @Inject constructor(
         if (!commandReceiptService.isRecorded(receipt))
         {
             cooldownUntil(request.id)?.let { reopensAt ->
-                InformationRequestAbuseLog.refused(InformationRequestAbuseControl.REMINDER_COOLDOWN, "request=${request.id}")
+                InformationRequestAbuseLog.refused(
+                    InformationRequestAbuseControl.REMINDER_COOLDOWN,
+                    "request=${request.id}"
+                )
                 return InformationRequestReminderResult(request.id, 0, reopensAt)
             }
         }
@@ -124,7 +128,11 @@ class InformationRequestReminderService @Inject constructor(
                 }
                 CommandMutationResult(
                     InformationRequestReminderResult(request.id, parties.size),
-                    CommandResultReference(ResourceType.INFORMATION_REQUEST, request.id, revision = parties.size.toLong()),
+                    CommandResultReference(
+                        ResourceType.INFORMATION_REQUEST,
+                        request.id,
+                        revision = parties.size.toLong()
+                    ),
                 )
             }
         )

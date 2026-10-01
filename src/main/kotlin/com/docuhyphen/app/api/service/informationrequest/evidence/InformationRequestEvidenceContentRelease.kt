@@ -18,7 +18,11 @@ class InformationRequestEvidenceContentRelease @Inject constructor(
 {
     fun requireReleasable(version: InformationRequestEvidenceVersion, access: RequestAccessContext)
     {
-        val scan = InformationRequestEvidenceAssessmentSelection.governingScan(assessmentRepository.findForVersions(listOf(version.id)))
+        val scan = InformationRequestEvidenceAssessmentSelection.governingScan(
+            assessmentRepository.findForVersions(
+                listOf(version.id)
+            )
+        )
         val outcome = scan?.malwareOutcome()
         if (outcome == InformationRequestEvidenceMalwareOutcome.MALWARE_DETECTED)
         {

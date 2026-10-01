@@ -1,10 +1,6 @@
 package com.docuhyphen.app.api.service.informationrequest.review
 
-import com.docuhyphen.app.api.model.entity.InformationRequestParty
-import com.docuhyphen.app.api.model.entity.InformationRequestReview
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewAssignment
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewAssignmentState
-import com.docuhyphen.app.api.model.entity.InformationRequestShareRoleKey
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
 import com.docuhyphen.app.api.repository.informationrequest.party.InformationRequestPartyRepository
 import com.docuhyphen.app.api.repository.informationrequest.review.InformationRequestReviewAssignmentRepository
@@ -17,7 +13,7 @@ import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRe
 import io.quarkus.security.ForbiddenException
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestReviewAccess @Inject constructor(
@@ -40,7 +36,10 @@ class InformationRequestReviewAccess @Inject constructor(
 
     fun requireAssignment(review: InformationRequestReview, assignmentId: UUID): InformationRequestReviewAssignment =
         assignmentRepository.findById(assignmentId)?.takeIf { it.reviewId == review.id }
-            ?: throw InformationRequestLifecycleException(InformationRequestErrorCatalog.NOT_FOUND, "Review assignment not found")
+            ?: throw InformationRequestLifecycleException(
+                InformationRequestErrorCatalog.NOT_FOUND,
+                "Review assignment not found"
+            )
 
     fun requireActive(assignment: InformationRequestReviewAssignment)
     {
@@ -63,10 +62,10 @@ class InformationRequestReviewAccess @Inject constructor(
     fun reviewerParty(requestId: UUID, partyId: UUID): InformationRequestParty =
         partyRepository.findById(partyId)?.takeIf {
             it.informationRequestId == requestId &&
-                it.active &&
-                it.roleKey == InformationRequestShareRoleKey.REVIEWER &&
-                it.principalKind != null &&
-                it.principalId != null
+                    it.active &&
+                    it.roleKey == InformationRequestShareRoleKey.REVIEWER &&
+                    it.principalKind != null &&
+                    it.principalId != null
         } ?: throw InformationRequestLifecycleException(
             InformationRequestErrorCatalog.REVIEWER_NOT_ELIGIBLE,
             "The named party is not an active reviewer of this Information Request",
@@ -88,8 +87,12 @@ class InformationRequestReviewAccess @Inject constructor(
         }
     }
 
-    fun callerAssignments(review: InformationRequestReview, access: RequestAccessContext): List<InformationRequestReviewAssignment> =
-        assignmentRepository.findForReview(review.id).filter { it.state == InformationRequestReviewAssignmentState.ACTIVE && actsAs(it, access) }
+    fun callerAssignments(
+        review: InformationRequestReview,
+        access: RequestAccessContext
+    ): List<InformationRequestReviewAssignment> =
+        assignmentRepository.findForReview(review.id)
+            .filter { it.state == InformationRequestReviewAssignmentState.ACTIVE && actsAs(it, access) }
 
     fun permitsReview(access: RequestAccessContext, requestId: UUID): Boolean =
         gate.permitsRequest(access, Action.INFORMATION_REQUEST_REVIEW, requestId)

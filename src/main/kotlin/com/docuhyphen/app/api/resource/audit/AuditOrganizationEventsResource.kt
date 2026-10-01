@@ -7,23 +7,12 @@ import com.docuhyphen.app.api.service.audit.AuditProjectionCursor
 import com.docuhyphen.app.api.service.audit.AuditProjectionNotFoundException
 import com.docuhyphen.app.api.service.audit.AuditSearchProjectionService
 import com.docuhyphen.app.api.service.audit.catalog.AuditCategory
-import com.docuhyphen.app.api.service.auth.authz.Action
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.Decision
-import com.docuhyphen.app.api.service.auth.authz.ResourceRef
+import com.docuhyphen.app.api.service.auth.authz.*
 import jakarta.inject.Inject
-import jakarta.ws.rs.Consumes
-import jakarta.ws.rs.DefaultValue
-import jakarta.ws.rs.GET
-import jakarta.ws.rs.Path
-import jakarta.ws.rs.PathParam
-import jakarta.ws.rs.Produces
-import jakarta.ws.rs.QueryParam
+import jakarta.ws.rs.*
 import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
-import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 /**
  * Given its own dedicated class-level path (rather than sharing a root "/" path with full
@@ -93,7 +82,13 @@ class AuditOrganizationEventsResource @Inject constructor(
         val actor = AuditSearchProjectionService.AuditAccessActor(principal, context, capabilities)
         if (decision is Decision.Deny)
         {
-            auditSearchProjectionService.recordDeniedAttempt(actor, orgId, "ORGANIZATION", orgId.toString(), decision.reasonCode)
+            auditSearchProjectionService.recordDeniedAttempt(
+                actor,
+                orgId,
+                "ORGANIZATION",
+                orgId.toString(),
+                decision.reasonCode
+            )
             return Response.status(Response.Status.FORBIDDEN).entity(ResponseError("Insufficient privileges")).build()
         }
         return runGuarded { block(actor, orgId) }

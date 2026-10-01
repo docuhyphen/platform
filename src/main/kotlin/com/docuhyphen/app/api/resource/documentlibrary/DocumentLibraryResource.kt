@@ -1,38 +1,20 @@
 package com.docuhyphen.app.api.resource.documentlibrary
 
-import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.exception.SubscriptionDenialException
-import com.docuhyphen.app.api.model.dto.CloneDocumentLibraryEntryRequest
-import com.docuhyphen.app.api.model.dto.CreateDocumentLibraryEntryRequest
-import com.docuhyphen.app.api.model.dto.PatchDocumentLibraryPublishedRequest
-import com.docuhyphen.app.api.model.dto.PatchDocumentLibraryStatusRequest
-import com.docuhyphen.app.api.model.dto.UpdateDocumentLibraryEntryRequest
+import com.docuhyphen.app.api.interceptor.AuthTokenContext
+import com.docuhyphen.app.api.model.dto.*
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.service.documentlibrary.DocumentLibraryService
 import io.quarkus.security.ForbiddenException
 import jakarta.inject.Inject
-import jakarta.ws.rs.Consumes
-import jakarta.ws.rs.DELETE
-import jakarta.ws.rs.GET
-import jakarta.ws.rs.PATCH
-import jakarta.ws.rs.POST
-import jakarta.ws.rs.PUT
-import jakarta.ws.rs.Path
-import jakarta.ws.rs.PathParam
-import jakarta.ws.rs.Produces
-import jakarta.ws.rs.QueryParam
+import jakarta.ws.rs.*
 import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
-import jakarta.ws.rs.core.Response.Status.BAD_REQUEST
-import jakarta.ws.rs.core.Response.Status.CREATED
-import jakarta.ws.rs.core.Response.Status.FORBIDDEN
-import jakarta.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR
-import jakarta.ws.rs.core.Response.Status.NOT_FOUND
-import jakarta.ws.rs.core.Response.Status.UNAUTHORIZED
+import jakarta.ws.rs.core.Response.Status.*
 import org.jboss.resteasy.reactive.RestForm
 import org.slf4j.LoggerFactory
 import java.io.File
-import java.util.UUID
+import java.util.*
 
 /**
  * REST endpoints for document library management.
@@ -86,7 +68,8 @@ class DocumentLibraryResource @Inject constructor(
         catch (e: Exception)
         {
             logger.error("Failed to list document library entries", e)
-            Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("Failed to list document library entries")).build()
+            Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("Failed to list document library entries"))
+                .build()
         }
     }
 
@@ -125,7 +108,8 @@ class DocumentLibraryResource @Inject constructor(
         catch (e: Exception)
         {
             logger.error("Failed to create document library entry", e)
-            Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("Failed to create document library entry")).build()
+            Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("Failed to create document library entry"))
+                .build()
         }
     }
 
@@ -203,7 +187,8 @@ class DocumentLibraryResource @Inject constructor(
         catch (e: Exception)
         {
             logger.error("Failed to update document library entry {}", id, e)
-            Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("Failed to update document library entry")).build()
+            Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("Failed to update document library entry"))
+                .build()
         }
     }
 
@@ -242,7 +227,8 @@ class DocumentLibraryResource @Inject constructor(
         catch (e: Exception)
         {
             logger.error("Failed to patch document library entry status {}", id, e)
-            Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("Failed to patch document library entry status")).build()
+            Response.status(INTERNAL_SERVER_ERROR)
+                .entity(ResponseError("Failed to patch document library entry status")).build()
         }
     }
 
@@ -281,7 +267,8 @@ class DocumentLibraryResource @Inject constructor(
         catch (e: Exception)
         {
             logger.error("Failed to patch document library entry published {}", id, e)
-            Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("Failed to patch document library entry published")).build()
+            Response.status(INTERNAL_SERVER_ERROR)
+                .entity(ResponseError("Failed to patch document library entry published")).build()
         }
     }
 
@@ -320,7 +307,8 @@ class DocumentLibraryResource @Inject constructor(
         catch (e: Exception)
         {
             logger.error("Failed to delete document library entry {}", id, e)
-            Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("Failed to delete document library entry")).build()
+            Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("Failed to delete document library entry"))
+                .build()
         }
     }
 
@@ -455,7 +443,8 @@ class DocumentLibraryResource @Inject constructor(
         catch (e: Exception)
         {
             logger.error("Failed to clone document library entry {}", id, e)
-            Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("Failed to clone document library entry")).build()
+            Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("Failed to clone document library entry"))
+                .build()
         }
     }
 }

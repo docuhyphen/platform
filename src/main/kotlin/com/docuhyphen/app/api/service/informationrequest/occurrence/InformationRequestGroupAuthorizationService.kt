@@ -5,18 +5,13 @@ import com.docuhyphen.app.api.model.entity.InformationRequestTemplateRequirement
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
 import com.docuhyphen.app.api.model.informationrequest.access.InformationRequestRequirementPolicyFacts
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRequirementRepository
-import com.docuhyphen.app.api.service.auth.authz.Action
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.Decision
-import com.docuhyphen.app.api.service.auth.authz.ResourcePolicyOutcome
-import com.docuhyphen.app.api.service.auth.authz.ResourcePolicyRequest
-import com.docuhyphen.app.api.service.auth.authz.ResourceRef
+import com.docuhyphen.app.api.service.auth.authz.*
 import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestRequirementAuthorizationContextProvider
 import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestRequirementPolicyEvaluator
 import io.quarkus.security.ForbiddenException
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestGroupAuthorizationService @Inject constructor(

@@ -1,20 +1,6 @@
 package com.docuhyphen.app.api.service.informationrequest.template
 
-import com.docuhyphen.app.api.model.entity.InformationRequest
-import com.docuhyphen.app.api.model.entity.InformationRequestGroupOccurrence
-import com.docuhyphen.app.api.model.entity.InformationRequestRequirement
-import com.docuhyphen.app.api.model.entity.InformationRequestRequirementCurrent
-import com.docuhyphen.app.api.model.entity.InformationRequestRequirementRevision
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateEvidencePolicy
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateRequirement
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateRequirementBinding
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateRequirementGroup
-import com.docuhyphen.app.api.model.entity.InformationRequestRequirementType
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateScopeKind
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateStatus
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateVersion
-import com.docuhyphen.app.api.model.entity.ResourceType
-import com.docuhyphen.app.api.model.entity.SchemaAssignmentSource
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.informationrequest.amendment.InformationRequestRequirementAdvance
 import com.docuhyphen.app.api.model.informationrequest.capability.InformationRequestCapabilityRequirement
 import com.docuhyphen.app.api.model.informationrequest.template.InformationRequestMaterializationResult
@@ -23,17 +9,7 @@ import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRe
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRequirementRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRequirementRevisionRepository
 import com.docuhyphen.app.api.repository.informationrequest.occurrence.InformationRequestGroupOccurrenceRepository
-import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateBindingDispositionRepository
-import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateBindingEvidenceLinkRepository
-import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateBindingSubstituteRepository
-import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateDefinitionRepository
-import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateEvidenceAcceptedValueRepository
-import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateEvidencePolicyRepository
-import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateRequirementBindingRepository
-import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateRequirementGroupRepository
-import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateRequirementRepository
-import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateVersionCapabilityRepository
-import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateVersionRepository
+import com.docuhyphen.app.api.repository.informationrequest.template.*
 import com.docuhyphen.app.api.service.auth.authz.ScopeReference
 import com.docuhyphen.app.api.service.fields.FieldsAccessContext
 import com.docuhyphen.app.api.service.fields.FieldsResourceRef
@@ -49,7 +25,7 @@ import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestTemplateMaterializer @Inject constructor(
@@ -106,7 +82,7 @@ class InformationRequestTemplateMaterializer @Inject constructor(
         if (unserved.isNotEmpty())
             throw InformationRequestCapabilityNotInstalledException(
                 "Information request template version ${version.versionNumber} requires runtime capabilities " +
-                    "this deployment does not serve: ${unserved.joinToString { it.capability.name }}",
+                        "this deployment does not serve: ${unserved.joinToString { it.capability.name }}",
                 unserved,
             )
 
@@ -144,7 +120,15 @@ class InformationRequestTemplateMaterializer @Inject constructor(
             val templateRequirement = requirementsById[binding.templateRequirementId]
                 ?: throw IllegalStateException("Template requirement ${binding.templateRequirementId} is missing")
             occurrencePathsForBinding(binding, occurrencePathsByGroupKey).forEach { occurrencePath ->
-                materializeRequirement(request, version, binding, templateRequirement, configuration, now, occurrencePath)
+                materializeRequirement(
+                    request,
+                    version,
+                    binding,
+                    templateRequirement,
+                    configuration,
+                    now,
+                    occurrencePath
+                )
                 requirementCount++
             }
         }
@@ -197,6 +181,7 @@ class InformationRequestTemplateMaterializer @Inject constructor(
                         added += materializeRequirement(
                             request, version, binding, templateRequirement, configuration, now, occurrencePath,
                         ).id
+
                     runtime.sourceTemplateBindingId != binding.id ->
                     {
                         advanceRequirement(runtime, version, binding, templateRequirement, configuration, now)
@@ -461,8 +446,12 @@ class InformationRequestTemplateMaterializer @Inject constructor(
             "dispositions:${configuration.dispositionsByBinding[binding.id].orEmpty().map { it.disposition.name }}",
             "policy:${policy?.stableHashMaterial().orEmpty()}",
             "accepted:${policy?.let { acceptedHashMaterial(it, configuration) }.orEmpty()}",
-            "substitutes:${configuration.substitutesByBinding[binding.id].orEmpty().map { it.substituteTemplateBindingId }}",
-            "supporting:${configuration.evidenceLinksByBinding[binding.id].orEmpty().map { it.supportingTemplateBindingId }}",
+            "substitutes:${
+                configuration.substitutesByBinding[binding.id].orEmpty().map { it.substituteTemplateBindingId }
+            }",
+            "supporting:${
+                configuration.evidenceLinksByBinding[binding.id].orEmpty().map { it.supportingTemplateBindingId }
+            }",
         ).joinToString(separator = "\n")
         val digest = MessageDigest.getInstance("SHA-256")
             .digest(material.toByteArray(StandardCharsets.UTF_8))
@@ -516,8 +505,10 @@ class InformationRequestTemplateMaterializer @Inject constructor(
         {
             InformationRequestTemplateScopeKind.ORGANIZATION ->
                 ScopeReference.Organization(requireNotNull(scopeOrgId))
+
             InformationRequestTemplateScopeKind.PERSONAL ->
                 ScopeReference.Personal(requireNotNull(scopeUserId))
+
             InformationRequestTemplateScopeKind.PLATFORM -> ScopeReference.Platform
         }
         if (requestOwner != templateOwner)

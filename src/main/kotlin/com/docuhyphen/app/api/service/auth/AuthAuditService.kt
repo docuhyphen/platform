@@ -1,18 +1,13 @@
 package com.docuhyphen.app.api.service.auth
 
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
-import com.docuhyphen.app.api.service.audit.AuditCaptureFailedException
-import com.docuhyphen.app.api.service.audit.AuditCaptureResult
-import com.docuhyphen.app.api.service.audit.AuditDraftInvalidException
-import com.docuhyphen.app.api.service.audit.AuditEventDraft
-import com.docuhyphen.app.api.service.audit.AuditOwnerScope
-import com.docuhyphen.app.api.service.audit.AuditRecorder
+import com.docuhyphen.app.api.service.audit.*
 import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
 import com.docuhyphen.app.api.service.audit.catalog.AuditOutcome
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
 import org.slf4j.LoggerFactory
-import java.util.UUID
+import java.util.*
 
 @RequestScoped
 class AuthAuditService @Inject constructor(
@@ -73,8 +68,14 @@ class AuthAuditService @Inject constructor(
             {
                 is AuditDraftInvalidException ->
                     logger.warn("Authentication audit draft rejected for action={}: {}", action, exception.message)
+
                 else ->
-                    logger.error("Authentication audit capture failed for action={}: {}", action, exception.message, exception)
+                    logger.error(
+                        "Authentication audit capture failed for action={}: {}",
+                        action,
+                        exception.message,
+                        exception
+                    )
             }
         }
     }

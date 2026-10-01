@@ -1,11 +1,10 @@
 package com.docuhyphen.app.api.repository.notification
 
-import com.docuhyphen.app.api.repository.BaseRepository
-
 import com.docuhyphen.app.api.model.entity.InAppNotification
 import com.docuhyphen.app.api.model.entity.NotificationDeliveryLog
+import com.docuhyphen.app.api.repository.BaseRepository
 import jakarta.enterprise.context.ApplicationScoped
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class InAppNotificationRepository : BaseRepository<InAppNotification>(InAppNotification::class.java)

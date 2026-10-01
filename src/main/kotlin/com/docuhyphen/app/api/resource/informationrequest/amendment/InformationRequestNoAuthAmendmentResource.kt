@@ -26,13 +26,22 @@ class InformationRequestNoAuthAmendmentResource @Inject constructor(
     {
         return try
         {
-            InformationRequestCommandHttp.withNoAuthAccess(readAccessService, id, accessLinkToken, sessionToken) { requestId, access ->
+            InformationRequestCommandHttp.withNoAuthAccess(
+                readAccessService,
+                id,
+                accessLinkToken,
+                sessionToken
+            ) { requestId, access ->
                 handler.list(requestId, access)
             }
         }
         catch (exception: Exception)
         {
-            InformationRequestCommandHttp.refused(logger, "No-auth Information Request amendment list failed", exception)
+            InformationRequestCommandHttp.refused(
+                logger,
+                "No-auth Information Request amendment list failed",
+                exception
+            )
         }
     }
 

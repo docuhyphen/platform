@@ -1,14 +1,14 @@
 package com.docuhyphen.app.api.model
 
+import com.docuhyphen.app.api.model.dto.OrganizationDirectoryEntryDto
 import com.docuhyphen.app.api.model.dto.OrganizationTrustPolicyDto
 import com.docuhyphen.app.api.model.dto.OrganizationTrustRelationshipDto
-import com.docuhyphen.app.api.model.dto.OrganizationDirectoryEntryDto
 import com.docuhyphen.app.api.model.entity.Organization
 import com.docuhyphen.app.api.model.entity.OrganizationTrustPartyPolicy
 import com.docuhyphen.app.api.model.entity.OrganizationTrustRelationship
 import com.docuhyphen.app.api.model.entity.OrganizationTrustSuspension
 import jakarta.enterprise.context.ApplicationScoped
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class OrganizationTrustDtoTransformer

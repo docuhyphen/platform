@@ -3,7 +3,7 @@ package com.docuhyphen.app.api.repository.informationrequest.noauth
 import com.docuhyphen.app.api.model.entity.ParticipantAccountLink
 import com.docuhyphen.app.api.repository.BaseRepository
 import jakarta.enterprise.context.ApplicationScoped
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class ParticipantAccountLinkRepository :

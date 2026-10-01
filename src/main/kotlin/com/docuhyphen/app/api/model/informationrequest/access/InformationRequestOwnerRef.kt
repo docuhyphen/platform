@@ -3,7 +3,7 @@ package com.docuhyphen.app.api.model.informationrequest.access
 import com.docuhyphen.app.api.model.entity.InformationRequest
 import com.docuhyphen.app.api.model.entity.InformationRequestOwnerType
 import com.docuhyphen.app.api.service.audit.AuditOwnerScope
-import java.util.UUID
+import java.util.*
 
 data class InformationRequestOwnerRef(
     val ownerType: InformationRequestOwnerType,
@@ -28,6 +28,7 @@ data class InformationRequestOwnerRef(
         {
             InformationRequestOwnerType.ORGANIZATION ->
                 InformationRequestOwnerRef(request.ownerType, requireNotNull(request.ownerOrganizationId))
+
             InformationRequestOwnerType.USER ->
                 InformationRequestOwnerRef(request.ownerType, requireNotNull(request.ownerUserId))
         }

@@ -72,7 +72,8 @@ class ExchangeDocumentAuditService @Inject constructor(
             return emptyList()
         }
 
-        val ledgerEvents = auditLedgerEventRepository.findByTargetTypeAndTargetIds("Document", documentsById.keys.toList())
+        val ledgerEvents =
+            auditLedgerEventRepository.findByTargetTypeAndTargetIds("Document", documentsById.keys.toList())
 
         return ledgerEvents.map { toDocumentAuditDetailedDto(it, documentsById) }
     }
@@ -137,7 +138,11 @@ class ExchangeDocumentAuditService @Inject constructor(
         }
         catch (e: AuditDraftInvalidException)
         {
-            logger.warn("ExchangeDocumentAuditService: AuditRecorder rejected draft for action={}: {}", action, e.message)
+            logger.warn(
+                "ExchangeDocumentAuditService: AuditRecorder rejected draft for action={}: {}",
+                action,
+                e.message
+            )
         }
         catch (e: AuditCaptureFailedException)
         {

@@ -2,12 +2,7 @@ package com.docuhyphen.app.api.service.informationrequest.parent
 
 import com.docuhyphen.app.api.model.entity.Exchange
 import com.docuhyphen.app.api.model.entity.InformationRequest
-import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestCompletionCandidate
-import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestMutation
-import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestParentSnapshot
-import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestPolicyDecision
-import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestState
-import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestTransitionHistoryCommand
+import com.docuhyphen.app.api.model.informationrequest.lifecycle.*
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
@@ -19,7 +14,7 @@ import jakarta.inject.Inject
 import jakarta.transaction.Transactional
 import java.sql.Timestamp
 import java.time.Clock
-import java.util.UUID
+import java.util.*
 
 class InformationRequestExchangeCompletionException(
     reasonCode: String,
@@ -33,7 +28,10 @@ class InformationRequestExchangeCompletionService @Inject constructor(
     private val clock: Clock,
 )
 {
-    @Transactional(value = Transactional.TxType.MANDATORY, dontRollbackOn = [InformationRequestExchangeCompletionException::class])
+    @Transactional(
+        value = Transactional.TxType.MANDATORY,
+        dontRollbackOn = [InformationRequestExchangeCompletionException::class]
+    )
     fun prepareEnding(exchange: Exchange, actor: PrincipalRef, cancelRemaining: Boolean)
     {
         requestRepository.flushPendingChanges()
@@ -52,12 +50,16 @@ class InformationRequestExchangeCompletionService @Inject constructor(
                     reasonCode,
                     requests.filter { it.gatesExchangeClosure && !it.state.isTerminal }.map { it.id },
                 )
+
             InformationRequestErrorCatalog.REMAINING_REQUESTS_REQUIRE_CANCELLATION ->
             {
                 val remaining = requests.filter { !it.gatesExchangeClosure && !it.state.isTerminal }
-                if (!cancelRemaining) throw InformationRequestExchangeCompletionException(reasonCode, remaining.map { it.id })
+                if (!cancelRemaining) throw InformationRequestExchangeCompletionException(
+                    reasonCode,
+                    remaining.map { it.id })
                 remaining.forEach { cancel(it, actor) }
             }
+
             else -> throw InformationRequestExchangeCompletionException(reasonCode, emptyList())
         }
     }

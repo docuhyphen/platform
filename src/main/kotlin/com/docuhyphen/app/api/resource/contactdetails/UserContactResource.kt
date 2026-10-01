@@ -5,8 +5,8 @@ import com.docuhyphen.app.api.model.AvatarUrls
 import com.docuhyphen.app.api.model.dto.UserContactDto
 import com.docuhyphen.app.api.model.entity.UserContact
 import com.docuhyphen.app.api.resource.model.ResponseError
-import com.docuhyphen.app.api.service.contactdetails.UserContactService
 import com.docuhyphen.app.api.service.auth.DirectoryLookupGuardService
+import com.docuhyphen.app.api.service.contactdetails.UserContactService
 import io.quarkus.security.UnauthorizedException
 import jakarta.inject.Inject
 import jakarta.ws.rs.*
@@ -14,7 +14,7 @@ import jakarta.ws.rs.core.MediaType.APPLICATION_JSON
 import jakarta.ws.rs.core.Response
 import jakarta.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR
 import org.slf4j.LoggerFactory
-import java.util.UUID
+import java.util.*
 
 @Path("me/contacts")
 @Produces(APPLICATION_JSON)
@@ -69,6 +69,7 @@ class UserContactResource @Inject constructor(
                     Response.status(Response.Status.UNAUTHORIZED)
                         .entity(ResponseError(exception.message))
                         .build()
+
                 else ->
                 {
                     logger.error("Error searching contacts", exception)
@@ -118,6 +119,7 @@ class UserContactResource @Inject constructor(
                     Response.status(Response.Status.UNAUTHORIZED)
                         .entity(ResponseError(exception.message))
                         .build()
+
                 else ->
                 {
                     logger.error("Error fetching recent contacts", exception)

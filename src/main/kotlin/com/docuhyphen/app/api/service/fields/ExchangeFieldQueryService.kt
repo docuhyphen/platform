@@ -39,9 +39,10 @@ class ExchangeFieldQueryService @Inject constructor(
         for (value in fieldValueRepository.findByValueSet(rootValueSet.id))
         {
             val contract = fieldContractRepository.findById(value.fieldContractId) ?: continue
-            val codes = if (value.valueType == FieldValueType.SINGLE_SELECT || value.valueType == FieldValueType.MULTI_SELECT)
-                selectionRepository.findByValue(value.id).map { it.optionCode }
-            else emptyList()
+            val codes =
+                if (value.valueType == FieldValueType.SINGLE_SELECT || value.valueType == FieldValueType.MULTI_SELECT)
+                    selectionRepository.findByValue(value.id).map { it.optionCode }
+                else emptyList()
 
             byFieldDefinitionId[contract.fieldDefinitionId] = CanonicalFieldValue(
                 type = value.valueType,

@@ -4,15 +4,15 @@ import com.docuhyphen.app.api.model.entity.AppUser
 import com.docuhyphen.app.api.model.entity.OrganizationMembership
 import com.docuhyphen.app.api.model.entity.OrganizationMembershipStatus
 import com.docuhyphen.app.api.model.entity.OrganizationRoleName
-import com.docuhyphen.app.api.repository.user.AppUserRepository
 import com.docuhyphen.app.api.repository.organization.OrganizationMembershipRepository
+import com.docuhyphen.app.api.repository.user.AppUserRepository
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestOwnershipChangeService
 import com.docuhyphen.app.api.service.subscription.OrganizationFeatureSubscriptionGuard
 import com.docuhyphen.app.api.service.subscription.PlanFeature
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
-import java.util.UUID
+import java.util.*
 
 /**
  * Write-side for `organization_membership`, the unified replacement for the retired
@@ -120,9 +120,9 @@ class OrganizationMembershipService @Inject constructor(
         val roles = rolesOf(organizationId)
         return membersOf(organizationId).filter { user ->
             user.isActive && user.deprovisionedAt == null &&
-                roles[user.id].orEmpty().let {
-                    OrganizationRoleName.ORG_ADMIN in it || OrganizationRoleName.ORG_OWNER in it
-                }
+                    roles[user.id].orEmpty().let {
+                        OrganizationRoleName.ORG_ADMIN in it || OrganizationRoleName.ORG_OWNER in it
+                    }
         }
     }
 
@@ -150,7 +150,7 @@ class OrganizationMembershipService @Inject constructor(
         val appUser = appUserRepository.findById(appUserId)
             ?: throw IllegalArgumentException("App user not found")
         val consumesNewSeat = existing?.status != OrganizationMembershipStatus.ACTIVE &&
-            appUser.isActive && appUser.deprovisionedAt == null && !appUser.isTemporary
+                appUser.isActive && appUser.deprovisionedAt == null && !appUser.isTemporary
         if (consumesNewSeat)
         {
             organizationSeatGuard.enforceAvailableSeat(organizationId)

@@ -12,23 +12,12 @@ import com.docuhyphen.app.api.model.entity.PrincipalKind
 import com.docuhyphen.app.api.model.informationrequest.template.InformationRequestTemplateMutationContext
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateDefinitionRepository
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateVersionRepository
-import com.docuhyphen.app.api.service.audit.AuditCaptureFailedException
-import com.docuhyphen.app.api.service.audit.AuditDraftInvalidException
-import com.docuhyphen.app.api.service.audit.AuditEventDraft
-import com.docuhyphen.app.api.service.audit.AuditOwnerScope
-import com.docuhyphen.app.api.service.audit.AuditRecorder
+import com.docuhyphen.app.api.service.audit.*
 import com.docuhyphen.app.api.service.audit.catalog.AuditActorKind
 import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
 import com.docuhyphen.app.api.service.audit.catalog.AuditOutcome
 import com.docuhyphen.app.api.service.auth.UserRoleService
-import com.docuhyphen.app.api.service.auth.authz.Action
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.Decision
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import com.docuhyphen.app.api.service.auth.authz.ResourceRef
-import com.docuhyphen.app.api.service.auth.authz.RoleCapabilities
+import com.docuhyphen.app.api.service.auth.authz.*
 import io.quarkus.security.ForbiddenException
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
@@ -36,7 +25,7 @@ import jakarta.transaction.Transactional
 import org.slf4j.LoggerFactory
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 /**
  * Authoring of reusable Information Request Templates and of the one editable Version each may hold.
@@ -104,6 +93,7 @@ class InformationRequestTemplateAuthoringService @Inject constructor(
                 entitlementGuard.requireTemplateAccess(resolved, organizationId, null, null)
                 definitionRepository.findAllForOrganization(organizationId)
             }
+
             InformationRequestTemplateScopeKind.PERSONAL ->
             {
                 entitlementGuard.requireTemplateAccess(
@@ -111,6 +101,7 @@ class InformationRequestTemplateAuthoringService @Inject constructor(
                 )
                 definitionRepository.findAllForUser(principal.id)
             }
+
             InformationRequestTemplateScopeKind.PLATFORM -> definitionRepository.findAllPlatform()
         }
 
@@ -160,7 +151,7 @@ class InformationRequestTemplateAuthoringService @Inject constructor(
         {
             throw InformationRequestTemplateValidationException(
                 "Platform Templates are not created here. Copy a platform Template into your own or your " +
-                    "organization's Templates instead",
+                        "organization's Templates instead",
             )
         }
         val organizationId = if (scopeKind == InformationRequestTemplateScopeKind.ORGANIZATION)
@@ -183,7 +174,7 @@ class InformationRequestTemplateAuthoringService @Inject constructor(
         {
             throw InformationRequestTemplateValidationException(
                 "An information request template with key $namespace:$templateKey already exists " +
-                    "for this owner",
+                        "for this owner",
             )
         }
 
@@ -292,6 +283,7 @@ class InformationRequestTemplateAuthoringService @Inject constructor(
                     return principal
                 }
             }
+
             InformationRequestTemplateScopeKind.PLATFORM -> Unit
         }
         throw ForbiddenException("Access denied to information request template configuration")
@@ -414,11 +406,13 @@ class InformationRequestTemplateAuthoringService @Inject constructor(
                     "Organization-owned information request template names no organization"
                 },
             )
+
             InformationRequestTemplateScopeKind.PERSONAL -> AuditOwnerScope.Personal(
                 requireNotNull(definition.scopeUserId) {
                     "Personally owned information request template names no person"
                 },
             )
+
             InformationRequestTemplateScopeKind.PLATFORM -> AuditOwnerScope.Platform
         }
 

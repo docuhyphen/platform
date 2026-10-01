@@ -6,9 +6,9 @@ import com.docuhyphen.app.api.interceptor.EnforceAdminAction
 import com.docuhyphen.app.api.model.entity.AppUser
 import com.docuhyphen.app.api.model.entity.Organization
 import com.docuhyphen.app.api.repository.organization.OrganizationRepository
-import com.docuhyphen.app.api.service.auth.UserRoleService
 import com.docuhyphen.app.api.service.auth.AdminApprovalContext
 import com.docuhyphen.app.api.service.auth.AuthAuditService
+import com.docuhyphen.app.api.service.auth.UserRoleService
 import com.docuhyphen.app.api.service.communication.EmailService
 import com.docuhyphen.app.api.service.communication.EmailTemplateService
 import com.docuhyphen.app.api.service.config.ConfigurationService
@@ -53,8 +53,14 @@ class OrganizationService @Inject constructor(
         {
             throw OrganizationNotFoundException("Organization ID cannot be null or blank")
         }
-        val targetOrgId = try { UUID.fromString(organizationId) }
-            catch (e: IllegalArgumentException) { throw OrganizationNotFoundException("Invalid organization ID") }
+        val targetOrgId = try
+        {
+            UUID.fromString(organizationId)
+        }
+        catch (e: IllegalArgumentException)
+        {
+            throw OrganizationNotFoundException("Invalid organization ID")
+        }
         if (authTokenContext.authToken.appUser?.id?.let { userRoleService.isOrgAdminIn(it, targetOrgId) } != true)
         {
             throw UnauthorizedException("User does not have permission to update this organization")
@@ -87,7 +93,10 @@ class OrganizationService @Inject constructor(
             actorId = authTokenContext.authToken.appUser?.id,
             organizationId = organization.id,
             requestId = adminApprovalContext.requestId,
-            reason = if (updatedFields.isEmpty()) "Organization update requested with no effective field changes" else updatedFields.joinToString("; "),
+            reason = if (updatedFields.isEmpty()) "Organization update requested with no effective field changes"
+            else updatedFields.joinToString(
+                "; "
+            ),
             beforeSnapshot = beforeSnapshot,
             afterSnapshot = organizationSnapshot(organization),
         )
@@ -181,7 +190,11 @@ class OrganizationService @Inject constructor(
 
     private fun organizationSnapshot(organization: Organization): String
     {
-        return "id=${organization.id};name=${organization.name};registrationNumber=${organization.registrationNumber};isActive=${organization.isActive};verificationComplete=${organization.verificationComplete};appUsers=${organizationMembershipService.activeMemberCount(organization.id)}"
+        return "id=${organization.id};name=${organization.name};registrationNumber=${organization.registrationNumber};isActive=${organization.isActive};verificationComplete=${organization.verificationComplete};appUsers=${
+            organizationMembershipService.activeMemberCount(
+                organization.id
+            )
+        }"
     }
 }
 

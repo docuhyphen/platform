@@ -36,7 +36,11 @@ class InformationRequestSubjectPartyResource @Inject constructor(
                         "A subject reference states its authority, identifier type, and identifier value",
                     )
                 }
-                InformationRequestSubjectReference(stated.authority.trim(), stated.identifierType.trim(), stated.identifierValue.trim())
+                InformationRequestSubjectReference(
+                    stated.authority.trim(),
+                    stated.identifierType.trim(),
+                    stated.identifierValue.trim()
+                )
             }
             val result = subjectService.assignSubject(
                 AssignInformationRequestSubjectCommand(

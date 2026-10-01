@@ -1,20 +1,11 @@
 package com.docuhyphen.app.api.model.informationrequest.submission
 
-import com.docuhyphen.app.api.model.entity.InformationRequest
-import com.docuhyphen.app.api.model.entity.InformationRequestCorrection
-import com.docuhyphen.app.api.model.entity.InformationRequestRequirement
-import com.docuhyphen.app.api.model.entity.InformationRequestRequirementRevision
-import com.docuhyphen.app.api.model.entity.InformationRequestRequirementType
-import com.docuhyphen.app.api.model.entity.InformationRequestResponse
-import com.docuhyphen.app.api.model.entity.InformationRequestSubmissionItem
-import com.docuhyphen.app.api.model.entity.InformationRequestSupportingEvidenceLink
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateRequirementBinding
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateVersion
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.informationrequest.attestation.InformationRequestAttestationRequirementEvaluation
 import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceConformance
 import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceRequirementState
 import com.docuhyphen.app.api.model.informationrequest.response.InformationRequestCompletenessItemState
-import java.util.UUID
+import java.util.*
 
 data class InformationRequestEvidenceSubmissionMember(
     val artifactId: UUID,
@@ -72,6 +63,6 @@ internal data class InformationRequestSubmittedScope(
     {
         val correction = correctionByPackage[item.packageId] ?: return false
         return item.informationRequestRequirementId in allowlistedByCorrection[correction.id].orEmpty() ||
-            item.completenessState == InformationRequestCompletenessItemState.HIDDEN
+                item.completenessState == InformationRequestCompletenessItemState.HIDDEN
     }
 }

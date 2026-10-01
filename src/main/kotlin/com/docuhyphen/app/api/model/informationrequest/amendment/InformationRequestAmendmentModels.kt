@@ -1,19 +1,10 @@
 package com.docuhyphen.app.api.model.informationrequest.amendment
 
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateConditionRuleDto
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateConfigurationRequest
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateGroupDto
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateRequirementDto
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateSectionDto
-import com.docuhyphen.app.api.model.entity.InformationRequest
-import com.docuhyphen.app.api.model.entity.InformationRequestAmendment
-import com.docuhyphen.app.api.model.entity.InformationRequestAmendmentChange
-import com.docuhyphen.app.api.model.entity.InformationRequestAmendmentChangeKind
-import com.docuhyphen.app.api.model.entity.InformationRequestNoticeDeliveryState
-import com.docuhyphen.app.api.model.entity.InformationRequestNoticeIntent
+import com.docuhyphen.app.api.model.dto.*
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
 import com.docuhyphen.app.api.service.command.CommandPrecondition
-import java.util.UUID
+import java.util.*
 
 data class AmendInformationRequestCommand(
     val requestId: UUID,

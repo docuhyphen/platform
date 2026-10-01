@@ -4,7 +4,7 @@ import com.docuhyphen.app.api.model.entity.ShareLink
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
 import com.docuhyphen.app.api.service.command.CommandPrecondition
 import java.sql.Timestamp
-import java.util.UUID
+import java.util.*
 
 data class IssueInformationRequestBootstrapShareLinkCommand(
     val requestId: UUID,

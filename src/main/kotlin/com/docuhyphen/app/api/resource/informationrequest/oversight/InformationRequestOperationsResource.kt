@@ -3,11 +3,7 @@ package com.docuhyphen.app.api.resource.informationrequest.oversight
 import com.docuhyphen.app.api.exception.InformationRequestCommandRequestException
 import com.docuhyphen.app.api.model.InformationRequestOperationsDtoMapper
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestState
-import com.docuhyphen.app.api.model.informationrequest.oversight.DEFAULT_OPERATIONS_LIMIT
-import com.docuhyphen.app.api.model.informationrequest.oversight.InformationRequestOperationsException
-import com.docuhyphen.app.api.model.informationrequest.oversight.InformationRequestOperationsFilter
-import com.docuhyphen.app.api.model.informationrequest.oversight.InformationRequestSlaStatus
-import com.docuhyphen.app.api.model.informationrequest.oversight.MAXIMUM_OPERATIONS_LIMIT
+import com.docuhyphen.app.api.model.informationrequest.oversight.*
 import com.docuhyphen.app.api.resource.informationrequest.InformationRequestCommandHttp
 import com.docuhyphen.app.api.resource.informationrequest.oversight.operations.InformationRequestOperationsResourceOperations
 import com.docuhyphen.app.api.service.informationrequest.oversight.InformationRequestOperationsService
@@ -36,14 +32,22 @@ class InformationRequestOperationsResource @Inject constructor(
         {
             val filter = InformationRequestOperationsFilter(
                 states = states.orEmpty().map { parse<InformationRequestState>(it, "state") }.toSet(),
-                exchangeId = exchangeId?.takeIf { it.isNotBlank() }?.let { InformationRequestCommandHttp.uuid(it, "exchange id") },
+                exchangeId = exchangeId?.takeIf { it.isNotBlank() }
+                    ?.let { InformationRequestCommandHttp.uuid(it, "exchange id") },
                 search = search?.trim()?.takeIf { it.isNotEmpty() },
                 assigneeId = assigneeId?.takeIf { it.isNotBlank() }
                     ?.let { InformationRequestCommandHttp.uuid(it, "assignee id") },
-                slaStatuses = slaStatuses.orEmpty().map { parse<InformationRequestSlaStatus>(it, "service level status") }.toSet(),
-                exceptions = exceptions.orEmpty().map { parse<InformationRequestOperationsException>(it, "exception") }.toSet(),
+                slaStatuses = slaStatuses.orEmpty()
+                    .map { parse<InformationRequestSlaStatus>(it, "service level status") }.toSet(),
+                exceptions = exceptions.orEmpty().map { parse<InformationRequestOperationsException>(it, "exception") }
+                    .toSet(),
                 exceptionsOnly = exceptionsOnly == true,
-                limit = (limit ?: DEFAULT_OPERATIONS_LIMIT).also { requireRange(it in 1..MAXIMUM_OPERATIONS_LIMIT, "limit") },
+                limit = (limit ?: DEFAULT_OPERATIONS_LIMIT).also {
+                    requireRange(
+                        it in 1..MAXIMUM_OPERATIONS_LIMIT,
+                        "limit"
+                    )
+                },
                 offset = (offset ?: 0).also { requireRange(it >= 0, "offset") },
             )
             Response.ok(InformationRequestOperationsDtoMapper.toDto(operations.queue(filter))).build()

@@ -4,12 +4,7 @@ import com.docuhyphen.app.api.model.audit.AuditTargetQuery
 import com.docuhyphen.app.api.model.audit.AuditTargetRecordPage
 import com.docuhyphen.app.api.model.entity.InformationRequestOwnerType
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
-import com.docuhyphen.app.api.model.informationrequest.audit.InformationRequestAuditEvent
-import com.docuhyphen.app.api.model.informationrequest.audit.InformationRequestAuditPage
-import com.docuhyphen.app.api.model.informationrequest.audit.InformationRequestAuditReconciliation
-import com.docuhyphen.app.api.model.informationrequest.audit.InformationRequestAuditSearch
-import com.docuhyphen.app.api.model.informationrequest.audit.InformationRequestReconciliationGap
-import com.docuhyphen.app.api.model.informationrequest.audit.InformationRequestReconciliationStray
+import com.docuhyphen.app.api.model.informationrequest.audit.*
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestMutation
 import com.docuhyphen.app.api.model.recordpreservation.RecordPreservationResourceTypes
 import com.docuhyphen.app.api.repository.informationrequest.lifecycle.InformationRequestTransitionRepository
@@ -21,7 +16,7 @@ import com.docuhyphen.app.api.service.informationrequest.access.InformationReque
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestTransitionHistoryService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestAuditService @Inject constructor(
@@ -31,10 +26,17 @@ class InformationRequestAuditService @Inject constructor(
     private val transitionRepository: InformationRequestTransitionRepository,
 )
 {
-    fun events(requestId: UUID, access: RequestAccessContext, search: InformationRequestAuditSearch): InformationRequestAuditPage
+    fun events(
+        requestId: UUID,
+        access: RequestAccessContext,
+        search: InformationRequestAuditSearch
+    ): InformationRequestAuditPage
     {
         gate.authorizeRequest(access, listOf(Action.INFORMATION_REQUEST_VIEW_OPERATIONS), requestId)
-        return pageOf(history.recordsForTarget(TARGET, requestId.toString(), queryOf(search, newestFirst = false)), search)
+        return pageOf(
+            history.recordsForTarget(TARGET, requestId.toString(), queryOf(search, newestFirst = false)),
+            search
+        )
     }
 
     fun search(search: InformationRequestAuditSearch): InformationRequestAuditPage
@@ -53,7 +55,8 @@ class InformationRequestAuditService @Inject constructor(
     {
         gate.authorizeRequest(access, listOf(Action.INFORMATION_REQUEST_VIEW_OPERATIONS), requestId)
         val audited = transitionRepository.findForRequest(requestId).mapNotNull { transition ->
-            InformationRequestTransitionHistoryService.auditEventTypeFor(transition.mutation)?.let { transition to it.key }
+            InformationRequestTransitionHistoryService.auditEventTypeFor(transition.mutation)
+                ?.let { transition to it.key }
         }
         val transitionKeys = InformationRequestMutation.entries
             .mapNotNull { InformationRequestTransitionHistoryService.auditEventTypeFor(it)?.key }
@@ -65,9 +68,16 @@ class InformationRequestAuditService @Inject constructor(
         ).records
         val recorded = records.groupBy { it.businessTransactionId }
         val missing = audited
-            .filter { (transition, key) -> recorded[transition.id.toString()].orEmpty().none { it.eventTypeKey == key } }
+            .filter { (transition, key) ->
+                recorded[transition.id.toString()].orEmpty().none { it.eventTypeKey == key }
+            }
             .map { (transition, key) ->
-                InformationRequestReconciliationGap(transition.id, transition.sequenceNumber, transition.mutation.name, key)
+                InformationRequestReconciliationGap(
+                    transition.id,
+                    transition.sequenceNumber,
+                    transition.mutation.name,
+                    key
+                )
             }
         val expected = audited.associate { (transition, key) -> transition.id.toString() to key }
         val unmatched = records
@@ -83,19 +93,20 @@ class InformationRequestAuditService @Inject constructor(
         )
     }
 
-    private fun pageOf(page: AuditTargetRecordPage, search: InformationRequestAuditSearch) = InformationRequestAuditPage(
-        events = page.records.map { record ->
-            InformationRequestAuditEvent(
-                record = record,
-                eventClass = InformationRequestAuditPayloadPolicy.eventClassOf(record.eventTypeKey),
-                payload = InformationRequestAuditPayloadPolicy.allowedPayload(record.payload),
-                withheldKeyCount = InformationRequestAuditPayloadPolicy.withheldKeyCount(record.payload),
-            )
-        },
-        total = page.total,
-        limit = search.limit,
-        offset = search.offset,
-    )
+    private fun pageOf(page: AuditTargetRecordPage, search: InformationRequestAuditSearch) =
+        InformationRequestAuditPage(
+            events = page.records.map { record ->
+                InformationRequestAuditEvent(
+                    record = record,
+                    eventClass = InformationRequestAuditPayloadPolicy.eventClassOf(record.eventTypeKey),
+                    payload = InformationRequestAuditPayloadPolicy.allowedPayload(record.payload),
+                    withheldKeyCount = InformationRequestAuditPayloadPolicy.withheldKeyCount(record.payload),
+                )
+            },
+            total = page.total,
+            limit = search.limit,
+            offset = search.offset,
+        )
 
     private fun queryOf(search: InformationRequestAuditSearch, newestFirst: Boolean) = AuditTargetQuery(
         eventTypePrefix = search.eventClass?.let(::prefixOf),

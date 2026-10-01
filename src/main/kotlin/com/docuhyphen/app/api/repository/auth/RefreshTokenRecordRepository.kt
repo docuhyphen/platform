@@ -1,12 +1,11 @@
 package com.docuhyphen.app.api.repository.auth
 
-import com.docuhyphen.app.api.repository.BaseRepository
-
 import com.docuhyphen.app.api.model.entity.RefreshTokenRecord
+import com.docuhyphen.app.api.repository.BaseRepository
 import jakarta.enterprise.context.RequestScoped
 import jakarta.transaction.Transactional
 import java.sql.Timestamp
-import java.util.UUID
+import java.util.*
 
 @RequestScoped
 class RefreshTokenRecordRepository : BaseRepository<RefreshTokenRecord>(RefreshTokenRecord::class.java)

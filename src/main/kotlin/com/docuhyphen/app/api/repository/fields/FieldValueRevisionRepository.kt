@@ -3,7 +3,7 @@ package com.docuhyphen.app.api.repository.fields
 import com.docuhyphen.app.api.model.entity.FieldValueRevision
 import com.docuhyphen.app.api.repository.BaseRepository
 import jakarta.enterprise.context.ApplicationScoped
-import java.util.UUID
+import java.util.*
 
 /**
  * Persistence for the append-only [FieldValueRevision] history of a

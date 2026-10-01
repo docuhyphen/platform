@@ -48,7 +48,12 @@ class AuditTargetHistoryService @Inject constructor(
                     targetType = entry.targetType,
                     targetId = entry.targetId,
                     businessTransactionId = entry.businessTransactionId,
-                    payload = runCatching { Json.decodeFromString(PAYLOAD, entry.payloadJson) }.getOrDefault(emptyMap()),
+                    payload = runCatching {
+                        Json.decodeFromString(
+                            PAYLOAD,
+                            entry.payloadJson
+                        )
+                    }.getOrDefault(emptyMap()),
                     sealed = ledgered != null,
                     eventHash = ledgered?.eventHash,
                     streamSequence = ledgered?.streamSequence,

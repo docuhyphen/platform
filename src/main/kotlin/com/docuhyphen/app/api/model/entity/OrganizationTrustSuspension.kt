@@ -9,7 +9,7 @@ import jakarta.persistence.Table
 import kotlinx.serialization.Serializable
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 @Entity
 @Serializable

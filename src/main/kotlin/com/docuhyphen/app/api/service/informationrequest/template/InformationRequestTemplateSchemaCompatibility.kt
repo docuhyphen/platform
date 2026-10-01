@@ -8,7 +8,7 @@ import com.docuhyphen.app.api.service.fields.INFORMATION_REQUEST_SCHEMA_TARGET
 import com.docuhyphen.app.api.service.fields.SchemaVersionResolver
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
-import java.util.UUID
+import java.util.*
 
 /**
  * Checks that the typed-data contract a configuration names is one its own owner may resolve
@@ -58,11 +58,13 @@ class InformationRequestTemplateSchemaCompatibility @Inject constructor(
                     "Organization-owned information request template names no organization"
                 },
             )
+
             InformationRequestTemplateScopeKind.PERSONAL -> ScopeReference.Personal(
                 requireNotNull(definition.scopeUserId) {
                     "Personally owned information request template names no person"
                 },
             )
+
             InformationRequestTemplateScopeKind.PLATFORM -> ScopeReference.Platform
         }
 }

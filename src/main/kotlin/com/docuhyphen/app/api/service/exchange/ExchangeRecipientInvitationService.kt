@@ -8,7 +8,7 @@ import io.quarkus.security.ForbiddenException
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class ExchangeRecipientInvitationService @Inject constructor(

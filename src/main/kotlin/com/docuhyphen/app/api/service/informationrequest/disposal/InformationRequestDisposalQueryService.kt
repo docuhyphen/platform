@@ -13,7 +13,7 @@ import com.docuhyphen.app.api.service.recordpreservation.RecordDisposalService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import java.time.Clock
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestDisposalQueryService @Inject constructor(
@@ -28,9 +28,17 @@ class InformationRequestDisposalQueryService @Inject constructor(
     {
         gate.authorizeRequest(access, listOf(Action.INFORMATION_REQUEST_VIEW_OPERATIONS), requestId)
         val request = requestRepository.findById(requestId)
-            ?: throw InformationRequestLifecycleException(InformationRequestErrorCatalog.NOT_FOUND, "Information Request not found")
+            ?: throw InformationRequestLifecycleException(
+                InformationRequestErrorCatalog.NOT_FOUND,
+                "Information Request not found"
+            )
         val disposal = disposals.viewFor(RecordPreservationResourceTypes.INFORMATION_REQUEST, requestId)
-        val assessment = if (disposal == null) eligibility.assess(request, RecordDisposalBasis.RETENTION_SCHEDULE, clock.instant()) else null
+        val assessment = if (disposal == null) eligibility.assess(
+            request,
+            RecordDisposalBasis.RETENTION_SCHEDULE,
+            clock.instant()
+        )
+        else null
         return InformationRequestDisposalStanding(requestId, assessment, disposal)
     }
 }

@@ -110,6 +110,18 @@ class AuthConfigService @Inject constructor(
     @ConfigProperty(name = "app.auth.rate-limit.otp-regeneration.per-minute", defaultValue = "10")
     private val authRateLimitOtpRegenerationPerMinuteConfig: Long,
 
+    @ConfigProperty(name = "app.auth.rate-limit.sign-up.per-minute", defaultValue = "10")
+    private val authRateLimitSignUpPerMinuteConfig: Long,
+
+    @ConfigProperty(name = "app.auth.rate-limit.sign-up-completion.per-minute", defaultValue = "30")
+    private val authRateLimitSignUpCompletionPerMinuteConfig: Long,
+
+    @ConfigProperty(name = "app.auth.rate-limit.sign-up.distinct-addresses", defaultValue = "20")
+    private val authRateLimitSignUpDistinctAddressesConfig: Long,
+
+    @ConfigProperty(name = "app.auth.sign-up.resend-cooldown-seconds", defaultValue = "180")
+    private val signUpResendCooldownSecondsConfig: Long,
+
     @ConfigProperty(name = "app.auth.proxy.forwarded-headers-enabled", defaultValue = "true")
     private val forwardedHeadersEnabledConfig: Boolean,
 
@@ -164,11 +176,16 @@ class AuthConfigService @Inject constructor(
     fun getAuthRateLimitSignInCompletionPerMinute(): Long = authRateLimitSignInCompletionPerMinuteConfig
     fun getAuthRateLimitDirectoryPerMinute(): Long = authRateLimitDirectoryPerMinuteConfig
     fun getAuthRateLimitOtpRegenerationPerMinute(): Long = authRateLimitOtpRegenerationPerMinuteConfig
+    fun getAuthRateLimitSignUpPerMinute(): Long = authRateLimitSignUpPerMinuteConfig
+    fun getAuthRateLimitSignUpCompletionPerMinute(): Long = authRateLimitSignUpCompletionPerMinuteConfig
+    fun getAuthRateLimitSignUpDistinctAddresses(): Long = authRateLimitSignUpDistinctAddressesConfig
+    fun getSignUpResendCooldownSeconds(): Long = signUpResendCooldownSecondsConfig
     fun isForwardedHeadersEnabled(): Boolean = forwardedHeadersEnabledConfig
     fun getTrustedProxyCidrs(): List<String> = trustedProxyCidrsConfig
         .split(',')
         .map { it.trim() }
         .filter { it.isNotBlank() }
+
     fun getStepUpMaxAgeSeconds(): Long = stepUpMaxAgeSecondsConfig
     fun getPasswordMinLength(): Int = passwordMinLengthConfig
     fun getPasswordMaxLength(): Int = passwordMaxLengthConfig

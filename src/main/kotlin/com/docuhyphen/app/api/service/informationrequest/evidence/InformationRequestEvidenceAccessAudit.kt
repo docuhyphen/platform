@@ -12,7 +12,7 @@ import com.docuhyphen.app.api.service.audit.catalog.AuditOutcome
 import com.docuhyphen.app.api.service.informationrequest.audit.informationRequestAuditOwner
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestEvidenceAccessAudit @Inject constructor(

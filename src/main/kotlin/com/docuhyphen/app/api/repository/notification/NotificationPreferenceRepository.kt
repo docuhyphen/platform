@@ -1,10 +1,9 @@
 package com.docuhyphen.app.api.repository.notification
 
-import com.docuhyphen.app.api.repository.BaseRepository
-
 import com.docuhyphen.app.api.model.entity.NotificationPreference
+import com.docuhyphen.app.api.repository.BaseRepository
 import jakarta.enterprise.context.ApplicationScoped
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class NotificationPreferenceRepository :

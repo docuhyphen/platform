@@ -1,11 +1,6 @@
 package com.docuhyphen.app.api.service.informationrequest.amendment
 
-import com.docuhyphen.app.api.model.entity.InformationRequest
-import com.docuhyphen.app.api.model.entity.InformationRequestAmendment
-import com.docuhyphen.app.api.model.entity.InformationRequestAmendmentChange
-import com.docuhyphen.app.api.model.entity.InformationRequestAmendmentChangeKind
-import com.docuhyphen.app.api.model.entity.InformationRequestNoticeIntent
-import com.docuhyphen.app.api.model.entity.InformationRequestResponseDisposition
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.informationrequest.amendment.InformationRequestAmendmentPlan
 import com.docuhyphen.app.api.model.informationrequest.amendment.InformationRequestAmendmentView
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRequirementRepository
@@ -18,7 +13,7 @@ import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import java.sql.Timestamp
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestAmendmentRecorder @Inject constructor(

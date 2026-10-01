@@ -1,8 +1,8 @@
 package com.docuhyphen.app.api.service.exchange.permutation
 
 import com.docuhyphen.app.api.exception.ExchangeNotFoundException
-import com.docuhyphen.app.api.exception.EmailNotFoundException
 import com.docuhyphen.app.api.exception.NoAuthOtpException
+import com.docuhyphen.app.api.exception.SignUpVerificationRejectedException
 import com.docuhyphen.app.api.model.entity.ExchangeRecipientAcceptanceStatus
 import com.docuhyphen.app.api.model.entity.ExchangeRecipientSelectionType
 import com.docuhyphen.app.api.model.entity.ExchangeStatus
@@ -43,7 +43,7 @@ class ExchangeNewUserAccessPermutationTest
     {
         val fixture = SignUpPermutationFixture("invited@example.test")
 
-        assertThrows(EmailNotFoundException::class.java) {
+        assertThrows(SignUpVerificationRejectedException::class.java) {
             fixture.complete("different@example.test")
         }
     }

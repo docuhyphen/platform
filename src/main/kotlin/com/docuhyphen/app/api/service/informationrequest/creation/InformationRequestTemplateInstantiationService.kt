@@ -1,19 +1,10 @@
 package com.docuhyphen.app.api.service.informationrequest.creation
 
-import com.docuhyphen.app.api.model.entity.Exchange
-import com.docuhyphen.app.api.model.entity.InformationRequest
-import com.docuhyphen.app.api.model.entity.InformationRequestOwnerType
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateScopeKind
-import com.docuhyphen.app.api.model.entity.PrincipalKind
-import com.docuhyphen.app.api.model.entity.ResourceType
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
 import com.docuhyphen.app.api.model.informationrequest.creation.CreateInformationRequestFromTemplateVersionCommand
 import com.docuhyphen.app.api.model.informationrequest.creation.InformationRequestCreationResult
-import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestMutation
-import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestParentSnapshot
-import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestPolicyDecision
-import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestState
-import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestTransitionHistoryCommand
+import com.docuhyphen.app.api.model.informationrequest.lifecycle.*
 import com.docuhyphen.app.api.model.informationrequest.template.InformationRequestTemplateVersionReference
 import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
@@ -21,13 +12,7 @@ import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
 import com.docuhyphen.app.api.service.auth.authz.Decision
 import com.docuhyphen.app.api.service.auth.authz.ResourceRef
-import com.docuhyphen.app.api.service.command.CommandActorRef
-import com.docuhyphen.app.api.service.command.CommandMutationResult
-import com.docuhyphen.app.api.service.command.CommandReceiptDecision
-import com.docuhyphen.app.api.service.command.CommandReceiptRequest
-import com.docuhyphen.app.api.service.command.CommandReceiptService
-import com.docuhyphen.app.api.service.command.CommandRequestFingerprint
-import com.docuhyphen.app.api.service.command.CommandResultReference
+import com.docuhyphen.app.api.service.command.*
 import com.docuhyphen.app.api.service.fields.FieldsAccessContext
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestETag
 import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestEntitlementGuard
@@ -136,7 +121,7 @@ class InformationRequestTemplateInstantiationService @Inject constructor(
                 mutation = InformationRequestMutation.CREATE_DRAFT,
                 actor = command.access.principal,
                 idempotencyKey = "information_request.draft.create|$CREATE_FROM_TEMPLATE_VERSION_OPERATION|" +
-                    "${request.id}|${command.idempotencyKey}",
+                        "${request.id}|${command.idempotencyKey}",
             ),
         )
         val materialized = materializer.materialize(
@@ -164,6 +149,7 @@ class InformationRequestTemplateInstantiationService @Inject constructor(
             InformationRequestTemplateScopeKind.PLATFORM -> false
             InformationRequestTemplateScopeKind.ORGANIZATION ->
                 exchange.ownerOrganizationId != null && reference.ownerOrganizationId == exchange.ownerOrganizationId
+
             InformationRequestTemplateScopeKind.PERSONAL ->
                 exchange.ownerOrganizationId == null && reference.ownerUserId == exchange.ownerUserId
         }
@@ -179,13 +165,20 @@ class InformationRequestTemplateInstantiationService @Inject constructor(
     private fun requireDraftCreationAllowed(exchange: Exchange)
     {
         val decision = InformationRequestTransitionMatrix.canMutate(
-            InformationRequestParentSnapshot(status = exchange.status, deleted = exchange.isDeleted, lockedForUpdate = true),
+            InformationRequestParentSnapshot(
+                status = exchange.status,
+                deleted = exchange.isDeleted,
+                lockedForUpdate = true
+            ),
             null,
             InformationRequestMutation.CREATE_DRAFT,
         )
         if (decision is InformationRequestPolicyDecision.Deny)
         {
-            throw InformationRequestLifecycleException(decision.reasonCode, "Information Request draft creation is not allowed")
+            throw InformationRequestLifecycleException(
+                decision.reasonCode,
+                "Information Request draft creation is not allowed"
+            )
         }
     }
 

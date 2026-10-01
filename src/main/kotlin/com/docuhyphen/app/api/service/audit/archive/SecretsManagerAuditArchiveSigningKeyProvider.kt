@@ -12,7 +12,7 @@ import java.security.KeyPair
 import java.security.Signature
 import java.security.spec.PKCS8EncodedKeySpec
 import java.security.spec.X509EncodedKeySpec
-import java.util.Base64
+import java.util.*
 import java.util.concurrent.locks.ReentrantLock
 
 /**
@@ -26,8 +26,7 @@ import java.util.concurrent.locks.ReentrantLock
 class SecretsManagerAuditArchiveSigningKeyProvider @Inject constructor(
     private val configService: AuditArchiveConfigService,
     private val secretsManagerService: AwsSecretsManagerService,
-)
-    : AuditArchiveSigningKeyProvider
+) : AuditArchiveSigningKeyProvider
 {
     companion object
     {

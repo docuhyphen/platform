@@ -11,7 +11,7 @@ import jakarta.inject.Inject
 import jakarta.transaction.Transactional
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 /**
  * The capacity ledger against a single [RequestExecutionGrant]: how much of its frozen recipient,
@@ -95,6 +95,7 @@ class InformationRequestExecutionUsageReservationService @Inject constructor(
                 reservation.consumedAt = Timestamp.from(Instant.now())
                 reservationRepository.update(reservation)
             }
+
             else -> throw invalidTransition(reservationId, reservation, "consumed")
         }
     }
@@ -113,6 +114,7 @@ class InformationRequestExecutionUsageReservationService @Inject constructor(
                 reservation.releasedAt = Timestamp.from(Instant.now())
                 reservationRepository.update(reservation)
             }
+
             else -> throw invalidTransition(reservationId, reservation, "released")
         }
     }
@@ -131,6 +133,7 @@ class InformationRequestExecutionUsageReservationService @Inject constructor(
                 reservation.rolledBackAt = Timestamp.from(Instant.now())
                 reservationRepository.update(reservation)
             }
+
             else -> throw invalidTransition(reservationId, reservation, "rolled back")
         }
     }
@@ -138,7 +141,8 @@ class InformationRequestExecutionUsageReservationService @Inject constructor(
     @Transactional
     fun returnCapacity(grantId: UUID, usageKind: RequestExecutionUsageKind, reservationKey: String)
     {
-        val reservation = reservationRepository.findByGrantIdAndUsageKindAndKey(grantId, usageKind, reservationKey) ?: return
+        val reservation =
+            reservationRepository.findByGrantIdAndUsageKindAndKey(grantId, usageKind, reservationKey) ?: return
         when (statusOf(reservation))
         {
             RequestExecutionUsageReservationStatus.RESERVED -> release(reservation.id)

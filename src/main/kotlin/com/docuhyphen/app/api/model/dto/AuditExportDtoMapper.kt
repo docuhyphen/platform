@@ -40,12 +40,13 @@ object AuditExportDtoMapper
         note = approval.note,
     )
 
-    fun toIntegrityDto(report: OrganizationIntegrityReport): AuditOrganizationIntegrityDto = AuditOrganizationIntegrityDto(
-        organizationId = report.organizationId?.toString(),
-        platformOnly = report.platformOnly,
-        allValid = report.allValid,
-        streams = report.streams.map(::toStreamIntegrityDto),
-    )
+    fun toIntegrityDto(report: OrganizationIntegrityReport): AuditOrganizationIntegrityDto =
+        AuditOrganizationIntegrityDto(
+            organizationId = report.organizationId?.toString(),
+            platformOnly = report.platformOnly,
+            allValid = report.allValid,
+            streams = report.streams.map(::toStreamIntegrityDto),
+        )
 
     private fun toStreamIntegrityDto(report: StreamIntegrityReport): AuditStreamIntegrityDto = AuditStreamIntegrityDto(
         streamId = report.streamId,

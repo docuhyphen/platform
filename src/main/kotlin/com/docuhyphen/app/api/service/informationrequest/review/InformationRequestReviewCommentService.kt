@@ -13,13 +13,7 @@ import com.docuhyphen.app.api.model.informationrequest.review.RecordInformationR
 import com.docuhyphen.app.api.repository.informationrequest.review.InformationRequestReviewCommentRepository
 import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.auth.authz.ResourceRef
-import com.docuhyphen.app.api.service.command.CommandActorRef
-import com.docuhyphen.app.api.service.command.CommandMutationResult
-import com.docuhyphen.app.api.service.command.CommandReceiptDecision
-import com.docuhyphen.app.api.service.command.CommandReceiptRequest
-import com.docuhyphen.app.api.service.command.CommandReceiptService
-import com.docuhyphen.app.api.service.command.CommandRequestFingerprint
-import com.docuhyphen.app.api.service.command.CommandResultReference
+import com.docuhyphen.app.api.service.command.*
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestETag
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestMutationGate
@@ -87,7 +81,10 @@ class InformationRequestReviewCommentService @Inject constructor(
             {
                 gate.authorizeRequest(command.access, listOf(Action.INFORMATION_REQUEST_VIEW), command.requestId)
                 val comment = commentRepository.findById(decision.result.resourceId)
-                    ?: throw InformationRequestLifecycleException(InformationRequestErrorCatalog.NOT_FOUND, "Comment not found")
+                    ?: throw InformationRequestLifecycleException(
+                        InformationRequestErrorCatalog.NOT_FOUND,
+                        "Comment not found"
+                    )
                 val review = loader.requireReview(command.requestId, comment.reviewId)
                 InformationRequestReviewCommandResult(
                     request = locked.request,
@@ -115,7 +112,10 @@ class InformationRequestReviewCommentService @Inject constructor(
         val review = loader.requireReview(command.requestId, command.reviewId)
         val snapshot = loader.snapshot(review)
         val item = snapshot.item(command.submissionItemId)
-            ?: throw InformationRequestLifecycleException(InformationRequestErrorCatalog.NOT_FOUND, "Submission item not found")
+            ?: throw InformationRequestLifecycleException(
+                InformationRequestErrorCatalog.NOT_FOUND,
+                "Submission item not found"
+            )
         val role = roleOf(command, review.id)
         val visibility = if (role == InformationRequestReviewCommentRole.RESPONDENT)
             InformationRequestReviewVisibility.RESPONDENT_VISIBLE
@@ -126,7 +126,12 @@ class InformationRequestReviewCommentService @Inject constructor(
             {
                 refuse("A respondent comments on a review once it has settled")
             }
-            if (!gate.permitsRequirement(command.access, Action.INFORMATION_REQUEST_REQUIREMENT_VIEW, item.informationRequestRequirementId))
+            if (!gate.permitsRequirement(
+                    command.access,
+                    Action.INFORMATION_REQUEST_REQUIREMENT_VIEW,
+                    item.informationRequestRequirementId
+                )
+            )
             {
                 throw ForbiddenException("Access denied to this Information Request Requirement")
             }
@@ -135,16 +140,19 @@ class InformationRequestReviewCommentService @Inject constructor(
             val finding = snapshot.findings.firstOrNull { it.id == findingId && it.submissionItemId == item.id }
                 ?: refuse("A comment answers a finding on its own item")
             if (role == InformationRequestReviewCommentRole.RESPONDENT &&
-                finding.visibility != InformationRequestReviewVisibility.RESPONDENT_VISIBLE)
+                finding.visibility != InformationRequestReviewVisibility.RESPONDENT_VISIBLE
+            )
             {
                 refuse("A respondent can answer only a finding shown to respondents")
             }
         }
         command.replyToCommentId?.let { replyId ->
-            val earlier = commentRepository.findForReviews(listOf(review.id)).firstOrNull { it.id == replyId && it.submissionItemId == item.id }
+            val earlier = commentRepository.findForReviews(listOf(review.id))
+                .firstOrNull { it.id == replyId && it.submissionItemId == item.id }
                 ?: refuse("A reply answers a comment on the same review item")
             if (role == InformationRequestReviewCommentRole.RESPONDENT &&
-                earlier.visibility != InformationRequestReviewVisibility.RESPONDENT_VISIBLE)
+                earlier.visibility != InformationRequestReviewVisibility.RESPONDENT_VISIBLE
+            )
             {
                 refuse("A respondent can answer only a comment shown to respondents")
             }
@@ -196,16 +204,22 @@ class InformationRequestReviewCommentService @Inject constructor(
         )
     }
 
-    private fun roleOf(command: RecordInformationRequestReviewCommentCommand, reviewId: java.util.UUID): InformationRequestReviewCommentRole
+    private fun roleOf(
+        command: RecordInformationRequestReviewCommentCommand,
+        reviewId: java.util.UUID
+    ): InformationRequestReviewCommentRole
     {
         val review = loader.requireReview(command.requestId, reviewId)
         return when
         {
-            access.permitsReview(command.access, command.requestId) && access.callerAssignments(review, command.access).isNotEmpty() ->
+            access.permitsReview(command.access, command.requestId) && access.callerAssignments(review, command.access)
+                .isNotEmpty() ->
                 InformationRequestReviewCommentRole.REVIEWER
+
             access.permitsManage(command.access, command.requestId) -> InformationRequestReviewCommentRole.ADMINISTRATOR
             gate.permitsRequest(command.access, Action.INFORMATION_REQUEST_COMMENT_ON_REVIEW, command.requestId) ->
                 InformationRequestReviewCommentRole.RESPONDENT
+
             else -> throw ForbiddenException("Access denied to comment on this review")
         }
     }

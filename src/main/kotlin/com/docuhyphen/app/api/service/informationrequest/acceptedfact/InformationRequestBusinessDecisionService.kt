@@ -13,13 +13,7 @@ import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequ
 import com.docuhyphen.app.api.repository.informationrequest.acceptedfact.InformationRequestBusinessDecisionRepository
 import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.auth.authz.ResourceRef
-import com.docuhyphen.app.api.service.command.CommandActorRef
-import com.docuhyphen.app.api.service.command.CommandMutationResult
-import com.docuhyphen.app.api.service.command.CommandReceiptDecision
-import com.docuhyphen.app.api.service.command.CommandReceiptRequest
-import com.docuhyphen.app.api.service.command.CommandReceiptService
-import com.docuhyphen.app.api.service.command.CommandRequestFingerprint
-import com.docuhyphen.app.api.service.command.CommandResultReference
+import com.docuhyphen.app.api.service.command.*
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestETag
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestMutationGate
@@ -31,7 +25,7 @@ import jakarta.inject.Inject
 import jakarta.transaction.Transactional
 import java.sql.Timestamp
 import java.time.Clock
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestBusinessDecisionService @Inject constructor(
@@ -78,7 +72,12 @@ class InformationRequestBusinessDecisionService @Inject constructor(
                 val recorded = recordDecision(locked, command, process, outcome)
                 CommandMutationResult(
                     recorded,
-                    CommandResultReference(ResourceType.INFORMATION_REQUEST_BUSINESS_DECISION, recorded.id, recorded.decisionRevision.toLong(), null),
+                    CommandResultReference(
+                        ResourceType.INFORMATION_REQUEST_BUSINESS_DECISION,
+                        recorded.id,
+                        recorded.decisionRevision.toLong(),
+                        null
+                    ),
                 )
             }
         )
@@ -88,7 +87,10 @@ class InformationRequestBusinessDecisionService @Inject constructor(
             {
                 gate.authorizeRequest(command.access, listOf(Action.INFORMATION_REQUEST_VIEW), command.requestId)
                 val recorded = decisionRepository.findById(decision.result.resourceId)
-                    ?: throw InformationRequestLifecycleException(InformationRequestErrorCatalog.NOT_FOUND, "Business decision not found")
+                    ?: throw InformationRequestLifecycleException(
+                        InformationRequestErrorCatalog.NOT_FOUND,
+                        "Business decision not found"
+                    )
                 result(locked, recorded)
             }
         }
@@ -120,9 +122,10 @@ class InformationRequestBusinessDecisionService @Inject constructor(
             {
                 refuse("This process already has a decision; a later one reconsiders or appeals it")
             }
+
             InformationRequestBusinessDecisionKind.RECONSIDERATION,
             InformationRequestBusinessDecisionKind.APPEAL,
-            -> if (latest == null || command.priorDecisionId != latest.id)
+                -> if (latest == null || command.priorDecisionId != latest.id)
             {
                 refuse("A reconsideration or appeal names the latest decision of its own process")
             }
@@ -136,7 +139,8 @@ class InformationRequestBusinessDecisionService @Inject constructor(
                 reasonReference = command.reasonReference?.trim()?.ifBlank { null }
                 externalReference = command.externalReference?.trim()?.ifBlank { null }
                 kind = command.kind
-                priorDecisionId = command.priorDecisionId.takeIf { command.kind != InformationRequestBusinessDecisionKind.ORIGINAL }
+                priorDecisionId =
+                    command.priorDecisionId.takeIf { command.kind != InformationRequestBusinessDecisionKind.ORIGINAL }
                 decisionRevision = (latest?.decisionRevision ?: 0) + 1
                 decidedAt = Timestamp.from(command.decidedAt)
                 recordedByPrincipalKind = command.access.principal.kind
@@ -167,7 +171,10 @@ class InformationRequestBusinessDecisionService @Inject constructor(
         InformationRequestBusinessDecisionResult(decision, InformationRequestETag.aggregateOf(locked.request))
 
     private fun refuse(message: String): Nothing =
-        throw InformationRequestLifecycleException(InformationRequestErrorCatalog.BUSINESS_DECISION_PRIOR_INVALID, message)
+        throw InformationRequestLifecycleException(
+            InformationRequestErrorCatalog.BUSINESS_DECISION_PRIOR_INVALID,
+            message
+        )
 
     private companion object
     {

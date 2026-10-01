@@ -7,7 +7,7 @@ import jakarta.inject.Inject
 import java.sql.Timestamp
 import java.time.Instant
 import java.time.temporal.ChronoUnit
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class SubscriptionTrialPolicyMutationService @Inject constructor(

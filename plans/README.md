@@ -17,8 +17,9 @@ phase and task numbers. Shipped code has to stand on its own.
 | [DOCUMENT-DRIVEN-INFORMATION-REQUESTS-PROPOSAL.md](DOCUMENT-DRIVEN-INFORMATION-REQUESTS-PROPOSAL.md) | Product and architecture rationale behind the above | Conceptual, for discussion. Design input to the implementation plan; not a plan itself. |
 | [WEBHOOK-INTEGRATIONS-FEATURE.md](WEBHOOK-INTEGRATIONS-FEATURE.md) | Integrations settings, registered applications, outbound webhooks, durable delivery | Implementation design, awaiting review. |
 | [EXTERNAL-APPLICATION-INTEGRATION-BUSINESS-SPECIFICATION.md](EXTERNAL-APPLICATION-INTEGRATION-BUSINESS-SPECIFICATION.md) | Business requirements for external application integration | Requirements only. Architecture and sequencing deferred to a later plan. |
-| [INFRA-SECURITY-ANALYSIS.md](INFRA-SECURITY-ANALYSIS.md) | Static security review of `infra/` | 4 high-risk and 7 medium-risk findings, with a recommended remediation order. Nothing applied yet. |
-| [AUTH-SIGNUP-SIGNIN-SECURITY-REMEDIATION.md](AUTH-SIGNUP-SIGNIN-SECURITY-REMEDIATION.md) | Signup and sign-in security findings and remediation | Proposed, not implemented. |
+| [INFRA-SECURITY-ANALYSIS.md](INFRA-SECURITY-ANALYSIS.md) | Earlier static security review of `infra/` | Reviewed again on 2026-10-01; current assessment is in the browser, infrastructure, and secrets remediation plan. |
+| [BROWSER-INFRA-SECRETS-SECURITY-REMEDIATION.md](BROWSER-INFRA-SECRETS-SECURITY-REMEDIATION.md) | Browser protections, production infrastructure, and secrets | Review complete on 2026-10-01. 2 high and 11 medium remediation findings; no fixes applied. |
+| [AUTH-SIGNUP-SIGNIN-SECURITY-REMEDIATION.md](AUTH-SIGNUP-SIGNIN-SECURITY-REMEDIATION.md) | Signup and sign-in security findings and remediation | All findings addressed, including AUTH-3B from the 2026-10-01 recheck; 34 focused tests pass. Not committed. |
 | [OBJECT-STORAGE-SECURITY-GAPS.md](OBJECT-STORAGE-SECURITY-GAPS.md) | Dead document-encryption path; absent tenant partitioning in object storage | Identified, not scheduled. Open questions must be answered before design starts. |
 | [DOCUHYPHEN-VALUE-SECTION-IMPLEMENTATION-PLAN.md](DOCUHYPHEN-VALUE-SECTION-IMPLEMENTATION-PLAN.md) | Marketing site value section | Paused for later continuation. No website source files changed. |
 

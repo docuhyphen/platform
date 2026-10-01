@@ -4,7 +4,7 @@ import com.docuhyphen.app.api.model.recordpreservation.RecordDisposalObjectCandi
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.persistence.EntityManager
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestDisposalRepository @Inject constructor(

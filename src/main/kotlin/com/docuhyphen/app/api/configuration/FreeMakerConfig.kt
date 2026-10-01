@@ -5,7 +5,8 @@ import freemarker.template.TemplateExceptionHandler
 import jakarta.enterprise.context.ApplicationScoped
 
 @ApplicationScoped
-class FreeMarkerConfig {
+class FreeMarkerConfig
+{
 
     val configuration: Configuration = Configuration(Configuration.VERSION_2_3_32).apply {
         setClassLoaderForTemplateLoading(

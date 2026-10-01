@@ -4,11 +4,7 @@ import com.docuhyphen.app.api.model.entity.Exchange
 import com.docuhyphen.app.api.model.entity.InformationRequest
 import com.docuhyphen.app.api.model.entity.PrincipalKind
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
-import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestMutation
-import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestParentSnapshot
-import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestPolicyDecision
-import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestState
-import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestTransitionHistoryCommand
+import com.docuhyphen.app.api.model.informationrequest.lifecycle.*
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
 import com.docuhyphen.app.api.service.fields.FieldsAccessContext
 import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestEntitlementGuard
@@ -20,7 +16,7 @@ import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import java.sql.Timestamp
 import java.time.Clock
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestDraftFactory @Inject constructor(
@@ -40,13 +36,20 @@ class InformationRequestDraftFactory @Inject constructor(
     ): InformationRequest
     {
         val decision = InformationRequestTransitionMatrix.canMutate(
-            InformationRequestParentSnapshot(status = exchange.status, deleted = exchange.isDeleted, lockedForUpdate = true),
+            InformationRequestParentSnapshot(
+                status = exchange.status,
+                deleted = exchange.isDeleted,
+                lockedForUpdate = true
+            ),
             null,
             InformationRequestMutation.CREATE_DRAFT,
         )
         if (decision is InformationRequestPolicyDecision.Deny)
         {
-            throw InformationRequestLifecycleException(decision.reasonCode, "Information Request draft creation is not allowed")
+            throw InformationRequestLifecycleException(
+                decision.reasonCode,
+                "Information Request draft creation is not allowed"
+            )
         }
         entitlementGuard.requireRequestCreation(exchange)
 

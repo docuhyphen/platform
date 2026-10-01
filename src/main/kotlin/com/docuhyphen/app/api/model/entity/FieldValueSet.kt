@@ -3,7 +3,7 @@ package com.docuhyphen.app.api.model.entity
 import jakarta.persistence.*
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 /**
  * A named set of typed answers belonging to one [SchemaAssignment]. The [FieldValueSetKind.ROOT] set

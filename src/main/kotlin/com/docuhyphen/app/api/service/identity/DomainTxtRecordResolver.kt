@@ -1,7 +1,7 @@
 package com.docuhyphen.app.api.service.identity
 
 import jakarta.enterprise.context.ApplicationScoped
-import java.util.Hashtable
+import java.util.*
 import javax.naming.directory.InitialDirContext
 
 interface DomainTxtRecordResolver

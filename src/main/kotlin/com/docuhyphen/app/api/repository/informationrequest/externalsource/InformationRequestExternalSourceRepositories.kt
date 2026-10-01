@@ -1,16 +1,10 @@
 package com.docuhyphen.app.api.repository.informationrequest.externalsource
 
-import com.docuhyphen.app.api.model.entity.InformationRequestConnectorExchange
-import com.docuhyphen.app.api.model.entity.InformationRequestConnectorExchangeState
-import com.docuhyphen.app.api.model.entity.InformationRequestGeneratedOutput
-import com.docuhyphen.app.api.model.entity.InformationRequestImportedValue
-import com.docuhyphen.app.api.model.entity.InformationRequestImportedValueDecision
-import com.docuhyphen.app.api.model.entity.InformationRequestImportedValueDiscrepancy
-import com.docuhyphen.app.api.model.entity.InformationRequestImportedValueDiscrepancyResolution
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.repository.BaseRepository
 import jakarta.enterprise.context.ApplicationScoped
 import java.sql.Timestamp
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestConnectorExchangeRepository :
@@ -35,7 +29,13 @@ class InformationRequestConnectorExchangeRepository :
             """.trimIndent(),
             UUID::class.java,
         )
-            .setParameter("open", listOf(InformationRequestConnectorExchangeState.REQUESTED, InformationRequestConnectorExchangeState.PENDING))
+            .setParameter(
+                "open",
+                listOf(
+                    InformationRequestConnectorExchangeState.REQUESTED,
+                    InformationRequestConnectorExchangeState.PENDING
+                )
+            )
             .setParameter("now", now)
             .setMaxResults(limit)
             .resultList
@@ -82,7 +82,9 @@ class InformationRequestImportedValueDiscrepancyRepository :
 
 @ApplicationScoped
 class InformationRequestImportedValueDiscrepancyResolutionRepository :
-    BaseRepository<InformationRequestImportedValueDiscrepancyResolution>(InformationRequestImportedValueDiscrepancyResolution::class.java)
+    BaseRepository<InformationRequestImportedValueDiscrepancyResolution>(
+        InformationRequestImportedValueDiscrepancyResolution::class.java
+    )
 {
     fun findForRequest(requestId: UUID): List<InformationRequestImportedValueDiscrepancyResolution> =
         entityManager.createQuery(

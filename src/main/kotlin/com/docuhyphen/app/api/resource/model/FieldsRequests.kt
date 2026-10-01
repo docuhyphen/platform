@@ -3,7 +3,7 @@ package com.docuhyphen.app.api.resource.model
 import com.docuhyphen.app.api.serializer.UUIDSerializer
 import com.docuhyphen.app.api.service.fields.FieldValueEntry
 import kotlinx.serialization.Serializable
-import java.util.UUID
+import java.util.*
 
 /** Request bodies for a resource's Schema Assignment and the typed values held against it. */
 

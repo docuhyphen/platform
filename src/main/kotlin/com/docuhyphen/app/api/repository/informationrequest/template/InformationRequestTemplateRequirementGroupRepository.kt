@@ -3,7 +3,7 @@ package com.docuhyphen.app.api.repository.informationrequest.template
 import com.docuhyphen.app.api.model.entity.InformationRequestTemplateRequirementGroup
 import com.docuhyphen.app.api.repository.BaseRepository
 import jakarta.enterprise.context.ApplicationScoped
-import java.util.UUID
+import java.util.*
 
 /**
  * Persistence for [InformationRequestTemplateRequirementGroup]. Groups belong to one version, like

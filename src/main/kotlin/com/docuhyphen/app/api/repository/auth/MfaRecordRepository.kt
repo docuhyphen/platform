@@ -1,16 +1,25 @@
 package com.docuhyphen.app.api.repository.auth
 
-import com.docuhyphen.app.api.repository.BaseRepository
-
 import com.docuhyphen.app.api.model.entity.MfaRecord
 import com.docuhyphen.app.api.model.entity.MultifactorAuthenticationType
+import com.docuhyphen.app.api.repository.BaseRepository
 import jakarta.enterprise.context.RequestScoped
+import jakarta.persistence.LockModeType
 import jakarta.persistence.TypedQuery
 import java.sql.Timestamp
+import java.util.*
 
 @RequestScoped
 class MfaRecordRepository : BaseRepository<MfaRecord>(MfaRecord::class.java)
 {
+    fun lockById(id: UUID): MfaRecord?
+    {
+        val record = entityManager.find(MfaRecord::class.java, id) ?: return null
+        entityManager.lock(record, LockModeType.PESSIMISTIC_WRITE)
+        entityManager.refresh(record)
+        return record
+    }
+
     fun findByEmail(email: String): MfaRecord?
     {
         val queryString = """
@@ -69,6 +78,7 @@ class MfaRecordRepository : BaseRepository<MfaRecord>(MfaRecord::class.java)
         query.setParameter("mfaType", mfaType)
         return query.resultList.firstOrNull()
     }
+
     fun countRecentRequestsByEmailAndIp(email: String, ipAddress: String, timestamp: Timestamp): Long
     {
         val queryString = """

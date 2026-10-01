@@ -2,7 +2,7 @@ package com.docuhyphen.app.api.service.subscription
 
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class SubscriptionTrialRequestEligibilityService @Inject constructor(
@@ -27,6 +27,7 @@ class SubscriptionTrialRequestEligibilityService @Inject constructor(
                     policy.externalBillingSubscriptionRef,
                 )
             }
+
             SubscriptionOwnerType.ORGANIZATION ->
             {
                 subscriptionPolicyService.ensureOrganizationPolicy(ownerId)

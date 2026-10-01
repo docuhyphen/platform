@@ -48,7 +48,7 @@ class InstalledCapabilities(executors: Iterable<InformationRequestCapabilityExec
     {
         val executor = index[requirement.capability] ?: return false
         return requirement.requiredContractVersion >= executor.minimumSupportedContractVersion &&
-            requirement.requiredContractVersion <= executor.contractVersion
+                requirement.requiredContractVersion <= executor.contractVersion
     }
 
     /**
@@ -71,23 +71,23 @@ class InstalledCapabilities(executors: Iterable<InformationRequestCapabilityExec
             val name = executor::class.qualifiedName
             check(capability !in indexed) {
                 "Duplicate InformationRequestCapabilityExecutor for $capability: " +
-                    "${indexed[capability]!!::class.qualifiedName} vs $name"
+                        "${indexed[capability]!!::class.qualifiedName} vs $name"
             }
             check(executor.minimumSupportedContractVersion >= 1) {
                 "InformationRequestCapabilityExecutor $name serves $capability from contract " +
-                    "version ${executor.minimumSupportedContractVersion}, which is below the first"
+                        "version ${executor.minimumSupportedContractVersion}, which is below the first"
             }
             check(executor.contractVersion >= executor.minimumSupportedContractVersion) {
                 "InformationRequestCapabilityExecutor $name serves $capability up to contract " +
-                    "version ${executor.contractVersion} and from " +
-                    "${executor.minimumSupportedContractVersion}, which is an empty range"
+                        "version ${executor.contractVersion} and from " +
+                        "${executor.minimumSupportedContractVersion}, which is an empty range"
             }
             // An executor cannot implement a contract the platform has not defined, so a version
             // above the declared one is a stale executor rather than a newer capability.
             check(executor.contractVersion <= capability.contractVersion) {
                 "InformationRequestCapabilityExecutor $name implements $capability at contract " +
-                    "version ${executor.contractVersion}, above the declared " +
-                    "${capability.contractVersion}"
+                        "version ${executor.contractVersion}, above the declared " +
+                        "${capability.contractVersion}"
             }
             indexed[capability] = executor
         }

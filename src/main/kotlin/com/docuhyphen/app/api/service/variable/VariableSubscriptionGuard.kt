@@ -5,7 +5,7 @@ import com.docuhyphen.app.api.service.subscription.SubscriptionAccessService
 import com.docuhyphen.app.api.service.subscription.SubscriptionContext
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
-import java.util.UUID
+import java.util.*
 
 /**
  * Applies the commercial allowance that governs authoring variables and sequences.

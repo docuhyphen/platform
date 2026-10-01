@@ -3,12 +3,7 @@ package com.docuhyphen.app.api.service.informationrequest.review
 import com.docuhyphen.app.api.model.entity.InformationRequestReview
 import com.docuhyphen.app.api.model.entity.InformationRequestReviewAssignment
 import com.docuhyphen.app.api.model.entity.InformationRequestReviewDecision
-import com.docuhyphen.app.api.model.informationrequest.review.InformationRequestReviewAssignmentFact
-import com.docuhyphen.app.api.model.informationrequest.review.InformationRequestReviewDecisionFact
-import com.docuhyphen.app.api.model.informationrequest.review.InformationRequestReviewPlan
-import com.docuhyphen.app.api.model.informationrequest.review.InformationRequestReviewSnapshot
-import com.docuhyphen.app.api.model.informationrequest.review.InformationRequestReviewStageInput
-import com.docuhyphen.app.api.model.informationrequest.review.InformationRequestReviewStagePlan
+import com.docuhyphen.app.api.model.informationrequest.review.*
 import com.docuhyphen.app.api.repository.informationrequest.review.InformationRequestReviewAssignmentRepository
 import com.docuhyphen.app.api.repository.informationrequest.review.InformationRequestReviewDecisionRepository
 import com.docuhyphen.app.api.repository.informationrequest.review.InformationRequestReviewFindingRepository
@@ -23,7 +18,7 @@ import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRe
 import com.docuhyphen.app.api.service.informationrequest.submission.InformationRequestSubmissionPackageReader
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestReviewLoader @Inject constructor(
@@ -111,7 +106,8 @@ class InformationRequestReviewLoader @Inject constructor(
 
     fun reviewETag(review: InformationRequestReview): String = RevisionETag.of(review.id, review.reviewRevision)
 
-    fun draftETag(assignment: InformationRequestReviewAssignment): String = RevisionETag.of(assignment.id, assignment.draftRevision)
+    fun draftETag(assignment: InformationRequestReviewAssignment): String =
+        RevisionETag.of(assignment.id, assignment.draftRevision)
 
     private fun assignmentFact(assignment: InformationRequestReviewAssignment) =
         InformationRequestReviewAssignmentFact(assignment.id, assignment.stageKey, assignment.state)

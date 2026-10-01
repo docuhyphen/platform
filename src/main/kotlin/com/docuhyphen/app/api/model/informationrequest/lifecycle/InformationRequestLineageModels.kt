@@ -1,19 +1,11 @@
 package com.docuhyphen.app.api.model.informationrequest.lifecycle
 
-import com.docuhyphen.app.api.model.entity.InformationRequest
-import com.docuhyphen.app.api.model.entity.InformationRequestCarryForward
-import com.docuhyphen.app.api.model.entity.InformationRequestCarryForwardDecision
-import com.docuhyphen.app.api.model.entity.InformationRequestLineage
-import com.docuhyphen.app.api.model.entity.InformationRequestLineageKind
-import com.docuhyphen.app.api.model.entity.InformationRequestRecurrence
-import com.docuhyphen.app.api.model.entity.InformationRequestRecurrenceUnit
-import com.docuhyphen.app.api.model.entity.InformationRequestRequirementType
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.fields.FieldValueRevisionValue
-import com.docuhyphen.app.api.model.entity.InformationRequestSubmissionItem
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
 import com.docuhyphen.app.api.service.command.CommandPrecondition
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 data class CreateInformationRequestSuccessorCommand(
     val sourceRequestId: UUID,

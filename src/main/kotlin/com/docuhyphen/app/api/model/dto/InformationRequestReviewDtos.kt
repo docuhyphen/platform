@@ -1,21 +1,6 @@
 package com.docuhyphen.app.api.model.dto
 
-import com.docuhyphen.app.api.model.entity.InformationRequestCorrectionState
-import com.docuhyphen.app.api.model.entity.InformationRequestFindingCorrectionScope
-import com.docuhyphen.app.api.model.entity.InformationRequestFindingSeverity
-import com.docuhyphen.app.api.model.entity.InformationRequestRequirementType
-import com.docuhyphen.app.api.model.entity.InformationRequestResponseDisposition
-import com.docuhyphen.app.api.model.entity.InformationRequestRetestResult
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewAggregation
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewAssignmentState
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewCommentRole
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewDecisionKind
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewKind
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewOutcome
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewStageOrdering
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewState
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewTieResolution
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewVisibility
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestState
 import com.docuhyphen.app.api.model.informationrequest.review.InformationRequestReviewItemStanding
 import com.docuhyphen.app.api.model.informationrequest.review.InformationRequestReviewStageState
@@ -24,7 +9,7 @@ import com.docuhyphen.app.api.serializer.UUIDSerializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
 import java.sql.Timestamp
-import java.util.UUID
+import java.util.*
 
 @Serializable
 data class InformationRequestReviewSummaryDto(

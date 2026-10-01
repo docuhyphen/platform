@@ -4,7 +4,7 @@ import com.docuhyphen.app.api.model.entity.InformationRequestRequirementType
 import com.docuhyphen.app.api.model.entity.InformationRequestTemplateRequirement
 import com.docuhyphen.app.api.repository.BaseRepository
 import jakarta.enterprise.context.ApplicationScoped
-import java.util.UUID
+import java.util.*
 
 /**
  * Persistence for [InformationRequestTemplateRequirement]. A requirement key is unique within one

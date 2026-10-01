@@ -1,8 +1,7 @@
 package com.docuhyphen.app.api.repository.audit
 
-import com.docuhyphen.app.api.repository.BaseRepository
-
 import com.docuhyphen.app.api.model.entity.StreamHead
+import com.docuhyphen.app.api.repository.BaseRepository
 import jakarta.enterprise.context.RequestScoped
 import jakarta.persistence.LockModeType
 
@@ -21,7 +20,7 @@ class StreamHeadRepository : BaseRepository<StreamHead>(StreamHead::class.java)
     {
         entityManager.createNativeQuery(
             "INSERT INTO stream_head (stream_id, last_sequence, last_hash, updated_at) " +
-                "VALUES (:streamId, 0, NULL, now()) ON CONFLICT (stream_id) DO NOTHING",
+                    "VALUES (:streamId, 0, NULL, now()) ON CONFLICT (stream_id) DO NOTHING",
         )
             .setParameter("streamId", streamId)
             .executeUpdate()

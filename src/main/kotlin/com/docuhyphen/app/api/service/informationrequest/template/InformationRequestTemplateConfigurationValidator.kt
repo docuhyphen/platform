@@ -1,26 +1,12 @@
 package com.docuhyphen.app.api.service.informationrequest.template
 
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateAcceptedValueRequest
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateConditionPredicateRequest
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateConditionRuleRequest
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateConfigurationRequest
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateEvidencePolicyRequest
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateGroupRequest
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateRequirementRequest
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateSectionRequest
-import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceAttribute
-import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceAttributeRequirement
-import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceWaiverPolicy
-import com.docuhyphen.app.api.model.entity.InformationRequestRequiredness
-import com.docuhyphen.app.api.model.entity.InformationRequestRequirementType
-import com.docuhyphen.app.api.model.entity.InformationRequestResponseDisposition
-import com.docuhyphen.app.api.model.entity.InformationRequestResponseMode
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewPolicy
+import com.docuhyphen.app.api.model.dto.*
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.service.fields.FieldOperator
 import com.docuhyphen.app.api.service.fields.FieldTypeRegistry
 import jakarta.enterprise.context.ApplicationScoped
 import kotlinx.serialization.json.JsonNull
-import java.util.UUID
+import java.util.*
 
 /**
  * Checks that one authored draft configuration holds together on its own terms, and returns the one
@@ -95,7 +81,7 @@ class InformationRequestTemplateConfigurationValidator
             {
                 refuseConditionRule(
                     "Condition rule $ruleKey uses expression version ${rule.expressionVersion}, which this runtime " +
-                        "does not support",
+                            "does not support",
                     ruleKey,
                 )
             }
@@ -123,7 +109,7 @@ class InformationRequestTemplateConfigurationValidator
             normalizeMachineKey(candidate) {
                 refuseConditionRule(
                     "Condition rule $ruleKey names '$candidate' as a source requirement, which is not a usable " +
-                        "requirement key",
+                            "requirement key",
                     ruleKey,
                 )
             }
@@ -198,7 +184,7 @@ class InformationRequestTemplateConfigurationValidator
             {
                 refuse(
                     "Requirement ${requirement.requirementKey} names condition rule $ruleKey, which this template " +
-                        "version does not define",
+                            "version does not define",
                     requirementKey = requirement.requirementKey,
                 )
             }
@@ -211,7 +197,7 @@ class InformationRequestTemplateConfigurationValidator
                     {
                         refuseConditionRule(
                             "Condition rule ${rule.ruleKey} reads requirement $sourceKey, which this template " +
-                                "version does not ask for",
+                                    "version does not ask for",
                             rule.ruleKey,
                         )
                     }
@@ -221,7 +207,7 @@ class InformationRequestTemplateConfigurationValidator
                     {
                         refuseConditionRule(
                             "Condition rule ${rule.ruleKey} reads Field $fieldId, which no requirement in this " +
-                                "template version collects",
+                                    "template version collects",
                             rule.ruleKey,
                         )
                     }
@@ -253,7 +239,7 @@ class InformationRequestTemplateConfigurationValidator
             {
                 refuse(
                     "Conditional requirements ${path.dropWhile { it != key }.plus(key).joinToString(" then ")} " +
-                        "depend on each other",
+                            "depend on each other",
                     requirementKey = key,
                 )
             }
@@ -288,7 +274,7 @@ class InformationRequestTemplateConfigurationValidator
             {
                 refuseGroup(
                     "Repeatable group ${group.groupKey} names parent group $parentKey, which this " +
-                        "template version does not define",
+                            "template version does not define",
                     group.groupKey,
                 )
             }
@@ -311,7 +297,7 @@ class InformationRequestTemplateConfigurationValidator
                 normalizeMachineKey(candidate) {
                     refuseGroup(
                         "Repeatable group $groupKey names '$candidate' as its parent, which is not " +
-                            "a usable group key",
+                                "a usable group key",
                         groupKey,
                     )
                 }
@@ -360,7 +346,7 @@ class InformationRequestTemplateConfigurationValidator
         {
             refuse(
                 "Requirement ${requirement.requirementKey} is answered once per $anchor, which this " +
-                    "template version does not define as a repeatable group",
+                        "template version does not define as a repeatable group",
                 requirementKey = requirement.requirementKey,
             )
         }
@@ -465,7 +451,7 @@ class InformationRequestTemplateConfigurationValidator
             {
                 refuse(
                     "Requirement $requirementKey is $mode to the party it nominates, so an answer " +
-                        "cannot be owed by that party",
+                            "cannot be owed by that party",
                     requirementKey = requirementKey,
                 )
             }
@@ -474,7 +460,7 @@ class InformationRequestTemplateConfigurationValidator
             {
                 refuse(
                     "Requirement $requirementKey is $mode to the party it nominates, so that party " +
-                        "cannot be offered answers to choose from",
+                            "cannot be offered answers to choose from",
                     requirementKey = requirementKey,
                 )
             }
@@ -485,7 +471,7 @@ class InformationRequestTemplateConfigurationValidator
             {
                 refuse(
                     "Requirement $requirementKey is $mode to the party it nominates, so that party " +
-                        "cannot declare a waiver of it",
+                            "cannot declare a waiver of it",
                     requirementKey = requirementKey,
                 )
             }
@@ -499,7 +485,7 @@ class InformationRequestTemplateConfigurationValidator
         {
             refuse(
                 "Requirement $requirementKey is reviewed only when the answer is an exception, and " +
-                    "it permits no answer that is one",
+                        "it permits no answer that is one",
                 requirementKey = requirementKey,
             )
         }
@@ -524,7 +510,7 @@ class InformationRequestTemplateConfigurationValidator
         {
             refuse(
                 "NOT_ANSWERED is the state a requirement starts in rather than an answer, so " +
-                    "requirement $requirementKey cannot permit it",
+                        "requirement $requirementKey cannot permit it",
                 requirementKey = requirementKey,
             )
         }
@@ -559,7 +545,7 @@ class InformationRequestTemplateConfigurationValidator
             {
                 refuse(
                     "Requirement $requirementKey asks for typed data but names no field to collect " +
-                        "it against",
+                            "it against",
                     requirementKey = requirementKey,
                 )
             }
@@ -568,7 +554,7 @@ class InformationRequestTemplateConfigurationValidator
         {
             refuse(
                 "Requirement $requirementKey asks for ${requirement.requirementType} rather than " +
-                    "typed data, so it collects no field",
+                        "typed data, so it collects no field",
                 requirementKey = requirementKey,
             )
         }
@@ -588,7 +574,7 @@ class InformationRequestTemplateConfigurationValidator
             val first = seen.put(collected, requirement.requirementKey) ?: return@forEach
             refuse(
                 "Requirements $first and ${requirement.requirementKey} both collect the same field, " +
-                    "and one field holds one answer",
+                        "and one field holds one answer",
                 requirementKey = requirement.requirementKey,
             )
         }
@@ -606,7 +592,7 @@ class InformationRequestTemplateConfigurationValidator
         {
             refuse(
                 "An evidence policy belongs to a requested document, and requirement " +
-                    "$requirementKey asks for ${requirement.requirementType}",
+                        "$requirementKey asks for ${requirement.requirementType}",
                 requirementKey = requirementKey,
             )
         }
@@ -627,7 +613,7 @@ class InformationRequestTemplateConfigurationValidator
                     acceptedValue = requireContent(accepted.acceptedValue) {
                         refuse(
                             "Requirement $requirementKey restricts ${accepted.attribute} to an " +
-                                "empty value",
+                                    "empty value",
                             requirementKey = requirementKey,
                         )
                     },
@@ -640,7 +626,7 @@ class InformationRequestTemplateConfigurationValidator
                 {
                     refuse(
                         "Requirement $requirementKey never captures ${accepted.attribute}, so it " +
-                            "cannot restrict which values of it are accepted",
+                                "cannot restrict which values of it are accepted",
                         requirementKey = requirementKey,
                     )
                 }
@@ -676,7 +662,7 @@ class InformationRequestTemplateConfigurationValidator
         {
             refuse(
                 "Only a requested document declares substitute evidence, and requirement $key asks " +
-                    "for ${requirement.requirementType}",
+                        "for ${requirement.requirementType}",
                 requirementKey = key,
             )
         }
@@ -685,7 +671,7 @@ class InformationRequestTemplateConfigurationValidator
         {
             refuse(
                 "A requested document does not itself declare supporting evidence, and requirement " +
-                    "$key does",
+                        "$key does",
                 requirementKey = key,
             )
         }
@@ -703,14 +689,14 @@ class InformationRequestTemplateConfigurationValidator
             val referencedType = typeByKey[referenced]
                 ?: refuse(
                     "Requirement $key references $referenced, which this template version does not " +
-                        "ask for",
+                            "ask for",
                     requirementKey = referenced,
                 )
             if (referencedType != InformationRequestRequirementType.DOCUMENT)
             {
                 refuse(
                     "Requirement $key references $referenced, which asks for $referencedType rather " +
-                        "than a document",
+                            "than a document",
                     requirementKey = referenced,
                 )
             }
@@ -731,7 +717,7 @@ class InformationRequestTemplateConfigurationValidator
             {
                 refuse(
                     "Requirement ${requirement.requirementKey} both stands in for another document " +
-                        "and declares its own substitutes, which would chain substitution",
+                            "and declares its own substitutes, which would chain substitution",
                     requirementKey = requirement.requirementKey,
                 )
             }
@@ -749,7 +735,7 @@ class InformationRequestTemplateConfigurationValidator
             normalizeMachineKey(candidate) {
                 refuse(
                     "Requirement $requirementKey names '$candidate' as $relation, which is not a " +
-                        "usable requirement key",
+                            "usable requirement key",
                     requirementKey = requirementKey,
                 )
             }

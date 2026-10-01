@@ -3,23 +3,12 @@ package com.docuhyphen.app.api.service.informationrequest.externalsource
 import com.docuhyphen.app.api.model.entity.InformationRequestImportedValueDecision
 import com.docuhyphen.app.api.model.entity.InformationRequestImportedValueDiscrepancy
 import com.docuhyphen.app.api.model.entity.InformationRequestImportedValueDiscrepancyResolution
-import com.docuhyphen.app.api.repository.informationrequest.externalsource.InformationRequestConnectorExchangeRepository
-import com.docuhyphen.app.api.repository.informationrequest.externalsource.InformationRequestGeneratedOutputRepository
-import com.docuhyphen.app.api.repository.informationrequest.externalsource.InformationRequestImportedValueDecisionRepository
-import com.docuhyphen.app.api.repository.informationrequest.externalsource.InformationRequestImportedValueDiscrepancyRepository
-import com.docuhyphen.app.api.repository.informationrequest.externalsource.InformationRequestImportedValueDiscrepancyResolutionRepository
-import com.docuhyphen.app.api.repository.informationrequest.externalsource.InformationRequestImportedValueRepository
+import com.docuhyphen.app.api.repository.informationrequest.externalsource.*
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonArray
-import kotlinx.serialization.json.JsonNull
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.buildJsonArray
-import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.put
+import kotlinx.serialization.json.*
 import java.sql.Timestamp
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestExternalSourceRecordAssembler @Inject constructor(
@@ -87,7 +76,9 @@ class InformationRequestExternalSourceRecordAssembler @Inject constructor(
                         put("decision", decisions[value.id]?.let(::decisionOf) ?: JsonNull)
                         put(
                             "discrepancies",
-                            buildJsonArray { discrepancies[value.id].orEmpty().forEach { add(discrepancyOf(it, resolutions[it.id])) } },
+                            buildJsonArray {
+                                discrepancies[value.id].orEmpty().forEach { add(discrepancyOf(it, resolutions[it.id])) }
+                            },
                         )
                     },
                 )

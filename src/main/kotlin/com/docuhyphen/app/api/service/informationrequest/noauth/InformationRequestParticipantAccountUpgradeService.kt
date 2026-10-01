@@ -3,7 +3,6 @@ package com.docuhyphen.app.api.service.informationrequest.noauth
 import com.docuhyphen.app.api.model.entity.ParticipantAccountLink
 import com.docuhyphen.app.api.model.entity.PrincipalKind
 import com.docuhyphen.app.api.model.entity.ResourceType
-import com.docuhyphen.app.api.model.entity.Share
 import com.docuhyphen.app.api.model.entity.ShareLink
 import com.docuhyphen.app.api.model.entity.ShareLinkMode
 import com.docuhyphen.app.api.model.entity.ShareLinkStatus
@@ -16,13 +15,7 @@ import com.docuhyphen.app.api.repository.informationrequest.noauth.ParticipantAc
 import com.docuhyphen.app.api.repository.informationrequest.party.InformationRequestPartyRepository
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.auth.authz.ResourceRef
-import com.docuhyphen.app.api.service.command.CommandActorRef
-import com.docuhyphen.app.api.service.command.CommandMutationResult
-import com.docuhyphen.app.api.service.command.CommandReceiptDecision
-import com.docuhyphen.app.api.service.command.CommandReceiptRequest
-import com.docuhyphen.app.api.service.command.CommandReceiptService
-import com.docuhyphen.app.api.service.command.CommandRequestFingerprint
-import com.docuhyphen.app.api.service.command.CommandResultReference
+import com.docuhyphen.app.api.service.command.*
 import com.docuhyphen.app.api.service.exchange.ShareService
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestETag
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
@@ -33,7 +26,6 @@ import jakarta.inject.Inject
 import jakarta.transaction.Transactional
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
 
 /**
  * Completes a respondent's transition from an email-only Participant to a registered App User.
@@ -110,7 +102,7 @@ class InformationRequestParticipantAccountUpgradeService @Inject constructor(
         }
         require(
             session.participantPrincipalKind == party.principalKind &&
-                session.participantPrincipalId == party.principalId,
+                    session.participantPrincipalId == party.principalId,
         ) { "Session is not bound to this request party" }
 
         val participantId = requireNotNull(party.principalId)

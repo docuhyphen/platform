@@ -7,7 +7,7 @@ import jakarta.inject.Inject
 import java.nio.file.Files
 import java.nio.file.Path
 import java.security.SecureRandom
-import java.util.Base64
+import java.util.*
 import java.util.concurrent.locks.ReentrantLock
 
 /**
@@ -19,8 +19,7 @@ import java.util.concurrent.locks.ReentrantLock
 @Local
 class LocalAuditIdentityVaultMasterKeyProvider @Inject constructor(
     private val configService: AuditIdentityVaultConfigService,
-)
-    : AuditIdentityVaultMasterKeyProvider
+) : AuditIdentityVaultMasterKeyProvider
 {
     companion object
     {

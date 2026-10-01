@@ -38,7 +38,11 @@ class InformationRequestFactRecertificationResource @Inject constructor(
         }
         catch (exception: Exception)
         {
-            InformationRequestCommandHttp.refused(logger, "Information Request accepted fact recertification failed", exception)
+            InformationRequestCommandHttp.refused(
+                logger,
+                "Information Request accepted fact recertification failed",
+                exception
+            )
         }
     }
 

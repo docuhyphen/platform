@@ -1,11 +1,7 @@
 package com.docuhyphen.app.api.service.informationrequest.review
 
 import com.docuhyphen.app.api.exception.InformationRequestCommandRequestException
-import com.docuhyphen.app.api.model.entity.InformationRequestCorrectionState
-import com.docuhyphen.app.api.model.entity.InformationRequestReview
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewKind
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewState
-import com.docuhyphen.app.api.model.entity.ResourceType
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.informationrequest.LockedInformationRequest
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestMutation
 import com.docuhyphen.app.api.model.informationrequest.review.InformationRequestReviewCommandResult
@@ -15,13 +11,7 @@ import com.docuhyphen.app.api.repository.informationrequest.review.InformationRe
 import com.docuhyphen.app.api.repository.informationrequest.review.InformationRequestReviewRepository
 import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.auth.authz.ResourceRef
-import com.docuhyphen.app.api.service.command.CommandActorRef
-import com.docuhyphen.app.api.service.command.CommandMutationResult
-import com.docuhyphen.app.api.service.command.CommandReceiptDecision
-import com.docuhyphen.app.api.service.command.CommandReceiptRequest
-import com.docuhyphen.app.api.service.command.CommandReceiptService
-import com.docuhyphen.app.api.service.command.CommandRequestFingerprint
-import com.docuhyphen.app.api.service.command.CommandResultReference
+import com.docuhyphen.app.api.service.command.*
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestETag
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestMutationGate
@@ -63,7 +53,13 @@ class InformationRequestReviewCycleService @Inject constructor(
             operation = OPERATION,
             actor = CommandActorRef.principal(command.access.principal),
             idempotencyKey = command.idempotencyKey,
-            requestFingerprint = CommandRequestFingerprint.sha256Hex("$OPERATION|${command.reviewId}|${command.kind}|${sha256Hex(reason)}"),
+            requestFingerprint = CommandRequestFingerprint.sha256Hex(
+                "$OPERATION|${command.reviewId}|${command.kind}|${
+                    sha256Hex(
+                        reason
+                    )
+                }"
+            ),
         )
         return when (
             val decision = commandReceiptService.runOnce(receipt) {

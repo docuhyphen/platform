@@ -5,7 +5,7 @@ import com.docuhyphen.app.api.model.audit.DEFAULT_AUDIT_TARGET_LIMIT
 import com.docuhyphen.app.api.model.entity.InformationRequestRecordExport
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 data class InformationRequestAuditSearch(
     val requestId: UUID? = null,

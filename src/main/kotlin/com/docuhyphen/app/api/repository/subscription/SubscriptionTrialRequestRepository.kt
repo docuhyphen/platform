@@ -1,14 +1,14 @@
 package com.docuhyphen.app.api.repository.subscription
 
-import com.docuhyphen.app.api.repository.BaseRepository
-
 import com.docuhyphen.app.api.model.entity.SubscriptionTrialRequest
 import com.docuhyphen.app.api.model.entity.SubscriptionTrialRequestStatus
+import com.docuhyphen.app.api.repository.BaseRepository
 import jakarta.enterprise.context.ApplicationScoped
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
-class SubscriptionTrialRequestRepository : BaseRepository<SubscriptionTrialRequest>(SubscriptionTrialRequest::class.java)
+class SubscriptionTrialRequestRepository :
+    BaseRepository<SubscriptionTrialRequest>(SubscriptionTrialRequest::class.java)
 {
     fun insertAndFlush(request: SubscriptionTrialRequest): SubscriptionTrialRequest
     {

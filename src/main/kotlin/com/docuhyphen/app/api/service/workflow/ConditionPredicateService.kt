@@ -83,7 +83,8 @@ class ConditionPredicateService
         val actual = subjectData[parsed.fieldName]
             ?: return PredicateResult.Invalid(PredicateErrorCode.MISSING_SUBJECT_VALUE)
         if (actual.isBlank() || (kind == FieldKind.BOOLEAN && actual !in BOOLEAN_VALUES) ||
-            (kind.isNumeric && numeric(actual, kind) == null))
+            (kind.isNumeric && numeric(actual, kind) == null)
+        )
         {
             return PredicateResult.Invalid(PredicateErrorCode.INVALID_SUBJECT_VALUE)
         }
@@ -106,8 +107,16 @@ class ConditionPredicateService
         {
             "contains" -> actual.contains(expected)
             "startsWith" -> actual.startsWith(expected)
-            "==" -> if (kind.isNumeric) numeric(actual, kind)?.compareTo(BigDecimal(expected)) == 0 else actual == expected
-            "!=" -> if (kind.isNumeric) numeric(actual, kind)?.compareTo(BigDecimal(expected))?.let { it != 0 } ?: false else actual != expected
+            "==" -> if (kind.isNumeric) numeric(
+                actual,
+                kind
+            )?.compareTo(BigDecimal(expected)) == 0
+            else actual == expected
+
+            "!=" -> if (kind.isNumeric) numeric(actual, kind)?.compareTo(BigDecimal(expected))?.let { it != 0 }
+                ?: false
+            else actual != expected
+
             ">" -> numeric(actual, kind)?.let { it > BigDecimal(expected) } ?: false
             "<" -> numeric(actual, kind)?.let { it < BigDecimal(expected) } ?: false
             ">=" -> numeric(actual, kind)?.let { it >= BigDecimal(expected) } ?: false
@@ -184,7 +193,8 @@ class ConditionPredicateService
 
     companion object
     {
-        private val EXPRESSION = Regex("^\\${'$'}subject\\.([A-Za-z_][A-Za-z0-9_]*)\\s+(startsWith|contains|>=|<=|==|!=|>|<)\\s+(.+)$")
+        private val EXPRESSION =
+            Regex("^\\${'$'}subject\\.([A-Za-z_][A-Za-z0-9_]*)\\s+(startsWith|contains|>=|<=|==|!=|>|<)\\s+(.+)$")
         private val INTEGER = Regex("^[+-]?[0-9]+$")
         private val NUMBER = Regex("^[+-]?(?:[0-9]+(?:\\.[0-9]+)?|\\.[0-9]+)$")
         private val BOOLEAN_VALUES = setOf("true", "false")

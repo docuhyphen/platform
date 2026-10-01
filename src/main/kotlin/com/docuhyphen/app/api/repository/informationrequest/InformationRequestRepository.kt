@@ -7,7 +7,7 @@ import com.docuhyphen.app.api.repository.BaseRepository
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.persistence.LockModeType
 import java.sql.Timestamp
-import java.util.UUID
+import java.util.*
 
 /**
  * Persistence for runtime Information Request aggregates. Owner lookups always include owner type
@@ -90,7 +90,7 @@ class InformationRequestRepository :
         }
         return entityManager.createQuery(
             "SELECT COUNT(request) FROM InformationRequest request " +
-                "WHERE request.ownerType = :ownerType AND $ownerClause AND request.state IN :openStates",
+                    "WHERE request.ownerType = :ownerType AND $ownerClause AND request.state IN :openStates",
             java.lang.Long::class.java,
         )
             .setParameter("ownerType", ownerType)
@@ -100,7 +100,12 @@ class InformationRequestRepository :
             .toLong()
     }
 
-    fun findFinishedIdsBefore(ownerType: InformationRequestOwnerType, ownerId: UUID, finishedBefore: Timestamp, limit: Int): List<UUID>
+    fun findFinishedIdsBefore(
+        ownerType: InformationRequestOwnerType,
+        ownerId: UUID,
+        finishedBefore: Timestamp,
+        limit: Int
+    ): List<UUID>
     {
         val ownerClause = when (ownerType)
         {

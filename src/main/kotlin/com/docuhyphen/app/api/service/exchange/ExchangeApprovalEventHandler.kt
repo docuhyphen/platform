@@ -1,8 +1,11 @@
 package com.docuhyphen.app.api.service.exchange
 
+import com.docuhyphen.app.api.model.entity.Exchange
 import com.docuhyphen.app.api.model.entity.ExchangeStatus
+import com.docuhyphen.app.api.model.entity.PrincipalKind
 import com.docuhyphen.app.api.model.entity.ResourceType
 import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
+import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.informationrequest.parent.InformationRequestExchangeCompletionException
 import com.docuhyphen.app.api.service.informationrequest.parent.InformationRequestExchangeCompletionService
 import com.docuhyphen.app.api.service.informationrequest.parent.InformationRequestParentLifecycleService
@@ -16,10 +19,7 @@ import jakarta.transaction.Transactional
 import org.slf4j.LoggerFactory
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
-import com.docuhyphen.app.api.model.entity.Exchange
-import com.docuhyphen.app.api.model.entity.PrincipalKind
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import java.util.*
 
 /**
  * Applies the side-effects of workflow lifecycle events to the Exchange and Share models.
@@ -72,11 +72,11 @@ class ExchangeApprovalEventHandler @Inject constructor(
     /** True for the event types this handler acts on. */
     fun handles(eventType: String): Boolean =
         eventType == EVENT_ACTIVATED ||
-            eventType == EVENT_REJECTED ||
-            eventType == EVENT_EXCHANGE_ACTIVATED ||
-            eventType == EVENT_DRAFT_APPROVED ||
-            eventType == EVENT_ENDING ||
-            eventType == EVENT_ENDED_CONFIRMED
+                eventType == EVENT_REJECTED ||
+                eventType == EVENT_EXCHANGE_ACTIVATED ||
+                eventType == EVENT_DRAFT_APPROVED ||
+                eventType == EVENT_ENDING ||
+                eventType == EVENT_ENDED_CONFIRMED
 
     @Transactional
     fun handle(event: DomainEvent)
@@ -90,7 +90,12 @@ class ExchangeApprovalEventHandler @Inject constructor(
         }
 
         val parent = exchangeRepository.findByIdForUpdate(exchangeId) ?: return
-        if (parent.isDeleted || parent.status in setOf(ExchangeStatus.REJECTED, ExchangeStatus.RESCINDED, ExchangeStatus.ENDED)) return
+        if (parent.isDeleted || parent.status in setOf(
+                ExchangeStatus.REJECTED,
+                ExchangeStatus.RESCINDED,
+                ExchangeStatus.ENDED
+            )
+        ) return
 
         when (event.type)
         {
@@ -107,8 +112,10 @@ class ExchangeApprovalEventHandler @Inject constructor(
                     {
                         session.status = ExchangeStatus.ACCEPTED_STARTED
                         exchangeRepository.update(session)
-                        requestParentLifecycle.apply(exchangeId, session.status, session.isDeleted,
-                            PrincipalRef(PrincipalKind.SERVICE_ACCOUNT, UUID(0, 0)))
+                        requestParentLifecycle.apply(
+                            exchangeId, session.status, session.isDeleted,
+                            PrincipalRef(PrincipalKind.SERVICE_ACCOUNT, UUID(0, 0))
+                        )
                         lifecycleNotificationService.publish(session, ExchangeStatus.ACCEPTED_STARTED)
                     }
                 }
@@ -128,8 +135,10 @@ class ExchangeApprovalEventHandler @Inject constructor(
                         session.status = ExchangeStatus.REJECTED
                         session.endDate = Timestamp.from(Instant.now())
                         exchangeRepository.update(session)
-                        requestParentLifecycle.apply(exchangeId, session.status, session.isDeleted,
-                            PrincipalRef(PrincipalKind.SERVICE_ACCOUNT, UUID(0, 0)))
+                        requestParentLifecycle.apply(
+                            exchangeId, session.status, session.isDeleted,
+                            PrincipalRef(PrincipalKind.SERVICE_ACCOUNT, UUID(0, 0))
+                        )
                         lifecycleNotificationService.publish(session, ExchangeStatus.REJECTED)
                     }
                 }
@@ -159,8 +168,10 @@ class ExchangeApprovalEventHandler @Inject constructor(
                             // Acceptance is not required: auto-advance straight to active.
                             session.status = ExchangeStatus.ACCEPTED_STARTED
                             exchangeRepository.update(session)
-                        requestParentLifecycle.apply(exchangeId, session.status, session.isDeleted,
-                            PrincipalRef(PrincipalKind.SERVICE_ACCOUNT, UUID(0, 0)))
+                            requestParentLifecycle.apply(
+                                exchangeId, session.status, session.isDeleted,
+                                PrincipalRef(PrincipalKind.SERVICE_ACCOUNT, UUID(0, 0))
+                            )
                             lifecycleNotificationService.publish(session, ExchangeStatus.ACCEPTED_STARTED)
                             logger.info(
                                 "Exchange {} activated: {} pending share(s) activated, status -> ACCEPTED_STARTED",
@@ -262,8 +273,10 @@ class ExchangeApprovalEventHandler @Inject constructor(
                         session.status = ExchangeStatus.ENDED
                         session.endDate = Timestamp.from(Instant.now())
                         exchangeRepository.update(session)
-                        requestParentLifecycle.apply(exchangeId, session.status, session.isDeleted,
-                            PrincipalRef(PrincipalKind.SERVICE_ACCOUNT, UUID(0, 0)))
+                        requestParentLifecycle.apply(
+                            exchangeId, session.status, session.isDeleted,
+                            PrincipalRef(PrincipalKind.SERVICE_ACCOUNT, UUID(0, 0))
+                        )
                         lifecycleNotificationService.publish(session, ExchangeStatus.ENDED)
                     }
                 }
@@ -287,8 +300,10 @@ class ExchangeApprovalEventHandler @Inject constructor(
                         session.status = ExchangeStatus.ENDED
                         session.endDate = Timestamp.from(Instant.now())
                         exchangeRepository.update(session)
-                        requestParentLifecycle.apply(exchangeId, session.status, session.isDeleted,
-                            PrincipalRef(PrincipalKind.SERVICE_ACCOUNT, UUID(0, 0)))
+                        requestParentLifecycle.apply(
+                            exchangeId, session.status, session.isDeleted,
+                            PrincipalRef(PrincipalKind.SERVICE_ACCOUNT, UUID(0, 0))
+                        )
                         lifecycleNotificationService.publish(session, ExchangeStatus.ENDED)
                     }
                 }

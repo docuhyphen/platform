@@ -31,7 +31,8 @@ class ConfiguredRecordStorageLocationPolicy @Inject constructor(
     private val location: String,
 ) : RecordStorageLocationPolicy
 {
-    override fun locationFor(owner: RecordOwnerRef, resourceType: String): String = location.trim().ifBlank { "primary" }
+    override fun locationFor(owner: RecordOwnerRef, resourceType: String): String =
+        location.trim().ifBlank { "primary" }
 }
 
 @DefaultBean
@@ -62,5 +63,6 @@ class ConfiguredRecordOwnershipChangePolicy @Inject constructor(
 ) : RecordOwnershipChangePolicy
 {
     override fun decide(change: RecordOwnershipChange): RecordOwnershipChangeDecision =
-        RecordOwnershipChangeDecision.entries.firstOrNull { it.name == decision.trim().uppercase() } ?: RecordOwnershipChangeDecision.RETAIN
+        RecordOwnershipChangeDecision.entries.firstOrNull { it.name == decision.trim().uppercase() }
+            ?: RecordOwnershipChangeDecision.RETAIN
 }

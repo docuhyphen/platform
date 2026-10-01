@@ -7,16 +7,11 @@ import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.service.notification.InAppNotificationService
 import com.docuhyphen.app.api.service.notification.NotificationReadCriteria
 import jakarta.inject.Inject
-import jakarta.ws.rs.Consumes
-import jakarta.ws.rs.GET
-import jakarta.ws.rs.POST
-import jakarta.ws.rs.Path
-import jakarta.ws.rs.Produces
-import jakarta.ws.rs.QueryParam
+import jakarta.ws.rs.*
 import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
 import org.slf4j.LoggerFactory
-import java.util.UUID
+import java.util.*
 
 @Path("/notifications")
 @Produces(MediaType.APPLICATION_JSON)

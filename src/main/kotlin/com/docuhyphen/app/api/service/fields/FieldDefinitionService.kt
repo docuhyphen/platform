@@ -121,7 +121,13 @@ class FieldDefinitionService @Inject constructor(
         fieldDefinitionRepository.save(definition)
 
         buildContract(definition.id, 1, request.contract)
-        recordFieldEvent(AuditEventType.FIELD_DEFINITION_CREATE, definition.id, "${definition.namespace}:${definition.fieldKey}", principal.id, scopeOrgId)
+        recordFieldEvent(
+            AuditEventType.FIELD_DEFINITION_CREATE,
+            definition.id,
+            "${definition.namespace}:${definition.fieldKey}",
+            principal.id,
+            scopeOrgId
+        )
         return definition.toDto()
     }
 
@@ -186,7 +192,8 @@ class FieldDefinitionService @Inject constructor(
             this.helpText = request.helpText?.trim()?.ifBlank { null }
             this.constraintsJson = request.constraintsJson?.ifBlank { "{}" } ?: "{}"
             this.optionsJson = if (request.options.isNotEmpty())
-                FieldOption.encodeList(request.options) else "[]"
+                FieldOption.encodeList(request.options)
+            else "[]"
             this.dataClassification = request.dataClassification
             this.isSearchable = request.isSearchable
             this.isFilterable = request.isFilterable
@@ -201,7 +208,7 @@ class FieldDefinitionService @Inject constructor(
     {
         val activeOrgId = currentContext().activeOrgId
         val hasOrgEdit = activeOrgId != null &&
-            hasOrganizationAccess(principal, activeOrgId, Action.FIELD_CONFIG_EDIT)
+                hasOrganizationAccess(principal, activeOrgId, Action.FIELD_CONFIG_EDIT)
         val scope = requested ?: if (hasOrgEdit) FieldScopeKind.ORGANIZATION else FieldScopeKind.PLATFORM
         if (scope == FieldScopeKind.PERSONAL)
             throw FieldValidationException("Personal-scoped fields cannot be authored yet")
@@ -228,18 +235,21 @@ class FieldDefinitionService @Inject constructor(
                     val activeOrgId = currentContext().activeOrgId
                     if (userRoleService.isAppAdmin(principal.id) ||
                         (activeOrgId != null &&
-                            hasOrganizationAccess(principal, activeOrgId, Action.FIELD_CONFIG_VIEW)))
+                                hasOrganizationAccess(principal, activeOrgId, Action.FIELD_CONFIG_VIEW))
+                    )
                         return
                 }
                 else if (userRoleService.isAppAdmin(principal.id))
                     return
             }
+
             FieldScopeKind.ORGANIZATION ->
             {
                 val organizationId = definition.scopeOrgId
                     ?: throw ForbiddenException("Organization-scoped field has no owner")
                 if (currentContext().activeOrgId == organizationId &&
-                    hasOrganizationAccess(principal, organizationId, action))
+                    hasOrganizationAccess(principal, organizationId, action)
+                )
                     return
             }
             // A personally owned field is storable but has no resolvable owner in the configuration

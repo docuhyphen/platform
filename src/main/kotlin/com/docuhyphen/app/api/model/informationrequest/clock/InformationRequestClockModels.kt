@@ -1,18 +1,11 @@
 package com.docuhyphen.app.api.model.informationrequest.clock
 
-import com.docuhyphen.app.api.model.entity.InformationRequestClock
-import com.docuhyphen.app.api.model.entity.InformationRequestClockDueEffect
-import com.docuhyphen.app.api.model.entity.InformationRequestClockEvent
-import com.docuhyphen.app.api.model.entity.InformationRequestClockEventKind
-import com.docuhyphen.app.api.model.entity.InformationRequestClockPolicy
-import com.docuhyphen.app.api.model.entity.InformationRequestClockPolicyVersion
-import com.docuhyphen.app.api.model.entity.InformationRequestClockType
-import com.docuhyphen.app.api.model.entity.InformationRequestClockUrgency
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
 import com.docuhyphen.app.api.service.command.CommandPrecondition
 import java.time.Instant
 import java.time.LocalDate
-import java.util.UUID
+import java.util.*
 
 data class InformationRequestClockPolicyDefinition(
     val clockType: InformationRequestClockType,

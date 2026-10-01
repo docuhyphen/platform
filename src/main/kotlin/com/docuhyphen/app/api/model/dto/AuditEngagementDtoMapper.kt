@@ -5,7 +5,7 @@ import com.docuhyphen.app.api.model.entity.AuditEngagementSensitivity
 import com.docuhyphen.app.api.service.audit.AuditEngagementService
 import com.docuhyphen.app.api.service.audit.catalog.AuditCategory
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 /** Audit engagement request/entity <-> DTO mapping, per this codebase's `toDto` convention. */
 object AuditEngagementDtoMapper

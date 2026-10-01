@@ -5,20 +5,9 @@ import com.docuhyphen.app.api.model.informationrequest.review.InformationRequest
 import com.docuhyphen.app.api.resource.informationrequest.InformationRequestCommandHttp
 import com.docuhyphen.app.api.resource.informationrequest.review.handler.InformationRequestReviewRequestHandler
 import com.docuhyphen.app.api.resource.informationrequest.review.operations.InformationRequestReviewResourceOperations
-import com.docuhyphen.app.api.resource.model.AssignInformationRequestReviewerRequest
-import com.docuhyphen.app.api.resource.model.ChangeInformationRequestReviewAssignmentRequest
-import com.docuhyphen.app.api.resource.model.OverrideInformationRequestReviewItemRequest
-import com.docuhyphen.app.api.resource.model.RecordInformationRequestReviewCommentRequest
-import com.docuhyphen.app.api.resource.model.RecordInformationRequestReviewFindingRequest
-import com.docuhyphen.app.api.resource.model.ReopenInformationRequestReviewRequest
-import com.docuhyphen.app.api.resource.model.SaveInformationRequestReviewWorksheetRequest
+import com.docuhyphen.app.api.resource.model.*
 import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestAccessContextFactory
-import com.docuhyphen.app.api.service.informationrequest.review.InformationRequestReviewAssignmentService
-import com.docuhyphen.app.api.service.informationrequest.review.InformationRequestReviewCommentService
-import com.docuhyphen.app.api.service.informationrequest.review.InformationRequestReviewCycleService
-import com.docuhyphen.app.api.service.informationrequest.review.InformationRequestReviewDecisionService
-import com.docuhyphen.app.api.service.informationrequest.review.InformationRequestReviewFindingService
-import com.docuhyphen.app.api.service.informationrequest.review.InformationRequestReviewQueryService
+import com.docuhyphen.app.api.service.informationrequest.review.*
 import jakarta.inject.Inject
 import jakarta.ws.rs.core.Response
 import org.slf4j.LoggerFactory
@@ -33,7 +22,8 @@ class InformationRequestReviewResource @Inject constructor(
     private val accessContextFactory: InformationRequestAccessContextFactory,
 ) : InformationRequestReviewResourceOperations
 {
-    private val handler = InformationRequestReviewRequestHandler(assignments, decisions, findings, comments, cycles, queries)
+    private val handler =
+        InformationRequestReviewRequestHandler(assignments, decisions, findings, comments, cycles, queries)
 
     override fun list(id: String): Response
     {
@@ -69,7 +59,14 @@ class InformationRequestReviewResource @Inject constructor(
     {
         return try
         {
-            handler.assign(requestId(id), reviewId(reviewId), request, accessContextFactory.currentAuthenticated(), ifMatch, idempotencyKey)
+            handler.assign(
+                requestId(id),
+                reviewId(reviewId),
+                request,
+                accessContextFactory.currentAuthenticated(),
+                ifMatch,
+                idempotencyKey
+            )
         }
         catch (exception: Exception)
         {
@@ -157,7 +154,11 @@ class InformationRequestReviewResource @Inject constructor(
         }
         catch (exception: Exception)
         {
-            InformationRequestCommandHttp.refused(logger, "Information Request review assignment revocation failed", exception)
+            InformationRequestCommandHttp.refused(
+                logger,
+                "Information Request review assignment revocation failed",
+                exception
+            )
         }
     }
 
@@ -207,7 +208,11 @@ class InformationRequestReviewResource @Inject constructor(
         }
         catch (exception: Exception)
         {
-            InformationRequestCommandHttp.refused(logger, "Information Request review decision recording failed", exception)
+            InformationRequestCommandHttp.refused(
+                logger,
+                "Information Request review decision recording failed",
+                exception
+            )
         }
     }
 
@@ -221,7 +226,14 @@ class InformationRequestReviewResource @Inject constructor(
     {
         return try
         {
-            handler.override(requestId(id), reviewId(reviewId), request, accessContextFactory.currentAuthenticated(), ifMatch, idempotencyKey)
+            handler.override(
+                requestId(id),
+                reviewId(reviewId),
+                request,
+                accessContextFactory.currentAuthenticated(),
+                ifMatch,
+                idempotencyKey
+            )
         }
         catch (exception: Exception)
         {
@@ -238,7 +250,13 @@ class InformationRequestReviewResource @Inject constructor(
     {
         return try
         {
-            handler.finding(requestId(id), reviewId(reviewId), request, accessContextFactory.currentAuthenticated(), idempotencyKey)
+            handler.finding(
+                requestId(id),
+                reviewId(reviewId),
+                request,
+                accessContextFactory.currentAuthenticated(),
+                idempotencyKey
+            )
         }
         catch (exception: Exception)
         {
@@ -255,7 +273,13 @@ class InformationRequestReviewResource @Inject constructor(
     {
         return try
         {
-            handler.comment(requestId(id), reviewId(reviewId), request, accessContextFactory.currentAuthenticated(), idempotencyKey)
+            handler.comment(
+                requestId(id),
+                reviewId(reviewId),
+                request,
+                accessContextFactory.currentAuthenticated(),
+                idempotencyKey
+            )
         }
         catch (exception: Exception)
         {
@@ -285,7 +309,11 @@ class InformationRequestReviewResource @Inject constructor(
         }
         catch (exception: Exception)
         {
-            InformationRequestCommandHttp.refused(logger, "Information Request review reconsideration failed", exception)
+            InformationRequestCommandHttp.refused(
+                logger,
+                "Information Request review reconsideration failed",
+                exception
+            )
         }
     }
 

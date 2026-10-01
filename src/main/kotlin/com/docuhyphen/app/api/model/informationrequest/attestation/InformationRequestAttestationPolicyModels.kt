@@ -1,12 +1,7 @@
 package com.docuhyphen.app.api.model.informationrequest.attestation
 
-import com.docuhyphen.app.api.model.entity.InformationRequestAttestationOrdering
-import com.docuhyphen.app.api.model.entity.InformationRequestAuthenticationStrength
-import com.docuhyphen.app.api.model.entity.InformationRequestContributorRole
-import com.docuhyphen.app.api.model.entity.InformationRequestExternalSignatureReferencePolicy
-import com.docuhyphen.app.api.model.entity.InformationRequestParty
-import com.docuhyphen.app.api.model.entity.InformationRequestSubmissionAttestation
-import java.util.UUID
+import com.docuhyphen.app.api.model.entity.*
+import java.util.*
 
 data class InformationRequestAttestationPolicy(
     val bindingId: UUID,

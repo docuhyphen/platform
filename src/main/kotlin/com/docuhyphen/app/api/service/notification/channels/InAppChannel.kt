@@ -3,8 +3,8 @@
 import com.docuhyphen.app.api.model.InAppNotificationMapper
 import com.docuhyphen.app.api.model.entity.InAppNotification
 import com.docuhyphen.app.api.model.entity.NotificationChannelType
-import com.docuhyphen.app.api.repository.notification.InAppNotificationRepository
 import com.docuhyphen.app.api.realtime.RealtimeEventService
+import com.docuhyphen.app.api.repository.notification.InAppNotificationRepository
 import com.docuhyphen.app.api.service.notification.ChannelSendResult
 import com.docuhyphen.app.api.service.notification.DeliveryTask
 import jakarta.enterprise.context.ApplicationScoped
@@ -26,8 +26,10 @@ class InAppChannel : NotificationChannel
 
     @Inject
     private lateinit var repository: InAppNotificationRepository
+
     @Inject
     private lateinit var mapper: InAppNotificationMapper
+
     @Inject
     private lateinit var realtimeEventService: RealtimeEventService
 

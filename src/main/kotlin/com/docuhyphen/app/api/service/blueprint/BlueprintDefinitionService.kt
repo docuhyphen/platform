@@ -183,7 +183,11 @@ class BlueprintDefinitionService @Inject constructor(
     }
 
     @Transactional
-    fun updateBlueprint(id: UUID, request: UpdateBlueprintRequest, context: AdminApprovalContext): BlueprintDefinitionDto
+    fun updateBlueprint(
+        id: UUID,
+        request: UpdateBlueprintRequest,
+        context: AdminApprovalContext
+    ): BlueprintDefinitionDto
     {
         val principal = currentPrincipal()
         val authContext = currentContext()
@@ -215,7 +219,11 @@ class BlueprintDefinitionService @Inject constructor(
     }
 
     @Transactional
-    fun patchPublished(id: UUID, request: PatchBlueprintPublishedRequest, context: AdminApprovalContext): BlueprintDefinitionDto
+    fun patchPublished(
+        id: UUID,
+        request: PatchBlueprintPublishedRequest,
+        context: AdminApprovalContext
+    ): BlueprintDefinitionDto
     {
         val principal = currentPrincipal()
         val authContext = currentContext()
@@ -238,7 +246,11 @@ class BlueprintDefinitionService @Inject constructor(
     }
 
     @Transactional
-    fun patchStatus(id: UUID, request: PatchBlueprintStatusRequest, context: AdminApprovalContext): BlueprintDefinitionDto
+    fun patchStatus(
+        id: UUID,
+        request: PatchBlueprintStatusRequest,
+        context: AdminApprovalContext
+    ): BlueprintDefinitionDto
     {
         val principal = currentPrincipal()
         val authContext = currentContext()
@@ -424,6 +436,7 @@ class BlueprintDefinitionService @Inject constructor(
             BlueprintScope.PERSONAL ->
                 if (bp.createdByAppUserId != principal.id)
                     throw ForbiddenException("Access denied to blueprint ${bp.id}")
+
             BlueprintScope.ORG ->
             {
                 val decision = authorizationService.authorize(
@@ -432,7 +445,10 @@ class BlueprintDefinitionService @Inject constructor(
                 if (decision is Decision.Deny)
                     throw ForbiddenException("Access denied to blueprint ${bp.id}")
             }
-            BlueprintScope.APP -> { }
+
+            BlueprintScope.APP ->
+            {
+            }
         }
     }
 
@@ -443,6 +459,7 @@ class BlueprintDefinitionService @Inject constructor(
             BlueprintScope.PERSONAL ->
                 if (bp.createdByAppUserId != principal.id)
                     throw ForbiddenException("Access denied to blueprint ${bp.id}")
+
             BlueprintScope.ORG ->
             {
                 val decision = authorizationService.authorize(
@@ -451,6 +468,7 @@ class BlueprintDefinitionService @Inject constructor(
                 if (decision is Decision.Deny)
                     throw ForbiddenException("Access denied to blueprint ${bp.id}")
             }
+
             BlueprintScope.APP ->
                 if (!userRoleService.isAppAdmin(principal.id))
                     throw ForbiddenException("App admin role required to modify APP-scoped blueprints")
@@ -509,6 +527,7 @@ class BlueprintDefinitionService @Inject constructor(
                     throw ForbiddenException("No organization membership found")
                 BlueprintScope.ORG
             }
+
             else -> throw ForbiddenException("Cannot clone directly into scope: $requested")
         }
     }

@@ -2,12 +2,7 @@ package com.docuhyphen.app.api.service.informationrequest.party
 
 import com.docuhyphen.app.api.model.InformationRequestSubjectDtoMapper
 import com.docuhyphen.app.api.model.dto.InformationRequestSubjectDto
-import com.docuhyphen.app.api.model.entity.InformationRequest
-import com.docuhyphen.app.api.model.entity.InformationRequestOwnerType
-import com.docuhyphen.app.api.model.entity.InformationRequestShareRoleKey
-import com.docuhyphen.app.api.model.entity.SubjectIdentityExternalIdentifier
-import com.docuhyphen.app.api.model.entity.SubjectIdentityOwnerType
-import com.docuhyphen.app.api.model.entity.SubjectIdentityRef
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.informationrequest.party.AssignInformationRequestPartyCommand
 import com.docuhyphen.app.api.model.informationrequest.party.AssignInformationRequestSubjectCommand
 import com.docuhyphen.app.api.model.informationrequest.party.InformationRequestPartyAssignmentResult
@@ -27,7 +22,7 @@ import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
 import java.nio.charset.StandardCharsets
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestSubjectService @Inject constructor(
@@ -43,7 +38,10 @@ class InformationRequestSubjectService @Inject constructor(
     fun assignSubject(command: AssignInformationRequestSubjectCommand): InformationRequestPartyAssignmentResult
     {
         val request = requestRepository.findById(command.requestId)
-            ?: throw InformationRequestLifecycleException(InformationRequestErrorCatalog.NOT_FOUND, "Information Request not found")
+            ?: throw InformationRequestLifecycleException(
+                InformationRequestErrorCatalog.NOT_FOUND,
+                "Information Request not found"
+            )
         val decision = authorizationService.authorize(
             command.access.principal,
             Action.INFORMATION_REQUEST_MANAGE_PARTIES,
@@ -71,8 +69,14 @@ class InformationRequestSubjectService @Inject constructor(
         val owner = ownerScopeAccess.currentOwner()
         ownerScopeAccess.requireAccess(owner, Action.INFORMATION_REQUEST_MANAGE_PRIVACY)
         val subjects = subjectRepository.findForOwner(subjectOwnerTypeOf(owner.ownerType), owner.ownerId)
-        val identifiers = identifierRepository.findForSubjects(subjects.map { it.id }).groupBy { it.subjectIdentityRefId }
-        return subjects.map { subject -> InformationRequestSubjectDtoMapper.toDto(subject, identifiers[subject.id].orEmpty()) }
+        val identifiers =
+            identifierRepository.findForSubjects(subjects.map { it.id }).groupBy { it.subjectIdentityRefId }
+        return subjects.map { subject ->
+            InformationRequestSubjectDtoMapper.toDto(
+                subject,
+                identifiers[subject.id].orEmpty()
+            )
+        }
     }
 
     private fun knownSubject(request: InformationRequest, reference: InformationRequestSubjectReference): UUID? =

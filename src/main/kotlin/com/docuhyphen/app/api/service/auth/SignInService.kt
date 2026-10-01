@@ -1,34 +1,26 @@
 ﻿package com.docuhyphen.app.api.service.auth
 
-import com.docuhyphen.app.api.exception.InactiveAccountException
-import com.docuhyphen.app.api.exception.InvalidOtpException
-import com.docuhyphen.app.api.exception.PasswordChangeRequiredException
-import com.docuhyphen.app.api.exception.InvalidSignInCredentialsException
-import com.docuhyphen.app.api.exception.MaxAttemptsOTPExceededException
-import com.docuhyphen.app.api.exception.OTPExpiredException
-import com.docuhyphen.app.api.exception.SignUpRequiredException
-import com.docuhyphen.app.api.exception.TemporaryPasswordExpiredException
-import com.docuhyphen.app.api.exception.TooManyRequestsException
+import com.docuhyphen.app.api.exception.*
 import com.docuhyphen.app.api.extension.maskEmailForLogs
 import com.docuhyphen.app.api.extension.normalizeEmailOrNull
 import com.docuhyphen.app.api.model.dto.MfaSessionDto
 import com.docuhyphen.app.api.model.entity.MultifactorAuthenticationStatus
 import com.docuhyphen.app.api.model.entity.MultifactorAuthenticationType
 import com.docuhyphen.app.api.model.entity.MultifactorAuthenticationType.EMAIL
-import com.docuhyphen.app.api.service.user.AppUserService
-import com.docuhyphen.app.api.service.identity.OrganizationIdentityPolicyService
 import com.docuhyphen.app.api.service.communication.EmailService
 import com.docuhyphen.app.api.service.communication.EmailTemplateService
 import com.docuhyphen.app.api.service.communication.MfaService
 import com.docuhyphen.app.api.service.communication.OtpService
 import com.docuhyphen.app.api.service.config.ConfigurationService
+import com.docuhyphen.app.api.service.identity.OrganizationIdentityPolicyService
+import com.docuhyphen.app.api.service.user.AppUserService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
 import org.slf4j.LoggerFactory
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class SignInService @Inject constructor(
@@ -84,9 +76,15 @@ class SignInService @Inject constructor(
 
         val appUser = appUserService.findByEmail(sanitizedEmail) ?: throw InvalidSignInCredentialsException()
 
-        // Temporary placeholder accounts (created when an Exchange recipient has no existing account)
-        // must complete sign-up before signing in. This check runs before the isActive guard so that
-        // any temporary user — regardless of their isActive state — receives the correct prompt.
+        // Account state is only revealed after the password is proven. Accounts without a password,
+        // such as external-provider and placeholder accounts, fail exactly like an unknown email.
+        val storedPasswordHash = appUser.password
+        if (storedPasswordHash.isNullOrBlank() || !authenticationService.validatePassword(password, storedPasswordHash))
+        {
+            logger.warn("Sign in failed: Invalid password for {}", sanitizedEmail.maskEmailForLogs())
+            throw InvalidSignInCredentialsException()
+        }
+
         if (appUser.isTemporary && appUser.deprovisionedAt == null)
         {
             logger.warn("Sign in blocked: temporary account requires sign-up for {}", sanitizedEmail.maskEmailForLogs())
@@ -97,16 +95,6 @@ class SignInService @Inject constructor(
         {
             logger.warn("Sign in blocked: inactive/deprovisioned account for {}", sanitizedEmail.maskEmailForLogs())
             throw InactiveAccountException()
-        }
-
-        // An account provisioned through an external identity provider has no password. Treating
-        // that as a plain credential failure keeps the response identical to an unknown email, so
-        // the endpoint cannot be used to discover which addresses exist as external-only accounts.
-        val storedPasswordHash = appUser.password
-        if (storedPasswordHash.isNullOrBlank() || !authenticationService.validatePassword(password, storedPasswordHash))
-        {
-            logger.warn("Sign in failed: Invalid password for {}", sanitizedEmail.maskEmailForLogs())
-            throw InvalidSignInCredentialsException()
         }
 
         if (appUser.isPasswordTemporary)
@@ -133,6 +121,7 @@ class SignInService @Inject constructor(
             EMAIL -> mfaService.doEmailMFA(appUser, mfaSession.mfaToken!!)
             MultifactorAuthenticationType.GOOGLE_AUTHENTICATOR,
             MultifactorAuthenticationType.MICROSOFT_AUTHENTICATOR -> Unit
+
             MultifactorAuthenticationType.SMS -> TODO("Implement SMS OTP sending")
             MultifactorAuthenticationType.PASSKEY -> TODO("Implement passkey OTP sending")
             else ->
@@ -148,7 +137,13 @@ class SignInService @Inject constructor(
     }
 
     @Transactional(dontRollbackOn = [InvalidOtpException::class, MaxAttemptsOTPExceededException::class])
-    fun completeSignIn(email: String?, otp: String?, sessionId: String?, userAgent: String? = null, ipAddress: String? = null): TokenTriple
+    fun completeSignIn(
+        email: String?,
+        otp: String?,
+        sessionId: String?,
+        userAgent: String? = null,
+        ipAddress: String? = null
+    ): TokenTriple
     {
         if (email.isNullOrBlank() || otp.isNullOrBlank() || sessionId.isNullOrBlank())
         {
@@ -173,11 +168,16 @@ class SignInService @Inject constructor(
         val sanitizedEmail = email.normalizeEmailOrNull()!!
         val sanitizedOTP = otp.trim()
         val mfaRecord =
-            mfaService.getMfaRecordByEmailAndSessionId(sanitizedEmail, sessionId) ?: throw InvalidOtpException("Invalid verification code")
+            mfaService.getMfaRecordByEmailAndSessionIdForUpdate(sanitizedEmail, sessionId) ?: throw InvalidOtpException(
+                "Invalid verification code"
+            )
 
         if (mfaRecord.mfaType == EMAIL && mfaRecord.expiryDateTime?.before(Timestamp.from(Instant.now())) == true)
         {
-            logger.warn("Sign in completion failed: verification code expired for {}", sanitizedEmail.maskEmailForLogs())
+            logger.warn(
+                "Sign in completion failed: verification code expired for {}",
+                sanitizedEmail.maskEmailForLogs()
+            )
 
             throw OTPExpiredException("Verification code expired.")
         }
@@ -231,7 +231,10 @@ class SignInService @Inject constructor(
                 if (!authenticatorMfaService.verifyUserCode(mfaRecord.appUser!!, sanitizedOTP))
                 {
                     mfaService.updateRecord(mfaRecord)
-                    logger.warn("Sign in completion failed: Invalid authenticator code for {}", sanitizedEmail.maskEmailForLogs())
+                    logger.warn(
+                        "Sign in completion failed: Invalid authenticator code for {}",
+                        sanitizedEmail.maskEmailForLogs()
+                    )
                     throw InvalidOtpException("Invalid verification code")
                 }
             }
@@ -321,7 +324,8 @@ class SignInService @Inject constructor(
 
         val sanitizedEmail = email.normalizeEmailOrNull()!!
         val mfaRecord =
-            mfaService.getMfaRecordByEmailAndSessionId(sanitizedEmail, sessionId) ?: throw InvalidSignInCredentialsException()
+            mfaService.getMfaRecordByEmailAndSessionIdForUpdate(sanitizedEmail, sessionId)
+                ?: throw InvalidSignInCredentialsException()
 
         if (mfaRecord.status == MultifactorAuthenticationStatus.COMPLETED)
         {
@@ -350,7 +354,8 @@ class SignInService @Inject constructor(
         // Send the new OTP based on MFA type
         when (mfaRecord.mfaType)
         {
-            EMAIL -> {
+            EMAIL ->
+            {
                 val emailBody = emailTemplateService.renderSignInMfaResendEmail(
                     otp = newOtp,
                     expiryMinutes = configurationService.getSignInEmailOtpMFAExpiryMins(),
@@ -363,6 +368,7 @@ class SignInService @Inject constructor(
                     useHtml = true,
                 )
             }
+
             MultifactorAuthenticationType.SMS -> TODO("Implement SMS OTP sending")
             MultifactorAuthenticationType.PASSKEY -> TODO("Implement passkey OTP sending")
             else ->
@@ -390,7 +396,7 @@ class SignInService @Inject constructor(
             throw InvalidSignInCredentialsException()
         }
         val sanitizedEmail = email.normalizeEmailOrNull() ?: throw InvalidSignInCredentialsException()
-        val mfaRecord = mfaService.getMfaRecordByEmailAndSessionId(sanitizedEmail, sessionId)
+        val mfaRecord = mfaService.getMfaRecordByEmailAndSessionIdForUpdate(sanitizedEmail, sessionId)
             ?: throw InvalidSignInCredentialsException()
         val appUser = mfaRecord.appUser ?: throw InvalidSignInCredentialsException()
         if (!mfaRecord.mfaType!!.isAuthenticator() || !appUser.emailMfaFallbackEnabled)

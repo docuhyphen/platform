@@ -28,8 +28,10 @@ class ExchangeAutoAcceptActionHandler : WorkflowActionHandler
     private val logger = LoggerFactory.getLogger(ExchangeAutoAcceptActionHandler::class.java)
     private val json = Json { ignoreUnknownKeys = true }
 
-    @Inject private lateinit var exchangeRepository: ExchangeRepository
-    @Inject private lateinit var eventPublisher: DomainEventPublisher
+    @Inject
+    private lateinit var exchangeRepository: ExchangeRepository
+    @Inject
+    private lateinit var eventPublisher: DomainEventPublisher
 
     override fun key() = "exchange.auto-accept"
 

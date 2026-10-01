@@ -6,12 +6,7 @@ import com.docuhyphen.app.api.model.informationrequest.attestation.InformationRe
 import com.docuhyphen.app.api.model.informationrequest.attestation.InformationRequestAttestationState
 import com.docuhyphen.app.api.model.informationrequest.response.InformationRequestCompletenessContribution
 import com.docuhyphen.app.api.model.informationrequest.response.InformationRequestCompletenessItemState
-import com.docuhyphen.app.api.model.informationrequest.submission.InformationRequestSubmissionAssessment
-import com.docuhyphen.app.api.model.informationrequest.submission.InformationRequestSubmissionContent
-import com.docuhyphen.app.api.model.informationrequest.submission.InformationRequestSubmissionContentItem
-import com.docuhyphen.app.api.model.informationrequest.submission.InformationRequestSubmissionItemProblem
-import com.docuhyphen.app.api.model.informationrequest.submission.InformationRequestSubmissionProblemCode
-import com.docuhyphen.app.api.model.informationrequest.submission.InformationRequestSubmissionReadiness
+import com.docuhyphen.app.api.model.informationrequest.submission.*
 import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestMutationGate
@@ -35,7 +30,10 @@ class InformationRequestSubmissionReadinessEvaluator @Inject constructor(
     private val gate: InformationRequestMutationGate,
 )
 {
-    fun assess(content: InformationRequestSubmissionContent, access: RequestAccessContext): InformationRequestSubmissionAssessment
+    fun assess(
+        content: InformationRequestSubmissionContent,
+        access: RequestAccessContext
+    ): InformationRequestSubmissionAssessment
     {
         val contributions = completenessProgressService.evaluate(content.request.id).items
             .filter { it.requirementId != null }
@@ -48,10 +46,15 @@ class InformationRequestSubmissionReadinessEvaluator @Inject constructor(
             val state = states[item.requirement.id]
             val code = when
             {
-                state == InformationRequestCompletenessItemState.INCOMPLETE -> problemOf(item, attestations[item.requirement.id])
+                state == InformationRequestCompletenessItemState.INCOMPLETE -> problemOf(
+                    item,
+                    attestations[item.requirement.id]
+                )
+
                 state != InformationRequestCompletenessItemState.HIDDEN &&
-                    item.response?.reconfirmationRequiredByAmendmentId != null ->
+                        item.response?.reconfirmationRequiredByAmendmentId != null ->
                     InformationRequestSubmissionProblemCode.RECONFIRMATION_REQUIRED
+
                 else -> return@mapNotNull null
             }
             InformationRequestSubmissionItemProblem(
@@ -77,12 +80,16 @@ class InformationRequestSubmissionReadinessEvaluator @Inject constructor(
             contributions.isEmpty() -> InformationRequestCompletenessItemState.INCOMPLETE
             contributions.any { it.state == InformationRequestCompletenessItemState.INCOMPLETE } ->
                 InformationRequestCompletenessItemState.INCOMPLETE
+
             contributions.any { it.state == InformationRequestCompletenessItemState.REJECTED } ->
                 InformationRequestCompletenessItemState.INCOMPLETE
+
             contributions.all { it.state == InformationRequestCompletenessItemState.HIDDEN } ->
                 InformationRequestCompletenessItemState.HIDDEN
+
             contributions.any { it.state == InformationRequestCompletenessItemState.COMPLETE } ->
                 InformationRequestCompletenessItemState.COMPLETE
+
             else -> InformationRequestCompletenessItemState.OPTIONAL_UNANSWERED
         }
 
@@ -92,12 +99,15 @@ class InformationRequestSubmissionReadinessEvaluator @Inject constructor(
     ): InformationRequestSubmissionProblemCode = when
     {
         item.requirementType == InformationRequestRequirementType.RESPONSE_ATTESTATION &&
-            attestation?.evaluation?.state == InformationRequestAttestationState.REFUSED ->
+                attestation?.evaluation?.state == InformationRequestAttestationState.REFUSED ->
             InformationRequestSubmissionProblemCode.ATTESTATION_REFUSED
+
         item.requirementType == InformationRequestRequirementType.RESPONSE_ATTESTATION ->
             InformationRequestSubmissionProblemCode.ATTESTATION_MISSING
+
         item.requirementType == InformationRequestRequirementType.DOCUMENT && item.evidence?.members?.isNotEmpty() == true ->
             InformationRequestSubmissionProblemCode.EVIDENCE_NOT_CONFORMING
+
         else -> InformationRequestSubmissionProblemCode.REQUIREMENT_INCOMPLETE
     }
 }

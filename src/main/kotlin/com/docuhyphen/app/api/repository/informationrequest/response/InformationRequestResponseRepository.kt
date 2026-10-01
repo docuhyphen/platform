@@ -5,7 +5,7 @@ import com.docuhyphen.app.api.repository.BaseRepository
 import com.docuhyphen.app.api.service.informationrequest.response.InformationRequestResponseStore
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.persistence.LockModeType
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestResponseRepository :

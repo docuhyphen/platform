@@ -1,7 +1,7 @@
 package com.docuhyphen.app.api.resource.exchange
 
-import com.docuhyphen.app.api.model.DetailedEntityToDtoTransformer
 import com.docuhyphen.app.api.exception.SubscriptionDenialException
+import com.docuhyphen.app.api.model.DetailedEntityToDtoTransformer
 import com.docuhyphen.app.api.resource.model.CommentRequest
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.service.exchange.ExchangeDocumentCommentsService

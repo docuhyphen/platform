@@ -5,12 +5,7 @@ import com.docuhyphen.app.api.model.RecordPreservationDtoMapper
 import com.docuhyphen.app.api.resource.model.PublishRecordRetentionScheduleRequest
 import com.docuhyphen.app.api.service.recordpreservation.RecordPreservationAdministration
 import jakarta.inject.Inject
-import jakarta.ws.rs.Consumes
-import jakarta.ws.rs.GET
-import jakarta.ws.rs.PUT
-import jakarta.ws.rs.Path
-import jakarta.ws.rs.PathParam
-import jakarta.ws.rs.Produces
+import jakarta.ws.rs.*
 import jakarta.ws.rs.core.MediaType.APPLICATION_JSON
 import jakarta.ws.rs.core.Response
 import org.slf4j.LoggerFactory
@@ -38,11 +33,15 @@ class RecordRetentionScheduleResource @Inject constructor(
 
     @PUT
     @Path("/{resourceType}")
-    fun publish(@PathParam("resourceType") resourceType: String, request: PublishRecordRetentionScheduleRequest?): Response
+    fun publish(
+        @PathParam("resourceType") resourceType: String,
+        request: PublishRecordRetentionScheduleRequest?
+    ): Response
     {
         return try
         {
-            val body = request ?: throw RecordPreservationRequestException("A retention schedule states its minimum retention")
+            val body =
+                request ?: throw RecordPreservationRequestException("A retention schedule states its minimum retention")
             val view = administration.publishSchedule(resourceType, body.minimumRetentionDays, body.disposalAfterDays)
             Response.ok(RecordPreservationDtoMapper.toDto(resourceType, view)).build()
         }

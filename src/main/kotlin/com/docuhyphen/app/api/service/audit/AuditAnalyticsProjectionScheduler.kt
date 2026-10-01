@@ -15,7 +15,11 @@ class AuditAnalyticsProjectionScheduler @Inject constructor(
         private val logger = LoggerFactory.getLogger(AuditAnalyticsProjectionScheduler::class.java)
     }
 
-    @Scheduled(every = "\${app.audit.analytics.project-every:1m}", identity = "audit-analytics-projection", concurrentExecution = Scheduled.ConcurrentExecution.SKIP)
+    @Scheduled(
+        every = "\${app.audit.analytics.project-every:1m}",
+        identity = "audit-analytics-projection",
+        concurrentExecution = Scheduled.ConcurrentExecution.SKIP
+    )
     fun tick()
     {
         try

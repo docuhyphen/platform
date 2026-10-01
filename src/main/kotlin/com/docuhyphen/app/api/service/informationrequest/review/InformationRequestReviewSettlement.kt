@@ -1,13 +1,6 @@
 package com.docuhyphen.app.api.service.informationrequest.review
 
-import com.docuhyphen.app.api.model.entity.InformationRequestCorrection
-import com.docuhyphen.app.api.model.entity.InformationRequestCorrectionEvidence
-import com.docuhyphen.app.api.model.entity.InformationRequestCorrectionItem
-import com.docuhyphen.app.api.model.entity.InformationRequestCorrectionState
-import com.docuhyphen.app.api.model.entity.InformationRequestFindingCorrectionScope
-import com.docuhyphen.app.api.model.entity.InformationRequestReview
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewOutcome
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewState
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.informationrequest.LockedInformationRequest
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestMutation
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestTransitionHistoryCommand
@@ -81,10 +74,18 @@ class InformationRequestReviewSettlement @Inject constructor(
         )
         when (settledState)
         {
-            InformationRequestReviewState.CHANGES_REQUESTED -> openCorrection(locked, snapshot, actor, idempotencyKey, now)
+            InformationRequestReviewState.CHANGES_REQUESTED -> openCorrection(
+                locked,
+                snapshot,
+                actor,
+                idempotencyKey,
+                now
+            )
+
             InformationRequestReviewState.SATISFIED,
             InformationRequestReviewState.SATISFIED_WITH_EXCEPTION,
-            -> satisfaction.closeIfSatisfied(locked, review.packageId, actor, idempotencyKey)
+                -> satisfaction.closeIfSatisfied(locked, review.packageId, actor, idempotencyKey)
+
             else -> Unit
         }
         return review

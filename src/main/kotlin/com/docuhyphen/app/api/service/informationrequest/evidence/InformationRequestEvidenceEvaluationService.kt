@@ -1,21 +1,7 @@
 package com.docuhyphen.app.api.service.informationrequest.evidence
 
-import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceArtifact
-import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceAssessment
-import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceCollectionState
-import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceVersion
-import com.docuhyphen.app.api.model.entity.InformationRequestRequirement
-import com.docuhyphen.app.api.model.entity.InformationRequestResponseDisposition
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestDocumentVersionEvidenceSource
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceAttributesMapper
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceConformance
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceRequirementEvaluation
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceRequirementState
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceStanding
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceVersionFacts
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceVersionSourceMapper
-import com.docuhyphen.app.api.model.informationrequest.evidence.inspectionFacts
-import com.docuhyphen.app.api.model.informationrequest.evidence.malwareFacts
+import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.informationrequest.evidence.*
 import com.docuhyphen.app.api.model.informationrequest.submission.InformationRequestEvidenceSubmissionFacts
 import com.docuhyphen.app.api.model.informationrequest.submission.InformationRequestEvidenceSubmissionMember
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRequirementRepository
@@ -128,8 +114,9 @@ class InformationRequestEvidenceEvaluationService @Inject constructor(
         assessments: List<InformationRequestEvidenceAssessment>,
     ): InformationRequestEvidenceVersionFacts
     {
-        val content = (InformationRequestEvidenceVersionSourceMapper.read(version) as? InformationRequestDocumentVersionEvidenceSource)
-            ?.let { documentVersionRecordingService.findVersion(it.documentVersionId) }
+        val content =
+            (InformationRequestEvidenceVersionSourceMapper.read(version) as? InformationRequestDocumentVersionEvidenceSource)
+                ?.let { documentVersionRecordingService.findVersion(it.documentVersionId) }
 
         return InformationRequestEvidenceVersionFacts(
             versionId = version.id,

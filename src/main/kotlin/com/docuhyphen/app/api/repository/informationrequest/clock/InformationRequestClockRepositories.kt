@@ -1,19 +1,11 @@
 package com.docuhyphen.app.api.repository.informationrequest.clock
 
-import com.docuhyphen.app.api.model.entity.InformationRequestClock
-import com.docuhyphen.app.api.model.entity.InformationRequestClockEvent
-import com.docuhyphen.app.api.model.entity.InformationRequestClockPolicy
-import com.docuhyphen.app.api.model.entity.InformationRequestClockPolicyHoliday
-import com.docuhyphen.app.api.model.entity.InformationRequestClockPolicyPeriod
-import com.docuhyphen.app.api.model.entity.InformationRequestClockPolicyReminder
-import com.docuhyphen.app.api.model.entity.InformationRequestClockPolicyVersion
-import com.docuhyphen.app.api.model.entity.InformationRequestClockState
-import com.docuhyphen.app.api.model.entity.InformationRequestOwnerType
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.repository.BaseRepository
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.persistence.LockModeType
 import java.sql.Timestamp
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestClockPolicyRepository :
@@ -21,7 +13,8 @@ class InformationRequestClockPolicyRepository :
 {
     fun findForOwner(ownerType: InformationRequestOwnerType, ownerId: UUID): List<InformationRequestClockPolicy>
     {
-        val ownerColumn = if (ownerType == InformationRequestOwnerType.ORGANIZATION) "ownerOrganizationId" else "ownerUserId"
+        val ownerColumn =
+            if (ownerType == InformationRequestOwnerType.ORGANIZATION) "ownerOrganizationId" else "ownerUserId"
         return entityManager.createQuery(
             "SELECT policy FROM InformationRequestClockPolicy policy WHERE policy.ownerType = :ownerType AND policy.$ownerColumn = :ownerId ORDER BY policy.policyKey",
             InformationRequestClockPolicy::class.java,
@@ -31,7 +24,11 @@ class InformationRequestClockPolicyRepository :
             .resultList
     }
 
-    fun findByKey(ownerType: InformationRequestOwnerType, ownerId: UUID, policyKey: String): InformationRequestClockPolicy? =
+    fun findByKey(
+        ownerType: InformationRequestOwnerType,
+        ownerId: UUID,
+        policyKey: String
+    ): InformationRequestClockPolicy? =
         findForOwner(ownerType, ownerId).firstOrNull { it.policyKey == policyKey }
 }
 

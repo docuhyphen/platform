@@ -17,10 +17,16 @@ class AuditIdentityVaultConfigService @Inject constructor(
     @ConfigProperty(name = "app.audit.identity-vault.provider", defaultValue = "local")
     private val providerConfig: String,
 
-    @ConfigProperty(name = "app.audit.identity-vault.local.directory", defaultValue = "local-development-resources/logs/audit-identity-vault")
+    @ConfigProperty(
+        name = "app.audit.identity-vault.local.directory",
+        defaultValue = "local-development-resources/logs/audit-identity-vault"
+    )
     private val localDirectoryConfig: String,
 
-    @ConfigProperty(name = "app.audit.identity-vault.secret-id", defaultValue = "docuhyphen-audit-identity-vault-master-key")
+    @ConfigProperty(
+        name = "app.audit.identity-vault.secret-id",
+        defaultValue = "docuhyphen-audit-identity-vault-master-key"
+    )
     private val secretIdConfig: String,
 
     @ConfigProperty(name = "app.audit.identity-vault.region", defaultValue = "us-east-1")

@@ -3,7 +3,7 @@
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.websocket.Session
 import org.slf4j.LoggerFactory
-import java.util.UUID
+import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 
 /**
@@ -38,7 +38,12 @@ class RealtimeSessionRegistry
         }
         userIdByUserSession[userSessionId] = appUserId
         userSessionIdsByUser.computeIfAbsent(appUserId) { ConcurrentHashMap.newKeySet() }.add(userSessionId)
-        logger.info("Realtime socket added userSessionId={} appUserId={} totalSockets={}", userSessionId, appUserId, socketsByUserSessionId.size)
+        logger.info(
+            "Realtime socket added userSessionId={} appUserId={} totalSockets={}",
+            userSessionId,
+            appUserId,
+            socketsByUserSessionId.size
+        )
     }
 
     fun removeSocket(userSessionId: UUID, session: Session): Boolean

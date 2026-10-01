@@ -1,7 +1,7 @@
 package com.docuhyphen.app.api.service.informationrequest.execution
 
 import com.docuhyphen.app.api.model.entity.RequestExecutionUsageKind
-import java.util.UUID
+import java.util.*
 
 /**
  * Thrown when reserving capacity would push a grant's active usage for one
@@ -15,5 +15,5 @@ class RequestExecutionUsageExhaustedException(
     val requested: Long,
 ) : RuntimeException(
     "Execution grant $grantId has no remaining $usageKind capacity: " +
-        "cap=$cap, active=$activeUsage, requested=$requested",
+            "cap=$cap, active=$activeUsage, requested=$requested",
 )

@@ -8,14 +8,7 @@ import com.docuhyphen.app.api.resource.model.PlaceRecordPreservationHoldRequest
 import com.docuhyphen.app.api.resource.model.ReleaseRecordPreservationHoldRequest
 import com.docuhyphen.app.api.service.recordpreservation.RecordPreservationAdministration
 import jakarta.inject.Inject
-import jakarta.ws.rs.Consumes
-import jakarta.ws.rs.GET
-import jakarta.ws.rs.PATCH
-import jakarta.ws.rs.POST
-import jakarta.ws.rs.Path
-import jakarta.ws.rs.PathParam
-import jakarta.ws.rs.Produces
-import jakarta.ws.rs.QueryParam
+import jakarta.ws.rs.*
 import jakarta.ws.rs.core.MediaType.APPLICATION_JSON
 import jakarta.ws.rs.core.Response
 import org.slf4j.LoggerFactory
@@ -36,7 +29,8 @@ class RecordPreservationHoldResource @Inject constructor(
                 RecordPreservationHoldStatus.entries.firstOrNull { it.name == raw.trim().uppercase() }
                     ?: throw RecordPreservationRequestException("Unknown hold status: $raw")
             }.toSet()
-            Response.ok(administration.holds(filter).map { RecordPreservationDtoMapper.toDto(it) }.toTypedArray()).build()
+            Response.ok(administration.holds(filter).map { RecordPreservationDtoMapper.toDto(it) }.toTypedArray())
+                .build()
         }
         catch (exception: Exception)
         {
@@ -50,7 +44,16 @@ class RecordPreservationHoldResource @Inject constructor(
     {
         return try
         {
-            Response.ok(RecordPreservationDtoMapper.toDto(administration.hold(RecordPreservationHttp.uuid(holdId, "hold id")))).build()
+            Response.ok(
+                RecordPreservationDtoMapper.toDto(
+                    administration.hold(
+                        RecordPreservationHttp.uuid(
+                            holdId,
+                            "hold id"
+                        )
+                    )
+                )
+            ).build()
         }
         catch (exception: Exception)
         {
@@ -63,9 +66,15 @@ class RecordPreservationHoldResource @Inject constructor(
     {
         return try
         {
-            val body = request ?: throw RecordPreservationRequestException("A hold names its resource, scope, and reason")
+            val body =
+                request ?: throw RecordPreservationRequestException("A hold names its resource, scope, and reason")
             val view = administration.placeHold(
-                body.resourceType, body.resourceId, body.scope, body.reason, body.caseReference, body.effectiveFrom?.toInstant(),
+                body.resourceType,
+                body.resourceId,
+                body.scope,
+                body.reason,
+                body.caseReference,
+                body.effectiveFrom?.toInstant(),
             )
             Response.status(Response.Status.CREATED).entity(RecordPreservationDtoMapper.toDto(view)).build()
         }
@@ -82,7 +91,8 @@ class RecordPreservationHoldResource @Inject constructor(
         return try
         {
             val body = request ?: throw RecordPreservationRequestException("A scope change states the scope and reason")
-            val view = administration.changeHoldScope(RecordPreservationHttp.uuid(holdId, "hold id"), body.scope, body.reason)
+            val view =
+                administration.changeHoldScope(RecordPreservationHttp.uuid(holdId, "hold id"), body.scope, body.reason)
             Response.ok(RecordPreservationDtoMapper.toDto(view)).build()
         }
         catch (exception: Exception)

@@ -9,7 +9,7 @@ import com.docuhyphen.app.api.resource.informationrequest.InformationRequestComm
 import com.docuhyphen.app.api.resource.model.RecertifyInformationRequestAcceptedFactRequest
 import com.docuhyphen.app.api.service.informationrequest.acceptedfact.InformationRequestFactRecertificationService
 import jakarta.ws.rs.core.Response
-import java.util.UUID
+import java.util.*
 
 class InformationRequestFactRecertificationRequestHandler(
     private val recertifications: InformationRequestFactRecertificationService,
@@ -24,7 +24,8 @@ class InformationRequestFactRecertificationRequestHandler(
         idempotencyKey: String?,
     ): Response
     {
-        val body = request ?: throw InformationRequestCommandRequestException("A recertification names its Requirement and states assent")
+        val body = request
+            ?: throw InformationRequestCommandRequestException("A recertification names its Requirement and states assent")
         val result = recertifications.recertify(
             RecertifyInformationRequestAcceptedFactCommand(
                 requestId = requestId,

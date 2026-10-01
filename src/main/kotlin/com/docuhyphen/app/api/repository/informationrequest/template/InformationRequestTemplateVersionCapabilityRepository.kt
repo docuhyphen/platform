@@ -4,7 +4,7 @@ import com.docuhyphen.app.api.model.entity.InformationRequestTemplateVersionCapa
 import com.docuhyphen.app.api.model.informationrequest.capability.InformationRequestCapability
 import com.docuhyphen.app.api.repository.BaseRepository
 import jakarta.enterprise.context.ApplicationScoped
-import java.util.UUID
+import java.util.*
 
 /**
  * Persistence for [InformationRequestTemplateVersionCapability]. A Version requires each capability

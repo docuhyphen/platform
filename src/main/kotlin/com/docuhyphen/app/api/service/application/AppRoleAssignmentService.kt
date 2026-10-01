@@ -1,16 +1,16 @@
 package com.docuhyphen.app.api.service.application
 
-import com.docuhyphen.app.api.service.auth.AuthAuditService
-import com.docuhyphen.app.api.service.auth.UserRoleService
-import com.docuhyphen.app.api.extension.maskEmailForLogs
 import com.docuhyphen.app.api.exception.AppUserNotFoundException
 import com.docuhyphen.app.api.exception.LastAppAdminException
+import com.docuhyphen.app.api.extension.maskEmailForLogs
 import com.docuhyphen.app.api.model.entity.AppRoleAssignment
 import com.docuhyphen.app.api.model.entity.AppRoleName
 import com.docuhyphen.app.api.model.entity.AppUser
 import com.docuhyphen.app.api.repository.application.AppRoleAssignmentRepository
-import com.docuhyphen.app.api.service.user.AppUserService
+import com.docuhyphen.app.api.service.auth.AuthAuditService
+import com.docuhyphen.app.api.service.auth.UserRoleService
 import com.docuhyphen.app.api.service.config.ConfigurationService
+import com.docuhyphen.app.api.service.user.AppUserService
 import io.quarkus.runtime.StartupEvent
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.enterprise.event.Observes
@@ -19,7 +19,7 @@ import jakarta.transaction.Transactional
 import org.slf4j.LoggerFactory
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 /**
  * Write-side API over app role assignments. Lets multiple App Admins be
@@ -225,7 +225,10 @@ class AppRoleAssignmentService @Inject constructor(
         val user = appUserService.findByEmail(email)
         if (user == null)
         {
-            logger.warn("App Admin bootstrap: no user found for configured email '{}', skipping", email.maskEmailForLogs())
+            logger.warn(
+                "App Admin bootstrap: no user found for configured email '{}', skipping",
+                email.maskEmailForLogs()
+            )
             return
         }
         if (!user.isActive || user.deprovisionedAt != null)

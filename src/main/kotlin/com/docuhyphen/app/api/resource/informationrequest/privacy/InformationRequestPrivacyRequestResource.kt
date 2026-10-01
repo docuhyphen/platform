@@ -20,17 +20,24 @@ class InformationRequestPrivacyRequestResource @Inject constructor(
     {
         return try
         {
-            val body = request ?: throw InformationRequestCommandRequestException("A privacy request names its subject, kind, purpose, and policy basis")
+            val body = request
+                ?: throw InformationRequestCommandRequestException("A privacy request names its subject, kind, purpose, and policy basis")
             val view = privacy.submit(
                 RecordInformationRequestPrivacyRequestCommand(
-                    subjectIdentityRefId = InformationRequestCommandHttp.uuid(body.subjectIdentityRefId, "subject identity id"),
+                    subjectIdentityRefId = InformationRequestCommandHttp.uuid(
+                        body.subjectIdentityRefId,
+                        "subject identity id"
+                    ),
                     requestKind = body.requestKind,
                     purposeKey = body.purposeKey,
                     policyBasisKey = body.policyBasisKey,
                     transferRegion = body.transferRegion,
                     correction = body.correction?.let {
                         InformationRequestItemCorrectionInput(
-                            submissionItemId = InformationRequestCommandHttp.uuid(it.submissionItemId, "submission item id"),
+                            submissionItemId = InformationRequestCommandHttp.uuid(
+                                it.submissionItemId,
+                                "submission item id"
+                            ),
                             value = it.value,
                             narrative = it.narrative,
                             reasonCode = it.reasonCode,
@@ -50,8 +57,10 @@ class InformationRequestPrivacyRequestResource @Inject constructor(
     {
         return try
         {
-            val subject = subjectIdentityRefId?.takeIf { it.isNotBlank() }?.let { InformationRequestCommandHttp.uuid(it, "subject identity id") }
-            Response.ok(privacy.privacyRequests(subject).map(InformationRequestPrivacyDtoMapper::toDto).toTypedArray()).build()
+            val subject = subjectIdentityRefId?.takeIf { it.isNotBlank() }
+                ?.let { InformationRequestCommandHttp.uuid(it, "subject identity id") }
+            Response.ok(privacy.privacyRequests(subject).map(InformationRequestPrivacyDtoMapper::toDto).toTypedArray())
+                .build()
         }
         catch (exception: Exception)
         {
@@ -63,7 +72,8 @@ class InformationRequestPrivacyRequestResource @Inject constructor(
     {
         return try
         {
-            val view = privacy.privacyRequest(InformationRequestCommandHttp.uuid(privacyRequestId, "privacy request id"))
+            val view =
+                privacy.privacyRequest(InformationRequestCommandHttp.uuid(privacyRequestId, "privacy request id"))
             Response.ok(InformationRequestPrivacyDtoMapper.toDto(view)).build()
         }
         catch (exception: Exception)

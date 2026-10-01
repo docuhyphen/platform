@@ -3,7 +3,7 @@ package com.docuhyphen.app.api.repository.informationrequest.evidence
 import com.docuhyphen.app.api.model.entity.InformationRequestSupportingEvidenceLink
 import com.docuhyphen.app.api.repository.BaseRepository
 import jakarta.enterprise.context.ApplicationScoped
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestSupportingEvidenceLinkRepository :
@@ -25,7 +25,8 @@ class InformationRequestSupportingEvidenceLinkRepository :
     override fun update(entity: InformationRequestSupportingEvidenceLink): InformationRequestSupportingEvidenceLink =
         throw UnsupportedOperationException(REWRITE_REFUSAL)
 
-    override fun delete(entity: InformationRequestSupportingEvidenceLink) = throw UnsupportedOperationException(REWRITE_REFUSAL)
+    override fun delete(entity: InformationRequestSupportingEvidenceLink) =
+        throw UnsupportedOperationException(REWRITE_REFUSAL)
 
     override fun deleteById(id: UUID) = throw UnsupportedOperationException(REWRITE_REFUSAL)
 

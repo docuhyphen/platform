@@ -1,10 +1,9 @@
 package com.docuhyphen.app.api.repository.audit
 
-import com.docuhyphen.app.api.repository.BaseRepository
-
 import com.docuhyphen.app.api.model.entity.AuditExportApproval
+import com.docuhyphen.app.api.repository.BaseRepository
 import jakarta.enterprise.context.RequestScoped
-import java.util.UUID
+import java.util.*
 
 @RequestScoped
 class AuditExportApprovalRepository : BaseRepository<AuditExportApproval>(AuditExportApproval::class.java)

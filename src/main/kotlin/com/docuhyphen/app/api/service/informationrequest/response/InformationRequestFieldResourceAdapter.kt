@@ -7,13 +7,7 @@ import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequ
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRequirementRepository
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateVersionRepository
-import com.docuhyphen.app.api.service.auth.authz.Action
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.Decision
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import com.docuhyphen.app.api.service.auth.authz.ResourceRef
-import com.docuhyphen.app.api.service.auth.authz.ScopeReference
+import com.docuhyphen.app.api.service.auth.authz.*
 import com.docuhyphen.app.api.service.fields.FieldResourceAdapter
 import com.docuhyphen.app.api.service.fields.FieldValidationException
 import com.docuhyphen.app.api.service.informationrequest.execution.InformationRequestExecutionGrantService
@@ -21,7 +15,7 @@ import com.docuhyphen.app.api.service.subscription.SubscriptionContext
 import io.quarkus.security.ForbiddenException
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestFieldResourceAdapter @Inject constructor(
@@ -92,7 +86,13 @@ class InformationRequestFieldResourceAdapter @Inject constructor(
         context: AuthorizationContext,
     )
     {
-        authorize(principal, Action.INFORMATION_REQUEST_EDIT, resourceId, context, "Access denied to manage request schema")
+        authorize(
+            principal,
+            Action.INFORMATION_REQUEST_EDIT,
+            resourceId,
+            context,
+            "Access denied to manage request schema"
+        )
     }
 
     override fun schemaAssignmentMutable(resourceId: UUID): Boolean =

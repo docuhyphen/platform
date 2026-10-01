@@ -29,7 +29,11 @@ class InformationRequestBusinessDecisionResource @Inject constructor(
         }
         catch (exception: Exception)
         {
-            InformationRequestCommandHttp.refused(logger, "Information Request business decision list failed", exception)
+            InformationRequestCommandHttp.refused(
+                logger,
+                "Information Request business decision list failed",
+                exception
+            )
         }
     }
 
@@ -45,7 +49,11 @@ class InformationRequestBusinessDecisionResource @Inject constructor(
         }
         catch (exception: Exception)
         {
-            InformationRequestCommandHttp.refused(logger, "Information Request business decision recording failed", exception)
+            InformationRequestCommandHttp.refused(
+                logger,
+                "Information Request business decision recording failed",
+                exception
+            )
         }
     }
 

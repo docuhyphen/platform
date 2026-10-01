@@ -9,7 +9,7 @@ import com.docuhyphen.app.api.repository.fields.SchemaAssignmentRepository
 import com.docuhyphen.app.api.repository.fields.SchemaFieldBindingRepository
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class FieldValueRevisionQueryService @Inject constructor(

@@ -8,7 +8,7 @@ import com.docuhyphen.app.api.service.auth.authz.ResourceAuthorizationContextPro
 import com.docuhyphen.app.api.service.auth.authz.ResourceKind
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class CommunicationAuthorizationContextProvider : ResourceAuthorizationContextProvider
@@ -24,8 +24,8 @@ class CommunicationAuthorizationContextProvider : ResourceAuthorizationContextPr
 
         val ownerContext = when (communication.scope)
         {
-            CommunicationScope.PERSONAL  -> OwnerContext.Personal(communication.createdByAppUserId ?: return null)
-            CommunicationScope.ORG      -> OwnerContext.Organization(communication.organizationId ?: return null)
+            CommunicationScope.PERSONAL -> OwnerContext.Personal(communication.createdByAppUserId ?: return null)
+            CommunicationScope.ORG -> OwnerContext.Organization(communication.organizationId ?: return null)
             CommunicationScope.PLATFORM -> OwnerContext.Platform
         }
 

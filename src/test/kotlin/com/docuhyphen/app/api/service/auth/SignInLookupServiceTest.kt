@@ -2,16 +2,15 @@ package com.docuhyphen.app.api.service.auth
 
 import com.docuhyphen.app.api.service.identity.OrganizationIdentityPolicyService
 import com.docuhyphen.app.api.service.security.SecurityIncidentService
-import com.docuhyphen.app.api.model.entity.AppUser
 import com.docuhyphen.app.api.model.entity.IdentityProviderType
 import com.docuhyphen.app.api.model.entity.Organization
 import com.docuhyphen.app.api.model.entity.OrganizationIdentityProviderConfig
 import com.docuhyphen.app.api.resource.model.SignInLookupRequest
-import com.docuhyphen.app.api.service.user.AppUserService
 import com.docuhyphen.app.api.service.auth.idp.IdentityProviderRegistry
 import com.docuhyphen.app.api.service.config.ConfigurationService
-import com.docuhyphen.app.api.service.organization.OrganizationMembershipService
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -22,14 +21,10 @@ import org.mockito.kotlin.mock
 import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
-import java.sql.Timestamp
-import java.time.Instant
 import java.util.UUID
 
 class SignInLookupServiceTest
 {
-    private val appUserService = mock<AppUserService>()
-    private val membershipService = mock<OrganizationMembershipService>()
     private val identityPolicyService = mock<OrganizationIdentityPolicyService>()
     private val identityProviderRegistry = mock<IdentityProviderRegistry>()
     private val configurationService = mock<ConfigurationService>()
@@ -38,8 +33,6 @@ class SignInLookupServiceTest
     private val securityIncidentService = mock<SecurityIncidentService>()
 
     private val service = SignInLookupService(
-        appUserService,
-        membershipService,
         identityPolicyService,
         identityProviderRegistry,
         configurationService,
@@ -58,202 +51,86 @@ class SignInLookupServiceTest
     }
 
     @Test
-    fun `lookup returns only current active memberships for an exact account`()
+    fun `addresses at the same domain receive identical responses`()
     {
-        val user = appUser("member@gmail.com")
-        val first = organization("Alpha")
-        val second = organization("Beta")
-        val unrelated = organization("Unrelated")
-        whenever(appUserService.findRegisteredByEmail(user.email)).thenReturn(user)
-        whenever(membershipService.activeOrganizationIds(user.id)).thenReturn(setOf(first.id, second.id))
-        whenever(identityPolicyService.findOrganizationById(first.id)).thenReturn(first)
-        whenever(identityPolicyService.findOrganizationById(second.id)).thenReturn(second)
-        whenever(identityPolicyService.resolveOrganizationsForEmail(user.email))
-            .thenReturn(listOf(first, second, unrelated))
-
-        val response = service.lookup(
-            SignInLookupRequest(email = " MEMBER@GMAIL.COM "),
-            CLIENT_IP,
-            REQUEST_ID,
-        )
-
-        assertEquals("MULTIPLE_ORGS", response.outcome)
-        assertEquals(listOf(first.id.toString(), second.id.toString()), response.organizations.map { it.id })
-        assertTrue(response.organizations.none { it.id == unrelated.id.toString() })
-        verify(identityPolicyService, never()).resolveOrganizationsForEmail(any())
-    }
-
-    @Test
-    fun `member organization selection routes through its configured provider`()
-    {
-        val user = appUser("member@company.example")
         val organization = organization("Company")
         val config = providerConfig(organization, IdentityProviderType.MICROSOFT)
-        whenever(appUserService.findRegisteredByEmail(user.email)).thenReturn(user)
-        whenever(membershipService.activeOrganizationIds(user.id)).thenReturn(setOf(organization.id))
-        whenever(identityPolicyService.findOrganizationById(organization.id)).thenReturn(organization)
+        whenever(identityPolicyService.resolveOrganizationsForEmail(any())).thenReturn(listOf(organization))
         whenever(identityPolicyService.findActiveProviderConfigsForOrganization(organization.id))
             .thenReturn(listOf(config))
 
-        val response = service.lookup(
-            SignInLookupRequest(email = user.email, orgId = organization.id.toString()),
-            CLIENT_IP,
-            REQUEST_ID,
-        )
+        val memberResponse = lookup("member@company.example")
+        val otherResponse = lookup("someone.else@company.example")
 
-        assertEquals("MICROSOFT", response.authMethod)
-        assertEquals("ORG_FOUND", response.outcome)
-        assertEquals(listOf(organization.id.toString()), response.organizations.map { it.id })
-        assertTrue(response.redirectUrl!!.contains(config.id.toString()))
+        assertEquals(memberResponse, otherResponse)
     }
 
     @Test
-    fun `consumer domain cannot enumerate unrelated organizations`()
-    {
-        val first = organization("First")
-        val second = organization("Second")
-        whenever(appUserService.findRegisteredByEmail("unknown@gmail.com")).thenReturn(null)
-        whenever(identityPolicyService.resolveOrganizationsForEmail("unknown@gmail.com"))
-            .thenReturn(listOf(first, second))
-
-        val response = service.lookup(
-            SignInLookupRequest(email = "unknown@gmail.com"),
-            CLIENT_IP,
-            REQUEST_ID,
-        )
-
-        assertEquals("NO_ORG", response.outcome)
-        assertTrue(response.organizations.isEmpty())
-        assertEquals(listOf("INTERNAL"), response.availableProviders)
-        verify(identityPolicyService, never()).findActiveProviderConfigsForOrganization(any())
-    }
-
-    @Test
-    fun `unambiguous configured domain routes without disclosing organization identity`()
+    fun `verified domain routes to its provider without disclosing organization identity`()
     {
         val organization = organization("Configured Company")
         val config = providerConfig(organization, IdentityProviderType.GOOGLE)
-        whenever(appUserService.findRegisteredByEmail("new@company.example")).thenReturn(null)
         whenever(identityPolicyService.resolveOrganizationsForEmail("new@company.example"))
             .thenReturn(listOf(organization))
         whenever(identityPolicyService.findActiveProviderConfigsForOrganization(organization.id))
             .thenReturn(listOf(config))
 
-        val response = service.lookup(
-            SignInLookupRequest(email = "new@company.example"),
-            CLIENT_IP,
-            REQUEST_ID,
-        )
+        val response = lookup("new@company.example")
 
         assertEquals("GOOGLE", response.authMethod)
-        assertEquals("NO_ORG", response.outcome)
-        assertTrue(response.organizations.isEmpty())
         assertTrue(response.redirectUrl!!.contains(config.id.toString()))
+        assertFalse(response.redirectUrl!!.contains(organization.id.toString()))
+        assertNull(response.fallbackAuthMethod)
     }
 
     @Test
-    fun `tampered organization selection is denied before provider lookup and without mutation`()
+    fun `domain claimed by several organizations falls back to platform providers`()
     {
-        val user = appUser("member@company.example")
-        val organization = organization("Company")
-        val originalUserActive = user.isActive
-        val originalOrganizationActive = organization.isActive
-        whenever(appUserService.findRegisteredByEmail(user.email)).thenReturn(user)
-        whenever(membershipService.activeOrganizationIds(user.id)).thenReturn(setOf(organization.id))
-        whenever(identityPolicyService.findOrganizationById(organization.id)).thenReturn(organization)
+        whenever(identityPolicyService.resolveOrganizationsForEmail("unknown@shared.example"))
+            .thenReturn(listOf(organization("First"), organization("Second")))
 
-        assertThrows<InvalidSignInLookupException> {
-            service.lookup(
-                SignInLookupRequest(email = user.email, orgId = UUID.randomUUID().toString()),
-                CLIENT_IP,
-                REQUEST_ID,
-            )
-        }
+        val response = lookup("unknown@shared.example")
 
-        assertEquals(originalUserActive, user.isActive)
-        assertEquals(originalOrganizationActive, organization.isActive)
+        assertEquals("INTERNAL", response.authMethod)
+        assertNull(response.redirectUrl)
+        assertEquals(listOf("INTERNAL"), response.availableProviders)
         verify(identityPolicyService, never()).findActiveProviderConfigsForOrganization(any())
+    }
+
+    @Test
+    fun `verified domain without an external provider falls back to platform providers`()
+    {
+        val organization = organization("Internal Company")
+        whenever(identityPolicyService.resolveOrganizationsForEmail("person@internal.example"))
+            .thenReturn(listOf(organization))
+        whenever(identityPolicyService.findActiveProviderConfigsForOrganization(organization.id))
+            .thenReturn(listOf(providerConfig(organization, IdentityProviderType.INTERNAL)))
+
+        val response = lookup("person@internal.example")
+
+        assertEquals("INTERNAL", response.authMethod)
+        assertNull(response.redirectUrl)
+    }
+
+    @Test
+    fun `invalid email is denied before organization lookup`()
+    {
+        assertThrows<InvalidSignInLookupException> { lookup("not-an-email") }
+
         verify(identityPolicyService, never()).resolveOrganizationsForEmail(any())
     }
 
     @Test
-    fun `inactive organization membership is excluded as stale state`()
-    {
-        val user = appUser("member@company.example")
-        val inactiveOrganization = organization("Inactive").apply { isActive = false }
-        whenever(appUserService.findRegisteredByEmail(user.email)).thenReturn(user)
-        whenever(membershipService.activeOrganizationIds(user.id)).thenReturn(setOf(inactiveOrganization.id))
-        whenever(identityPolicyService.findOrganizationById(inactiveOrganization.id))
-            .thenReturn(inactiveOrganization)
-        whenever(identityPolicyService.resolveOrganizationsForEmail(user.email)).thenReturn(emptyList())
-
-        val response = service.lookup(
-            SignInLookupRequest(email = user.email),
-            CLIENT_IP,
-            REQUEST_ID,
-        )
-
-        assertEquals("NO_ORG", response.outcome)
-        assertTrue(response.organizations.isEmpty())
-    }
-
-    @Test
-    fun `deprovisioned account cannot project former memberships`()
-    {
-        val user = appUser("former@company.example").apply {
-            deprovisionedAt = Timestamp.from(Instant.now())
-        }
-        whenever(appUserService.findRegisteredByEmail(user.email)).thenReturn(user)
-        whenever(identityPolicyService.resolveOrganizationsForEmail(user.email)).thenReturn(emptyList())
-
-        val response = service.lookup(
-            SignInLookupRequest(email = user.email),
-            CLIENT_IP,
-            REQUEST_ID,
-        )
-
-        assertEquals("NO_ORG", response.outcome)
-        assertTrue(response.organizations.isEmpty())
-        verify(membershipService, never()).activeOrganizationIds(any())
-    }
-
-    @Test
-    fun `invalid email is denied before account or organization lookup`()
-    {
-        assertThrows<InvalidSignInLookupException> {
-            service.lookup(
-                SignInLookupRequest(email = "not-an-email"),
-                CLIENT_IP,
-                REQUEST_ID,
-            )
-        }
-
-        verify(appUserService, never()).findRegisteredByEmail(any())
-        verify(identityPolicyService, never()).resolveOrganizationsForEmail(any())
-    }
-
-    @Test
-    fun `rate limit denial performs no account or organization lookup`()
+    fun `rate limit denial performs no organization lookup`()
     {
         whenever(authRateLimitService.isLimited(eq("auth:lookup:$CLIENT_IP"), any())).thenReturn(true)
 
-        assertThrows<SignInLookupRateLimitedException> {
-            service.lookup(
-                SignInLookupRequest(email = "member@company.example"),
-                CLIENT_IP,
-                REQUEST_ID,
-            )
-        }
+        assertThrows<SignInLookupRateLimitedException> { lookup("member@company.example") }
 
-        verify(appUserService, never()).findRegisteredByEmail(any())
         verify(identityPolicyService, never()).resolveOrganizationsForEmail(any())
     }
 
-    private fun appUser(email: String): AppUser = AppUser().apply {
-        this.email = email
-        isActive = true
-        isTemporary = false
-    }
+    private fun lookup(email: String) = service.lookup(SignInLookupRequest(email = email), CLIENT_IP, REQUEST_ID)
 
     private fun organization(name: String): Organization = Organization().apply {
         this.name = name

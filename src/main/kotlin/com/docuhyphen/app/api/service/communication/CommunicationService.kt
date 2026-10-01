@@ -1,24 +1,13 @@
 package com.docuhyphen.app.api.service.communication
 
-import com.docuhyphen.app.api.model.dto.CloneCommunicationRequest
-import com.docuhyphen.app.api.model.dto.CreateCommunicationRequest
-import com.docuhyphen.app.api.model.dto.CommunicationDto
-import com.docuhyphen.app.api.model.dto.PatchCommunicationPublishedRequest
-import com.docuhyphen.app.api.model.dto.PatchCommunicationStatusRequest
-import com.docuhyphen.app.api.model.dto.UpdateCommunicationRequest
+import com.docuhyphen.app.api.model.dto.*
 import com.docuhyphen.app.api.model.entity.Communication
 import com.docuhyphen.app.api.model.entity.CommunicationScope
-import com.docuhyphen.app.api.repository.user.AppUserRepository
 import com.docuhyphen.app.api.repository.communication.CommunicationRepository
 import com.docuhyphen.app.api.repository.organization.OrganizationRepository
+import com.docuhyphen.app.api.repository.user.AppUserRepository
 import com.docuhyphen.app.api.service.auth.UserRoleService
-import com.docuhyphen.app.api.service.auth.authz.Action
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.Decision
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import com.docuhyphen.app.api.service.auth.authz.ResourceRef
+import com.docuhyphen.app.api.service.auth.authz.*
 import com.docuhyphen.app.api.service.subscription.OrganizationFeatureSubscriptionGuard
 import com.docuhyphen.app.api.service.subscription.PlanFeature
 import com.docuhyphen.app.api.service.variable.TemplateVariableInterpolator
@@ -33,7 +22,7 @@ import kotlinx.serialization.json.Json
 import org.slf4j.LoggerFactory
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class CommunicationService @Inject constructor(
@@ -253,6 +242,7 @@ class CommunicationService @Inject constructor(
             CommunicationScope.PERSONAL ->
                 if (communication.createdByAppUserId != principal.id)
                     throw ForbiddenException("Access denied to communication ${communication.id}")
+
             CommunicationScope.ORG ->
             {
                 val decision = authorizationService.authorize(
@@ -261,7 +251,10 @@ class CommunicationService @Inject constructor(
                 if (decision is Decision.Deny)
                     throw ForbiddenException("Access denied to communication ${communication.id}")
             }
-            CommunicationScope.PLATFORM -> { }
+
+            CommunicationScope.PLATFORM ->
+            {
+            }
         }
     }
 
@@ -272,6 +265,7 @@ class CommunicationService @Inject constructor(
             CommunicationScope.PERSONAL ->
                 if (communication.createdByAppUserId != principal.id)
                     throw ForbiddenException("Access denied to communication ${communication.id}")
+
             CommunicationScope.ORG ->
             {
                 val decision = authorizationService.authorize(
@@ -280,6 +274,7 @@ class CommunicationService @Inject constructor(
                 if (decision is Decision.Deny)
                     throw ForbiddenException("Access denied to communication ${communication.id}")
             }
+
             CommunicationScope.PLATFORM ->
                 if (!userRoleService.isAppAdmin(principal.id))
                     throw ForbiddenException("App admin role required to modify PLATFORM-scoped communications")

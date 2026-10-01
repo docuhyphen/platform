@@ -47,5 +47,6 @@ class Organization
     @OneToOne(cascade = [CascadeType.ALL], fetch = FetchType.LAZY)
     @JoinColumn(name = "settings_id")
     var settings: OrganizationSettings? = null
+
     constructor()
 }

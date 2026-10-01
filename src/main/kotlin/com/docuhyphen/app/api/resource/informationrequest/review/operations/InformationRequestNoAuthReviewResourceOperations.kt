@@ -5,12 +5,7 @@ import com.docuhyphen.app.api.resource.informationrequest.InformationRequestComm
 import com.docuhyphen.app.api.resource.informationrequest.InformationRequestCommandHttp.SESSION_TOKEN_HEADER
 import com.docuhyphen.app.api.resource.model.RecordInformationRequestReviewCommentRequest
 import com.docuhyphen.app.api.resource.model.ReopenInformationRequestReviewRequest
-import jakarta.ws.rs.Consumes
-import jakarta.ws.rs.HeaderParam
-import jakarta.ws.rs.POST
-import jakarta.ws.rs.Path
-import jakarta.ws.rs.PathParam
-import jakarta.ws.rs.Produces
+import jakarta.ws.rs.*
 import jakarta.ws.rs.core.HttpHeaders.IF_MATCH
 import jakarta.ws.rs.core.MediaType.APPLICATION_JSON
 import jakarta.ws.rs.core.Response

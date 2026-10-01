@@ -17,7 +17,7 @@ import org.slf4j.LoggerFactory
 import java.sql.Timestamp
 import java.time.Clock
 import java.time.Duration
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestDisposalWorker @Inject constructor(
@@ -36,22 +36,37 @@ class InformationRequestDisposalWorker @Inject constructor(
         QuarkusTransaction.requiringNew().call { disposals.openClaimIds(limit) }.forEach { claimId ->
             if (process(claimId) == RecordDisposalState.FINALIZED) finalized++ else pending++
         }
-        QuarkusTransaction.requiringNew().call { schedules.currentSchedules(RecordPreservationResourceTypes.INFORMATION_REQUEST) }
+        QuarkusTransaction.requiringNew()
+            .call { schedules.currentSchedules(RecordPreservationResourceTypes.INFORMATION_REQUEST) }
             .filter { it.disposalAfterDays != null }
             .forEach { schedule ->
-                val cutoff = Timestamp.from(clock.instant().minus(Duration.ofDays(requireNotNull(schedule.disposalAfterDays).toLong())))
-                val ownerType = if (schedule.ownerKind == RecordOwnerKind.ORGANIZATION) InformationRequestOwnerType.ORGANIZATION else InformationRequestOwnerType.USER
-                QuarkusTransaction.requiringNew().call { requestRepository.findFinishedIdsBefore(ownerType, schedule.ownerId, cutoff, limit) }
+                val cutoff = Timestamp.from(
+                    clock.instant().minus(Duration.ofDays(requireNotNull(schedule.disposalAfterDays).toLong()))
+                )
+                val ownerType =
+                    if (schedule.ownerKind == RecordOwnerKind.ORGANIZATION) InformationRequestOwnerType.ORGANIZATION else InformationRequestOwnerType.USER
+                QuarkusTransaction.requiringNew()
+                    .call { requestRepository.findFinishedIdsBefore(ownerType, schedule.ownerId, cutoff, limit) }
                     .forEach { requestId ->
                         when (val outcome = runCatching {
-                            disposalService.claim(requestId, RecordDisposalBasis.RETENTION_SCHEDULE, null, InformationRequestDisposalService.SYSTEM)
+                            disposalService.claim(
+                                requestId,
+                                RecordDisposalBasis.RETENTION_SCHEDULE,
+                                null,
+                                InformationRequestDisposalService.SYSTEM
+                            )
                         }.getOrElse { failure ->
-                            logger.warn("Information Request {} could not be claimed for disposal; it will be retried", requestId, failure)
+                            logger.warn(
+                                "Information Request {} could not be claimed for disposal; it will be retried",
+                                requestId,
+                                failure
+                            )
                             null
                         })
                         {
                             is InformationRequestDisposalOutcome.Claimed ->
                                 if (process(outcome.view.claim.id) == RecordDisposalState.FINALIZED) finalized++ else pending++
+
                             is InformationRequestDisposalOutcome.Refused -> refused++
                             null -> pending++
                         }

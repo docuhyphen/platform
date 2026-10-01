@@ -1,11 +1,6 @@
 package com.docuhyphen.app.api.service.informationrequest.record
 
-import com.docuhyphen.app.api.model.entity.InformationRequest
-import com.docuhyphen.app.api.model.entity.InformationRequestRecordExport
-import com.docuhyphen.app.api.model.entity.InformationRequestRecordExportKind
-import com.docuhyphen.app.api.model.entity.RecordOwnerKind
-import com.docuhyphen.app.api.model.entity.RecordTransferDecision
-import com.docuhyphen.app.api.model.entity.ResourceType
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
 import com.docuhyphen.app.api.model.informationrequest.audit.CreateInformationRequestRecordExportCommand
 import com.docuhyphen.app.api.model.informationrequest.audit.InformationRequestRecordExportView
@@ -25,13 +20,7 @@ import com.docuhyphen.app.api.service.audit.catalog.AuditOutcome
 import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.auth.authz.ResourceRef
-import com.docuhyphen.app.api.service.command.CommandActorRef
-import com.docuhyphen.app.api.service.command.CommandMutationResult
-import com.docuhyphen.app.api.service.command.CommandReceiptDecision
-import com.docuhyphen.app.api.service.command.CommandReceiptRequest
-import com.docuhyphen.app.api.service.command.CommandReceiptService
-import com.docuhyphen.app.api.service.command.CommandRequestFingerprint
-import com.docuhyphen.app.api.service.command.CommandResultReference
+import com.docuhyphen.app.api.service.command.*
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestMutationGate
 import com.docuhyphen.app.api.service.informationrequest.disposal.InformationRequestDisposalEligibility
@@ -50,7 +39,7 @@ import java.security.MessageDigest
 import java.sql.Timestamp
 import java.time.Clock
 import java.time.Duration
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestRecordExportService @Inject constructor(
@@ -81,7 +70,10 @@ class InformationRequestRecordExportService @Inject constructor(
         return when (
             val decision = commandReceiptService.runOnce(receipt) {
                 val export = freeze(locked.request, command, region)
-                CommandMutationResult(export, CommandResultReference(ResourceType.INFORMATION_REQUEST_RECORD_EXPORT, export.id, 1, null))
+                CommandMutationResult(
+                    export,
+                    CommandResultReference(ResourceType.INFORMATION_REQUEST_RECORD_EXPORT, export.id, 1, null)
+                )
             }
         )
         {
@@ -108,7 +100,11 @@ class InformationRequestRecordExportService @Inject constructor(
         val verified = verifies(export)
         audit(
             AuditEventType.INFORMATION_REQUEST_EXPORT_READ, export, requestId, access.principal,
-            mapOf("exportId" to export.id.toString(), "contentHash" to export.contentHash, "verified" to verified.toString()),
+            mapOf(
+                "exportId" to export.id.toString(),
+                "contentHash" to export.contentHash,
+                "verified" to verified.toString()
+            ),
             "${AuditEventType.INFORMATION_REQUEST_EXPORT_READ.key}|${export.id}|${access.principal.id}|${clock.instant()}",
             if (verified) AuditOutcome.SUCCESS else AuditOutcome.FAILURE,
         )
@@ -156,9 +152,11 @@ class InformationRequestRecordExportService @Inject constructor(
                 contentJson = content
                 contentHash = sha256(bytes)
                 contentLength = bytes.size.toLong()
-                storageLocation = storageLocations.locationFor(owner, RecordPreservationResourceTypes.INFORMATION_REQUEST)
+                storageLocation =
+                    storageLocations.locationFor(owner, RecordPreservationResourceTypes.INFORMATION_REQUEST)
                 this.transferRegion = region
-                transferDecision = if (region == null) RecordTransferDecision.NOT_REQUESTED else RecordTransferDecision.PERMITTED
+                transferDecision =
+                    if (region == null) RecordTransferDecision.NOT_REQUESTED else RecordTransferDecision.PERMITTED
                 requestedByPrincipalKind = principal.kind
                 requestedByPrincipalId = principal.id
                 requestedAt = Timestamp.from(clock.instant())
@@ -182,7 +180,11 @@ class InformationRequestRecordExportService @Inject constructor(
         return view(export, verified = true)
     }
 
-    private fun freeze(request: InformationRequest, command: CreateInformationRequestRecordExportCommand, region: String?): InformationRequestRecordExport
+    private fun freeze(
+        request: InformationRequest,
+        command: CreateInformationRequestRecordExportCommand,
+        region: String?
+    ): InformationRequestRecordExport
     {
         gate.authorizeRequest(command.access, listOf(Action.INFORMATION_REQUEST_EXPORT), request.id)
         val owner = InformationRequestDisposalEligibility.ownerOf(request)
@@ -206,9 +208,11 @@ class InformationRequestRecordExportService @Inject constructor(
                 contentJson = content
                 contentHash = sha256(bytes)
                 contentLength = bytes.size.toLong()
-                storageLocation = storageLocations.locationFor(owner, RecordPreservationResourceTypes.INFORMATION_REQUEST)
+                storageLocation =
+                    storageLocations.locationFor(owner, RecordPreservationResourceTypes.INFORMATION_REQUEST)
                 transferRegion = region
-                transferDecision = if (region == null) RecordTransferDecision.NOT_REQUESTED else RecordTransferDecision.PERMITTED
+                transferDecision =
+                    if (region == null) RecordTransferDecision.NOT_REQUESTED else RecordTransferDecision.PERMITTED
                 requestedByPrincipalKind = command.access.principal.kind
                 requestedByPrincipalId = command.access.principal.id
                 requestedAt = Timestamp.from(clock.instant())
@@ -232,10 +236,14 @@ class InformationRequestRecordExportService @Inject constructor(
     private fun requireWithinDailyCeiling(owner: RecordOwnerRef)
     {
         val now = clock.instant()
-        val window = exportRepository.windowSince(owner.kind, requireNotNull(owner.id), Timestamp.from(now.minus(EXPORT_WINDOW)))
+        val window =
+            exportRepository.windowSince(owner.kind, requireNotNull(owner.id), Timestamp.from(now.minus(EXPORT_WINDOW)))
         if (window.count < abuseLimits.exportDailyCeiling) return
         val reopensAt = (window.oldestRequestedAt ?: now).plus(EXPORT_WINDOW)
-        InformationRequestAbuseLog.refused(InformationRequestAbuseControl.EXPORT_DAILY_CEILING, "owner=${owner.kind}:${owner.id}")
+        InformationRequestAbuseLog.refused(
+            InformationRequestAbuseControl.EXPORT_DAILY_CEILING,
+            "owner=${owner.kind}:${owner.id}"
+        )
         throw InformationRequestRateLimitedException(
             InformationRequestErrorCatalog.EXPORT_LIMIT_REACHED,
             maxOf(1L, Duration.between(now, reopensAt).seconds),
@@ -279,13 +287,21 @@ class InformationRequestRecordExportService @Inject constructor(
 
     private fun requireExport(requestId: UUID, exportId: UUID): InformationRequestRecordExport =
         exportRepository.findForRequest(requestId).firstOrNull { it.id == exportId }
-            ?: throw InformationRequestLifecycleException(InformationRequestErrorCatalog.NOT_FOUND, "Record export not found")
+            ?: throw InformationRequestLifecycleException(
+                InformationRequestErrorCatalog.NOT_FOUND,
+                "Record export not found"
+            )
 
     private fun verifies(export: InformationRequestRecordExport): Boolean =
         sha256(export.contentJson.toByteArray(Charsets.UTF_8)) == export.contentHash
 
     private fun view(export: InformationRequestRecordExport, verified: Boolean, withContent: Boolean = false) =
-        InformationRequestRecordExportView(export, exportRepository.sourcesOf(export.id), verified, if (withContent) export.contentJson else null)
+        InformationRequestRecordExportView(
+            export,
+            exportRepository.sourcesOf(export.id),
+            verified,
+            if (withContent) export.contentJson else null
+        )
 
     private fun sha256(bytes: ByteArray): String =
         MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it) }

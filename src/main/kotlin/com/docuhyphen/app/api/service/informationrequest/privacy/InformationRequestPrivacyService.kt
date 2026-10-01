@@ -1,12 +1,7 @@
 package com.docuhyphen.app.api.service.informationrequest.privacy
 
 import com.docuhyphen.app.api.exception.InformationRequestCommandRequestException
-import com.docuhyphen.app.api.model.entity.InformationRequestPrivacyRequest
-import com.docuhyphen.app.api.model.entity.InformationRequestPrivacyRequestKind
-import com.docuhyphen.app.api.model.entity.InformationRequestPrivacyRequestState
-import com.docuhyphen.app.api.model.entity.InformationRequestPrivacyTargetOutcome
-import com.docuhyphen.app.api.model.entity.RecordDisposalBasis
-import com.docuhyphen.app.api.model.entity.RecordOwnerKind
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.informationrequest.disposal.InformationRequestDisposalAssessment
 import com.docuhyphen.app.api.model.informationrequest.disposal.InformationRequestDisposalOutcome
 import com.docuhyphen.app.api.model.informationrequest.privacy.InformationRequestPrivacyRequestView
@@ -36,7 +31,7 @@ import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import java.sql.Timestamp
 import java.time.Clock
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestPrivacyService @Inject constructor(
@@ -66,28 +61,48 @@ class InformationRequestPrivacyService @Inject constructor(
                     val export = exports.createSubjectExport(
                         owner = owner,
                         subjectIdentityRefId = command.subjectIdentityRefId,
-                        requestIds = privacyRepository.subjectRequestIds(owner.kind, requireNotNull(owner.id), command.subjectIdentityRefId),
+                        requestIds = privacyRepository.subjectRequestIds(
+                            owner.kind,
+                            requireNotNull(owner.id),
+                            command.subjectIdentityRefId
+                        ),
                         principal = principal,
                         transferRegion = command.transferRegion.takeIf { command.requestKind == InformationRequestPrivacyRequestKind.EXPORT },
                     )
                     export.sourceRequestIds.forEach {
-                        privacyRepository.insertTarget(recorded.id, it, InformationRequestPrivacyTargetOutcome.EXPORTED, null, null)
+                        privacyRepository.insertTarget(
+                            recorded.id,
+                            it,
+                            InformationRequestPrivacyTargetOutcome.EXPORTED,
+                            null,
+                            null
+                        )
                     }
                     complete(recorded.id, principal) { it.recordExportId = export.export.id }
                 }
+
             InformationRequestPrivacyRequestKind.CORRECTION ->
                 QuarkusTransaction.requiringNew().call {
                     val input = command.correction
                         ?: throw InformationRequestCommandRequestException("A correction names the item and its corrected content")
-                    val correction = corrections.correct(owner, command.subjectIdentityRefId, recorded.id, input, principal)
-                    privacyRepository.insertTarget(recorded.id, correction.informationRequestId, InformationRequestPrivacyTargetOutcome.CORRECTED, null, null)
+                    val correction =
+                        corrections.correct(owner, command.subjectIdentityRefId, recorded.id, input, principal)
+                    privacyRepository.insertTarget(
+                        recorded.id,
+                        correction.informationRequestId,
+                        InformationRequestPrivacyTargetOutcome.CORRECTED,
+                        null,
+                        null
+                    )
                     complete(recorded.id, principal)
                 }
+
             InformationRequestPrivacyRequestKind.RESTRICTION ->
                 QuarkusTransaction.requiringNew().call {
                     restrictions.restrict(owner, command.subjectIdentityRefId, recorded.id)
                     complete(recorded.id, principal)
                 }
+
             InformationRequestPrivacyRequestKind.DELETION -> delete(owner, recorded, principal)
         }
     }
@@ -104,11 +119,18 @@ class InformationRequestPrivacyService @Inject constructor(
         val owner = InformationRequestOwnerScopeAccess.recordOwnerOf(ownerAccess.currentOwner())
         ownerAccess.requireAccess(ownerAccess.currentOwner(), Action.INFORMATION_REQUEST_MANAGE_PRIVACY)
         val request = privacyRepository.findById(id)?.takeIf { it.ownerKind == owner.kind && it.ownerId == owner.id }
-            ?: throw InformationRequestLifecycleException(InformationRequestErrorCatalog.NOT_FOUND, "Privacy request not found")
+            ?: throw InformationRequestLifecycleException(
+                InformationRequestErrorCatalog.NOT_FOUND,
+                "Privacy request not found"
+            )
         return view(request)
     }
 
-    private fun record(owner: RecordOwnerRef, principal: PrincipalRef, command: RecordInformationRequestPrivacyRequestCommand): InformationRequestPrivacyRequest
+    private fun record(
+        owner: RecordOwnerRef,
+        principal: PrincipalRef,
+        command: RecordInformationRequestPrivacyRequestCommand
+    ): InformationRequestPrivacyRequest
     {
         if (!privacyRepository.subjectOwnedBy(command.subjectIdentityRefId, owner.kind, requireNotNull(owner.id)))
         {
@@ -131,7 +153,11 @@ class InformationRequestPrivacyService @Inject constructor(
         return request
     }
 
-    private fun delete(owner: RecordOwnerRef, recorded: InformationRequestPrivacyRequest, principal: PrincipalRef): InformationRequestPrivacyRequestView
+    private fun delete(
+        owner: RecordOwnerRef,
+        recorded: InformationRequestPrivacyRequest,
+        principal: PrincipalRef
+    ): InformationRequestPrivacyRequestView
     {
         val requestIds = QuarkusTransaction.requiringNew().call {
             privacyRepository.subjectRequestIds(owner.kind, requireNotNull(owner.id), recorded.subjectIdentityRefId)
@@ -139,7 +165,11 @@ class InformationRequestPrivacyService @Inject constructor(
         val refusals = QuarkusTransaction.requiringNew().call {
             requestIds.mapNotNull { requestId ->
                 val request = requestRepository.findById(requestId) ?: return@mapNotNull null
-                (eligibility.assess(request, RecordDisposalBasis.PRIVACY_DELETION, clock.instant()) as? InformationRequestDisposalAssessment.Refused)
+                (eligibility.assess(
+                    request,
+                    RecordDisposalBasis.PRIVACY_DELETION,
+                    clock.instant()
+                ) as? InformationRequestDisposalAssessment.Refused)
                     ?.let { requestId to it }
             }
         }
@@ -147,26 +177,52 @@ class InformationRequestPrivacyService @Inject constructor(
         {
             return QuarkusTransaction.requiringNew().call {
                 refusals.forEach { (requestId, refusal) ->
-                    privacyRepository.insertTarget(recorded.id, requestId, InformationRequestPrivacyTargetOutcome.REFUSED, refusal.reasonCode, null)
+                    privacyRepository.insertTarget(
+                        recorded.id,
+                        requestId,
+                        InformationRequestPrivacyTargetOutcome.REFUSED,
+                        refusal.reasonCode,
+                        null
+                    )
                 }
                 refuse(recorded.id, principal, refusals.first().second.reasonCode, refusals.first().second.detail)
             }
         }
-        val outcomes = requestIds.associateWith { disposals.claimAndProcess(it, RecordDisposalBasis.PRIVACY_DELETION, recorded.id, principal) }
+        val outcomes = requestIds.associateWith {
+            disposals.claimAndProcess(
+                it,
+                RecordDisposalBasis.PRIVACY_DELETION,
+                recorded.id,
+                principal
+            )
+        }
         return QuarkusTransaction.requiringNew().call {
             outcomes.forEach { (requestId, outcome) ->
                 when (outcome)
                 {
                     is InformationRequestDisposalOutcome.Claimed -> privacyRepository.insertTarget(
-                        recorded.id, requestId, InformationRequestPrivacyTargetOutcome.DISPOSAL_CLAIMED, null, outcome.view.claim.id,
+                        recorded.id,
+                        requestId,
+                        InformationRequestPrivacyTargetOutcome.DISPOSAL_CLAIMED,
+                        null,
+                        outcome.view.claim.id,
                     )
+
                     is InformationRequestDisposalOutcome.Refused -> privacyRepository.insertTarget(
-                        recorded.id, requestId, InformationRequestPrivacyTargetOutcome.REFUSED, outcome.reasonCode, null,
+                        recorded.id,
+                        requestId,
+                        InformationRequestPrivacyTargetOutcome.REFUSED,
+                        outcome.reasonCode,
+                        null,
                     )
                 }
             }
             val refused = outcomes.values.filterIsInstance<InformationRequestDisposalOutcome.Refused>().firstOrNull()
-            if (refused != null) refuse(recorded.id, principal, refused.reasonCode, refused.detail) else complete(recorded.id, principal)
+            if (refused != null) refuse(recorded.id, principal, refused.reasonCode, refused.detail)
+            else complete(
+                recorded.id,
+                principal
+            )
         }
     }
 
@@ -186,7 +242,12 @@ class InformationRequestPrivacyService @Inject constructor(
         return view(request)
     }
 
-    private fun refuse(privacyRequestId: UUID, principal: PrincipalRef, reasonCode: String, detail: String): InformationRequestPrivacyRequestView
+    private fun refuse(
+        privacyRequestId: UUID,
+        principal: PrincipalRef,
+        reasonCode: String,
+        detail: String
+    ): InformationRequestPrivacyRequestView
     {
         val request = requireNotNull(privacyRepository.findForUpdate(privacyRequestId))
         request.state = InformationRequestPrivacyRequestState.REFUSED
@@ -205,10 +266,13 @@ class InformationRequestPrivacyService @Inject constructor(
         return InformationRequestPrivacyRequestView(
             request = request,
             targets = targets,
-            restriction = restrictionRepository.findForOwner(request.ownerKind, request.ownerId).firstOrNull { it.privacyRequestId == request.id },
-            correction = targets.firstOrNull { it.outcome == InformationRequestPrivacyTargetOutcome.CORRECTED }?.let { target ->
-                correctionRepository.findForRequest(target.requestId).firstOrNull { it.privacyRequestId == request.id }
-            },
+            restriction = restrictionRepository.findForOwner(request.ownerKind, request.ownerId)
+                .firstOrNull { it.privacyRequestId == request.id },
+            correction = targets.firstOrNull { it.outcome == InformationRequestPrivacyTargetOutcome.CORRECTED }
+                ?.let { target ->
+                    correctionRepository.findForRequest(target.requestId)
+                        .firstOrNull { it.privacyRequestId == request.id }
+                },
         )
     }
 

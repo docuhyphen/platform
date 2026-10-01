@@ -1,17 +1,13 @@
 package com.docuhyphen.app.api.model.dto
 
-import com.docuhyphen.app.api.model.entity.FieldValueType
-import com.docuhyphen.app.api.model.entity.InformationRequestAcceptedFactConfidence
-import com.docuhyphen.app.api.model.entity.InformationRequestAcceptedFactConflictState
-import com.docuhyphen.app.api.model.entity.InformationRequestAcceptedFactVisibility
-import com.docuhyphen.app.api.model.entity.InformationRequestBusinessDecisionKind
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.informationrequest.acceptedfact.InformationRequestAcceptedFactFreshness
 import com.docuhyphen.app.api.serializer.TimestampSerializer
 import com.docuhyphen.app.api.serializer.UUIDSerializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
 import java.sql.Timestamp
-import java.util.UUID
+import java.util.*
 
 @Serializable
 data class InformationRequestAcceptedFactDto(

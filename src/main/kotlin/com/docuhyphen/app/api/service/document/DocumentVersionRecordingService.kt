@@ -1,10 +1,6 @@
 package com.docuhyphen.app.api.service.document
 
-import com.docuhyphen.app.api.model.document.DocumentVersionContent
-import com.docuhyphen.app.api.model.document.DocumentVersionContentIdentityMapper
-import com.docuhyphen.app.api.model.document.DocumentVersionContentVerification
-import com.docuhyphen.app.api.model.document.DocumentVersionCreatorMapper
-import com.docuhyphen.app.api.model.document.DocumentVersionUpload
+import com.docuhyphen.app.api.model.document.*
 import com.docuhyphen.app.api.model.entity.Document
 import com.docuhyphen.app.api.model.entity.DocumentType
 import com.docuhyphen.app.api.model.entity.DocumentVersion
@@ -15,7 +11,7 @@ import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class DocumentVersionRecordingService @Inject constructor(
@@ -65,7 +61,13 @@ class DocumentVersionRecordingService @Inject constructor(
         DocumentVersionCreatorMapper.recordOn(version, upload.creator)
         DocumentVersionContentIdentityMapper.recordOn(
             version,
-            documentVersionContentService.store(document.id, version.id, upload.fileName, upload.file, upload.expectedDigest),
+            documentVersionContentService.store(
+                document.id,
+                version.id,
+                upload.fileName,
+                upload.file,
+                upload.expectedDigest
+            ),
             DocumentVersionContentVerification.forEncryptionMode(upload.encryptionMode),
         )
 

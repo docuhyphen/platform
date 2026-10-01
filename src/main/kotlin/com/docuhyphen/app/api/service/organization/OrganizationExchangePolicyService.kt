@@ -6,7 +6,7 @@ import com.docuhyphen.app.api.service.auth.AuthAuditService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import org.slf4j.LoggerFactory
-import java.util.UUID
+import java.util.*
 
 /**
  * Enforces an organization's outbound-sharing policy on the share-initiation path. The policy
@@ -128,7 +128,8 @@ class OrganizationExchangePolicyService @Inject constructor(
                 val requireTrustedOrganizationForB2b =
                     organization.settings?.requireTrustedOrganizationForB2b ?: true
                 if (requireTrustedOrganizationForB2b &&
-                    !organizationTrustExchangePolicyService.permitsExchange(initiatorOrgId, recipientOrgId))
+                    !organizationTrustExchangePolicyService.permitsExchange(initiatorOrgId, recipientOrgId)
+                )
                 {
                     throw IllegalArgumentException("Your organization only permits sharing with groups from a trusted organization")
                 }

@@ -2,11 +2,7 @@ package com.docuhyphen.app.api.service.audit.export
 
 import com.docuhyphen.app.api.repository.audit.AuditArchiveSegmentRepository
 import com.docuhyphen.app.api.repository.audit.AuditLedgerEventRepository
-import com.docuhyphen.app.api.service.audit.AuditCaptureFailedException
-import com.docuhyphen.app.api.service.audit.AuditDraftInvalidException
-import com.docuhyphen.app.api.service.audit.AuditEventDraft
-import com.docuhyphen.app.api.service.audit.AuditOwnerScope
-import com.docuhyphen.app.api.service.audit.AuditRecorder
+import com.docuhyphen.app.api.service.audit.*
 import com.docuhyphen.app.api.service.audit.archive.AuditArchiveVerifier
 import com.docuhyphen.app.api.service.audit.archive.StreamCoverageReport
 import com.docuhyphen.app.api.service.audit.catalog.AuditActorKind
@@ -17,7 +13,7 @@ import com.docuhyphen.app.api.service.subscription.PlanFeature
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import org.slf4j.LoggerFactory
-import java.util.UUID
+import java.util.*
 
 /** Per-stream integrity result surfaced by [AuditIntegrityService.checkOrganization]. */
 data class StreamIntegrityReport(
@@ -80,7 +76,7 @@ class AuditIntegrityService @Inject constructor(
         val segments = auditArchiveSegmentRepository.findByStreamOrderBySequence(streamId)
         val ledgerHeadSequence = auditLedgerEventRepository.findLatestByStream(streamId)?.streamSequence
         val archiveCoversLedgerHead = ledgerHeadSequence != null &&
-            segments.lastOrNull()?.lastSequence == ledgerHeadSequence
+                segments.lastOrNull()?.lastSequence == ledgerHeadSequence
         val failureNotes = mutableListOf<String>()
         var validCount = 0
         for (segment in segments)
@@ -147,7 +143,11 @@ class AuditIntegrityService @Inject constructor(
         }
         catch (e: AuditCaptureFailedException)
         {
-            logger.error("AuditIntegrityService: AuditRecorder capture failed for integrity check event: {}", e.message, e)
+            logger.error(
+                "AuditIntegrityService: AuditRecorder capture failed for integrity check event: {}",
+                e.message,
+                e
+            )
         }
     }
 }

@@ -2,7 +2,7 @@ package com.docuhyphen.app.api.service.subscription
 
 import com.docuhyphen.app.api.model.entity.SubscriptionTrialGrant
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 data class SubscriptionTrialState(
     val planCode: PlanCode,

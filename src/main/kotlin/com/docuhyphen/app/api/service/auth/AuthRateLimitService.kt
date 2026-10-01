@@ -34,6 +34,16 @@ class AuthRateLimitService @Inject constructor(
 
         return redisRateLimiter.countDistinctMembers(key, member, windowSeconds)
     }
+
+    fun claimCooldown(key: String, seconds: Long): Long
+    {
+        if (!configurationService.isAuthRateLimitEnabled())
+        {
+            return 0
+        }
+
+        return redisRateLimiter.claimCooldown(key, seconds)
+    }
 }
 
 

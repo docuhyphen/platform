@@ -9,7 +9,7 @@ import com.docuhyphen.app.api.repository.informationrequest.template.Information
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateVersionRepository
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestSubmissionStages @Inject constructor(
@@ -28,7 +28,10 @@ class InformationRequestSubmissionStages @Inject constructor(
         return stageOrderOf(version, sectionRepository.findOrdered(version.id))
     }
 
-    fun stageOrderOf(version: InformationRequestTemplateVersion, sections: List<InformationRequestTemplateSection>): List<String> =
+    fun stageOrderOf(
+        version: InformationRequestTemplateVersion,
+        sections: List<InformationRequestTemplateSection>
+    ): List<String> =
         if (version.submissionMode == InformationRequestSubmissionMode.STAGED)
             sections.sortedBy { it.displayOrder }.mapNotNull { it.submissionStageKey }.distinct()
         else

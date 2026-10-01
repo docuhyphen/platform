@@ -5,7 +5,7 @@ import com.docuhyphen.app.api.serializer.TimestampSerializer
 import com.docuhyphen.app.api.serializer.UUIDSerializer
 import kotlinx.serialization.Serializable
 import java.sql.Timestamp
-import java.util.UUID
+import java.util.*
 
 /** A member of a [com.docuhyphen.app.api.model.entity.PrincipalGroup], role-based (new model). */
 @Serializable

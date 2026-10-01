@@ -193,7 +193,7 @@ class ExchangeAccessManagementService @Inject constructor(
             exchangeRecipientService.findByDirectShareId(previousDirectShare.id)?.let { previousRecipient ->
                 require(
                     previousRecipient.exchangeId == exchangeId &&
-                        previousRecipient.purpose == ExchangeRecipientPurpose.PARTICIPANT,
+                            previousRecipient.purpose == ExchangeRecipientPurpose.PARTICIPANT,
                 ) {
                     "This trusted recipient has an incompatible Exchange binding"
                 }
@@ -254,7 +254,8 @@ class ExchangeAccessManagementService @Inject constructor(
         requireAssignableRole(roleName)
         requireMutableAccessShare(exchangeId, shareId)
         val hasConstraintsPayload = constraintsJson != null
-        val normalizedConstraints = if (hasConstraintsPayload) ShareConstraints.normalizeForStorage(constraintsJson) else null
+        val normalizedConstraints =
+            if (hasConstraintsPayload) ShareConstraints.normalizeForStorage(constraintsJson) else null
         shareService.updateRoleAndConstraints(
             shareId = shareId,
             roleName = roleName,
@@ -304,7 +305,8 @@ class ExchangeAccessManagementService @Inject constructor(
             )
         }
         if (selection !is TrustedPersonRecipientSelectionRequest &&
-            selection !is TrustedGroupRecipientSelectionRequest)
+            selection !is TrustedGroupRecipientSelectionRequest
+        )
         {
             throw IllegalArgumentException(
                 "A primary recipient can be replaced only with a verified member or published group from a Trusted Organization",
@@ -355,7 +357,7 @@ class ExchangeAccessManagementService @Inject constructor(
         exchangeRecipientService.findByDirectShareId(newShare.id)?.let { existingBinding ->
             require(
                 existingBinding.exchangeId == exchangeId &&
-                    existingBinding.purpose == ExchangeRecipientPurpose.PARTICIPANT,
+                        existingBinding.purpose == ExchangeRecipientPurpose.PARTICIPANT,
             ) {
                 "Replacement recipient has an incompatible Exchange binding"
             }
@@ -511,6 +513,7 @@ class ExchangeAccessManagementService @Inject constructor(
                 else
                     organizationGroupService.activeUserIds(principalUuid))
                     .mapNotNull(appUserService::getById)
+
             else -> emptyList()
         }
         val externalEmail: String? = when (kind)
@@ -734,7 +737,8 @@ class ExchangeAccessManagementService @Inject constructor(
     ): ResolvedExchangeRecipientSelection
     {
         if (selection !is TrustedPersonRecipientSelectionRequest &&
-            selection !is TrustedGroupRecipientSelectionRequest)
+            selection !is TrustedGroupRecipientSelectionRequest
+        )
         {
             throw IllegalArgumentException(
                 "A trusted participant must be a verified member or published group from a Trusted Organization",
@@ -834,11 +838,13 @@ class ExchangeAccessManagementService @Inject constructor(
                 actorId,
                 principalId.takeUnless { appUserService.getById(it)?.isTemporary == true },
             )
+
             PrincipalKind.PARTICIPANT -> organizationExchangePolicyService.assertCanShareWithUser(
                 senderOrganizationId,
                 actorId,
                 null,
             )
+
             PrincipalKind.PRINCIPAL_GROUP ->
             {
                 val group = organizationGroupService.getById(principalId.toString())
@@ -869,10 +875,12 @@ class ExchangeAccessManagementService @Inject constructor(
                     ExchangeRecipientSelectionType.REGISTERED_USER,
                 targetOrganizationId = null,
             )
+
             PrincipalKind.PARTICIPANT -> RecipientBinding(
                 selectionType = ExchangeRecipientSelectionType.EXTERNAL_EMAIL,
                 targetOrganizationId = null,
             )
+
             PrincipalKind.PRINCIPAL_GROUP ->
             {
                 val group = organizationGroupService.getById(principalId.toString())
@@ -884,6 +892,7 @@ class ExchangeAccessManagementService @Inject constructor(
                         ExchangeRecipientSelectionType.INTERNAL_GROUP
                     else
                         ExchangeRecipientSelectionType.TRUSTED_GROUP
+
                     PrincipalGroupScope.SHARED_PROJECT ->
                         throw IllegalArgumentException("Shared project groups cannot be used as Exchange recipients")
                 }
@@ -892,6 +901,7 @@ class ExchangeAccessManagementService @Inject constructor(
                     targetOrganizationId = group.ownerOrganizationId,
                 )
             }
+
             else -> throw IllegalArgumentException("Principal kind is not supported for Exchange access")
         }
 
@@ -926,11 +936,18 @@ class ExchangeAccessManagementService @Inject constructor(
         }
         catch (e: AuditDraftInvalidException)
         {
-            logger.warn("ExchangeAccessManagementService: AuditRecorder rejected AUTHORIZATION_DENIED draft: {}", e.message)
+            logger.warn(
+                "ExchangeAccessManagementService: AuditRecorder rejected AUTHORIZATION_DENIED draft: {}",
+                e.message
+            )
         }
         catch (e: AuditCaptureFailedException)
         {
-            logger.error("ExchangeAccessManagementService: AuditRecorder capture failed (fail-closed) for AUTHORIZATION_DENIED: {}", e.message, e)
+            logger.error(
+                "ExchangeAccessManagementService: AuditRecorder capture failed (fail-closed) for AUTHORIZATION_DENIED: {}",
+                e.message,
+                e
+            )
         }
     }
 }

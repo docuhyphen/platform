@@ -190,7 +190,7 @@ class SubscriptionAccessService @Inject constructor(
                         subscription = subscription,
                         feature = PlanFeature.EXCHANGE_CREATE,
                         allowanceDescription = "$openLimit open Exchanges at a time. " +
-                            "Complete or end an Exchange to free capacity.",
+                                "Complete or end an Exchange to free capacity.",
                         currentValue = open,
                         limit = openLimit,
                     ),
@@ -218,7 +218,7 @@ class SubscriptionAccessService @Inject constructor(
                     subscription = subscription,
                     feature = PlanFeature.INFORMATION_REQUESTS,
                     allowanceDescription = "$limit open Information Requests at a time. " +
-                        "Close or cancel a request to free capacity",
+                            "Close or cancel a request to free capacity",
                     currentValue = open,
                     limit = limit,
                 ),
@@ -246,7 +246,7 @@ class SubscriptionAccessService @Inject constructor(
                     subscription = subscription,
                     feature = PlanFeature.INFORMATION_REQUESTS,
                     allowanceDescription = "${describeBytes(limit)} of Information Request evidence, and each " +
-                        "issued request reserves ${describeBytes(reserved)} until it finishes",
+                            "issued request reserves ${describeBytes(reserved)} until it finishes",
                     currentValue = committed,
                     limit = limit,
                 ),
@@ -387,7 +387,8 @@ class SubscriptionAccessService @Inject constructor(
         SubscriptionDenialReason.SEAT_LIMIT_REACHED -> "SEAT_LIMIT"
         SubscriptionDenialReason.FEATURE_NOT_INCLUDED,
         SubscriptionDenialReason.ORGANIZATION_SUBSCRIPTION_REQUIRED,
-        -> "FEATURE"
+            -> "FEATURE"
+
         else -> "LIFECYCLE"
     }
 

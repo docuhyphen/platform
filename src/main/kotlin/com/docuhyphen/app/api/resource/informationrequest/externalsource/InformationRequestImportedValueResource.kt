@@ -25,7 +25,8 @@ class InformationRequestImportedValueResource @Inject constructor(
         {
             val access = accessContextFactory.currentAuthenticated()
             val listed = importedValues.values(requestId(id), access)
-            Response.ok(listed.map { InformationRequestExternalSourceDtoMapper.toDto(it, access.principal) }.toTypedArray()).build()
+            Response.ok(listed.map { InformationRequestExternalSourceDtoMapper.toDto(it, access.principal) }
+                .toTypedArray()).build()
         }
         catch (exception: Exception)
         {
@@ -42,7 +43,8 @@ class InformationRequestImportedValueResource @Inject constructor(
         return try
         {
             val requestId = requestId(id)
-            val body = request ?: throw InformationRequestCommandRequestException("An imported value names its Requirement, value, source, and provenance")
+            val body = request
+                ?: throw InformationRequestCommandRequestException("An imported value names its Requirement, value, source, and provenance")
             val key = InformationRequestCommandHttp.idempotencyKey(idempotencyKey)
             val access = accessContextFactory.currentAuthenticated()
             val view = importedValues.propose(
@@ -61,11 +63,16 @@ class InformationRequestImportedValueResource @Inject constructor(
                     idempotencyKey = key,
                 ),
             )
-            Response.status(Response.Status.CREATED).entity(InformationRequestExternalSourceDtoMapper.toDto(view, access.principal)).build()
+            Response.status(Response.Status.CREATED)
+                .entity(InformationRequestExternalSourceDtoMapper.toDto(view, access.principal)).build()
         }
         catch (exception: Exception)
         {
-            InformationRequestCommandHttp.refused(logger, "Information Request imported value proposal failed", exception)
+            InformationRequestCommandHttp.refused(
+                logger,
+                "Information Request imported value proposal failed",
+                exception
+            )
         }
     }
 
@@ -80,17 +87,30 @@ class InformationRequestImportedValueResource @Inject constructor(
         {
             val requestId = requestId(id)
             val importedValueId = InformationRequestCommandHttp.uuid(valueId, "imported value id")
-            val body = request ?: throw InformationRequestCommandRequestException("A decision states its outcome and reason")
+            val body =
+                request ?: throw InformationRequestCommandRequestException("A decision states its outcome and reason")
             val key = InformationRequestCommandHttp.idempotencyKey(idempotencyKey)
             val access = accessContextFactory.currentAuthenticated()
             val view = importedValues.decide(
-                DecideInformationRequestImportedValueCommand(requestId, importedValueId, body.decision, body.reasonCode, access, key),
+                DecideInformationRequestImportedValueCommand(
+                    requestId,
+                    importedValueId,
+                    body.decision,
+                    body.reasonCode,
+                    access,
+                    key
+                ),
             )
-            Response.status(Response.Status.CREATED).entity(InformationRequestExternalSourceDtoMapper.toDto(view, access.principal)).build()
+            Response.status(Response.Status.CREATED)
+                .entity(InformationRequestExternalSourceDtoMapper.toDto(view, access.principal)).build()
         }
         catch (exception: Exception)
         {
-            InformationRequestCommandHttp.refused(logger, "Information Request imported value decision failed", exception)
+            InformationRequestCommandHttp.refused(
+                logger,
+                "Information Request imported value decision failed",
+                exception
+            )
         }
     }
 

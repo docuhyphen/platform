@@ -1,24 +1,9 @@
 package com.docuhyphen.app.api.service.informationrequest.evidence
 
 import com.docuhyphen.app.api.model.document.DocumentVersionContentDigest
-import com.docuhyphen.app.api.model.entity.DocumentEncryptionMode
-import com.docuhyphen.app.api.model.entity.DocumentVersion
-import com.docuhyphen.app.api.model.entity.InformationRequest
-import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceArtifact
-import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceAssessment
-import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceAssessmentKind
-import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceAttribute
-import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceCollectionState
-import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceVersion
-import com.docuhyphen.app.api.model.entity.InformationRequestRequirement
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceFile
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceFindingCode
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceInspectionFacts
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceInspectionOutcome
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceMediaTypes
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceSurface
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceUploadLimits
+import com.docuhyphen.app.api.model.informationrequest.evidence.*
 import com.docuhyphen.app.api.model.informationrequest.noauth.InformationRequestAbuseControl
 import com.docuhyphen.app.api.repository.informationrequest.evidence.InformationRequestEvidenceArtifactRepository
 import com.docuhyphen.app.api.repository.informationrequest.evidence.InformationRequestEvidenceAssessmentRepository
@@ -151,7 +136,10 @@ class InformationRequestEvidenceIntake @Inject constructor(
         val policy = policyLoader.forBinding(requirement.sourceTemplateBindingId) ?: return
 
         policy.maximumFileSizeBytes?.let { maximum ->
-            if (digest.length > maximum) policyRefused(InformationRequestEvidenceFindingCode.FILE_TOO_LARGE, "at most $maximum bytes")
+            if (digest.length > maximum) policyRefused(
+                InformationRequestEvidenceFindingCode.FILE_TOO_LARGE,
+                "at most $maximum bytes"
+            )
         }
         policy.maximumFileCount?.let { maximum ->
             if (addsArtifact && current.size + 1 > maximum)
@@ -162,7 +150,10 @@ class InformationRequestEvidenceIntake @Inject constructor(
         policy.maximumTotalSizeBytes?.let { maximum ->
             if (current.sumOf { it.contentLength } + digest.length > maximum)
             {
-                policyRefused(InformationRequestEvidenceFindingCode.TOTAL_SIZE_ABOVE_MAXIMUM, "at most $maximum bytes in total")
+                policyRefused(
+                    InformationRequestEvidenceFindingCode.TOTAL_SIZE_ABOVE_MAXIMUM,
+                    "at most $maximum bytes in total"
+                )
             }
         }
         val accepted = policy.acceptedValues[InformationRequestEvidenceAttribute.CONTENT_TYPE].orEmpty()
@@ -190,7 +181,10 @@ class InformationRequestEvidenceIntake @Inject constructor(
     private fun limitExceeded(message: String): Nothing
     {
         InformationRequestAbuseLog.refused(InformationRequestAbuseControl.EVIDENCE_UPLOAD_LIMIT)
-        throw InformationRequestLifecycleException(InformationRequestErrorCatalog.EVIDENCE_UPLOAD_LIMIT_EXCEEDED, message)
+        throw InformationRequestLifecycleException(
+            InformationRequestErrorCatalog.EVIDENCE_UPLOAD_LIMIT_EXCEEDED,
+            message
+        )
     }
 
     private fun policyRefused(code: InformationRequestEvidenceFindingCode, detail: String): Nothing =

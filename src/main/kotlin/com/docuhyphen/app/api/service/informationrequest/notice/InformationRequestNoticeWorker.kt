@@ -9,7 +9,7 @@ import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import org.slf4j.LoggerFactory
 import java.time.Clock
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestNoticeWorker @Inject constructor(
@@ -33,7 +33,11 @@ class InformationRequestNoticeWorker @Inject constructor(
             QuarkusTransaction.requiringNew().call { intentRepository.findUnclaimedIdsForRequest(requestId) },
         ) {
             QuarkusTransaction.requiringNew().call {
-                noticeRepository.findAwaitingDeliveryIds(InformationRequestNoticeStateReader.MAXIMUM_ATTEMPTS, BATCH_SIZE, requestId)
+                noticeRepository.findAwaitingDeliveryIds(
+                    InformationRequestNoticeStateReader.MAXIMUM_ATTEMPTS,
+                    BATCH_SIZE,
+                    requestId
+                )
             }
         }
 
@@ -43,7 +47,13 @@ class InformationRequestNoticeWorker @Inject constructor(
         intentIds.forEach { intentId ->
             runCatching { dispatcher.claimAndRender(intentId, clock.instant()) }
                 .onSuccess { if (it != null) rendered++ }
-                .onFailure { logger.warn("Information Request notice intent {} could not be rendered; it will be retried", intentId, it) }
+                .onFailure {
+                    logger.warn(
+                        "Information Request notice intent {} could not be rendered; it will be retried",
+                        intentId,
+                        it
+                    )
+                }
         }
         var delivered = 0
         var failed = 0
@@ -57,7 +67,13 @@ class InformationRequestNoticeWorker @Inject constructor(
                         else -> Unit
                     }
                 }
-                .onFailure { logger.warn("Information Request notice {} delivery could not be recorded; it will be retried", noticeId, it) }
+                .onFailure {
+                    logger.warn(
+                        "Information Request notice {} delivery could not be recorded; it will be retried",
+                        noticeId,
+                        it
+                    )
+                }
         }
         return InformationRequestNoticeDispatchResult(rendered, delivered, failed)
     }

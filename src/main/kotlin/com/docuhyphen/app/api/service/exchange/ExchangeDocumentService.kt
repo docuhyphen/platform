@@ -421,8 +421,8 @@ class ExchangeDocumentService @Inject constructor(
         val constraintsJson = shareService.recipientConstraintsJson(exchange.id)
         val constraints = ShareConstraints.parse(constraintsJson)
         val downloadAllowed = constraints?.canDownload != false &&
-            (constraintsJson?.contains("\"allow_document_download\":true") == true ||
-                constraints?.canDownload == true)
+                (constraintsJson?.contains("\"allow_document_download\":true") == true ||
+                        constraints?.canDownload == true)
         if (!downloadAllowed)
         {
             logger.warn("No-auth download blocked for exchange {} because download is disabled", exchange.id)
@@ -492,7 +492,8 @@ class ExchangeDocumentService @Inject constructor(
                         val fileKey = "${document.id}${DocumentType.toFileExtension(document.type!!)}"
                         val file = fileStorageService.downloadDocument(fileKey)
                         tempFiles.add(file)
-                        val entryName = "${document.title ?: document.id}${DocumentType.toFileExtension(document.type!!)}"
+                        val entryName =
+                            "${document.title ?: document.id}${DocumentType.toFileExtension(document.type!!)}"
                         zos.putNextEntry(java.util.zip.ZipEntry(entryName))
                         file.inputStream().use { it.copyTo(zos) }
                         zos.closeEntry()
@@ -725,7 +726,7 @@ class ExchangeDocumentService @Inject constructor(
         {
             throw io.quarkus.security.ForbiddenException(
                 "Downloading format '$docType' is not permitted. " +
-                "Use the 'Download as PDF' option instead."
+                        "Use the 'Download as PDF' option instead."
             )
         }
     }
@@ -867,7 +868,10 @@ class ExchangeDocumentService @Inject constructor(
 
         if (exchange.requireRecipientSignIn)
         {
-            logger.warn("Attempted no-auth thumbnail access for session {} after sign-in requirement was enabled", exchange.id)
+            logger.warn(
+                "Attempted no-auth thumbnail access for session {} after sign-in requirement was enabled",
+                exchange.id
+            )
             throw IllegalArgumentException("This request now requires sign in. Please sign in to continue.")
         }
 
@@ -945,7 +949,11 @@ class ExchangeDocumentService @Inject constructor(
         }
         catch (e: AuditDraftInvalidException)
         {
-            logger.warn("ExchangeDocumentService: AuditRecorder rejected draft for eventType={}: {}", eventType.key, e.message)
+            logger.warn(
+                "ExchangeDocumentService: AuditRecorder rejected draft for eventType={}: {}",
+                eventType.key,
+                e.message
+            )
         }
         catch (e: AuditCaptureFailedException)
         {
@@ -982,7 +990,11 @@ class ExchangeDocumentService @Inject constructor(
         }
         catch (e: AuditDraftInvalidException)
         {
-            logger.warn("ExchangeDocumentService: AuditRecorder rejected draft for eventType={}: {}", AuditEventType.DOCUMENT_ZIP_EXPORT.key, e.message)
+            logger.warn(
+                "ExchangeDocumentService: AuditRecorder rejected draft for eventType={}: {}",
+                AuditEventType.DOCUMENT_ZIP_EXPORT.key,
+                e.message
+            )
         }
         catch (e: AuditCaptureFailedException)
         {
@@ -1022,7 +1034,11 @@ class ExchangeDocumentService @Inject constructor(
         }
         catch (e: AuditCaptureFailedException)
         {
-            logger.error("ExchangeDocumentService: AuditRecorder capture failed (fail-closed) for AUTHORIZATION_DENIED: {}", e.message, e)
+            logger.error(
+                "ExchangeDocumentService: AuditRecorder capture failed (fail-closed) for AUTHORIZATION_DENIED: {}",
+                e.message,
+                e
+            )
         }
     }
 }

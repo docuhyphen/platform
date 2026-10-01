@@ -14,7 +14,7 @@ import io.quarkus.security.UnauthorizedException
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
-import java.util.UUID
+import java.util.*
 
 /** An individual account and the platform-administered feature decisions it holds. */
 data class UserFeatureEntitlementResult(

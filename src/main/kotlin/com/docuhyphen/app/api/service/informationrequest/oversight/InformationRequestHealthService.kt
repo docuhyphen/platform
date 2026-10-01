@@ -8,8 +8,8 @@ import com.docuhyphen.app.api.model.informationrequest.oversight.InformationRequ
 import com.docuhyphen.app.api.repository.informationrequest.oversight.InformationRequestHealthRepository
 import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
 import com.docuhyphen.app.api.service.auth.AuthAuditService
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.auth.UserRoleService
+import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import io.quarkus.security.ForbiddenException
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
@@ -34,26 +34,41 @@ class InformationRequestHealthService @Inject constructor(
 )
 {
     val windows: InformationRequestHealthWindows
-        get() = InformationRequestHealthWindows(noticeIntentMinutes, disposalClaimHours, eventBacklogMinutes, connectorFailureHours)
+        get() = InformationRequestHealthWindows(
+            noticeIntentMinutes,
+            disposalClaimHours,
+            eventBacklogMinutes,
+            connectorFailureHours
+        )
 
     fun report(): InformationRequestHealthReport
     {
         val now = clock.instant()
         val counts = mapOf(
             InformationRequestHealthIndicatorKey.REQUESTS_WITHOUT_EXECUTION_GRANT to
-                healthRepository.countIssuedWithoutExecutionGrant(),
+                    healthRepository.countIssuedWithoutExecutionGrant(),
             InformationRequestHealthIndicatorKey.RESERVATIONS_ABOVE_CAP to healthRepository.countReservationsAboveCap(),
             InformationRequestHealthIndicatorKey.NOTICE_INTENTS_OVERDUE to
-                healthRepository.countNoticeIntentsWithoutNoticeBefore(now.minus(noticeIntentMinutes, ChronoUnit.MINUTES)),
+                    healthRepository.countNoticeIntentsWithoutNoticeBefore(
+                        now.minus(
+                            noticeIntentMinutes,
+                            ChronoUnit.MINUTES
+                        )
+                    ),
             InformationRequestHealthIndicatorKey.CONNECTOR_EXCHANGES_FAILED to
-                healthRepository.countConnectorExchangesFailedSince(
-                    now.minus(connectorFailureHours, ChronoUnit.HOURS),
-                    OPERATIONAL_CONNECTOR_FAILURES,
-                ),
+                    healthRepository.countConnectorExchangesFailedSince(
+                        now.minus(connectorFailureHours, ChronoUnit.HOURS),
+                        OPERATIONAL_CONNECTOR_FAILURES,
+                    ),
             InformationRequestHealthIndicatorKey.DISPOSAL_CLAIMS_STALLED to
-                healthRepository.countDisposalClaimsClaimedBefore(now.minus(disposalClaimHours, ChronoUnit.HOURS)),
+                    healthRepository.countDisposalClaimsClaimedBefore(now.minus(disposalClaimHours, ChronoUnit.HOURS)),
             InformationRequestHealthIndicatorKey.EVENT_DELIVERY_BACKLOG to
-                healthRepository.countPendingRequestEventsBefore(now.minus(eventBacklogMinutes, ChronoUnit.MINUTES)),
+                    healthRepository.countPendingRequestEventsBefore(
+                        now.minus(
+                            eventBacklogMinutes,
+                            ChronoUnit.MINUTES
+                        )
+                    ),
         )
         return InformationRequestHealthReport(
             checkedAt = now,

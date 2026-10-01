@@ -18,7 +18,10 @@ class InformationRequestDisposalStandingResource @Inject constructor(
     {
         return try
         {
-            val standing = disposals.standing(InformationRequestCommandHttp.uuid(id, "information request id"), accessContextFactory.currentAuthenticated())
+            val standing = disposals.standing(
+                InformationRequestCommandHttp.uuid(id, "information request id"),
+                accessContextFactory.currentAuthenticated()
+            )
             Response.ok(RecordPreservationDtoMapper.toDto(standing)).build()
         }
         catch (exception: Exception)

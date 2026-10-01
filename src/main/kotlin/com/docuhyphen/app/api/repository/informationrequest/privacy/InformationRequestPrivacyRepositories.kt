@@ -1,21 +1,21 @@
 package com.docuhyphen.app.api.repository.informationrequest.privacy
 
-import com.docuhyphen.app.api.model.entity.InformationRequestItemCorrection
-import com.docuhyphen.app.api.model.entity.InformationRequestPrivacyRequest
-import com.docuhyphen.app.api.model.entity.InformationRequestPrivacyTargetOutcome
-import com.docuhyphen.app.api.model.entity.InformationRequestSubjectRestriction
-import com.docuhyphen.app.api.model.entity.RecordOwnerKind
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.informationrequest.privacy.InformationRequestPrivacyTarget
 import com.docuhyphen.app.api.repository.BaseRepository
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.persistence.LockModeType
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestPrivacyRequestRepository :
     BaseRepository<InformationRequestPrivacyRequest>(InformationRequestPrivacyRequest::class.java)
 {
-    fun findForOwner(ownerKind: RecordOwnerKind, ownerId: UUID, subjectIdentityRefId: UUID?): List<InformationRequestPrivacyRequest>
+    fun findForOwner(
+        ownerKind: RecordOwnerKind,
+        ownerId: UUID,
+        subjectIdentityRefId: UUID?
+    ): List<InformationRequestPrivacyRequest>
     {
         val subjectClause = if (subjectIdentityRefId != null) "AND privacy.subjectIdentityRefId = :subject" else ""
         val query = entityManager.createQuery(
@@ -38,7 +38,13 @@ class InformationRequestPrivacyRequestRepository :
     fun findForUpdate(id: UUID): InformationRequestPrivacyRequest? =
         entityManager.find(InformationRequestPrivacyRequest::class.java, id, LockModeType.PESSIMISTIC_WRITE)
 
-    fun insertTarget(privacyRequestId: UUID, requestId: UUID, outcome: InformationRequestPrivacyTargetOutcome, reasonCode: String?, claimId: UUID?)
+    fun insertTarget(
+        privacyRequestId: UUID,
+        requestId: UUID,
+        outcome: InformationRequestPrivacyTargetOutcome,
+        reasonCode: String?,
+        claimId: UUID?
+    )
     {
         entityManager.createNativeQuery(
             """
@@ -109,7 +115,11 @@ class InformationRequestPrivacyRequestRepository :
 class InformationRequestSubjectRestrictionRepository :
     BaseRepository<InformationRequestSubjectRestriction>(InformationRequestSubjectRestriction::class.java)
 {
-    fun findActive(ownerKind: RecordOwnerKind, ownerId: UUID, subjectIdentityRefId: UUID): InformationRequestSubjectRestriction? =
+    fun findActive(
+        ownerKind: RecordOwnerKind,
+        ownerId: UUID,
+        subjectIdentityRefId: UUID
+    ): InformationRequestSubjectRestriction? =
         entityManager.createQuery(
             """
             SELECT restriction

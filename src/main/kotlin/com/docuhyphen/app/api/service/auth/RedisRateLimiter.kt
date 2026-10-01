@@ -20,6 +20,30 @@ class RedisRateLimiter @Inject constructor(
         private const val BLOCK_PREFIX = "rate_limit_block:"
         private const val VIOLATION_PREFIX = "rate_limit_violation:"
         private const val DISTINCT_PREFIX = "rate_limit_distinct:"
+        private const val COOLDOWN_PREFIX = "rate_limit_cooldown:"
+    }
+
+    fun claimCooldown(key: String, seconds: Long): Long
+    {
+        val redisKey = "$COOLDOWN_PREFIX$key"
+        val claimed = redis.send(
+            Request.cmd(Command.SET)
+                .arg(redisKey)
+                .arg("1")
+                .arg("EX")
+                .arg(seconds.toString())
+                .arg("NX")
+        ).await().indefinitely()
+
+        if (claimed != null)
+        {
+            return 0
+        }
+
+        val remainingSeconds = redis.send(
+            Request.cmd(Command.TTL).arg(redisKey)
+        ).await().indefinitely()?.toLong() ?: seconds
+        return remainingSeconds.coerceAtLeast(1)
     }
 
     /**

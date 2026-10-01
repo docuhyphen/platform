@@ -1,7 +1,5 @@
 package com.docuhyphen.app.api.service.identity
 
-import com.docuhyphen.app.api.service.auth.AuthAuditService
-import com.docuhyphen.app.api.service.auth.UserRoleService
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.interceptor.EnforceAdminAction
 import com.docuhyphen.app.api.model.entity.AppUser
@@ -9,6 +7,8 @@ import com.docuhyphen.app.api.model.entity.OrganizationIdentityDomain
 import com.docuhyphen.app.api.model.entity.OrganizationIdentityDomainStatus
 import com.docuhyphen.app.api.repository.identity.OrganizationIdentityDomainRepository
 import com.docuhyphen.app.api.repository.organization.OrganizationRepository
+import com.docuhyphen.app.api.service.auth.AuthAuditService
+import com.docuhyphen.app.api.service.auth.UserRoleService
 import com.docuhyphen.app.api.service.subscription.OrganizationFeatureSubscriptionGuard
 import com.docuhyphen.app.api.service.subscription.PlanFeature
 import io.quarkus.security.UnauthorizedException
@@ -19,8 +19,7 @@ import java.net.IDN
 import java.security.SecureRandom
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.Base64
-import java.util.UUID
+import java.util.*
 
 @RequestScoped
 class OrganizationIdentityDomainService @Inject constructor(

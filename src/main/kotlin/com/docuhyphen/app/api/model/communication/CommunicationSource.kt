@@ -1,7 +1,7 @@
 package com.docuhyphen.app.api.model.communication
 
 import com.docuhyphen.app.api.model.entity.CommunicationScope
-import java.util.UUID
+import java.util.*
 
 data class CommunicationSource(
     val id: UUID,

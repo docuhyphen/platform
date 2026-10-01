@@ -1,10 +1,9 @@
 package com.docuhyphen.app.api.repository.fields
 
-import com.docuhyphen.app.api.repository.BaseRepository
-
 import com.docuhyphen.app.api.model.entity.SchemaAssignment
+import com.docuhyphen.app.api.repository.BaseRepository
 import jakarta.enterprise.context.ApplicationScoped
-import java.util.UUID
+import java.util.*
 
 /** Persistence for [SchemaAssignment] rows pinning a resource to a schema version. */
 @ApplicationScoped

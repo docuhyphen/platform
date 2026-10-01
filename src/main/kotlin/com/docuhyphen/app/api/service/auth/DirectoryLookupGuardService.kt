@@ -1,15 +1,15 @@
 package com.docuhyphen.app.api.service.auth
 
-import com.docuhyphen.app.api.service.security.SecurityIncidentService
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.model.entity.SecurityIncidentSeverity
 import com.docuhyphen.app.api.model.entity.SecurityIncidentType
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.service.config.ConfigurationService
+import com.docuhyphen.app.api.service.security.SecurityIncidentService
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
 import jakarta.ws.rs.core.Response
-import java.util.UUID
+import java.util.*
 
 @RequestScoped
 class DirectoryLookupGuardService @Inject constructor(
@@ -20,7 +20,12 @@ class DirectoryLookupGuardService @Inject constructor(
     private val configurationService: ConfigurationService,
 )
 {
-    fun enforce(endpointKey: String, targetOrganizationId: String?, requestId: String?, query: String? = null): Response?
+    fun enforce(
+        endpointKey: String,
+        targetOrganizationId: String?,
+        requestId: String?,
+        query: String? = null
+    ): Response?
     {
         val actorId = authTokenContext.authToken.appUser?.id
         val scopedOrg = targetOrganizationId.orEmpty().ifBlank { "unknown" }

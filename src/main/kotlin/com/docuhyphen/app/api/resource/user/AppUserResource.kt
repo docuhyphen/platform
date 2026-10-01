@@ -11,12 +11,12 @@ import com.docuhyphen.app.api.resource.model.CompleteAddOrUpdateEmailRequest
 import com.docuhyphen.app.api.resource.model.ConfirmOldEmailForUpdateRequest
 import com.docuhyphen.app.api.resource.model.InitiateAddOrUpdateEmailRequest
 import com.docuhyphen.app.api.resource.model.ResponseError
-import com.docuhyphen.app.api.service.user.AppUserService
-import com.docuhyphen.app.api.service.organization.OrganizationGroupService
-import com.docuhyphen.app.api.service.organization.OrganizationMembershipService
 import com.docuhyphen.app.api.service.auth.SessionService
 import com.docuhyphen.app.api.service.auth.UserRoleService
+import com.docuhyphen.app.api.service.organization.OrganizationGroupService
+import com.docuhyphen.app.api.service.organization.OrganizationMembershipService
 import com.docuhyphen.app.api.service.user.AppUserAvatarService
+import com.docuhyphen.app.api.service.user.AppUserService
 import io.quarkus.security.UnauthorizedException
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
@@ -236,7 +236,7 @@ class AppUserResource @Inject constructor(
 
     /**
      * Initiate email update of the currently logged in appUser
-    * */
+     * */
     @PUT
     @Path("email/update-initiation")
     @Transactional

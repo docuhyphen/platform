@@ -8,7 +8,7 @@ import com.docuhyphen.app.api.service.auth.authz.ResourceAuthorizationContextPro
 import com.docuhyphen.app.api.service.auth.authz.ResourceKind
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class VariableDefinitionAuthorizationContextProvider : ResourceAuthorizationContextProvider
@@ -25,7 +25,7 @@ class VariableDefinitionAuthorizationContextProvider : ResourceAuthorizationCont
         val ownerContext = when (variable.scope)
         {
             VariableScope.PERSONAL -> OwnerContext.Personal(variable.createdByAppUserId)
-            VariableScope.ORG     -> OwnerContext.Organization(variable.organizationId ?: return null)
+            VariableScope.ORG -> OwnerContext.Organization(variable.organizationId ?: return null)
         }
 
         return ResourceAuthorizationContext(

@@ -3,7 +3,7 @@ package com.docuhyphen.app.api.repository.informationrequest.creation
 import com.docuhyphen.app.api.model.entity.InformationRequestDocumentPlaceholder
 import com.docuhyphen.app.api.repository.BaseRepository
 import jakarta.enterprise.context.ApplicationScoped
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestDocumentPlaceholderRepository :

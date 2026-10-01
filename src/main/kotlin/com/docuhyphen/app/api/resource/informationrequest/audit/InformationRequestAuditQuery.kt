@@ -7,7 +7,7 @@ import com.docuhyphen.app.api.model.informationrequest.audit.InformationRequestA
 import com.docuhyphen.app.api.resource.informationrequest.InformationRequestCommandHttp
 import java.time.Instant
 import java.time.format.DateTimeParseException
-import java.util.UUID
+import java.util.*
 
 object InformationRequestAuditQuery
 {

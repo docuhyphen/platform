@@ -1,11 +1,10 @@
 package com.docuhyphen.app.api.repository.subscription
 
-import com.docuhyphen.app.api.repository.BaseRepository
-
 import com.docuhyphen.app.api.model.entity.UserSubscriptionPolicy
+import com.docuhyphen.app.api.repository.BaseRepository
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.persistence.LockModeType
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class UserSubscriptionPolicyRepository :

@@ -3,7 +3,7 @@ package com.docuhyphen.app.api.service.communication
 import com.docuhyphen.app.api.service.config.ConfigurationService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
-import java.util.Locale
+import java.util.*
 
 @ApplicationScoped
 class OrganizationEmailTemplateService @Inject constructor(

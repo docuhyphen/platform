@@ -2,11 +2,7 @@ package com.docuhyphen.app.api.resource.informationrequest.party
 
 import com.docuhyphen.app.api.exception.InformationRequestCommandRequestException
 import com.docuhyphen.app.api.model.InformationRequestPartyDtoMapper
-import com.docuhyphen.app.api.model.informationrequest.party.AssignExternalParticipantInformationRequestPartyCommand
-import com.docuhyphen.app.api.model.informationrequest.party.AssignInformationRequestPartyCommand
-import com.docuhyphen.app.api.model.informationrequest.party.InformationRequestPartyAssignmentResult
-import com.docuhyphen.app.api.model.informationrequest.party.ReassignInformationRequestPartyCommand
-import com.docuhyphen.app.api.model.informationrequest.party.RevokeInformationRequestPartyCommand
+import com.docuhyphen.app.api.model.informationrequest.party.*
 import com.docuhyphen.app.api.resource.command.CommandPreconditionHeader
 import com.docuhyphen.app.api.resource.informationrequest.InformationRequestCommandHttp
 import com.docuhyphen.app.api.resource.informationrequest.party.operations.InformationRequestPartyResourceOperations
@@ -182,10 +178,13 @@ class InformationRequestPartyResource @Inject constructor(
         {
             is IllegalArgumentException -> Response.status(NOT_FOUND)
                 .entity(ResponseError(exception.message)).build()
+
             is ForbiddenException -> Response.status(FORBIDDEN)
                 .entity(ResponseError(exception.message)).build()
+
             is UnauthorizedException -> Response.status(UNAUTHORIZED)
                 .entity(ResponseError(exception.message)).build()
+
             else ->
             {
                 logger.error(message, exception)

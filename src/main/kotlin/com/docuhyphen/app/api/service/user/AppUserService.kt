@@ -1,14 +1,14 @@
 package com.docuhyphen.app.api.service.user
 
-import com.docuhyphen.app.api.service.application.SettingsService
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.model.dto.AppUserSettingsDto
 import com.docuhyphen.app.api.model.dto.PersonBasicDto
 import com.docuhyphen.app.api.model.entity.AppUser
 import com.docuhyphen.app.api.model.entity.AppUserSettings
 import com.docuhyphen.app.api.model.entity.Person
-import com.docuhyphen.app.api.repository.user.AppUserRepository
 import com.docuhyphen.app.api.repository.organization.OrganizationRepository
+import com.docuhyphen.app.api.repository.user.AppUserRepository
+import com.docuhyphen.app.api.service.application.SettingsService
 import com.docuhyphen.app.api.service.auth.ServiceActionAuthorizationService
 import com.docuhyphen.app.api.service.auth.SignOutService
 import com.docuhyphen.app.api.service.communication.EmailService
@@ -128,12 +128,12 @@ class AppUserService @Inject constructor(
 
     fun updatePerson(appUser: AppUser, personDto: PersonBasicDto)
     {
-        if(personDto.firstName.isNullOrBlank())
+        if (personDto.firstName.isNullOrBlank())
         {
             throw IllegalArgumentException("First name cannot be null or blank")
         }
 
-        if(personDto.lastName.isNullOrBlank())
+        if (personDto.lastName.isNullOrBlank())
         {
             throw IllegalArgumentException("Last name cannot be null or blank")
         }
@@ -340,7 +340,11 @@ class AppUserService @Inject constructor(
 
     fun delete(appUserId: String?)
     {
-        val appUser = appUserRepository.findById(UUID.fromString(appUserId ?: throw IllegalArgumentException("App user ID cannot be null")))
+        val appUser = appUserRepository.findById(
+            UUID.fromString(
+                appUserId ?: throw IllegalArgumentException("App user ID cannot be null")
+            )
+        )
 
         if (appUser == null)
         {

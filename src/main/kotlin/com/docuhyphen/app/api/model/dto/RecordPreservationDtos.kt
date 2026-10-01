@@ -1,18 +1,11 @@
 package com.docuhyphen.app.api.model.dto
 
-import com.docuhyphen.app.api.model.entity.PrincipalKind
-import com.docuhyphen.app.api.model.entity.RecordDisposalBasis
-import com.docuhyphen.app.api.model.entity.RecordDisposalDeletionOutcome
-import com.docuhyphen.app.api.model.entity.RecordDisposalState
-import com.docuhyphen.app.api.model.entity.RecordOwnerKind
-import com.docuhyphen.app.api.model.entity.RecordPreservationHoldEventKind
-import com.docuhyphen.app.api.model.entity.RecordPreservationHoldStatus
-import com.docuhyphen.app.api.model.entity.RecordPreservationScope
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.serializer.TimestampSerializer
 import com.docuhyphen.app.api.serializer.UUIDSerializer
 import kotlinx.serialization.Serializable
 import java.sql.Timestamp
-import java.util.UUID
+import java.util.*
 
 @Serializable
 data class RecordPreservationHoldEventDto(

@@ -33,7 +33,8 @@ class StepUpAuthService @Inject constructor(
      */
     fun isFresh(maxAgeSeconds: Long = DEFAULT_MAX_AGE_SECONDS): Boolean
     {
-        val claims = authenticationService.parseTokenClaims((authTokenContext.authToken.token ?: return false)) ?: return false
+        val claims =
+            authenticationService.parseTokenClaims((authTokenContext.authToken.token ?: return false)) ?: return false
         val nowSeconds = System.currentTimeMillis() / 1000
 
         // Primary source: token auth_time (works for normal sign-in / refresh-token rotations).

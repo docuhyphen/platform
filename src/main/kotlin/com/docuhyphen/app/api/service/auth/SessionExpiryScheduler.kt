@@ -17,7 +17,8 @@ class SessionExpiryScheduler
 {
     private val logger = LoggerFactory.getLogger(SessionExpiryScheduler::class.java)
 
-    @Inject private lateinit var userSessionService: UserSessionService
+    @Inject
+    private lateinit var userSessionService: UserSessionService
 
     @Scheduled(
         every = "\${app.auth.session-expiry.cleanup-interval:5m}",

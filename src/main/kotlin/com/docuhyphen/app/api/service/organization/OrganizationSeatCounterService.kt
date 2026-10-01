@@ -1,10 +1,10 @@
 package com.docuhyphen.app.api.service.organization
 
-import com.docuhyphen.app.api.service.subscription.OrganizationSeatCounter
 import com.docuhyphen.app.api.repository.organization.OrganizationMembershipRepository
+import com.docuhyphen.app.api.service.subscription.OrganizationSeatCounter
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
-import java.util.UUID
+import java.util.*
 
 /**
  * Reports how many purchased seats an organization is currently consuming.
@@ -21,7 +21,8 @@ class OrganizationSeatCounterService @Inject constructor(
 {
     override fun countActiveSeats(organizationId: UUID): Long
     {
-        return organizationMembershipRepository.countActiveProvisionedMembers(listOf(organizationId))[organizationId] ?: 0
+        return organizationMembershipRepository.countActiveProvisionedMembers(listOf(organizationId))[organizationId]
+            ?: 0
     }
 }
 

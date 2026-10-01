@@ -25,6 +25,7 @@ enum class WorkflowStepStatus
     ESCALATED,
     SKIPPED,
     COMPLETED,
+
     /** Step is paused until all workflow instances on the counterparty side of the exchange reach a terminal state. */
     AWAITING_COUNTERPARTY,
 }

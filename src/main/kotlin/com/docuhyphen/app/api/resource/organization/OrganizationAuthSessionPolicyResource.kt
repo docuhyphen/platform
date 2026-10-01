@@ -1,38 +1,22 @@
 package com.docuhyphen.app.api.resource.organization
 
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
-import com.docuhyphen.app.api.resource.model.OrganizationAuthSessionPolicyEffectiveDto
-import com.docuhyphen.app.api.resource.model.OrganizationAuthSessionPolicyGuardrailsDto
-import com.docuhyphen.app.api.resource.model.OrganizationAuthSessionPolicyIdpDto
-import com.docuhyphen.app.api.resource.model.OrganizationAuthSessionPolicyResponse
-import com.docuhyphen.app.api.resource.model.OrganizationAuthSessionPolicySettingsResponse
-import com.docuhyphen.app.api.resource.model.OrganizationAuthSessionPolicyUpdateRequest
-import com.docuhyphen.app.api.resource.model.OrganizationIdpConfigResponse
-import com.docuhyphen.app.api.resource.model.ResponseError
-import com.docuhyphen.app.api.service.user.AppUserService
+import com.docuhyphen.app.api.resource.model.*
 import com.docuhyphen.app.api.service.auth.AdminApprovalContext
 import com.docuhyphen.app.api.service.auth.AuthAuditService
 import com.docuhyphen.app.api.service.auth.AuthSessionPolicyService
-import com.docuhyphen.app.api.service.identity.OrganizationIdentityProviderConfigService
 import com.docuhyphen.app.api.service.auth.RevocationReasonCode
 import com.docuhyphen.app.api.service.config.ConfigurationService
+import com.docuhyphen.app.api.service.identity.OrganizationIdentityProviderConfigService
+import com.docuhyphen.app.api.service.user.AppUserService
 import io.quarkus.security.UnauthorizedException
 import jakarta.inject.Inject
-import jakarta.ws.rs.Consumes
-import jakarta.ws.rs.GET
-import jakarta.ws.rs.HeaderParam
-import jakarta.ws.rs.PUT
-import jakarta.ws.rs.Path
-import jakarta.ws.rs.PathParam
-import jakarta.ws.rs.Produces
-import jakarta.ws.rs.QueryParam
+import jakarta.ws.rs.*
 import jakarta.ws.rs.core.MediaType.APPLICATION_JSON
 import jakarta.ws.rs.core.Response
-import jakarta.ws.rs.core.Response.Status.BAD_REQUEST
-import jakarta.ws.rs.core.Response.Status.FORBIDDEN
-import jakarta.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR
+import jakarta.ws.rs.core.Response.Status.*
 import org.slf4j.LoggerFactory
-import java.util.UUID
+import java.util.*
 
 @Path("organizations/{organizationId}/auth/session-policy")
 @Produces(APPLICATION_JSON)
@@ -134,8 +118,11 @@ class OrganizationAuthSessionPolicyResource @Inject constructor(
             when (exception)
             {
                 is UnauthorizedException -> Response.status(FORBIDDEN).entity(ResponseError(exception.message)).build()
-                is IllegalArgumentException -> Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
-                else -> Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("An unexpected error occurred")).build()
+                is IllegalArgumentException -> Response.status(BAD_REQUEST).entity(ResponseError(exception.message))
+                    .build()
+
+                else -> Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("An unexpected error occurred"))
+                    .build()
             }
         }
     }
@@ -235,8 +222,11 @@ class OrganizationAuthSessionPolicyResource @Inject constructor(
             when (exception)
             {
                 is UnauthorizedException -> Response.status(FORBIDDEN).entity(ResponseError(exception.message)).build()
-                is IllegalArgumentException -> Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
-                else -> Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("An unexpected error occurred")).build()
+                is IllegalArgumentException -> Response.status(BAD_REQUEST).entity(ResponseError(exception.message))
+                    .build()
+
+                else -> Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("An unexpected error occurred"))
+                    .build()
             }
         }
     }
@@ -294,8 +284,11 @@ class OrganizationAuthSessionPolicyResource @Inject constructor(
             when (exception)
             {
                 is UnauthorizedException -> Response.status(FORBIDDEN).entity(ResponseError(exception.message)).build()
-                is IllegalArgumentException -> Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
-                else -> Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("An unexpected error occurred")).build()
+                is IllegalArgumentException -> Response.status(BAD_REQUEST).entity(ResponseError(exception.message))
+                    .build()
+
+                else -> Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("An unexpected error occurred"))
+                    .build()
             }
         }
     }

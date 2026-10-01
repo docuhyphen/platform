@@ -1,5 +1,6 @@
 ﻿package com.docuhyphen.app.api.service.workflow
 
+import com.docuhyphen.app.api.exception.SubscriptionDenialException
 import com.docuhyphen.app.api.model.entity.PrincipalKind
 import com.docuhyphen.app.api.model.entity.ResourceType
 import com.docuhyphen.app.api.model.entity.WorkflowInstance
@@ -37,7 +38,6 @@ import org.slf4j.LoggerFactory
 import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
-import com.docuhyphen.app.api.exception.SubscriptionDenialException
 
 /**
  * Default [WorkflowEngineService] implementation.
@@ -57,33 +57,58 @@ class DefaultWorkflowEngineService : WorkflowEngineService
 {
     private val logger = LoggerFactory.getLogger(DefaultWorkflowEngineService::class.java)
 
-    @Inject private lateinit var definitionRepository: WorkflowDefinitionRepository
-    @Inject private lateinit var instanceRepository: WorkflowInstanceRepository
-    @Inject private lateinit var stepRepository: WorkflowStepInstanceRepository
-    @Inject private lateinit var transitionRepository: com.docuhyphen.app.api.repository.workflow.WorkflowStepTransitionRepository
-    @Inject private lateinit var assigneeRepository: com.docuhyphen.app.api.repository.workflow.WorkflowStepAssigneeRepository
-    @Inject private lateinit var decisionRepository: com.docuhyphen.app.api.repository.workflow.WorkflowStepDecisionRepository
-    @Inject private lateinit var assigneeResolver: WorkflowAssigneeResolver
+    @Inject
+    private lateinit var definitionRepository: WorkflowDefinitionRepository
+    @Inject
+    private lateinit var instanceRepository: WorkflowInstanceRepository
+    @Inject
+    private lateinit var stepRepository: WorkflowStepInstanceRepository
+    @Inject
+    private lateinit var transitionRepository: com.docuhyphen.app.api.repository.workflow.WorkflowStepTransitionRepository
+    @Inject
+    private lateinit var assigneeRepository: com.docuhyphen.app.api.repository.workflow.WorkflowStepAssigneeRepository
+    @Inject
+    private lateinit var decisionRepository: com.docuhyphen.app.api.repository.workflow.WorkflowStepDecisionRepository
+    @Inject
+    private lateinit var assigneeResolver: WorkflowAssigneeResolver
+
     @Inject
     @field:TransactionalEventSink
     private lateinit var eventPublisher: DomainEventPublisher
-    @Inject private lateinit var principalGroupMemberRepository: com.docuhyphen.app.api.repository.organization.PrincipalGroupMemberRepository
-    @Inject private lateinit var principalGroupRepository: com.docuhyphen.app.api.repository.organization.PrincipalGroupRepository
-    @Inject private lateinit var exchangeRepository: com.docuhyphen.app.api.repository.exchange.ExchangeRepository
-    @Inject private lateinit var appUserRepository: com.docuhyphen.app.api.repository.user.AppUserRepository
-    @Inject private lateinit var appNotificationService: AppNotificationService
-    @Inject private lateinit var emailService: EmailService
-    @Inject private lateinit var communicationResolver: CommunicationResolver
-    @Inject private lateinit var organizationRepository: com.docuhyphen.app.api.repository.organization.OrganizationRepository
-    @Inject private lateinit var markdownRenderer: MarkdownRenderer
-    @Inject private lateinit var emailTemplateRenderer: EmailTemplateRenderer
-    @Inject private lateinit var applicabilityEvaluator: WorkflowApplicabilityEvaluator
-    @Inject private lateinit var conditionPredicateService: ConditionPredicateService
-    @Inject private lateinit var triggerEventRepository: WorkflowTriggerEventRepository
-    @Inject private lateinit var transactionSynchronizationRegistry: TransactionSynchronizationRegistry
-    @Inject private lateinit var inAppNotificationService: InAppNotificationService
-    @Inject private lateinit var self: DefaultWorkflowEngineService
-    @Inject private lateinit var subscriptionGuard: WorkflowSubscriptionGuard
+    @Inject
+    private lateinit var principalGroupMemberRepository: com.docuhyphen.app.api.repository.organization.PrincipalGroupMemberRepository
+    @Inject
+    private lateinit var principalGroupRepository: com.docuhyphen.app.api.repository.organization.PrincipalGroupRepository
+    @Inject
+    private lateinit var exchangeRepository: com.docuhyphen.app.api.repository.exchange.ExchangeRepository
+    @Inject
+    private lateinit var appUserRepository: com.docuhyphen.app.api.repository.user.AppUserRepository
+    @Inject
+    private lateinit var appNotificationService: AppNotificationService
+    @Inject
+    private lateinit var emailService: EmailService
+    @Inject
+    private lateinit var communicationResolver: CommunicationResolver
+    @Inject
+    private lateinit var organizationRepository: com.docuhyphen.app.api.repository.organization.OrganizationRepository
+    @Inject
+    private lateinit var markdownRenderer: MarkdownRenderer
+    @Inject
+    private lateinit var emailTemplateRenderer: EmailTemplateRenderer
+    @Inject
+    private lateinit var applicabilityEvaluator: WorkflowApplicabilityEvaluator
+    @Inject
+    private lateinit var conditionPredicateService: ConditionPredicateService
+    @Inject
+    private lateinit var triggerEventRepository: WorkflowTriggerEventRepository
+    @Inject
+    private lateinit var transactionSynchronizationRegistry: TransactionSynchronizationRegistry
+    @Inject
+    private lateinit var inAppNotificationService: InAppNotificationService
+    @Inject
+    private lateinit var self: DefaultWorkflowEngineService
+    @Inject
+    private lateinit var subscriptionGuard: WorkflowSubscriptionGuard
 
     @ConfigProperty(name = "app.url", defaultValue = "https://app.docuhyphen.com")
     private lateinit var appUrl: String
@@ -92,7 +117,8 @@ class DefaultWorkflowEngineService : WorkflowEngineService
     private lateinit var appName: String
 
     /** CDI programmatic lookup of all registered [WorkflowActionHandler] beans. */
-    @Inject private lateinit var actionHandlerBeans: Instance<WorkflowActionHandler>
+    @Inject
+    private lateinit var actionHandlerBeans: Instance<WorkflowActionHandler>
 
     private val json = WorkflowSpecJson.instance
 
@@ -116,7 +142,11 @@ class DefaultWorkflowEngineService : WorkflowEngineService
         val definitions = definitionRepository.findAllActiveForTrigger(request.triggerEvent, request.organizationId)
         if (definitions.isEmpty())
         {
-            logger.debug("No active workflow definition for trigger={} org={}", request.triggerEvent, request.organizationId)
+            logger.debug(
+                "No active workflow definition for trigger={} org={}",
+                request.triggerEvent,
+                request.organizationId
+            )
             return null
         }
 
@@ -165,7 +195,10 @@ class DefaultWorkflowEngineService : WorkflowEngineService
         return if (enriched == request.subjectData) request else request.copy(subjectData = enriched)
     }
 
-    private fun triggerOne(definition: com.docuhyphen.app.api.model.entity.WorkflowDefinition, request: TriggerRequest): TriggerResult?
+    private fun triggerOne(
+        definition: com.docuhyphen.app.api.model.entity.WorkflowDefinition,
+        request: TriggerRequest
+    ): TriggerResult?
     {
         val spec = WorkflowSpecJson.decode(definition.stepsJson)
         if (spec.steps.isEmpty())
@@ -180,7 +213,8 @@ class DefaultWorkflowEngineService : WorkflowEngineService
                 request.organizationId,
                 spec.applicability,
                 request.subjectData,
-            ))
+            )
+        )
         {
             logger.debug(
                 "Workflow definition {} skipped: applicability conditions not met for subject {}",
@@ -417,13 +451,21 @@ class DefaultWorkflowEngineService : WorkflowEngineService
                     spec.onReject?.emit?.let { publishOutcomeEvent(instance, it) }
                     emitDefinitionTerminalEvent(instance, success = false)
                 }
+
                 EscalationAction.AUTO_APPROVE ->
                 {
                     step.status = WorkflowStepStatus.APPROVED
                     step.completedAt = now
                     spec.onApprove?.emit?.let { publishOutcomeEvent(instance, it) }
-                    advanceOrComplete(instance, spec.onApprove?.nextStep ?: "END", now, step, WorkflowTransitionOutcome.APPROVE)
+                    advanceOrComplete(
+                        instance,
+                        spec.onApprove?.nextStep ?: "END",
+                        now,
+                        step,
+                        WorkflowTransitionOutcome.APPROVE
+                    )
                 }
+
                 EscalationAction.ESCALATE, null ->
                 {
                     // Reassign by re-resolving the escalation targets and overwriting the snapshot.
@@ -505,10 +547,11 @@ class DefaultWorkflowEngineService : WorkflowEngineService
 
             val instance = instanceRepository.findById(step.instanceId) ?: return@mapNotNull null
             val subjectData = decodeSubjectData(instance.subjectDataJson)
-            val exchangeId = if (instance.subjectResourceType == null || instance.subjectResourceType == ResourceType.EXCHANGE.name)
-                instance.subjectResourceId
-            else
-                subjectData["exchangeId"]?.let { runCatching { UUID.fromString(it) }.getOrNull() }
+            val exchangeId =
+                if (instance.subjectResourceType == null || instance.subjectResourceType == ResourceType.EXCHANGE.name)
+                    instance.subjectResourceId
+                else
+                    subjectData["exchangeId"]?.let { runCatching { UUID.fromString(it) }.getOrNull() }
             val session = exchangeId?.let { exchangeRepository.findById(it) }
             val initiator = instance.initiatedByAppUserId?.let { appUserRepository.findById(it) }
             val groupName = subjectData["recipientGroupId"]
@@ -558,6 +601,7 @@ class DefaultWorkflowEngineService : WorkflowEngineService
                 publishStepAssigned(instance, step, resolved)
                 emptyList()
             }
+
             WorkflowStepType.NOTIFICATION -> executeNotificationStep(instance, step, spec)
             WorkflowStepType.CONDITION -> executeConditionStep(instance, step, spec)
             WorkflowStepType.ACTION -> executeActionStep(instance, step, spec)
@@ -678,7 +722,12 @@ class DefaultWorkflowEngineService : WorkflowEngineService
             .orEmpty()
         val evaluation = conditionPredicateService.evaluate(spec.predicateExpression, fields, subjectData)
         val result = (evaluation as? PredicateResult.Valid)?.matches == true
-        logger.debug("CONDITION step {} evaluated to {} with result category {}", step.id, result, evaluation::class.simpleName)
+        logger.debug(
+            "CONDITION step {} evaluated to {} with result category {}",
+            step.id,
+            result,
+            evaluation::class.simpleName
+        )
 
         step.status = WorkflowStepStatus.COMPLETED
         step.completedAt = now
@@ -841,7 +890,13 @@ class DefaultWorkflowEngineService : WorkflowEngineService
 
                 val emitted = mutableListOf<String>()
                 spec.onApprove?.emit?.let { emitted += it }
-                advanceOrComplete(parentInstance, spec.onApprove?.nextStep ?: "END", now, step, WorkflowTransitionOutcome.DEFAULT)
+                advanceOrComplete(
+                    parentInstance,
+                    spec.onApprove?.nextStep ?: "END",
+                    now,
+                    step,
+                    WorkflowTransitionOutcome.DEFAULT
+                )
                 instanceRepository.update(parentInstance)
                 emitted.forEach { publishOutcomeEvent(parentInstance, it) }
                 logger.info("Unblocked AWAITING_COUNTERPARTY step {} for instance {}", step.id, parentInstance.id)
@@ -915,6 +970,7 @@ class DefaultWorkflowEngineService : WorkflowEngineService
                         fireCount == 0 -> true
                         addon.repeatEveryMinutes != null && lastFiredAt != null ->
                             (now.time - lastFiredAt) / 60_000L >= addon.repeatEveryMinutes
+
                         else -> false
                     }
 
@@ -927,7 +983,12 @@ class DefaultWorkflowEngineService : WorkflowEngineService
                         addonState["lastFiredAt"] = now.time.toString()
                         state[key] = addonState
                         stateChanged = true
-                        logger.debug("REMINDER_IF_NO_DECISION addon {} fired (count={}) for step {}", idx, fireCount + 1, step.id)
+                        logger.debug(
+                            "REMINDER_IF_NO_DECISION addon {} fired (count={}) for step {}",
+                            idx,
+                            fireCount + 1,
+                            step.id
+                        )
                     }
                 }
             }
@@ -957,8 +1018,14 @@ class DefaultWorkflowEngineService : WorkflowEngineService
                 val user = appUserRepository.findById(p.id)
                 if (user != null)
                 {
-                    try { emailService.sendEmail(user.email, subject, body) }
-                    catch (e: Exception) { logger.warn("Reminder email failed for {}: {}", user.email, e.message) }
+                    try
+                    {
+                        emailService.sendEmail(user.email, subject, body)
+                    }
+                    catch (e: Exception)
+                    {
+                        logger.warn("Reminder email failed for {}: {}", user.email, e.message)
+                    }
                 }
             }
         }
@@ -1258,7 +1325,10 @@ class DefaultWorkflowEngineService : WorkflowEngineService
                 k to prim.content
             }.toMap()
         }
-        catch (_: Exception) { emptyMap() }
+        catch (_: Exception)
+        {
+            emptyMap()
+        }
     }
 
     private fun workflowSubjectFields(triggerEvent: String): List<WorkflowSubjectField> =

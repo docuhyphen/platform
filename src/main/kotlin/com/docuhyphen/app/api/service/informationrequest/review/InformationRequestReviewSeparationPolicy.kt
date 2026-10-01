@@ -45,15 +45,21 @@ class InformationRequestReviewSeparationPolicy @Inject constructor(
             val kind = item.respondedByPrincipalKind ?: return@mapNotNull null
             val id = item.respondedByPrincipalId ?: return@mapNotNull null
             PrincipalRef(kind, id)
-        } + PrincipalRef(submission.submissionPackage.submittedByPrincipalKind, submission.submissionPackage.submittedByPrincipalId) +
-            submission.attestations.map { PrincipalRef(it.principalKind, it.principalId) }
+        } + PrincipalRef(
+            submission.submissionPackage.submittedByPrincipalKind,
+            submission.submissionPackage.submittedByPrincipalId
+        ) +
+                submission.attestations.map { PrincipalRef(it.principalKind, it.principalId) }
         val answering = partyRepository.findActiveForRequest(snapshot.review.informationRequestId)
             .filter { it.roleKey in ANSWERING_ROLES }
             .flatMap(::principalsOf)
         return recorded.toSet() + answering
     }
 
-    private fun priorReviewers(snapshot: InformationRequestReviewSnapshot, stage: InformationRequestReviewStagePlan): Set<PrincipalRef>
+    private fun priorReviewers(
+        snapshot: InformationRequestReviewSnapshot,
+        stage: InformationRequestReviewStagePlan
+    ): Set<PrincipalRef>
     {
         val earlier = snapshot.plan.stages.filter { it.position < stage.position }.map { it.stageKey }.toSet()
         val sameReview = snapshot.decisions
@@ -62,7 +68,7 @@ class InformationRequestReviewSeparationPolicy @Inject constructor(
         val reopened = snapshot.review.priorReviewId
             ?.takeIf {
                 snapshot.review.kind == InformationRequestReviewKind.RECONSIDERATION ||
-                    snapshot.review.kind == InformationRequestReviewKind.APPEAL
+                        snapshot.review.kind == InformationRequestReviewKind.APPEAL
             }
             ?.let { decisionRepository.findForReview(it) }
             .orEmpty()
@@ -71,7 +77,8 @@ class InformationRequestReviewSeparationPolicy @Inject constructor(
         return (sameReview + reopened).toSet()
     }
 
-    private fun principalsOf(party: InformationRequestParty): Set<PrincipalRef> = requirementContext.principalsActingFor(party)
+    private fun principalsOf(party: InformationRequestParty): Set<PrincipalRef> =
+        requirementContext.principalsActingFor(party)
 
     private fun refuse(message: String): Nothing =
         throw InformationRequestLifecycleException(InformationRequestErrorCatalog.REVIEW_SEPARATION_OF_DUTIES, message)

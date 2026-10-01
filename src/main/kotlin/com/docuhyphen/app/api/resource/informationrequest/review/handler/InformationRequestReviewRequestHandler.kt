@@ -4,34 +4,13 @@ import com.docuhyphen.app.api.exception.InformationRequestCommandRequestExceptio
 import com.docuhyphen.app.api.model.InformationRequestReviewDtoMapper
 import com.docuhyphen.app.api.model.entity.InformationRequestReviewKind
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
-import com.docuhyphen.app.api.model.informationrequest.review.AssignInformationRequestReviewerCommand
-import com.docuhyphen.app.api.model.informationrequest.review.ChangeInformationRequestReviewAssignmentCommand
-import com.docuhyphen.app.api.model.informationrequest.review.InformationRequestReviewAssignmentChange
-import com.docuhyphen.app.api.model.informationrequest.review.InformationRequestReviewCommandResult
-import com.docuhyphen.app.api.model.informationrequest.review.InformationRequestReviewDraftPatch
-import com.docuhyphen.app.api.model.informationrequest.review.OverrideInformationRequestReviewItemCommand
-import com.docuhyphen.app.api.model.informationrequest.review.RecordInformationRequestReviewCommentCommand
-import com.docuhyphen.app.api.model.informationrequest.review.RecordInformationRequestReviewDecisionsCommand
-import com.docuhyphen.app.api.model.informationrequest.review.RecordInformationRequestReviewFindingCommand
-import com.docuhyphen.app.api.model.informationrequest.review.ReopenInformationRequestReviewCommand
-import com.docuhyphen.app.api.model.informationrequest.review.SaveInformationRequestReviewDraftCommand
+import com.docuhyphen.app.api.model.informationrequest.review.*
 import com.docuhyphen.app.api.resource.command.CommandPreconditionHeader
 import com.docuhyphen.app.api.resource.informationrequest.InformationRequestCommandHttp
-import com.docuhyphen.app.api.resource.model.AssignInformationRequestReviewerRequest
-import com.docuhyphen.app.api.resource.model.ChangeInformationRequestReviewAssignmentRequest
-import com.docuhyphen.app.api.resource.model.OverrideInformationRequestReviewItemRequest
-import com.docuhyphen.app.api.resource.model.RecordInformationRequestReviewCommentRequest
-import com.docuhyphen.app.api.resource.model.RecordInformationRequestReviewFindingRequest
-import com.docuhyphen.app.api.resource.model.ReopenInformationRequestReviewRequest
-import com.docuhyphen.app.api.resource.model.SaveInformationRequestReviewWorksheetRequest
-import com.docuhyphen.app.api.service.informationrequest.review.InformationRequestReviewAssignmentService
-import com.docuhyphen.app.api.service.informationrequest.review.InformationRequestReviewCommentService
-import com.docuhyphen.app.api.service.informationrequest.review.InformationRequestReviewCycleService
-import com.docuhyphen.app.api.service.informationrequest.review.InformationRequestReviewDecisionService
-import com.docuhyphen.app.api.service.informationrequest.review.InformationRequestReviewFindingService
-import com.docuhyphen.app.api.service.informationrequest.review.InformationRequestReviewQueryService
+import com.docuhyphen.app.api.resource.model.*
+import com.docuhyphen.app.api.service.informationrequest.review.*
 import jakarta.ws.rs.core.Response
-import java.util.UUID
+import java.util.*
 
 class InformationRequestReviewRequestHandler(
     private val assignments: InformationRequestReviewAssignmentService,
@@ -43,7 +22,10 @@ class InformationRequestReviewRequestHandler(
 )
 {
     fun list(requestId: UUID, access: RequestAccessContext): Response =
-        Response.ok(queries.reviews(requestId, access).map { InformationRequestReviewDtoMapper.toDto(it, access.principal) }.toTypedArray())
+        Response.ok(
+            queries.reviews(requestId, access).map { InformationRequestReviewDtoMapper.toDto(it, access.principal) }
+                .toTypedArray()
+        )
             .build()
 
     fun detail(requestId: UUID, reviewId: UUID, access: RequestAccessContext): Response
@@ -53,7 +35,10 @@ class InformationRequestReviewRequestHandler(
     }
 
     fun results(requestId: UUID, access: RequestAccessContext): Response =
-        Response.ok(queries.results(requestId, access).map { InformationRequestReviewDtoMapper.toDto(it, access.principal) }.toTypedArray())
+        Response.ok(
+            queries.results(requestId, access).map { InformationRequestReviewDtoMapper.toDto(it, access.principal) }
+                .toTypedArray()
+        )
             .build()
 
     fun queue(access: RequestAccessContext): Response =
@@ -69,7 +54,8 @@ class InformationRequestReviewRequestHandler(
         idempotencyKey: String?,
     ): Response
     {
-        val body = request ?: throw InformationRequestCommandRequestException("A reviewer assignment names its stage and reviewer")
+        val body = request
+            ?: throw InformationRequestCommandRequestException("A reviewer assignment names its stage and reviewer")
         val result = assignments.assign(
             AssignInformationRequestReviewerCommand(
                 requestId = requestId,
@@ -176,7 +162,8 @@ class InformationRequestReviewRequestHandler(
         idempotencyKey: String?,
     ): Response
     {
-        val body = request ?: throw InformationRequestCommandRequestException("An override names its stage, item, outcome, and reason")
+        val body = request
+            ?: throw InformationRequestCommandRequestException("An override names its stage, item, outcome, and reason")
         val result = decisions.override(
             OverrideInformationRequestReviewItemCommand(
                 requestId = requestId,
@@ -201,7 +188,8 @@ class InformationRequestReviewRequestHandler(
         idempotencyKey: String?,
     ): Response
     {
-        val body = request ?: throw InformationRequestCommandRequestException("A finding names its item, reason, and severity")
+        val body =
+            request ?: throw InformationRequestCommandRequestException("A finding names its item, reason, and severity")
         val result = findings.record(
             RecordInformationRequestReviewFindingCommand(
                 requestId = requestId,
@@ -230,7 +218,8 @@ class InformationRequestReviewRequestHandler(
         idempotencyKey: String?,
     ): Response
     {
-        val body = request ?: throw InformationRequestCommandRequestException("A comment names its item and states its text")
+        val body =
+            request ?: throw InformationRequestCommandRequestException("A comment names its item and states its text")
         val result = comments.record(
             RecordInformationRequestReviewCommentCommand(
                 requestId = requestId,
@@ -258,7 +247,8 @@ class InformationRequestReviewRequestHandler(
         idempotencyKey: String?,
     ): Response
     {
-        val body = request ?: throw InformationRequestCommandRequestException("A reconsideration or appeal states its reason")
+        val body =
+            request ?: throw InformationRequestCommandRequestException("A reconsideration or appeal states its reason")
         val result = cycles.reopen(
             ReopenInformationRequestReviewCommand(
                 requestId = requestId,

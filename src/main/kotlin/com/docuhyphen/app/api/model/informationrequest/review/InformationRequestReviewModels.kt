@@ -1,29 +1,12 @@
 package com.docuhyphen.app.api.model.informationrequest.review
 
-import com.docuhyphen.app.api.model.entity.InformationRequest
-import com.docuhyphen.app.api.model.entity.InformationRequestCorrection
-import com.docuhyphen.app.api.model.entity.InformationRequestCorrectionEvidence
-import com.docuhyphen.app.api.model.entity.InformationRequestCorrectionItem
-import com.docuhyphen.app.api.model.entity.InformationRequestFindingCorrectionScope
-import com.docuhyphen.app.api.model.entity.InformationRequestFindingSeverity
-import com.docuhyphen.app.api.model.entity.InformationRequestRetestResult
-import com.docuhyphen.app.api.model.entity.InformationRequestReview
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewAssignment
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewComment
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewDecision
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewDraftItem
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewFinding
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewKind
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewOutcome
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewRemediation
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewVisibility
-import com.docuhyphen.app.api.model.entity.InformationRequestSubmissionItem
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.fields.FieldValueRevisionValue
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
 import com.docuhyphen.app.api.model.informationrequest.submission.InformationRequestSubmissionPackageView
 import com.docuhyphen.app.api.service.command.CommandPrecondition
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 data class AssignInformationRequestReviewerCommand(
     val requestId: UUID,

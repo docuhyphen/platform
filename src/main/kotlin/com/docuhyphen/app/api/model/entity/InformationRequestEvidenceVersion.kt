@@ -1,15 +1,10 @@
 package com.docuhyphen.app.api.model.entity
 
-import jakarta.persistence.Column
-import jakarta.persistence.Entity
-import jakarta.persistence.EnumType
-import jakarta.persistence.Enumerated
-import jakarta.persistence.Id
-import jakarta.persistence.Table
+import jakarta.persistence.*
 import java.sql.Timestamp
 import java.time.Instant
 import java.time.LocalDate
-import java.util.UUID
+import java.util.*
 
 /**
  * One recorded attempt at an evidence artifact. Rows are only ever appended: the version number

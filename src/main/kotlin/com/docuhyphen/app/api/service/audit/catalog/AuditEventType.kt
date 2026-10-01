@@ -19,6 +19,9 @@ enum class AuditEventType(val key: String, val category: AuditCategory)
     SIGN_IN_INITIATE("auth.sign_in.initiate", AuditCategory.AUTHENTICATION),
     SIGN_IN_LOOKUP("auth.sign_in.lookup", AuditCategory.AUTHENTICATION),
     SIGN_IN_COMPLETION("auth.sign_in.completion", AuditCategory.AUTHENTICATION),
+    SIGN_UP_INITIATE("auth.sign_up.initiate", AuditCategory.AUTHENTICATION),
+    SIGN_UP_OTP_REGENERATION("auth.sign_up.otp_regenerate", AuditCategory.AUTHENTICATION),
+    SIGN_UP_COMPLETION("auth.sign_up.completion", AuditCategory.AUTHENTICATION),
     SIGN_OUT("auth.sign_out", AuditCategory.AUTHENTICATION),
     TOKEN_REFRESH("auth.token.refresh", AuditCategory.AUTHENTICATION),
     STEP_UP_INITIATE("auth.step_up.initiate", AuditCategory.AUTHENTICATION),
@@ -67,9 +70,18 @@ enum class AuditEventType(val key: String, val category: AuditCategory)
     ORG_TRUST_IDENTITY_RESOLUTION_ALLOWED("organization.trust.identity_resolution.allowed", AuditCategory.ORGANIZATION),
     ORG_TRUST_IDENTITY_RESOLUTION_DENIED("organization.trust.identity_resolution.denied", AuditCategory.ORGANIZATION),
     ORG_TRUST_IDENTITY_RESOLUTION_EXPIRED("organization.trust.identity_resolution.expired", AuditCategory.ORGANIZATION),
-    ORG_TRUST_IDENTITY_RESOLUTION_CONSUMED("organization.trust.identity_resolution.consumed", AuditCategory.ORGANIZATION),
-    ORG_TRUST_IDENTITY_RESOLUTION_REPLAY_DENIED("organization.trust.identity_resolution.replay_denied", AuditCategory.ORGANIZATION),
-    ORG_TRUST_RECIPIENT_VALIDATION_ALLOWED("organization.trust.recipient_validation.allowed", AuditCategory.ORGANIZATION),
+    ORG_TRUST_IDENTITY_RESOLUTION_CONSUMED(
+        "organization.trust.identity_resolution.consumed",
+        AuditCategory.ORGANIZATION
+    ),
+    ORG_TRUST_IDENTITY_RESOLUTION_REPLAY_DENIED(
+        "organization.trust.identity_resolution.replay_denied",
+        AuditCategory.ORGANIZATION
+    ),
+    ORG_TRUST_RECIPIENT_VALIDATION_ALLOWED(
+        "organization.trust.recipient_validation.allowed",
+        AuditCategory.ORGANIZATION
+    ),
     ORG_TRUST_RECIPIENT_VALIDATION_DENIED("organization.trust.recipient_validation.denied", AuditCategory.ORGANIZATION),
     ORG_TRUST_ACCEPTANCE_ALLOWED("organization.trust.acceptance.allowed", AuditCategory.ORGANIZATION),
     ORG_TRUST_ACCEPTANCE_DENIED("organization.trust.acceptance.denied", AuditCategory.ORGANIZATION),
@@ -372,7 +384,7 @@ enum class AuditEventType(val key: String, val category: AuditCategory)
          * consumers (ledger, exports, projections) can reason about which catalog shape produced
          * a given event.
          */
-        const val CATALOG_VERSION: Int = 29
+        const val CATALOG_VERSION: Int = 30
 
         private val byKey: Map<String, AuditEventType> = entries.associateBy { it.key }
 

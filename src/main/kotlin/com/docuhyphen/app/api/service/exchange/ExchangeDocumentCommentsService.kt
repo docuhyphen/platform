@@ -2,27 +2,23 @@
 
 import com.docuhyphen.app.api.exception.ExchangeNotFoundException
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
-import com.docuhyphen.app.api.model.entity.DocumentAuditAction
 import com.docuhyphen.app.api.model.entity.Document
+import com.docuhyphen.app.api.model.entity.DocumentAuditAction
 import com.docuhyphen.app.api.model.entity.ExchangeDocumentComment
-import com.docuhyphen.app.api.repository.exchange.DocumentCommentRepository
-import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
-import com.docuhyphen.app.api.service.auth.authz.Action
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.Decision
-import com.docuhyphen.app.api.service.auth.authz.ResourceRef
-import com.docuhyphen.app.api.service.organization.OrganizationMembershipService
-import com.docuhyphen.app.api.service.notification.InAppNotificationService
-import com.docuhyphen.app.api.service.notification.UserNotificationPreference
 import com.docuhyphen.app.api.realtime.RealtimeMessage
 import com.docuhyphen.app.api.realtime.RealtimeMessageType
-import jakarta.ws.rs.BadRequestException
-import jakarta.ws.rs.ClientErrorException
-import jakarta.ws.rs.ForbiddenException
+import com.docuhyphen.app.api.repository.exchange.DocumentCommentRepository
+import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
+import com.docuhyphen.app.api.service.auth.authz.*
+import com.docuhyphen.app.api.service.notification.InAppNotificationService
+import com.docuhyphen.app.api.service.notification.UserNotificationPreference
+import com.docuhyphen.app.api.service.organization.OrganizationMembershipService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
+import jakarta.ws.rs.BadRequestException
+import jakarta.ws.rs.ClientErrorException
+import jakarta.ws.rs.ForbiddenException
 import org.slf4j.LoggerFactory
 import java.sql.Timestamp
 import java.time.Instant
@@ -244,8 +240,8 @@ class ExchangeDocumentCommentsService @Inject constructor(
                     exchangeName?.let { put("exchangeName", it) }
                 },
             )
+        }
     }
-}
 
     fun getDocumentComments(exchangeId: String, documentId: String): List<ExchangeDocumentComment>
     {
@@ -288,9 +284,12 @@ internal fun buildDocumentCommentNotificationMessage(
 {
     documentName != null && exchangeName != null ->
         "$commenterName commented on \"$documentName\" in Exchange \"$exchangeName\"."
+
     documentName != null ->
         "$commenterName commented on \"$documentName\" in an Exchange shared with you."
+
     exchangeName != null ->
         "$commenterName commented on a document in Exchange \"$exchangeName\"."
+
     else -> "$commenterName added a document comment. Open it to view the document and Exchange."
 }

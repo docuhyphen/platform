@@ -20,7 +20,7 @@ import com.docuhyphen.app.api.service.informationrequest.parent.lockParentExchan
 import io.quarkus.security.ForbiddenException
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestMutationGate @Inject constructor(
@@ -35,11 +35,17 @@ class InformationRequestMutationGate @Inject constructor(
     {
         val exchange = lockParentExchangeOf(requestId, requestRepository, exchangeRepository)
         val request = requestRepository.findRequestByIdForUpdate(requestId)
-            ?: throw InformationRequestLifecycleException(InformationRequestErrorCatalog.NOT_FOUND, "Information Request not found")
+            ?: throw InformationRequestLifecycleException(
+                InformationRequestErrorCatalog.NOT_FOUND,
+                "Information Request not found"
+            )
         return LockedInformationRequest(exchange, request)
     }
 
-    fun requireMutation(locked: LockedInformationRequest, mutation: InformationRequestMutation): InformationRequestState?
+    fun requireMutation(
+        locked: LockedInformationRequest,
+        mutation: InformationRequestMutation
+    ): InformationRequestState?
     {
         val decision = InformationRequestTransitionMatrix.canMutate(
             InformationRequestParentSnapshot(

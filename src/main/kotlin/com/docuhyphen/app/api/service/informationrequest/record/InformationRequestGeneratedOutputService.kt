@@ -11,13 +11,7 @@ import com.docuhyphen.app.api.repository.informationrequest.externalsource.Infor
 import com.docuhyphen.app.api.repository.informationrequest.submission.InformationRequestSubmissionPackageRepository
 import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.auth.authz.ResourceRef
-import com.docuhyphen.app.api.service.command.CommandActorRef
-import com.docuhyphen.app.api.service.command.CommandMutationResult
-import com.docuhyphen.app.api.service.command.CommandReceiptDecision
-import com.docuhyphen.app.api.service.command.CommandReceiptRequest
-import com.docuhyphen.app.api.service.command.CommandReceiptService
-import com.docuhyphen.app.api.service.command.CommandRequestFingerprint
-import com.docuhyphen.app.api.service.command.CommandResultReference
+import com.docuhyphen.app.api.service.command.*
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestMutationGate
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestQueryService
@@ -30,7 +24,7 @@ import jakarta.transaction.Transactional
 import java.sql.Timestamp
 import java.time.Clock
 import java.time.Duration
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestGeneratedOutputService @Inject constructor(
@@ -60,14 +54,21 @@ class InformationRequestGeneratedOutputService @Inject constructor(
         return when (
             val decision = commandReceiptService.runOnce(receipt) {
                 val output = recordOnce(command)
-                CommandMutationResult(output, CommandResultReference(ResourceType.INFORMATION_REQUEST_EXTERNAL_SOURCE, output.id, 1, null))
+                CommandMutationResult(
+                    output,
+                    CommandResultReference(ResourceType.INFORMATION_REQUEST_EXTERNAL_SOURCE, output.id, 1, null)
+                )
             }
         )
         {
             is CommandReceiptDecision.Recorded -> decision.response
             is CommandReceiptDecision.Replayed ->
             {
-                gate.authorizeRequest(command.access, listOf(Action.INFORMATION_REQUEST_MANAGE_EXTERNAL_SOURCES), command.requestId)
+                gate.authorizeRequest(
+                    command.access,
+                    listOf(Action.INFORMATION_REQUEST_MANAGE_EXTERNAL_SOURCES),
+                    command.requestId
+                )
                 requireNotNull(outputRepository.findById(decision.result.resourceId))
             }
         }
@@ -84,7 +85,11 @@ class InformationRequestGeneratedOutputService @Inject constructor(
     {
         val locked = gate.lock(command.requestId)
         gate.requireMutation(locked, InformationRequestMutation.RECORD_GENERATED_OUTPUT)
-        gate.authorizeRequest(command.access, listOf(Action.INFORMATION_REQUEST_MANAGE_EXTERNAL_SOURCES), command.requestId)
+        gate.authorizeRequest(
+            command.access,
+            listOf(Action.INFORMATION_REQUEST_MANAGE_EXTERNAL_SOURCES),
+            command.requestId
+        )
         val outputKey = command.outputKey.trim()
         val reference = command.externalReference.trim()
         val producedBy = command.producedBySource.trim()
@@ -107,7 +112,10 @@ class InformationRequestGeneratedOutputService @Inject constructor(
         }
         if (command.packageId != null && packageRepository.findById(command.packageId)?.informationRequestId != command.requestId)
         {
-            throw InformationRequestLifecycleException(InformationRequestErrorCatalog.NOT_FOUND, "Submission package not found")
+            throw InformationRequestLifecycleException(
+                InformationRequestErrorCatalog.NOT_FOUND,
+                "Submission package not found"
+            )
         }
         val output = outputRepository.save(
             InformationRequestGeneratedOutput().apply {

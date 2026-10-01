@@ -6,7 +6,7 @@ import com.docuhyphen.app.api.model.entity.InformationRequestBusinessDecision
 import com.docuhyphen.app.api.model.entity.InformationRequestOwnerType
 import com.docuhyphen.app.api.repository.BaseRepository
 import jakarta.enterprise.context.ApplicationScoped
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestAcceptedFactRepository :
@@ -35,7 +35,8 @@ class InformationRequestAcceptedFactRepository :
     ): List<InformationRequestAcceptedFact>
     {
         if (fieldDefinitionIds.isEmpty()) return emptyList()
-        val ownerColumn = if (ownerType == InformationRequestOwnerType.ORGANIZATION) "ownerOrganizationId" else "ownerUserId"
+        val ownerColumn =
+            if (ownerType == InformationRequestOwnerType.ORGANIZATION) "ownerOrganizationId" else "ownerUserId"
         return entityManager.createQuery(
             """
             SELECT fact

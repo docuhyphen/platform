@@ -31,7 +31,7 @@ class InAppNotificationMapper
             message = notification.body?.takeIf { it.isNotBlank() } ?: notification.title,
             timestamp = notification.createdAt,
             exchangeId = data["exchangeId"] ?: data["exchange_id"]
-                ?: data["subjectId"]?.takeIf { data["subjectType"] == "EXCHANGE" },
+            ?: data["subjectId"]?.takeIf { data["subjectType"] == "EXCHANGE" },
             documentId = data["documentId"] ?: data["document_id"],
             commentId = data["commentId"] ?: data["comment_id"],
             userId = notification.appUserId.toString(),

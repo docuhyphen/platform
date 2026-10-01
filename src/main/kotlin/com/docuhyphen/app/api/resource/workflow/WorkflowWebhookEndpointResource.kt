@@ -6,23 +6,13 @@ import com.docuhyphen.app.api.service.application.RegisterWebhookRequest
 import com.docuhyphen.app.api.service.application.WorkflowWebhookEndpointManagementService
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
 import jakarta.inject.Inject
-import jakarta.ws.rs.Consumes
-import jakarta.ws.rs.DELETE
-import jakarta.ws.rs.GET
-import jakarta.ws.rs.POST
-import jakarta.ws.rs.Path
-import jakarta.ws.rs.PathParam
-import jakarta.ws.rs.Produces
+import jakarta.ws.rs.*
 import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
-import jakarta.ws.rs.core.Response.Status.BAD_REQUEST
-import jakarta.ws.rs.core.Response.Status.CREATED
-import jakarta.ws.rs.core.Response.Status.FORBIDDEN
-import jakarta.ws.rs.core.Response.Status.NOT_FOUND
-import jakarta.ws.rs.core.Response.Status.NO_CONTENT
+import jakarta.ws.rs.core.Response.Status.*
 import kotlinx.serialization.Serializable
 import org.slf4j.LoggerFactory
-import java.util.UUID
+import java.util.*
 
 @Path("/organizations/{orgId}/workflow-webhooks")
 @Produces(MediaType.APPLICATION_JSON)
@@ -165,10 +155,13 @@ class WorkflowWebhookEndpointResource @Inject constructor(
             {
                 is SecurityException ->
                     Response.status(FORBIDDEN).entity(ResponseError(e.message)).build()
+
                 is NoSuchElementException ->
                     Response.status(NOT_FOUND).entity(ResponseError(e.message)).build()
+
                 is IllegalArgumentException ->
                     Response.status(BAD_REQUEST).entity(ResponseError(e.message)).build()
+
                 else ->
                     Response.status(Response.Status.INTERNAL_SERVER_ERROR)
                         .entity(ResponseError("An error occurred")).build()

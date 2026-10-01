@@ -28,7 +28,7 @@ import com.docuhyphen.app.api.service.informationrequest.submission.InformationR
 import io.quarkus.security.ForbiddenException
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestEvidenceGate @Inject constructor(
@@ -87,7 +87,11 @@ class InformationRequestEvidenceGate @Inject constructor(
         lockService.requireUnlocked(locked.request.id, listOf(requirement.id))
     }
 
-    fun requireArtifactOpen(locked: LockedInformationRequest, requirement: InformationRequestRequirement, artifactId: UUID)
+    fun requireArtifactOpen(
+        locked: LockedInformationRequest,
+        requirement: InformationRequestRequirement,
+        artifactId: UUID
+    )
     {
         lockService.requireEvidenceArtifactOpen(locked.request.id, requirement.id, artifactId)
     }

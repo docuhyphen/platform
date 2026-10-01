@@ -7,7 +7,7 @@ import com.docuhyphen.app.api.service.recordpreservation.RecordPreservationHoldS
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class AuditDisposalEligibilityService @Inject constructor(
@@ -30,7 +30,10 @@ class AuditDisposalEligibilityService @Inject constructor(
         }
 
         if (resourceType != null && resourceId != null &&
-            holds.isPreserved(RecordOwnerRef.organization(organizationId), listOf(RecordPreservationKey(resourceType, resourceId, direct = true)))
+            holds.isPreserved(
+                RecordOwnerRef.organization(organizationId),
+                listOf(RecordPreservationKey(resourceType, resourceId, direct = true))
+            )
         )
         {
             return false

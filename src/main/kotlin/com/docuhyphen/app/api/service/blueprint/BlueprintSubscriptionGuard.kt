@@ -7,7 +7,7 @@ import com.docuhyphen.app.api.service.subscription.SubscriptionAccessService
 import com.docuhyphen.app.api.service.subscription.SubscriptionContext
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
-import java.util.UUID
+import java.util.*
 
 /**
  * Applies the commercial allowance that governs working with Blueprints.
@@ -67,9 +67,11 @@ class BlueprintSubscriptionGuard @Inject constructor(
             BlueprintScope.PERSONAL -> SubscriptionContext.forUser(
                 createdByAppUserId ?: throw IllegalStateException("Personal Blueprint owner is missing"),
             )
+
             BlueprintScope.ORG -> SubscriptionContext.forOrganization(
                 organizationId ?: throw IllegalStateException("Organization Blueprint owner is missing"),
             )
+
             BlueprintScope.APP -> activeOrganizationId
                 ?.let(SubscriptionContext::forOrganization)
                 ?: SubscriptionContext.forUser(appUserId)

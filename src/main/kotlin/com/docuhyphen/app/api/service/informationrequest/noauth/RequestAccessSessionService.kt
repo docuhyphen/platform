@@ -15,12 +15,11 @@ import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRe
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
-import java.sql.Timestamp
-import java.time.Instant
-import java.util.UUID
 import java.security.MessageDigest
 import java.security.SecureRandom
-import java.util.Base64
+import java.sql.Timestamp
+import java.time.Instant
+import java.util.*
 
 @ApplicationScoped
 class RequestAccessSessionService @Inject constructor(
@@ -39,17 +38,23 @@ class RequestAccessSessionService @Inject constructor(
             "A request access session may only be issued against a VERIFICATION_BOOTSTRAP ShareLink"
         }
         val parent = sessionRepository.lockParentForShare(shareLink.shareId)
-            ?: throw InformationRequestLifecycleException(InformationRequestErrorCatalog.PARENT_STATE_INVALID,
-                "Parent Exchange not found")
+            ?: throw InformationRequestLifecycleException(
+                InformationRequestErrorCatalog.PARENT_STATE_INVALID,
+                "Parent Exchange not found"
+            )
         if (InformationRequestTransitionMatrix.canRead(parent, InformationRequestReadActor.EXTERNAL_SESSION)
-            is InformationRequestPolicyDecision.Deny)
-            throw InformationRequestLifecycleException(InformationRequestErrorCatalog.PARENT_STATE_INVALID,
-                "Parent Exchange does not permit respondent sessions")
+                    is InformationRequestPolicyDecision.Deny
+        )
+            throw InformationRequestLifecycleException(
+                InformationRequestErrorCatalog.PARENT_STATE_INVALID,
+                "Parent Exchange does not permit respondent sessions"
+            )
         val now = Timestamp.from(Instant.now())
         val expiry = listOfNotNull(expiresAt, shareLink.expiresAt, Timestamp.from(now.toInstant().plusSeconds(86400)))
             .minOrNull()!!
         require(expiry.after(now)) { "Session expiry must be in the future" }
-        val secret = Base64.getUrlEncoder().withoutPadding().encodeToString(ByteArray(32).also(SecureRandom()::nextBytes))
+        val secret =
+            Base64.getUrlEncoder().withoutPadding().encodeToString(ByteArray(32).also(SecureRandom()::nextBytes))
         val session = RequestAccessSession().apply {
             shareLinkId = shareLink.id
             participantPrincipalKind = participant.kind

@@ -3,7 +3,7 @@ package com.docuhyphen.app.api.service.auth
 import com.docuhyphen.app.api.exception.StepUpRequiredException
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
-import java.util.UUID
+import java.util.*
 
 /**
  * Correlation data for an admin action. The only thing the API layer needs to pass

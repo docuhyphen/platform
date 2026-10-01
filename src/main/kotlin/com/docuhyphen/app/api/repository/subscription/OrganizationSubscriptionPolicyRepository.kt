@@ -1,14 +1,14 @@
 package com.docuhyphen.app.api.repository.subscription
 
-import com.docuhyphen.app.api.repository.BaseRepository
-
 import com.docuhyphen.app.api.model.entity.OrganizationSubscriptionPolicy
+import com.docuhyphen.app.api.repository.BaseRepository
 import jakarta.enterprise.context.RequestScoped
 import jakarta.persistence.LockModeType
-import java.util.UUID
+import java.util.*
 
 @RequestScoped
-class OrganizationSubscriptionPolicyRepository : BaseRepository<OrganizationSubscriptionPolicy>(OrganizationSubscriptionPolicy::class.java)
+class OrganizationSubscriptionPolicyRepository :
+    BaseRepository<OrganizationSubscriptionPolicy>(OrganizationSubscriptionPolicy::class.java)
 {
     fun findByOrganizationId(organizationId: UUID): OrganizationSubscriptionPolicy?
     {

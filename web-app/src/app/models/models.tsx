@@ -867,22 +867,13 @@ export interface IdentityProviderLinkDto
 export interface SignInLookupRequest
 {
     email: string;
-    orgId?: string;
-}
-
-export interface SignInLookupOrganizationOption
-{
-    id: string;
-    name: string;
 }
 
 export interface SignInLookupResponse
 {
     authMethod: string;
     redirectUrl?: string;
-    outcome?: 'ORG_FOUND' | 'MULTIPLE_ORGS' | 'NO_ORG';
     fallbackAuthMethod?: string;
-    organizations?: SignInLookupOrganizationOption[];
     availableProviders?: string[];
 }
 

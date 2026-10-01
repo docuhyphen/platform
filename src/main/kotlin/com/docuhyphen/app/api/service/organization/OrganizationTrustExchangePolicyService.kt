@@ -7,7 +7,7 @@ import com.docuhyphen.app.api.model.entity.OrganizationTrustRelationshipStatus
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class OrganizationTrustExchangePolicyService @Inject constructor(
@@ -32,7 +32,8 @@ class OrganizationTrustExchangePolicyService @Inject constructor(
         ) ?: return false
         if (relationship.status != OrganizationTrustRelationshipStatus.ACTIVE ||
             relationship.reviewDueAt?.toInstant()?.isAfter(now) != true ||
-            relationshipService.isEffectivelySuspended(relationship.id))
+            relationshipService.isEffectivelySuspended(relationship.id)
+        )
         {
             return false
         }
@@ -54,7 +55,8 @@ class OrganizationTrustExchangePolicyService @Inject constructor(
             return false
         }
         if (!senderOrganization.isActive || !senderOrganization.verificationComplete ||
-            !receiverOrganization.isActive || !receiverOrganization.verificationComplete)
+            !receiverOrganization.isActive || !receiverOrganization.verificationComplete
+        )
         {
             return false
         }
@@ -62,9 +64,9 @@ class OrganizationTrustExchangePolicyService @Inject constructor(
         val senderPolicy = findPolicy(relationship.id, senderOrganizationId) ?: return false
         val receiverPolicy = findPolicy(relationship.id, receiverOrganizationId) ?: return false
         return senderPolicy.allowExchangesToPartner &&
-            receiverPolicy.allowExchangesFromPartner &&
-            isCurrent(senderPolicy, now) &&
-            isCurrent(receiverPolicy, now)
+                receiverPolicy.allowExchangesFromPartner &&
+                isCurrent(senderPolicy, now) &&
+                isCurrent(receiverPolicy, now)
     }
 
     private fun findPolicy(
@@ -81,5 +83,5 @@ class OrganizationTrustExchangePolicyService @Inject constructor(
 
     private fun isCurrent(policy: OrganizationTrustPartyPolicy, now: Instant): Boolean =
         policy.expiresAt?.toInstant()?.isAfter(now) != false &&
-            policy.reviewDueAt?.toInstant()?.isAfter(now) != false
+                policy.reviewDueAt?.toInstant()?.isAfter(now) != false
 }

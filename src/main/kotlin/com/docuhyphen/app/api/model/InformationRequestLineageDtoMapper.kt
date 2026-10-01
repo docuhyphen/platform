@@ -1,11 +1,6 @@
 package com.docuhyphen.app.api.model
 
-import com.docuhyphen.app.api.model.dto.InformationRequestCarryForwardDto
-import com.docuhyphen.app.api.model.dto.InformationRequestLineageDto
-import com.docuhyphen.app.api.model.dto.InformationRequestLineageViewDto
-import com.docuhyphen.app.api.model.dto.InformationRequestRecurrenceDto
-import com.docuhyphen.app.api.model.dto.InformationRequestRefreshRuleDto
-import com.docuhyphen.app.api.model.dto.InformationRequestSuccessorResultDto
+import com.docuhyphen.app.api.model.dto.*
 import com.docuhyphen.app.api.model.entity.InformationRequestCarryForwardDecision
 import com.docuhyphen.app.api.model.entity.InformationRequestLineage
 import com.docuhyphen.app.api.model.entity.InformationRequestRecurrence

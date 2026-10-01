@@ -16,13 +16,23 @@ class InformationRequestEvidenceContentInspector
         val detected = InformationRequestEvidenceMediaTypes.detect(file)
         if (detected != PDF)
         {
-            return InformationRequestEvidenceInspectionFacts(detected, pageCount = null, encrypted = false, corrupt = false)
+            return InformationRequestEvidenceInspectionFacts(
+                detected,
+                pageCount = null,
+                encrypted = false,
+                corrupt = false
+            )
         }
 
         return try
         {
             Loader.loadPDF(file).use { document ->
-                InformationRequestEvidenceInspectionFacts(detected, document.numberOfPages, encrypted = false, corrupt = false)
+                InformationRequestEvidenceInspectionFacts(
+                    detected,
+                    document.numberOfPages,
+                    encrypted = false,
+                    corrupt = false
+                )
             }
         }
         catch (_: InvalidPasswordException)

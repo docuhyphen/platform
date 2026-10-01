@@ -4,7 +4,7 @@ import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceAttribute
 import com.docuhyphen.app.api.model.entity.InformationRequestTemplateEvidenceAcceptedValue
 import com.docuhyphen.app.api.repository.BaseRepository
 import jakarta.enterprise.context.ApplicationScoped
-import java.util.UUID
+import java.util.*
 
 /**
  * Persistence for [InformationRequestTemplateEvidenceAcceptedValue]. Accepted values are read for a

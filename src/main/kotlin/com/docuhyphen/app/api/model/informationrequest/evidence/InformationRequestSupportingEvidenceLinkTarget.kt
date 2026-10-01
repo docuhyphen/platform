@@ -1,6 +1,6 @@
 package com.docuhyphen.app.api.model.informationrequest.evidence
 
-import java.util.UUID
+import java.util.*
 
 data class InformationRequestSupportingEvidenceLinkTarget(
     val templateLinkId: UUID,

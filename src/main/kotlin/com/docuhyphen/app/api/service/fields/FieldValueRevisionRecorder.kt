@@ -9,7 +9,7 @@ import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 /**
  * Appends the immutable history of a typed answer. Each recorded change becomes one

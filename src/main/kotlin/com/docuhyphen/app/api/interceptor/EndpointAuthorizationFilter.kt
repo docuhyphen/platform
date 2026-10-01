@@ -22,11 +22,6 @@ import org.slf4j.LoggerFactory
 import java.security.MessageDigest
 import java.util.UUID
 import kotlin.collections.ArrayDeque
-import kotlin.collections.Map
-import kotlin.collections.any
-import kotlin.collections.get
-import kotlin.collections.joinToString
-import kotlin.collections.listOf
 
 @RequestScoped
 class AuthTokenContext
@@ -244,7 +239,11 @@ class EndpointVerificationFilter @Inject constructor(
             val application = applicationService.findActive(applicationId)
             if (application == null)
             {
-                logger.warn("Application token references unknown or inactive application={} uri={}", applicationId, requestUri)
+                logger.warn(
+                    "Application token references unknown or inactive application={} uri={}",
+                    applicationId,
+                    requestUri
+                )
                 abortRequest(requestContext, "Unauthorized request")
                 return
             }
@@ -257,7 +256,11 @@ class EndpointVerificationFilter @Inject constructor(
             }
 
             authenticationContext.authToken = virtualToken
-            logger.info("Successfully authorized application token for application={} uri={}", applicationId, requestUri)
+            logger.info(
+                "Successfully authorized application token for application={} uri={}",
+                applicationId,
+                requestUri
+            )
             return
         }
 
@@ -315,7 +318,12 @@ class EndpointVerificationFilter @Inject constructor(
             val tokenSessionVersion = (claims["exchange_version"] as? Number)?.toLong() ?: 0L
             if (tokenSessionVersion != appUser.sessionVersion)
             {
-                logger.warn("Session version mismatch for user={} tokenVersion={} currentVersion={}", userId, tokenSessionVersion, appUser.sessionVersion)
+                logger.warn(
+                    "Session version mismatch for user={} tokenVersion={} currentVersion={}",
+                    userId,
+                    tokenSessionVersion,
+                    appUser.sessionVersion
+                )
                 abortRequest(
                     requestContext,
                     "Session version is no longer current",
@@ -444,7 +452,7 @@ class EndpointVerificationFilter @Inject constructor(
             {
                 logger.warn(
                     "User={} requested active org={} but has no active membership; ignoring stale " +
-                        "header and proceeding in personal-product mode",
+                            "header and proceeding in personal-product mode",
                     userId,
                     requestedOrgId,
                 )

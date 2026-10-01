@@ -1,6 +1,5 @@
 package com.docuhyphen.app.api.service.application
 
-import com.docuhyphen.app.api.service.user.AppUserService
 import com.docuhyphen.app.api.exception.AppUserNotFoundException
 import com.docuhyphen.app.api.exception.DataIntegrityException
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
@@ -16,6 +15,7 @@ import com.docuhyphen.app.api.service.auth.UserRoleService
 import com.docuhyphen.app.api.service.organization.OrganizationService
 import com.docuhyphen.app.api.service.subscription.OrganizationFeatureSubscriptionGuard
 import com.docuhyphen.app.api.service.subscription.PlanFeature
+import com.docuhyphen.app.api.service.user.AppUserService
 import io.quarkus.security.UnauthorizedException
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
@@ -81,24 +81,32 @@ class SettingsService @Inject constructor(
             settings.autoPreviewDocuments = settingsDto.autoPreviewDocuments
         }
 
-        val notifyShareStartChannels = normalizeNotificationChannels(settingsDto.notifyShareStartChannels, settingsDto.notifyShareStart)
-        val notifyShareAcceptChannels = normalizeNotificationChannels(settingsDto.notifyShareAcceptChannels, settingsDto.notifyShareAccept)
-        val notifyShareDeclineChannels = normalizeNotificationChannels(settingsDto.notifyShareDeclineChannels, settingsDto.notifyShareDecline)
-        val notifyShareEndChannels = normalizeNotificationChannels(settingsDto.notifyShareEndChannels, settingsDto.notifyShareEnd)
-        val notifyDocCommentChannels = normalizeNotificationChannels(settingsDto.notifyDocCommentChannels, settingsDto.notifyDocComment)
-        val notifyDocDeleteChannels = normalizeNotificationChannels(settingsDto.notifyDocDeleteChannels, settingsDto.notifyDocDelete)
-        val notifyDocAddChannels = normalizeNotificationChannels(settingsDto.notifyDocAddChannels, settingsDto.notifyDocAdd)
-        val notifyDocUploadChannels = normalizeNotificationChannels(settingsDto.notifyDocUploadChannels, settingsDto.notifyDocUpload)
+        val notifyShareStartChannels =
+            normalizeNotificationChannels(settingsDto.notifyShareStartChannels, settingsDto.notifyShareStart)
+        val notifyShareAcceptChannels =
+            normalizeNotificationChannels(settingsDto.notifyShareAcceptChannels, settingsDto.notifyShareAccept)
+        val notifyShareDeclineChannels =
+            normalizeNotificationChannels(settingsDto.notifyShareDeclineChannels, settingsDto.notifyShareDecline)
+        val notifyShareEndChannels =
+            normalizeNotificationChannels(settingsDto.notifyShareEndChannels, settingsDto.notifyShareEnd)
+        val notifyDocCommentChannels =
+            normalizeNotificationChannels(settingsDto.notifyDocCommentChannels, settingsDto.notifyDocComment)
+        val notifyDocDeleteChannels =
+            normalizeNotificationChannels(settingsDto.notifyDocDeleteChannels, settingsDto.notifyDocDelete)
+        val notifyDocAddChannels =
+            normalizeNotificationChannels(settingsDto.notifyDocAddChannels, settingsDto.notifyDocAdd)
+        val notifyDocUploadChannels =
+            normalizeNotificationChannels(settingsDto.notifyDocUploadChannels, settingsDto.notifyDocUpload)
 
         val notificationChannelsChanged =
             settings.notifyShareStartChannels != serializeNotificationChannels(notifyShareStartChannels) ||
-            settings.notifyShareAcceptChannels != serializeNotificationChannels(notifyShareAcceptChannels) ||
-            settings.notifyShareDeclineChannels != serializeNotificationChannels(notifyShareDeclineChannels) ||
-            settings.notifyShareEndChannels != serializeNotificationChannels(notifyShareEndChannels) ||
-            settings.notifyDocCommentChannels != serializeNotificationChannels(notifyDocCommentChannels) ||
-            settings.notifyDocDeleteChannels != serializeNotificationChannels(notifyDocDeleteChannels) ||
-            settings.notifyDocAddChannels != serializeNotificationChannels(notifyDocAddChannels) ||
-            settings.notifyDocUploadChannels != serializeNotificationChannels(notifyDocUploadChannels)
+                    settings.notifyShareAcceptChannels != serializeNotificationChannels(notifyShareAcceptChannels) ||
+                    settings.notifyShareDeclineChannels != serializeNotificationChannels(notifyShareDeclineChannels) ||
+                    settings.notifyShareEndChannels != serializeNotificationChannels(notifyShareEndChannels) ||
+                    settings.notifyDocCommentChannels != serializeNotificationChannels(notifyDocCommentChannels) ||
+                    settings.notifyDocDeleteChannels != serializeNotificationChannels(notifyDocDeleteChannels) ||
+                    settings.notifyDocAddChannels != serializeNotificationChannels(notifyDocAddChannels) ||
+                    settings.notifyDocUploadChannels != serializeNotificationChannels(notifyDocUploadChannels)
 
         if (notificationChannelsChanged)
         {
@@ -136,12 +144,14 @@ class SettingsService @Inject constructor(
 
         // View mode preferences are personal preferences, no admin validation needed.
         val validViewModes = setOf("cards", "table")
-        if (settingsDto.documentLibraryView in validViewModes) settings.documentLibraryView = settingsDto.documentLibraryView
+        if (settingsDto.documentLibraryView in validViewModes) settings.documentLibraryView =
+            settingsDto.documentLibraryView
         if (settingsDto.blueprintsView in validViewModes) settings.blueprintsView = settingsDto.blueprintsView
         if (settingsDto.workflowsView in validViewModes) settings.workflowsView = settingsDto.workflowsView
         if (settingsDto.sequencesView in validViewModes) settings.sequencesView = settingsDto.sequencesView
         if (settingsDto.variablesView in validViewModes) settings.variablesView = settingsDto.variablesView
-        if (settingsDto.communicationsView in validViewModes) settings.communicationsView = settingsDto.communicationsView
+        if (settingsDto.communicationsView in validViewModes) settings.communicationsView =
+            settingsDto.communicationsView
 
         targetUser.settings = settings
         appUserService.update(targetUser)
@@ -159,8 +169,14 @@ class SettingsService @Inject constructor(
     {
         val currentUser = authTokenContext.authToken.appUser!!
 
-        val orgUuid = try { UUID.fromString(organizationId) }
-            catch (e: IllegalArgumentException) { throw DataIntegrityException("Invalid organization ID format: $organizationId") }
+        val orgUuid = try
+        {
+            UUID.fromString(organizationId)
+        }
+        catch (e: IllegalArgumentException)
+        {
+            throw DataIntegrityException("Invalid organization ID format: $organizationId")
+        }
 
         if (!userRoleService.isOrgAdminIn(currentUser.id, orgUuid))
         {

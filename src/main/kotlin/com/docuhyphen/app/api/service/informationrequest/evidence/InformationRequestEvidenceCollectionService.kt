@@ -13,14 +13,7 @@ import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequ
 import com.docuhyphen.app.api.repository.informationrequest.evidence.InformationRequestEvidenceArtifactRepository
 import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.auth.authz.ResourceRef
-import com.docuhyphen.app.api.service.command.CommandActorRef
-import com.docuhyphen.app.api.service.command.CommandMutationResult
-import com.docuhyphen.app.api.service.command.CommandReceiptDecision
-import com.docuhyphen.app.api.service.command.CommandReceiptRequest
-import com.docuhyphen.app.api.service.command.CommandReceiptService
-import com.docuhyphen.app.api.service.command.CommandRequestFingerprint
-import com.docuhyphen.app.api.service.command.CommandResultReference
-import com.docuhyphen.app.api.service.command.RevisionETag
+import com.docuhyphen.app.api.service.command.*
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestETag
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestLifecycleException
@@ -56,7 +49,10 @@ class InformationRequestEvidenceCollectionService @Inject constructor(
             command,
             InformationRequestEvidenceAction.REMOVE,
             InformationRequestEvidenceCollectionState.REMOVED,
-            setOf(InformationRequestEvidenceCollectionState.ACTIVE, InformationRequestEvidenceCollectionState.WITHDRAWN),
+            setOf(
+                InformationRequestEvidenceCollectionState.ACTIVE,
+                InformationRequestEvidenceCollectionState.WITHDRAWN
+            ),
             listOf(Action.INFORMATION_REQUEST_EVIDENCE_WITHDRAW, Action.INFORMATION_REQUEST_EVIDENCE_MANAGE),
         )
 
@@ -159,7 +155,10 @@ class InformationRequestEvidenceCollectionService @Inject constructor(
 
         return InformationRequestEvidenceCommandResult(
             artifact = viewLoader.view(artifact),
-            evidenceETag = InformationRequestETag.evidenceOf(requirement.id, artifactRepository.findForRequirement(requirement.id)),
+            evidenceETag = InformationRequestETag.evidenceOf(
+                requirement.id,
+                artifactRepository.findForRequirement(requirement.id)
+            ),
             artifactETag = InformationRequestETag.artifactOf(artifact),
         )
     }
@@ -189,7 +188,10 @@ class InformationRequestEvidenceCollectionService @Inject constructor(
         command: ChangeInformationRequestEvidenceStateCommand,
         forUpdate: Boolean,
     ): InformationRequestEvidenceArtifact =
-        (if (forUpdate) artifactRepository.findByIdForUpdate(command.artifactId) else artifactRepository.findById(command.artifactId))
+        (if (forUpdate) artifactRepository.findByIdForUpdate(command.artifactId)
+        else artifactRepository.findById(
+            command.artifactId
+        ))
             ?.takeIf { it.informationRequestRequirementId == command.requirementId }
             ?: throw InformationRequestLifecycleException(
                 InformationRequestErrorCatalog.NOT_FOUND,

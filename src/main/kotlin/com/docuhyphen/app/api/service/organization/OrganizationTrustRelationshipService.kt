@@ -1,16 +1,8 @@
 package com.docuhyphen.app.api.service.organization
 
-import com.docuhyphen.app.api.exception.OrganizationTrustAuthorizationException
-import com.docuhyphen.app.api.exception.OrganizationTrustConflictException
-import com.docuhyphen.app.api.exception.OrganizationTrustNotFoundException
-import com.docuhyphen.app.api.exception.OrganizationTrustStaleVersionException
-import com.docuhyphen.app.api.exception.OrganizationTrustValidationException
+import com.docuhyphen.app.api.exception.*
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
-import com.docuhyphen.app.api.model.entity.OrganizationTrustDecision
-import com.docuhyphen.app.api.model.entity.OrganizationTrustRelationship
-import com.docuhyphen.app.api.model.entity.OrganizationTrustRelationshipStatus
-import com.docuhyphen.app.api.model.entity.OrganizationTrustSuspension
-import com.docuhyphen.app.api.model.entity.PrincipalKind
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.repository.organization.OrganizationTrustRelationshipRepository
 import com.docuhyphen.app.api.repository.organization.OrganizationTrustSuspensionRepository
 import com.docuhyphen.app.api.service.audit.AuditEventDraft
@@ -19,11 +11,7 @@ import com.docuhyphen.app.api.service.audit.AuditRecorder
 import com.docuhyphen.app.api.service.audit.catalog.AuditActorKind
 import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
 import com.docuhyphen.app.api.service.audit.catalog.AuditOutcome
-import com.docuhyphen.app.api.service.auth.authz.Action
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.Decision
-import com.docuhyphen.app.api.service.auth.authz.ResourceRef
+import com.docuhyphen.app.api.service.auth.authz.*
 import com.docuhyphen.app.api.service.exchange.TrustedGroupAccessReconciliationService
 import com.docuhyphen.app.api.service.subscription.OrganizationFeatureSubscriptionGuard
 import com.docuhyphen.app.api.service.subscription.PlanFeature
@@ -35,7 +23,7 @@ import jakarta.persistence.PersistenceException
 import jakarta.transaction.Transactional
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class OrganizationTrustRelationshipService @Inject constructor(
@@ -82,14 +70,16 @@ class OrganizationTrustRelationshipService @Inject constructor(
         val latestTerminal = when
         {
             current?.status == OrganizationTrustRelationshipStatus.PENDING &&
-                !current.requestExpiresAt.toInstant().isAfter(now) ->
+                    !current.requestExpiresAt.toInstant().isAfter(now) ->
             {
                 expireRelationship(current, now)
                 current
             }
+
             current != null -> throw OrganizationTrustConflictException(
                 "A pending or active Trusted Organization relationship already exists",
             )
+
             else -> relationshipRepository.findLatestTerminalForOrganizations(organizationAId, organizationBId)
         }
 
@@ -182,6 +172,7 @@ class OrganizationTrustRelationshipService @Inject constructor(
                 relationship.reviewDueAt = Timestamp.from(now.plus(trustConfig.reviewPeriod))
                 AuditEventType.ORG_TRUST_ACCEPTED
             }
+
             OrganizationTrustDecision.REJECT ->
             {
                 relationship.status = OrganizationTrustRelationshipStatus.REJECTED
@@ -372,8 +363,8 @@ class OrganizationTrustRelationshipService @Inject constructor(
     }
 
     @Transactional
-    fun expireDueRequests(now: Instant = Instant.now(), limit: Int = 100): Int
-        = expireDueRequestRecords(now, limit).size
+    fun expireDueRequests(now: Instant = Instant.now(), limit: Int = 100): Int =
+        expireDueRequestRecords(now, limit).size
 
     @Transactional
     fun expireDueRequestRecords(
@@ -412,7 +403,7 @@ class OrganizationTrustRelationshipService @Inject constructor(
 
     fun isEffectivelySuspended(relationshipId: UUID): Boolean =
         requireRelationship(relationshipId).status == OrganizationTrustRelationshipStatus.ACTIVE &&
-            activeSuspensions(relationshipId).isNotEmpty()
+                activeSuspensions(relationshipId).isNotEmpty()
 
     private fun expireRelationship(relationship: OrganizationTrustRelationship, now: Instant)
     {

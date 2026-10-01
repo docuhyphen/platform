@@ -20,7 +20,8 @@ object SubscriptionTrialEligibilityPolicy
         }
         if (billingFrequency != null ||
             !externalBillingCustomerRef.isNullOrBlank() ||
-            !externalBillingSubscriptionRef.isNullOrBlank())
+            !externalBillingSubscriptionRef.isNullOrBlank()
+        )
         {
             return SubscriptionTrialRequestEligibility(false, "This account already has paid billing set up")
         }

@@ -10,6 +10,7 @@ object SignInResponseMapper
         {
             "GOOGLE_AUTHENTICATOR",
             "MICROSOFT_AUTHENTICATOR" -> "Enter the code from your authenticator app."
+
             else -> "A verification code has been sent to your email."
         },
         mfaSessionId = mfaSession.id.toString(),

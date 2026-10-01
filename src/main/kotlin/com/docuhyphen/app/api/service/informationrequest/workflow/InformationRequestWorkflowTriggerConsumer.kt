@@ -10,7 +10,7 @@ import com.docuhyphen.app.api.service.workflow.TriggerRequest
 import com.docuhyphen.app.api.service.workflow.WorkflowEngineService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestWorkflowTriggerConsumer @Inject constructor(
@@ -21,7 +21,7 @@ class InformationRequestWorkflowTriggerConsumer @Inject constructor(
 
     override fun handles(event: DomainEvent): Boolean =
         event.subject?.type == InformationRequestWorkflowTriggerCatalog.SUBJECT_RESOURCE_TYPE &&
-            event.type in InformationRequestWorkflowTriggerCatalog.eventNames
+                event.type in InformationRequestWorkflowTriggerCatalog.eventNames
 
     override fun consume(event: DomainEvent): DomainEventConsumptionResult
     {
@@ -39,7 +39,8 @@ class InformationRequestWorkflowTriggerConsumer @Inject constructor(
         return try
         {
             val started = workflowEngine.trigger(request)
-            DomainEventConsumptionResult.applied(started?.let { "WORKFLOW_STARTED:${it.instanceId}" } ?: NO_MATCHING_DEFINITION)
+            DomainEventConsumptionResult.applied(started?.let { "WORKFLOW_STARTED:${it.instanceId}" }
+                ?: NO_MATCHING_DEFINITION)
         }
         catch (denial: SubscriptionDenialException)
         {

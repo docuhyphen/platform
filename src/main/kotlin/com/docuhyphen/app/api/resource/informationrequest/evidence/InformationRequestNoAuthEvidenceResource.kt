@@ -16,7 +16,7 @@ import jakarta.inject.Inject
 import jakarta.ws.rs.core.Response
 import org.jboss.resteasy.reactive.multipart.FileUpload
 import org.slf4j.LoggerFactory
-import java.util.UUID
+import java.util.*
 
 class InformationRequestNoAuthEvidenceResource @Inject constructor(
     uploadService: InformationRequestEvidenceUploadService,
@@ -47,7 +47,11 @@ class InformationRequestNoAuthEvidenceResource @Inject constructor(
         }
         catch (exception: Exception)
         {
-            InformationRequestEvidenceHttp.refused(logger, "No-auth Information Request evidence list failed", exception)
+            InformationRequestEvidenceHttp.refused(
+                logger,
+                "No-auth Information Request evidence list failed",
+                exception
+            )
         }
     }
 
@@ -67,7 +71,11 @@ class InformationRequestNoAuthEvidenceResource @Inject constructor(
         }
         catch (exception: Exception)
         {
-            InformationRequestEvidenceHttp.refused(logger, "No-auth Information Request evidence artifact read failed", exception)
+            InformationRequestEvidenceHttp.refused(
+                logger,
+                "No-auth Information Request evidence artifact read failed",
+                exception
+            )
         }
     }
 
@@ -111,7 +119,11 @@ class InformationRequestNoAuthEvidenceResource @Inject constructor(
         }
         catch (exception: Exception)
         {
-            InformationRequestEvidenceHttp.refused(logger, "No-auth Information Request evidence upload failed", exception)
+            InformationRequestEvidenceHttp.refused(
+                logger,
+                "No-auth Information Request evidence upload failed",
+                exception
+            )
         }
     }
 
@@ -157,7 +169,11 @@ class InformationRequestNoAuthEvidenceResource @Inject constructor(
         }
         catch (exception: Exception)
         {
-            InformationRequestEvidenceHttp.refused(logger, "No-auth Information Request evidence replacement failed", exception)
+            InformationRequestEvidenceHttp.refused(
+                logger,
+                "No-auth Information Request evidence replacement failed",
+                exception
+            )
         }
     }
 
@@ -188,7 +204,11 @@ class InformationRequestNoAuthEvidenceResource @Inject constructor(
         }
         catch (exception: Exception)
         {
-            InformationRequestEvidenceHttp.refused(logger, "No-auth Information Request evidence withdrawal failed", exception)
+            InformationRequestEvidenceHttp.refused(
+                logger,
+                "No-auth Information Request evidence withdrawal failed",
+                exception
+            )
         }
     }
 
@@ -219,7 +239,11 @@ class InformationRequestNoAuthEvidenceResource @Inject constructor(
         }
         catch (exception: Exception)
         {
-            InformationRequestEvidenceHttp.refused(logger, "No-auth Information Request evidence removal failed", exception)
+            InformationRequestEvidenceHttp.refused(
+                logger,
+                "No-auth Information Request evidence removal failed",
+                exception
+            )
         }
     }
 
@@ -247,7 +271,11 @@ class InformationRequestNoAuthEvidenceResource @Inject constructor(
         }
         catch (exception: Exception)
         {
-            InformationRequestEvidenceHttp.refused(logger, "No-auth Information Request evidence download failed", exception)
+            InformationRequestEvidenceHttp.refused(
+                logger,
+                "No-auth Information Request evidence download failed",
+                exception
+            )
         }
     }
 
@@ -275,7 +303,11 @@ class InformationRequestNoAuthEvidenceResource @Inject constructor(
         }
         catch (exception: Exception)
         {
-            InformationRequestEvidenceHttp.refused(logger, "No-auth Information Request evidence preview failed", exception)
+            InformationRequestEvidenceHttp.refused(
+                logger,
+                "No-auth Information Request evidence preview failed",
+                exception
+            )
         }
     }
 

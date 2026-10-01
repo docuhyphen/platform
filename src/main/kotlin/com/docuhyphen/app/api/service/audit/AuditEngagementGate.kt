@@ -1,7 +1,7 @@
 package com.docuhyphen.app.api.service.audit
 
 import com.docuhyphen.app.api.service.auth.authz.Capability
-import java.util.UUID
+import java.util.*
 
 /**
  * Shared rule for whether evidence access to [organizationId] must be justified by an active

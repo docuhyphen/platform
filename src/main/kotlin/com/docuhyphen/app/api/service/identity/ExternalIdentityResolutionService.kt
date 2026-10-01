@@ -1,9 +1,5 @@
 package com.docuhyphen.app.api.service.identity
 
-import com.docuhyphen.app.api.service.organization.OrganizationMembershipService
-import com.docuhyphen.app.api.service.organization.OrganizationTrustConfigService
-import com.docuhyphen.app.api.service.organization.TrustedExchangePolicyValidation
-import com.docuhyphen.app.api.service.organization.TrustedRecipientValidationService
 import com.docuhyphen.app.api.exception.ExternalIdentityResolutionUnavailableException
 import com.docuhyphen.app.api.exception.OrganizationTrustAuthorizationException
 import com.docuhyphen.app.api.exception.OrganizationTrustNotFoundException
@@ -16,25 +12,24 @@ import com.docuhyphen.app.api.model.entity.ExternalIdentityResolution
 import com.docuhyphen.app.api.model.entity.OrganizationMembership
 import com.docuhyphen.app.api.model.entity.PrincipalKind
 import com.docuhyphen.app.api.repository.identity.ExternalIdentityResolutionRepository
-import com.docuhyphen.app.api.service.user.AppUserService
 import com.docuhyphen.app.api.service.audit.AuditEventDraft
 import com.docuhyphen.app.api.service.audit.AuditOwnerScope
 import com.docuhyphen.app.api.service.audit.AuditRecorder
 import com.docuhyphen.app.api.service.audit.catalog.AuditActorKind
 import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
 import com.docuhyphen.app.api.service.audit.catalog.AuditOutcome
-import com.docuhyphen.app.api.service.auth.authz.Action
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.Decision
-import com.docuhyphen.app.api.service.auth.authz.ResourceRef
+import com.docuhyphen.app.api.service.auth.authz.*
+import com.docuhyphen.app.api.service.organization.OrganizationMembershipService
+import com.docuhyphen.app.api.service.organization.OrganizationTrustConfigService
+import com.docuhyphen.app.api.service.organization.TrustedExchangePolicyValidation
+import com.docuhyphen.app.api.service.organization.TrustedRecipientValidationService
+import com.docuhyphen.app.api.service.user.AppUserService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.Locale
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class ExternalIdentityResolutionService @Inject constructor(
@@ -82,7 +77,8 @@ class ExternalIdentityResolutionService @Inject constructor(
             val membership = eligibleMembership(targetOrganizationId, normalizedEmail, now)
             val appUser = appUserService.getById(membership.appUserId) ?: unavailable()
             if (!appUser.isActive || appUser.deprovisionedAt != null ||
-                appUser.email.trim().lowercase(Locale.ROOT) != normalizedEmail)
+                appUser.email.trim().lowercase(Locale.ROOT) != normalizedEmail
+            )
             {
                 unavailable()
             }
@@ -153,7 +149,8 @@ class ExternalIdentityResolutionService @Inject constructor(
         if (resolution.consumedAt != null || resolution.consumedByExchangeId != null ||
             !resolution.expiresAt.toInstant().isAfter(now) ||
             resolution.actorAppUserId != actorAppUserId ||
-            resolution.callerOrganizationId != callerOrganizationId)
+            resolution.callerOrganizationId != callerOrganizationId
+        )
         {
             unavailable()
         }
@@ -183,7 +180,8 @@ class ExternalIdentityResolutionService @Inject constructor(
         }
         if (resolution.actorAppUserId != actorAppUserId ||
             resolution.callerOrganizationId != callerOrganizationId ||
-            resolution.targetOrganizationId != targetOrganizationId)
+            resolution.targetOrganizationId != targetOrganizationId
+        )
         {
             record(resolution, AuditEventType.ORG_TRUST_IDENTITY_RESOLUTION_DENIED, AuditOutcome.DENIED)
             unavailable()
@@ -289,7 +287,8 @@ class ExternalIdentityResolutionService @Inject constructor(
         }
         if (validation.relationship.id != resolution.relationshipId ||
             validation.senderPolicy.revision != resolution.senderPolicyRevision ||
-            validation.targetPolicy.revision != resolution.targetPolicyRevision)
+            validation.targetPolicy.revision != resolution.targetPolicyRevision
+        )
         {
             unavailable()
         }
@@ -300,7 +299,8 @@ class ExternalIdentityResolutionService @Inject constructor(
         }
         val appUser = appUserService.getById(resolution.resolvedAppUserId) ?: unavailable()
         if (!appUser.isActive || appUser.deprovisionedAt != null ||
-            appUser.email.trim().lowercase(Locale.ROOT) != resolution.normalizedEmail)
+            appUser.email.trim().lowercase(Locale.ROOT) != resolution.normalizedEmail
+        )
         {
             unavailable()
         }

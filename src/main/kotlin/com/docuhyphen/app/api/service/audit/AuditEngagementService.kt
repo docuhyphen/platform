@@ -5,7 +5,6 @@ import com.docuhyphen.app.api.model.entity.AuditEngagementSensitivity
 import com.docuhyphen.app.api.model.entity.AuditEngagementStatus
 import com.docuhyphen.app.api.model.entity.PrincipalKind
 import com.docuhyphen.app.api.repository.audit.AuditEngagementRepository
-import com.docuhyphen.app.api.service.user.AppUserService
 import com.docuhyphen.app.api.service.audit.catalog.AuditActorKind
 import com.docuhyphen.app.api.service.audit.catalog.AuditCategory
 import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
@@ -17,6 +16,7 @@ import com.docuhyphen.app.api.service.organization.OrganizationService
 import com.docuhyphen.app.api.service.organization.PrincipalGroupService
 import com.docuhyphen.app.api.service.subscription.OrganizationFeatureSubscriptionGuard
 import com.docuhyphen.app.api.service.subscription.PlanFeature
+import com.docuhyphen.app.api.service.user.AppUserService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
@@ -24,7 +24,7 @@ import org.slf4j.LoggerFactory
 import java.sql.Timestamp
 import java.time.Duration
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class AuditEngagementService @Inject constructor(
@@ -247,8 +247,8 @@ class AuditEngagementService @Inject constructor(
             .filter { it.sensitivityLevel != AuditEngagementSensitivity.SENSITIVE || stepUpSatisfied }
             .filter {
                 requestedRange == null ||
-                    it.maxQueryRangeDays == null ||
-                    requestedRange <= Duration.ofDays(it.maxQueryRangeDays!!.toLong())
+                        it.maxQueryRangeDays == null ||
+                        requestedRange <= Duration.ofDays(it.maxQueryRangeDays!!.toLong())
             }
             .maxByOrNull { sensitivityRank(it.sensitivityLevel) }
             ?: return null
@@ -314,7 +314,7 @@ class AuditEngagementService @Inject constructor(
     {
         val engagementResourceType = engagement.resourceType ?: return true
         return resourceType != null && resourceId != null &&
-            engagementResourceType == resourceType && engagement.resourceId == resourceId
+                engagementResourceType == resourceType && engagement.resourceId == resourceId
     }
 
     private fun parseCategories(csv: String): Set<AuditCategory> =
@@ -325,8 +325,8 @@ class AuditEngagementService @Inject constructor(
     private fun sensitivityRank(sensitivityLevel: AuditEngagementSensitivity): Int = when (sensitivityLevel)
     {
         AuditEngagementSensitivity.METADATA_ONLY -> 0
-        AuditEngagementSensitivity.STANDARD      -> 1
-        AuditEngagementSensitivity.SENSITIVE     -> 2
+        AuditEngagementSensitivity.STANDARD -> 1
+        AuditEngagementSensitivity.SENSITIVE -> 2
     }
 
     private fun recordLifecycleEvent(

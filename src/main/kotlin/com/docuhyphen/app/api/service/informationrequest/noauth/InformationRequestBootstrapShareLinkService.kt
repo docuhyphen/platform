@@ -2,12 +2,7 @@ package com.docuhyphen.app.api.service.informationrequest.noauth
 
 import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
-import com.docuhyphen.app.api.model.informationrequest.noauth.InformationRequestAbuseLimits
-import com.docuhyphen.app.api.model.informationrequest.noauth.InformationRequestBootstrapShareLinkIssuance
-import com.docuhyphen.app.api.model.informationrequest.noauth.IssueInformationRequestBootstrapShareLinkCommand
-import com.docuhyphen.app.api.model.informationrequest.noauth.ReplaceInformationRequestBootstrapShareLinkCommand
-import com.docuhyphen.app.api.model.informationrequest.noauth.RevokeInformationRequestBootstrapShareLinkCommand
-import com.docuhyphen.app.api.model.informationrequest.noauth.RotateInformationRequestBootstrapShareLinkCommand
+import com.docuhyphen.app.api.model.informationrequest.noauth.*
 import com.docuhyphen.app.api.model.informationrequest.party.InformationRequestAccessLinkView
 import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
 import com.docuhyphen.app.api.repository.exchange.ShareLinkRepository
@@ -71,7 +66,7 @@ class InformationRequestBootstrapShareLinkService @Inject constructor(
             is CommandReceiptDecision.Replayed -> throw InformationRequestLifecycleException(
                 InformationRequestErrorCatalog.ACCESS_LINK_ALREADY_ISSUED,
                 "This access link was already issued for this request; the original token cannot be " +
-                    "recovered and this retry cannot re-issue it",
+                        "recovered and this retry cannot re-issue it",
             )
         }
     }
@@ -106,7 +101,7 @@ class InformationRequestBootstrapShareLinkService @Inject constructor(
             throw InformationRequestLifecycleException(
                 InformationRequestErrorCatalog.RECIPIENT_SIGN_IN_REQUIRED,
                 "This Exchange requires recipients to sign in; issue authenticated access instead " +
-                    "of a bootstrap access link",
+                        "of a bootstrap access link",
             )
         }
 
@@ -120,7 +115,7 @@ class InformationRequestBootstrapShareLinkService @Inject constructor(
         }
         val shareId = requireNotNull(party.shareId) {
             "An acting party must already hold a request-party Share before a bootstrap access link " +
-                "can be issued"
+                    "can be issued"
         }
 
         val rawToken = generateToken()
@@ -169,7 +164,7 @@ class InformationRequestBootstrapShareLinkService @Inject constructor(
             is CommandReceiptDecision.Replayed -> throw InformationRequestLifecycleException(
                 InformationRequestErrorCatalog.ACCESS_LINK_ALREADY_ROTATED,
                 "This access link was already rotated for this request; the new secret cannot be " +
-                    "recovered and this retry cannot re-rotate it",
+                        "recovered and this retry cannot re-rotate it",
             )
         }
     }
@@ -228,7 +223,7 @@ class InformationRequestBootstrapShareLinkService @Inject constructor(
             is CommandReceiptDecision.Replayed -> throw InformationRequestLifecycleException(
                 InformationRequestErrorCatalog.ACCESS_LINK_ALREADY_REPLACED,
                 "This access link was already replaced for this request; the new secret cannot be " +
-                    "recovered and this retry cannot re-replace it",
+                        "recovered and this retry cannot re-replace it",
             )
         }
     }
@@ -346,7 +341,7 @@ class InformationRequestBootstrapShareLinkService @Inject constructor(
         }
         val expiresAt = shareLink.expiresAt
         val expired = shareLink.status == ShareLinkStatus.EXPIRED ||
-            (expiresAt != null && !expiresAt.after(Timestamp.from(Instant.now())))
+                (expiresAt != null && !expiresAt.after(Timestamp.from(Instant.now())))
         if (expired)
         {
             throw InformationRequestLifecycleException(

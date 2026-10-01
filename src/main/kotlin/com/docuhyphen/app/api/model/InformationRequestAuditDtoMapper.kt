@@ -1,11 +1,6 @@
 package com.docuhyphen.app.api.model
 
-import com.docuhyphen.app.api.model.dto.InformationRequestAuditEventDto
-import com.docuhyphen.app.api.model.dto.InformationRequestAuditPageDto
-import com.docuhyphen.app.api.model.dto.InformationRequestAuditReconciliationDto
-import com.docuhyphen.app.api.model.dto.InformationRequestReconciliationGapDto
-import com.docuhyphen.app.api.model.dto.InformationRequestReconciliationStrayDto
-import com.docuhyphen.app.api.model.dto.InformationRequestRecordExportDto
+import com.docuhyphen.app.api.model.dto.*
 import com.docuhyphen.app.api.model.informationrequest.audit.InformationRequestAuditPage
 import com.docuhyphen.app.api.model.informationrequest.audit.InformationRequestAuditReconciliation
 import com.docuhyphen.app.api.model.informationrequest.audit.InformationRequestRecordExportView
@@ -47,7 +42,12 @@ object InformationRequestAuditDtoMapper
         matchedTransitionCount = reconciliation.matchedTransitionCount,
         unsealedEventCount = reconciliation.unsealedEventCount,
         missing = reconciliation.missing.map {
-            InformationRequestReconciliationGapDto(it.transitionId, it.sequenceNumber, it.mutation, it.expectedEventTypeKey)
+            InformationRequestReconciliationGapDto(
+                it.transitionId,
+                it.sequenceNumber,
+                it.mutation,
+                it.expectedEventTypeKey
+            )
         },
         unmatched = reconciliation.unmatched.map {
             InformationRequestReconciliationStrayDto(it.eventId, it.eventTypeKey, it.businessTransactionId)

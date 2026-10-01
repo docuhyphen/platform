@@ -2,12 +2,7 @@ package com.docuhyphen.app.api.resource.informationrequest.evidence.handler
 
 import com.docuhyphen.app.api.model.InformationRequestEvidenceDtoMapper
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
-import com.docuhyphen.app.api.model.informationrequest.evidence.ChangeInformationRequestEvidenceStateCommand
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceCommandResult
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceContentUse
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceSurface
-import com.docuhyphen.app.api.model.informationrequest.evidence.ReplaceInformationRequestEvidenceCommand
-import com.docuhyphen.app.api.model.informationrequest.evidence.UploadInformationRequestEvidenceCommand
+import com.docuhyphen.app.api.model.informationrequest.evidence.*
 import com.docuhyphen.app.api.resource.command.CommandPreconditionHeader
 import com.docuhyphen.app.api.resource.informationrequest.evidence.InformationRequestEvidenceHttp
 import com.docuhyphen.app.api.resource.model.InformationRequestEvidenceAttributeForm
@@ -16,7 +11,7 @@ import com.docuhyphen.app.api.service.informationrequest.evidence.InformationReq
 import com.docuhyphen.app.api.service.informationrequest.evidence.InformationRequestEvidenceUploadService
 import jakarta.ws.rs.core.Response
 import org.jboss.resteasy.reactive.multipart.FileUpload
-import java.util.UUID
+import java.util.*
 
 class InformationRequestEvidenceRequestHandler(
     private val uploadService: InformationRequestEvidenceUploadService,
@@ -105,7 +100,17 @@ class InformationRequestEvidenceRequestHandler(
     ): Response =
         commandResponse(
             Response.Status.OK,
-            collectionService.withdraw(stateCommand(requestId, requirementId, artifactId, access, reason, ifMatch, idempotencyKey)),
+            collectionService.withdraw(
+                stateCommand(
+                    requestId,
+                    requirementId,
+                    artifactId,
+                    access,
+                    reason,
+                    ifMatch,
+                    idempotencyKey
+                )
+            ),
             access,
         )
 
@@ -120,7 +125,17 @@ class InformationRequestEvidenceRequestHandler(
     ): Response =
         commandResponse(
             Response.Status.OK,
-            collectionService.remove(stateCommand(requestId, requirementId, artifactId, access, reason, ifMatch, idempotencyKey)),
+            collectionService.remove(
+                stateCommand(
+                    requestId,
+                    requirementId,
+                    artifactId,
+                    access,
+                    reason,
+                    ifMatch,
+                    idempotencyKey
+                )
+            ),
             access,
         )
 

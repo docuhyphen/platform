@@ -26,8 +26,12 @@ abstract class StubChannel(override val type: NotificationChannelType) : Notific
     }
 }
 
-@ApplicationScoped class SmsChannel       : StubChannel(NotificationChannelType.SMS)
-@ApplicationScoped class SlackChannel     : StubChannel(NotificationChannelType.SLACK)
-@ApplicationScoped class TeamsChannel     : StubChannel(NotificationChannelType.TEAMS)
-@ApplicationScoped class WhatsAppChannel  : StubChannel(NotificationChannelType.WHATSAPP)
+@ApplicationScoped
+class SmsChannel : StubChannel(NotificationChannelType.SMS)
+@ApplicationScoped
+class SlackChannel : StubChannel(NotificationChannelType.SLACK)
+@ApplicationScoped
+class TeamsChannel : StubChannel(NotificationChannelType.TEAMS)
+@ApplicationScoped
+class WhatsAppChannel : StubChannel(NotificationChannelType.WHATSAPP)
 

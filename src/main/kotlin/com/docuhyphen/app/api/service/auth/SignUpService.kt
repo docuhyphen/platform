@@ -3,30 +3,25 @@
 import com.docuhyphen.app.api.exception.*
 import com.docuhyphen.app.api.extension.maskEmailForLogs
 import com.docuhyphen.app.api.extension.normalizeEmailOrNull
-import com.docuhyphen.app.api.model.entity.AppUser
-import com.docuhyphen.app.api.model.entity.IdentityProviderLink
-import com.docuhyphen.app.api.model.entity.IdentityProviderType
-import com.docuhyphen.app.api.model.entity.SignUpEntity
-import com.docuhyphen.app.api.model.entity.SignUpStatus
-import com.docuhyphen.app.api.model.entity.ExchangeStatus
-import com.docuhyphen.app.api.repository.user.AppUserRepository
-import com.docuhyphen.app.api.repository.identity.IdentityProviderLinkRepository
-import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.repository.auth.SignUpRepository
-import com.docuhyphen.app.api.service.contactdetails.UserContactService
+import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
+import com.docuhyphen.app.api.repository.identity.IdentityProviderLinkRepository
+import com.docuhyphen.app.api.repository.user.AppUserRepository
 import com.docuhyphen.app.api.service.communication.EmailService
 import com.docuhyphen.app.api.service.communication.EmailTemplateService
 import com.docuhyphen.app.api.service.communication.OtpService
 import com.docuhyphen.app.api.service.config.ConfigurationService
+import com.docuhyphen.app.api.service.contactdetails.UserContactService
 import com.docuhyphen.app.api.service.notification.AppAdminNotificationService
-import com.docuhyphen.app.api.service.subscription.SubscriptionPolicyService
 import com.docuhyphen.app.api.service.organization.OrganizationMembershipService
+import com.docuhyphen.app.api.service.subscription.SubscriptionPolicyService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
+import jakarta.persistence.LockTimeoutException
+import jakarta.persistence.PessimisticLockException
 import jakarta.transaction.Transactional
-import org.mindrot.jbcrypt.BCrypt
 import org.slf4j.LoggerFactory
-import java.time.Duration
 import java.time.LocalDateTime
 
 @ApplicationScoped
@@ -46,6 +41,8 @@ class SignUpService @Inject constructor(
     private val subscriptionPolicyService: SubscriptionPolicyService,
     private val organizationMembershipService: OrganizationMembershipService,
     private val appAdminNotificationService: AppAdminNotificationService,
+    private val signUpRequestGuard: SignUpRequestGuard,
+    private val signUpCompletionFollowUpService: SignUpCompletionFollowUpService,
 )
 {
     companion object
@@ -53,21 +50,10 @@ class SignUpService @Inject constructor(
         private val logger = LoggerFactory.getLogger(SignUpService::class.java)
     }
 
-    fun initiateSignUp(email: String?)
+    fun initiateSignUp(email: String?, clientIp: String, requestId: String?)
     {
-        val sanitized: String? = email.normalizeEmailOrNull()
-
-        if (sanitized == null)
-        {
-            logger.warn("Sign up failed: Email is null or blank")
-            throw EmailRequiredException()
-        }
-
-        if (authenticationService.isEmailInvalid(sanitized))
-        {
-            logger.warn("Sign up failed: Email validation failed for {}", sanitized.maskEmailForLogs())
-            throw InvalidEmailException()
-        }
+        signUpRequestGuard.enforceInitiationBudget(clientIp, requestId)
+        val sanitized = requireValidEmail(email, "Sign up")
 
         if (disposableEmailDomainService.isDisposable(sanitized))
         {
@@ -75,420 +61,303 @@ class SignUpService @Inject constructor(
             throw DisposableEmailAddressException()
         }
 
-        try
+        signUpRequestGuard.enforceInitiationAddressBudget(clientIp, sanitized, requestId)
+
+        if (appUserRepository.findActiveByEmail(sanitized) != null)
         {
-            appUserRepository.findActiveByEmail(sanitized)?.let {
-                throw AppUserExistsException()
-            }
+            logger.info("Sign up initiation skipped: an account already exists for {}", sanitized.maskEmailForLogs())
+            return
+        }
 
-            val existingSignUp = signUpRepository.findByEmail(sanitized)
-
-            val otp = otpService.generateEmailOtp()
-            val expirationMinutes = configurationService.getSignUpOtpExpiryMins()
-
-            if (existingSignUp != null)
-            {
-                if (existingSignUp.otpExpiryTimestamp.isAfter(LocalDateTime.now()))
-                {
-                    throw ExistingSignUpException()
-                }
-
-                existingSignUp.apply {
-                    this.otp = otpService.hashOtp(otp)
-
-                    this.otpExpiryTimestamp = LocalDateTime.now().plusMinutes(expirationMinutes)
-                }
-                signUpRepository.update(existingSignUp)
-            }
-            else
-            {
-                val signUpEntity = SignUpEntity().apply {
-                    this.email = sanitized
-                    this.otp = otpService.hashOtp(otp)
-                    this.otpExpiryTimestamp = LocalDateTime.now().plusMinutes(expirationMinutes)
-                }
-                signUpRepository.save(signUpEntity)
-            }
-
-            val confirmationToken = signUpEmailConfirmationTokenService.issueToken(sanitized, expirationMinutes)
-            val emailBody = emailTemplateService.renderSignUpInitiationEmail(sanitized, otp, confirmationToken, expirationMinutes)
-
-            emailService.sendEmail(
-                to = sanitized,
-                subject = "Sign Up Email Verification",
-                body = emailBody,
-                useHtml = true
+        val existingSignUp = signUpRepository.findByEmail(sanitized)
+        if (existingSignUp != null && existingSignUp.otpExpiryTimestamp.isAfter(LocalDateTime.now()))
+        {
+            logger.info(
+                "Sign up initiation skipped: a verification code is still active for {}",
+                sanitized.maskEmailForLogs()
             )
+            return
+        }
 
-            logger.info("Sign up initiation successful for {}", sanitized.maskEmailForLogs())
-        }
-        catch (exception: Exception)
+        val signUpEntity = existingSignUp ?: SignUpEntity().apply { this.email = sanitized }
+        val otp = issueCode(signUpEntity)
+        if (existingSignUp == null)
         {
-            logger.error("Failed to initiate signup. ", exception)
-            throw exception
+            signUpRepository.save(signUpEntity)
         }
+        else
+        {
+            signUpRepository.update(signUpEntity)
+        }
+
+        val expiryMinutes = configurationService.getSignUpOtpExpiryMins()
+        val confirmationToken = signUpEmailConfirmationTokenService.issueToken(sanitized, expiryMinutes)
+        emailService.sendEmail(
+            to = sanitized,
+            subject = "Sign Up Email Verification",
+            body = emailTemplateService.renderSignUpInitiationEmail(sanitized, otp, confirmationToken, expiryMinutes),
+            useHtml = true
+        )
+
+        logger.info("Sign up initiation successful for {}", sanitized.maskEmailForLogs())
     }
 
-    fun regenerateOtp(email: String?)
+    fun regenerateOtp(email: String?, clientIp: String, requestId: String?)
     {
-        val sanitizedEmail: String? = email.normalizeEmailOrNull()
+        signUpRequestGuard.enforceResendBudget(clientIp, requestId)
+        val sanitizedEmail = requireValidEmail(email, "Sign up OTP regeneration")
+        signUpRequestGuard.enforceResendAddressBudget(clientIp, sanitizedEmail, requestId)
 
-        if (sanitizedEmail == null)
+        if (appUserRepository.findActiveByEmail(sanitizedEmail) != null)
         {
-            logger.warn("Sign up OTP regeneration failed: Email is null or blank")
-            throw EmailRequiredException()
-        }
-
-        if (authenticationService.isEmailInvalid(sanitizedEmail))
-        {
-            logger.warn("Sign up OTP regeneration failed: Email validation failed for {}", sanitizedEmail.maskEmailForLogs())
-            throw InvalidEmailException()
-        }
-
-        appUserRepository.findByEmail(sanitizedEmail)?.let {
-            throw AppUserExistsException()
+            logger.info(
+                "Sign up OTP regeneration skipped: an account already exists for {}",
+                sanitizedEmail.maskEmailForLogs()
+            )
+            return
         }
 
         val signUpEntity = signUpRepository.findByEmail(sanitizedEmail)
-
         if (signUpEntity == null)
         {
-            logger.warn("Sign up OTP regeneration failed: Entity not found for {}", sanitizedEmail.maskEmailForLogs())
-            throw EmailNotFoundException()
+            logger.info("Sign up OTP regeneration skipped: no sign up record for {}", sanitizedEmail.maskEmailForLogs())
+            return
         }
 
-        // Check if the account is OTP_LOCKED
-        if (signUpEntity.status == SignUpStatus.OTP_LOCKED)
-        {
-            val lockCooldownMinutes = 15L // Longer cooldown for locked status
-            val lockEndTime = signUpEntity.lastRegenerationAttemptTime?.plusMinutes(lockCooldownMinutes)
-                ?: LocalDateTime.now()
-
-            if (LocalDateTime.now().isBefore(lockEndTime))
-            {
-                val minutesRemaining = Duration.between(LocalDateTime.now(), lockEndTime).toMinutes() + 1
-                logger.warn("Sign up OTP regeneration failed: Account is locked. Minutes remaining: $minutesRemaining")
-                throw OtpMaxRetryLimitReachedException(
-                    "Account is temporarily locked. Please wait $minutesRemaining minutes before requesting a new verification code."
-                )
-            }
-            else
-            {
-                // Reset lock status after cooldown period
-                signUpEntity.status = SignUpStatus.PENDING
-                signUpEntity.otpRegenerationAttempts = 0
-            }
-        }
-
-        // Calculate when the last OTP was generated based on expiry timestamp
-        val otpExpiryMinutes = configurationService.getSignUpOtpExpiryMins()
-        val lastOtpGeneratedTime = signUpEntity.otpExpiryTimestamp.minusMinutes(otpExpiryMinutes)
-        val regenerationCooldownMinutes = 3L
-        val cooldownEndTime = lastOtpGeneratedTime.plusMinutes(regenerationCooldownMinutes)
-
-        // Check if we're still in the cooldown period
-        if (LocalDateTime.now().isBefore(cooldownEndTime))
-        {
-            val minutesRemaining = Duration.between(LocalDateTime.now(), cooldownEndTime).toMinutes() + 1
-
-            // Increment regeneration attempts and check if maximum is reached
-            signUpEntity.otpRegenerationAttempts++
-            signUpEntity.lastRegenerationAttemptTime = LocalDateTime.now()
-
-            val maxRegenerationAttempts = 3 // Maximum attempts before locking
-
-            if (signUpEntity.otpRegenerationAttempts >= maxRegenerationAttempts)
-            {
-                signUpEntity.status = SignUpStatus.OTP_LOCKED
-                signUpRepository.update(signUpEntity)
-
-                logger.warn("Sign up OTP regeneration failed: Account locked due to multiple rapid attempts")
-                throw OtpMaxRetryLimitReachedException(
-                    "Account temporarily locked due to multiple attempts. Please wait 15 minutes before trying again."
-                )
-            }
-
-            signUpRepository.update(signUpEntity)
-            logger.warn("Sign up OTP regeneration failed: Cooldown period active. Minutes remaining: $minutesRemaining")
-
-            val sInMinutesTxt = if(minutesRemaining > 0) "s" else ""
-            throw OtpRegenerationCooldownException("Please wait $minutesRemaining minute$sInMinutesTxt before requesting a new verification code.")
-        }
-
-        val newOtp = otpService.generateEmailOtp()
-        val expirationTime = LocalDateTime.now().plusMinutes(otpExpiryMinutes)
-
-        signUpEntity.otp = otpService.hashOtp(newOtp)
-        signUpEntity.otpExpiryTimestamp = expirationTime
-        signUpEntity.otpAttempts = 0
-        signUpEntity.otpRegenerationAttempts = 0
-        signUpEntity.status = SignUpStatus.PENDING
-
+        val newOtp = issueCode(signUpEntity)
         signUpRepository.update(signUpEntity)
 
-        val confirmationToken = signUpEmailConfirmationTokenService.issueToken(sanitizedEmail, otpExpiryMinutes)
-        val emailBody = emailTemplateService.renderSignUpOtpRegenerationEmail(newOtp, confirmationToken, otpExpiryMinutes)
-
+        val expiryMinutes = configurationService.getSignUpOtpExpiryMins()
+        val confirmationToken = signUpEmailConfirmationTokenService.issueToken(sanitizedEmail, expiryMinutes)
         emailService.sendEmail(
             to = sanitizedEmail,
             subject = "Sign Up verification code",
-            body = emailBody,
+            body = emailTemplateService.renderSignUpOtpRegenerationEmail(newOtp, confirmationToken, expiryMinutes),
             useHtml = true
         )
 
         logger.info("Sign up OTP regeneration successful")
     }
 
-    /**
-     * Look up the email a confirmation token belongs to without consuming the token.
-     * Used by the GET introspection endpoint so the frontend can show "verifying
-     * user@example.com" before the user submits a password.
-     *
-     * Returns null if the token is missing, expired, or malformed,  the resource
-     * layer maps that to a 404 with a generic error message.
-     */
     fun peekEmailFromConfirmationToken(token: String?): String?
     {
         if (token.isNullOrBlank()) return null
         return signUpEmailConfirmationTokenService.peekToken(token)
     }
 
-    /**
-     * Token-based completion path: the user clicked the verification link in their
-     * email. The opaque token both proves the user controls the email address AND
-     * acts as the one-time consent,  there's no separate OTP to type. The OTP
-     * still exists in the DB as a fallback for the manual-entry flow.
-     *
-     * Atomic single-use is enforced by Redis GETDEL inside the token service.
-     */
     @Transactional
-    fun completeSignUpViaToken(token: String?, password: String?, passwordConfirmation: String?): AppUser
+    fun completeSignUpViaToken(
+        token: String?,
+        password: String?,
+        passwordConfirmation: String?,
+        clientIp: String,
+        requestId: String?,
+    ): AppUser
     {
-        if (token.isNullOrBlank())
-        {
-            logger.warn("Sign up token completion failed: token missing")
-            throw InvalidSignUpConfirmationTokenException()
-        }
+        signUpRequestGuard.enforceCompletionBudget(clientIp, requestId)
 
-        // Consume the token atomically,  every retry after this point operates on
-        // the email we just resolved, and the original token can no longer be used.
-        val email = signUpEmailConfirmationTokenService.consumeToken(token)
+        val email = peekEmailFromConfirmationToken(token)?.normalizeEmailOrNull()
             ?: throw InvalidSignUpConfirmationTokenException().also {
                 logger.warn("Sign up token completion failed: token invalid or expired")
             }
 
-        val normalizedEmail = validateTokenCompletionInputs(email, password, passwordConfirmation)
+        validatePasswordFields(email, password, passwordConfirmation, "Sign up token completion")
 
-        val signUpEntity = signUpRepository.findByEmail(normalizedEmail)
-            ?: throw EmailNotFoundException().also {
-                logger.warn("Sign up token completion failed: signup entity missing for {}",
-                    normalizedEmail.maskEmailForLogs())
-            }
-
-        // OTP expiry on the entity acts as a secondary safety net,  if it's
-        // already expired, the user needs to request a new email (which will
-        // regenerate both OTP and token together).
-        if (signUpEntity.otpExpiryTimestamp.isBefore(LocalDateTime.now()))
+        val signUpEntity = signUpRepository.findByEmailForUpdate(email)
+        if (signUpEntity == null
+            || signUpEntity.status == SignUpStatus.VERIFIED
+            || signUpEntity.otpExpiryTimestamp.isBefore(LocalDateTime.now())
+        )
         {
-            logger.warn("Sign up token completion failed: signup record expired")
-            throw OTPExpiredException("Your verification link has expired. Please request a new one.")
+            logger.warn("Sign up token completion failed: sign up record is missing, completed, or expired")
+            throw InvalidSignUpConfirmationTokenException()
         }
 
-        return finalizeSignUp(signUpEntity, normalizedEmail, password!!)
+        ensureNoRegisteredAccount(email)
+
+        return finalizeSignUp(signUpEntity, email, password!!, token)
     }
 
-    /**
-     * Subset of [validateInputs],  we already trust the email since it came out
-     * of Redis (server-issued, server-stored). We only need to validate the
-     * caller-supplied password fields.
-     */
-    private fun validateTokenCompletionInputs(email: String, password: String?, passwordConfirmation: String?): String
+    @Transactional(dontRollbackOn = [SignUpVerificationRejectedException::class])
+    fun completeSignUp(
+        email: String?,
+        otp: String?,
+        password: String?,
+        passwordConfirmation: String?,
+        clientIp: String,
+        requestId: String?,
+    ): AppUser
     {
-        val normalizedEmail = email.normalizeEmailOrNull()
-            ?: throw InvalidEmailException().also {
-                logger.warn("Sign up token completion failed: stored email is malformed")
+        signUpRequestGuard.enforceCompletionBudget(clientIp, requestId)
+        val normalizedEmail = validateInputs(email, otp, password, passwordConfirmation)
+
+        val signUpEntity =
+            lockSignUpWithoutWaiting(normalizedEmail) ?: throw SignUpVerificationRejectedException().also {
+                logger.warn("Sign up completion failed: no sign up record for {}", normalizedEmail.maskEmailForLogs())
             }
 
-        // Only block when a non-temporary user already owns this email; temp placeholder
-        // rows are upgraded in place by finalizeSignUp().
-        appUserRepository.findActiveByEmail(normalizedEmail)?.let { throw AppUserExistsException() }
+        verifyCode(signUpEntity, otp!!)
+        ensureNoRegisteredAccount(normalizedEmail)
 
-        if (password.isNullOrBlank())
+        return finalizeSignUp(signUpEntity, normalizedEmail, password!!, null)
+    }
+
+    private fun issueCode(signUpEntity: SignUpEntity): String
+    {
+        val otp = otpService.generateEmailOtp()
+        signUpEntity.otp = otpService.hashOtp(otp)
+        signUpEntity.otpExpiryTimestamp = LocalDateTime.now().plusMinutes(configurationService.getSignUpOtpExpiryMins())
+        signUpEntity.otpAttempts = 0
+        signUpEntity.status = SignUpStatus.PENDING
+        return otp
+    }
+
+    private fun lockSignUpWithoutWaiting(email: String): SignUpEntity?
+    {
+        return try
         {
-            throw PasswordRequiredException().also { logger.warn("Sign up token completion failed: password missing") }
+            signUpRepository.findByEmailForUpdateNoWait(email)
+        }
+        catch (exception: PessimisticLockException)
+        {
+            throw signUpVerificationBusy(email)
+        }
+        catch (exception: LockTimeoutException)
+        {
+            throw signUpVerificationBusy(email)
+        }
+    }
+
+    private fun signUpVerificationBusy(email: String): SignUpVerificationBusyException
+    {
+        logger.warn("Sign up completion rejected: another completion is in progress for {}", email.maskEmailForLogs())
+        return SignUpVerificationBusyException()
+    }
+
+    private fun verifyCode(signUpEntity: SignUpEntity, otp: String)
+    {
+        val maxAttempts = configurationService.getMaxSignUpCompletionOtpAttempts()
+        val rejectionReason = when
+        {
+            signUpEntity.status == SignUpStatus.VERIFIED -> "sign up already completed"
+            signUpEntity.otpAttempts >= maxAttempts -> "attempt budget exhausted"
+            signUpEntity.otpExpiryTimestamp.isBefore(LocalDateTime.now()) -> "verification code expired"
+            else -> null
         }
 
-        if (passwordConfirmation.isNullOrBlank())
+        if (rejectionReason != null)
         {
-            throw ConfirmationPasswordRequiredException().also { logger.warn("Sign up token completion failed: confirmation password missing") }
+            logger.warn("Sign up completion failed: {}", rejectionReason)
+            throw SignUpVerificationRejectedException()
         }
 
-        if (!authenticationService.isPasswordStrong(password))
+        if (!otpService.verifyEmailOtp(otp, signUpEntity.otp))
         {
-            throw PasswordRequirementsNotMetException().also { logger.warn("Sign up token completion failed: password validation failed") }
+            recordFailedAttempt(signUpEntity, maxAttempts)
+            throw SignUpVerificationRejectedException()
         }
+    }
 
-        if (password != passwordConfirmation)
+    private fun recordFailedAttempt(signUpEntity: SignUpEntity, maxAttempts: Long)
+    {
+        signUpEntity.otpAttempts++
+        if (signUpEntity.otpAttempts >= maxAttempts)
         {
-            throw PasswordMismatchException().also { logger.warn("Sign up token completion failed: passwords do not match") }
+            signUpEntity.status = SignUpStatus.EXPIRED_MAX_RETRIES
         }
+        signUpRepository.update(signUpEntity)
+        logger.warn(
+            "Sign up completion failed: wrong verification code, attempt {} of {}",
+            signUpEntity.otpAttempts,
+            maxAttempts
+        )
+    }
 
-        if (password.lowercase().contains(normalizedEmail))
+    private fun ensureNoRegisteredAccount(email: String)
+    {
+        appUserRepository.findActiveByEmail(email)?.let {
+            logger.warn("Sign up completion failed: an account already exists for {}", email.maskEmailForLogs())
+            throw AppUserExistsException()
+        }
+    }
+
+    private fun requireValidEmail(email: String?, operation: String): String
+    {
+        val normalizedEmail = email.normalizeEmailOrNull()
+            ?: throw EmailRequiredException().also { logger.warn("{} failed: Email is null or blank", operation) }
+
+        if (authenticationService.isEmailInvalid(normalizedEmail))
         {
-            throw PasswordContainsEmailException().also { logger.warn("Sign up token completion failed: password contains email") }
+            logger.warn("{} failed: Email validation failed for {}", operation, normalizedEmail.maskEmailForLogs())
+            throw InvalidEmailException()
         }
 
         return normalizedEmail
     }
 
-    @Transactional
-    fun completeSignUp(email: String?, otp: String?, password: String?, passwordConfirmation: String?): AppUser
-    {
-        val normalizedEmail = validateInputs(email, otp, password, passwordConfirmation)
-
-        val signUpEntity = signUpRepository.findByEmail(normalizedEmail) ?: throw EmailNotFoundException().also {
-            logger.warn("Sign up completion failed: Entity not found for {}", normalizedEmail.maskEmailForLogs())
-        }
-
-        handleAttempts(signUpEntity)
-
-        ensureOtpValidity(signUpEntity, otp)
-
-        return finalizeSignUp(signUpEntity, normalizedEmail, password!!)
-    }
-
     private fun validateInputs(email: String?, otp: String?, password: String?, passwordConfirmation: String?): String
     {
-        val normalizedEmail: String? = email.normalizeEmailOrNull()
-
-        if (normalizedEmail == null)
-        {
-            throw EmailRequiredException().also {
-                logger.warn("Sign up completion failed: Email is null or blank")
-            }
-        }
-
-        appUserRepository.findActiveByEmail(normalizedEmail)?.let {
-            throw AppUserExistsException()
-        }
-
-        if (authenticationService.isEmailInvalid(normalizedEmail))
-        {
-            throw InvalidEmailException().also { logger.warn("Sign up completion failed: Email validation failed") }
-        }
+        val normalizedEmail = requireValidEmail(email, "Sign up completion")
 
         if (otp.isNullOrBlank())
         {
             throw OtpRequiredException().also { logger.warn("Sign up completion failed: OTP is null or blank") }
         }
 
+        validatePasswordFields(normalizedEmail, password, passwordConfirmation, "Sign up completion")
+
+        return normalizedEmail
+    }
+
+    private fun validatePasswordFields(
+        email: String,
+        password: String?,
+        passwordConfirmation: String?,
+        operation: String
+    )
+    {
         if (password.isNullOrBlank())
         {
-            throw PasswordRequiredException().also { logger.warn("Sign up completion failed: Password is null or blank") }
+            throw PasswordRequiredException().also { logger.warn("{} failed: Password is null or blank", operation) }
         }
 
         if (passwordConfirmation.isNullOrBlank())
         {
-            throw ConfirmationPasswordRequiredException().also { logger.warn("Sign up completion failed: Confirmation password is null or blank") }
+            throw ConfirmationPasswordRequiredException().also {
+                logger.warn(
+                    "{} failed: Confirmation password is null or blank",
+                    operation
+                )
+            }
         }
 
         if (!authenticationService.isPasswordStrong(password))
         {
             throw PasswordRequirementsNotMetException().also {
-                logger.warn("Sign up completion failed: Password validation failed")
+                logger.warn(
+                    "{} failed: Password validation failed",
+                    operation
+                )
             }
         }
 
         if (password != passwordConfirmation)
         {
-            throw PasswordMismatchException().also { logger.warn("Sign up completion failed: Passwords do not match") }
+            throw PasswordMismatchException().also { logger.warn("{} failed: Passwords do not match", operation) }
         }
 
-        if (password.lowercase().contains(normalizedEmail))
+        if (password.lowercase().contains(email))
         {
-            throw PasswordContainsEmailException().also { logger.warn("Sign up completion failed: Password contains email") }
-        }
-
-        return normalizedEmail
-    }
-
-    private fun handleAttempts(signUpEntity: SignUpEntity)
-    {
-        // First check if the account is locked
-        if (signUpEntity.status == SignUpStatus.OTP_LOCKED)
-        {
-            val lockCooldownMinutes = 10L
-            val lockEndTime = signUpEntity.lastRegenerationAttemptTime?.plusMinutes(lockCooldownMinutes)
-                ?: LocalDateTime.now()
-
-            if (LocalDateTime.now().isBefore(lockEndTime))
-            {
-                val minutesRemaining = Duration.between(LocalDateTime.now(), lockEndTime).toMinutes() + 1
-                logger.warn("Sign up completion failed: Account is locked. Minutes remaining: $minutesRemaining")
-                throw OtpMaxRetryLimitReachedException(
-                    "Account is temporarily locked. Please wait $minutesRemaining minutes before attempting again."
-                )
-            }
-            else
-            {
-                // Reset lock status after cooldown period
-                signUpEntity.status = SignUpStatus.PENDING
-                signUpEntity.otpRegenerationAttempts = 0
-            }
-        }
-
-        val now = LocalDateTime.now()
-        val maxAttempts = configurationService.getMaxSignUpCompletionOtpAttempts()
-        val cooldownMinutes = 3L
-
-        // Increment attempts counter
-        signUpEntity.otpAttempts++
-
-        // If attempts are under the limit, allow to continue
-        if (signUpEntity.otpAttempts <= maxAttempts)
-        {
-            signUpRepository.update(signUpEntity)
-            return
-        }
-
-        // Calculate remaining cooldown time
-        val cooldownEndTime = signUpEntity.otpExpiryTimestamp.plusMinutes(cooldownMinutes)
-        val minutesRemaining = Duration.between(now, cooldownEndTime).toMinutes() + 1
-
-        logger.warn("Sign up completion failed. Max attempts ($maxAttempts) reached.")
-
-        if (minutesRemaining <= 0) {
-            logger.warn("Sign up completion failed. Max attempts reached. Cooldown period expired.")
-            throw OTPExpiredException("Your verification code expired, please request a new one.")
-        }
-
-        // Max attempts reached - mark as expired_max_retries
-        signUpEntity.status = SignUpStatus.EXPIRED_MAX_RETRIES
-        signUpRepository.update(signUpEntity)
-
-        throw MaxAttemptsOTPExceededException(
-            "Maximum verification attempts reached. Please try again in $minutesRemaining minutes."
-        )
-    }
-
-    private fun ensureOtpValidity(signUpEntity: SignUpEntity, otp: String?)
-    {
-        val providedOtp = otp ?: throw InvalidOtpException()
-
-        if (signUpEntity.otpExpiryTimestamp.isBefore(LocalDateTime.now()))
-        {
-            logger.warn("Sign up completion failed. OTP expired.")
-            throw OTPExpiredException("Your verification code has expired")
-        }
-
-        if (!BCrypt.checkpw(providedOtp, signUpEntity.otp))
-        {
-            logger.warn("Sign up completion failed. Invalid OTP provided.")
-            throw InvalidOtpException()
+            throw PasswordContainsEmailException().also { logger.warn("{} failed: Password contains email", operation) }
         }
     }
 
-    private fun finalizeSignUp(signUpEntity: SignUpEntity, email: String, password: String): AppUser
+    private fun finalizeSignUp(
+        signUpEntity: SignUpEntity,
+        email: String,
+        password: String,
+        confirmationToken: String?
+    ): AppUser
     {
         signUpEntity.status = SignUpStatus.VERIFIED
         signUpRepository.update(signUpEntity)
@@ -536,21 +405,33 @@ class SignUpService @Inject constructor(
         // A newly registered account starts on the default individual plan. An upgraded temp
         // placeholder keeps any record it already had rather than being reset.
         runCatching { subscriptionPolicyService.ensureUserPolicy(savedUser.id) }
-            .onFailure { logger.warn("Failed to create subscription record after sign-up for {}", email.maskEmailForLogs(), it) }
+            .onFailure {
+                logger.warn(
+                    "Failed to create subscription record after sign-up for {}",
+                    email.maskEmailForLogs(),
+                    it
+                )
+            }
 
         runCatching { createInternalIdpLink(savedUser) }
-            .onFailure { logger.warn("Failed to create INTERNAL IDP link after sign-up for {}", email.maskEmailForLogs(), it) }
+            .onFailure {
+                logger.warn(
+                    "Failed to create INTERNAL IDP link after sign-up for {}",
+                    email.maskEmailForLogs(),
+                    it
+                )
+            }
 
         runCatching { appAdminNotificationService.notifyNewUserRegistration(email) }
-            .onFailure { logger.warn("Failed to notify an App Administrator about new user {}", email.maskEmailForLogs(), it) }
+            .onFailure {
+                logger.warn(
+                    "Failed to notify an App Administrator about new user {}",
+                    email.maskEmailForLogs(),
+                    it
+                )
+            }
 
-        val emailBody = emailTemplateService.renderSignUpCompletionEmail(email)
-        emailService.sendEmail(
-            to = email,
-            subject = "Account Created Successfully",
-            body = emailBody,
-            useHtml = true
-        )
+        signUpCompletionFollowUpService.scheduleAfterCommit(email, confirmationToken)
 
         return savedUser
     }

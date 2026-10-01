@@ -5,7 +5,7 @@ import jakarta.inject.Inject
 import jakarta.transaction.Transactional
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class SubscriptionTrialTransitionService @Inject constructor(
@@ -205,14 +205,15 @@ class SubscriptionTrialTransitionService @Inject constructor(
         null,
     )
 
-    private fun state(policy: com.docuhyphen.app.api.model.entity.OrganizationSubscriptionPolicy) = SubscriptionTrialState(
-        PlanCode.fromCode(policy.tierCode),
-        SubscriptionStatus.fromCode(policy.subscriptionStatus),
-        BillingFrequency.fromCodeOrNull(policy.billingFrequency),
-        policy.currentPeriodStart?.toInstant(),
-        policy.currentPeriodEnd?.toInstant(),
-        policy.maxUsers,
-    )
+    private fun state(policy: com.docuhyphen.app.api.model.entity.OrganizationSubscriptionPolicy) =
+        SubscriptionTrialState(
+            PlanCode.fromCode(policy.tierCode),
+            SubscriptionStatus.fromCode(policy.subscriptionStatus),
+            BillingFrequency.fromCodeOrNull(policy.billingFrequency),
+            policy.currentPeriodStart?.toInstant(),
+            policy.currentPeriodEnd?.toInstant(),
+            policy.maxUsers,
+        )
 
     private fun transition(
         ownerType: SubscriptionOwnerType,

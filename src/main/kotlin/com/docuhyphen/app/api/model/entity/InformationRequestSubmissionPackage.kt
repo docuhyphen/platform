@@ -1,17 +1,11 @@
 package com.docuhyphen.app.api.model.entity
 
 import com.docuhyphen.app.api.model.informationrequest.response.InformationRequestCompletenessItemState
-import jakarta.persistence.Column
-import jakarta.persistence.Entity
-import jakarta.persistence.EnumType
-import jakarta.persistence.Enumerated
-import jakarta.persistence.Id
-import jakarta.persistence.IdClass
-import jakarta.persistence.Table
+import jakarta.persistence.*
 import java.io.Serializable
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 @Entity
 @Table(name = "information_request_submission_package")

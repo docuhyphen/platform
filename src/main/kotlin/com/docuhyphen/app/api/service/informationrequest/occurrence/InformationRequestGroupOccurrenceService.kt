@@ -1,27 +1,12 @@
 package com.docuhyphen.app.api.service.informationrequest.occurrence
 
-import com.docuhyphen.app.api.model.entity.Exchange
-import com.docuhyphen.app.api.model.entity.InformationRequest
-import com.docuhyphen.app.api.model.entity.InformationRequestGroupOccurrence
-import com.docuhyphen.app.api.model.entity.InformationRequestRequirement
-import com.docuhyphen.app.api.model.entity.InformationRequestRequirementCurrent
-import com.docuhyphen.app.api.model.entity.InformationRequestRequirementRevision
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateEvidencePolicy
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateRequirement
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateRequirementBinding
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateRequirementGroup
-import com.docuhyphen.app.api.model.entity.RequestExecutionGrant
-import com.docuhyphen.app.api.model.entity.ResourceType
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestMutation
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestParentSnapshot
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestPolicyDecision
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestTransitionHistoryCommand
-import com.docuhyphen.app.api.model.informationrequest.occurrence.AddInformationRequestGroupOccurrenceCommand
-import com.docuhyphen.app.api.model.informationrequest.occurrence.InformationRequestGroupOccurrenceResult
-import com.docuhyphen.app.api.model.informationrequest.occurrence.InformationRequestGroupOccurrenceTemplateData
-import com.docuhyphen.app.api.model.informationrequest.occurrence.RemoveInformationRequestGroupOccurrenceCommand
-import com.docuhyphen.app.api.model.informationrequest.occurrence.ReorderInformationRequestGroupOccurrencesCommand
+import com.docuhyphen.app.api.model.informationrequest.occurrence.*
 import com.docuhyphen.app.api.model.informationrequest.template.InformationRequestTemplateBindingConfiguration
 import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
 import com.docuhyphen.app.api.repository.fields.SchemaAssignmentRepository
@@ -30,27 +15,12 @@ import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRe
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRequirementRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRequirementRevisionRepository
 import com.docuhyphen.app.api.repository.informationrequest.occurrence.InformationRequestGroupOccurrenceRepository
-import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateBindingDispositionRepository
-import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateBindingEvidenceLinkRepository
-import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateBindingSubstituteRepository
-import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateEvidenceAcceptedValueRepository
-import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateEvidencePolicyRepository
-import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateRequirementBindingRepository
-import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateRequirementGroupRepository
-import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateRequirementRepository
-import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateVersionRepository
+import com.docuhyphen.app.api.repository.informationrequest.template.*
 import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
 import com.docuhyphen.app.api.service.auth.authz.Decision
 import com.docuhyphen.app.api.service.auth.authz.ResourceRef
-import com.docuhyphen.app.api.service.command.CommandActorRef
-import com.docuhyphen.app.api.service.command.CommandMutationResult
-import com.docuhyphen.app.api.service.command.CommandPrecondition
-import com.docuhyphen.app.api.service.command.CommandReceiptDecision
-import com.docuhyphen.app.api.service.command.CommandReceiptRequest
-import com.docuhyphen.app.api.service.command.CommandReceiptService
-import com.docuhyphen.app.api.service.command.CommandRequestFingerprint
-import com.docuhyphen.app.api.service.command.CommandResultReference
+import com.docuhyphen.app.api.service.command.*
 import com.docuhyphen.app.api.service.fields.FieldsResourceRef
 import com.docuhyphen.app.api.service.fields.SchemaAssignmentService
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestETag
@@ -72,7 +42,7 @@ import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestGroupOccurrenceService @Inject constructor(
@@ -104,23 +74,22 @@ class InformationRequestGroupOccurrenceService @Inject constructor(
 )
 {
     @Transactional
-    fun add(command: AddInformationRequestGroupOccurrenceCommand): InformationRequestGroupOccurrenceResult
-        = runOnce(
-            command.requestId,
+    fun add(command: AddInformationRequestGroupOccurrenceCommand): InformationRequestGroupOccurrenceResult = runOnce(
+        command.requestId,
+        ADD_OPERATION,
+        command.access,
+        command.idempotencyKey,
+        fingerprint(
             ADD_OPERATION,
-            command.access,
-            command.idempotencyKey,
-            fingerprint(
-                ADD_OPERATION,
-                command.requestId,
-                command.groupKey,
-                command.parentOccurrenceId.orEmpty(),
-            ),
-        ) { addOccurrence(command) }
+            command.requestId,
+            command.groupKey,
+            command.parentOccurrenceId.orEmpty(),
+        ),
+    ) { addOccurrence(command) }
 
     @Transactional
-    fun remove(command: RemoveInformationRequestGroupOccurrenceCommand): InformationRequestGroupOccurrenceResult
-        = runOnce(
+    fun remove(command: RemoveInformationRequestGroupOccurrenceCommand): InformationRequestGroupOccurrenceResult =
+        runOnce(
             command.requestId,
             REMOVE_OPERATION,
             command.access,
@@ -129,8 +98,8 @@ class InformationRequestGroupOccurrenceService @Inject constructor(
         ) { removeOccurrence(command) }
 
     @Transactional
-    fun reorder(command: ReorderInformationRequestGroupOccurrencesCommand): InformationRequestGroupOccurrenceResult
-        = runOnce(
+    fun reorder(command: ReorderInformationRequestGroupOccurrencesCommand): InformationRequestGroupOccurrenceResult =
+        runOnce(
             command.requestId,
             REORDER_OPERATION,
             command.access,
@@ -146,125 +115,126 @@ class InformationRequestGroupOccurrenceService @Inject constructor(
 
     private fun addOccurrence(
         command: AddInformationRequestGroupOccurrenceCommand,
-    ): InformationRequestGroupOccurrenceResult = mutate(command.requestId, command.access, command.precondition) {
-        request, _, now ->
-        val template = templateData(request)
-        val group = template.requireGroup(command.groupKey)
-        lockService.requireBindingsOpen(request, template.bindingsUnder(group).map { it.id })
-        val parent = requireParent(request.id, group, command.parentOccurrenceId, template.groupsById)
-        val allSiblings = groupOccurrenceRepository.findForGroupAndParentForUpdate(
-            request.id,
-            group.id,
-            command.parentOccurrenceId,
-        )
-        val activeSiblings = allSiblings.filter { it.removedAt == null }
-        requireAddWithinMaximum(group, activeSiblings)
-        groupAuthorizationService.authorizeMaterializedBindings(
-            command.access,
-            request,
-            template.materializedBindings(group),
-        )
-        val nextDisplayIndex = activeSiblings.maxOfOrNull { it.occurrenceIndex }?.plus(1) ?: 0
-        val nextIdentityIndex = nextOccurrenceIdentityIndex(group, parent, allSiblings)
-        val occurrence = createOccurrence(
-            request,
-            group,
-            parent,
-            nextDisplayIndex,
-            nextIdentityIndex,
-            hasSchemaAssignment(request.id),
-        )
-        materializeAnchoredRequirements(request, template, group, occurrence, now)
-        materializeChildMinimums(request, template, group, occurrence, now)
-        supportingEvidenceLinkService.materialize(request)
-        val siblings = (activeSiblings + occurrence).sortedBy { it.occurrenceIndex }
-        InformationRequestGroupOccurrenceResult(request, InformationRequestETag.responsesOf(request), siblings)
-    }
+    ): InformationRequestGroupOccurrenceResult =
+        mutate(command.requestId, command.access, command.precondition) { request, _, now ->
+            val template = templateData(request)
+            val group = template.requireGroup(command.groupKey)
+            lockService.requireBindingsOpen(request, template.bindingsUnder(group).map { it.id })
+            val parent = requireParent(request.id, group, command.parentOccurrenceId, template.groupsById)
+            val allSiblings = groupOccurrenceRepository.findForGroupAndParentForUpdate(
+                request.id,
+                group.id,
+                command.parentOccurrenceId,
+            )
+            val activeSiblings = allSiblings.filter { it.removedAt == null }
+            requireAddWithinMaximum(group, activeSiblings)
+            groupAuthorizationService.authorizeMaterializedBindings(
+                command.access,
+                request,
+                template.materializedBindings(group),
+            )
+            val nextDisplayIndex = activeSiblings.maxOfOrNull { it.occurrenceIndex }?.plus(1) ?: 0
+            val nextIdentityIndex = nextOccurrenceIdentityIndex(group, parent, allSiblings)
+            val occurrence = createOccurrence(
+                request,
+                group,
+                parent,
+                nextDisplayIndex,
+                nextIdentityIndex,
+                hasSchemaAssignment(request.id),
+            )
+            materializeAnchoredRequirements(request, template, group, occurrence, now)
+            materializeChildMinimums(request, template, group, occurrence, now)
+            supportingEvidenceLinkService.materialize(request)
+            val siblings = (activeSiblings + occurrence).sortedBy { it.occurrenceIndex }
+            InformationRequestGroupOccurrenceResult(request, InformationRequestETag.responsesOf(request), siblings)
+        }
 
     private fun removeOccurrence(
         command: RemoveInformationRequestGroupOccurrenceCommand,
-    ): InformationRequestGroupOccurrenceResult = mutate(command.requestId, command.access, command.precondition) {
-        request, _, now ->
-        val template = templateData(request)
-        val occurrence = groupOccurrenceRepository.findActiveByIdForUpdate(request.id, command.occurrenceId)
-            ?: throw InformationRequestLifecycleException(
-                InformationRequestErrorCatalog.NOT_FOUND,
-                "Information Request group occurrence not found",
+    ): InformationRequestGroupOccurrenceResult =
+        mutate(command.requestId, command.access, command.precondition) { request, _, now ->
+            val template = templateData(request)
+            val occurrence = groupOccurrenceRepository.findActiveByIdForUpdate(request.id, command.occurrenceId)
+                ?: throw InformationRequestLifecycleException(
+                    InformationRequestErrorCatalog.NOT_FOUND,
+                    "Information Request group occurrence not found",
+                )
+            val group = template.groupsById[occurrence.sourceTemplateGroupId]
+                ?: throw InformationRequestLifecycleException(
+                    InformationRequestErrorCatalog.STATE_INVALID,
+                    "Information Request group occurrence has no Template group",
+                )
+            lockService.requireBindingsOpen(request, template.bindingsUnder(group).map { it.id })
+            val activeSiblings = groupOccurrenceRepository.findActiveForGroupAndParentForUpdate(
+                request.id,
+                group.id,
+                occurrence.parentOccurrenceId,
             )
-        val group = template.groupsById[occurrence.sourceTemplateGroupId]
-            ?: throw InformationRequestLifecycleException(
-                InformationRequestErrorCatalog.STATE_INVALID,
-                "Information Request group occurrence has no Template group",
+            if (activeSiblings.size <= group.minOccurrences)
+            {
+                throw InformationRequestLifecycleException(
+                    InformationRequestErrorCatalog.GROUP_OCCURRENCE_CARDINALITY_INVALID,
+                    "This group already has the minimum number of occurrences",
+                )
+            }
+            val descendants = groupOccurrenceRepository.findActiveForRequestForUpdate(request.id)
+                .filter { it.occurrencePath.startsWith("${occurrence.occurrencePath}/") }
+            val removedScope = listOf(occurrence) + descendants
+            groupAuthorizationService.authorizeOccurrenceScope(
+                command.access,
+                request.id,
+                removedScope.map { it.occurrencePath }.toSet(),
             )
-        lockService.requireBindingsOpen(request, template.bindingsUnder(group).map { it.id })
-        val activeSiblings = groupOccurrenceRepository.findActiveForGroupAndParentForUpdate(
-            request.id,
-            group.id,
-            occurrence.parentOccurrenceId,
-        )
-        if (activeSiblings.size <= group.minOccurrences)
-        {
-            throw InformationRequestLifecycleException(
-                InformationRequestErrorCatalog.GROUP_OCCURRENCE_CARDINALITY_INVALID,
-                "This group already has the minimum number of occurrences",
-            )
+            removedScope.forEach {
+                it.removedAt = now
+                it.removedByPrincipalKind = command.access.principal.kind
+                it.removedByPrincipalId = command.access.principal.id
+                groupOccurrenceRepository.update(it)
+            }
+            val remaining = activeSiblings.filterNot { it.id == occurrence.id }
+            InformationRequestGroupOccurrenceResult(request, InformationRequestETag.responsesOf(request), remaining)
         }
-        val descendants = groupOccurrenceRepository.findActiveForRequestForUpdate(request.id)
-            .filter { it.occurrencePath.startsWith("${occurrence.occurrencePath}/") }
-        val removedScope = listOf(occurrence) + descendants
-        groupAuthorizationService.authorizeOccurrenceScope(
-            command.access,
-            request.id,
-            removedScope.map { it.occurrencePath }.toSet(),
-        )
-        removedScope.forEach {
-            it.removedAt = now
-            it.removedByPrincipalKind = command.access.principal.kind
-            it.removedByPrincipalId = command.access.principal.id
-            groupOccurrenceRepository.update(it)
-        }
-        val remaining = activeSiblings.filterNot { it.id == occurrence.id }
-        InformationRequestGroupOccurrenceResult(request, InformationRequestETag.responsesOf(request), remaining)
-    }
 
     private fun reorderOccurrences(
         command: ReorderInformationRequestGroupOccurrencesCommand,
-    ): InformationRequestGroupOccurrenceResult = mutate(command.requestId, command.access, command.precondition) {
-        request, _, _ ->
-        val template = templateData(request)
-        val group = template.requireGroup(command.groupKey)
-        lockService.requireBindingsOpen(request, template.bindingsUnder(group).map { it.id })
-        requireParent(request.id, group, command.parentOccurrenceId, template.groupsById)
-        val activeSiblings = groupOccurrenceRepository.findActiveForGroupAndParentForUpdate(
-            request.id,
-            group.id,
-            command.parentOccurrenceId,
-        )
-        if (activeSiblings.map { it.id }.toSet() != command.orderedOccurrenceIds.toSet() ||
-            activeSiblings.size != command.orderedOccurrenceIds.size)
-        {
-            throw InformationRequestLifecycleException(
-                InformationRequestErrorCatalog.GROUP_OCCURRENCE_ORDER_INVALID,
-                "The occurrence order must name every active sibling exactly once",
+    ): InformationRequestGroupOccurrenceResult =
+        mutate(command.requestId, command.access, command.precondition) { request, _, _ ->
+            val template = templateData(request)
+            val group = template.requireGroup(command.groupKey)
+            lockService.requireBindingsOpen(request, template.bindingsUnder(group).map { it.id })
+            requireParent(request.id, group, command.parentOccurrenceId, template.groupsById)
+            val activeSiblings = groupOccurrenceRepository.findActiveForGroupAndParentForUpdate(
+                request.id,
+                group.id,
+                command.parentOccurrenceId,
             )
-        }
-        groupAuthorizationService.authorizeOccurrenceScope(
-            command.access,
-            request.id,
-            activeSiblings.map { it.occurrencePath }.toSet(),
-        )
-        val byId = activeSiblings.associateBy { it.id }
-        command.orderedOccurrenceIds.forEachIndexed { index, occurrenceId ->
-            val occurrence = requireNotNull(byId[occurrenceId])
-            if (occurrence.occurrenceIndex != index)
+            if (activeSiblings.map { it.id }.toSet() != command.orderedOccurrenceIds.toSet() ||
+                activeSiblings.size != command.orderedOccurrenceIds.size
+            )
             {
-                occurrence.occurrenceIndex = index
-                groupOccurrenceRepository.update(occurrence)
+                throw InformationRequestLifecycleException(
+                    InformationRequestErrorCatalog.GROUP_OCCURRENCE_ORDER_INVALID,
+                    "The occurrence order must name every active sibling exactly once",
+                )
             }
+            groupAuthorizationService.authorizeOccurrenceScope(
+                command.access,
+                request.id,
+                activeSiblings.map { it.occurrencePath }.toSet(),
+            )
+            val byId = activeSiblings.associateBy { it.id }
+            command.orderedOccurrenceIds.forEachIndexed { index, occurrenceId ->
+                val occurrence = requireNotNull(byId[occurrenceId])
+                if (occurrence.occurrenceIndex != index)
+                {
+                    occurrence.occurrenceIndex = index
+                    groupOccurrenceRepository.update(occurrence)
+                }
+            }
+            val ordered = command.orderedOccurrenceIds.map { requireNotNull(byId[it]) }
+            InformationRequestGroupOccurrenceResult(request, InformationRequestETag.responsesOf(request), ordered)
         }
-        val ordered = command.orderedOccurrenceIds.map { requireNotNull(byId[it]) }
-        InformationRequestGroupOccurrenceResult(request, InformationRequestETag.responsesOf(request), ordered)
-    }
 
     private fun runOnce(
         requestId: UUID,
@@ -522,15 +492,15 @@ class InformationRequestGroupOccurrenceService @Inject constructor(
         group: InformationRequestTemplateRequirementGroup,
     ): List<InformationRequestTemplateRequirementBinding> =
         bindings.filter { it.occurrenceAnchorKey == group.groupKey } +
-            childrenByParent[group.id].orEmpty().flatMap { bindingsUnder(it) }
+                childrenByParent[group.id].orEmpty().flatMap { bindingsUnder(it) }
 
     private fun InformationRequestGroupOccurrenceTemplateData.materializedBindings(
         group: InformationRequestTemplateRequirementGroup,
     ): List<InformationRequestTemplateRequirementBinding> =
         bindings.filter { it.occurrenceAnchorKey == group.groupKey } +
-            childrenByParent[group.id].orEmpty()
-                .filter { it.minOccurrences > 0 }
-                .flatMap { materializedBindings(it) }
+                childrenByParent[group.id].orEmpty()
+                    .filter { it.minOccurrences > 0 }
+                    .flatMap { materializedBindings(it) }
 
     private fun materializeAnchoredRequirements(
         request: InformationRequest,
@@ -548,7 +518,14 @@ class InformationRequestGroupOccurrenceService @Inject constructor(
                         InformationRequestErrorCatalog.STATE_INVALID,
                         "Information Request Template Requirement not found",
                     )
-                materializeRequirement(request, binding, requirement, template.configuration, now, occurrence.occurrencePath)
+                materializeRequirement(
+                    request,
+                    binding,
+                    requirement,
+                    template.configuration,
+                    now,
+                    occurrence.occurrencePath
+                )
             }
     }
 
@@ -635,8 +612,12 @@ class InformationRequestGroupOccurrenceService @Inject constructor(
             "dispositions:${configuration.dispositionsByBinding[binding.id].orEmpty().map { it.disposition.name }}",
             "policy:${policy?.stableHashMaterial().orEmpty()}",
             "accepted:${policy?.let { acceptedHashMaterial(it, configuration) }.orEmpty()}",
-            "substitutes:${configuration.substitutesByBinding[binding.id].orEmpty().map { it.substituteTemplateBindingId }}",
-            "supporting:${configuration.evidenceLinksByBinding[binding.id].orEmpty().map { it.supportingTemplateBindingId }}",
+            "substitutes:${
+                configuration.substitutesByBinding[binding.id].orEmpty().map { it.substituteTemplateBindingId }
+            }",
+            "supporting:${
+                configuration.evidenceLinksByBinding[binding.id].orEmpty().map { it.supportingTemplateBindingId }
+            }",
         ).joinToString(separator = "\n")
         val digest = MessageDigest.getInstance("SHA-256")
             .digest(material.toByteArray(StandardCharsets.UTF_8))
@@ -696,7 +677,10 @@ class InformationRequestGroupOccurrenceService @Inject constructor(
             .toIntOrNull()
     }
 
-    private fun replayGroupOccurrenceResult(result: CommandResultReference, access: RequestAccessContext): InformationRequestGroupOccurrenceResult
+    private fun replayGroupOccurrenceResult(
+        result: CommandResultReference,
+        access: RequestAccessContext
+    ): InformationRequestGroupOccurrenceResult
     {
         require(result.resourceType == ResourceType.INFORMATION_REQUEST) {
             "Command receipt does not reference an Information Request"

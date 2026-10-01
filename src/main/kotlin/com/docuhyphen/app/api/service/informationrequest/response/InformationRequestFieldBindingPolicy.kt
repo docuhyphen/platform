@@ -9,18 +9,11 @@ import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
 import com.docuhyphen.app.api.service.auth.authz.Decision
 import com.docuhyphen.app.api.service.auth.authz.ResourceRef
-import com.docuhyphen.app.api.service.fields.AudienceFieldBindingPolicy
-import com.docuhyphen.app.api.service.fields.FieldBindingAccess
-import com.docuhyphen.app.api.service.fields.FieldBindingDecision
-import com.docuhyphen.app.api.service.fields.FieldBindingDenial
-import com.docuhyphen.app.api.service.fields.FieldValueOperation
-import com.docuhyphen.app.api.service.fields.FieldValueSetRef
-import com.docuhyphen.app.api.service.fields.FieldsAccessContext
-import com.docuhyphen.app.api.service.fields.FieldsResourceRef
+import com.docuhyphen.app.api.service.fields.*
 import com.docuhyphen.app.api.service.informationrequest.occurrence.InformationRequestOccurrencePath
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
-import java.util.UUID
+import java.util.*
 
 /**
  * The Information Request domain's per-binding Fields policy.
@@ -67,6 +60,7 @@ class InformationRequestFieldBindingPolicy @Inject constructor(
                 else
                     request.ownerUserId != principal.id
             }
+
             else -> false
         }
     }
@@ -116,8 +110,8 @@ class InformationRequestFieldBindingPolicy @Inject constructor(
         requirementRepository.findForRequest(requestId)
             .firstOrNull { requirement ->
                 answersOccurrence(requirement.occurrencePath, valueSet) &&
-                    templateBindingRepository.findById(requirement.sourceTemplateBindingId)
-                        ?.collectedFieldDefinitionId == fieldDefinitionId
+                        templateBindingRepository.findById(requirement.sourceTemplateBindingId)
+                            ?.collectedFieldDefinitionId == fieldDefinitionId
             }
             ?.id
 

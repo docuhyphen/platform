@@ -1,28 +1,12 @@
 package com.docuhyphen.app.api.service.informationrequest.review
 
 import com.docuhyphen.app.api.exception.InformationRequestCommandRequestException
-import com.docuhyphen.app.api.model.entity.InformationRequestResponseDisposition
-import com.docuhyphen.app.api.model.entity.InformationRequestReview
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewAssignment
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewDecision
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewDecisionKind
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewDraftItem
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewOutcome
-import com.docuhyphen.app.api.model.entity.InformationRequestSubmissionItem
-import com.docuhyphen.app.api.model.entity.ResourceType
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.informationrequest.LockedInformationRequest
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestMutation
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestTransitionHistoryCommand
-import com.docuhyphen.app.api.model.informationrequest.review.InformationRequestReviewCommandResult
-import com.docuhyphen.app.api.model.informationrequest.review.InformationRequestReviewDraftResult
-import com.docuhyphen.app.api.model.informationrequest.review.InformationRequestReviewItemStanding
-import com.docuhyphen.app.api.model.informationrequest.review.InformationRequestReviewSnapshot
-import com.docuhyphen.app.api.model.informationrequest.review.InformationRequestReviewStagePlan
-import com.docuhyphen.app.api.model.informationrequest.review.InformationRequestReviewStageState
-import com.docuhyphen.app.api.model.informationrequest.review.OverrideInformationRequestReviewItemCommand
-import com.docuhyphen.app.api.model.informationrequest.review.RecordInformationRequestReviewDecisionsCommand
-import com.docuhyphen.app.api.model.informationrequest.review.SaveInformationRequestReviewDraftCommand
+import com.docuhyphen.app.api.model.informationrequest.review.*
 import com.docuhyphen.app.api.repository.informationrequest.review.InformationRequestReviewAssignmentRepository
 import com.docuhyphen.app.api.repository.informationrequest.review.InformationRequestReviewDecisionRepository
 import com.docuhyphen.app.api.repository.informationrequest.review.InformationRequestReviewDraftItemRepository
@@ -31,13 +15,7 @@ import com.docuhyphen.app.api.repository.informationrequest.template.Information
 import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.auth.authz.ResourceRef
-import com.docuhyphen.app.api.service.command.CommandActorRef
-import com.docuhyphen.app.api.service.command.CommandMutationResult
-import com.docuhyphen.app.api.service.command.CommandReceiptDecision
-import com.docuhyphen.app.api.service.command.CommandReceiptRequest
-import com.docuhyphen.app.api.service.command.CommandReceiptService
-import com.docuhyphen.app.api.service.command.CommandRequestFingerprint
-import com.docuhyphen.app.api.service.command.CommandResultReference
+import com.docuhyphen.app.api.service.command.*
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestETag
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestMutationGate
@@ -105,7 +83,8 @@ class InformationRequestReviewDecisionService @Inject constructor(
                 patch.clear -> current?.let(draftRepository::delete)
                 else ->
                 {
-                    val outcome = patch.outcome ?: throw InformationRequestCommandRequestException("A worksheet entry states an outcome")
+                    val outcome = patch.outcome
+                        ?: throw InformationRequestCommandRequestException("A worksheet entry states an outcome")
                     val entry = current ?: InformationRequestReviewDraftItem().apply {
                         assignmentId = assignment.id
                         reviewId = review.id
@@ -180,7 +159,16 @@ class InformationRequestReviewDecisionService @Inject constructor(
                 requireItemReview(command.access, item)
                 requireOutcomeSupported(snapshot, item, entry.outcome, entry.narrative, assignment)
                 decisionRepository.save(
-                    decision(review, item, stage, entry.outcome, entry.narrative, command.access.principal, now, sequence++).apply {
+                    decision(
+                        review,
+                        item,
+                        stage,
+                        entry.outcome,
+                        entry.narrative,
+                        command.access.principal,
+                        now,
+                        sequence++
+                    ).apply {
                         kind = InformationRequestReviewDecisionKind.REVIEWER
                         assignmentId = assignment.id
                     },
@@ -243,7 +231,8 @@ class InformationRequestReviewDecisionService @Inject constructor(
                     "This review stage does not review that item",
                 )
             }
-            val standing = snapshot.standing.stage(stage.stageKey)?.items?.firstOrNull { it.itemId == command.submissionItemId }
+            val standing =
+                snapshot.standing.stage(stage.stageKey)?.items?.firstOrNull { it.itemId == command.submissionItemId }
             if (standing?.standing == InformationRequestReviewItemStanding.DECIDED)
             {
                 throw InformationRequestLifecycleException(
@@ -303,7 +292,10 @@ class InformationRequestReviewDecisionService @Inject constructor(
         return snapshot.coverage[stageKey].orEmpty().filterNot { it in settledElsewhere }
     }
 
-    private fun requireStageOpen(snapshot: InformationRequestReviewSnapshot, stageKey: String): InformationRequestReviewStagePlan
+    private fun requireStageOpen(
+        snapshot: InformationRequestReviewSnapshot,
+        stageKey: String
+    ): InformationRequestReviewStagePlan
     {
         val stage = snapshot.plan.stage(stageKey)
             ?: throw InformationRequestLifecycleException(
@@ -340,26 +332,30 @@ class InformationRequestReviewDecisionService @Inject constructor(
         {
             InformationRequestReviewOutcome.CHANGES_REQUIRED,
             InformationRequestReviewOutcome.REJECTED,
-            -> if (assignment != null && snapshot.findings.none { it.submissionItemId == item.id && it.assignmentId == assignment.id })
+                -> if (assignment != null && snapshot.findings.none { it.submissionItemId == item.id && it.assignmentId == assignment.id })
             {
                 throw InformationRequestLifecycleException(
                     InformationRequestErrorCatalog.REVIEW_FINDING_REQUIRED,
                     "Returning or rejecting an item needs a finding that says why",
                 )
             }
+
             InformationRequestReviewOutcome.SATISFIED_WITH_EXCEPTION,
             InformationRequestReviewOutcome.WAIVED,
-            -> if (narrative.isNullOrBlank())
+                -> if (narrative.isNullOrBlank())
             {
                 throw InformationRequestLifecycleException(
                     InformationRequestErrorCatalog.REVIEW_NARRATIVE_REQUIRED,
                     "Accepting an item with an exception or a waiver states why",
                 )
             }
+
             InformationRequestReviewOutcome.SATISFIED -> Unit
         }
         if (outcome == InformationRequestReviewOutcome.WAIVED &&
-            dispositionRepository.findForBinding(item.templateBindingId).none { it.disposition == InformationRequestResponseDisposition.WAIVED })
+            dispositionRepository.findForBinding(item.templateBindingId)
+                .none { it.disposition == InformationRequestResponseDisposition.WAIVED }
+        )
         {
             throw InformationRequestLifecycleException(
                 InformationRequestErrorCatalog.REVIEW_OUTCOME_NOT_PERMITTED,

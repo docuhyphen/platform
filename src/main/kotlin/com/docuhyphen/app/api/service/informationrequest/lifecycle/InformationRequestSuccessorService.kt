@@ -1,21 +1,10 @@
 package com.docuhyphen.app.api.service.informationrequest.lifecycle
 
-import com.docuhyphen.app.api.model.entity.InformationRequest
-import com.docuhyphen.app.api.model.entity.InformationRequestCarryForward
-import com.docuhyphen.app.api.model.entity.InformationRequestLineage
-import com.docuhyphen.app.api.model.entity.InformationRequestLineageKind
-import com.docuhyphen.app.api.model.entity.ResourceType
-import com.docuhyphen.app.api.model.entity.InformationRequestShareRoleKey
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.informationrequest.LockedInformationRequest
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
 import com.docuhyphen.app.api.model.informationrequest.creation.BlueprintInformationRequestPartyDefault
-import com.docuhyphen.app.api.model.informationrequest.lifecycle.CreateInformationRequestSuccessorCommand
-import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestFollowUpSpec
-import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestMutation
-import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestSuccessorOccurrence
-import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestSuccessorResult
-import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestTransitionHistoryCommand
-import com.docuhyphen.app.api.model.informationrequest.lifecycle.SupersedeInformationRequestCommand
+import com.docuhyphen.app.api.model.informationrequest.lifecycle.*
 import com.docuhyphen.app.api.model.informationrequest.submission.InformationRequestSubmissionPackageView
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRequirementRepository
@@ -26,14 +15,7 @@ import com.docuhyphen.app.api.repository.informationrequest.template.Information
 import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.auth.authz.ResourceRef
-import com.docuhyphen.app.api.service.command.CommandActorRef
-import com.docuhyphen.app.api.service.command.CommandMutationResult
-import com.docuhyphen.app.api.service.command.CommandPrecondition
-import com.docuhyphen.app.api.service.command.CommandReceiptDecision
-import com.docuhyphen.app.api.service.command.CommandReceiptRequest
-import com.docuhyphen.app.api.service.command.CommandReceiptService
-import com.docuhyphen.app.api.service.command.CommandRequestFingerprint
-import com.docuhyphen.app.api.service.command.CommandResultReference
+import com.docuhyphen.app.api.service.command.*
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestETag
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestMutationGate
@@ -47,7 +29,7 @@ import jakarta.inject.Inject
 import jakarta.transaction.Transactional
 import java.sql.Timestamp
 import java.time.Clock
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestSuccessorService @Inject constructor(
@@ -190,7 +172,8 @@ class InformationRequestSuccessorService @Inject constructor(
                 details = mapOf(
                     "successorRequestId" to successor.id.toString(),
                     "lineageKind" to spec.kind.name,
-                ) + (sourcePackage?.let { mapOf("sourcePackageId" to it.submissionPackage.id.toString()) } ?: emptyMap()),
+                ) + (sourcePackage?.let { mapOf("sourcePackageId" to it.submissionPackage.id.toString()) }
+                    ?: emptyMap()),
             ),
         )
         val current = requireNotNull(requestRepository.findById(successor.id))
@@ -230,7 +213,8 @@ class InformationRequestSuccessorService @Inject constructor(
         partyService.materializeBlueprintDefaultParties(successor, defaults, access)
         partyService.materializeSubjectParties(
             successor,
-            partyRepository.findActiveForRequestRole(source.id, InformationRequestShareRoleKey.SUBJECT).mapNotNull { it.subjectIdentityRefId },
+            partyRepository.findActiveForRequestRole(source.id, InformationRequestShareRoleKey.SUBJECT)
+                .mapNotNull { it.subjectIdentityRefId },
             access,
         )
     }
@@ -295,7 +279,10 @@ class InformationRequestSuccessorService @Inject constructor(
         require(recorded.resourceType == ResourceType.INFORMATION_REQUEST) { "Command receipt does not reference a follow-up request" }
         gate.authorizeRequest(access, listOf(Action.INFORMATION_REQUEST_VIEW), locked.request.id)
         val successor = requestRepository.findById(recorded.resourceId)
-            ?: throw InformationRequestLifecycleException(InformationRequestErrorCatalog.NOT_FOUND, "Follow-up request not found")
+            ?: throw InformationRequestLifecycleException(
+                InformationRequestErrorCatalog.NOT_FOUND,
+                "Follow-up request not found"
+            )
         return InformationRequestSuccessorResult(
             source = locked.request,
             successor = successor,

@@ -143,34 +143,34 @@ class AuditExportBuilder @Inject constructor(
         private const val MAX_BUNDLE_CONTENT_BYTES = 256L * 1024L * 1024L
         private const val FIDELITY_NOTE =
             "events.csv flattens each event to scalar columns plus a single JSON-encoded payload " +
-                "column; it is a convenience projection, not canonical evidence. events.jsonl is " +
-                "the byte-for-byte record of every exported event and is what the manifest hash " +
-                "and signature cover."
+                    "column; it is a convenience projection, not canonical evidence. events.jsonl is " +
+                    "the byte-for-byte record of every exported event and is what the manifest hash " +
+                    "and signature cover."
         private const val README_TEXT =
             "DocuHyphen audit evidence export\n" +
-                "=================================\n\n" +
-                "Files in this bundle:\n" +
-                "  manifest.json   - canonical, signed description of this export (range, event\n" +
-                "                    count, schema versions, signing key id, per-entry digests,\n" +
-                "                    events Merkle root).\n" +
-                "  events.jsonl    - every exported ledger event, one JSON object per line, in\n" +
-                "                    (streamId, streamSequence) order. This is the canonical\n" +
-                "                    evidence; events.csv is a convenience projection only.\n" +
-                "  events.csv      - flattened projection of the same events for spreadsheet\n" +
-                "                    tools. Values that could be interpreted as a spreadsheet\n" +
-                "                    formula are neutralized with a leading apostrophe; events.jsonl\n" +
-                "                    is unaltered. See the fidelityNote in manifest.json.\n" +
-                "  integrity.json  - per-stream boundary-checkpoint (segment chain) and segment\n" +
-                "                    verification results collected before this bundle was built.\n" +
-                "  signature.json  - detached SHA256withRSA signature over the exact manifest.json\n" +
-                "                    bytes, plus a convenience copy of the signing public key. Do not\n" +
-                "                    trust that embedded key by itself - obtain the trusted key for\n" +
-                "                    manifest.json's signingKeyId through an independent channel.\n" +
-                "  verify.mjs      - dependency-free Node.js verifier for entry digests, the\n" +
-                "                    trusted-key signature, event hashes, chains, and Merkle root.\n" +
-                "Verify manifest.json and signature.json using a trusted public key obtained\n" +
-                "through an independent channel. Recompute each declared entry digest and the\n" +
-                "events Merkle root before relying on the evidence.\n"
+                    "=================================\n\n" +
+                    "Files in this bundle:\n" +
+                    "  manifest.json   - canonical, signed description of this export (range, event\n" +
+                    "                    count, schema versions, signing key id, per-entry digests,\n" +
+                    "                    events Merkle root).\n" +
+                    "  events.jsonl    - every exported ledger event, one JSON object per line, in\n" +
+                    "                    (streamId, streamSequence) order. This is the canonical\n" +
+                    "                    evidence; events.csv is a convenience projection only.\n" +
+                    "  events.csv      - flattened projection of the same events for spreadsheet\n" +
+                    "                    tools. Values that could be interpreted as a spreadsheet\n" +
+                    "                    formula are neutralized with a leading apostrophe; events.jsonl\n" +
+                    "                    is unaltered. See the fidelityNote in manifest.json.\n" +
+                    "  integrity.json  - per-stream boundary-checkpoint (segment chain) and segment\n" +
+                    "                    verification results collected before this bundle was built.\n" +
+                    "  signature.json  - detached SHA256withRSA signature over the exact manifest.json\n" +
+                    "                    bytes, plus a convenience copy of the signing public key. Do not\n" +
+                    "                    trust that embedded key by itself - obtain the trusted key for\n" +
+                    "                    manifest.json's signingKeyId through an independent channel.\n" +
+                    "  verify.mjs      - dependency-free Node.js verifier for entry digests, the\n" +
+                    "                    trusted-key signature, event hashes, chains, and Merkle root.\n" +
+                    "Verify manifest.json and signature.json using a trusted public key obtained\n" +
+                    "through an independent channel. Recompute each declared entry digest and the\n" +
+                    "events Merkle root before relying on the evidence.\n"
     }
 
     /**
@@ -216,7 +216,7 @@ class AuditExportBuilder @Inject constructor(
         {
             throw AuditExportIntegrityFailedException(
                 "Stream ${failedStream.streamId} failed integrity verification: " +
-                    (failedStream.segmentFailureNotes.firstOrNull() ?: failedStream.chainNote),
+                        (failedStream.segmentFailureNotes.firstOrNull() ?: failedStream.chainNote),
             )
         }
 
@@ -243,7 +243,7 @@ class AuditExportBuilder @Inject constructor(
         {
             throw AuditExportIntegrityFailedException(
                 "Stream ${coverageFailure.streamId} does not have complete verified archive coverage for the " +
-                    "requested range: ${coverageFailure.note}",
+                        "requested range: ${coverageFailure.note}",
             )
         }
 

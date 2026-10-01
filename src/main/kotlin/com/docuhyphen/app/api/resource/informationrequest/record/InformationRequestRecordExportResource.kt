@@ -44,7 +44,10 @@ class InformationRequestRecordExportResource @Inject constructor(
     {
         return try
         {
-            val views = exports.exports(InformationRequestCommandHttp.uuid(id, "information request id"), accessContextFactory.currentAuthenticated())
+            val views = exports.exports(
+                InformationRequestCommandHttp.uuid(id, "information request id"),
+                accessContextFactory.currentAuthenticated()
+            )
             Response.ok(views.map(InformationRequestAuditDtoMapper::toDto).toTypedArray()).build()
         }
         catch (exception: Exception)

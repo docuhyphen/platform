@@ -7,22 +7,13 @@ import com.docuhyphen.app.api.model.entity.AuditIdentityTreatment
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.service.audit.AuditRetentionPolicyService
 import com.docuhyphen.app.api.service.audit.catalog.AuditCategory
-import com.docuhyphen.app.api.service.auth.authz.Action
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.Decision
-import com.docuhyphen.app.api.service.auth.authz.ResourceRef
+import com.docuhyphen.app.api.service.auth.authz.*
 import jakarta.inject.Inject
-import jakarta.ws.rs.Consumes
-import jakarta.ws.rs.GET
-import jakarta.ws.rs.PUT
-import jakarta.ws.rs.Path
-import jakarta.ws.rs.PathParam
-import jakarta.ws.rs.Produces
+import jakarta.ws.rs.*
 import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
-import java.util.UUID
 import org.slf4j.LoggerFactory
+import java.util.*
 
 /** Given its own class-level path; see AuditOrganizationEventsResource for why this class is not merged with others. */
 @Path("/organizations/{organizationId}/audit-retention-policies")
@@ -38,10 +29,12 @@ class AuditOrganizationRetentionPolicyResource @Inject constructor(
     {
         private val logger = LoggerFactory.getLogger(AuditOrganizationRetentionPolicyResource::class.java)
     }
+
     @GET
     fun listOrganizationRetentionPolicies(@PathParam("organizationId") organizationId: String): Response =
         withAuthorizedOrg(organizationId, Action.ORG_READ_AUDIT) { _, orgId ->
-            Response.ok(auditRetentionPolicyService.listEffectivePolicies(orgId).map(AuditGovernanceDtoMapper::toDto)).build()
+            Response.ok(auditRetentionPolicyService.listEffectivePolicies(orgId).map(AuditGovernanceDtoMapper::toDto))
+                .build()
         }
 
     @PUT

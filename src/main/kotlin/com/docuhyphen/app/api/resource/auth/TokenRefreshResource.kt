@@ -1,25 +1,13 @@
 package com.docuhyphen.app.api.resource.auth
 
-import com.docuhyphen.app.api.model.entity.AuthTokenType.REFRESH
-import com.docuhyphen.app.api.resource.model.ResponseError
-import com.docuhyphen.app.api.resource.model.TokenRefreshResponse
-import com.docuhyphen.app.api.service.user.AppUserService
-import com.docuhyphen.app.api.service.auth.AuthAuditService
-import com.docuhyphen.app.api.service.auth.AuthRateLimitService
-import com.docuhyphen.app.api.service.auth.AuthenticationService
-import com.docuhyphen.app.api.service.auth.CsrfProtectionService
-import com.docuhyphen.app.api.service.auth.RefreshRotationStatus
-import com.docuhyphen.app.api.service.auth.RevocationReasonCode
-import com.docuhyphen.app.api.service.auth.RiskLevel
-import com.docuhyphen.app.api.service.auth.RiskSignalService
-import com.docuhyphen.app.api.service.auth.AuthSessionPolicyService
-import com.docuhyphen.app.api.service.auth.OrganizationMembershipValidationService
 import com.docuhyphen.app.api.model.entity.SecurityIncidentSeverity
 import com.docuhyphen.app.api.model.entity.SecurityIncidentType
-import com.docuhyphen.app.api.service.security.SecurityIncidentService
-import com.docuhyphen.app.api.service.auth.TokenIssuanceService
-import com.docuhyphen.app.api.service.auth.UserSessionService
+import com.docuhyphen.app.api.resource.model.ResponseError
+import com.docuhyphen.app.api.resource.model.TokenRefreshResponse
+import com.docuhyphen.app.api.service.auth.*
 import com.docuhyphen.app.api.service.config.ConfigurationService
+import com.docuhyphen.app.api.service.security.SecurityIncidentService
+import com.docuhyphen.app.api.service.user.AppUserService
 import jakarta.inject.Inject
 import jakarta.ws.rs.*
 import jakarta.ws.rs.core.Context
@@ -27,7 +15,6 @@ import jakarta.ws.rs.core.Cookie
 import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
 import org.slf4j.LoggerFactory
-import java.util.*
 
 @Path("/auth/token")
 @Produces(MediaType.APPLICATION_JSON)
@@ -72,7 +59,8 @@ class TokenRefreshResource @Inject constructor(
             if (authRateLimitService.isLimited(
                     key = "auth:refresh:$clientIp",
                     maxPerMinute = configurationService.getAuthRateLimitRefreshPerMinute(),
-                ))
+                )
+            )
             {
                 securityIncidentService.record(
                     incidentType = SecurityIncidentType.AUTH_RATE_LIMIT_REFRESH,
@@ -130,11 +118,17 @@ class TokenRefreshResource @Inject constructor(
             val jti = parts[0]
             val stored = authenticationService.findRefreshTokenByJti(jti)
                 ?: return Response.status(Response.Status.UNAUTHORIZED)
-                    .entity(ResponseError("Invalid or expired refresh token", RevocationReasonCode.REFRESH_INVALID.name))
+                    .entity(
+                        ResponseError(
+                            "Invalid or expired refresh token",
+                            RevocationReasonCode.REFRESH_INVALID.name
+                        )
+                    )
                     .build()
 
             // Constant-time hash comparison against the stored token hash.
-            if (!authenticationService.verifyRefreshTokenSecret(refreshTokenValue, stored)) {
+            if (!authenticationService.verifyRefreshTokenSecret(refreshTokenValue, stored))
+            {
                 return Response.status(Response.Status.UNAUTHORIZED)
                     .entity(ResponseError("Invalid refresh token", RevocationReasonCode.REFRESH_INVALID.name))
                     .build()
@@ -187,10 +181,12 @@ class TokenRefreshResource @Inject constructor(
                     reason = membershipValidation.message,
                 )
                 return Response.status(Response.Status.UNAUTHORIZED)
-                    .entity(ResponseError(
-                        membershipValidation.message ?: "Organization membership is inactive",
-                        reasonCode.name,
-                    ))
+                    .entity(
+                        ResponseError(
+                            membershipValidation.message ?: "Organization membership is inactive",
+                            reasonCode.name,
+                        )
+                    )
                     .build()
             }
 
@@ -222,7 +218,10 @@ class TokenRefreshResource @Inject constructor(
                 val risk = riskSignalService.evaluate(session, clientIp, userAgent, requestId)
                 if (risk.level == RiskLevel.HIGH)
                 {
-                    authenticationService.deleteAllRefreshTokensForUser(appUser.id, RevocationReasonCode.RISK_SIGNAL_DETECTED)
+                    authenticationService.deleteAllRefreshTokensForUser(
+                        appUser.id,
+                        RevocationReasonCode.RISK_SIGNAL_DETECTED
+                    )
                     userSessionService.revokeSession(sessionId, RevocationReasonCode.RISK_SIGNAL_DETECTED)
                     authAuditService.emit(
                         action = "TOKEN_REFRESH",
@@ -234,10 +233,12 @@ class TokenRefreshResource @Inject constructor(
                         reason = "Risk signals: ${risk.reasons.joinToString(",")}",
                     )
                     return Response.status(Response.Status.UNAUTHORIZED)
-                        .entity(ResponseError(
-                            "Session terminated for security reasons.",
-                            RevocationReasonCode.RISK_SIGNAL_DETECTED.name,
-                        ))
+                        .entity(
+                            ResponseError(
+                                "Session terminated for security reasons.",
+                                RevocationReasonCode.RISK_SIGNAL_DETECTED.name,
+                            )
+                        )
                         .build()
                 }
             }
@@ -255,7 +256,10 @@ class TokenRefreshResource @Inject constructor(
                 val idleLimitSeconds = policy.idleTimeoutMinutes * 60
                 if (idleSeconds > idleLimitSeconds)
                 {
-                    authenticationService.deleteAllRefreshTokensForUser(appUser.id, RevocationReasonCode.INACTIVITY_TIMEOUT)
+                    authenticationService.deleteAllRefreshTokensForUser(
+                        appUser.id,
+                        RevocationReasonCode.INACTIVITY_TIMEOUT
+                    )
                     userSessionService.revokeSession(sessionId, RevocationReasonCode.INACTIVITY_TIMEOUT)
                     authAuditService.emit(
                         action = "TOKEN_REFRESH",
@@ -267,10 +271,12 @@ class TokenRefreshResource @Inject constructor(
                         reason = "Idle timeout exceeded (idleSeconds=$idleSeconds, limit=$idleLimitSeconds)",
                     )
                     return Response.status(Response.Status.UNAUTHORIZED)
-                        .entity(ResponseError(
-                            "Session timed out due to inactivity",
-                            RevocationReasonCode.INACTIVITY_TIMEOUT.name,
-                        ))
+                        .entity(
+                            ResponseError(
+                                "Session timed out due to inactivity",
+                                RevocationReasonCode.INACTIVITY_TIMEOUT.name,
+                            )
+                        )
                         .build()
                 }
             }
@@ -318,10 +324,12 @@ class TokenRefreshResource @Inject constructor(
                     requestId = requestId,
                 )
                 return Response.status(Response.Status.UNAUTHORIZED)
-                    .entity(ResponseError(
-                        "Refresh token has been revoked",
-                        RevocationReasonCode.REFRESH_REUSE_DETECTED.name,
-                    ))
+                    .entity(
+                        ResponseError(
+                            "Refresh token has been revoked",
+                            RevocationReasonCode.REFRESH_REUSE_DETECTED.name,
+                        )
+                    )
                     .build()
             }
 

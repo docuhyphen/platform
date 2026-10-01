@@ -6,14 +6,17 @@ import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
 import com.docuhyphen.app.api.service.auth.authz.Decision
 import com.docuhyphen.app.api.service.auth.authz.ResourceRef
 import io.quarkus.security.ForbiddenException
-import java.util.UUID
+import java.util.*
 
 object InformationRequestReadAuthorization
 {
     fun requireView(authorization: AuthorizationService, requestId: UUID, access: RequestAccessContext)
     {
-        if (authorization.authorize(access.principal, Action.INFORMATION_REQUEST_VIEW,
-                ResourceRef.informationRequest(requestId), access.authorization) is Decision.Deny)
+        if (authorization.authorize(
+                access.principal, Action.INFORMATION_REQUEST_VIEW,
+                ResourceRef.informationRequest(requestId), access.authorization
+            ) is Decision.Deny
+        )
             throw ForbiddenException("Access denied to view this Information Request")
     }
 }

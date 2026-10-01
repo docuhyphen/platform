@@ -13,7 +13,8 @@ data class DomainEventConsumptionResult(
 {
     companion object
     {
-        fun applied(detail: String? = null) = DomainEventConsumptionResult(DomainEventConsumptionOutcome.APPLIED, detail)
+        fun applied(detail: String? = null) =
+            DomainEventConsumptionResult(DomainEventConsumptionOutcome.APPLIED, detail)
 
         fun skipped(detail: String) = DomainEventConsumptionResult(DomainEventConsumptionOutcome.SKIPPED, detail)
     }

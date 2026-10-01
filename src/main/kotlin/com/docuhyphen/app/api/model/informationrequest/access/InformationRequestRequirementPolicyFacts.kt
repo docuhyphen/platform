@@ -6,7 +6,7 @@ import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequ
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestState
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.auth.authz.ResourcePolicyFacts
-import java.util.UUID
+import java.util.*
 
 data class InformationRequestRequirementPolicyFacts(
     val requestId: UUID,

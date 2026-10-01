@@ -8,7 +8,7 @@ import jakarta.inject.Inject
 import org.slf4j.LoggerFactory
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 /**
  * Durable [DomainEventPublisher] for required domain events. Rather than routing an event
@@ -26,7 +26,8 @@ class DomainEventOutboxPublisher : DomainEventPublisher
 {
     private val logger = LoggerFactory.getLogger(DomainEventOutboxPublisher::class.java)
 
-    @Inject private lateinit var outboxRepository: DomainEventOutboxRepository
+    @Inject
+    private lateinit var outboxRepository: DomainEventOutboxRepository
 
     private val json = DomainEventJson.instance
 

@@ -18,7 +18,10 @@ class InformationRequestEvidenceDeploymentPolicy @Inject constructor(
     fun requireUploadAvailable()
     {
         unavailableReason()?.let { reason ->
-            throw InformationRequestLifecycleException(InformationRequestErrorCatalog.EVIDENCE_UPLOAD_UNAVAILABLE, reason)
+            throw InformationRequestLifecycleException(
+                InformationRequestErrorCatalog.EVIDENCE_UPLOAD_UNAVAILABLE,
+                reason
+            )
         }
     }
 
@@ -34,6 +37,7 @@ class InformationRequestEvidenceDeploymentPolicy @Inject constructor(
             !uploadEnabled -> "Evidence upload is not enabled in this deployment"
             scanRequired && scanner.engine()?.productionEligible != true ->
                 "Evidence upload needs a configured production malware scanner"
+
             else -> null
         }
 }

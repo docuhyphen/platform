@@ -12,7 +12,7 @@ import org.mindrot.jbcrypt.BCrypt
 import org.slf4j.LoggerFactory
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class ApplicationService @Inject constructor(

@@ -1,19 +1,12 @@
 package com.docuhyphen.app.api.service.organization
 
 import com.docuhyphen.app.api.exception.OrganizationTrustNotFoundException
-import com.docuhyphen.app.api.model.entity.ExchangeRecipientAttestation
-import com.docuhyphen.app.api.model.entity.ExchangeRecipientAttestationSubjectType
-import com.docuhyphen.app.api.model.entity.Organization
-import com.docuhyphen.app.api.model.entity.OrganizationMembership
-import com.docuhyphen.app.api.model.entity.OrganizationTrustPartyPolicy
-import com.docuhyphen.app.api.model.entity.OrganizationTrustRelationship
-import com.docuhyphen.app.api.model.entity.OrganizationTrustRelationshipStatus
-import com.docuhyphen.app.api.model.entity.PrincipalGroup
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.service.user.AppUserService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 data class TrustedExchangePolicyValidation(
     val relationship: OrganizationTrustRelationship,
@@ -159,7 +152,8 @@ class TrustedRecipientValidationService @Inject constructor(
         ).singleOrNull() ?: unavailable()
         if (membership.appUserId != subjectAppUserId ||
             membership.deprovisionedAt != null ||
-            membership.expiresAt?.toInstant()?.isAfter(now) == false)
+            membership.expiresAt?.toInstant()?.isAfter(now) == false
+        )
         {
             unavailable()
         }
@@ -174,7 +168,8 @@ class TrustedRecipientValidationService @Inject constructor(
     fun isPersonAttestationCurrentlyEligible(attestation: ExchangeRecipientAttestation): Boolean =
         runCatching { validatePersonAttestation(attestation) }.isSuccess
 
-    fun isRelationshipSuspended(relationshipId: UUID): Boolean = relationshipService.isEffectivelySuspended(relationshipId)
+    fun isRelationshipSuspended(relationshipId: UUID): Boolean =
+        relationshipService.isEffectivelySuspended(relationshipId)
 
     private fun validatePolicies(
         callerOrganizationId: UUID,
@@ -193,7 +188,8 @@ class TrustedRecipientValidationService @Inject constructor(
             targetOrganizationId,
         ) ?: unavailable()
         if (relationship.status != OrganizationTrustRelationshipStatus.ACTIVE ||
-            relationshipService.isEffectivelySuspended(relationship.id))
+            relationshipService.isEffectivelySuspended(relationship.id)
+        )
         {
             unavailable()
         }
@@ -205,7 +201,8 @@ class TrustedRecipientValidationService @Inject constructor(
         if (!senderPolicy.allowExchangesToPartner || !targetPolicy.allowExchangesFromPartner ||
             (requireGroupDiscovery && !targetPolicy.allowPartnerGroupDiscovery) ||
             (requireMemberResolution && !targetPolicy.allowPartnerMemberResolution) ||
-            !isCurrent(senderPolicy, now) || !isCurrent(targetPolicy, now))
+            !isCurrent(senderPolicy, now) || !isCurrent(targetPolicy, now)
+        )
         {
             unavailable()
         }
@@ -241,7 +238,7 @@ class TrustedRecipientValidationService @Inject constructor(
 
     private fun isCurrent(policy: OrganizationTrustPartyPolicy, now: Instant): Boolean =
         policy.expiresAt?.toInstant()?.isAfter(now) != false &&
-            policy.reviewDueAt?.toInstant()?.isAfter(now) != false
+                policy.reviewDueAt?.toInstant()?.isAfter(now) != false
 
     private fun TrustedExchangePolicyValidation.withGroup(group: PrincipalGroup): TrustedGroupValidation =
         TrustedGroupValidation(

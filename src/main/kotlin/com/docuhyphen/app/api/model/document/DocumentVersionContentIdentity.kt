@@ -6,8 +6,7 @@ import java.io.File
 import java.io.InputStream
 import java.io.OutputStream
 import java.security.MessageDigest
-import java.util.Base64
-import java.util.HexFormat
+import java.util.*
 
 enum class DocumentVersionContentHashAlgorithm(val digestName: String)
 {

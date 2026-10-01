@@ -18,8 +18,12 @@ class InformationRequestNoticeResource @Inject constructor(
     {
         return try
         {
-            val views = notices.notices(InformationRequestCommandHttp.uuid(id, "information request id"), accessContextFactory.currentAuthenticated())
-            Response.ok(views.map { InformationRequestNoticeDtoMapper.toDto(it, notices.allocationsOf(it)) }.toTypedArray()).build()
+            val views = notices.notices(
+                InformationRequestCommandHttp.uuid(id, "information request id"),
+                accessContextFactory.currentAuthenticated()
+            )
+            Response.ok(views.map { InformationRequestNoticeDtoMapper.toDto(it, notices.allocationsOf(it)) }
+                .toTypedArray()).build()
         }
         catch (exception: Exception)
         {

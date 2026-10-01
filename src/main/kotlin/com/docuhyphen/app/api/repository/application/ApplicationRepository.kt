@@ -1,10 +1,9 @@
 package com.docuhyphen.app.api.repository.application
 
-import com.docuhyphen.app.api.repository.BaseRepository
-
 import com.docuhyphen.app.api.model.entity.Application
+import com.docuhyphen.app.api.repository.BaseRepository
 import jakarta.enterprise.context.ApplicationScoped
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class ApplicationRepository : BaseRepository<Application>(Application::class.java)

@@ -1,36 +1,11 @@
 package com.docuhyphen.app.api.model
 
-import com.docuhyphen.app.api.model.dto.InformationRequestCorrectionDto
-import com.docuhyphen.app.api.model.dto.InformationRequestRemediationDto
-import com.docuhyphen.app.api.model.dto.InformationRequestRespondentReviewDto
-import com.docuhyphen.app.api.model.dto.InformationRequestReviewAssignmentDto
-import com.docuhyphen.app.api.model.dto.InformationRequestReviewCommandResultDto
-import com.docuhyphen.app.api.model.dto.InformationRequestReviewCommentDto
-import com.docuhyphen.app.api.model.dto.InformationRequestReviewDecisionDto
-import com.docuhyphen.app.api.model.dto.InformationRequestReviewDto
-import com.docuhyphen.app.api.model.dto.InformationRequestReviewFindingDto
-import com.docuhyphen.app.api.model.dto.InformationRequestReviewItemDto
-import com.docuhyphen.app.api.model.dto.InformationRequestReviewItemStandingDto
-import com.docuhyphen.app.api.model.dto.InformationRequestReviewQueueEntryDto
-import com.docuhyphen.app.api.model.dto.InformationRequestReviewStageStandingDto
-import com.docuhyphen.app.api.model.dto.InformationRequestReviewSummaryDto
-import com.docuhyphen.app.api.model.dto.InformationRequestReviewWorksheetDto
-import com.docuhyphen.app.api.model.dto.InformationRequestReviewWorksheetEntryDto
-import com.docuhyphen.app.api.model.dto.InformationRequestSubmissionEvidenceDto
-import com.docuhyphen.app.api.model.entity.InformationRequestReview
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewComment
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewDraftItem
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewFinding
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewRemediation
-import com.docuhyphen.app.api.model.informationrequest.review.InformationRequestReadableReview
-import com.docuhyphen.app.api.model.informationrequest.review.InformationRequestRespondentReviewResult
-import com.docuhyphen.app.api.model.informationrequest.review.InformationRequestReviewCommandResult
-import com.docuhyphen.app.api.model.informationrequest.review.InformationRequestReviewCorrectionView
-import com.docuhyphen.app.api.model.informationrequest.review.InformationRequestReviewDraftResult
-import com.docuhyphen.app.api.model.informationrequest.review.InformationRequestReviewQueueEntry
+import com.docuhyphen.app.api.model.dto.*
+import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.informationrequest.review.*
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.command.RevisionETag
-import java.util.UUID
+import java.util.*
 
 object InformationRequestReviewDtoMapper
 {
@@ -57,7 +32,13 @@ object InformationRequestReviewDtoMapper
                     excludesResponseParties = stage.excludesResponseParties,
                     excludesPriorReviewers = stage.excludesPriorReviewers,
                     state = requireNotNull(standing).state,
-                    items = standing.items.map { InformationRequestReviewItemStandingDto(it.itemId, it.standing, it.outcome) },
+                    items = standing.items.map {
+                        InformationRequestReviewItemStandingDto(
+                            it.itemId,
+                            it.standing,
+                            it.outcome
+                        )
+                    },
                 )
             },
             items = view.items.map { item ->
@@ -86,7 +67,8 @@ object InformationRequestReviewDtoMapper
                             contentLength = member.contentLength,
                             conformance = member.conformance,
                         )
-                    } else emptyList(),
+                    }
+                    else emptyList(),
                 )
             },
             assignments = snapshot.assignments.map { assignment ->
@@ -130,7 +112,10 @@ object InformationRequestReviewDtoMapper
         )
     }
 
-    fun toDto(result: InformationRequestRespondentReviewResult, caller: PrincipalRef): InformationRequestRespondentReviewDto =
+    fun toDto(
+        result: InformationRequestRespondentReviewResult,
+        caller: PrincipalRef
+    ): InformationRequestRespondentReviewDto =
         InformationRequestRespondentReviewDto(
             review = summary(result.review, result.packageNumber, result.stageKey),
             findings = result.visibleFindings.map { toDto(it, caller) },
@@ -156,7 +141,11 @@ object InformationRequestReviewDtoMapper
             assignedAt = entry.assignment.assignedAt,
         )
 
-    fun toDto(result: InformationRequestReviewCommandResult, packageNumber: Int, stageKey: String?): InformationRequestReviewCommandResultDto =
+    fun toDto(
+        result: InformationRequestReviewCommandResult,
+        packageNumber: Int,
+        stageKey: String?
+    ): InformationRequestReviewCommandResultDto =
         InformationRequestReviewCommandResultDto(
             requestState = result.request.state,
             responseETag = result.responseETag,
@@ -174,7 +163,13 @@ object InformationRequestReviewDtoMapper
         InformationRequestReviewWorksheetDto(
             assignmentId = assignmentId,
             draftETag = draftETag,
-            entries = entries.map { InformationRequestReviewWorksheetEntryDto(it.submissionItemId, it.outcome, it.narrative) },
+            entries = entries.map {
+                InformationRequestReviewWorksheetEntryDto(
+                    it.submissionItemId,
+                    it.outcome,
+                    it.narrative
+                )
+            },
         )
 
     private fun summary(review: InformationRequestReview, packageNumber: Int, stageKey: String?) =
@@ -194,38 +189,44 @@ object InformationRequestReviewDtoMapper
             reviewETag = RevisionETag.of(review.id, review.reviewRevision),
         )
 
-    private fun toDto(finding: InformationRequestReviewFinding, caller: PrincipalRef) = InformationRequestReviewFindingDto(
-        id = finding.id,
-        submissionItemId = finding.submissionItemId,
-        requirementId = finding.requirementId,
-        evidenceVersionId = finding.evidenceVersionId,
-        reasonCode = finding.reasonCode,
-        narrative = finding.narrative,
-        severity = finding.severity,
-        visibility = finding.visibility,
-        correctionScope = finding.correctionScope,
-        retestsFindingId = finding.retestsFindingId,
-        retestResult = finding.retestResult,
-        recordedAt = finding.recordedAt,
-        recordedByCaller = finding.recordedByPrincipalKind == caller.kind && finding.recordedByPrincipalId == caller.id,
-    )
+    private fun toDto(finding: InformationRequestReviewFinding, caller: PrincipalRef) =
+        InformationRequestReviewFindingDto(
+            id = finding.id,
+            submissionItemId = finding.submissionItemId,
+            requirementId = finding.requirementId,
+            evidenceVersionId = finding.evidenceVersionId,
+            reasonCode = finding.reasonCode,
+            narrative = finding.narrative,
+            severity = finding.severity,
+            visibility = finding.visibility,
+            correctionScope = finding.correctionScope,
+            retestsFindingId = finding.retestsFindingId,
+            retestResult = finding.retestResult,
+            recordedAt = finding.recordedAt,
+            recordedByCaller = finding.recordedByPrincipalKind == caller.kind && finding.recordedByPrincipalId == caller.id,
+        )
 
-    private fun toDto(comment: InformationRequestReviewComment, caller: PrincipalRef) = InformationRequestReviewCommentDto(
-        id = comment.id,
-        submissionItemId = comment.submissionItemId,
-        requirementId = comment.requirementId,
-        findingId = comment.findingId,
-        replyToCommentId = comment.replyToCommentId,
-        authorRole = comment.authorRole,
-        visibility = comment.visibility,
-        body = comment.body,
-        createdAt = comment.createdAt,
-        authoredByCaller = comment.authorPrincipalKind == caller.kind && comment.authorPrincipalId == caller.id,
-    )
+    private fun toDto(comment: InformationRequestReviewComment, caller: PrincipalRef) =
+        InformationRequestReviewCommentDto(
+            id = comment.id,
+            submissionItemId = comment.submissionItemId,
+            requirementId = comment.requirementId,
+            findingId = comment.findingId,
+            replyToCommentId = comment.replyToCommentId,
+            authorRole = comment.authorRole,
+            visibility = comment.visibility,
+            body = comment.body,
+            createdAt = comment.createdAt,
+            authoredByCaller = comment.authorPrincipalKind == caller.kind && comment.authorPrincipalId == caller.id,
+        )
 
-    private fun toDto(view: InformationRequestReviewCorrectionView, visibleRequirementIds: Set<UUID>?): InformationRequestCorrectionDto
+    private fun toDto(
+        view: InformationRequestReviewCorrectionView,
+        visibleRequirementIds: Set<UUID>?
+    ): InformationRequestCorrectionDto
     {
-        val visibleItems = view.items.filter { visibleRequirementIds == null || it.requirementId in visibleRequirementIds }
+        val visibleItems =
+            view.items.filter { visibleRequirementIds == null || it.requirementId in visibleRequirementIds }
         val visibleItemIds = visibleItems.map { it.id }.toSet()
         return InformationRequestCorrectionDto(
             id = view.correction.id,
@@ -236,7 +237,8 @@ object InformationRequestReviewDtoMapper
             closedAt = view.correction.closedAt,
             resubmittedPackageId = view.correction.resubmittedPackageId,
             requirementIds = visibleItems.map { it.requirementId },
-            evidenceVersionIds = view.evidence.filter { it.correctionItemId in visibleItemIds }.map { it.evidenceVersionId },
+            evidenceVersionIds = view.evidence.filter { it.correctionItemId in visibleItemIds }
+                .map { it.evidenceVersionId },
             undisclosedItemCount = view.items.size - visibleItems.size,
         )
     }

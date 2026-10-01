@@ -6,7 +6,7 @@ import io.vertx.mutiny.redis.client.Request
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import org.slf4j.LoggerFactory
-import java.util.UUID
+import java.util.*
 
 /**
  * O(1) revocation check for session IDs. Replaces the coarser `sessionVersion` global bump:
@@ -57,7 +57,11 @@ class SessionRevocationCache @Inject constructor(
         logger.info("Session marked revoked sessionId={} reasonCode={}", sessionId, reasonCode)
     }
 
-    fun markManyRevoked(sessionIds: Collection<UUID>, reasonCode: RevocationReasonCode, ttlSeconds: Long = DEFAULT_TTL_SECONDS)
+    fun markManyRevoked(
+        sessionIds: Collection<UUID>,
+        reasonCode: RevocationReasonCode,
+        ttlSeconds: Long = DEFAULT_TTL_SECONDS
+    )
     {
         sessionIds.forEach { markRevoked(it, reasonCode, ttlSeconds) }
     }

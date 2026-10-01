@@ -11,7 +11,7 @@ import com.docuhyphen.app.api.service.auth.authz.ResourceRef
 import io.quarkus.security.ForbiddenException
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
-import java.util.UUID
+import java.util.*
 
 /**
  * Reads of runtime Information Requests, shared by every access surface. A caller is always given a
@@ -37,8 +37,10 @@ class InformationRequestQueryService @Inject constructor(
             access.authorization,
         )
         val visible = requestRepository.findForExchange(exchangeId).filter {
-            authorizationService.authorize(access.principal, Action.INFORMATION_REQUEST_VIEW,
-                ResourceRef.informationRequest(it.id), access.authorization) !is Decision.Deny
+            authorizationService.authorize(
+                access.principal, Action.INFORMATION_REQUEST_VIEW,
+                ResourceRef.informationRequest(it.id), access.authorization
+            ) !is Decision.Deny
         }
         if (decision is Decision.Deny && visible.isEmpty())
         {

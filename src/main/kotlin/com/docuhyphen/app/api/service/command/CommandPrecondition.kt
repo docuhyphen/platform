@@ -1,6 +1,6 @@
 package com.docuhyphen.app.api.service.command
 
-import java.util.UUID
+import java.util.*
 
 sealed interface CommandPrecondition
 {

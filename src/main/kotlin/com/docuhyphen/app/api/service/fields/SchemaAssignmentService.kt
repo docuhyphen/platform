@@ -85,8 +85,16 @@ class SchemaAssignmentService @Inject constructor(
     {
         val adapter = adapterRegistry.adapterFor(command.resource.resourceType)
         if (!adapter.exists(command.resource.resourceId)) throw IllegalArgumentException("Resource not found: ${command.resource.resourceId}")
-        adapter.authorizeManageFields(command.resource.resourceId, command.access.principal, command.access.authorization)
-        adapter.authorizeManageSchema(command.resource.resourceId, command.access.principal, command.access.authorization)
+        adapter.authorizeManageFields(
+            command.resource.resourceId,
+            command.access.principal,
+            command.access.authorization
+        )
+        adapter.authorizeManageSchema(
+            command.resource.resourceId,
+            command.access.principal,
+            command.access.authorization
+        )
         return assignPublishedVersion(command, adapter)
     }
 
@@ -105,7 +113,10 @@ class SchemaAssignmentService @Inject constructor(
         return assignPublishedVersion(command, adapter)
     }
 
-    private fun assignPublishedVersion(command: PublishedSchemaAssignmentCommand, adapter: FieldResourceAdapter): SchemaAssignmentDto
+    private fun assignPublishedVersion(
+        command: PublishedSchemaAssignmentCommand,
+        adapter: FieldResourceAdapter
+    ): SchemaAssignmentDto
     {
         val resourceType = command.resource.resourceType
         val resourceId = command.resource.resourceId
@@ -266,12 +277,17 @@ class SchemaAssignmentService @Inject constructor(
      */
     @Transactional
     fun clearValues(command: com.docuhyphen.app.api.model.fields.FieldValueClearCommand): SchemaAssignmentDto =
-        writeValues(FieldValueWriteCommand(command.resource, command.access,
-            command.fieldContractIds.map { FieldValueEntry(it, kotlinx.serialization.json.JsonNull) },
-            command.valueSet, command.precondition), allowRequiredClear = true)
+        writeValues(
+            FieldValueWriteCommand(
+                command.resource, command.access,
+                command.fieldContractIds.map { FieldValueEntry(it, kotlinx.serialization.json.JsonNull) },
+                command.valueSet, command.precondition
+            ), allowRequiredClear = true
+        )
 
     @Transactional
-    fun setValues(command: FieldValueWriteCommand): SchemaAssignmentDto = writeValues(command, allowRequiredClear = false)
+    fun setValues(command: FieldValueWriteCommand): SchemaAssignmentDto =
+        writeValues(command, allowRequiredClear = false)
 
     private fun writeValues(command: FieldValueWriteCommand, allowRequiredClear: Boolean): SchemaAssignmentDto
     {

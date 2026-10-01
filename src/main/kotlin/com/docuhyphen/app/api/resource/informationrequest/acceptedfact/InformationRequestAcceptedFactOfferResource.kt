@@ -24,11 +24,18 @@ class InformationRequestAcceptedFactOfferResource @Inject constructor(
     {
         return try
         {
-            handler.offers(InformationRequestCommandHttp.uuid(id, "information request id"), accessContextFactory.currentAuthenticated())
+            handler.offers(
+                InformationRequestCommandHttp.uuid(id, "information request id"),
+                accessContextFactory.currentAuthenticated()
+            )
         }
         catch (exception: Exception)
         {
-            InformationRequestCommandHttp.refused(logger, "Information Request accepted fact offer lookup failed", exception)
+            InformationRequestCommandHttp.refused(
+                logger,
+                "Information Request accepted fact offer lookup failed",
+                exception
+            )
         }
     }
 

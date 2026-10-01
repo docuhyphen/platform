@@ -4,7 +4,7 @@ import com.docuhyphen.app.api.service.subscription.PlanCode
 import com.docuhyphen.app.api.service.subscription.SubscriptionEnforcementMode
 import com.docuhyphen.app.api.service.subscription.SubscriptionOwnerType
 import com.docuhyphen.app.api.service.subscription.SubscriptionStatus
-import java.util.UUID
+import java.util.*
 
 enum class InformationRequestExecutionStandingKind
 {
@@ -34,6 +34,7 @@ data class InformationRequestExecutionStanding(
     {
         InformationRequestExecutionStandingKind.OPERATIONALLY_SUSPENDED,
         InformationRequestExecutionStandingKind.EXECUTION_GRANT_REVOKED -> copy(reason = null)
+
         else -> InformationRequestExecutionStanding(InformationRequestExecutionStandingKind.ACTIVE)
     }
 }

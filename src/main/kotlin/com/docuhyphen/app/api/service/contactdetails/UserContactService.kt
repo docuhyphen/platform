@@ -3,8 +3,8 @@ package com.docuhyphen.app.api.service.contactdetails
 import com.docuhyphen.app.api.extension.normalizeEmailOrNull
 import com.docuhyphen.app.api.model.entity.AppUser
 import com.docuhyphen.app.api.model.entity.UserContact
-import com.docuhyphen.app.api.repository.user.AppUserRepository
 import com.docuhyphen.app.api.repository.contactdetails.UserContactRepository
+import com.docuhyphen.app.api.repository.user.AppUserRepository
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional

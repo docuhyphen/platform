@@ -4,7 +4,7 @@ import com.docuhyphen.app.api.model.informationrequest.capability.InformationReq
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateVersionCapabilityRepository
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
-import java.util.UUID
+import java.util.*
 
 /**
  * Decides whether this deployment can serve what a Template Version needs.
@@ -51,7 +51,7 @@ class InformationRequestTemplateCapabilityGate @Inject constructor(
         val described = unserved.joinToString(", ") { "${it.capability} v${it.requiredContractVersion}" }
         throw InformationRequestCapabilityNotInstalledException(
             "This deployment does not serve every runtime capability the information request " +
-                "template version requires: $described",
+                    "template version requires: $described",
             unserved,
         )
     }

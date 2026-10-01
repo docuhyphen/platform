@@ -13,7 +13,7 @@ import java.security.Signature
 import java.security.spec.ECGenParameterSpec
 import java.security.spec.ECPoint
 import java.security.spec.ECPublicKeySpec
-import java.util.Base64
+import java.util.*
 
 data class DpopVerifyResult(val valid: Boolean, val jwkThumbprint: String? = null, val reason: String? = null)
 
@@ -149,7 +149,10 @@ class DpopValidationService @Inject constructor(
             val b = java.net.URI(requestUrl)
             a.scheme == b.scheme && a.host == b.host && (a.port == b.port || (a.port == -1 && b.port == -1)) && a.path == b.path
         }
-        catch (_: Exception) { false }
+        catch (_: Exception)
+        {
+            false
+        }
     }
 
     private fun isReplayed(jti: String): Boolean
@@ -192,7 +195,10 @@ class DpopValidationService @Inject constructor(
             {
                 '{' -> depth++
                 '}' -> depth--
-                ',' -> if (depth == 0) { parts += trimmed.substring(start, i); start = i + 1 }
+                ',' -> if (depth == 0)
+                {
+                    parts += trimmed.substring(start, i); start = i + 1
+                }
             }
         }
         parts += trimmed.substring(start)
@@ -201,7 +207,8 @@ class DpopValidationService @Inject constructor(
             val colon = raw.indexOf(':')
             if (colon < 0) continue
             val key = raw.substring(0, colon).trim().trim('"')
-            val value = raw.substring(colon + 1).trim().let { if (it.startsWith('"') && it.endsWith('"')) it.trim('"') else it }
+            val value =
+                raw.substring(colon + 1).trim().let { if (it.startsWith('"') && it.endsWith('"')) it.trim('"') else it }
             result[key] = value
         }
         return result

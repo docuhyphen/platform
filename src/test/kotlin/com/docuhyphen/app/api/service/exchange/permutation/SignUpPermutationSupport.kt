@@ -9,7 +9,9 @@ import com.docuhyphen.app.api.repository.auth.SignUpRepository
 import com.docuhyphen.app.api.service.contactdetails.UserContactService
 import com.docuhyphen.app.api.service.auth.AuthenticationService
 import com.docuhyphen.app.api.service.auth.DisposableEmailDomainService
+import com.docuhyphen.app.api.service.auth.SignUpCompletionFollowUpService
 import com.docuhyphen.app.api.service.auth.SignUpEmailConfirmationTokenService
+import com.docuhyphen.app.api.service.auth.SignUpRequestGuard
 import com.docuhyphen.app.api.service.auth.SignUpService
 import com.docuhyphen.app.api.service.communication.EmailService
 import com.docuhyphen.app.api.service.communication.EmailTemplateService
@@ -50,7 +52,7 @@ internal class SignUpPermutationFixture(
         identityProviderLinkRepository,
         emailService,
         emailTemplateService,
-        mock<OtpService>(),
+        OtpService(),
         configurationService,
         authenticationService,
         mock<SignUpEmailConfirmationTokenService>(),
@@ -60,6 +62,8 @@ internal class SignUpPermutationFixture(
         mock<SubscriptionPolicyService>(),
         mock<com.docuhyphen.app.api.service.organization.OrganizationMembershipService>(),
         mock<AppAdminNotificationService>(),
+        mock<SignUpRequestGuard>(),
+        mock<SignUpCompletionFollowUpService>(),
     )
 
     init
@@ -69,7 +73,7 @@ internal class SignUpPermutationFixture(
             this.otp = BCrypt.hashpw(this@SignUpPermutationFixture.otp, BCrypt.gensalt(4))
             otpExpiryTimestamp = LocalDateTime.now().plusMinutes(10)
         }
-        whenever(signUpRepository.findByEmail(normalizedEmail)).thenReturn(signUp)
+        whenever(signUpRepository.findByEmailForUpdateNoWait(normalizedEmail)).thenReturn(signUp)
         whenever(appUserRepository.findActiveByEmail(normalizedEmail)).thenReturn(null)
         whenever(appUserRepository.findTemporaryByEmail(normalizedEmail)).thenReturn(temporaryUser)
         whenever(authenticationService.isEmailInvalid(normalizedEmail)).thenReturn(false)
@@ -78,7 +82,6 @@ internal class SignUpPermutationFixture(
         whenever(authenticationService.hashPassword(password, "salt")).thenReturn("hash")
         whenever(configurationService.getMaxSignUpCompletionOtpAttempts()).thenReturn(5)
         whenever(configurationService.emailSubjectTitle).thenReturn("DocuHyphen")
-        whenever(emailTemplateService.renderSignUpCompletionEmail(normalizedEmail)).thenReturn("completed")
         whenever(userContactService.backfillContactAppUserIdForEmail(normalizedEmail, temporaryUser.id))
             .thenReturn(0)
         whenever(exchangeRepository.findByRecipientId(temporaryUser.id)).thenReturn(emptyList())
@@ -88,5 +91,7 @@ internal class SignUpPermutationFixture(
     }
 
     fun complete(email: String = normalizedEmail): AppUser =
-        service.completeSignUp(email, otp, password, password)
+        service.completeSignUp(email, otp, password, password, CLIENT_IP, null)
 }
+
+private const val CLIENT_IP = "192.0.2.40"

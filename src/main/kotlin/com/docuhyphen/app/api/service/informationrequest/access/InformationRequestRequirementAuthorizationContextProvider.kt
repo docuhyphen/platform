@@ -1,12 +1,6 @@
 package com.docuhyphen.app.api.service.informationrequest.access
 
-import com.docuhyphen.app.api.model.entity.InformationRequestContributorRole
-import com.docuhyphen.app.api.model.entity.InformationRequest
-import com.docuhyphen.app.api.model.entity.InformationRequestParty
-import com.docuhyphen.app.api.model.entity.InformationRequestRequirement
-import com.docuhyphen.app.api.model.entity.InformationRequestShareRoleKey
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateRequirementBinding
-import com.docuhyphen.app.api.model.entity.PrincipalKind
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.informationrequest.access.InformationRequestRequirementAssignedPartyFact
 import com.docuhyphen.app.api.model.informationrequest.access.InformationRequestRequirementCorrectionScope
 import com.docuhyphen.app.api.model.informationrequest.access.InformationRequestRequirementPolicyFacts
@@ -20,19 +14,15 @@ import com.docuhyphen.app.api.repository.informationrequest.occurrence.Informati
 import com.docuhyphen.app.api.repository.informationrequest.party.InformationRequestPartyRepository
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateRequirementBindingRepository
 import com.docuhyphen.app.api.repository.organization.PrincipalGroupMemberRepository
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import com.docuhyphen.app.api.service.auth.authz.ResourceAuthorizationContext
-import com.docuhyphen.app.api.service.auth.authz.ResourceAuthorizationContextProvider
-import com.docuhyphen.app.api.service.auth.authz.ResourceKind
-import com.docuhyphen.app.api.service.auth.authz.ResourceRef
+import com.docuhyphen.app.api.service.auth.authz.*
+import com.docuhyphen.app.api.service.exchange.ExchangeLifecycleStateService
 import com.docuhyphen.app.api.service.informationrequest.attestation.InformationRequestAttestationPolicyLoader
 import com.docuhyphen.app.api.service.informationrequest.occurrence.InformationRequestOccurrencePath
 import com.docuhyphen.app.api.service.informationrequest.party.InformationRequestDelegatedAuthorityFactSource
 import com.docuhyphen.app.api.service.informationrequest.submission.InformationRequestSubmissionLockService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
-import java.util.UUID
-import com.docuhyphen.app.api.service.exchange.ExchangeLifecycleStateService
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestRequirementAuthorizationContextProvider @Inject constructor(
@@ -201,11 +191,16 @@ class InformationRequestRequirementAuthorizationContextProvider @Inject construc
             when
             {
                 partyPrincipal == principal ||
-                    principal in equivalentPrincipalsFor(partyPrincipal) -> InformationRequestActingParty(party, role, null)
+                        principal in equivalentPrincipalsFor(partyPrincipal) -> InformationRequestActingParty(
+                    party,
+                    role,
+                    null
+                )
+
                 else -> authorities
                     .firstOrNull {
                         it.active && it.assignedPartyId == party.id && it.delegatePrincipal == principal &&
-                            (it.requirementId == null || it.requirementId == requirementId)
+                                (it.requirementId == null || it.requirementId == requirementId)
                     }
                     ?.let { InformationRequestActingParty(party, role, it.authorityId) }
             }
@@ -227,7 +222,7 @@ class InformationRequestRequirementAuthorizationContextProvider @Inject construc
             InformationRequestShareRoleKey.ATTESTOR -> InformationRequestContributorRole.ATTESTOR
             InformationRequestShareRoleKey.REVIEWER,
             InformationRequestShareRoleKey.DECISION_MAKER,
-            -> null
+                -> null
         }
 
     private fun InformationRequestContributorRole.toShareRoleKey() =

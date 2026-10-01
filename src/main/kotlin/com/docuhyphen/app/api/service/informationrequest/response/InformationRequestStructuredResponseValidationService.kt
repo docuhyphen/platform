@@ -14,7 +14,7 @@ interface InformationRequestStructuredResponseValidator
     val kinds: Set<InformationRequestStructuredResponseValidationKind>
 
     fun validate(context: InformationRequestStructuredResponseValidationContext):
-        List<InformationRequestStructuredResponseValidationIssue>
+            List<InformationRequestStructuredResponseValidationIssue>
 }
 
 @ApplicationScoped

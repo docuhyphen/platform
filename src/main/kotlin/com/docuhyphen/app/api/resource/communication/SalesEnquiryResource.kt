@@ -12,11 +12,7 @@ import jakarta.ws.rs.Path
 import jakarta.ws.rs.Produces
 import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
-import jakarta.ws.rs.core.Response.Status.BAD_REQUEST
-import jakarta.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR
-import jakarta.ws.rs.core.Response.Status.NO_CONTENT
-import jakarta.ws.rs.core.Response.Status.SERVICE_UNAVAILABLE
-import jakarta.ws.rs.core.Response.Status.TOO_MANY_REQUESTS
+import jakarta.ws.rs.core.Response.Status.*
 import org.slf4j.LoggerFactory
 
 /**

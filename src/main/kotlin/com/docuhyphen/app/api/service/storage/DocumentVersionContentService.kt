@@ -1,22 +1,12 @@
 package com.docuhyphen.app.api.service.storage
 
 import com.docuhyphen.app.api.exception.DocumentVersionContentIntegrityException
-import com.docuhyphen.app.api.model.document.DocumentVersionContent
-import com.docuhyphen.app.api.model.document.DocumentVersionContentDigest
-import com.docuhyphen.app.api.model.document.DocumentVersionContentDigests
-import com.docuhyphen.app.api.model.document.DocumentVersionContentIdentityMapper
-import com.docuhyphen.app.api.model.document.DocumentVersionDeletionOutcome
-import com.docuhyphen.app.api.model.document.DocumentVersionLocatorKind
-import com.docuhyphen.app.api.model.document.DocumentVersionStorageLocators
-import com.docuhyphen.app.api.model.document.DocumentVersionObjectKeys
-import com.docuhyphen.app.api.model.document.DocumentVersionStorageLocatorMapper
-import com.docuhyphen.app.api.model.document.ObjectStoreDocumentVersionLocator
-import com.docuhyphen.app.api.model.document.StoredDocumentVersionContent
+import com.docuhyphen.app.api.model.document.*
 import com.docuhyphen.app.api.model.entity.DocumentVersion
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import java.io.File
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class DocumentVersionContentService @Inject constructor(
@@ -55,7 +45,8 @@ class DocumentVersionContentService @Inject constructor(
     fun delete(locatorKind: String?, locator: String?): DocumentVersionDeletionOutcome
     {
         if (locatorKind == null || locator == null) return DocumentVersionDeletionOutcome.ABSENT
-        return when (val stored = DocumentVersionStorageLocators.resolve(DocumentVersionLocatorKind.valueOf(locatorKind), locator))
+        return when (val stored =
+            DocumentVersionStorageLocators.resolve(DocumentVersionLocatorKind.valueOf(locatorKind), locator))
         {
             is ObjectStoreDocumentVersionLocator -> documentVersionStorageService.deleteVersion(stored)
         }

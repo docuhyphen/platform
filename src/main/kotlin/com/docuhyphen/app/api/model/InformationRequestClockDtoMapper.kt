@@ -1,10 +1,6 @@
 package com.docuhyphen.app.api.model
 
-import com.docuhyphen.app.api.model.dto.InformationRequestClockDto
-import com.docuhyphen.app.api.model.dto.InformationRequestClockEventDto
-import com.docuhyphen.app.api.model.dto.InformationRequestClockPolicyDto
-import com.docuhyphen.app.api.model.dto.InformationRequestClockPolicyVersionDto
-import com.docuhyphen.app.api.model.dto.InformationRequestWorkingPeriodDto
+import com.docuhyphen.app.api.model.dto.*
 import com.docuhyphen.app.api.model.entity.InformationRequestClockEvent
 import com.docuhyphen.app.api.model.informationrequest.clock.InformationRequestClockPolicyVersionView
 import com.docuhyphen.app.api.model.informationrequest.clock.InformationRequestClockPolicyView
@@ -29,7 +25,13 @@ object InformationRequestClockDtoMapper
         urgentDurationMinutes = view.version.urgentDurationMinutes,
         escalationAfterMinutes = view.version.escalationAfterMinutes,
         dueEffect = view.version.dueEffect,
-        workingPeriods = view.calendar.periods.map { InformationRequestWorkingPeriodDto(it.dayOfWeek.name, it.startMinute, it.endMinute) },
+        workingPeriods = view.calendar.periods.map {
+            InformationRequestWorkingPeriodDto(
+                it.dayOfWeek.name,
+                it.startMinute,
+                it.endMinute
+            )
+        },
         holidays = view.holidays.map { it.toString() },
         reminderMinutesBeforeDue = view.reminderMinutesBeforeDue,
         reminderCommunicationId = view.version.reminderCommunicationId,

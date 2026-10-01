@@ -109,7 +109,8 @@ class AuditRetentionPolicyService @Inject constructor(
         policy.updatedByUserId = updatedByUserId
         policy.updatedAt = now
 
-        val saved = if (existing == null) auditRetentionPolicyRepository.save(policy) else auditRetentionPolicyRepository.update(policy)
+        val saved = if (existing == null) auditRetentionPolicyRepository.save(policy)
+        else auditRetentionPolicyRepository.update(policy)
 
         recordEvent(
             eventType = AuditEventType.AUDIT_RETENTION_POLICY_UPDATED,
@@ -129,13 +130,24 @@ class AuditRetentionPolicyService @Inject constructor(
     }
 
     /** Whether an event that occurred at [occurredAt] has passed the searchable-projection retention window. */
-    fun isLedgerRetentionExpired(organizationId: UUID, category: AuditCategory, occurredAt: Instant, at: Instant = Instant.now()): Boolean
+    fun isLedgerRetentionExpired(
+        organizationId: UUID,
+        category: AuditCategory,
+        occurredAt: Instant,
+        at: Instant = Instant.now()
+    ): Boolean
     {
         val policy = getEffectivePolicy(organizationId, category)
         return ChronoUnit.DAYS.between(occurredAt, at) >= policy.ledgerRetentionDays
     }
 
-    private fun recordEvent(eventType: AuditEventType, organizationId: UUID, actorId: UUID, targetId: String, payload: Map<String, String>)
+    private fun recordEvent(
+        eventType: AuditEventType,
+        organizationId: UUID,
+        actorId: UUID,
+        targetId: String,
+        payload: Map<String, String>
+    )
     {
         try
         {
@@ -159,7 +171,12 @@ class AuditRetentionPolicyService @Inject constructor(
         }
         catch (e: AuditCaptureFailedException)
         {
-            logger.error("AuditRetentionPolicyService: AuditRecorder capture failed for {}: {}", eventType, e.message, e)
+            logger.error(
+                "AuditRetentionPolicyService: AuditRecorder capture failed for {}: {}",
+                eventType,
+                e.message,
+                e
+            )
         }
     }
 }

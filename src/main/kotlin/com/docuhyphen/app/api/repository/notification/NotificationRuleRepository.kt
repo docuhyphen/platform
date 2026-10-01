@@ -1,11 +1,10 @@
 package com.docuhyphen.app.api.repository.notification
 
-import com.docuhyphen.app.api.repository.BaseRepository
-
 import com.docuhyphen.app.api.model.entity.NotificationRule
 import com.docuhyphen.app.api.model.entity.NotificationRuleScope
+import com.docuhyphen.app.api.repository.BaseRepository
 import jakarta.enterprise.context.ApplicationScoped
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class NotificationRuleRepository : BaseRepository<NotificationRule>(NotificationRule::class.java)

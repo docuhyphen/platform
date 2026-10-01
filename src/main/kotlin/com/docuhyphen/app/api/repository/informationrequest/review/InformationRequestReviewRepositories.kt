@@ -1,21 +1,9 @@
 package com.docuhyphen.app.api.repository.informationrequest.review
 
-import com.docuhyphen.app.api.model.entity.InformationRequestCorrection
-import com.docuhyphen.app.api.model.entity.InformationRequestCorrectionEvidence
-import com.docuhyphen.app.api.model.entity.InformationRequestCorrectionItem
-import com.docuhyphen.app.api.model.entity.InformationRequestCorrectionState
-import com.docuhyphen.app.api.model.entity.InformationRequestReview
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewAssignment
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewAssignmentState
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewComment
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewDecision
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewDraftItem
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewFinding
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewRemediation
-import com.docuhyphen.app.api.model.entity.PrincipalKind
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.repository.BaseRepository
 import jakarta.enterprise.context.ApplicationScoped
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestReviewRepository :
@@ -128,7 +116,8 @@ class InformationRequestReviewDecisionRepository :
             .resultList
     }
 
-    fun nextSequenceNumber(reviewId: UUID): Int = findForReview(reviewId).maxOfOrNull { it.sequenceNumber }?.plus(1) ?: 1
+    fun nextSequenceNumber(reviewId: UUID): Int =
+        findForReview(reviewId).maxOfOrNull { it.sequenceNumber }?.plus(1) ?: 1
 }
 
 @ApplicationScoped
@@ -153,7 +142,8 @@ class InformationRequestReviewFindingRepository :
             .resultList
     }
 
-    fun nextSequenceNumber(reviewId: UUID): Int = findForReview(reviewId).maxOfOrNull { it.sequenceNumber }?.plus(1) ?: 1
+    fun nextSequenceNumber(reviewId: UUID): Int =
+        findForReview(reviewId).maxOfOrNull { it.sequenceNumber }?.plus(1) ?: 1
 }
 
 @ApplicationScoped

@@ -1,36 +1,20 @@
 package com.docuhyphen.app.api.service.informationrequest.acceptedfact
 
 import com.docuhyphen.app.api.exception.InformationRequestCommandRequestException
-import com.docuhyphen.app.api.model.entity.InformationRequest
-import com.docuhyphen.app.api.model.entity.InformationRequestAcceptedFact
-import com.docuhyphen.app.api.model.entity.InformationRequestAcceptedFactConfidence
-import com.docuhyphen.app.api.model.entity.InformationRequestAcceptedFactConflictState
-import com.docuhyphen.app.api.model.entity.InformationRequestAcceptedFactRevocation
-import com.docuhyphen.app.api.model.entity.InformationRequestOwnerType
-import com.docuhyphen.app.api.model.entity.InformationRequestRequirementType
-import com.docuhyphen.app.api.model.entity.InformationRequestShareRoleKey
-import com.docuhyphen.app.api.model.entity.InformationRequestSubmissionItem
-import com.docuhyphen.app.api.model.entity.ResourceType
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.informationrequest.LockedInformationRequest
 import com.docuhyphen.app.api.model.informationrequest.acceptedfact.InformationRequestAcceptedFactView
 import com.docuhyphen.app.api.model.informationrequest.acceptedfact.PromoteInformationRequestAcceptedFactCommand
 import com.docuhyphen.app.api.model.informationrequest.acceptedfact.RevokeInformationRequestAcceptedFactCommand
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestMutation
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestTransitionHistoryCommand
-import com.docuhyphen.app.api.model.informationrequest.response.InformationRequestCompletenessItemState
 import com.docuhyphen.app.api.repository.informationrequest.acceptedfact.InformationRequestAcceptedFactRepository
 import com.docuhyphen.app.api.repository.informationrequest.acceptedfact.InformationRequestAcceptedFactRevocationRepository
 import com.docuhyphen.app.api.repository.informationrequest.party.InformationRequestPartyRepository
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateRequirementBindingRepository
 import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.auth.authz.ResourceRef
-import com.docuhyphen.app.api.service.command.CommandActorRef
-import com.docuhyphen.app.api.service.command.CommandMutationResult
-import com.docuhyphen.app.api.service.command.CommandReceiptDecision
-import com.docuhyphen.app.api.service.command.CommandReceiptRequest
-import com.docuhyphen.app.api.service.command.CommandReceiptService
-import com.docuhyphen.app.api.service.command.CommandRequestFingerprint
-import com.docuhyphen.app.api.service.command.CommandResultReference
+import com.docuhyphen.app.api.service.command.*
 import com.docuhyphen.app.api.service.fields.FieldValueRevisionQueryService
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestMutationGate
@@ -45,7 +29,7 @@ import jakarta.inject.Inject
 import jakarta.transaction.Transactional
 import java.sql.Timestamp
 import java.time.Clock
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestAcceptedFactService @Inject constructor(
@@ -95,14 +79,21 @@ class InformationRequestAcceptedFactService @Inject constructor(
         return when (
             val decision = commandReceiptService.runOnce(receipt) {
                 val fact = promoteFact(locked, command, purpose)
-                CommandMutationResult(fact, CommandResultReference(ResourceType.INFORMATION_REQUEST_ACCEPTED_FACT, fact.id, 1, null))
+                CommandMutationResult(
+                    fact,
+                    CommandResultReference(ResourceType.INFORMATION_REQUEST_ACCEPTED_FACT, fact.id, 1, null)
+                )
             }
         )
         {
             is CommandReceiptDecision.Recorded -> facts.view(decision.response)
             is CommandReceiptDecision.Replayed ->
             {
-                gate.authorizeRequest(command.access, listOf(Action.INFORMATION_REQUEST_PROMOTE_FACT), command.requestId)
+                gate.authorizeRequest(
+                    command.access,
+                    listOf(Action.INFORMATION_REQUEST_PROMOTE_FACT),
+                    command.requestId
+                )
                 facts.view(requireFact(command.requestId, decision.result.resourceId))
             }
         }
@@ -123,14 +114,21 @@ class InformationRequestAcceptedFactService @Inject constructor(
         return when (
             val decision = commandReceiptService.runOnce(receipt) {
                 val fact = revokeFact(locked, command, reasonCode)
-                CommandMutationResult(fact, CommandResultReference(ResourceType.INFORMATION_REQUEST_ACCEPTED_FACT, fact.id, 1, null))
+                CommandMutationResult(
+                    fact,
+                    CommandResultReference(ResourceType.INFORMATION_REQUEST_ACCEPTED_FACT, fact.id, 1, null)
+                )
             }
         )
         {
             is CommandReceiptDecision.Recorded -> facts.view(decision.response)
             is CommandReceiptDecision.Replayed ->
             {
-                gate.authorizeRequest(command.access, listOf(Action.INFORMATION_REQUEST_PROMOTE_FACT), command.requestId)
+                gate.authorizeRequest(
+                    command.access,
+                    listOf(Action.INFORMATION_REQUEST_PROMOTE_FACT),
+                    command.requestId
+                )
                 facts.view(requireFact(command.requestId, decision.result.resourceId))
             }
         }
@@ -156,7 +154,8 @@ class InformationRequestAcceptedFactService @Inject constructor(
         val view = packageReader.view(request.id, submission.id)
         val item = view.items.firstOrNull { it.id == command.submissionItemId }?.takeIf(::answersField)
             ?: refuse("An accepted fact is promoted from an answered typed-data item")
-        val selectedEvidence = evidenceReferences.select(view, item.informationRequestRequirementId, command.evidenceVersionIds)
+        val selectedEvidence =
+            evidenceReferences.select(view, item.informationRequestRequirementId, command.evidenceVersionIds)
         val (confidence, reviewId) = acceptanceOf(request, submission.id, submission.reviewRequired, item)
         val subject = partyRepository.findActiveForRequestRole(request.id, InformationRequestShareRoleKey.SUBJECT)
             .mapNotNull { it.subjectIdentityRefId }
@@ -189,7 +188,8 @@ class InformationRequestAcceptedFactService @Inject constructor(
             throw InformationRequestCommandRequestException("A fact expires in the future")
         }
         command.supersedesFactId?.let(factRepository::findByIdForUpdate)
-        val active = facts.activeForKey(request.ownerType, ownerIdOf(request), subject, listOf(fieldDefinitionId), purpose)
+        val active =
+            facts.activeForKey(request.ownerType, ownerIdOf(request), subject, listOf(fieldDefinitionId), purpose)
         command.supersedesFactId?.let { superseded ->
             if (active.none { it.id == superseded })
             {
@@ -200,7 +200,8 @@ class InformationRequestAcceptedFactService @Inject constructor(
             }
         }
         val canonical = value.value.toString()
-        val conflicting = active.filter { it.id != command.supersedesFactId && it.canonicalValue != canonical }.maxByOrNull { it.promotedAt }
+        val conflicting = active.filter { it.id != command.supersedesFactId && it.canonicalValue != canonical }
+            .maxByOrNull { it.promotedAt }
         val fact = factRepository.save(
             InformationRequestAcceptedFact().apply {
                 ownerType = request.ownerType
@@ -319,9 +320,9 @@ class InformationRequestAcceptedFactService @Inject constructor(
 
     private fun answersField(item: InformationRequestSubmissionItem): Boolean =
         item.requirementType == InformationRequestRequirementType.FIELD &&
-            item.completenessState == com.docuhyphen.app.api.model.informationrequest.response.InformationRequestCompletenessItemState.COMPLETE &&
-            item.responseId != null &&
-            item.fieldValueRevisionId != null
+                item.completenessState == com.docuhyphen.app.api.model.informationrequest.response.InformationRequestCompletenessItemState.COMPLETE &&
+                item.responseId != null &&
+                item.fieldValueRevisionId != null
 
     private fun ownerIdOf(request: InformationRequest): UUID =
         if (request.ownerType == InformationRequestOwnerType.ORGANIZATION) requireNotNull(request.ownerOrganizationId)
@@ -329,7 +330,10 @@ class InformationRequestAcceptedFactService @Inject constructor(
 
     private fun requireFact(requestId: UUID, factId: UUID): InformationRequestAcceptedFact =
         factRepository.findById(factId)?.takeIf { it.sourceInformationRequestId == requestId }
-            ?: throw InformationRequestLifecycleException(InformationRequestErrorCatalog.NOT_FOUND, "Accepted fact not found")
+            ?: throw InformationRequestLifecycleException(
+                InformationRequestErrorCatalog.NOT_FOUND,
+                "Accepted fact not found"
+            )
 
     private fun refuse(message: String): Nothing =
         throw InformationRequestLifecycleException(InformationRequestErrorCatalog.ACCEPTED_FACT_SOURCE_INVALID, message)

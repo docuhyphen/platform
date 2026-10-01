@@ -1,13 +1,12 @@
 package com.docuhyphen.app.api.repository.audit
 
-import com.docuhyphen.app.api.repository.BaseRepository
-
 import com.docuhyphen.app.api.model.entity.AuditEngagement
 import com.docuhyphen.app.api.model.entity.AuditEngagementStatus
+import com.docuhyphen.app.api.repository.BaseRepository
 import jakarta.enterprise.context.RequestScoped
 import jakarta.persistence.LockModeType
 import java.sql.Timestamp
-import java.util.UUID
+import java.util.*
 
 @RequestScoped
 class AuditEngagementRepository : BaseRepository<AuditEngagement>(AuditEngagement::class.java)

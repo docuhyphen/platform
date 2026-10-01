@@ -1,21 +1,12 @@
 package com.docuhyphen.app.api.repository.recordpreservation
 
-import com.docuhyphen.app.api.model.entity.RecordDisposalClaim
-import com.docuhyphen.app.api.model.entity.RecordDisposalObject
-import com.docuhyphen.app.api.model.entity.RecordDisposalState
-import com.docuhyphen.app.api.model.entity.RecordDisposalTombstone
-import com.docuhyphen.app.api.model.entity.RecordOwnerKind
-import com.docuhyphen.app.api.model.entity.RecordPreservationHold
-import com.docuhyphen.app.api.model.entity.RecordPreservationHoldEvent
-import com.docuhyphen.app.api.model.entity.RecordPreservationHoldStatus
-import com.docuhyphen.app.api.model.entity.RecordPreservationScope
-import com.docuhyphen.app.api.model.entity.RecordRetentionSchedule
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.recordpreservation.RecordOwnerRef
 import com.docuhyphen.app.api.model.recordpreservation.RecordPreservationKey
 import com.docuhyphen.app.api.repository.BaseRepository
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.persistence.LockModeType
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class RecordPreservationHoldRepository : BaseRepository<RecordPreservationHold>(RecordPreservationHold::class.java)
@@ -67,17 +58,22 @@ class RecordPreservationHoldRepository : BaseRepository<RecordPreservationHold>(
         return candidates.filter { hold ->
             keys.any { key ->
                 key.resourceType == hold.resourceType && key.resourceId == hold.resourceId &&
-                    (key.direct || hold.scope == RecordPreservationScope.DESCENDANTS_AND_REFERENCES)
+                        (key.direct || hold.scope == RecordPreservationScope.DESCENDANTS_AND_REFERENCES)
             }
         }
     }
 
-    fun findActiveForResource(owner: RecordOwnerRef, resourceType: String, resourceId: String): List<RecordPreservationHold> =
+    fun findActiveForResource(
+        owner: RecordOwnerRef,
+        resourceType: String,
+        resourceId: String
+    ): List<RecordPreservationHold> =
         findActiveCovering(owner, listOf(RecordPreservationKey(resourceType, resourceId, direct = true)))
 }
 
 @ApplicationScoped
-class RecordPreservationHoldEventRepository : BaseRepository<RecordPreservationHoldEvent>(RecordPreservationHoldEvent::class.java)
+class RecordPreservationHoldEventRepository :
+    BaseRepository<RecordPreservationHoldEvent>(RecordPreservationHoldEvent::class.java)
 {
     fun findForHold(holdId: UUID): List<RecordPreservationHoldEvent> =
         entityManager.createQuery(

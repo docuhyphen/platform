@@ -24,7 +24,12 @@ class InformationRequestDisposalScheduler @Inject constructor(
             val run = worker.run()
             if (run.finalized > 0 || run.pending > 0)
             {
-                logger.info("information request disposal: finalized={} pending={} refused={}", run.finalized, run.pending, run.refused)
+                logger.info(
+                    "information request disposal: finalized={} pending={} refused={}",
+                    run.finalized,
+                    run.pending,
+                    run.refused
+                )
             }
         }
         catch (exception: Exception)

@@ -24,10 +24,14 @@ class EmailChannel : NotificationChannel
 {
     private val logger = LoggerFactory.getLogger(EmailChannel::class.java)
 
-    @Inject private lateinit var appUserRepository: AppUserRepository
-    @Inject private lateinit var emailService: EmailService
-    @Inject private lateinit var templateRenderer: EmailTemplateRenderer
-    @Inject private lateinit var markdownRenderer: MarkdownRenderer
+    @Inject
+    private lateinit var appUserRepository: AppUserRepository
+    @Inject
+    private lateinit var emailService: EmailService
+    @Inject
+    private lateinit var templateRenderer: EmailTemplateRenderer
+    @Inject
+    private lateinit var markdownRenderer: MarkdownRenderer
 
     @ConfigProperty(name = "app.url", defaultValue = "https://app.docuhyphen.com")
     private lateinit var appUrl: String
@@ -50,7 +54,7 @@ class EmailChannel : NotificationChannel
         val (subject, body, useHtml) = when (task.event.type)
         {
             "workflow.step_assigned" -> renderStepAssigned(task)
-            "workflow.notification"  -> renderWorkflowNotification(task)
+            "workflow.notification" -> renderWorkflowNotification(task)
             else -> Triple(
                 task.event.type,
                 buildString {

@@ -24,7 +24,7 @@ import com.docuhyphen.app.api.service.informationrequest.response.InformationReq
 import com.docuhyphen.app.api.service.informationrequest.review.InformationRequestReviewQueryService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestExchangeSummaryService @Inject constructor(
@@ -88,7 +88,11 @@ class InformationRequestExchangeSummaryService @Inject constructor(
         )
         if (decision is Decision.Deny) return false
         val creation = InformationRequestTransitionMatrix.canMutate(
-            InformationRequestParentSnapshot(status = exchange.status, deleted = exchange.isDeleted, lockedForUpdate = true),
+            InformationRequestParentSnapshot(
+                status = exchange.status,
+                deleted = exchange.isDeleted,
+                lockedForUpdate = true
+            ),
             null,
             InformationRequestMutation.CREATE_DRAFT,
         )

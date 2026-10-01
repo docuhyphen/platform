@@ -1,15 +1,15 @@
 package com.docuhyphen.app.api.service.identity
 
-import com.docuhyphen.app.api.service.auth.AdminApprovalContext
-import com.docuhyphen.app.api.service.auth.AuthAuditService
-import com.docuhyphen.app.api.service.auth.UserRoleService
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.interceptor.EnforceAdminAction
 import com.docuhyphen.app.api.repository.identity.OrganizationIdentityProviderConfigRepository
+import com.docuhyphen.app.api.service.auth.AdminApprovalContext
+import com.docuhyphen.app.api.service.auth.AuthAuditService
+import com.docuhyphen.app.api.service.auth.UserRoleService
 import com.docuhyphen.app.api.service.config.AwsSecretsManagerService
+import com.docuhyphen.app.api.service.config.ConfigurationService
 import com.docuhyphen.app.api.service.config.SecretLifecycleStatus
 import com.docuhyphen.app.api.service.config.SecretRotationResult
-import com.docuhyphen.app.api.service.config.ConfigurationService
 import com.docuhyphen.app.api.service.subscription.OrganizationFeatureSubscriptionGuard
 import com.docuhyphen.app.api.service.subscription.PlanFeature
 import io.quarkus.security.UnauthorizedException
@@ -18,7 +18,7 @@ import jakarta.inject.Inject
 import jakarta.transaction.Transactional
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 data class OrganizationIdpSecretRotationOutcome(
     val secretRef: String,
@@ -306,7 +306,11 @@ class OrganizationIdpSecretLifecycleService @Inject constructor(
         }
 
         awsSecretsManagerService.setRotationPhase(secretRef, configurationService.getOrgIdpSecretsRegion(), "RETIRE")
-        awsSecretsManagerService.retireSecret(secretRef, configurationService.getOrgIdpSecretsRegion(), recoveryWindowDays)
+        awsSecretsManagerService.retireSecret(
+            secretRef,
+            configurationService.getOrgIdpSecretsRegion(),
+            recoveryWindowDays
+        )
 
         authAuditService.emit(
             action = "ORG_IDP_SECRET_RETIRE",
@@ -349,7 +353,10 @@ class OrganizationIdpSecretLifecycleService @Inject constructor(
         return currentUser
     }
 
-    private fun requireConfig(organizationId: String, configId: String): com.docuhyphen.app.api.model.entity.OrganizationIdentityProviderConfig
+    private fun requireConfig(
+        organizationId: String,
+        configId: String
+    ): com.docuhyphen.app.api.model.entity.OrganizationIdentityProviderConfig
     {
         val orgId = runCatching { UUID.fromString(organizationId) }.getOrNull()
             ?: throw IllegalArgumentException("Invalid organization ID format")

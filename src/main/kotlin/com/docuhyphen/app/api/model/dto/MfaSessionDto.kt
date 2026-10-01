@@ -2,10 +2,11 @@ package com.docuhyphen.app.api.model.dto
 
 import com.docuhyphen.app.api.serializer.UUIDSerializer
 import kotlinx.serialization.Serializable
-import java.util.UUID
+import java.util.*
 
 @Serializable
-class MfaSessionDto {
+class MfaSessionDto
+{
 
     @Serializable(with = UUIDSerializer::class)
     var id: UUID? = null

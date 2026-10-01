@@ -42,7 +42,8 @@ class InformationRequestRecurrenceResource @Inject constructor(
                     idempotencyKey = InformationRequestCommandHttp.idempotencyKey(idempotencyKey),
                 ),
             )
-            Response.status(Response.Status.CREATED).entity(InformationRequestLineageDtoMapper.toDto(recurrence)).build()
+            Response.status(Response.Status.CREATED).entity(InformationRequestLineageDtoMapper.toDto(recurrence))
+                .build()
         }
         catch (exception: Exception)
         {

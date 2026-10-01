@@ -1,7 +1,7 @@
 package com.docuhyphen.app.api.model.informationrequest.notice
 
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 data class SendInformationRequestRemindersCommand(
     val requestIds: List<UUID>,

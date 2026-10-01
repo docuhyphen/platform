@@ -1,25 +1,18 @@
 package com.docuhyphen.app.api.resource.auth
 
-import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.exception.InvalidOtpException
 import com.docuhyphen.app.api.exception.MaxAttemptsOTPExceededException
 import com.docuhyphen.app.api.exception.OTPExpiredException
 import com.docuhyphen.app.api.exception.TooManyRequestsException
+import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.model.entity.IdentityProviderType
-import com.docuhyphen.app.api.service.auth.StepUpMfaChallengeService
-import com.docuhyphen.app.api.service.auth.StepUpMfaRateLimitedException
 import com.docuhyphen.app.api.repository.identity.IdentityProviderLinkRepository
 import com.docuhyphen.app.api.resource.model.ResponseError
-import com.docuhyphen.app.api.service.auth.AuthAuditService
-import com.docuhyphen.app.api.service.auth.AuthRateLimitService
-import com.docuhyphen.app.api.service.auth.AuthenticationService
-import com.docuhyphen.app.api.service.auth.OAuthStateService
-import com.docuhyphen.app.api.service.identity.OrganizationIdentityPolicyService
-import com.docuhyphen.app.api.service.identity.OrganizationIdpRuntimeCredentialService
-import com.docuhyphen.app.api.service.auth.RevocationReasonCode
-import com.docuhyphen.app.api.service.auth.StepUpAuthService
+import com.docuhyphen.app.api.service.auth.*
 import com.docuhyphen.app.api.service.auth.idp.IdentityProviderRegistry
 import com.docuhyphen.app.api.service.config.ConfigurationService
+import com.docuhyphen.app.api.service.identity.OrganizationIdentityPolicyService
+import com.docuhyphen.app.api.service.identity.OrganizationIdpRuntimeCredentialService
 import jakarta.inject.Inject
 import jakarta.ws.rs.*
 import jakarta.ws.rs.core.Context
@@ -101,7 +94,8 @@ class StepUpResource @Inject constructor(
         if (authRateLimitService.isLimited(
                 key = "auth:step-up:initiate:${appUser.id}:$ip",
                 maxPerMinute = configurationService.getAuthRateLimitSignInInitiatePerMinute(),
-            ))
+            )
+        )
         {
             return Response.status(429).entity(ResponseError("Too many requests.")).build()
         }
@@ -224,7 +218,8 @@ class StepUpResource @Inject constructor(
         if (authRateLimitService.isLimited(
                 key = "auth:step-up:complete:${appUser.id}:$ip",
                 maxPerMinute = configurationService.getAuthRateLimitSignInCompletionPerMinute(),
-            ))
+            )
+        )
         {
             return Response.status(429).entity(ResponseError("Too many requests.")).build()
         }
@@ -267,9 +262,11 @@ class StepUpResource @Inject constructor(
                 is OTPExpiredException -> Response.status(Response.Status.UNAUTHORIZED)
                     .entity(ResponseError(exception.message))
                     .build()
+
                 is IllegalArgumentException -> Response.status(Response.Status.BAD_REQUEST)
                     .entity(ResponseError(exception.message))
                     .build()
+
                 else -> throw exception
             }
         }
@@ -292,7 +289,8 @@ class StepUpResource @Inject constructor(
         if (authRateLimitService.isLimited(
                 key = "auth:step-up:regenerate:${appUser.id}:$ip",
                 maxPerMinute = configurationService.getAuthRateLimitSignInInitiatePerMinute(),
-            ))
+            )
+        )
         {
             return Response.status(429).entity(ResponseError("Too many requests.")).build()
         }
@@ -328,22 +326,28 @@ class StepUpResource @Inject constructor(
             when (exception)
             {
                 is StepUpMfaRateLimitedException -> Response.status(429)
-                    .entity(ResponseError(
-                        errorMessage = exception.message,
-                        reasonCode = "OTP_RATE_LIMITED",
-                        retryAfterSeconds = exception.retryAfterSeconds,
-                    ))
+                    .entity(
+                        ResponseError(
+                            errorMessage = exception.message,
+                            reasonCode = "OTP_RATE_LIMITED",
+                            retryAfterSeconds = exception.retryAfterSeconds,
+                        )
+                    )
                     .build()
+
                 is TooManyRequestsException -> Response.status(429)
                     .entity(ResponseError(exception.message))
                     .build()
+
                 is InvalidOtpException,
                 is MaxAttemptsOTPExceededException -> Response.status(Response.Status.UNAUTHORIZED)
                     .entity(ResponseError(exception.message))
                     .build()
+
                 is IllegalArgumentException -> Response.status(Response.Status.BAD_REQUEST)
                     .entity(ResponseError(exception.message))
                     .build()
+
                 else -> throw exception
             }
         }

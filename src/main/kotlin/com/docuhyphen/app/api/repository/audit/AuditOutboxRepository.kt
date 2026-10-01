@@ -1,9 +1,8 @@
 package com.docuhyphen.app.api.repository.audit
 
-import com.docuhyphen.app.api.repository.BaseRepository
-
 import com.docuhyphen.app.api.model.audit.AuditTargetQuery
 import com.docuhyphen.app.api.model.entity.AuditOutboxEntry
+import com.docuhyphen.app.api.repository.BaseRepository
 import com.docuhyphen.app.api.service.audit.AuditOwnerScope
 import jakarta.enterprise.context.RequestScoped
 import jakarta.persistence.NoResultException
@@ -61,15 +60,20 @@ class AuditOutboxRepository : BaseRepository<AuditOutboxEntry>(AuditOutboxEntry:
     {
         return entityManager.createQuery(
             "SELECT a FROM AuditOutboxEntry a WHERE NOT EXISTS " +
-                "(SELECT 1 FROM AuditLedgerEvent l WHERE l.eventId = a.eventId) " +
-                "ORDER BY a.recordedAt ASC",
+                    "(SELECT 1 FROM AuditLedgerEvent l WHERE l.eventId = a.eventId) " +
+                    "ORDER BY a.recordedAt ASC",
             AuditOutboxEntry::class.java,
         )
             .setMaxResults(limit.coerceIn(1, 5000))
             .resultList
     }
 
-    fun findForTargets(owner: AuditOwnerScope?, targetType: String, targetIds: Set<String>, query: AuditTargetQuery): List<AuditOutboxEntry>
+    fun findForTargets(
+        owner: AuditOwnerScope?,
+        targetType: String,
+        targetIds: Set<String>,
+        query: AuditTargetQuery
+    ): List<AuditOutboxEntry>
     {
         val (clauses, parameters) = targetClauses(owner, targetType, targetIds, query)
         val order = if (query.newestFirst) "DESC" else "ASC"
@@ -81,7 +85,12 @@ class AuditOutboxRepository : BaseRepository<AuditOutboxEntry>(AuditOutboxEntry:
         return typed.setFirstResult(query.offset).setMaxResults(query.limit).resultList
     }
 
-    fun countForTargets(owner: AuditOwnerScope?, targetType: String, targetIds: Set<String>, query: AuditTargetQuery): Long
+    fun countForTargets(
+        owner: AuditOwnerScope?,
+        targetType: String,
+        targetIds: Set<String>,
+        query: AuditTargetQuery
+    ): Long
     {
         val (clauses, parameters) = targetClauses(owner, targetType, targetIds, query)
         val typed = entityManager.createQuery(
@@ -110,6 +119,7 @@ class AuditOutboxRepository : BaseRepository<AuditOutboxEntry>(AuditOutboxEntry:
                 clauses += "a.ownerType = 'ORGANIZATION' AND a.ownerId = :ownerId"
                 parameters["ownerId"] = owner.organizationId
             }
+
             is AuditOwnerScope.Personal ->
             {
                 clauses += "a.ownerType = 'USER' AND a.ownerId = :ownerId"

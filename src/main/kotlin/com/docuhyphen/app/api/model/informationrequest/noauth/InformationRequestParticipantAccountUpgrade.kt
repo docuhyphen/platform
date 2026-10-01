@@ -3,7 +3,7 @@ package com.docuhyphen.app.api.model.informationrequest.noauth
 import com.docuhyphen.app.api.model.entity.ParticipantAccountLink
 import com.docuhyphen.app.api.model.entity.Share
 import com.docuhyphen.app.api.service.command.CommandPrecondition
-import java.util.UUID
+import java.util.*
 
 data class UpgradeInformationRequestParticipantAccountCommand(
     val requestId: UUID,
@@ -14,7 +14,8 @@ data class UpgradeInformationRequestParticipantAccountCommand(
     val sessionToken: String? = null,
 )
 {
-    override fun toString(): String = "UpgradeInformationRequestParticipantAccountCommand(requestId=$requestId, sessionId=$sessionId)"
+    override fun toString(): String =
+        "UpgradeInformationRequestParticipantAccountCommand(requestId=$requestId, sessionId=$sessionId)"
 }
 
 data class InformationRequestParticipantAccountUpgrade(

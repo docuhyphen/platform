@@ -6,7 +6,7 @@ import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
-import java.util.UUID
+import java.util.*
 
 /**
  * What every Fields command states: which resource it addresses, who is asking, what it intends to

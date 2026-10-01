@@ -3,7 +3,7 @@ package com.docuhyphen.app.api.repository.subscription
 import com.docuhyphen.app.api.model.entity.SubscriptionFeatureEntitlement
 import com.docuhyphen.app.api.repository.BaseRepository
 import jakarta.enterprise.context.ApplicationScoped
-import java.util.UUID
+import java.util.*
 
 /**
  * Reads the platform-administered feature decisions recorded for one subscription owner.

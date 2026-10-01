@@ -7,7 +7,12 @@ import java.io.File
 
 interface DocumentVersionStorageService
 {
-    fun writeNewVersion(key: String, file: File, expected: DocumentVersionContentDigest): ObjectStoreDocumentVersionLocator
+    fun writeNewVersion(
+        key: String,
+        file: File,
+        expected: DocumentVersionContentDigest
+    ): ObjectStoreDocumentVersionLocator
+
     fun openVersion(locator: ObjectStoreDocumentVersionLocator): File
     fun deleteVersion(locator: ObjectStoreDocumentVersionLocator): DocumentVersionDeletionOutcome
 }

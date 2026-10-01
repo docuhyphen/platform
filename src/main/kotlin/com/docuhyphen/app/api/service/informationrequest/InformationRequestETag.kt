@@ -1,12 +1,8 @@
 package com.docuhyphen.app.api.service.informationrequest
 
-import com.docuhyphen.app.api.model.entity.InformationRequest
-import com.docuhyphen.app.api.model.entity.InformationRequestClock
-import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceArtifact
-import com.docuhyphen.app.api.model.entity.InformationRequestParty
-import com.docuhyphen.app.api.model.entity.InformationRequestRequirementRevision
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.service.command.RevisionETag
-import java.util.UUID
+import java.util.*
 
 /**
  * Strong validators for request runtime rows. They are based only on persisted revision counters,

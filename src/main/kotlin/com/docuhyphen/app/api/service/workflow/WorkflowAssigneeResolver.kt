@@ -10,7 +10,7 @@ import jakarta.inject.Inject
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
-import java.util.UUID
+import java.util.*
 
 /**
  * Resolves an [AssigneeSpec] (potentially containing `$subject.<field>` placeholders) into
@@ -23,9 +23,12 @@ import java.util.UUID
 @ApplicationScoped
 class WorkflowAssigneeResolver
 {
-    @Inject private lateinit var groupMemberRepository: PrincipalGroupMemberRepository
-    @Inject private lateinit var appRoleAssignmentRepository: AppRoleAssignmentRepository
-    @Inject private lateinit var membershipRepository: OrganizationMembershipRepository
+    @Inject
+    private lateinit var groupMemberRepository: PrincipalGroupMemberRepository
+    @Inject
+    private lateinit var appRoleAssignmentRepository: AppRoleAssignmentRepository
+    @Inject
+    private lateinit var membershipRepository: OrganizationMembershipRepository
 
     private val json: Json = WorkflowSpecJson.instance
 

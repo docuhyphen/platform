@@ -1,20 +1,9 @@
 package com.docuhyphen.app.api.service.informationrequest.lifecycle
 
-import com.docuhyphen.app.api.model.entity.InformationRequestLineageKind
-import com.docuhyphen.app.api.model.entity.InformationRequestRecurrence
-import com.docuhyphen.app.api.model.entity.InformationRequestRefreshRule
-import com.docuhyphen.app.api.model.entity.InformationRequestRequirementType
-import com.docuhyphen.app.api.model.entity.ResourceType
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.informationrequest.LockedInformationRequest
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
-import com.docuhyphen.app.api.model.informationrequest.lifecycle.CreateNextInformationRequestOccurrenceCommand
-import com.docuhyphen.app.api.model.informationrequest.lifecycle.DefineInformationRequestRecurrenceCommand
-import com.docuhyphen.app.api.model.informationrequest.lifecycle.DefineInformationRequestRefreshRuleCommand
-import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestFollowUpSpec
-import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestMutation
-import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestSuccessorResult
-import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestTransitionHistoryCommand
-import com.docuhyphen.app.api.model.informationrequest.lifecycle.RefreshInformationRequestCommand
+import com.docuhyphen.app.api.model.informationrequest.lifecycle.*
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRequirementRepository
 import com.docuhyphen.app.api.repository.informationrequest.lifecycle.InformationRequestLineageRepository
 import com.docuhyphen.app.api.repository.informationrequest.lifecycle.InformationRequestRecurrenceRepository
@@ -22,14 +11,7 @@ import com.docuhyphen.app.api.repository.informationrequest.lifecycle.Informatio
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateRequirementRepository
 import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.auth.authz.ResourceRef
-import com.docuhyphen.app.api.service.command.CommandActorRef
-import com.docuhyphen.app.api.service.command.CommandMutationResult
-import com.docuhyphen.app.api.service.command.CommandPrecondition
-import com.docuhyphen.app.api.service.command.CommandReceiptDecision
-import com.docuhyphen.app.api.service.command.CommandReceiptRequest
-import com.docuhyphen.app.api.service.command.CommandReceiptService
-import com.docuhyphen.app.api.service.command.CommandRequestFingerprint
-import com.docuhyphen.app.api.service.command.CommandResultReference
+import com.docuhyphen.app.api.service.command.*
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestETag
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestMutationGate
@@ -87,8 +69,16 @@ class InformationRequestFollowUpService @Inject constructor(
                         createdAt = Timestamp.from(clock.instant())
                     },
                 )
-                recordSchedule(locked, command.access, command.idempotencyKey, mapOf("recurrenceId" to recurrence.id.toString()))
-                CommandMutationResult(recurrence, CommandResultReference(ResourceType.INFORMATION_REQUEST, locked.request.id))
+                recordSchedule(
+                    locked,
+                    command.access,
+                    command.idempotencyKey,
+                    mapOf("recurrenceId" to recurrence.id.toString())
+                )
+                CommandMutationResult(
+                    recurrence,
+                    CommandResultReference(ResourceType.INFORMATION_REQUEST, locked.request.id)
+                )
             }
         )
         {
@@ -102,7 +92,10 @@ class InformationRequestFollowUpService @Inject constructor(
     {
         val recurrence = recurrenceRepository.findById(command.recurrenceId)
             ?.takeIf { it.originRequestId == command.requestId }
-            ?: throw InformationRequestLifecycleException(InformationRequestErrorCatalog.NOT_FOUND, "Recurrence not found")
+            ?: throw InformationRequestLifecycleException(
+                InformationRequestErrorCatalog.NOT_FOUND,
+                "Recurrence not found"
+            )
         val origin = gate.lock(recurrence.originRequestId)
         val series = lineageRepository.findForRecurrence(recurrence.id)
         val latest = series.lastOrNull()?.successorRequestId ?: recurrence.originRequestId
@@ -115,7 +108,11 @@ class InformationRequestFollowUpService @Inject constructor(
             listOf(recurrence.id),
         )
         return successorService.run(locked, receipt, command.access) {
-            gate.authorizeRequest(command.access, listOf(Action.INFORMATION_REQUEST_SUPERSEDE), recurrence.originRequestId)
+            gate.authorizeRequest(
+                command.access,
+                listOf(Action.INFORMATION_REQUEST_SUPERSEDE),
+                recurrence.originRequestId
+            )
             val sequence = series.size + 1
             val due = dueAt(recurrence, sequence)
             if ((recurrence.maximumOccurrences?.let { sequence > it } ?: false) || due.isAfter(clock.instant()))
@@ -164,7 +161,12 @@ class InformationRequestFollowUpService @Inject constructor(
                         createdAt = Timestamp.from(clock.instant())
                     },
                 )
-                recordSchedule(locked, command.access, command.idempotencyKey, mapOf("refreshRuleId" to rule.id.toString()))
+                recordSchedule(
+                    locked,
+                    command.access,
+                    command.idempotencyKey,
+                    mapOf("refreshRuleId" to rule.id.toString())
+                )
                 CommandMutationResult(rule, CommandResultReference(ResourceType.INFORMATION_REQUEST, locked.request.id))
             }
         )
@@ -180,7 +182,10 @@ class InformationRequestFollowUpService @Inject constructor(
     {
         val rule = refreshRuleRepository.findById(command.refreshRuleId)
             ?.takeIf { it.informationRequestId == command.requestId }
-            ?: throw InformationRequestLifecycleException(InformationRequestErrorCatalog.NOT_FOUND, "Refresh rule not found")
+            ?: throw InformationRequestLifecycleException(
+                InformationRequestErrorCatalog.NOT_FOUND,
+                "Refresh rule not found"
+            )
         val locked = gate.lock(command.requestId)
         val receipt = receipt(
             ResourceRef.informationRequest(command.requestId),
@@ -262,7 +267,12 @@ class InformationRequestFollowUpService @Inject constructor(
         operation = operation,
         actor = CommandActorRef.principal(access.principal),
         idempotencyKey = idempotencyKey,
-        requestFingerprint = CommandRequestFingerprint.sha256Hex((listOf(operation, resource.id) + facts).joinToString("|")),
+        requestFingerprint = CommandRequestFingerprint.sha256Hex(
+            (listOf(
+                operation,
+                resource.id
+            ) + facts).joinToString("|")
+        ),
     )
 
     private companion object

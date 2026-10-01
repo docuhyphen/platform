@@ -3,11 +3,7 @@ package com.docuhyphen.app.api.service.informationrequest.template
 import com.docuhyphen.app.api.model.dto.InformationRequestTemplateConfigurationRequest
 import com.docuhyphen.app.api.model.dto.InformationRequestTemplateRequirementRequest
 import com.docuhyphen.app.api.model.dto.InformationRequestTemplateReviewStageRequest
-import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceConformancePolicy
-import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceWaiverPolicy
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewAggregation
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewPolicy
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewTieResolution
+import com.docuhyphen.app.api.model.entity.*
 
 internal object InformationRequestTemplateReviewPlanValidator
 {
@@ -41,7 +37,7 @@ internal object InformationRequestTemplateReviewPlanValidator
                 {
                     throw InformationRequestTemplateValidationException(
                         "Requirement ${requirement.requirementKey} routes work to a reviewer, but no review stage covers " +
-                            "section $sectionKey",
+                                "section $sectionKey",
                         sectionKey = sectionKey,
                         requirementKey = requirement.requirementKey,
                     )
@@ -56,8 +52,8 @@ internal object InformationRequestTemplateReviewPlanValidator
 
     fun routesReview(requirement: InformationRequestTemplateRequirementRequest): Boolean =
         requirement.reviewPolicy != InformationRequestReviewPolicy.NOT_REQUIRED ||
-            requirement.evidencePolicy?.conformancePolicy == InformationRequestEvidenceConformancePolicy.DEFICIENCY_REVIEWABLE ||
-            requirement.evidencePolicy?.waiverPolicy == InformationRequestEvidenceWaiverPolicy.REVIEW_APPROVAL_REQUIRED
+                requirement.evidencePolicy?.conformancePolicy == InformationRequestEvidenceConformancePolicy.DEFICIENCY_REVIEWABLE ||
+                requirement.evidencePolicy?.waiverPolicy == InformationRequestEvidenceWaiverPolicy.REVIEW_APPROVAL_REQUIRED
 
     private fun normalizeStage(
         stage: InformationRequestTemplateReviewStageRequest,
@@ -78,8 +74,10 @@ internal object InformationRequestTemplateReviewPlanValidator
         {
             stage.aggregation == InformationRequestReviewAggregation.QUORUM && quorum == null ->
                 refuse("Review stage $key decides by quorum, so it states how many reviewers make one", key)
+
             stage.aggregation != InformationRequestReviewAggregation.QUORUM && quorum != null ->
                 refuse("Review stage $key does not decide by quorum, so it states no quorum count", key)
+
             quorum != null && (quorum < 1 || quorum > stage.minimumReviewerCount) ->
                 refuse("Review stage $key needs a quorum between one and its minimum reviewer count", key)
         }
@@ -105,7 +103,7 @@ internal object InformationRequestTemplateReviewPlanValidator
         {
             throw InformationRequestTemplateValidationException(
                 "A fact reuse purpose must be lowercase letters, digits, dots, hyphens, and underscores, " +
-                    "so '$candidate' cannot be one",
+                        "so '$candidate' cannot be one",
             )
         }
         return purpose

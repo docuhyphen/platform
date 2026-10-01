@@ -14,7 +14,7 @@ import jakarta.inject.Inject
 import jakarta.transaction.Transactional
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 /**
  * Lifecycle operations that preserve a frozen Template Version by copying its authored document

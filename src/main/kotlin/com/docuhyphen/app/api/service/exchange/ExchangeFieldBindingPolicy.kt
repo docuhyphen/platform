@@ -53,6 +53,7 @@ class ExchangeFieldBindingPolicy @Inject constructor(
                     exchange.ownerUserId != principal.id
                 }
             }
+
             else -> false
         }
     }

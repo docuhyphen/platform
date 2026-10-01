@@ -5,17 +5,12 @@ import com.docuhyphen.app.api.model.entity.InformationRequest
 import com.docuhyphen.app.api.model.entity.RequestExecutionGrant
 import com.docuhyphen.app.api.repository.informationrequest.execution.RequestExecutionGrantRepository
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateRequirementBindingRepository
-import com.docuhyphen.app.api.service.subscription.EffectiveSubscription
-import com.docuhyphen.app.api.service.subscription.PlanFeature
-import com.docuhyphen.app.api.service.subscription.SubscriptionAccessService
-import com.docuhyphen.app.api.service.subscription.SubscriptionContext
-import com.docuhyphen.app.api.service.subscription.SubscriptionOwnerType
-import com.docuhyphen.app.api.service.subscription.SubscriptionStatus
+import com.docuhyphen.app.api.service.subscription.*
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 /**
  * Freezes the commercial position an Information Request is issued under.
@@ -49,7 +44,8 @@ class InformationRequestExecutionGrantService @Inject constructor(
 
         val context = owner(exchange)
         if (context.ownerType == SubscriptionOwnerType.ORGANIZATION &&
-            hasFieldBoundRequirements(request.templateVersionId))
+            hasFieldBoundRequirements(request.templateVersionId)
+        )
         {
             subscriptionAccessService.requireFeature(context, PlanFeature.BUSINESS_FIELDS_AND_SCHEMAS)
         }

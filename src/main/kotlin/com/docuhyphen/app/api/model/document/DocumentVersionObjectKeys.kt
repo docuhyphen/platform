@@ -1,6 +1,6 @@
 package com.docuhyphen.app.api.model.document
 
-import java.util.UUID
+import java.util.*
 
 object DocumentVersionObjectKeys
 {

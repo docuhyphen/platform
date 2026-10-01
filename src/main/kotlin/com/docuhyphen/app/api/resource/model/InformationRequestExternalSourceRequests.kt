@@ -9,7 +9,7 @@ import com.docuhyphen.app.api.serializer.UUIDSerializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
 import java.sql.Timestamp
-import java.util.UUID
+import java.util.*
 
 @Serializable
 data class RequestInformationRequestConnectorExchangeRequest(

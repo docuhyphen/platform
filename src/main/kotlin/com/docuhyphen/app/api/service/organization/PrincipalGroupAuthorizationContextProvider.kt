@@ -8,7 +8,7 @@ import com.docuhyphen.app.api.service.auth.authz.ResourceAuthorizationContextPro
 import com.docuhyphen.app.api.service.auth.authz.ResourceKind
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
-import java.util.UUID
+import java.util.*
 
 /**
  * Resolves the owner of a Principal Group so a decision about the group rests on the group's own
@@ -38,8 +38,10 @@ class PrincipalGroupAuthorizationContextProvider : ResourceAuthorizationContextP
         {
             PrincipalGroupScope.ORG ->
                 OwnerContext.Organization(group.ownerOrganizationId ?: return null)
+
             PrincipalGroupScope.PERSONAL ->
                 OwnerContext.Personal(group.ownerAppUserId ?: return null)
+
             PrincipalGroupScope.SHARED_PROJECT -> return null
         }
 

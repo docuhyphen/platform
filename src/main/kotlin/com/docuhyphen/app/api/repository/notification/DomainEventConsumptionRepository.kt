@@ -4,7 +4,7 @@ import com.docuhyphen.app.api.model.notification.DomainEventConsumptionOutcome
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.persistence.EntityManager
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class DomainEventConsumptionRepository @Inject constructor(

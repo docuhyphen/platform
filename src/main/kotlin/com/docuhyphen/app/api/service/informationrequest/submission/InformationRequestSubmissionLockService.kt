@@ -17,7 +17,7 @@ import com.docuhyphen.app.api.service.informationrequest.InformationRequestError
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestLifecycleException
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestSubmissionLockService @Inject constructor(
@@ -111,7 +111,8 @@ class InformationRequestSubmissionLockService @Inject constructor(
         val frozen = evidenceRepository.findForPackages(listOf(item.packageId))
             .filter { it.itemId == item.id && it.evidenceArtifactId == artifactId }
         if (frozen.isEmpty()) return
-        val returned = correctionEvidenceRepository.findForCorrections(listOf(correction.id)).map { it.evidenceVersionId }.toSet()
+        val returned =
+            correctionEvidenceRepository.findForCorrections(listOf(correction.id)).map { it.evidenceVersionId }.toSet()
         if (frozen.none { it.evidenceVersionId in returned })
         {
             throw InformationRequestLifecycleException(

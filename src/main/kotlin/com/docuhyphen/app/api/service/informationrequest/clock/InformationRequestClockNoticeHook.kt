@@ -1,17 +1,12 @@
 package com.docuhyphen.app.api.service.informationrequest.clock
 
-import com.docuhyphen.app.api.model.entity.InformationRequest
-import com.docuhyphen.app.api.model.entity.InformationRequestClock
-import com.docuhyphen.app.api.model.entity.InformationRequestClockEvent
-import com.docuhyphen.app.api.model.entity.InformationRequestNoticeIntent
-import com.docuhyphen.app.api.model.entity.InformationRequestNoticeKind
-import com.docuhyphen.app.api.model.entity.InformationRequestShareRoleKey
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.repository.informationrequest.amendment.InformationRequestNoticeIntentRepository
 import com.docuhyphen.app.api.repository.informationrequest.party.InformationRequestPartyRepository
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import java.sql.Timestamp
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestClockNoticeHook @Inject constructor(
@@ -20,11 +15,25 @@ class InformationRequestClockNoticeHook @Inject constructor(
     private val policies: InformationRequestClockPolicyService,
 )
 {
-    fun reminded(request: InformationRequest, clock: InformationRequestClock, event: InformationRequestClockEvent): Int =
-        owe(request, event, InformationRequestNoticeKind.RESPONSE_REMINDER, policies.versionView(clock.policyVersionId)?.version?.reminderCommunicationId)
+    fun reminded(
+        request: InformationRequest,
+        clock: InformationRequestClock,
+        event: InformationRequestClockEvent
+    ): Int =
+        owe(
+            request,
+            event,
+            InformationRequestNoticeKind.RESPONSE_REMINDER,
+            policies.versionView(clock.policyVersionId)?.version?.reminderCommunicationId
+        )
 
     fun overdue(request: InformationRequest, clock: InformationRequestClock, event: InformationRequestClockEvent): Int =
-        owe(request, event, InformationRequestNoticeKind.RESPONSE_OVERDUE, policies.versionView(clock.policyVersionId)?.version?.overdueCommunicationId)
+        owe(
+            request,
+            event,
+            InformationRequestNoticeKind.RESPONSE_OVERDUE,
+            policies.versionView(clock.policyVersionId)?.version?.overdueCommunicationId
+        )
 
     private fun owe(
         request: InformationRequest,

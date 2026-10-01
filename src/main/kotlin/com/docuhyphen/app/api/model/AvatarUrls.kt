@@ -1,6 +1,6 @@
 package com.docuhyphen.app.api.model
 
-import java.util.UUID
+import java.util.*
 
 /**
  * Builds the relative API paths the frontend resolves into authenticated avatar image blobs.

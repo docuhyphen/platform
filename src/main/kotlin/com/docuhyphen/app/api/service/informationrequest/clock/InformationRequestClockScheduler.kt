@@ -41,7 +41,11 @@ class InformationRequestClockScheduler @Inject constructor(
     {
         var processed = 0
         val clockIds = QuarkusTransaction.requiringNew().call {
-            (clockRepository.findUnstoppedOfFinishedIds(BATCH_SIZE) + clockRepository.findDuePointClockIds(Timestamp.from(now), BATCH_SIZE)).distinct()
+            (clockRepository.findUnstoppedOfFinishedIds(BATCH_SIZE) + clockRepository.findDuePointClockIds(
+                Timestamp.from(
+                    now
+                ), BATCH_SIZE
+            )).distinct()
         }
         clockIds.forEach { clockId ->
             try
@@ -50,7 +54,11 @@ class InformationRequestClockScheduler @Inject constructor(
             }
             catch (exception: Exception)
             {
-                logger.warn("information request clock {} point processing failed; it will be retried", clockId, exception)
+                logger.warn(
+                    "information request clock {} point processing failed; it will be retried",
+                    clockId,
+                    exception
+                )
             }
         }
         return processed

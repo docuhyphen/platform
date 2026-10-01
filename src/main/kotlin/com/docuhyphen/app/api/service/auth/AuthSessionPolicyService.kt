@@ -53,7 +53,8 @@ class AuthSessionPolicyService @Inject constructor(
     fun resolveForAppUser(appUser: AppUser): AuthSessionPolicy
     {
         val personId = appUser.person?.id ?: return resolveForFallbackDefaults()
-        val organization = organizationRepository.findByAppUserIdAndPersonId(appUser.id, personId) ?: return resolveForFallbackDefaults()
+        val organization = organizationRepository.findByAppUserIdAndPersonId(appUser.id, personId)
+            ?: return resolveForFallbackDefaults()
         return resolveForOrganization(organization.id)
     }
 

@@ -147,7 +147,8 @@ class ExchangeUpdateService @Inject constructor(
         val authCtx = authorizationContextFactory.currentContext()
         val initialAction = if (recipientDecision) Action.EXCHANGE_ACCEPT else Action.EXCHANGE_VIEW
         if (authorizationService.authorize(principal, initialAction, ResourceRef.exchange(sessionUUID), authCtx)
-                is AuthDecision.Deny)
+                    is AuthDecision.Deny
+        )
         {
             if (recipientDecision)
             {
@@ -158,15 +159,21 @@ class ExchangeUpdateService @Inject constructor(
 
         // Owner-only mutations and ENDED status require EXCHANGE_WRITE.
         val hasOwnerMutation = request?.name != null || request?.description != null ||
-            request?.requireRecipientSignIn != null || request?.noAuthAccessValidityDays != null ||
-            request?.allowDocumentAddition != null || request?.allowDocumentDeletion != null ||
-            request?.allowDocumentDownload != null || request?.allowDocumentUpdate != null ||
-            request?.allowDocumentUpload != null || request?.allowedDownloadFormats != null ||
-            request?.status == ExchangeStatus.ENDED
+                request?.requireRecipientSignIn != null || request?.noAuthAccessValidityDays != null ||
+                request?.allowDocumentAddition != null || request?.allowDocumentDeletion != null ||
+                request?.allowDocumentDownload != null || request?.allowDocumentUpdate != null ||
+                request?.allowDocumentUpload != null || request?.allowedDownloadFormats != null ||
+                request?.status == ExchangeStatus.ENDED
         if (hasOwnerMutation)
         {
-            if (authorizationService.authorize(principal, Action.EXCHANGE_EDIT, ResourceRef.exchange(sessionUUID), authCtx)
-                    is AuthDecision.Deny)
+            if (authorizationService.authorize(
+                    principal,
+                    Action.EXCHANGE_EDIT,
+                    ResourceRef.exchange(sessionUUID),
+                    authCtx
+                )
+                        is AuthDecision.Deny
+            )
             {
                 throw ForbiddenException("Not authorized to edit this exchange")
             }
@@ -234,7 +241,8 @@ class ExchangeUpdateService @Inject constructor(
                         ?: throw IllegalStateException("Acceptance workflow has no current step for exchange $sessionUUID")
                     val currentUser = authTokenContext.authToken.appUser
                         ?: throw IllegalStateException("No authenticated user in context")
-                    val decision = if (newStatus == ExchangeStatus.ACCEPTED_STARTED) Decision.APPROVE else Decision.REJECT
+                    val decision =
+                        if (newStatus == ExchangeStatus.ACCEPTED_STARTED) Decision.APPROVE else Decision.REJECT
                     workflowEngineService.recordDecision(
                         stepInstanceId = currentStep.id,
                         decider = PrincipalRef(PrincipalKind.USER, currentUser.id),
@@ -250,7 +258,11 @@ class ExchangeUpdateService @Inject constructor(
                     if (newStatus == ExchangeStatus.REJECTED)
                     {
                         exchangeRepository.updateEndDate(sessionUUID, Timestamp.from(Instant.now()))
-                        shareService.revokeAllForResource(ResourceType.EXCHANGE, sessionUUID, resourceLabel = existingExchange.name)
+                        shareService.revokeAllForResource(
+                            ResourceType.EXCHANGE,
+                            sessionUUID,
+                            resourceLabel = existingExchange.name
+                        )
                     }
                     request.rejectionReason?.let { exchangeRepository.updateRejectionReason(sessionUUID, it) }
                     exchangeRepository.updateLastActivity(sessionUUID, Timestamp.from(Instant.now()))
@@ -338,7 +350,11 @@ class ExchangeUpdateService @Inject constructor(
                 newStatus == ExchangeStatus.RESCINDED
             )
             {
-                shareService.revokeAllForResource(ResourceType.EXCHANGE, sessionUUID, resourceLabel = existingExchange.name)
+                shareService.revokeAllForResource(
+                    ResourceType.EXCHANGE,
+                    sessionUUID,
+                    resourceLabel = existingExchange.name
+                )
             }
 
             recordLifecycleTransition(sessionUUID, existingExchange.name, previousStatus, newStatus)
@@ -360,7 +376,8 @@ class ExchangeUpdateService @Inject constructor(
             request?.allowDocumentDownload != null ||
             request?.allowDocumentUpdate != null ||
             request?.allowDocumentUpload != null ||
-            request?.allowedDownloadFormats != null)
+            request?.allowedDownloadFormats != null
+        )
         {
             // Read the current constraints to preserve flags that aren't being changed.
             val currentJson = shareService.recipientConstraintsJson(sessionUUID) ?: "{}"
@@ -390,7 +407,8 @@ class ExchangeUpdateService @Inject constructor(
 
             // Preserve or update allowed_download_formats
             // Empty list = explicitly clear restriction; null = preserve current value
-            val formats = if (request?.allowedDownloadFormats != null) request.allowedDownloadFormats else currentConstraints.allowedDownloadFormats
+            val formats =
+                if (request?.allowedDownloadFormats != null) request.allowedDownloadFormats else currentConstraints.allowedDownloadFormats
             if (formats != null && formats.isNotEmpty())
             {
                 val formatsArray = formats.joinToString(",") { "\"$it\"" }
@@ -441,7 +459,7 @@ class ExchangeUpdateService @Inject constructor(
                 shareRepository.findActiveByResource(ResourceType.EXCHANGE, sessionUUID)
                     .filter {
                         it.principalKind == PrincipalKind.USER &&
-                            it.principalId != initiator.id &&
+                                it.principalId != initiator.id &&
                                 it.roleName != ExchangeShareRoleName.OWNER.name &&
                                 it.roleName != ExchangeShareRoleName.PARTICIPANT.name
                     }
@@ -470,7 +488,9 @@ class ExchangeUpdateService @Inject constructor(
             ?: throw ForbiddenException("Authentication required to rescind this exchange")
         if (authorizationService.authorize(
                 principal, Action.EXCHANGE_RESCIND, ResourceRef.exchange(exchangeUuid),
-                authorizationContextFactory.currentContext()) is AuthDecision.Deny)
+                authorizationContextFactory.currentContext()
+            ) is AuthDecision.Deny
+        )
         {
             throw ForbiddenException("Only the initiator can rescind this exchange")
         }
@@ -546,7 +566,9 @@ class ExchangeUpdateService @Inject constructor(
             ?: throw ExchangeNotFoundException("Exchange not found")
         if (authorizationService.authorize(
                 principal, Action.EXCHANGE_DELETE, ResourceRef.exchange(sessionUUID),
-                authorizationContextFactory.currentContext()) is AuthDecision.Deny)
+                authorizationContextFactory.currentContext()
+            ) is AuthDecision.Deny
+        )
         {
             throw ExchangeNotFoundException("Exchange not found")
         }
@@ -748,7 +770,8 @@ class ExchangeUpdateService @Inject constructor(
                     .findCurrent(runningAcceptance.id, runningAcceptance.currentStepIndex)
                 if (recipientUserId != null && currentStep != null)
                 {
-                    val decision = if (requestedStatus == ExchangeStatus.ACCEPTED_STARTED) Decision.APPROVE else Decision.REJECT
+                    val decision =
+                        if (requestedStatus == ExchangeStatus.ACCEPTED_STARTED) Decision.APPROVE else Decision.REJECT
                     workflowEngineService.recordDecision(
                         stepInstanceId = currentStep.id,
                         decider = PrincipalRef(PrincipalKind.USER, recipientUserId),
@@ -758,11 +781,20 @@ class ExchangeUpdateService @Inject constructor(
                     // Write status directly � EVENT_EXCHANGE_ACTIVATED does not advance status
                     // when requireRecipientAcceptance=true, so this path owns the transition.
                     exchangeRepository.updateStatus(sessionUUID, requestedStatus)
-                    requestParentLifecycle.apply(sessionUUID, requestedStatus, false, PrincipalRef(PrincipalKind.SERVICE_ACCOUNT, UUID(0, 0)))
+                    requestParentLifecycle.apply(
+                        sessionUUID,
+                        requestedStatus,
+                        false,
+                        PrincipalRef(PrincipalKind.SERVICE_ACCOUNT, UUID(0, 0))
+                    )
                     if (requestedStatus == ExchangeStatus.REJECTED)
                     {
                         exchangeRepository.updateEndDate(sessionUUID, Timestamp.from(Instant.now()))
-                        shareService.revokeAllForResource(ResourceType.EXCHANGE, sessionUUID, resourceLabel = session.name)
+                        shareService.revokeAllForResource(
+                            ResourceType.EXCHANGE,
+                            sessionUUID,
+                            resourceLabel = session.name
+                        )
                     }
                     if (requestedStatus == ExchangeStatus.ACCEPTED_STARTED)
                     {
@@ -792,7 +824,12 @@ class ExchangeUpdateService @Inject constructor(
 
         sessionStatus?.let {
             exchangeRepository.updateStatus(sessionUUID, it)
-            requestParentLifecycle.apply(sessionUUID, it, false, PrincipalRef(PrincipalKind.SERVICE_ACCOUNT, UUID(0, 0)))
+            requestParentLifecycle.apply(
+                sessionUUID,
+                it,
+                false,
+                PrincipalRef(PrincipalKind.SERVICE_ACCOUNT, UUID(0, 0))
+            )
 
             if (it == ExchangeStatus.REJECTED)
             {
@@ -1007,7 +1044,11 @@ class ExchangeUpdateService @Inject constructor(
         if (lockedUntil.isAfter(now))
         {
             val secondsLeft = java.time.Duration.between(now, lockedUntil).seconds.coerceAtLeast(1)
-            logger.info("noAuthOtp.verify.rejected exchangeId={} reason=OTP_LOCKED retryAfterSeconds={}", exchangeId, secondsLeft)
+            logger.info(
+                "noAuthOtp.verify.rejected exchangeId={} reason=OTP_LOCKED retryAfterSeconds={}",
+                exchangeId,
+                secondsLeft
+            )
             throw NoAuthOtpException(
                 message = "Too many invalid verification attempts. Try again later.",
                 reasonCode = "OTP_LOCKED",
@@ -1085,11 +1126,17 @@ class ExchangeUpdateService @Inject constructor(
             ?: resolvePrimaryRecipientParticipantEmail(exchangeId, includeInactive)
 
     private fun resolvePrimaryRecipientUser(exchangeId: UUID, includeInactive: Boolean = false) =
-        (if (includeInactive) shareService.primaryRecipientUserIdForDisplay(exchangeId) else shareService.primaryRecipientUserId(exchangeId))
+        (if (includeInactive) shareService.primaryRecipientUserIdForDisplay(exchangeId)
+        else shareService.primaryRecipientUserId(
+            exchangeId
+        ))
             ?.let { appUserService.getById(it) }
 
     private fun resolvePrimaryRecipientGroupLabel(exchangeId: UUID, includeInactive: Boolean = false): String? =
-        (if (includeInactive) shareService.primaryRecipientGroupIdForDisplay(exchangeId) else shareService.primaryRecipientGroupId(exchangeId))
+        (if (includeInactive) shareService.primaryRecipientGroupIdForDisplay(exchangeId)
+        else shareService.primaryRecipientGroupId(
+            exchangeId
+        ))
             ?.let { groupId -> principalGroupRepository.findById(groupId)?.name }
             ?.takeIf { it.isNotBlank() }
             ?.let { "Group: $it" }
@@ -1109,7 +1156,7 @@ class ExchangeUpdateService @Inject constructor(
             .firstOrNull {
                 it.principalKind == PrincipalKind.PARTICIPANT &&
                         it.roleName != ExchangeShareRoleName.OWNER.name &&
-                    it.source == ShareSource.DIRECT
+                        it.source == ShareSource.DIRECT
             }
             ?.principalId
             ?.let { externalParticipantRepository.findById(it) }
@@ -1144,11 +1191,11 @@ class ExchangeUpdateService @Inject constructor(
         val constraintsJson = shareService.recipientConstraintsJson(exchangeId)
         val constraints = ShareConstraints.parse(constraintsJson)
         val downloadAllowed = constraints?.canDownload != false &&
-            (constraintsJson?.contains("\"allow_document_download\":true") == true ||
-                constraints?.canDownload == true)
+                (constraintsJson?.contains("\"allow_document_download\":true") == true ||
+                        constraints?.canDownload == true)
         dto.allowDocumentDownload = downloadAllowed
         dto.accessVerificationRequired = exchange.status == ExchangeStatus.ACCEPTED_STARTED &&
-            !noAuthExchangeAccessWindowService.isActive(exchange)
+                !noAuthExchangeAccessWindowService.isActive(exchange)
         return dto
     }
 
@@ -1166,7 +1213,8 @@ class ExchangeUpdateService @Inject constructor(
     {
         when (status)
         {
-            ExchangeStatus.INITIATED -> {
+            ExchangeStatus.INITIATED ->
+            {
                 sendStatusChangeEmailForAudience(
                     session = session,
                     status = status,
@@ -1176,7 +1224,8 @@ class ExchangeUpdateService @Inject constructor(
             }
 
             ExchangeStatus.ACCEPTED_STARTED,
-            ExchangeStatus.REJECTED -> {
+            ExchangeStatus.REJECTED ->
+            {
                 sendStatusChangeEmailForAudience(
                     session = session,
                     status = status,
@@ -1191,7 +1240,8 @@ class ExchangeUpdateService @Inject constructor(
                 )
             }
 
-            ExchangeStatus.ENDED -> {
+            ExchangeStatus.ENDED ->
+            {
                 sendStatusChangeEmailForAudience(
                     session = session,
                     status = status,
@@ -1206,7 +1256,8 @@ class ExchangeUpdateService @Inject constructor(
                 )
             }
 
-            ExchangeStatus.RESCINDED -> {
+            ExchangeStatus.RESCINDED ->
+            {
                 sendStatusChangeEmailForAudience(
                     session = session,
                     status = status,
@@ -1242,8 +1293,8 @@ class ExchangeUpdateService @Inject constructor(
 
         val includeInactiveRecipient =
             status == ExchangeStatus.REJECTED ||
-                status == ExchangeStatus.ENDED ||
-                status == ExchangeStatus.RESCINDED
+                    status == ExchangeStatus.ENDED ||
+                    status == ExchangeStatus.RESCINDED
 
         val template = emailTemplateService.renderExchangeStatusEmail(
             status = status,

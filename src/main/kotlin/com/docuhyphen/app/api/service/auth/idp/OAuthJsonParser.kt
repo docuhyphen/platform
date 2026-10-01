@@ -7,7 +7,8 @@ object OAuthJsonParser
 {
     private val objectMapper = ObjectMapper()
 
-    private val mapTypeRef = object : TypeReference<Map<String, Any?>>() {}
+    private val mapTypeRef = object : TypeReference<Map<String, Any?>>()
+    {}
 
     fun parseJsonToMap(json: String): Map<String, Any?>
     {

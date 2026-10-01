@@ -11,7 +11,7 @@ import jakarta.inject.Inject
 import jakarta.inject.Provider
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class ExchangeRecipientAttestationService @Inject constructor(

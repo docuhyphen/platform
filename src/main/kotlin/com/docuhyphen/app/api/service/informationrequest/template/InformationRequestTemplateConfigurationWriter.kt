@@ -1,44 +1,15 @@
 package com.docuhyphen.app.api.service.informationrequest.template
 
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateConditionPredicateRequest
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateConditionRuleRequest
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateConfigurationRequest
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateEvidencePolicyRequest
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateGroupRequest
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateRequirementRequest
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateBindingDisposition
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateBindingEvidenceLink
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateBindingSubstitute
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateConditionPredicate
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateConditionPredicateLiteral
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateConditionRule
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateEvidenceAcceptedValue
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateEvidencePolicy
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateRequirement
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateRequirementBinding
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateRequirementGroup
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateSection
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateVersion
-import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateBindingDispositionRepository
-import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateBindingEvidenceLinkRepository
-import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateBindingSubstituteRepository
-import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateConditionPredicateLiteralRepository
-import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateConditionPredicateRepository
-import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateConditionRuleRepository
-import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateEvidenceAcceptedValueRepository
-import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateEvidencePolicyRepository
-import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateRequirementBindingRepository
-import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateRequirementGroupRepository
-import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateRequirementRepository
-import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateSectionRepository
-import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateVersionRepository
+import com.docuhyphen.app.api.model.dto.*
+import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.repository.informationrequest.template.*
 import com.docuhyphen.app.api.service.informationrequest.condition.InformationRequestConditionPredicateLiteralCodec
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.persistence.EntityManager
 import jakarta.persistence.PersistenceContext
 import jakarta.transaction.Transactional
-import java.util.UUID
+import java.util.*
 
 /**
  * Writes one authored configuration document into one draft Template Version.
@@ -273,13 +244,14 @@ class InformationRequestTemplateConfigurationWriter @Inject constructor(
                         this.requirementType = requirement.requirementType
                     },
                 )
-                existing.requirementType != requirement.requirementType -> throw
-                    InformationRequestTemplateValidationException(
-                        "Requirement ${requirement.requirementKey} already asks for " +
+
+                existing.requirementType != requirement.requirementType -> throw InformationRequestTemplateValidationException(
+                    "Requirement ${requirement.requirementKey} already asks for " +
                             "${existing.requirementType}, and what a requirement asks for is part of " +
                             "its stable identity rather than something one version restates",
-                        requirementKey = requirement.requirementKey,
-                    )
+                    requirementKey = requirement.requirementKey,
+                )
+
                 else -> existing
             }
         }
@@ -346,8 +318,8 @@ class InformationRequestTemplateConfigurationWriter @Inject constructor(
     )
     {
         val stated = mutableListOf<
-            Pair<InformationRequestTemplateEvidencePolicy, InformationRequestTemplateEvidencePolicyRequest>,
-            >()
+                Pair<InformationRequestTemplateEvidencePolicy, InformationRequestTemplateEvidencePolicyRequest>,
+                >()
 
         authored.forEach { requirement ->
             val binding = bindings.getValue(requirement.requirementKey)
@@ -384,7 +356,7 @@ class InformationRequestTemplateConfigurationWriter @Inject constructor(
 
             requirement.evidencePolicy?.let { authoredPolicy ->
                 stated += writeEvidencePolicy(templateVersionId, binding.id, authoredPolicy) to
-                    authoredPolicy
+                        authoredPolicy
             }
         }
 

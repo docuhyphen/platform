@@ -5,7 +5,7 @@ import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequ
 import com.docuhyphen.app.api.repository.BaseRepository
 import com.docuhyphen.app.api.service.subscription.SubscriptionOwnerType
 import jakarta.enterprise.context.ApplicationScoped
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class RequestExecutionGrantRepository :
@@ -33,8 +33,8 @@ class RequestExecutionGrantRepository :
 
     fun committedEvidenceBytes(ownerType: SubscriptionOwnerType, ownerId: UUID): Long =
         (
-            entityManager.createNativeQuery(
-                """
+                entityManager.createNativeQuery(
+                    """
                 SELECT COALESCE(SUM(
                     CASE WHEN request.state IN ($OPEN_STATES)
                         THEN COALESCE(grant_row.evidence_byte_allowance, stored.bytes)
@@ -51,11 +51,11 @@ class RequestExecutionGrantRepository :
                 WHERE grant_row.owner_type = :ownerType
                   AND COALESCE(grant_row.owner_organization_id, grant_row.owner_user_id) = :ownerId
                 """.trimIndent(),
-            )
-                .setParameter("ownerType", ownerType.name)
-                .setParameter("ownerId", ownerId)
-                .singleResult as Number
-            ).toLong()
+                )
+                    .setParameter("ownerType", ownerType.name)
+                    .setParameter("ownerId", ownerId)
+                    .singleResult as Number
+                ).toLong()
 
     private companion object
     {

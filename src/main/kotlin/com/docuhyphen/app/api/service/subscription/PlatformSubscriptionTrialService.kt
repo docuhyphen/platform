@@ -1,25 +1,22 @@
 package com.docuhyphen.app.api.service.subscription
 
-import com.docuhyphen.app.api.service.auth.AdminApprovalContext
-import com.docuhyphen.app.api.service.auth.AuthAuditService
-import com.docuhyphen.app.api.service.auth.UserRoleService
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.interceptor.EnforceAdminAction
 import com.docuhyphen.app.api.model.entity.AppUser
 import com.docuhyphen.app.api.resource.model.PlatformSubscriptionTrialExtensionRequest
 import com.docuhyphen.app.api.resource.model.PlatformSubscriptionTrialStartRequest
-import com.docuhyphen.app.api.service.user.AppUserService
+import com.docuhyphen.app.api.service.auth.AdminApprovalContext
+import com.docuhyphen.app.api.service.auth.AuthAuditService
+import com.docuhyphen.app.api.service.auth.UserRoleService
 import com.docuhyphen.app.api.service.organization.OrganizationService
-import com.docuhyphen.app.api.service.subscription.PlanCode
-import com.docuhyphen.app.api.service.subscription.SubscriptionTrialMutation
-import com.docuhyphen.app.api.service.subscription.SubscriptionTrialService
+import com.docuhyphen.app.api.service.user.AppUserService
 import io.quarkus.security.ForbiddenException
 import io.quarkus.security.UnauthorizedException
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 @RequestScoped
 class PlatformSubscriptionTrialService @Inject constructor(
@@ -185,7 +182,11 @@ class PlatformSubscriptionTrialService @Inject constructor(
     private fun requirePlan(value: String, expected: PlanCode)
     {
         val plan = PlanCode.fromCode(value)
-        require(plan == expected) { "${expected.name.lowercase().replaceFirstChar(Char::uppercase)} is the required trial plan" }
+        require(plan == expected) {
+            "${
+                expected.name.lowercase().replaceFirstChar(Char::uppercase)
+            } is the required trial plan"
+        }
     }
 
     private fun parsePeriodEnd(value: String): Instant

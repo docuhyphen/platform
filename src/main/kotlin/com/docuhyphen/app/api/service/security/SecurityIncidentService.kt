@@ -1,16 +1,16 @@
 package com.docuhyphen.app.api.service.security
 
-import com.docuhyphen.app.api.service.auth.AuthAuditService
-import com.docuhyphen.app.api.service.auth.RevocationReasonCode
 import com.docuhyphen.app.api.model.entity.SecurityIncident
 import com.docuhyphen.app.api.model.entity.SecurityIncidentSeverity
 import com.docuhyphen.app.api.model.entity.SecurityIncidentType
 import com.docuhyphen.app.api.repository.security.SecurityIncidentRepository
+import com.docuhyphen.app.api.service.auth.AuthAuditService
+import com.docuhyphen.app.api.service.auth.RevocationReasonCode
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 @RequestScoped
 class SecurityIncidentService @Inject constructor(
@@ -73,7 +73,10 @@ class SecurityIncidentService @Inject constructor(
 
         var sanitized = details.take(2048)
         sanitized = sanitized.replace(Regex("[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}"), "[REDACTED_EMAIL]")
-        sanitized = sanitized.replace(Regex("eyJ[A-Za-z0-9_-]{10,}\\.[A-Za-z0-9_-]{10,}\\.[A-Za-z0-9_-]{10,}"), "[REDACTED_JWT]")
+        sanitized = sanitized.replace(
+            Regex("eyJ[A-Za-z0-9_-]{10,}\\.[A-Za-z0-9_-]{10,}\\.[A-Za-z0-9_-]{10,}"),
+            "[REDACTED_JWT]"
+        )
         sanitized = sanitized.replace(Regex("(?i)(token|secret|password)=[^;\\s]+"), "$1=[REDACTED]")
         return sanitized
     }

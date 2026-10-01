@@ -23,17 +23,17 @@ sealed class Decision
 
     companion object
     {
-        const val REASON_NO_GRANT              = "NO_GRANT"
-        const val REASON_SHARE_EXPIRED         = "SHARE_EXPIRED"
-        const val REASON_SHARE_NOT_ACTIVE      = "SHARE_NOT_ACTIVE"
-        const val REASON_MFA_REQUIRED          = "MFA_REQUIRED"
-        const val REASON_IP_DENIED             = "IP_DENIED"
-        const val REASON_INVALID_CONSTRAINTS   = "INVALID_CONSTRAINTS"
-        const val REASON_EXCHANGE_SUSPENDED    = "EXCHANGE_SUSPENDED"
-        const val REASON_EXCHANGE_ARCHIVED     = "EXCHANGE_ARCHIVED"
-        const val REASON_POLICY_BLOCKED        = "POLICY_BLOCKED"
-        const val REASON_LINK_EXHAUSTED        = "LINK_EXHAUSTED"
-        const val REASON_LINK_DOMAIN           = "LINK_DOMAIN_DENIED"
+        const val REASON_NO_GRANT = "NO_GRANT"
+        const val REASON_SHARE_EXPIRED = "SHARE_EXPIRED"
+        const val REASON_SHARE_NOT_ACTIVE = "SHARE_NOT_ACTIVE"
+        const val REASON_MFA_REQUIRED = "MFA_REQUIRED"
+        const val REASON_IP_DENIED = "IP_DENIED"
+        const val REASON_INVALID_CONSTRAINTS = "INVALID_CONSTRAINTS"
+        const val REASON_EXCHANGE_SUSPENDED = "EXCHANGE_SUSPENDED"
+        const val REASON_EXCHANGE_ARCHIVED = "EXCHANGE_ARCHIVED"
+        const val REASON_POLICY_BLOCKED = "POLICY_BLOCKED"
+        const val REASON_LINK_EXHAUSTED = "LINK_EXHAUSTED"
+        const val REASON_LINK_DOMAIN = "LINK_DOMAIN_DENIED"
 
         /**
          * The resource kind may only be decided from its own resolved facts and no provider
@@ -76,10 +76,13 @@ data class Grant(
     enum class SourceKind
     {
         ROLE_ASSIGNMENT,
+
         /** Registered APPLICATION principal's role resolved from the [com.docuhyphen.app.api.model.entity.Application] entity. */
         APPLICATION_ROLE,
+
         /** Caller's role on an [com.docuhyphen.app.api.model.entity.OrganizationMembership]. */
         ORG_MEMBERSHIP,
+
         /** Caller's Principal Group role within the target group. */
         GROUP_MEMBERSHIP,
         DIRECT_SHARE,

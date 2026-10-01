@@ -4,7 +4,7 @@ import com.docuhyphen.app.api.model.entity.InformationRequestTemplateAttestation
 import com.docuhyphen.app.api.model.entity.InformationRequestTemplateAttestationRole
 import com.docuhyphen.app.api.repository.BaseRepository
 import jakarta.enterprise.context.ApplicationScoped
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestTemplateAttestationPolicyRepository :

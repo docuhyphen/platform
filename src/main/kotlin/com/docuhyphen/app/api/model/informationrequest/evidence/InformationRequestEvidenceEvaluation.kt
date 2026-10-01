@@ -5,7 +5,7 @@ import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceAttribute
 import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceAttributeRequirement
 import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceConformancePolicy
 import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceWaiverPolicy
-import java.util.UUID
+import java.util.*
 
 enum class InformationRequestEvidenceFindingCode(val blocking: Boolean)
 {

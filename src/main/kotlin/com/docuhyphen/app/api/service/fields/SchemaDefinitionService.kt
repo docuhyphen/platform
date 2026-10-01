@@ -177,7 +177,13 @@ class SchemaDefinitionService @Inject constructor(
         schemaVersionRepository.save(version)
         replaceBindings(version, scopeKind, scopeOrgId, request.bindings)
 
-        recordSchemaEvent(AuditEventType.SCHEMA_DEFINITION_CREATE, definition.id, definition.displayName, principal.id, scopeOrgId)
+        recordSchemaEvent(
+            AuditEventType.SCHEMA_DEFINITION_CREATE,
+            definition.id,
+            definition.displayName,
+            principal.id,
+            scopeOrgId
+        )
         return definition.toDto()
     }
 
@@ -259,7 +265,13 @@ class SchemaDefinitionService @Inject constructor(
         def.status = FieldLifecycleStatus.PUBLISHED
         def.updatedAt = Timestamp.from(Instant.now())
         schemaDefinitionRepository.update(def)
-        recordSchemaEvent(AuditEventType.SCHEMA_DEFINITION_PUBLISH, def.id, def.displayName, principal.id, def.scopeOrgId)
+        recordSchemaEvent(
+            AuditEventType.SCHEMA_DEFINITION_PUBLISH,
+            def.id,
+            def.displayName,
+            principal.id,
+            def.scopeOrgId
+        )
         return def.toDto()
     }
 
@@ -274,7 +286,13 @@ class SchemaDefinitionService @Inject constructor(
         def.status = FieldLifecycleStatus.RETIRED
         def.updatedAt = Timestamp.from(Instant.now())
         val updated = schemaDefinitionRepository.update(def)
-        recordSchemaEvent(AuditEventType.SCHEMA_DEFINITION_RETIRE, updated.id, updated.displayName, principal.id, updated.scopeOrgId)
+        recordSchemaEvent(
+            AuditEventType.SCHEMA_DEFINITION_RETIRE,
+            updated.id,
+            updated.displayName,
+            principal.id,
+            updated.scopeOrgId
+        )
         return updated.toDto()
     }
 
@@ -307,9 +325,9 @@ class SchemaDefinitionService @Inject constructor(
                 throw FieldValidationException("Field ${fieldDef.namespace}:${fieldDef.fieldKey} is retired")
             // A field must be visible in the schema's scope (its own org, or platform).
             val visible = fieldDef.scopeKind == FieldScopeKind.PLATFORM ||
-                (scopeKind == FieldScopeKind.ORGANIZATION &&
-                    fieldDef.scopeKind == FieldScopeKind.ORGANIZATION &&
-                    fieldDef.scopeOrgId == scopeOrgId)
+                    (scopeKind == FieldScopeKind.ORGANIZATION &&
+                            fieldDef.scopeKind == FieldScopeKind.ORGANIZATION &&
+                            fieldDef.scopeOrgId == scopeOrgId)
             if (!visible)
                 throw FieldValidationException("Field ${fieldDef.namespace}:${fieldDef.fieldKey} is not available in this scope")
 
@@ -331,7 +349,7 @@ class SchemaDefinitionService @Inject constructor(
     {
         val activeOrgId = currentContext().activeOrgId
         val hasOrgEdit = activeOrgId != null &&
-            hasOrganizationAccess(principal, activeOrgId, Action.FIELD_CONFIG_EDIT)
+                hasOrganizationAccess(principal, activeOrgId, Action.FIELD_CONFIG_EDIT)
         val scope = requested ?: if (hasOrgEdit) FieldScopeKind.ORGANIZATION else FieldScopeKind.PLATFORM
         if (scope == FieldScopeKind.PERSONAL)
             throw FieldValidationException("Personal-scoped schemas cannot be authored yet")
@@ -358,18 +376,21 @@ class SchemaDefinitionService @Inject constructor(
                     val activeOrgId = currentContext().activeOrgId
                     if (userRoleService.isAppAdmin(principal.id) ||
                         (activeOrgId != null &&
-                            hasOrganizationAccess(principal, activeOrgId, Action.FIELD_CONFIG_VIEW)))
+                                hasOrganizationAccess(principal, activeOrgId, Action.FIELD_CONFIG_VIEW))
+                    )
                         return
                 }
                 else if (userRoleService.isAppAdmin(principal.id))
                     return
             }
+
             FieldScopeKind.ORGANIZATION ->
             {
                 val organizationId = definition.scopeOrgId
                     ?: throw ForbiddenException("Organization-scoped schema has no owner")
                 if (currentContext().activeOrgId == organizationId &&
-                    hasOrganizationAccess(principal, organizationId, action))
+                    hasOrganizationAccess(principal, organizationId, action)
+                )
                     return
             }
             // A personally owned schema is storable but has no resolvable owner in the configuration
@@ -441,7 +462,12 @@ class SchemaDefinitionService @Inject constructor(
         }
         catch (e: AuditCaptureFailedException)
         {
-            logger.error("SchemaDefinitionService: AuditRecorder capture failed for {}: {}", eventType.key, e.message, e)
+            logger.error(
+                "SchemaDefinitionService: AuditRecorder capture failed for {}: {}",
+                eventType.key,
+                e.message,
+                e
+            )
         }
     }
 

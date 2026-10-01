@@ -25,12 +25,17 @@ class InformationRequestImportedValueReconciliationResource @Inject constructor(
             val requestId = InformationRequestCommandHttp.uuid(id, "information request id")
             val key = InformationRequestCommandHttp.idempotencyKey(idempotencyKey)
             val access = accessContextFactory.currentAuthenticated()
-            val results = importedValues.reconcile(ReconcileInformationRequestImportedValuesCommand(requestId, access, key))
+            val results =
+                importedValues.reconcile(ReconcileInformationRequestImportedValuesCommand(requestId, access, key))
             Response.ok(results.map(InformationRequestExternalSourceDtoMapper::toDto).toTypedArray()).build()
         }
         catch (exception: Exception)
         {
-            InformationRequestCommandHttp.refused(logger, "Information Request imported value reconciliation failed", exception)
+            InformationRequestCommandHttp.refused(
+                logger,
+                "Information Request imported value reconciliation failed",
+                exception
+            )
         }
     }
 

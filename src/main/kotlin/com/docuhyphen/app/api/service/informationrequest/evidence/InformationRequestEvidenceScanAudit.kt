@@ -20,7 +20,11 @@ class InformationRequestEvidenceScanAudit @Inject constructor(
     private val requestRepository: InformationRequestRepository,
 )
 {
-    fun record(version: InformationRequestEvidenceVersion, assessment: InformationRequestEvidenceAssessment, reused: Boolean)
+    fun record(
+        version: InformationRequestEvidenceVersion,
+        assessment: InformationRequestEvidenceAssessment,
+        reused: Boolean
+    )
     {
         val request = requestRepository.findById(version.informationRequestId)
             ?: throw IllegalStateException("An evidence version belongs to an Information Request")

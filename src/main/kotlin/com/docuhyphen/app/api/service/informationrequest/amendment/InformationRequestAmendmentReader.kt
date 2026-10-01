@@ -9,7 +9,7 @@ import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRe
 import com.docuhyphen.app.api.service.informationrequest.notice.InformationRequestNoticeStateReader
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestAmendmentReader @Inject constructor(
@@ -25,11 +25,19 @@ class InformationRequestAmendmentReader @Inject constructor(
         val notices = noticeRepository.findForRequest(requestId).groupBy { it.amendmentId }
         val states = noticeStates.states(requestId)
         return amendmentRepository.findForRequest(requestId).map { amendment ->
-            InformationRequestAmendmentView(amendment, changes[amendment.id].orEmpty(), notices[amendment.id].orEmpty(), states)
+            InformationRequestAmendmentView(
+                amendment,
+                changes[amendment.id].orEmpty(),
+                notices[amendment.id].orEmpty(),
+                states
+            )
         }
     }
 
     fun view(requestId: UUID, amendmentId: UUID): InformationRequestAmendmentView =
         views(requestId).firstOrNull { it.amendment.id == amendmentId }
-            ?: throw InformationRequestLifecycleException(InformationRequestErrorCatalog.NOT_FOUND, "Amendment not found")
+            ?: throw InformationRequestLifecycleException(
+                InformationRequestErrorCatalog.NOT_FOUND,
+                "Amendment not found"
+            )
 }

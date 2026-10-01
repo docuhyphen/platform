@@ -21,7 +21,10 @@ class AuditAnalyticsFactRepository : BaseRepository<AuditAnalyticsFact>(AuditAna
 
     fun countAll(): Long
     {
-        return entityManager.createQuery("SELECT COUNT(f) FROM AuditAnalyticsFact f", Long::class.javaObjectType).singleResult
+        return entityManager.createQuery(
+            "SELECT COUNT(f) FROM AuditAnalyticsFact f",
+            Long::class.javaObjectType
+        ).singleResult
     }
 
     fun countByOrganization(organizationId: UUID?, platformOnly: Boolean): Long

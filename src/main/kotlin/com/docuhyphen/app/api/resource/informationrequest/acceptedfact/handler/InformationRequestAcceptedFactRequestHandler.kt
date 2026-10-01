@@ -14,7 +14,7 @@ import com.docuhyphen.app.api.service.informationrequest.acceptedfact.Informatio
 import com.docuhyphen.app.api.service.informationrequest.acceptedfact.InformationRequestAcceptedFactService
 import com.docuhyphen.app.api.service.informationrequest.acceptedfact.InformationRequestBusinessDecisionService
 import jakarta.ws.rs.core.Response
-import java.util.UUID
+import java.util.*
 
 class InformationRequestAcceptedFactRequestHandler(
     private val facts: InformationRequestAcceptedFactService,
@@ -23,10 +23,15 @@ class InformationRequestAcceptedFactRequestHandler(
 )
 {
     fun promotedFrom(requestId: UUID, access: RequestAccessContext): Response =
-        Response.ok(factQueries.promotedFrom(requestId, access).map(InformationRequestAcceptedFactDtoMapper::toDto).toTypedArray()).build()
+        Response.ok(
+            factQueries.promotedFrom(requestId, access).map(InformationRequestAcceptedFactDtoMapper::toDto)
+                .toTypedArray()
+        ).build()
 
     fun offers(requestId: UUID, access: RequestAccessContext): Response =
-        Response.ok(factQueries.offers(requestId, access).map(InformationRequestAcceptedFactDtoMapper::toDto).toTypedArray()).build()
+        Response.ok(
+            factQueries.offers(requestId, access).map(InformationRequestAcceptedFactDtoMapper::toDto).toTypedArray()
+        ).build()
 
     fun promote(
         requestId: UUID,
@@ -35,7 +40,8 @@ class InformationRequestAcceptedFactRequestHandler(
         idempotencyKey: String?,
     ): Response
     {
-        val body = request ?: throw InformationRequestCommandRequestException("A promotion names its package, item, and purpose")
+        val body = request
+            ?: throw InformationRequestCommandRequestException("A promotion names its package, item, and purpose")
         val view = facts.promote(
             PromoteInformationRequestAcceptedFactCommand(
                 requestId = requestId,
@@ -53,7 +59,8 @@ class InformationRequestAcceptedFactRequestHandler(
                 idempotencyKey = InformationRequestCommandHttp.idempotencyKey(idempotencyKey),
             ),
         )
-        return Response.status(Response.Status.CREATED).entity(InformationRequestAcceptedFactDtoMapper.toDto(view)).build()
+        return Response.status(Response.Status.CREATED).entity(InformationRequestAcceptedFactDtoMapper.toDto(view))
+            .build()
     }
 
     fun revoke(
@@ -80,7 +87,8 @@ class InformationRequestAcceptedFactRequestHandler(
 
     fun decisions(requestId: UUID, access: RequestAccessContext): Response =
         Response.ok(
-            decisions.decisions(requestId, access).map { InformationRequestAcceptedFactDtoMapper.toDto(it, access.principal) }.toTypedArray(),
+            decisions.decisions(requestId, access)
+                .map { InformationRequestAcceptedFactDtoMapper.toDto(it, access.principal) }.toTypedArray(),
         ).build()
 
     fun recordDecision(
@@ -90,7 +98,8 @@ class InformationRequestAcceptedFactRequestHandler(
         idempotencyKey: String?,
     ): Response
     {
-        val body = request ?: throw InformationRequestCommandRequestException("A business decision names its process, outcome, and time")
+        val body = request
+            ?: throw InformationRequestCommandRequestException("A business decision names its process, outcome, and time")
         val result = decisions.record(
             RecordInformationRequestBusinessDecisionCommand(
                 requestId = requestId,

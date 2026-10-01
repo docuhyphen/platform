@@ -22,7 +22,7 @@ import jakarta.inject.Inject
 import jakarta.transaction.Transactional
 import java.sql.Timestamp
 import java.time.Clock
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestItemCorrectionService @Inject constructor(
@@ -43,17 +43,25 @@ class InformationRequestItemCorrectionService @Inject constructor(
         principal: PrincipalRef,
     ): InformationRequestItemCorrection
     {
-        val reason = input.reasonCode.trim().ifBlank { throw InformationRequestCommandRequestException("A correction states its reason") }
+        val reason = input.reasonCode.trim()
+            .ifBlank { throw InformationRequestCommandRequestException("A correction states its reason") }
         if (input.value == null && input.narrative.isNullOrBlank())
         {
             throw InformationRequestCommandRequestException("A correction states the corrected value or narrative")
         }
         val item = itemRepository.findById(input.submissionItemId)
-            ?: throw InformationRequestLifecycleException(InformationRequestErrorCatalog.NOT_FOUND, "Submitted item not found")
-        val subjectRequests = privacyRepository.subjectRequestIds(owner.kind, requireNotNull(owner.id), subjectIdentityRefId)
+            ?: throw InformationRequestLifecycleException(
+                InformationRequestErrorCatalog.NOT_FOUND,
+                "Submitted item not found"
+            )
+        val subjectRequests =
+            privacyRepository.subjectRequestIds(owner.kind, requireNotNull(owner.id), subjectIdentityRefId)
         if (item.informationRequestId !in subjectRequests)
         {
-            throw InformationRequestLifecycleException(InformationRequestErrorCatalog.NOT_FOUND, "Submitted item not found for this subject")
+            throw InformationRequestLifecycleException(
+                InformationRequestErrorCatalog.NOT_FOUND,
+                "Submitted item not found for this subject"
+            )
         }
         val request = requireNotNull(requestRepository.findById(item.informationRequestId))
         val correction = correctionRepository.save(

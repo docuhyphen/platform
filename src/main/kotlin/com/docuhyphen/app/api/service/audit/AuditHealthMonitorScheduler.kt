@@ -31,7 +31,11 @@ class AuditHealthMonitorScheduler @Inject constructor(
         const val ANALYTICS_LAG_MARKER = "AUDIT_ANALYTICS_PROJECTION_LAG_HIGH"
     }
 
-    @Scheduled(every = "\${app.audit.health.check-every:5m}", identity = "audit-health-monitor", concurrentExecution = Scheduled.ConcurrentExecution.SKIP)
+    @Scheduled(
+        every = "\${app.audit.health.check-every:5m}",
+        identity = "audit-health-monitor",
+        concurrentExecution = Scheduled.ConcurrentExecution.SKIP
+    )
     fun tick()
     {
         try

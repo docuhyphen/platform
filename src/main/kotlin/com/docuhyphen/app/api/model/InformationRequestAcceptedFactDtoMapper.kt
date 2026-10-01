@@ -1,10 +1,6 @@
 package com.docuhyphen.app.api.model
 
-import com.docuhyphen.app.api.model.dto.InformationRequestAcceptedFactDto
-import com.docuhyphen.app.api.model.dto.InformationRequestAcceptedFactOfferDto
-import com.docuhyphen.app.api.model.dto.InformationRequestReusableFactDto
-import com.docuhyphen.app.api.model.dto.InformationRequestBusinessDecisionDto
-import com.docuhyphen.app.api.model.dto.InformationRequestFactRecertificationDto
+import com.docuhyphen.app.api.model.dto.*
 import com.docuhyphen.app.api.model.entity.InformationRequestBusinessDecision
 import com.docuhyphen.app.api.model.informationrequest.acceptedfact.InformationRequestAcceptedFactOffer
 import com.docuhyphen.app.api.model.informationrequest.acceptedfact.InformationRequestAcceptedFactView
@@ -79,7 +75,10 @@ object InformationRequestAcceptedFactDtoMapper
             assentedAt = view.recertification.assentedAt,
         )
 
-    fun toDto(decision: InformationRequestBusinessDecision, caller: PrincipalRef): InformationRequestBusinessDecisionDto =
+    fun toDto(
+        decision: InformationRequestBusinessDecision,
+        caller: PrincipalRef
+    ): InformationRequestBusinessDecisionDto =
         InformationRequestBusinessDecisionDto(
             id = decision.id,
             informationRequestId = decision.informationRequestId,

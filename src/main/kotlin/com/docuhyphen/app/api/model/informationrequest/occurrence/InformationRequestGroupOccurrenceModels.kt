@@ -1,14 +1,10 @@
 package com.docuhyphen.app.api.model.informationrequest.occurrence
 
-import com.docuhyphen.app.api.model.entity.InformationRequest
-import com.docuhyphen.app.api.model.entity.InformationRequestGroupOccurrence
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateRequirement
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateRequirementBinding
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateRequirementGroup
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
 import com.docuhyphen.app.api.model.informationrequest.template.InformationRequestTemplateBindingConfiguration
 import com.docuhyphen.app.api.service.command.CommandPrecondition
-import java.util.UUID
+import java.util.*
 
 data class AddInformationRequestGroupOccurrenceCommand(
     val requestId: UUID,

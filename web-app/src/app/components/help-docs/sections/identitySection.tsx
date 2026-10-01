@@ -109,9 +109,8 @@ export const identitySection: HelpDocSectionInput = {
                             organization Identity Provider policy.
                         </li>
                         <li>
-                            Organization choices shown before authentication come only from the exact
-                            account&apos;s current active organization memberships. Organizations are not
-                            listed merely because their contact addresses use the same email domain.
+                            Before someone signs in, the sign-in page never lists organizations and never
+                            shows whether an email address belongs to one.
                         </li>
                         <li>
                             A verified organization domain may route directly to its active
@@ -119,9 +118,8 @@ export const identitySection: HelpDocSectionInput = {
                             An organization contact email does not establish ownership of its domain.
                         </li>
                         <li>
-                            A selected organization is checked against the account&apos;s current active
-                            memberships before its sign-in policy is used. An inactive membership,
-                            inactive organization, or altered organization identifier is rejected.
+                            After signing in, people who belong to more than one organization choose
+                            the organization they work in from the workspace list in the account menu.
                         </li>
                         <li>
                             Microsoft membership is bound to the configured Entra tenant and immutable

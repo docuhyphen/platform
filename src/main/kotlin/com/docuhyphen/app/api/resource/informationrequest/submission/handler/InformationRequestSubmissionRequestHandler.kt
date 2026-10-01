@@ -10,7 +10,7 @@ import com.docuhyphen.app.api.resource.informationrequest.InformationRequestComm
 import com.docuhyphen.app.api.service.informationrequest.submission.InformationRequestSubmissionQueryService
 import com.docuhyphen.app.api.service.informationrequest.submission.InformationRequestSubmissionService
 import jakarta.ws.rs.core.Response
-import java.util.UUID
+import java.util.*
 
 class InformationRequestSubmissionRequestHandler(
     private val submissionService: InformationRequestSubmissionService,
@@ -25,7 +25,15 @@ class InformationRequestSubmissionRequestHandler(
         ).build()
 
     fun detail(requestId: UUID, packageId: UUID, access: RequestAccessContext): Response =
-        Response.ok(InformationRequestSubmissionDtoMapper.toDto(queryService.packageDetail(requestId, packageId, access), access.principal))
+        Response.ok(
+            InformationRequestSubmissionDtoMapper.toDto(
+                queryService.packageDetail(
+                    requestId,
+                    packageId,
+                    access
+                ), access.principal
+            )
+        )
             .build()
 
     fun preview(requestId: UUID, stageKey: String?, access: RequestAccessContext): Response
@@ -80,7 +88,13 @@ class InformationRequestSubmissionRequestHandler(
         access: RequestAccessContext,
     ): Response =
         Response.status(status)
-            .entity(InformationRequestSubmissionDtoMapper.toDto(result, queryService.readable(result.submission, access), access.principal))
+            .entity(
+                InformationRequestSubmissionDtoMapper.toDto(
+                    result,
+                    queryService.readable(result.submission, access),
+                    access.principal
+                )
+            )
             .header("ETag", result.responseETag)
             .build()
 }

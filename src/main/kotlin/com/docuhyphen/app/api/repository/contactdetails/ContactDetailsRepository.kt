@@ -1,8 +1,7 @@
 package com.docuhyphen.app.api.repository.contactdetails
 
-import com.docuhyphen.app.api.repository.BaseRepository
-
 import com.docuhyphen.app.api.model.entity.ContactDetails
+import com.docuhyphen.app.api.repository.BaseRepository
 import jakarta.enterprise.context.RequestScoped
 
 @RequestScoped
@@ -10,7 +9,8 @@ class ContactDetailsRepository : BaseRepository<ContactDetails>(ContactDetails::
 {
     fun findByPhoneNumber(phoneNumber: String): ContactDetails?
     {
-        return try {
+        return try
+        {
             entityManager.createQuery(
                 "SELECT cd FROM ContactDetails cd WHERE cd.phoneNumber = :phoneNumber",
                 ContactDetails::class.java
@@ -29,12 +29,12 @@ class ContactDetailsRepository : BaseRepository<ContactDetails>(ContactDetails::
         return try
         {
 
-        entityManager.createQuery(
-            "SELECT cd FROM ContactDetails cd WHERE cd.email = :email",
-            ContactDetails::class.java
-        )
-            .setParameter("email", email)
-            .singleResult
+            entityManager.createQuery(
+                "SELECT cd FROM ContactDetails cd WHERE cd.email = :email",
+                ContactDetails::class.java
+            )
+                .setParameter("email", email)
+                .singleResult
         }
         catch (e: Exception)
         {

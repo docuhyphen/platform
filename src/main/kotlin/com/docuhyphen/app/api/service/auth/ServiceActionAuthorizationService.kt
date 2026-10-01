@@ -91,7 +91,8 @@ class ServiceActionAuthorizationService @Inject constructor(
     {
         if (userRoleService.isOrgAdminIn(appUser.id, organization.id)) return
         if (userRoleService.orgRolesIn(appUser.id, organization.id).isNotEmpty() &&
-            organization.settings?.allowProfileUpdate == true)
+            organization.settings?.allowProfileUpdate == true
+        )
         {
             return
         }
@@ -102,7 +103,8 @@ class ServiceActionAuthorizationService @Inject constructor(
     {
         if (userRoleService.isOrgAdminIn(appUser.id, organization.id)) return
         if (userRoleService.orgRolesIn(appUser.id, organization.id).isNotEmpty() &&
-            organization.settings?.allowEmailUpdate == true)
+            organization.settings?.allowEmailUpdate == true
+        )
         {
             return
         }

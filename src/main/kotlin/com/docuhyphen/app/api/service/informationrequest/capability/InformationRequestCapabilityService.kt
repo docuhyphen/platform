@@ -40,5 +40,5 @@ class InformationRequestCapabilityService @Inject constructor(
 
     private fun organizationTypedAnswersAvailable(organization: SubscriptionContext): Boolean =
         !subscriptionAccessService.enforcementMode().refusesDeniedRequests ||
-            subscriptionAccessService.isFeatureAvailable(organization, PlanFeature.BUSINESS_FIELDS_AND_SCHEMAS)
+                subscriptionAccessService.isFeatureAvailable(organization, PlanFeature.BUSINESS_FIELDS_AND_SCHEMAS)
 }

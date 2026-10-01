@@ -45,14 +45,14 @@ class AuthSecurityStartupValidator @Inject constructor(
         {
             throw IllegalStateException(
                 "The built-in development JWT signing key is active under profile(s) $profiles. " +
-                    "Set JWT_SECRET, or set app.security.jwt.secret-provider=aws with a valid " +
-                    "app.security.jwt.aws-secret-id, before starting this deployment."
+                        "Set JWT_SECRET, or set app.security.jwt.secret-provider=aws with a valid " +
+                        "app.security.jwt.aws-secret-id, before starting this deployment."
             )
         }
 
         logger.warn(
             "Using the built-in development JWT signing key. This is acceptable only for local " +
-                "development and must never reach a shared environment."
+                    "development and must never reach a shared environment."
         )
     }
 
@@ -65,8 +65,8 @@ class AuthSecurityStartupValidator @Inject constructor(
 
         throw IllegalStateException(
             "CSRF protection is disabled (app.auth.csrf.enabled=false) outside development. " +
-                "Cookie-authenticated endpoints such as token refresh and sign-out would be " +
-                "unprotected."
+                    "Cookie-authenticated endpoints such as token refresh and sign-out would be " +
+                    "unprotected."
         )
     }
 
@@ -90,8 +90,8 @@ class AuthSecurityStartupValidator @Inject constructor(
         {
             throw IllegalStateException(
                 "app.oauth.microsoft.tenant-id is '$tenantId', which accepts tokens from any " +
-                    "Microsoft tenant. Pin MICROSOFT_TENANT_ID to your directory, or set " +
-                    "app.oidc.microsoft.allow-multi-tenant=true if that is genuinely intended."
+                        "Microsoft tenant. Pin MICROSOFT_TENANT_ID to your directory, or set " +
+                        "app.oidc.microsoft.allow-multi-tenant=true if that is genuinely intended."
             )
         }
 
@@ -110,7 +110,7 @@ class AuthSecurityStartupValidator @Inject constructor(
         {
             logger.warn(
                 "Forwarded header processing is enabled but app.auth.proxy.trusted-proxies is " +
-                    "empty, so X-Forwarded-For will always be ignored."
+                        "empty, so X-Forwarded-For will always be ignored."
             )
         }
     }

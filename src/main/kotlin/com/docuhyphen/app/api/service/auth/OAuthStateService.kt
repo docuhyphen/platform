@@ -1,4 +1,5 @@
 package com.docuhyphen.app.api.service.auth
+
 import com.docuhyphen.app.api.model.entity.IdentityProviderType
 import com.docuhyphen.app.api.service.config.ConfigurationService
 import io.jsonwebtoken.Jwts
@@ -9,9 +10,7 @@ import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
 import java.security.MessageDigest
 import java.security.SecureRandom
-import java.util.Base64
-import java.util.Date
-import java.util.UUID
+import java.util.*
 import java.util.concurrent.TimeUnit
 import javax.crypto.SecretKey
 

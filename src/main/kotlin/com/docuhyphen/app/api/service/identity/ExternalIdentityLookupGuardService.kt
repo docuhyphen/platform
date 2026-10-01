@@ -4,13 +4,12 @@ import com.docuhyphen.app.api.exception.OrganizationTrustRateLimitException
 import com.docuhyphen.app.api.model.entity.SecurityIncidentSeverity
 import com.docuhyphen.app.api.model.entity.SecurityIncidentType
 import com.docuhyphen.app.api.service.auth.AuthRateLimitService
-import com.docuhyphen.app.api.service.security.SecurityIncidentService
 import com.docuhyphen.app.api.service.config.ConfigurationService
+import com.docuhyphen.app.api.service.security.SecurityIncidentService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import java.nio.charset.StandardCharsets
-import java.util.HexFormat
-import java.util.UUID
+import java.util.*
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
 

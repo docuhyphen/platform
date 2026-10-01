@@ -3,16 +3,9 @@ package com.docuhyphen.app.api.service.config
 import jakarta.enterprise.context.ApplicationScoped
 import software.amazon.awssdk.regions.Region
 import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient
-import software.amazon.awssdk.services.secretsmanager.model.CreateSecretRequest
-import software.amazon.awssdk.services.secretsmanager.model.DeleteSecretRequest
-import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueRequest
-import software.amazon.awssdk.services.secretsmanager.model.ListSecretVersionIdsRequest
-import software.amazon.awssdk.services.secretsmanager.model.Tag
-import software.amazon.awssdk.services.secretsmanager.model.TagResourceRequest
-import software.amazon.awssdk.services.secretsmanager.model.UntagResourceRequest
-import software.amazon.awssdk.services.secretsmanager.model.UpdateSecretVersionStageRequest
+import software.amazon.awssdk.services.secretsmanager.model.*
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 data class SecretVersionInfo(
     val versionId: String,
@@ -53,7 +46,14 @@ class AwsSecretsManagerService
         private const val PHASE_RETIRE = "RETIRE"
 
         private val allowedTransitions: Map<String, Set<String>> = mapOf(
-            PHASE_PREPARE to setOf(PHASE_PREPARE, PHASE_VALIDATE, PHASE_ACTIVATE, PHASE_MONITOR, PHASE_ROLLBACK, PHASE_RETIRE),
+            PHASE_PREPARE to setOf(
+                PHASE_PREPARE,
+                PHASE_VALIDATE,
+                PHASE_ACTIVATE,
+                PHASE_MONITOR,
+                PHASE_ROLLBACK,
+                PHASE_RETIRE
+            ),
             PHASE_VALIDATE to setOf(PHASE_VALIDATE, PHASE_ACTIVATE, PHASE_ROLLBACK, PHASE_RETIRE),
             PHASE_ACTIVATE to setOf(PHASE_ACTIVATE, PHASE_MONITOR, PHASE_ROLLBACK, PHASE_RETIRE),
             PHASE_MONITOR to setOf(PHASE_MONITOR, PHASE_PREPARE, PHASE_ROLLBACK, PHASE_RETIRE),
@@ -88,7 +88,12 @@ class AwsSecretsManagerService
         }
     }
 
-    fun putSecretVersion(secretId: String, secretString: String, region: String, stages: List<String> = emptyList()): String
+    fun putSecretVersion(
+        secretId: String,
+        secretString: String,
+        region: String,
+        stages: List<String> = emptyList()
+    ): String
     {
         return withClient(region) { client ->
             val requestBuilder = software.amazon.awssdk.services.secretsmanager.model.PutSecretValueRequest.builder()

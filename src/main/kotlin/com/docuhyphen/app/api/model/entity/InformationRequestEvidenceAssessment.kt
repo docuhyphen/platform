@@ -1,15 +1,10 @@
 package com.docuhyphen.app.api.model.entity
 
 import com.docuhyphen.app.api.model.document.DocumentVersionContentHashAlgorithm
-import jakarta.persistence.Column
-import jakarta.persistence.Entity
-import jakarta.persistence.EnumType
-import jakarta.persistence.Enumerated
-import jakarta.persistence.Id
-import jakarta.persistence.Table
+import jakarta.persistence.*
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 @Entity
 @Table(name = "information_request_evidence_assessment")

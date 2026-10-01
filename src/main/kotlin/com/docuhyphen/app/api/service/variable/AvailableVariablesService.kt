@@ -1,10 +1,6 @@
 package com.docuhyphen.app.api.service.variable
 
-import com.docuhyphen.app.api.model.dto.AvailableVariablesDto
-import com.docuhyphen.app.api.model.dto.SequenceDefinitionDto
-import com.docuhyphen.app.api.model.dto.SystemVariableDto
-import com.docuhyphen.app.api.model.dto.VariableDefinitionDto
-import com.docuhyphen.app.api.model.dto.toDto
+import com.docuhyphen.app.api.model.dto.*
 import com.docuhyphen.app.api.model.entity.VariableScope
 import com.docuhyphen.app.api.repository.variable.SequenceDefinitionRepository
 import com.docuhyphen.app.api.repository.variable.VariableDefinitionRepository
@@ -40,11 +36,17 @@ class AvailableVariablesService @Inject constructor(
     ): AvailableVariablesDto
     {
         val sequences: List<SequenceDefinitionDto> = callerOrgId
-            ?.let { sequenceRepository.findAllByOrganizationIdAndIsDeletedFalse(it).filter { s -> s.isActive }.map { s -> s.toDto() } }
+            ?.let {
+                sequenceRepository.findAllByOrganizationIdAndIsDeletedFalse(it).filter { s -> s.isActive }
+                    .map { s -> s.toDto() }
+            }
             ?: emptyList()
 
         val orgVariables: List<VariableDefinitionDto> = callerOrgId
-            ?.let { variableRepository.findByScopeAndOrganizationIdAndIsDeletedFalse(VariableScope.ORG, it).filter { v -> v.isActive }.map { v -> v.toDto() } }
+            ?.let {
+                variableRepository.findByScopeAndOrganizationIdAndIsDeletedFalse(VariableScope.ORG, it)
+                    .filter { v -> v.isActive }.map { v -> v.toDto() }
+            }
             ?: emptyList()
 
         val personalVariables: List<VariableDefinitionDto> =

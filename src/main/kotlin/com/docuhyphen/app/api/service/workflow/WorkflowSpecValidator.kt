@@ -9,6 +9,29 @@ import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import kotlinx.serialization.builtins.ListSerializer
 import java.util.UUID
+import kotlin.collections.ArrayDeque
+import kotlin.collections.List
+import kotlin.collections.Set
+import kotlin.collections.any
+import kotlin.collections.buildList
+import kotlin.collections.distinct
+import kotlin.collections.emptyList
+import kotlin.collections.flatMapIndexed
+import kotlin.collections.forEach
+import kotlin.collections.forEachIndexed
+import kotlin.collections.getOrNull
+import kotlin.collections.indices
+import kotlin.collections.isNotEmpty
+import kotlin.collections.joinToString
+import kotlin.collections.listOf
+import kotlin.collections.listOfNotNull
+import kotlin.collections.map
+import kotlin.collections.mapIndexedNotNull
+import kotlin.collections.mapNotNull
+import kotlin.collections.mutableListOf
+import kotlin.collections.mutableSetOf
+import kotlin.collections.orEmpty
+import kotlin.collections.plusAssign
 
 data class WorkflowValidationError(
     val code: String,
@@ -214,10 +237,12 @@ class WorkflowSpecValidator @Inject constructor(
                     errors += approvalErrors(index, step)
                     errors += escalationErrors(index, step)
                 }
+
                 WorkflowStepType.CONDITION -> errors += conditionBranchErrors(index, step)
                 WorkflowStepType.ACTION -> errors += actionErrors(index, step)
                 WorkflowStepType.NOTIFICATION ->
                     errors += communicationErrors(index, "communicationId", step.communicationId, definitionScope)
+
                 WorkflowStepType.WAIT_FOR_COUNTERPARTY_CLEARANCE -> Unit
             }
             errors += slaErrors(index, step)
@@ -419,8 +444,14 @@ class WorkflowSpecValidator @Inject constructor(
                         errors += reminderIntervalError(index, "$base.minutesBeforeDue")
                     }
                     errors += assigneeErrorFor(index, "$base.recipientRef", addon.recipientRef)
-                    errors += communicationErrors(index, "$base.communicationId", addon.communicationId, definitionScope)
+                    errors += communicationErrors(
+                        index,
+                        "$base.communicationId",
+                        addon.communicationId,
+                        definitionScope
+                    )
                 }
+
                 is StepAddonSpec.ReminderIfNoDecision ->
                 {
                     if (addon.afterMinutes <= 0)
@@ -432,7 +463,12 @@ class WorkflowSpecValidator @Inject constructor(
                         errors += reminderIntervalError(index, "$base.repeatEveryMinutes")
                     }
                     errors += assigneeErrorFor(index, "$base.recipientRef", addon.recipientRef)
-                    errors += communicationErrors(index, "$base.communicationId", addon.communicationId, definitionScope)
+                    errors += communicationErrors(
+                        index,
+                        "$base.communicationId",
+                        addon.communicationId,
+                        definitionScope
+                    )
                 }
             }
         }
@@ -499,24 +535,40 @@ class WorkflowSpecValidator @Inject constructor(
     {
         if (communicationId.isNullOrBlank()) return emptyList()
         val id = runCatching { UUID.fromString(communicationId) }.getOrNull()
-            ?: return listOf(communicationError("WORKFLOW_COMMUNICATION_NOT_FOUND", index, fieldPath,
-                "Step ${index + 1} references a malformed communication"))
+            ?: return listOf(
+                communicationError(
+                    "WORKFLOW_COMMUNICATION_NOT_FOUND", index, fieldPath,
+                    "Step ${index + 1} references a malformed communication"
+                )
+            )
 
         val communication = communicationRepository.findById(id)
         if (communication == null || communication.isDeleted)
         {
-            return listOf(communicationError("WORKFLOW_COMMUNICATION_NOT_FOUND", index, fieldPath,
-                "Step ${index + 1} references a communication that does not exist"))
+            return listOf(
+                communicationError(
+                    "WORKFLOW_COMMUNICATION_NOT_FOUND", index, fieldPath,
+                    "Step ${index + 1} references a communication that does not exist"
+                )
+            )
         }
         if (!communication.isActive)
         {
-            return listOf(communicationError("WORKFLOW_COMMUNICATION_INACTIVE", index, fieldPath,
-                "Step ${index + 1} references an inactive communication"))
+            return listOf(
+                communicationError(
+                    "WORKFLOW_COMMUNICATION_INACTIVE", index, fieldPath,
+                    "Step ${index + 1} references an inactive communication"
+                )
+            )
         }
         if (definitionScope != null && !communicationVisibleTo(communication, definitionScope))
         {
-            return listOf(communicationError("WORKFLOW_COMMUNICATION_OUT_OF_SCOPE", index, fieldPath,
-                "Step ${index + 1} references a communication outside this workflow's scope"))
+            return listOf(
+                communicationError(
+                    "WORKFLOW_COMMUNICATION_OUT_OF_SCOPE", index, fieldPath,
+                    "Step ${index + 1} references a communication outside this workflow's scope"
+                )
+            )
         }
         return emptyList()
     }
@@ -529,10 +581,11 @@ class WorkflowSpecValidator @Inject constructor(
         CommunicationScope.PLATFORM -> communication.isTemplate
         CommunicationScope.ORG ->
             definitionScope.organizationId != null &&
-                communication.organizationId == definitionScope.organizationId
+                    communication.organizationId == definitionScope.organizationId
+
         CommunicationScope.PERSONAL ->
             definitionScope.createdByAppUserId != null &&
-                communication.createdByAppUserId == definitionScope.createdByAppUserId
+                    communication.createdByAppUserId == definitionScope.createdByAppUserId
     }
 
     private fun communicationError(code: String, index: Int, fieldPath: String, message: String) =
@@ -587,6 +640,7 @@ class WorkflowSpecValidator @Inject constructor(
         WorkflowStepType.APPROVAL -> true
         WorkflowStepType.CONDITION ->
             terminatesToEnd(step.onTrue) || terminatesToEnd(step.onFalse)
+
         else -> terminatesToEnd(step.onApprove)
     }
 

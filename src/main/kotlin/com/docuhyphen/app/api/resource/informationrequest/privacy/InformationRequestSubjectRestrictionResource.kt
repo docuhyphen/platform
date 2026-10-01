@@ -18,11 +18,16 @@ class InformationRequestSubjectRestrictionResource @Inject constructor(
     {
         return try
         {
-            Response.ok(restrictions.restrictions().map(InformationRequestPrivacyDtoMapper::toDto).toTypedArray()).build()
+            Response.ok(restrictions.restrictions().map(InformationRequestPrivacyDtoMapper::toDto).toTypedArray())
+                .build()
         }
         catch (exception: Exception)
         {
-            InformationRequestCommandHttp.refused(logger, "Information Request subject restriction list failed", exception)
+            InformationRequestCommandHttp.refused(
+                logger,
+                "Information Request subject restriction list failed",
+                exception
+            )
         }
     }
 
@@ -30,13 +35,19 @@ class InformationRequestSubjectRestrictionResource @Inject constructor(
     {
         return try
         {
-            val body = request ?: throw InformationRequestCommandRequestException("Lifting a restriction states its reason")
-            val lifted = restrictions.lift(InformationRequestCommandHttp.uuid(restrictionId, "restriction id"), body.reasonCode)
+            val body =
+                request ?: throw InformationRequestCommandRequestException("Lifting a restriction states its reason")
+            val lifted =
+                restrictions.lift(InformationRequestCommandHttp.uuid(restrictionId, "restriction id"), body.reasonCode)
             Response.ok(InformationRequestPrivacyDtoMapper.toDto(lifted)).build()
         }
         catch (exception: Exception)
         {
-            InformationRequestCommandHttp.refused(logger, "Information Request subject restriction lift failed", exception)
+            InformationRequestCommandHttp.refused(
+                logger,
+                "Information Request subject restriction lift failed",
+                exception
+            )
         }
     }
 

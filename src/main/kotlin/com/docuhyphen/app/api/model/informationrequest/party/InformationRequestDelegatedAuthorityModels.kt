@@ -5,7 +5,7 @@ import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.command.CommandPrecondition
 import java.sql.Timestamp
-import java.util.UUID
+import java.util.*
 
 data class GrantInformationRequestDelegatedAuthorityCommand(
     val requestId: UUID,

@@ -13,8 +13,7 @@ import org.slf4j.LoggerFactory
 import java.security.SecureRandom
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.Base64
-import java.util.UUID
+import java.util.*
 import javax.crypto.Cipher
 import javax.crypto.spec.GCMParameterSpec
 import javax.crypto.spec.SecretKeySpec
@@ -59,7 +58,11 @@ class AuditIdentityVaultService @Inject constructor(
         SecureRandom().nextBytes(iv)
 
         val cipher = Cipher.getInstance(AES_ALGORITHM)
-        cipher.init(Cipher.ENCRYPT_MODE, SecretKeySpec(masterKeyProvider.keyBytes(), "AES"), GCMParameterSpec(GCM_TAG_BITS, iv))
+        cipher.init(
+            Cipher.ENCRYPT_MODE,
+            SecretKeySpec(masterKeyProvider.keyBytes(), "AES"),
+            GCMParameterSpec(GCM_TAG_BITS, iv)
+        )
         val wrapped = cipher.doFinal(dataKey)
 
         val entry = AuditIdentityVaultKey().apply {

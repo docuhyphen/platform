@@ -44,14 +44,17 @@ class InformationRequestAmendmentTargetResolver @Inject constructor(
         {
             command.targetTemplateVersionId != null && command.configuration == null ->
                 versionRepository.findById(command.targetTemplateVersionId)
+
             command.targetTemplateVersionId == null && command.configuration != null ->
                 publishPrivateVersion(request, current, command)
+
             else -> null
         }
         if (target == null ||
             target.templateDefinitionId != current.templateDefinitionId ||
             target.status != InformationRequestTemplateStatus.PUBLISHED ||
-            target.versionNumber <= current.versionNumber)
+            target.versionNumber <= current.versionNumber
+        )
         {
             throw InformationRequestLifecycleException(
                 InformationRequestErrorCatalog.AMENDMENT_TARGET_INVALID,
@@ -71,6 +74,11 @@ class InformationRequestAmendmentTargetResolver @Inject constructor(
             ?.takeIf { it.originKind == InformationRequestTemplateOriginKind.AD_HOC_REQUEST && it.originRequestId == request.id }
             ?: return null
         val nextNumber = versionRepository.findForDefinitions(listOf(definition.id)).maxOf { it.versionNumber } + 1
-        return versionPublisher.publish(definition, nextNumber, requireNotNull(command.configuration), command.access.principal)
+        return versionPublisher.publish(
+            definition,
+            nextNumber,
+            requireNotNull(command.configuration),
+            command.access.principal
+        )
     }
 }

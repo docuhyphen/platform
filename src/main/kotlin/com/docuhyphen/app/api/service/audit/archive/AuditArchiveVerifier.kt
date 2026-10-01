@@ -9,7 +9,7 @@ import kotlinx.serialization.json.Json
 import java.nio.charset.StandardCharsets
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.Base64
+import java.util.*
 
 /** Outcome of verifying one segment against its independently re-downloaded content + manifest. */
 data class SegmentVerificationResult(val valid: Boolean, val note: String)
@@ -24,7 +24,8 @@ data class StreamChainVerificationResult(val valid: Boolean, val note: String, v
  * checkpoint that should cover part of the range is missing, broken, or fails verification - this
  * always blocks an export).
  */
-enum class ArchiveCoverageState { COMPLETE, PARTIAL, FAILED }
+enum class ArchiveCoverageState
+{ COMPLETE, PARTIAL, FAILED }
 
 /** Result of [AuditArchiveVerifier.checkRangeCoverage] for one stream. */
 data class StreamCoverageReport(val streamId: String, val state: ArchiveCoverageState, val note: String)
@@ -84,12 +85,18 @@ class AuditArchiveVerifier @Inject constructor(
         }
         catch (e: Exception)
         {
-            return SegmentVerificationResult(false, "segment content malformed or missing a required field: ${e.message}")
+            return SegmentVerificationResult(
+                false,
+                "segment content malformed or missing a required field: ${e.message}"
+            )
         }
 
         if (records.size != segment.eventCount)
         {
-            return SegmentVerificationResult(false, "event count mismatch: expected ${segment.eventCount}, found ${records.size}")
+            return SegmentVerificationResult(
+                false,
+                "event count mismatch: expected ${segment.eventCount}, found ${records.size}"
+            )
         }
 
         for ((index, record) in records.withIndex())
@@ -100,7 +107,7 @@ class AuditArchiveVerifier @Inject constructor(
                 return SegmentVerificationResult(
                     false,
                     "record at position $index has sequence ${record.streamSequence}, expected $expectedSequence: " +
-                        "records are missing, duplicated, or out of order",
+                            "records are missing, duplicated, or out of order",
                 )
             }
         }
@@ -147,7 +154,7 @@ class AuditArchiveVerifier @Inject constructor(
                 return SegmentVerificationResult(
                     false,
                     "record at position $index: recomputed event hash does not match the archived eventHash - " +
-                        "a protected field was modified after archiving",
+                            "a protected field was modified after archiving",
                 )
             }
         }
@@ -159,16 +166,26 @@ class AuditArchiveVerifier @Inject constructor(
         }
 
         val recomputedSegmentDigest = AuditArchiver.computeSegmentDigest(
-            segment.streamId, segment.firstSequence, segment.lastSequence, recomputedMerkleRoot, segment.prevSegmentDigest,
+            segment.streamId,
+            segment.firstSequence,
+            segment.lastSequence,
+            recomputedMerkleRoot,
+            segment.prevSegmentDigest,
         )
         if (recomputedSegmentDigest != segment.segmentDigest)
         {
-            return SegmentVerificationResult(false, "segment digest mismatch: recomputed does not match recorded digest")
+            return SegmentVerificationResult(
+                false,
+                "segment digest mismatch: recomputed does not match recorded digest"
+            )
         }
 
         val signedManifest = try
         {
-            Json.decodeFromString(SignedAuditArchiveManifest.serializer(), manifestBytes.toString(StandardCharsets.UTF_8))
+            Json.decodeFromString(
+                SignedAuditArchiveManifest.serializer(),
+                manifestBytes.toString(StandardCharsets.UTF_8)
+            )
         }
         catch (e: Exception)
         {
@@ -186,25 +203,28 @@ class AuditArchiveVerifier @Inject constructor(
 
         val expectedContentSha256 = MerkleTree.sha256Hex(segmentBytes)
         val manifestMatchesRow = manifestEnvelope.formatVersion == segment.formatVersion &&
-            manifestEnvelope.formatVersion == AuditArchiveSegment.CURRENT_FORMAT_VERSION &&
-            manifestEnvelope.streamId == segment.streamId &&
-            manifestEnvelope.firstSequence == segment.firstSequence &&
-            manifestEnvelope.lastSequence == segment.lastSequence &&
-            manifestEnvelope.eventCount == segment.eventCount &&
-            manifestEnvelope.merkleRoot == segment.merkleRoot &&
-            manifestEnvelope.segmentDigest == segment.segmentDigest &&
-            manifestEnvelope.prevSegmentDigest == segment.prevSegmentDigest &&
-            manifestEnvelope.schemaVersions == segment.schemaVersions &&
-            manifestEnvelope.signingKeyId == segment.signingKeyId &&
-            manifestEnvelope.contentObjectKey == segment.segmentObjectKey &&
-            manifestEnvelope.contentSha256 == expectedContentSha256 &&
-            manifestEnvelope.contentLength == segmentBytes.size.toLong() &&
-            runCatching { Instant.parse(manifestEnvelope.createdAt) }.getOrNull() == segment.createdAt.toInstant() &&
-            signedManifest.signatureAlgorithm == "SHA256withRSA" &&
-            signedManifest.signatureBase64 == segment.manifestSignature
+                manifestEnvelope.formatVersion == AuditArchiveSegment.CURRENT_FORMAT_VERSION &&
+                manifestEnvelope.streamId == segment.streamId &&
+                manifestEnvelope.firstSequence == segment.firstSequence &&
+                manifestEnvelope.lastSequence == segment.lastSequence &&
+                manifestEnvelope.eventCount == segment.eventCount &&
+                manifestEnvelope.merkleRoot == segment.merkleRoot &&
+                manifestEnvelope.segmentDigest == segment.segmentDigest &&
+                manifestEnvelope.prevSegmentDigest == segment.prevSegmentDigest &&
+                manifestEnvelope.schemaVersions == segment.schemaVersions &&
+                manifestEnvelope.signingKeyId == segment.signingKeyId &&
+                manifestEnvelope.contentObjectKey == segment.segmentObjectKey &&
+                manifestEnvelope.contentSha256 == expectedContentSha256 &&
+                manifestEnvelope.contentLength == segmentBytes.size.toLong() &&
+                runCatching { Instant.parse(manifestEnvelope.createdAt) }.getOrNull() == segment.createdAt.toInstant() &&
+                signedManifest.signatureAlgorithm == "SHA256withRSA" &&
+                signedManifest.signatureBase64 == segment.manifestSignature
         if (!manifestMatchesRow)
         {
-            return SegmentVerificationResult(false, "manifest metadata does not match the segment row or content object")
+            return SegmentVerificationResult(
+                false,
+                "manifest metadata does not match the segment row or content object"
+            )
         }
 
         val signatureValid = try
@@ -225,7 +245,10 @@ class AuditArchiveVerifier @Inject constructor(
             return SegmentVerificationResult(false, "manifest signature verification failed")
         }
 
-        return SegmentVerificationResult(true, "verified: merkle root, segment digest, and manifest signature all match")
+        return SegmentVerificationResult(
+            true,
+            "verified: merkle root, segment digest, and manifest signature all match"
+        )
     }
 
     /**
@@ -261,7 +284,9 @@ class AuditArchiveVerifier @Inject constructor(
                 if (segment.prevSegmentDigest != null)
                 {
                     return StreamChainVerificationResult(
-                        false, "first segment [${segment.firstSequence},${segment.lastSequence}] unexpectedly has a prevSegmentDigest", segments.size,
+                        false,
+                        "first segment [${segment.firstSequence},${segment.lastSequence}] unexpectedly has a prevSegmentDigest",
+                        segments.size,
                     )
                 }
             }
@@ -272,7 +297,7 @@ class AuditArchiveVerifier @Inject constructor(
                     return StreamChainVerificationResult(
                         false,
                         "chain break before segment [${segment.firstSequence},${segment.lastSequence}]: " +
-                            "prevSegmentDigest does not match the prior segment's segmentDigest",
+                                "prevSegmentDigest does not match the prior segment's segmentDigest",
                         segments.size,
                     )
                 }
@@ -288,7 +313,11 @@ class AuditArchiveVerifier @Inject constructor(
             previous = segment
         }
 
-        return StreamChainVerificationResult(true, "verified: ${segments.size} segments form a contiguous, unbroken digest chain", segments.size)
+        return StreamChainVerificationResult(
+            true,
+            "verified: ${segments.size} segments form a contiguous, unbroken digest chain",
+            segments.size
+        )
     }
 
     /**
@@ -330,7 +359,7 @@ class AuditArchiveVerifier @Inject constructor(
             return StreamCoverageReport(
                 streamId, ArchiveCoverageState.FAILED,
                 "requested range starts at sequence $fromSequence but the earliest archived segment begins at " +
-                    "${segments.first().firstSequence}: earlier events are not covered by any archive checkpoint",
+                        "${segments.first().firstSequence}: earlier events are not covered by any archive checkpoint",
             )
         }
 
@@ -352,7 +381,7 @@ class AuditArchiveVerifier @Inject constructor(
             return StreamCoverageReport(
                 streamId, ArchiveCoverageState.PARTIAL,
                 "requested range ends at sequence $toSequence but the latest archived segment only covers " +
-                    "through ${segments.last().lastSequence}: trailing events are not archived yet",
+                        "through ${segments.last().lastSequence}: trailing events are not archived yet",
             )
         }
 
@@ -378,8 +407,8 @@ class AuditArchiveVerifier @Inject constructor(
             return null
         }
         return "storage holds ${orphanKeys.size} archived object(s) under this stream's prefix " +
-            "(e.g. ${orphanKeys.first()}) that no current segment row references - a segment row may " +
-            "have been deleted after archiving"
+                "(e.g. ${orphanKeys.first()}) that no current segment row references - a segment row may " +
+                "have been deleted after archiving"
     }
 
     /**
@@ -388,7 +417,10 @@ class AuditArchiveVerifier @Inject constructor(
      * persisting each result onto [AuditArchiveSegment]. Returns the results so the caller (
      * [AuditArchiveScheduler]) can emit an immutable audit event per failure.
      */
-    fun verifyDueSegments(reverifyAfterHours: Int, batchSize: Int = 100): List<Pair<AuditArchiveSegment, SegmentVerificationResult>>
+    fun verifyDueSegments(
+        reverifyAfterHours: Int,
+        batchSize: Int = 100
+    ): List<Pair<AuditArchiveSegment, SegmentVerificationResult>>
     {
         val since = Timestamp.from(Instant.now().minusSeconds(reverifyAfterHours * 3600L))
         val due = auditArchiveSegmentRepository.findDueForVerification(since, batchSize)

@@ -2,13 +2,7 @@ package com.docuhyphen.app.api.service.informationrequest.oversight
 
 import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.informationrequest.clock.InformationRequestClockPolicyVersionView
-import com.docuhyphen.app.api.model.informationrequest.oversight.InformationRequestOperationsAssignee
-import com.docuhyphen.app.api.model.informationrequest.oversight.InformationRequestOperationsException
-import com.docuhyphen.app.api.model.informationrequest.oversight.InformationRequestOperationsFilter
-import com.docuhyphen.app.api.model.informationrequest.oversight.InformationRequestOperationsInputs
-import com.docuhyphen.app.api.model.informationrequest.oversight.InformationRequestOperationsPage
-import com.docuhyphen.app.api.model.informationrequest.oversight.InformationRequestOperationsRow
-import com.docuhyphen.app.api.model.informationrequest.oversight.InformationRequestSlaClock
+import com.docuhyphen.app.api.model.informationrequest.oversight.*
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
 import com.docuhyphen.app.api.repository.informationrequest.clock.InformationRequestClockEventRepository
 import com.docuhyphen.app.api.repository.informationrequest.clock.InformationRequestClockRepository
@@ -67,7 +61,11 @@ class InformationRequestOperationsService @Inject constructor(
         val now = clock.instant()
         val rows = requests.map { rowOf(it, titles.getValue(it.id), inputs, now) }
             .filter { filter.slaStatuses.isEmpty() || it.standing.status in filter.slaStatuses }
-            .filter { row -> filter.exceptions.isEmpty() || filter.exceptions.any { (row.exceptionCounts[it] ?: 0) > 0 } }
+            .filter { row ->
+                filter.exceptions.isEmpty() || filter.exceptions.any {
+                    (row.exceptionCounts[it] ?: 0) > 0
+                }
+            }
             .filter { !filter.exceptionsOnly || it.exceptionCounts.isNotEmpty() }
             .sortedWith(
                 compareBy<InformationRequestOperationsRow, Instant?>(nullsLast()) { it.standing.nearestDueAt }
@@ -119,7 +117,13 @@ class InformationRequestOperationsService @Inject constructor(
     {
         val requestClocks = inputs.clocks[request.id].orEmpty()
         val standing = InformationRequestSlaCalculator.standing(
-            requestClocks.map { InformationRequestSlaClock(it, inputs.events[it.id].orEmpty(), dueSoonFrom(it, inputs.versions[it.policyVersionId])) },
+            requestClocks.map {
+                InformationRequestSlaClock(
+                    it,
+                    inputs.events[it.id].orEmpty(),
+                    dueSoonFrom(it, inputs.versions[it.policyVersionId])
+                )
+            },
             now,
         )
         val noticeCounts = inputs.notices[request.id].orEmpty().groupingBy { it }.eachCount()
@@ -133,8 +137,10 @@ class InformationRequestOperationsService @Inject constructor(
             standing = standing,
             noticeCounts = noticeCounts,
             exceptionCounts = mapOf(
-                InformationRequestOperationsException.NOTICE_UNDELIVERABLE to (noticeCounts[InformationRequestNoticeDeliveryState.UNDELIVERABLE] ?: 0),
-                InformationRequestOperationsException.NOTICE_FAILED to (noticeCounts[InformationRequestNoticeDeliveryState.FAILED] ?: 0),
+                InformationRequestOperationsException.NOTICE_UNDELIVERABLE to (noticeCounts[InformationRequestNoticeDeliveryState.UNDELIVERABLE]
+                    ?: 0),
+                InformationRequestOperationsException.NOTICE_FAILED to (noticeCounts[InformationRequestNoticeDeliveryState.FAILED]
+                    ?: 0),
                 InformationRequestOperationsException.CLOCK_ESCALATED to standing.openEscalationCount,
                 InformationRequestOperationsException.AUTOMATION_SKIPPED to (delivery?.skippedConsumptions ?: 0),
                 InformationRequestOperationsException.EVENT_DELIVERY_FAILING to (delivery?.failingDeliveries ?: 0),
@@ -146,7 +152,11 @@ class InformationRequestOperationsService @Inject constructor(
     {
         if (clock.state != InformationRequestClockState.RUNNING || view == null) return null
         val earliest = view.reminderMinutesBeforeDue.maxOrNull() ?: return null
-        return InformationRequestClockCalculator.retreat(view.calendar, clock.dueAt.toInstant(), earliest * SECONDS_PER_MINUTE)
+        return InformationRequestClockCalculator.retreat(
+            view.calendar,
+            clock.dueAt.toInstant(),
+            earliest * SECONDS_PER_MINUTE
+        )
     }
 
     private fun ageOf(request: InformationRequest, now: Instant): Long

@@ -2,16 +2,16 @@ package com.docuhyphen.app.api.resource.scim
 
 import com.docuhyphen.app.api.exception.SubscriptionDenialException
 import com.docuhyphen.app.api.model.entity.AppUser
-import com.docuhyphen.app.api.model.entity.Person
 import com.docuhyphen.app.api.model.entity.OrganizationRoleName
+import com.docuhyphen.app.api.model.entity.Person
 import com.docuhyphen.app.api.repository.user.AppUserRepository
-import com.docuhyphen.app.api.service.user.AppUserService
 import com.docuhyphen.app.api.service.auth.AuthAuditService
-import com.docuhyphen.app.api.service.identity.OrganizationIdentityPolicyService
-import com.docuhyphen.app.api.service.organization.OrganizationMembershipService
 import com.docuhyphen.app.api.service.auth.RevocationReasonCode
 import com.docuhyphen.app.api.service.auth.UserSessionService
 import com.docuhyphen.app.api.service.config.ConfigurationService
+import com.docuhyphen.app.api.service.identity.OrganizationIdentityPolicyService
+import com.docuhyphen.app.api.service.organization.OrganizationMembershipService
+import com.docuhyphen.app.api.service.user.AppUserService
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
 import jakarta.ws.rs.*
@@ -20,7 +20,7 @@ import jakarta.ws.rs.core.Response
 import org.slf4j.LoggerFactory
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 /**
  * SCIM 2.0 (RFC 7644) User endpoint,  provisioning subset.

@@ -8,7 +8,8 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
 
-enum class SequenceResetPeriod { NEVER, YEARLY, MONTHLY }
+enum class SequenceResetPeriod
+{ NEVER, YEARLY, MONTHLY }
 
 @Entity
 @Serializable

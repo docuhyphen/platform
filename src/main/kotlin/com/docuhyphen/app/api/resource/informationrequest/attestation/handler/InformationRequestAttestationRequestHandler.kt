@@ -8,7 +8,7 @@ import com.docuhyphen.app.api.resource.informationrequest.InformationRequestComm
 import com.docuhyphen.app.api.resource.model.RecordInformationRequestAttestationRequest
 import com.docuhyphen.app.api.service.informationrequest.attestation.InformationRequestSubmissionAttestationService
 import jakarta.ws.rs.core.Response
-import java.util.UUID
+import java.util.*
 
 class InformationRequestAttestationRequestHandler(
     private val attestationService: InformationRequestSubmissionAttestationService,

@@ -29,7 +29,12 @@ class InformationRequestNoAuthFactRecertificationResource @Inject constructor(
     {
         return try
         {
-            InformationRequestCommandHttp.withNoAuthAccess(readAccessService, id, accessLinkToken, sessionToken) { requestId, access ->
+            InformationRequestCommandHttp.withNoAuthAccess(
+                readAccessService,
+                id,
+                accessLinkToken,
+                sessionToken
+            ) { requestId, access ->
                 handler.recertify(
                     requestId,
                     InformationRequestCommandHttp.uuid(factId, "accepted fact id"),
@@ -42,7 +47,11 @@ class InformationRequestNoAuthFactRecertificationResource @Inject constructor(
         }
         catch (exception: Exception)
         {
-            InformationRequestCommandHttp.refused(logger, "No-auth Information Request accepted fact recertification failed", exception)
+            InformationRequestCommandHttp.refused(
+                logger,
+                "No-auth Information Request accepted fact recertification failed",
+                exception
+            )
         }
     }
 

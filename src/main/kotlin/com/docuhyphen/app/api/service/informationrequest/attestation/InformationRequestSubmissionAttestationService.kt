@@ -1,13 +1,6 @@
 package com.docuhyphen.app.api.service.informationrequest.attestation
 
-import com.docuhyphen.app.api.model.entity.InformationRequestAttestationDecision
-import com.docuhyphen.app.api.model.entity.InformationRequestAuthenticationStrength
-import com.docuhyphen.app.api.model.entity.InformationRequestExternalSignatureReferencePolicy
-import com.docuhyphen.app.api.model.entity.InformationRequestRequirement
-import com.docuhyphen.app.api.model.entity.InformationRequestRequirementType
-import com.docuhyphen.app.api.model.entity.InformationRequestSubmissionAttestation
-import com.docuhyphen.app.api.model.entity.PrincipalKind
-import com.docuhyphen.app.api.model.entity.ResourceType
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.informationrequest.LockedInformationRequest
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
 import com.docuhyphen.app.api.model.informationrequest.attestation.InformationRequestActingParty
@@ -25,19 +18,11 @@ import com.docuhyphen.app.api.repository.informationrequest.template.Information
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateVersionRepository
 import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.auth.authz.ResourceRef
-import com.docuhyphen.app.api.service.command.CommandActorRef
-import com.docuhyphen.app.api.service.command.CommandMutationResult
-import com.docuhyphen.app.api.service.command.CommandReceiptDecision
-import com.docuhyphen.app.api.service.command.CommandReceiptRequest
-import com.docuhyphen.app.api.service.command.CommandReceiptService
-import com.docuhyphen.app.api.service.command.CommandRequestFingerprint
-import com.docuhyphen.app.api.service.command.CommandResultReference
+import com.docuhyphen.app.api.service.command.*
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestETag
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestMutationGate
 import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestRequirementAuthorizationContextProvider
-import com.docuhyphen.app.api.service.informationrequest.attestation.InformationRequestAttestationEvaluationService
-import com.docuhyphen.app.api.service.informationrequest.attestation.InformationRequestAttestationPolicyLoader
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestLifecycleException
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestTransitionHistoryService
 import com.docuhyphen.app.api.service.informationrequest.occurrence.InformationRequestOccurrencePath
@@ -50,7 +35,7 @@ import jakarta.transaction.Transactional
 import java.sql.Timestamp
 import java.time.Clock
 import java.time.temporal.ChronoUnit
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestSubmissionAttestationService @Inject constructor(
@@ -200,7 +185,7 @@ class InformationRequestSubmissionAttestationService @Inject constructor(
                 actor = command.access.principal,
                 partyId = party.party.id,
                 idempotencyKey = "information_request.attestation|${requirement.id}|" +
-                    "${command.access.principal.kind}:${command.access.principal.id}|${command.idempotencyKey}",
+                        "${command.access.principal.kind}:${command.access.principal.id}|${command.idempotencyKey}",
                 details = buildMap {
                     put("requirementId", requirement.id.toString())
                     put("attestationId", attestation.id.toString())
@@ -241,7 +226,11 @@ class InformationRequestSubmissionAttestationService @Inject constructor(
         )
     }
 
-    private fun requireAssertion(requestId: UUID, templateVersionId: UUID, requirementId: UUID): InformationRequestRequirement
+    private fun requireAssertion(
+        requestId: UUID,
+        templateVersionId: UUID,
+        requirementId: UUID
+    ): InformationRequestRequirement
     {
         val requirement = requirementRepository.findById(requirementId)
             ?.takeIf { it.informationRequestId == requestId && it.sourceTemplateVersionId == templateVersionId }
@@ -289,6 +278,7 @@ class InformationRequestSubmissionAttestationService @Inject constructor(
                 InformationRequestErrorCatalog.ATTESTATION_PARTY_NOT_ELIGIBLE,
                 "The caller acts as no active party this assertion's policy names",
             )
+
             else -> throw InformationRequestLifecycleException(
                 InformationRequestErrorCatalog.ATTESTATION_PARTY_AMBIGUOUS,
                 "The caller may attest as more than one party; name the party",
@@ -296,18 +286,20 @@ class InformationRequestSubmissionAttestationService @Inject constructor(
         }
     }
 
-    private fun strengthOf(access: RequestAccessContext): InformationRequestAuthenticationStrength = when (access.principal.kind)
-    {
-        PrincipalKind.PARTICIPANT -> InformationRequestAuthenticationStrength.VERIFIED_CONTACT
-        PrincipalKind.USER -> if (access.authorization.mfaSatisfied)
-            InformationRequestAuthenticationStrength.MULTI_FACTOR
-        else
-            InformationRequestAuthenticationStrength.ACCOUNT_SIGN_IN
-        else -> throw InformationRequestLifecycleException(
-            InformationRequestErrorCatalog.ATTESTATION_STRENGTH_INSUFFICIENT,
-            "Only a person may make an assertion",
-        )
-    }
+    private fun strengthOf(access: RequestAccessContext): InformationRequestAuthenticationStrength =
+        when (access.principal.kind)
+        {
+            PrincipalKind.PARTICIPANT -> InformationRequestAuthenticationStrength.VERIFIED_CONTACT
+            PrincipalKind.USER -> if (access.authorization.mfaSatisfied)
+                InformationRequestAuthenticationStrength.MULTI_FACTOR
+            else
+                InformationRequestAuthenticationStrength.ACCOUNT_SIGN_IN
+
+            else -> throw InformationRequestLifecycleException(
+                InformationRequestErrorCatalog.ATTESTATION_STRENGTH_INSUFFICIENT,
+                "Only a person may make an assertion",
+            )
+        }
 
     private fun requireReason(command: RecordInformationRequestSubmissionAttestationCommand): String?
     {
@@ -335,7 +327,7 @@ class InformationRequestSubmissionAttestationService @Inject constructor(
         val reference = command.externalSignatureReference?.trim()?.ifBlank { null }
         if (reference != null &&
             (policy.externalSignatureReference == InformationRequestExternalSignatureReferencePolicy.NOT_ACCEPTED ||
-                reference.length > MAXIMUM_REFERENCE_LENGTH)
+                    reference.length > MAXIMUM_REFERENCE_LENGTH)
         )
         {
             throw InformationRequestLifecycleException(

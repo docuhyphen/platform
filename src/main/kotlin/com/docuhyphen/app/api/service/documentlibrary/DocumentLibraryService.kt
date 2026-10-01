@@ -250,6 +250,7 @@ class DocumentLibraryService @Inject constructor(
             BlueprintScope.PERSONAL ->
                 if (entry.createdByAppUserId != principal.id)
                     throw ForbiddenException("Access denied to document library entry ${entry.id}")
+
             BlueprintScope.ORG ->
             {
                 val decision = authorizationService.authorize(
@@ -258,7 +259,10 @@ class DocumentLibraryService @Inject constructor(
                 if (decision is Decision.Deny)
                     throw ForbiddenException("Access denied to document library entry ${entry.id}")
             }
-            BlueprintScope.APP -> { }
+
+            BlueprintScope.APP ->
+            {
+            }
         }
     }
 
@@ -269,6 +273,7 @@ class DocumentLibraryService @Inject constructor(
             BlueprintScope.PERSONAL ->
                 if (entry.createdByAppUserId != principal.id)
                     throw ForbiddenException("Access denied to document library entry ${entry.id}")
+
             BlueprintScope.ORG ->
             {
                 val decision = authorizationService.authorize(
@@ -277,6 +282,7 @@ class DocumentLibraryService @Inject constructor(
                 if (decision is Decision.Deny)
                     throw ForbiddenException("Access denied to document library entry ${entry.id}")
             }
+
             BlueprintScope.APP ->
                 if (!userRoleService.isAppAdmin(principal.id))
                     throw ForbiddenException("App admin role required to modify APP-scoped library entries")
@@ -335,6 +341,7 @@ class DocumentLibraryService @Inject constructor(
                     throw ForbiddenException("No organization membership found")
                 BlueprintScope.ORG
             }
+
             else -> throw ForbiddenException("Cannot clone directly into scope: $requested")
         }
     }
@@ -431,7 +438,11 @@ class DocumentLibraryService @Inject constructor(
         }
         catch (e: AuditCaptureFailedException)
         {
-            logger.error("DocumentLibraryService: AuditRecorder capture failed (fail-closed) for library download: {}", e.message, e)
+            logger.error(
+                "DocumentLibraryService: AuditRecorder capture failed (fail-closed) for library download: {}",
+                e.message,
+                e
+            )
         }
     }
 }

@@ -1,8 +1,7 @@
 package com.docuhyphen.app.api.resource.auth
 
-import com.docuhyphen.app.api.resource.ResourceEndpointDelayHelper
-
 import com.docuhyphen.app.api.exception.*
+import com.docuhyphen.app.api.resource.ResourceEndpointDelayHelper
 import com.docuhyphen.app.api.resource.model.PasswordResetCompletionRequest
 import com.docuhyphen.app.api.resource.model.PasswordResetInitiationRequest
 import com.docuhyphen.app.api.resource.model.ResponseError
@@ -34,37 +33,38 @@ class PasswordResetResource @Inject constructor(
     @Path("/initiation")
     fun initiatePasswordReset(payload: PasswordResetInitiationRequest): Response
     {
-        return ResourceEndpointDelayHelper.withFixedFloor(1500) { try
-        {
-            with(payload) {
-                passwordResetService.initiatePasswordReset(email)
-                Response.ok().build()
-            }
-        }
-        catch (exception: Exception)
-        {
-            when (exception)
+        return ResourceEndpointDelayHelper.withFixedFloor(1500) {
+            try
             {
-                is EmailRequiredException,
-                is InvalidEmailException ->
-                {
-                    val responseError = ResponseError(exception.message)
-                    Response.status(BAD_REQUEST).entity(responseError).build()
-                }
-
-                is EmailNotFoundException ->
-                {
+                with(payload) {
+                    passwordResetService.initiatePasswordReset(email)
                     Response.ok().build()
                 }
-
-                else ->
+            }
+            catch (exception: Exception)
+            {
+                when (exception)
                 {
-                    logger.error("Error processing password reset request.", exception)
-                    Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("An unexpected error occurred."))
-                        .build()
+                    is EmailRequiredException,
+                    is InvalidEmailException ->
+                    {
+                        val responseError = ResponseError(exception.message)
+                        Response.status(BAD_REQUEST).entity(responseError).build()
+                    }
+
+                    is EmailNotFoundException ->
+                    {
+                        Response.ok().build()
+                    }
+
+                    else ->
+                    {
+                        logger.error("Error processing password reset request.", exception)
+                        Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("An unexpected error occurred."))
+                            .build()
+                    }
                 }
             }
-        }
         }
     }
 
@@ -72,39 +72,40 @@ class PasswordResetResource @Inject constructor(
     @Path("/completion")
     fun completePasswordReset(payload: PasswordResetCompletionRequest): Response
     {
-        return ResourceEndpointDelayHelper.withFixedFloor(1500) { try
-        {
-            with(payload) {
-                passwordResetService.completePasswordReset(email, otp, password, confirmationPassword)
-                Response.ok().build()
-            }
-        }
-        catch (exception: Exception)
-        {
-            when (exception)
+        return ResourceEndpointDelayHelper.withFixedFloor(1500) {
+            try
             {
-                is EmailRequiredException,
-                is InvalidEmailException,
-                is OtpRequiredException,
-                is PasswordRequiredException,
-                is ConfirmationPasswordRequiredException,
-                is PasswordMismatchException,
-                is PasswordRequirementsNotMetException,
-                is InvalidOtpException,
-                is OTPExpiredException ->
-                {
-                    val responseError = ResponseError(exception.message)
-                    Response.status(BAD_REQUEST).entity(responseError).build()
-                }
-
-                else ->
-                {
-                    logger.error("Error completing password reset.", exception)
-                    Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("An unexpected error occurred."))
-                        .build()
+                with(payload) {
+                    passwordResetService.completePasswordReset(email, otp, password, confirmationPassword)
+                    Response.ok().build()
                 }
             }
-        }
+            catch (exception: Exception)
+            {
+                when (exception)
+                {
+                    is EmailRequiredException,
+                    is InvalidEmailException,
+                    is OtpRequiredException,
+                    is PasswordRequiredException,
+                    is ConfirmationPasswordRequiredException,
+                    is PasswordMismatchException,
+                    is PasswordRequirementsNotMetException,
+                    is InvalidOtpException,
+                    is OTPExpiredException ->
+                    {
+                        val responseError = ResponseError(exception.message)
+                        Response.status(BAD_REQUEST).entity(responseError).build()
+                    }
+
+                    else ->
+                    {
+                        logger.error("Error completing password reset.", exception)
+                        Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("An unexpected error occurred."))
+                            .build()
+                    }
+                }
+            }
         }
     }
 }

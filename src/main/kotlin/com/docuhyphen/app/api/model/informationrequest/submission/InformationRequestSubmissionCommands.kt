@@ -1,17 +1,10 @@
 package com.docuhyphen.app.api.model.informationrequest.submission
 
-import com.docuhyphen.app.api.model.entity.InformationRequest
-import com.docuhyphen.app.api.model.entity.InformationRequestAttestationDecision
-import com.docuhyphen.app.api.model.entity.InformationRequestSubmissionAttestation
-import com.docuhyphen.app.api.model.entity.InformationRequestSubmissionEvidence
-import com.docuhyphen.app.api.model.entity.InformationRequestSubmissionItem
-import com.docuhyphen.app.api.model.entity.InformationRequestSubmissionPackage
-import com.docuhyphen.app.api.model.entity.InformationRequestSubmissionSupportingLink
-import com.docuhyphen.app.api.model.entity.InformationRequestSubmissionWithdrawal
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
 import com.docuhyphen.app.api.model.informationrequest.attestation.InformationRequestAttestationRequirementEvaluation
 import com.docuhyphen.app.api.service.command.CommandPrecondition
-import java.util.UUID
+import java.util.*
 
 data class RecordInformationRequestSubmissionAttestationCommand(
     val requestId: UUID,

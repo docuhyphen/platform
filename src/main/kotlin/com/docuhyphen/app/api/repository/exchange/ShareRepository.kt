@@ -1,14 +1,9 @@
 package com.docuhyphen.app.api.repository.exchange
 
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.repository.BaseRepository
-
-import com.docuhyphen.app.api.model.entity.PrincipalKind
-import com.docuhyphen.app.api.model.entity.ResourceType
-import com.docuhyphen.app.api.model.entity.Share
-import com.docuhyphen.app.api.model.entity.ShareSource
-import com.docuhyphen.app.api.model.entity.ShareStatus
 import jakarta.enterprise.context.ApplicationScoped
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class ShareRepository : BaseRepository<Share>(Share::class.java)
@@ -61,7 +56,11 @@ class ShareRepository : BaseRepository<Share>(Share::class.java)
             .setParameter("status", ShareStatus.ACTIVE)
             .resultList
 
-    fun existsActiveForPrincipalOnResourceType(kind: PrincipalKind, principalId: UUID, resourceType: ResourceType): Boolean =
+    fun existsActiveForPrincipalOnResourceType(
+        kind: PrincipalKind,
+        principalId: UUID,
+        resourceType: ResourceType
+    ): Boolean =
         entityManager.createQuery(
             """SELECT COUNT(s) FROM Share s
                WHERE s.principalKind = :pk AND s.principalId = :pid AND s.resourceType = :rt AND s.status = :status""",

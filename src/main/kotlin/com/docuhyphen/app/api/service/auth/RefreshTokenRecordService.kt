@@ -6,7 +6,7 @@ import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 @RequestScoped
 class RefreshTokenRecordService @Inject constructor(

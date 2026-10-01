@@ -1,14 +1,15 @@
 package com.docuhyphen.app.api.service.auth
 
-import com.docuhyphen.app.api.service.security.SecurityIncidentService
 import com.docuhyphen.app.api.model.entity.SecurityIncidentSeverity
 import com.docuhyphen.app.api.model.entity.SecurityIncidentType
 import com.docuhyphen.app.api.model.entity.UserSession
+import com.docuhyphen.app.api.service.security.SecurityIncidentService
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
 import org.slf4j.LoggerFactory
 
-enum class RiskLevel { NONE, LOW, MEDIUM, HIGH }
+enum class RiskLevel
+{ NONE, LOW, MEDIUM, HIGH }
 
 data class RiskAssessment(
     val level: RiskLevel,
@@ -35,7 +36,12 @@ class RiskSignalService @Inject constructor(
         private val logger = LoggerFactory.getLogger(RiskSignalService::class.java)
     }
 
-    fun evaluate(session: UserSession, currentIp: String?, currentUserAgent: String?, requestId: String?): RiskAssessment
+    fun evaluate(
+        session: UserSession,
+        currentIp: String?,
+        currentUserAgent: String?,
+        requestId: String?
+    ): RiskAssessment
     {
         val reasons = mutableListOf<String>()
 

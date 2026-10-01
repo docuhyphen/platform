@@ -6,12 +6,7 @@ import com.docuhyphen.app.api.model.informationrequest.execution.InformationRequ
 import com.docuhyphen.app.api.model.informationrequest.execution.InformationRequestExecutionStandingKind
 import com.docuhyphen.app.api.model.informationrequest.execution.InformationRequestOwnerStanding
 import com.docuhyphen.app.api.model.informationrequest.execution.InformationRequestStandingReason
-import com.docuhyphen.app.api.service.subscription.EffectiveSubscription
-import com.docuhyphen.app.api.service.subscription.PlanFeature
-import com.docuhyphen.app.api.service.subscription.SubscriptionAccessService
-import com.docuhyphen.app.api.service.subscription.SubscriptionContext
-import com.docuhyphen.app.api.service.subscription.SubscriptionEnforcementMode
-import com.docuhyphen.app.api.service.subscription.SubscriptionStatus
+import com.docuhyphen.app.api.service.subscription.*
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import java.time.Instant
@@ -43,7 +38,10 @@ class InformationRequestExecutionStandingService @Inject constructor(
         )
     }
 
-    fun standingOf(request: InformationRequest, owner: InformationRequestOwnerStanding): InformationRequestExecutionStanding
+    fun standingOf(
+        request: InformationRequest,
+        owner: InformationRequestOwnerStanding
+    ): InformationRequestExecutionStanding
     {
         val grant = executionGrantService.findForRequest(request.id)
         val lapse = owner.newWorkUnavailableReason
@@ -53,13 +51,22 @@ class InformationRequestExecutionStandingService @Inject constructor(
                 InformationRequestExecutionStandingKind.OPERATIONALLY_SUSPENDED,
                 InformationRequestStandingReason.SUBSCRIPTION_SUSPENDED,
             )
+
             grant?.revokedAt != null -> InformationRequestExecutionStanding(
                 InformationRequestExecutionStandingKind.EXECUTION_GRANT_REVOKED,
                 InformationRequestStandingReason.EXECUTION_GRANT_REVOKED,
             )
+
             lapse == null -> InformationRequestExecutionStanding(InformationRequestExecutionStandingKind.ACTIVE)
-            grant == null -> InformationRequestExecutionStanding(InformationRequestExecutionStandingKind.NEW_WORK_UNAVAILABLE, lapse)
-            else -> InformationRequestExecutionStanding(InformationRequestExecutionStandingKind.CONTINUING_AFTER_LAPSE, lapse)
+            grant == null -> InformationRequestExecutionStanding(
+                InformationRequestExecutionStandingKind.NEW_WORK_UNAVAILABLE,
+                lapse
+            )
+
+            else -> InformationRequestExecutionStanding(
+                InformationRequestExecutionStandingKind.CONTINUING_AFTER_LAPSE,
+                lapse
+            )
         }
     }
 
@@ -79,6 +86,7 @@ class InformationRequestExecutionStandingService @Inject constructor(
             SubscriptionStatus.CANCELED -> InformationRequestStandingReason.SUBSCRIPTION_CANCELED
             else -> InformationRequestStandingReason.SUBSCRIPTION_SUSPENDED
         }
+
         !subscription.hasFeature(PlanFeature.INFORMATION_REQUESTS) -> InformationRequestStandingReason.FEATURE_NOT_INCLUDED
         else -> null
     }

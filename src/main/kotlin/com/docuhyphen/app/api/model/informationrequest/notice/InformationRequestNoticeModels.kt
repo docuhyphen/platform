@@ -1,13 +1,8 @@
 package com.docuhyphen.app.api.model.informationrequest.notice
 
-import com.docuhyphen.app.api.model.entity.InformationRequestNoticeDeliveryAttempt
-import com.docuhyphen.app.api.model.entity.InformationRequestNoticeDeliveryState
-import com.docuhyphen.app.api.model.entity.InformationRequestNoticeIntent
-import com.docuhyphen.app.api.model.entity.InformationRequestNoticeKind
-import com.docuhyphen.app.api.model.entity.InformationRequestNoticeSourceKind
-import com.docuhyphen.app.api.model.entity.InformationRequestOutboundNotice
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.variable.SequenceAllocation
-import java.util.UUID
+import java.util.*
 
 data class InformationRequestNoticeContent(
     val subject: String,

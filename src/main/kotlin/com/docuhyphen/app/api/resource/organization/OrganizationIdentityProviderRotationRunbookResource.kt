@@ -1,27 +1,14 @@
 package com.docuhyphen.app.api.resource.organization
 
-import com.docuhyphen.app.api.resource.model.OrganizationIdpSecretRotationRunResponse
-import com.docuhyphen.app.api.resource.model.OrganizationIdpSecretRotationPreviewCandidate
-import com.docuhyphen.app.api.resource.model.OrganizationIdpSecretRotationPreviewResponse
-import com.docuhyphen.app.api.resource.model.ResponseError
-import com.docuhyphen.app.api.resource.model.OrganizationIdpSecretRotationStatusItemResponse
-import com.docuhyphen.app.api.resource.model.OrganizationIdpSecretRotationStatusResponse
+import com.docuhyphen.app.api.resource.model.*
 import com.docuhyphen.app.api.service.auth.AdminApprovalContext
 import com.docuhyphen.app.api.service.identity.OrganizationIdpSecretRotationRunbookService
 import io.quarkus.security.UnauthorizedException
 import jakarta.inject.Inject
-import jakarta.ws.rs.Consumes
-import jakarta.ws.rs.GET
-import jakarta.ws.rs.HeaderParam
-import jakarta.ws.rs.POST
-import jakarta.ws.rs.Path
-import jakarta.ws.rs.PathParam
-import jakarta.ws.rs.Produces
+import jakarta.ws.rs.*
 import jakarta.ws.rs.core.MediaType.APPLICATION_JSON
 import jakarta.ws.rs.core.Response
-import jakarta.ws.rs.core.Response.Status.BAD_REQUEST
-import jakarta.ws.rs.core.Response.Status.FORBIDDEN
-import jakarta.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR
+import jakarta.ws.rs.core.Response.Status.*
 import org.slf4j.LoggerFactory
 
 @Path("organizations/{organizationId}/identity-providers/secrets/rotation")
@@ -79,8 +66,11 @@ class OrganizationIdentityProviderRotationRunbookResource @Inject constructor(
             when (exception)
             {
                 is UnauthorizedException -> Response.status(FORBIDDEN).entity(ResponseError(exception.message)).build()
-                is IllegalArgumentException -> Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
-                else -> Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("An unexpected error occurred")).build()
+                is IllegalArgumentException -> Response.status(BAD_REQUEST).entity(ResponseError(exception.message))
+                    .build()
+
+                else -> Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("An unexpected error occurred"))
+                    .build()
             }
         }
     }
@@ -119,8 +109,11 @@ class OrganizationIdentityProviderRotationRunbookResource @Inject constructor(
             when (exception)
             {
                 is UnauthorizedException -> Response.status(FORBIDDEN).entity(ResponseError(exception.message)).build()
-                is IllegalArgumentException -> Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
-                else -> Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("An unexpected error occurred")).build()
+                is IllegalArgumentException -> Response.status(BAD_REQUEST).entity(ResponseError(exception.message))
+                    .build()
+
+                else -> Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("An unexpected error occurred"))
+                    .build()
             }
         }
     }
@@ -157,8 +150,11 @@ class OrganizationIdentityProviderRotationRunbookResource @Inject constructor(
             when (exception)
             {
                 is UnauthorizedException -> Response.status(FORBIDDEN).entity(ResponseError(exception.message)).build()
-                is IllegalArgumentException -> Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
-                else -> Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("An unexpected error occurred")).build()
+                is IllegalArgumentException -> Response.status(BAD_REQUEST).entity(ResponseError(exception.message))
+                    .build()
+
+                else -> Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("An unexpected error occurred"))
+                    .build()
             }
         }
     }

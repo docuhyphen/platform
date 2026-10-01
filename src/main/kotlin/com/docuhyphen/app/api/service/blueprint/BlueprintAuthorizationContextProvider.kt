@@ -8,7 +8,7 @@ import com.docuhyphen.app.api.service.auth.authz.ResourceAuthorizationContextPro
 import com.docuhyphen.app.api.service.auth.authz.ResourceKind
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class BlueprintAuthorizationContextProvider : ResourceAuthorizationContextProvider
@@ -25,8 +25,8 @@ class BlueprintAuthorizationContextProvider : ResourceAuthorizationContextProvid
         val ownerContext = when (blueprint.scope)
         {
             BlueprintScope.PERSONAL -> OwnerContext.Personal(blueprint.createdByAppUserId ?: return null)
-            BlueprintScope.ORG     -> OwnerContext.Organization(blueprint.organizationId ?: return null)
-            BlueprintScope.APP     -> OwnerContext.Platform
+            BlueprintScope.ORG -> OwnerContext.Organization(blueprint.organizationId ?: return null)
+            BlueprintScope.APP -> OwnerContext.Platform
         }
 
         return ResourceAuthorizationContext(

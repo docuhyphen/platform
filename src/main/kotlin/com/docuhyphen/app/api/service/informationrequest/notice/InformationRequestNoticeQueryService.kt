@@ -7,7 +7,7 @@ import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestMutationGate
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestNoticeQueryService @Inject constructor(

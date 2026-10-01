@@ -4,12 +4,14 @@ import com.docuhyphen.app.api.model.dto.SchemaAssignmentDto
 import com.docuhyphen.app.api.model.informationrequest.condition.InformationRequestConditionEvaluationProjection
 import com.docuhyphen.app.api.model.informationrequest.condition.InformationRequestConditionEvaluationState
 import com.docuhyphen.app.api.service.informationrequest.occurrence.InformationRequestOccurrencePath
-import java.util.UUID
+import java.util.*
 
 object InformationRequestActiveResponseProjection
 {
-    fun isActive(ruleKey: String?, occurrencePath: String,
-                 evaluations: List<InformationRequestConditionEvaluationProjection>, activeEnvelope: Boolean = true): Boolean
+    fun isActive(
+        ruleKey: String?, occurrencePath: String,
+        evaluations: List<InformationRequestConditionEvaluationProjection>, activeEnvelope: Boolean = true
+    ): Boolean
     {
         if (!activeEnvelope) return false
         if (ruleKey == null) return true
@@ -22,7 +24,9 @@ object InformationRequestActiveResponseProjection
     {
         val bindings = projection.bindings.filter { it.fieldDefinitionId == fieldDefinitionId }
         val contracts = bindings.map { it.fieldContractId }.toSet()
-        return projection.copy(bindings = bindings, fields = projection.fields.filter { it.fieldContractId in contracts })
+        return projection.copy(
+            bindings = bindings,
+            fields = projection.fields.filter { it.fieldContractId in contracts })
     }
 
     fun schema(projections: Collection<SchemaAssignmentDto?>): SchemaAssignmentDto? =

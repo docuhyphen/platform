@@ -4,12 +4,7 @@ import com.docuhyphen.app.api.resource.informationrequest.InformationRequestComm
 import com.docuhyphen.app.api.resource.informationrequest.review.handler.InformationRequestReviewRequestHandler
 import com.docuhyphen.app.api.resource.informationrequest.review.operations.InformationRequestReviewResultResourceOperations
 import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestAccessContextFactory
-import com.docuhyphen.app.api.service.informationrequest.review.InformationRequestReviewAssignmentService
-import com.docuhyphen.app.api.service.informationrequest.review.InformationRequestReviewCommentService
-import com.docuhyphen.app.api.service.informationrequest.review.InformationRequestReviewCycleService
-import com.docuhyphen.app.api.service.informationrequest.review.InformationRequestReviewDecisionService
-import com.docuhyphen.app.api.service.informationrequest.review.InformationRequestReviewFindingService
-import com.docuhyphen.app.api.service.informationrequest.review.InformationRequestReviewQueryService
+import com.docuhyphen.app.api.service.informationrequest.review.*
 import jakarta.inject.Inject
 import jakarta.ws.rs.core.Response
 import org.slf4j.LoggerFactory
@@ -24,13 +19,17 @@ class InformationRequestReviewResultResource @Inject constructor(
     private val accessContextFactory: InformationRequestAccessContextFactory,
 ) : InformationRequestReviewResultResourceOperations
 {
-    private val handler = InformationRequestReviewRequestHandler(assignments, decisions, findings, comments, cycles, queries)
+    private val handler =
+        InformationRequestReviewRequestHandler(assignments, decisions, findings, comments, cycles, queries)
 
     override fun results(id: String): Response
     {
         return try
         {
-            handler.results(InformationRequestCommandHttp.uuid(id, "information request id"), accessContextFactory.currentAuthenticated())
+            handler.results(
+                InformationRequestCommandHttp.uuid(id, "information request id"),
+                accessContextFactory.currentAuthenticated()
+            )
         }
         catch (exception: Exception)
         {

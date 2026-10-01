@@ -1,14 +1,6 @@
 package com.docuhyphen.app.api.model.dto
 
-import com.docuhyphen.app.api.model.entity.InformationRequestAttestationDecision
-import com.docuhyphen.app.api.model.entity.InformationRequestAttestationOrdering
-import com.docuhyphen.app.api.model.entity.InformationRequestAuthenticationStrength
-import com.docuhyphen.app.api.model.entity.InformationRequestContributorRole
-import com.docuhyphen.app.api.model.entity.InformationRequestExternalSignatureReferencePolicy
-import com.docuhyphen.app.api.model.entity.InformationRequestRequirementType
-import com.docuhyphen.app.api.model.entity.InformationRequestResponseDisposition
-import com.docuhyphen.app.api.model.entity.InformationRequestSubmissionMode
-import com.docuhyphen.app.api.model.entity.InformationRequestSubmissionStageOrdering
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.informationrequest.attestation.InformationRequestAttestationState
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestState
 import com.docuhyphen.app.api.model.informationrequest.response.InformationRequestCompletenessItemState
@@ -18,7 +10,7 @@ import com.docuhyphen.app.api.serializer.UUIDSerializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
 import java.sql.Timestamp
-import java.util.UUID
+import java.util.*
 
 @Serializable
 data class InformationRequestSubmissionPackageDto(

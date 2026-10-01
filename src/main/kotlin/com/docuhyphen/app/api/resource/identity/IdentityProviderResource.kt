@@ -1,17 +1,13 @@
 package com.docuhyphen.app.api.resource.identity
+
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.model.entity.IdentityProviderType
 import com.docuhyphen.app.api.resource.model.*
-import com.docuhyphen.app.api.service.auth.AppUserCredentialService
-import com.docuhyphen.app.api.service.auth.AuthenticationService
-import com.docuhyphen.app.api.service.auth.ExternalProviderAlreadyLinkedException
-import com.docuhyphen.app.api.service.auth.OAuthStateService
-import com.docuhyphen.app.api.service.auth.OAuthUserLinkingService
-import com.docuhyphen.app.api.service.identity.OrganizationIdentityPolicyService
-import com.docuhyphen.app.api.service.identity.OrganizationIdpRuntimeCredentialService
-import com.docuhyphen.app.api.service.auth.StepUpAuthService
+import com.docuhyphen.app.api.service.auth.*
 import com.docuhyphen.app.api.service.auth.idp.IdentityProviderRegistry
 import com.docuhyphen.app.api.service.config.ConfigurationService
+import com.docuhyphen.app.api.service.identity.OrganizationIdentityPolicyService
+import com.docuhyphen.app.api.service.identity.OrganizationIdpRuntimeCredentialService
 import jakarta.inject.Inject
 import jakarta.ws.rs.*
 import jakarta.ws.rs.core.GenericEntity
@@ -64,7 +60,8 @@ class IdentityProviderResource @Inject constructor(
                 )
             }
 
-            Response.ok(object : GenericEntity<List<IdentityProviderLinkDto>>(dtos) {}).build()
+            Response.ok(object : GenericEntity<List<IdentityProviderLinkDto>>(dtos)
+            {}).build()
         }
         catch (e: Exception)
         {
@@ -103,9 +100,11 @@ class IdentityProviderResource @Inject constructor(
             if (existingExternal != null && existingExternal.provider != providerType)
             {
                 return Response.status(Response.Status.CONFLICT)
-                    .entity(ResponseError(
-                        "Already linked to ${existingExternal.provider.displayName}. Unlink it first."
-                    ))
+                    .entity(
+                        ResponseError(
+                            "Already linked to ${existingExternal.provider.displayName}. Unlink it first."
+                        )
+                    )
                     .build()
             }
 
@@ -238,7 +237,8 @@ class IdentityProviderResource @Inject constructor(
             {
                 val currentPassword = payload.currentPassword
                 if (currentPassword.isNullOrBlank() ||
-                    !authenticationService.validatePassword(currentPassword, appUser.password!!))
+                    !authenticationService.validatePassword(currentPassword, appUser.password!!)
+                )
                 {
                     return Response.status(Response.Status.UNAUTHORIZED)
                         .entity(ResponseError("Current password is incorrect"))

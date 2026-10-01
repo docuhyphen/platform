@@ -1,11 +1,7 @@
 package com.docuhyphen.app.api.service.informationrequest.review
 
 import com.docuhyphen.app.api.exception.InformationRequestCommandRequestException
-import com.docuhyphen.app.api.model.entity.InformationRequestReview
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewAssignment
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewAssignmentState
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewState
-import com.docuhyphen.app.api.model.entity.ResourceType
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.informationrequest.LockedInformationRequest
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestMutation
@@ -20,13 +16,7 @@ import com.docuhyphen.app.api.repository.informationrequest.review.InformationRe
 import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.auth.authz.ResourceRef
-import com.docuhyphen.app.api.service.command.CommandActorRef
-import com.docuhyphen.app.api.service.command.CommandMutationResult
-import com.docuhyphen.app.api.service.command.CommandReceiptDecision
-import com.docuhyphen.app.api.service.command.CommandReceiptRequest
-import com.docuhyphen.app.api.service.command.CommandReceiptService
-import com.docuhyphen.app.api.service.command.CommandRequestFingerprint
-import com.docuhyphen.app.api.service.command.CommandResultReference
+import com.docuhyphen.app.api.service.command.*
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestETag
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestMutationGate
@@ -39,7 +29,7 @@ import jakarta.persistence.EntityManager
 import jakarta.transaction.Transactional
 import java.sql.Timestamp
 import java.time.Clock
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestReviewAssignmentService @Inject constructor(
@@ -145,10 +135,17 @@ class InformationRequestReviewAssignmentService @Inject constructor(
                     close(assignment, InformationRequestReviewAssignmentState.RECUSED, reason, command, now)
                     null
                 }
+
                 InformationRequestReviewAssignmentChange.DELEGATION -> delegate(review, assignment, command, now)
                 InformationRequestReviewAssignmentChange.REVOCATION ->
                 {
-                    close(assignment, InformationRequestReviewAssignmentState.REVOKED, command.reasonCode?.trim()?.ifBlank { null }, command, now)
+                    close(
+                        assignment,
+                        InformationRequestReviewAssignmentState.REVOKED,
+                        command.reasonCode?.trim()?.ifBlank { null },
+                        command,
+                        now
+                    )
                     null
                 }
             }
@@ -168,18 +165,23 @@ class InformationRequestReviewAssignmentService @Inject constructor(
         }
     }
 
-    private fun authorizeChange(command: ChangeInformationRequestReviewAssignmentCommand, assignment: InformationRequestReviewAssignment)
+    private fun authorizeChange(
+        command: ChangeInformationRequestReviewAssignmentCommand,
+        assignment: InformationRequestReviewAssignment
+    )
     {
         val manages = access.permitsManage(command.access, command.requestId)
         when (command.change)
         {
             InformationRequestReviewAssignmentChange.REVOCATION ->
                 if (!manages) throw ForbiddenException("Only a request administrator may revoke a review assignment")
+
             InformationRequestReviewAssignmentChange.RECUSAL ->
             {
                 gate.authorizeRequest(command.access, listOf(Action.INFORMATION_REQUEST_REVIEW), command.requestId)
                 access.requireActsAs(assignment, command.access)
             }
+
             InformationRequestReviewAssignmentChange.DELEGATION ->
                 if (!manages)
                 {
@@ -204,7 +206,13 @@ class InformationRequestReviewAssignmentService @Inject constructor(
         val party = access.reviewerParty(review.informationRequestId, delegatePartyId)
         requireNotAssigned(snapshot.assignments, stage.stageKey, party.id)
         separation.requireMayReview(snapshot, stage, access.principalsOf(party))
-        close(assignment, InformationRequestReviewAssignmentState.DELEGATED, command.reasonCode?.trim()?.ifBlank { null }, command, now)
+        close(
+            assignment,
+            InformationRequestReviewAssignmentState.DELEGATED,
+            command.reasonCode?.trim()?.ifBlank { null },
+            command,
+            now
+        )
         entityManager.flush()
         return assignmentRepository.save(
             InformationRequestReviewAssignment().apply {
@@ -243,7 +251,11 @@ class InformationRequestReviewAssignmentService @Inject constructor(
         assignmentRepository.update(assignment)
     }
 
-    private fun requireNotAssigned(assignments: List<InformationRequestReviewAssignment>, stageKey: String, partyId: UUID)
+    private fun requireNotAssigned(
+        assignments: List<InformationRequestReviewAssignment>,
+        stageKey: String,
+        partyId: UUID
+    )
     {
         if (assignments.any { it.state == InformationRequestReviewAssignmentState.ACTIVE && it.stageKey == stageKey && it.reviewerPartyId == partyId })
         {
@@ -345,7 +357,10 @@ class InformationRequestReviewAssignmentService @Inject constructor(
             locked.request.id,
         )
         val assignment = assignmentRepository.findById(recorded.resourceId)
-            ?: throw InformationRequestLifecycleException(InformationRequestErrorCatalog.NOT_FOUND, "Review assignment not found")
+            ?: throw InformationRequestLifecycleException(
+                InformationRequestErrorCatalog.NOT_FOUND,
+                "Review assignment not found"
+            )
         val review = loader.requireReview(locked.request.id, assignment.reviewId)
         return result(locked, review, assignment)
     }

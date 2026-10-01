@@ -84,42 +84,52 @@ class OrganizationTrustNotificationService @Inject constructor(
             "Trusted Organization request",
             "A trust request was created with",
         )
+
         AuditEventType.ORG_TRUST_REREQUESTED -> NotificationDetails(
             "Trusted Organization requested again",
             "A new trust request was created with",
         )
+
         AuditEventType.ORG_TRUST_ACCEPTED -> NotificationDetails(
             "Trusted Organization request accepted",
             "Trust is now active with",
         )
+
         AuditEventType.ORG_TRUST_REJECTED -> NotificationDetails(
             "Trusted Organization request rejected",
             "A trust request was rejected with",
         )
+
         AuditEventType.ORG_TRUST_WITHDRAWN -> NotificationDetails(
             "Trusted Organization request withdrawn",
             "A trust request was withdrawn with",
         )
+
         AuditEventType.ORG_TRUST_EXPIRED -> NotificationDetails(
             "Trusted Organization request expired",
             "A trust request expired with",
         )
+
         AuditEventType.ORG_TRUST_SUSPENDED -> NotificationDetails(
             "Trusted Organization suspended",
             "Trust was suspended with",
         )
+
         AuditEventType.ORG_TRUST_RESUMED -> NotificationDetails(
             "Trusted Organization resumed",
             "A suspension was cleared with",
         )
+
         AuditEventType.ORG_TRUST_ENDED -> NotificationDetails(
             "Trusted Organization ended",
             "Trust was ended with",
         )
+
         AuditEventType.ORG_TRUST_POLICY_UPDATED -> NotificationDetails(
             "Trusted Organization policy updated",
             "Trust policy was updated with",
         )
+
         else -> throw IllegalArgumentException("Unsupported Trusted Organization notification event")
     }
 

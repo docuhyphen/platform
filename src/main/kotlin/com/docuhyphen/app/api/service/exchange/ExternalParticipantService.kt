@@ -7,7 +7,7 @@ import jakarta.inject.Inject
 import jakarta.transaction.Transactional
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 sealed class ExternalParticipantOwner
 {
@@ -92,7 +92,7 @@ class ExternalParticipantService @Inject constructor(
 
     private fun isOwnedBy(participant: ExternalParticipant, owner: ExternalParticipantOwner): Boolean =
         participant.ownerOrganizationId == owner.organizationIdOrNull() &&
-            participant.ownerAppUserId == owner.userIdOrNull()
+                participant.ownerAppUserId == owner.userIdOrNull()
 
     private fun ExternalParticipantOwner.organizationIdOrNull(): UUID? = when (this)
     {

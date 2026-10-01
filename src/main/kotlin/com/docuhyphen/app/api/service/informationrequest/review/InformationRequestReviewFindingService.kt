@@ -13,13 +13,7 @@ import com.docuhyphen.app.api.repository.informationrequest.review.InformationRe
 import com.docuhyphen.app.api.repository.informationrequest.review.InformationRequestReviewRepository
 import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.auth.authz.ResourceRef
-import com.docuhyphen.app.api.service.command.CommandActorRef
-import com.docuhyphen.app.api.service.command.CommandMutationResult
-import com.docuhyphen.app.api.service.command.CommandReceiptDecision
-import com.docuhyphen.app.api.service.command.CommandReceiptRequest
-import com.docuhyphen.app.api.service.command.CommandReceiptService
-import com.docuhyphen.app.api.service.command.CommandRequestFingerprint
-import com.docuhyphen.app.api.service.command.CommandResultReference
+import com.docuhyphen.app.api.service.command.*
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestETag
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestMutationGate
@@ -97,7 +91,10 @@ class InformationRequestReviewFindingService @Inject constructor(
                     command.requestId,
                 )
                 val finding = findingRepository.findById(decision.result.resourceId)
-                    ?: throw InformationRequestLifecycleException(InformationRequestErrorCatalog.NOT_FOUND, "Finding not found")
+                    ?: throw InformationRequestLifecycleException(
+                        InformationRequestErrorCatalog.NOT_FOUND,
+                        "Finding not found"
+                    )
                 val review = loader.requireReview(command.requestId, finding.reviewId)
                 InformationRequestReviewCommandResult(
                     request = locked.request,
@@ -134,7 +131,10 @@ class InformationRequestReviewFindingService @Inject constructor(
         if (narrative.isEmpty()) throw InformationRequestCommandRequestException("A finding states what was found")
         val snapshot = loader.snapshot(review)
         val item = snapshot.item(command.submissionItemId)
-            ?: throw InformationRequestLifecycleException(InformationRequestErrorCatalog.NOT_FOUND, "Submission item not found")
+            ?: throw InformationRequestLifecycleException(
+                InformationRequestErrorCatalog.NOT_FOUND,
+                "Submission item not found"
+            )
         if (reviewing && !access.permitsItemReview(command.access, item.informationRequestRequirementId))
         {
             throw ForbiddenException("Access denied to review this Information Request Requirement")

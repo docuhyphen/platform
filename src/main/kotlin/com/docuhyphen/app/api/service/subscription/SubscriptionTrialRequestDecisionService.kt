@@ -7,7 +7,7 @@ import jakarta.inject.Inject
 import jakarta.transaction.Transactional
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class SubscriptionTrialRequestDecisionService @Inject constructor(
@@ -38,7 +38,9 @@ class SubscriptionTrialRequestDecisionService @Inject constructor(
         {
             val ownerType = SubscriptionOwnerType.valueOf(request.ownerType)
             val eligibility = eligibilityService.evaluateForRequest(ownerType, request.ownerId)
-            require(eligibility.eligible) { eligibility.reason ?: "This subscription is no longer eligible for a trial" }
+            require(eligibility.eligible) {
+                eligibility.reason ?: "This subscription is no longer eligible for a trial"
+            }
             val mutation = when (ownerType)
             {
                 SubscriptionOwnerType.USER ->
@@ -51,6 +53,7 @@ class SubscriptionTrialRequestDecisionService @Inject constructor(
                         reviewedByAppUserId,
                     )
                 }
+
                 SubscriptionOwnerType.ORGANIZATION -> trialService.startOrganizationTrial(
                     request.ownerId,
                     durationDays ?: SubscriptionTrialService.DEFAULT_ORGANIZATION_DURATION_DAYS,

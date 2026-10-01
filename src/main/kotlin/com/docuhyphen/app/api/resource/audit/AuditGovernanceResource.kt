@@ -1,36 +1,17 @@
 package com.docuhyphen.app.api.resource.audit
 
-import com.docuhyphen.app.api.model.dto.AuditEngagementCreateRequestDto
-import com.docuhyphen.app.api.model.dto.AuditEngagementDtoMapper
-import com.docuhyphen.app.api.model.dto.AuditGovernanceDtoMapper
-import com.docuhyphen.app.api.model.dto.AuditLegalHoldCreateRequestDto
-import com.docuhyphen.app.api.model.dto.AuditRetentionPolicyUpdateRequestDto
+import com.docuhyphen.app.api.model.dto.*
 import com.docuhyphen.app.api.model.entity.AuditIdentityTreatment
 import com.docuhyphen.app.api.model.entity.ResourceType
 import com.docuhyphen.app.api.resource.model.ResponseError
-import com.docuhyphen.app.api.service.audit.AuditAnalyticsReconciliationService
-import com.docuhyphen.app.api.service.audit.AuditEngagementNotFoundException
-import com.docuhyphen.app.api.service.audit.AuditEngagementService
-import com.docuhyphen.app.api.service.audit.AuditLegalHoldService
-import com.docuhyphen.app.api.service.audit.AuditLegalHoldNotFoundException
-import com.docuhyphen.app.api.service.audit.AuditRetentionPolicyService
+import com.docuhyphen.app.api.service.audit.*
 import com.docuhyphen.app.api.service.audit.catalog.AuditCategory
-import com.docuhyphen.app.api.service.auth.authz.Action
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.Decision
-import com.docuhyphen.app.api.service.auth.authz.ResourceRef
+import com.docuhyphen.app.api.service.auth.authz.*
 import jakarta.inject.Inject
-import jakarta.ws.rs.Consumes
-import jakarta.ws.rs.GET
-import jakarta.ws.rs.POST
-import jakarta.ws.rs.PUT
-import jakarta.ws.rs.Path
-import jakarta.ws.rs.PathParam
-import jakarta.ws.rs.Produces
+import jakarta.ws.rs.*
 import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
-import java.util.UUID
+import java.util.*
 
 /**
  * Thin REST adapter for platform-scope retention, legal hold, analytics, and assurance operations. All business logic lives in
@@ -56,7 +37,10 @@ class AuditGovernanceResource @Inject constructor(
     @GET
     @Path("/platform/audit-retention-policies")
     fun listPlatformRetentionPolicies(): Response = withAuthorizedPlatform(Action.APP_READ_AUDIT) { _ ->
-        Response.ok(auditRetentionPolicyService.listEffectivePolicies(PLATFORM_POLICY_SCOPE).map(AuditGovernanceDtoMapper::toDto)).build()
+        Response.ok(
+            auditRetentionPolicyService.listEffectivePolicies(PLATFORM_POLICY_SCOPE)
+                .map(AuditGovernanceDtoMapper::toDto)
+        ).build()
     }
 
     @PUT
@@ -81,7 +65,14 @@ class AuditGovernanceResource @Inject constructor(
     @Path("/platform/audit-legal-holds")
     fun placePlatformLegalHold(body: AuditLegalHoldCreateRequestDto): Response =
         withAuthorizedPlatform(Action.AUDIT_LEGAL_HOLD_MANAGE) { principal ->
-            val hold = auditLegalHoldService.placeHold(null, body.resourceType, body.resourceId, body.reason, body.caseReference, principal)
+            val hold = auditLegalHoldService.placeHold(
+                null,
+                body.resourceType,
+                body.resourceId,
+                body.reason,
+                body.caseReference,
+                principal
+            )
             Response.ok(AuditGovernanceDtoMapper.toDto(hold)).build()
         }
 
@@ -101,10 +92,12 @@ class AuditGovernanceResource @Inject constructor(
 
     @GET
     @Path("/platform/audit-analytics/reconciliation")
-    fun getPlatformAnalyticsReconciliation(): Response = withAuthorizedPlatform(Action.AUDIT_INTEGRITY_VERIFY) { principal ->
-        val report = auditAnalyticsReconciliationService.reconcile(null, platformOnly = true, requestedByUserId = principal)
-        Response.ok(AuditGovernanceDtoMapper.toDto(report)).build()
-    }
+    fun getPlatformAnalyticsReconciliation(): Response =
+        withAuthorizedPlatform(Action.AUDIT_INTEGRITY_VERIFY) { principal ->
+            val report =
+                auditAnalyticsReconciliationService.reconcile(null, platformOnly = true, requestedByUserId = principal)
+            Response.ok(AuditGovernanceDtoMapper.toDto(report)).build()
+        }
 
     @POST
     @Path("/platform/audit-engagements")

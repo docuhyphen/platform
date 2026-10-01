@@ -19,17 +19,23 @@ object InformationRequestCarryForwardPlanner
         sourceItems: List<InformationRequestSubmissionItem>,
     ): List<InformationRequestPlannedCarryForward>
     {
-        val itemsByOccurrence = sourceItems.associateBy { Triple(it.requirementKey, it.requirementType, it.occurrencePath) }
+        val itemsByOccurrence =
+            sourceItems.associateBy { Triple(it.requirementKey, it.requirementType, it.occurrencePath) }
         return occurrences.mapNotNull { occurrence ->
-            val item = itemsByOccurrence[Triple(occurrence.requirementKey, occurrence.requirementType, occurrence.occurrencePath)]
+            val item = itemsByOccurrence[Triple(
+                occurrence.requirementKey,
+                occurrence.requirementType,
+                occurrence.occurrencePath
+            )]
                 ?: return@mapNotNull null
             val reason = when
             {
                 item.requirementType == InformationRequestRequirementType.DOCUMENT -> EVIDENCE_REQUIRES_FRESH_COLLECTION
                 item.requirementType == InformationRequestRequirementType.RESPONSE_ATTESTATION -> ATTESTATION_REQUIRES_FRESH_ASSENT
                 item.completenessState == InformationRequestCompletenessItemState.HIDDEN ||
-                    (item.disposition == InformationRequestResponseDisposition.NOT_ANSWERED && item.fieldValueRevisionId == null) ->
+                        (item.disposition == InformationRequestResponseDisposition.NOT_ANSWERED && item.fieldValueRevisionId == null) ->
                     SOURCE_NOT_ANSWERED
+
                 else -> null
             }
             InformationRequestPlannedCarryForward(

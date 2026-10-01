@@ -8,7 +8,7 @@ import com.docuhyphen.app.api.service.auth.authz.ResourceAuthorizationContextPro
 import com.docuhyphen.app.api.service.auth.authz.ResourceKind
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class WorkflowDefinitionAuthorizationContextProvider : ResourceAuthorizationContextProvider
@@ -25,8 +25,8 @@ class WorkflowDefinitionAuthorizationContextProvider : ResourceAuthorizationCont
         val ownerContext = when (definition.scope)
         {
             WorkflowScope.PERSONAL -> OwnerContext.Personal(definition.createdByAppUserId ?: return null)
-            WorkflowScope.ORG     -> OwnerContext.Organization(definition.organizationId ?: return null)
-            WorkflowScope.APP     -> OwnerContext.Platform
+            WorkflowScope.ORG -> OwnerContext.Organization(definition.organizationId ?: return null)
+            WorkflowScope.APP -> OwnerContext.Platform
         }
 
         return ResourceAuthorizationContext(

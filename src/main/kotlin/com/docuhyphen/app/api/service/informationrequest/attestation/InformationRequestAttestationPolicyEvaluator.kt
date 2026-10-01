@@ -1,10 +1,6 @@
 package com.docuhyphen.app.api.service.informationrequest.attestation
 
-import com.docuhyphen.app.api.model.entity.InformationRequestAttestationDecision
-import com.docuhyphen.app.api.model.entity.InformationRequestAttestationOrdering
-import com.docuhyphen.app.api.model.entity.InformationRequestContributorRole
-import com.docuhyphen.app.api.model.entity.InformationRequestExternalSignatureReferencePolicy
-import com.docuhyphen.app.api.model.entity.InformationRequestSubmissionAttestation
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.informationrequest.attestation.InformationRequestAttestationEvaluation
 import com.docuhyphen.app.api.model.informationrequest.attestation.InformationRequestAttestationPolicy
 import com.docuhyphen.app.api.model.informationrequest.attestation.InformationRequestAttestationState
@@ -85,7 +81,7 @@ object InformationRequestAttestationPolicyEvaluator
         attestation: InformationRequestSubmissionAttestation,
     ): Boolean =
         policy.externalSignatureReference != InformationRequestExternalSignatureReferencePolicy.REQUIRED ||
-            !attestation.externalSignatureReference.isNullOrBlank()
+                !attestation.externalSignatureReference.isNullOrBlank()
 
     fun rolesBefore(
         policy: InformationRequestAttestationPolicy,

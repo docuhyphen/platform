@@ -1,10 +1,6 @@
 package com.docuhyphen.app.api.service.informationrequest.notice
 
-import com.docuhyphen.app.api.model.entity.InformationRequestNoticeAttemptOutcome
-import com.docuhyphen.app.api.model.entity.InformationRequestNoticeDeliveryAttempt
-import com.docuhyphen.app.api.model.entity.InformationRequestNoticeDeliveryState
-import com.docuhyphen.app.api.model.entity.InformationRequestNoticeEndpointState
-import com.docuhyphen.app.api.model.entity.InformationRequestOutboundNotice
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.informationrequest.notice.InformationRequestNoticeView
 import com.docuhyphen.app.api.repository.informationrequest.amendment.InformationRequestNoticeIntentRepository
 import com.docuhyphen.app.api.repository.informationrequest.notice.InformationRequestNoticeClaimRepository
@@ -12,7 +8,7 @@ import com.docuhyphen.app.api.repository.informationrequest.notice.InformationRe
 import com.docuhyphen.app.api.repository.informationrequest.notice.InformationRequestOutboundNoticeRepository
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestNoticeStateReader @Inject constructor(
@@ -33,7 +29,12 @@ class InformationRequestNoticeStateReader @Inject constructor(
         return intentRepository.findForRequests(requestIds).map { intent ->
             val notice = notices[intent.id]
             val noticeAttempts = notice?.let { attempts[it.id] }.orEmpty().sortedBy { it.attemptNumber }
-            InformationRequestNoticeView(intent, notice, noticeAttempts, stateOf(intent.id in claimed, notice, noticeAttempts))
+            InformationRequestNoticeView(
+                intent,
+                notice,
+                noticeAttempts,
+                stateOf(intent.id in claimed, notice, noticeAttempts)
+            )
         }
     }
 

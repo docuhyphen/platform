@@ -28,17 +28,30 @@ class InformationRequestDiscrepancyResolutionResource @Inject constructor(
         {
             val requestId = InformationRequestCommandHttp.uuid(id, "information request id")
             val discrepancy = InformationRequestCommandHttp.uuid(discrepancyId, "discrepancy id")
-            val body = request ?: throw InformationRequestCommandRequestException("A resolution states its outcome and reason")
+            val body =
+                request ?: throw InformationRequestCommandRequestException("A resolution states its outcome and reason")
             val key = InformationRequestCommandHttp.idempotencyKey(idempotencyKey)
             val access = accessContextFactory.currentAuthenticated()
             val view = importedValues.resolve(
-                ResolveInformationRequestDiscrepancyCommand(requestId, discrepancy, body.resolution, body.reasonCode, access, key),
+                ResolveInformationRequestDiscrepancyCommand(
+                    requestId,
+                    discrepancy,
+                    body.resolution,
+                    body.reasonCode,
+                    access,
+                    key
+                ),
             )
-            Response.status(Response.Status.CREATED).entity(InformationRequestExternalSourceDtoMapper.toDto(view, access.principal)).build()
+            Response.status(Response.Status.CREATED)
+                .entity(InformationRequestExternalSourceDtoMapper.toDto(view, access.principal)).build()
         }
         catch (exception: Exception)
         {
-            InformationRequestCommandHttp.refused(logger, "Information Request discrepancy resolution failed", exception)
+            InformationRequestCommandHttp.refused(
+                logger,
+                "Information Request discrepancy resolution failed",
+                exception
+            )
         }
     }
 

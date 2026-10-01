@@ -74,7 +74,7 @@ class ResourcePolicyEvaluatorRegistry
             val kind = evaluator.supportedKind
             check(kind !in map) {
                 "Duplicate ResourcePolicyEvaluator for $kind: " +
-                    "${map[kind]!!::class.qualifiedName} vs ${evaluator::class.qualifiedName}"
+                        "${map[kind]!!::class.qualifiedName} vs ${evaluator::class.qualifiedName}"
             }
             map[kind] = evaluator
         }

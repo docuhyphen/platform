@@ -10,7 +10,8 @@ import java.util.*
 
 @Entity
 @Table(name = "mfa_record")
-class MfaRecord {
+class MfaRecord
+{
 
     @Id
     @Serializable(with = UUIDSerializer::class)

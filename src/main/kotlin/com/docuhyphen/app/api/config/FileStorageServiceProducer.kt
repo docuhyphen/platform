@@ -15,10 +15,13 @@ class FileStorageServiceProducer @Inject constructor(
     @ConfigProperty(name = "file.storage.service") private val fileStorageServiceType: String,
     @Local private val localFileStorageService: LocalFileStorageService,
     @Aws private val awsS3FileStorageService: AwsS3FileStorageService,
-) {
+)
+{
     @Produces
-    fun produceFileStorageService(): FileStorageService {
-        return when (fileStorageServiceType) {
+    fun produceFileStorageService(): FileStorageService
+    {
+        return when (fileStorageServiceType)
+        {
             "aws" -> awsS3FileStorageService
             "local" -> localFileStorageService
             else -> throw IllegalArgumentException("Invalid file storage service type")

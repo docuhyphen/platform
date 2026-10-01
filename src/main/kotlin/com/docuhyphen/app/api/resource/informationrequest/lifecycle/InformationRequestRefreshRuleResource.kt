@@ -41,7 +41,11 @@ class InformationRequestRefreshRuleResource @Inject constructor(
         }
         catch (exception: Exception)
         {
-            InformationRequestCommandHttp.refused(logger, "Information Request refresh rule definition failed", exception)
+            InformationRequestCommandHttp.refused(
+                logger,
+                "Information Request refresh rule definition failed",
+                exception
+            )
         }
     }
 

@@ -176,9 +176,23 @@ class AuditEventTypeTest
     }
 
     @Test
-    fun `catalog version reflects the added runtime request vocabulary`()
+    fun `rejected sign-up requests are authentication events`()
     {
-        assertEquals(29, AuditEventType.CATALOG_VERSION)
+        listOf(
+            "SIGN_UP_INITIATE" to "auth.sign_up.initiate",
+            "SIGN_UP_OTP_REGENERATION" to "auth.sign_up.otp_regenerate",
+            "SIGN_UP_COMPLETION" to "auth.sign_up.completion",
+        ).forEach { (action, key) ->
+            val eventType = AuditEventType.valueOf(action)
+            assertEquals(key, eventType.key)
+            assertEquals(AuditCategory.AUTHENTICATION, eventType.category)
+        }
+    }
+
+    @Test
+    fun `catalog version reflects the added sign-up vocabulary`()
+    {
+        assertEquals(30, AuditEventType.CATALOG_VERSION)
     }
 
     @Test

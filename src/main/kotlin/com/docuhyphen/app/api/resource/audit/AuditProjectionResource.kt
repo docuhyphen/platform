@@ -8,22 +8,12 @@ import com.docuhyphen.app.api.service.audit.AuditProjectionCursor
 import com.docuhyphen.app.api.service.audit.AuditProjectionNotFoundException
 import com.docuhyphen.app.api.service.audit.AuditSearchProjectionService
 import com.docuhyphen.app.api.service.audit.catalog.AuditCategory
-import com.docuhyphen.app.api.service.auth.authz.Action
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.Decision
-import com.docuhyphen.app.api.service.auth.authz.ResourceRef
+import com.docuhyphen.app.api.service.auth.authz.*
 import jakarta.inject.Inject
-import jakarta.ws.rs.Consumes
-import jakarta.ws.rs.DefaultValue
-import jakarta.ws.rs.GET
-import jakarta.ws.rs.Path
-import jakarta.ws.rs.Produces
-import jakarta.ws.rs.QueryParam
+import jakarta.ws.rs.*
 import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
-import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 /**
  * The remaining two routes here never collide with another resource class's path, so they can

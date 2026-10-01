@@ -153,5 +153,6 @@ sealed interface InformationRequestConfigurationBundleParse
 {
     data class Parsed(val bundle: InformationRequestConfigurationBundle) : InformationRequestConfigurationBundleParse
 
-    data class Refused(val problems: List<InformationRequestConfigurationBundleProblem>) : InformationRequestConfigurationBundleParse
+    data class Refused(val problems: List<InformationRequestConfigurationBundleProblem>) :
+        InformationRequestConfigurationBundleParse
 }

@@ -31,7 +31,8 @@ class InProcessDomainEventPublisher : DomainEventPublisher
 {
     private val logger = LoggerFactory.getLogger(InProcessDomainEventPublisher::class.java)
 
-    @Inject private lateinit var eventRouter: EventRouter
+    @Inject
+    private lateinit var eventRouter: EventRouter
 
     override fun publish(event: DomainEvent)
     {

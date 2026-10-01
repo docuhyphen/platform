@@ -729,7 +729,12 @@ class AuditSearchProjectionService @Inject constructor(
         }
         catch (e: AuditCaptureFailedException)
         {
-            logger.error("AuditSearchProjectionService: AuditRecorder capture failed for {}: {}", eventType, e.message, e)
+            logger.error(
+                "AuditSearchProjectionService: AuditRecorder capture failed for {}: {}",
+                eventType,
+                e.message,
+                e
+            )
         }
     }
 }

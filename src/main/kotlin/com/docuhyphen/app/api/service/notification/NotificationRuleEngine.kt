@@ -2,11 +2,7 @@
 
 package com.docuhyphen.app.api.service.notification
 
-import com.docuhyphen.app.api.model.entity.NotificationChannelType
-import com.docuhyphen.app.api.model.entity.NotificationPreference
-import com.docuhyphen.app.api.model.entity.NotificationRule
-import com.docuhyphen.app.api.model.entity.NotificationRuleAction
-import com.docuhyphen.app.api.model.entity.PrincipalKind
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.repository.notification.NotificationPreferenceRepository
 import com.docuhyphen.app.api.repository.notification.NotificationRuleRepository
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
@@ -15,12 +11,12 @@ import com.docuhyphen.app.api.service.workflow.WorkflowAssigneeResolver
 import com.docuhyphen.app.api.service.workflow.WorkflowSpecJson
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonClassDiscriminator
-import kotlinx.serialization.Serializable
 import org.slf4j.LoggerFactory
-import java.util.UUID
+import java.util.*
 
 /**
  * Matches a [DomainEvent] against active [NotificationRule]s, expands assignees to
@@ -44,9 +40,12 @@ class NotificationRuleEngine
 {
     private val logger = LoggerFactory.getLogger(NotificationRuleEngine::class.java)
 
-    @Inject private lateinit var ruleRepository: NotificationRuleRepository
-    @Inject private lateinit var preferenceRepository: NotificationPreferenceRepository
-    @Inject private lateinit var assigneeResolver: WorkflowAssigneeResolver
+    @Inject
+    private lateinit var ruleRepository: NotificationRuleRepository
+    @Inject
+    private lateinit var preferenceRepository: NotificationPreferenceRepository
+    @Inject
+    private lateinit var assigneeResolver: WorkflowAssigneeResolver
 
     private val json: Json = WorkflowSpecJson.instance
 
@@ -135,10 +134,10 @@ class NotificationRuleEngine
             val parsed = json.decodeFromString(PredicateExpr.serializer(), pj)
             val actual = when (parsed.field)
             {
-                "subject.type"  -> event.subject?.type
-                "subject.id"    -> event.subject?.id
+                "subject.type" -> event.subject?.type
+                "subject.id" -> event.subject?.id
                 "organizationId" -> event.organizationId
-                else            -> event.payload[parsed.field]
+                else -> event.payload[parsed.field]
             }
             actual == parsed.equals_
         }.getOrElse {
@@ -240,6 +239,7 @@ class NotificationRuleEngine
             is AppRoleAssignees -> AssigneeSpec.AppRoleAssignees(roleName)
             is OrganizationRoleAssignees ->
                 AssigneeSpec.OrganizationRoleAssignees(roleName, organizationIdRef)
+
             is EventPayload -> error("EVENT_PAYLOAD must be handled by NotificationRuleEngine, not delegated")
         }
     }

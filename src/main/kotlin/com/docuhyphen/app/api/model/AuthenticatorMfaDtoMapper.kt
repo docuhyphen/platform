@@ -10,7 +10,7 @@ object AuthenticatorMfaDtoMapper
     fun toConfigurationDto(appUser: AppUser): MfaConfigurationDto = MfaConfigurationDto(
         method = appUser.mfaType.name,
         authenticatorConfigured = appUser.mfaType.isAuthenticator() &&
-            !appUser.authenticatorSecretEncrypted.isNullOrBlank(),
+                !appUser.authenticatorSecretEncrypted.isNullOrBlank(),
         emailFallbackEnabled = appUser.emailMfaFallbackEnabled,
     )
 

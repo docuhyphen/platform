@@ -21,7 +21,6 @@ import jakarta.inject.Inject
 import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
-import java.util.UUID
 
 @ApplicationScoped
 class InformationRequestTransitionHistoryService @Inject constructor(
@@ -52,7 +51,11 @@ class InformationRequestTransitionHistoryService @Inject constructor(
         )
         val sameState = command.fromState == previousState && command.toState == previousState
         return recordOne(
-            if (sameState) command.copy(fromState = command.request.state, toState = command.request.state) else command,
+            if (sameState) command.copy(
+                fromState = command.request.state,
+                toState = command.request.state
+            )
+            else command,
         )
     }
 

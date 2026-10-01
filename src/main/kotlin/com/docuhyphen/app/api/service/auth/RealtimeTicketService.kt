@@ -9,8 +9,7 @@ import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import java.security.MessageDigest
 import java.security.SecureRandom
-import java.util.Base64
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class RealtimeTicketService @Inject constructor(

@@ -27,7 +27,19 @@ object InformationRequestNoticeDtoMapper
             sourceCommunicationId = view.notice?.sourceCommunicationId,
             sourceContentHash = view.notice?.sourceContentHash,
             renderedAt = view.notice?.renderedAt,
-            attempts = view.attempts.map { InformationRequestNoticeAttemptDto(it.attemptNumber, it.outcome, it.failureCode, it.attemptedAt) },
-            sequenceAllocations = allocations.map { InformationRequestNoticeSequenceAllocationDto(it.sequenceKey, it.renderedValue) },
+            attempts = view.attempts.map {
+                InformationRequestNoticeAttemptDto(
+                    it.attemptNumber,
+                    it.outcome,
+                    it.failureCode,
+                    it.attemptedAt
+                )
+            },
+            sequenceAllocations = allocations.map {
+                InformationRequestNoticeSequenceAllocationDto(
+                    it.sequenceKey,
+                    it.renderedValue
+                )
+            },
         )
 }

@@ -9,6 +9,7 @@ internal fun informationRequestAuditOwner(request: InformationRequest): AuditOwn
     InformationRequestOwnerType.ORGANIZATION -> AuditOwnerScope.Organization(
         requireNotNull(request.ownerOrganizationId) { "Organization owned Information Request has no owner id" },
     )
+
     InformationRequestOwnerType.USER -> AuditOwnerScope.Personal(
         requireNotNull(request.ownerUserId) { "User owned Information Request has no owner id" },
     )

@@ -3,39 +3,29 @@
 import com.docuhyphen.app.api.exception.OrganizationGroupNotFoundException
 import com.docuhyphen.app.api.exception.OrganizationNotFoundException
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
+import com.docuhyphen.app.api.interceptor.EnforceAdminAction
 import com.docuhyphen.app.api.model.DetailedEntityToDtoTransformer
 import com.docuhyphen.app.api.model.dto.PrincipalGroupDto
 import com.docuhyphen.app.api.model.dto.PrincipalGroupMemberDto
-import com.docuhyphen.app.api.model.entity.AppUser
-import com.docuhyphen.app.api.model.entity.Organization
-import com.docuhyphen.app.api.model.entity.PrincipalGroup
-import com.docuhyphen.app.api.model.entity.PrincipalGroupRoleName
-import com.docuhyphen.app.api.model.entity.PrincipalGroupScope
-import com.docuhyphen.app.api.model.entity.PrincipalKind
-import com.docuhyphen.app.api.model.entity.ResourceType
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.resourceservice.OrganizationGroupMemberModel
+import com.docuhyphen.app.api.repository.exchange.ShareRepository
 import com.docuhyphen.app.api.repository.organization.OrganizationRepository
 import com.docuhyphen.app.api.repository.organization.PrincipalGroupMemberRepository
 import com.docuhyphen.app.api.repository.organization.PrincipalGroupRepository
-import com.docuhyphen.app.api.repository.exchange.ShareRepository
-import com.docuhyphen.app.api.service.user.AppUserService
 import com.docuhyphen.app.api.service.auth.AdminApprovalContext
 import com.docuhyphen.app.api.service.auth.AuthAuditService
-import com.docuhyphen.app.api.interceptor.EnforceAdminAction
-import com.docuhyphen.app.api.service.auth.authz.Action
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.Decision
-import com.docuhyphen.app.api.service.auth.authz.ResourceRef
+import com.docuhyphen.app.api.service.auth.authz.*
 import com.docuhyphen.app.api.service.communication.EmailService
 import com.docuhyphen.app.api.service.communication.EmailTemplateService
 import com.docuhyphen.app.api.service.config.ConfigurationService
+import com.docuhyphen.app.api.service.subscription.OrganizationFeatureSubscriptionGuard
+import com.docuhyphen.app.api.service.subscription.PlanFeature
+import com.docuhyphen.app.api.service.user.AppUserService
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
 import org.slf4j.LoggerFactory
-import com.docuhyphen.app.api.service.subscription.OrganizationFeatureSubscriptionGuard
-import com.docuhyphen.app.api.service.subscription.PlanFeature
 import java.util.*
 
 /**
@@ -88,9 +78,9 @@ class OrganizationGroupService @Inject constructor(
         return principalGroupMemberRepository.findActiveMembers(groupId)
             .any {
                 it.principalKind == PrincipalKind.USER &&
-                    it.principalId == appUserId &&
-                    (it.groupRole == PrincipalGroupRoleName.OWNER ||
-                        it.groupRole == PrincipalGroupRoleName.MANAGER)
+                        it.principalId == appUserId &&
+                        (it.groupRole == PrincipalGroupRoleName.OWNER ||
+                                it.groupRole == PrincipalGroupRoleName.MANAGER)
             }
     }
 
@@ -119,9 +109,9 @@ class OrganizationGroupService @Inject constructor(
         {
             activeMembers.any {
                 it.principalKind == PrincipalKind.USER &&
-                    it.principalId == appUserId &&
-                    (it.groupRole == PrincipalGroupRoleName.OWNER ||
-                        it.groupRole == PrincipalGroupRoleName.MANAGER)
+                        it.principalId == appUserId &&
+                        (it.groupRole == PrincipalGroupRoleName.OWNER ||
+                                it.groupRole == PrincipalGroupRoleName.MANAGER)
             }
         }
     }
@@ -139,7 +129,7 @@ class OrganizationGroupService @Inject constructor(
             .filter { it.principalKind == PrincipalKind.USER }
             .filter {
                 it.groupRole == PrincipalGroupRoleName.OWNER ||
-                    it.groupRole == PrincipalGroupRoleName.MANAGER
+                        it.groupRole == PrincipalGroupRoleName.MANAGER
             }
             .map { it.principalId }
             .toSet()
@@ -257,7 +247,8 @@ class OrganizationGroupService @Inject constructor(
             ?: throw OrganizationGroupNotFoundException("Group not found for id: $groupId")
 
         if (principalGroupRepository.findByOwnerOrg(orgId)
-                .any { it.id != gid && it.name.equals(groupName.trim(), ignoreCase = true) })
+                .any { it.id != gid && it.name.equals(groupName.trim(), ignoreCase = true) }
+        )
         {
             throw IllegalArgumentException("Group name already exists in this organization")
         }
@@ -307,7 +298,8 @@ class OrganizationGroupService @Inject constructor(
             appUserService.getById(memberId)?.let { sendGroupMemberAddedEmail(it, groupName.trim(), organization.name) }
         }
         (previousMemberIds - newMemberIds).forEach { memberId ->
-            appUserService.getById(memberId)?.let { sendGroupMemberRemovedEmail(it, groupName.trim(), organization.name) }
+            appUserService.getById(memberId)
+                ?.let { sendGroupMemberRemovedEmail(it, groupName.trim(), organization.name) }
         }
         if (groupUpdateFields.isNotEmpty())
         {

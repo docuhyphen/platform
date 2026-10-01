@@ -5,7 +5,7 @@ import com.docuhyphen.app.api.service.subscription.SubscriptionContext
 import com.docuhyphen.app.api.service.subscription.SubscriptionPolicyService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
-import java.util.UUID
+import java.util.*
 
 /**
  * Serializes membership activations for organizations with purchased seat capacity.

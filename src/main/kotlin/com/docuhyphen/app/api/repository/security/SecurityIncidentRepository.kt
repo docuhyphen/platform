@@ -1,8 +1,7 @@
 package com.docuhyphen.app.api.repository.security
 
-import com.docuhyphen.app.api.repository.BaseRepository
-
 import com.docuhyphen.app.api.model.entity.SecurityIncident
+import com.docuhyphen.app.api.repository.BaseRepository
 import jakarta.enterprise.context.RequestScoped
 import jakarta.persistence.TypedQuery
 

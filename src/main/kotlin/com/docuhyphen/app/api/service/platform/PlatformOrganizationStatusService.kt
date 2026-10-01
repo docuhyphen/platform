@@ -16,7 +16,7 @@ import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
 import org.slf4j.LoggerFactory
-import java.util.UUID
+import java.util.*
 
 @RequestScoped
 class PlatformOrganizationStatusService @Inject constructor(
@@ -31,6 +31,7 @@ class PlatformOrganizationStatusService @Inject constructor(
     {
         private val logger = LoggerFactory.getLogger(PlatformOrganizationStatusService::class.java)
     }
+
     @EnforceAdminAction("PLATFORM_ORGANIZATION_STATUS_UPDATE")
     @Transactional
     fun update(

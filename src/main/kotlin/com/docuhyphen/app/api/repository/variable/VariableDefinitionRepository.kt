@@ -1,16 +1,18 @@
 package com.docuhyphen.app.api.repository.variable
 
-import com.docuhyphen.app.api.repository.BaseRepository
-
 import com.docuhyphen.app.api.model.entity.VariableDefinition
 import com.docuhyphen.app.api.model.entity.VariableScope
+import com.docuhyphen.app.api.repository.BaseRepository
 import jakarta.enterprise.context.ApplicationScoped
 import java.util.*
 
 @ApplicationScoped
 class VariableDefinitionRepository : BaseRepository<VariableDefinition>(VariableDefinition::class.java)
 {
-    fun findByScopeAndOrganizationIdAndIsDeletedFalse(scope: VariableScope, organizationId: UUID): List<VariableDefinition> =
+    fun findByScopeAndOrganizationIdAndIsDeletedFalse(
+        scope: VariableScope,
+        organizationId: UUID
+    ): List<VariableDefinition> =
         entityManager.createQuery(
             """SELECT v FROM VariableDefinition v
                WHERE v.scope = :scope AND v.organizationId = :orgId AND v.isDeleted = FALSE
@@ -21,7 +23,10 @@ class VariableDefinitionRepository : BaseRepository<VariableDefinition>(Variable
             .setParameter("orgId", organizationId)
             .resultList
 
-    fun findByScopeAndCreatedByAppUserIdAndIsDeletedFalse(scope: VariableScope, userId: UUID): List<VariableDefinition> =
+    fun findByScopeAndCreatedByAppUserIdAndIsDeletedFalse(
+        scope: VariableScope,
+        userId: UUID
+    ): List<VariableDefinition> =
         entityManager.createQuery(
             """SELECT v FROM VariableDefinition v
                WHERE v.scope = :scope AND v.createdByAppUserId = :userId AND v.isDeleted = FALSE

@@ -1,11 +1,7 @@
 package com.docuhyphen.app.api.resource.informationrequest.noauth
 
 import com.docuhyphen.app.api.model.InformationRequestAccessLinkDtoMapper
-import com.docuhyphen.app.api.model.informationrequest.noauth.InformationRequestBootstrapShareLinkIssuance
-import com.docuhyphen.app.api.model.informationrequest.noauth.IssueInformationRequestBootstrapShareLinkCommand
-import com.docuhyphen.app.api.model.informationrequest.noauth.ReplaceInformationRequestBootstrapShareLinkCommand
-import com.docuhyphen.app.api.model.informationrequest.noauth.RevokeInformationRequestBootstrapShareLinkCommand
-import com.docuhyphen.app.api.model.informationrequest.noauth.RotateInformationRequestBootstrapShareLinkCommand
+import com.docuhyphen.app.api.model.informationrequest.noauth.*
 import com.docuhyphen.app.api.resource.command.CommandPreconditionHeader
 import com.docuhyphen.app.api.resource.command.CommandPreconditionResponse
 import com.docuhyphen.app.api.resource.informationrequest.noauth.operations.InformationRequestAccessLinkResourceOperations
@@ -20,7 +16,7 @@ import com.docuhyphen.app.api.service.informationrequest.noauth.InformationReque
 import io.quarkus.security.ForbiddenException
 import io.quarkus.security.UnauthorizedException
 import jakarta.inject.Inject
-import jakarta.ws.rs.*
+import jakarta.ws.rs.WebApplicationException
 import jakarta.ws.rs.core.Response
 import jakarta.ws.rs.core.Response.Status.*
 import org.slf4j.LoggerFactory
@@ -209,16 +205,22 @@ class InformationRequestAccessLinkResource @Inject constructor(
             is CommandPreconditionException -> CommandPreconditionResponse.refused(exception)
             is CommandReceiptConflictException -> Response.status(CONFLICT)
                 .entity(ResponseError(exception.message, exception.reasonCode)).build()
+
             is InformationRequestLifecycleException -> Response.status(CONFLICT)
                 .entity(ResponseError(exception.message, exception.reasonCode)).build()
+
             is IllegalStateException -> Response.status(CONFLICT)
                 .entity(ResponseError(exception.message)).build()
+
             is IllegalArgumentException -> Response.status(NOT_FOUND)
                 .entity(ResponseError(exception.message)).build()
+
             is ForbiddenException -> Response.status(FORBIDDEN)
                 .entity(ResponseError(exception.message)).build()
+
             is UnauthorizedException -> Response.status(UNAUTHORIZED)
                 .entity(ResponseError(exception.message)).build()
+
             else ->
             {
                 logger.error(message, exception)

@@ -8,7 +8,7 @@ import jakarta.transaction.Status
 import jakarta.transaction.Synchronization
 import jakarta.transaction.TransactionSynchronizationRegistry
 import org.slf4j.LoggerFactory
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class DocumentCommentRealtimeService @Inject constructor(
@@ -46,7 +46,11 @@ class DocumentCommentRealtimeService @Inject constructor(
                             recipientSnapshot.forEach { realtimeEventService.broadcastToUser(it, message) }
                         }
                     }.onFailure { exception ->
-                        logger.warn("Failed to broadcast committed document comment for Exchange={}", exchangeId, exception)
+                        logger.warn(
+                            "Failed to broadcast committed document comment for Exchange={}",
+                            exchangeId,
+                            exception
+                        )
                     }
                 }
             },

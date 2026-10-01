@@ -1,12 +1,7 @@
 package com.docuhyphen.app.api.service.informationrequest.parent
 
 import com.docuhyphen.app.api.model.entity.ExchangeStatus
-import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestExternalSessionEffect
-import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestMutation
-import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestNonTerminalEffect
-import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestParentSnapshot
-import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestState
-import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestTransitionHistoryCommand
+import com.docuhyphen.app.api.model.informationrequest.lifecycle.*
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestTransitionHistoryService
@@ -17,7 +12,7 @@ import jakarta.inject.Inject
 import jakarta.transaction.Transactional
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestParentLifecycleService @Inject constructor(
@@ -30,14 +25,18 @@ class InformationRequestParentLifecycleService @Inject constructor(
     @Transactional(Transactional.TxType.MANDATORY)
     fun apply(exchangeId: UUID, status: ExchangeStatus, deleted: Boolean, actor: PrincipalRef)
     {
-        val effects = InformationRequestTransitionMatrix.parentEffects(InformationRequestParentSnapshot(status, deleted, true))
+        val effects =
+            InformationRequestTransitionMatrix.parentEffects(InformationRequestParentSnapshot(status, deleted, true))
         if (effects.nonTerminalRequestEffect == InformationRequestNonTerminalEffect.NONE) return
         requests.flushPendingChanges()
         requests.findForExchange(exchangeId).sortedBy { it.id }.forEach { candidate ->
             val request = requests.findRequestByIdForUpdate(candidate.id) ?: return@forEach
             request.ownerUserId?.let { shares.retainInformationRequestOwnerRead(request.id, it) }
-            if (effects.externalSessionEffect in setOf(InformationRequestExternalSessionEffect.REVOKE_ALL,
-                    InformationRequestExternalSessionEffect.REVOKE_NON_OWNER))
+            if (effects.externalSessionEffect in setOf(
+                    InformationRequestExternalSessionEffect.REVOKE_ALL,
+                    InformationRequestExternalSessionEffect.REVOKE_NON_OWNER
+                )
+            )
                 sessions.revokeAllForRequest(request.id)
             if (effects.nonTerminalRequestEffect == InformationRequestNonTerminalEffect.CANCEL && !request.state.isTerminal)
             {
@@ -48,8 +47,12 @@ class InformationRequestParentLifecycleService @Inject constructor(
                 request.updatedAt = now
                 request.aggregateRevision += 1
                 requests.update(request)
-                history.record(InformationRequestTransitionHistoryCommand(request, fromState, request.state,
-                    InformationRequestMutation.CANCEL, actor, reasonCode = "PARENT_${status.name}"))
+                history.record(
+                    InformationRequestTransitionHistoryCommand(
+                        request, fromState, request.state,
+                        InformationRequestMutation.CANCEL, actor, reasonCode = "PARENT_${status.name}"
+                    )
+                )
             }
         }
     }

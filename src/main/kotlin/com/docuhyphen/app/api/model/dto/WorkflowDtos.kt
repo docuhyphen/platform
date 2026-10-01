@@ -4,7 +4,7 @@ import com.docuhyphen.app.api.serializer.TimestampSerializer
 import com.docuhyphen.app.api.serializer.UUIDSerializer
 import kotlinx.serialization.Serializable
 import java.sql.Timestamp
-import java.util.UUID
+import java.util.*
 
 // ── Workflow Definition DTOs ──────────────────────────────────────────────────
 

@@ -10,7 +10,7 @@ import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestAttestationPolicyLoader @Inject constructor(

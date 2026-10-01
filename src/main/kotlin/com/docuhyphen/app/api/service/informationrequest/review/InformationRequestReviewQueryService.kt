@@ -1,27 +1,13 @@
 package com.docuhyphen.app.api.service.informationrequest.review
 
-import com.docuhyphen.app.api.model.entity.InformationRequestCorrection
-import com.docuhyphen.app.api.model.entity.InformationRequestCorrectionState
-import com.docuhyphen.app.api.model.entity.InformationRequestReview
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewAssignmentState
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewState
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewVisibility
-import com.docuhyphen.app.api.model.entity.PrincipalKind
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
 import com.docuhyphen.app.api.model.informationrequest.review.InformationRequestReadableReview
 import com.docuhyphen.app.api.model.informationrequest.review.InformationRequestRespondentReviewResult
 import com.docuhyphen.app.api.model.informationrequest.review.InformationRequestReviewCorrectionView
 import com.docuhyphen.app.api.model.informationrequest.review.InformationRequestReviewQueueEntry
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
-import com.docuhyphen.app.api.repository.informationrequest.review.InformationRequestCorrectionEvidenceRepository
-import com.docuhyphen.app.api.repository.informationrequest.review.InformationRequestCorrectionItemRepository
-import com.docuhyphen.app.api.repository.informationrequest.review.InformationRequestCorrectionRepository
-import com.docuhyphen.app.api.repository.informationrequest.review.InformationRequestReviewAssignmentRepository
-import com.docuhyphen.app.api.repository.informationrequest.review.InformationRequestReviewCommentRepository
-import com.docuhyphen.app.api.repository.informationrequest.review.InformationRequestReviewDraftItemRepository
-import com.docuhyphen.app.api.repository.informationrequest.review.InformationRequestReviewFindingRepository
-import com.docuhyphen.app.api.repository.informationrequest.review.InformationRequestReviewRemediationRepository
-import com.docuhyphen.app.api.repository.informationrequest.review.InformationRequestReviewRepository
+import com.docuhyphen.app.api.repository.informationrequest.review.*
 import com.docuhyphen.app.api.repository.organization.PrincipalGroupMemberRepository
 import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.fields.FieldValueRevisionQueryService
@@ -31,7 +17,7 @@ import com.docuhyphen.app.api.service.informationrequest.submission.InformationR
 import io.quarkus.security.ForbiddenException
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestReviewQueryService @Inject constructor(
@@ -80,7 +66,8 @@ class InformationRequestReviewQueryService @Inject constructor(
         val remediations = remediationRepository.findForRequest(requestId)
         val canAppeal = gate.permitsRequest(requestAccess, Action.INFORMATION_REQUEST_APPEAL_REVIEW, requestId)
         val canComment = gate.permitsRequest(requestAccess, Action.INFORMATION_REQUEST_COMMENT_ON_REVIEW, requestId)
-        val latestByPackage = reviews.groupBy { it.packageId }.mapValues { entry -> entry.value.maxOf { it.reviewNumber } }
+        val latestByPackage =
+            reviews.groupBy { it.packageId }.mapValues { entry -> entry.value.maxOf { it.reviewNumber } }
         return reviews.map { review ->
             val view = loader.snapshot(review).submission
             val visible = view.items.map { it.informationRequestRequirementId }
@@ -89,9 +76,9 @@ class InformationRequestReviewQueryService @Inject constructor(
             val correction = corrections.firstOrNull { it.reviewId == review.id }
             val latest = latestByPackage[review.packageId] == review.reviewNumber
             val reopenable = latest && review.packageId in current && (
-                review.state == InformationRequestReviewState.REJECTED ||
-                    (review.state == InformationRequestReviewState.CHANGES_REQUESTED && correction?.state == InformationRequestCorrectionState.OPEN)
-                )
+                    review.state == InformationRequestReviewState.REJECTED ||
+                            (review.state == InformationRequestReviewState.CHANGES_REQUESTED && correction?.state == InformationRequestCorrectionState.OPEN)
+                    )
             InformationRequestRespondentReviewResult(
                 review = review,
                 packageNumber = view.submissionPackage.packageNumber,
@@ -106,7 +93,9 @@ class InformationRequestReviewQueryService @Inject constructor(
                 },
                 correction = correction?.let(::correctionView),
                 visibleRequirementIds = visible,
-                remediations = remediations.filter { remediation -> findings[review.id].orEmpty().any { it.id == remediation.findingId } },
+                remediations = remediations.filter { remediation ->
+                    findings[review.id].orEmpty().any { it.id == remediation.findingId }
+                },
                 canAppeal = canAppeal && reopenable && !request.state.isTerminal,
                 canComment = canComment && review.state.settled && !request.state.isTerminal,
             )
@@ -124,7 +113,12 @@ class InformationRequestReviewQueryService @Inject constructor(
         val principal = requestAccess.principal
         val direct = assignmentRepository.findActiveForPrincipal(principal.kind, principal.id)
         val throughGroups = groupMemberRepository.findGroupsForPrincipal(principal.kind, principal.id)
-            .flatMap { membership -> assignmentRepository.findActiveForPrincipal(PrincipalKind.PRINCIPAL_GROUP, membership.principalGroupId) }
+            .flatMap { membership ->
+                assignmentRepository.findActiveForPrincipal(
+                    PrincipalKind.PRINCIPAL_GROUP,
+                    membership.principalGroupId
+                )
+            }
         val assignments = (direct + throughGroups)
             .distinctBy { it.id }
             .filter { it.state == InformationRequestReviewAssignmentState.ACTIVE && it.decidedAt == null }
@@ -146,7 +140,10 @@ class InformationRequestReviewQueryService @Inject constructor(
         }.sortedWith(compareBy(nullsLast()) { it.assignment.dueAt })
     }
 
-    private fun readable(review: InformationRequestReview, requestAccess: RequestAccessContext): InformationRequestReadableReview
+    private fun readable(
+        review: InformationRequestReview,
+        requestAccess: RequestAccessContext
+    ): InformationRequestReadableReview
     {
         val snapshot = loader.snapshot(review)
         val contentVisible = if (access.permitsReview(requestAccess, review.informationRequestId))
@@ -157,7 +154,11 @@ class InformationRequestReviewQueryService @Inject constructor(
         else emptySet()
         val fieldValues = snapshot.submission.items
             .filter { it.id in contentVisible }
-            .mapNotNull { item -> item.fieldValueRevisionId?.let { id -> fieldValueRevisions.valueOf(id)?.let { id to it } } }
+            .mapNotNull { item ->
+                item.fieldValueRevisionId?.let { id ->
+                    fieldValueRevisions.valueOf(id)?.let { id to it }
+                }
+            }
             .toMap()
         val callerAssignments = snapshot.assignments
             .filter { it.state == InformationRequestReviewAssignmentState.ACTIVE && access.actsAs(it, requestAccess) }

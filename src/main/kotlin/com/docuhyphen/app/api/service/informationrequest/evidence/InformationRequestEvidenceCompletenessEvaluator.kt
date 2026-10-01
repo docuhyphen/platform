@@ -35,10 +35,12 @@ class InformationRequestEvidenceCompletenessEvaluator @Inject constructor(
             val state = when
             {
                 binding.requiredness == InformationRequestRequiredness.CONDITIONAL &&
-                    conditionState != InformationRequestConditionEvaluationState.TRUE ->
+                        conditionState != InformationRequestConditionEvaluationState.TRUE ->
                     InformationRequestCompletenessItemState.HIDDEN
+
                 binding.requiredness == InformationRequestRequiredness.OPTIONAL && !complete ->
                     InformationRequestCompletenessItemState.OPTIONAL_UNANSWERED
+
                 complete -> InformationRequestCompletenessItemState.COMPLETE
                 else -> InformationRequestCompletenessItemState.INCOMPLETE
             }
@@ -48,7 +50,7 @@ class InformationRequestEvidenceCompletenessEvaluator @Inject constructor(
                 occurrencePath = requirement.occurrencePath,
                 state = state,
                 contributesToDenominator = state == InformationRequestCompletenessItemState.COMPLETE ||
-                    state == InformationRequestCompletenessItemState.INCOMPLETE,
+                        state == InformationRequestCompletenessItemState.INCOMPLETE,
                 contributesToNumerator = state == InformationRequestCompletenessItemState.COMPLETE,
             )
         }
@@ -64,8 +66,10 @@ class InformationRequestEvidenceCompletenessEvaluator @Inject constructor(
             InformationRequestResponseDisposition.NOT_ANSWERED,
             InformationRequestResponseDisposition.PROVIDED,
             InformationRequestResponseDisposition.WAIVED -> evidence.completesWork
+
             InformationRequestResponseDisposition.PARTIALLY_PROVIDED ->
                 evidence.completesWork || evidence == InformationRequestEvidenceRequirementState.INCOMPLETE
+
             InformationRequestResponseDisposition.NOT_APPLICABLE,
             InformationRequestResponseDisposition.UNAVAILABLE,
             InformationRequestResponseDisposition.EXCEPTION_REQUESTED,

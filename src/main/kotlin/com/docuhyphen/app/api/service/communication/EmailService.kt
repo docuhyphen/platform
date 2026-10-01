@@ -5,11 +5,7 @@ import jakarta.inject.Inject
 import org.eclipse.microprofile.config.inject.ConfigProperty
 import software.amazon.awssdk.regions.Region
 import software.amazon.awssdk.services.ses.SesClient
-import software.amazon.awssdk.services.ses.model.Body
-import software.amazon.awssdk.services.ses.model.Content
-import software.amazon.awssdk.services.ses.model.Destination
-import software.amazon.awssdk.services.ses.model.Message
-import software.amazon.awssdk.services.ses.model.SendEmailRequest
+import software.amazon.awssdk.services.ses.model.*
 
 @ApplicationScoped
 class EmailService @Inject constructor(

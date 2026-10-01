@@ -23,9 +23,6 @@ class SignUpEntity
     @Column(name = "created_at", nullable = false)
     var createdAt: LocalDateTime = LocalDateTime.now()
 
-//    @Column(name = "minutes_til_next_otp_attempt", nullable = false)
-//    var minutesTilOtpNextAttempt: LocalDateTime = LocalDateTime.now()
-
     @Column(name = "otp_expiry_timestamp", nullable = false)
     lateinit var otpExpiryTimestamp: LocalDateTime
 
@@ -35,12 +32,6 @@ class SignUpEntity
     @Column(name = "status", nullable = false)
     @Enumerated(value = EnumType.STRING)
     var status: SignUpStatus = SignUpStatus.PENDING
-
-    @Column(name = "otp_regeneration_attempts", nullable = false)
-    var otpRegenerationAttempts: Int = 0
-
-    @Column(name = "last_regeneration_attempt_time", nullable = true)
-    var lastRegenerationAttemptTime: LocalDateTime? = null
 
     constructor()
 }

@@ -9,7 +9,7 @@ import jakarta.ws.rs.*
 import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
 import org.slf4j.LoggerFactory
-import java.util.UUID
+import java.util.*
 
 @Path("/auth/organizations")
 @Produces(MediaType.APPLICATION_JSON)
@@ -57,9 +57,11 @@ class OrganizationMemberCapacityResource @Inject constructor(
             {
                 is UnauthorizedException -> Response.status(Response.Status.FORBIDDEN)
                     .entity(ResponseError(exception.message)).build()
+
                 is com.docuhyphen.app.api.exception.OrganizationNotFoundException ->
                     Response.status(Response.Status.NOT_FOUND)
                         .entity(ResponseError(exception.message)).build()
+
                 else -> Response.status(Response.Status.INTERNAL_SERVER_ERROR)
                     .entity(ResponseError("Failed to fetch member capacity.")).build()
             }

@@ -19,7 +19,14 @@ class InformationRequestAuditReconciliationResource @Inject constructor(
         return try
         {
             val requestId = InformationRequestCommandHttp.uuid(id, "information request id")
-            Response.ok(InformationRequestAuditDtoMapper.toDto(audit.reconciliation(requestId, accessContextFactory.currentAuthenticated()))).build()
+            Response.ok(
+                InformationRequestAuditDtoMapper.toDto(
+                    audit.reconciliation(
+                        requestId,
+                        accessContextFactory.currentAuthenticated()
+                    )
+                )
+            ).build()
         }
         catch (exception: Exception)
         {

@@ -1,8 +1,7 @@
 package com.docuhyphen.app.api.repository.organization
 
-import com.docuhyphen.app.api.repository.BaseRepository
-
 import com.docuhyphen.app.api.model.entity.Organization
+import com.docuhyphen.app.api.repository.BaseRepository
 import jakarta.enterprise.context.RequestScoped
 import java.util.*
 

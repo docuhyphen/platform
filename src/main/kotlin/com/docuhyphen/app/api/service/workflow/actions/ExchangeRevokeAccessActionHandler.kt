@@ -21,7 +21,8 @@ class ExchangeRevokeAccessActionHandler : WorkflowActionHandler
 {
     private val logger = LoggerFactory.getLogger(ExchangeRevokeAccessActionHandler::class.java)
 
-    @Inject private lateinit var shareService: ShareService
+    @Inject
+    private lateinit var shareService: ShareService
 
     override fun key() = "exchange.revoke-access"
 

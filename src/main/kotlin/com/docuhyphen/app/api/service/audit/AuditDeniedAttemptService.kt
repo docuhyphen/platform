@@ -7,7 +7,7 @@ import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
 import org.slf4j.LoggerFactory
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class AuditDeniedAttemptService @Inject constructor(

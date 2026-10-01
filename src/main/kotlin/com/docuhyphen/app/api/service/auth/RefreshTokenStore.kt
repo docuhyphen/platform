@@ -1,6 +1,6 @@
 ﻿package com.docuhyphen.app.api.service.auth
 
-import java.util.UUID
+import java.util.*
 
 /**
  * Server-side record of an issued refresh token.

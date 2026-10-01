@@ -1,15 +1,15 @@
 package com.docuhyphen.app.api.repository.identity
 
-import com.docuhyphen.app.api.repository.BaseRepository
-
 import com.docuhyphen.app.api.model.entity.Organization
 import com.docuhyphen.app.api.model.entity.OrganizationIdentityDomain
 import com.docuhyphen.app.api.model.entity.OrganizationIdentityDomainStatus
+import com.docuhyphen.app.api.repository.BaseRepository
 import jakarta.enterprise.context.RequestScoped
-import java.util.UUID
+import java.util.*
 
 @RequestScoped
-class OrganizationIdentityDomainRepository : BaseRepository<OrganizationIdentityDomain>(OrganizationIdentityDomain::class.java)
+class OrganizationIdentityDomainRepository :
+    BaseRepository<OrganizationIdentityDomain>(OrganizationIdentityDomain::class.java)
 {
     fun findByOrganizationIdAndDomain(organizationId: UUID, domain: String): OrganizationIdentityDomain?
     {

@@ -1,27 +1,17 @@
 package com.docuhyphen.app.api.resource.organization
 
+import com.docuhyphen.app.api.model.PlatformOrganizationDtoMapper
 import com.docuhyphen.app.api.resource.model.PlatformOrganizationSubscriptionPolicyRequest
 import com.docuhyphen.app.api.resource.model.ResponseError
-import com.docuhyphen.app.api.model.PlatformOrganizationDtoMapper
 import com.docuhyphen.app.api.service.auth.AdminApprovalContext
 import com.docuhyphen.app.api.service.subscription.PlatformOrganizationSubscriptionPolicyService
 import io.quarkus.security.ForbiddenException
 import io.quarkus.security.UnauthorizedException
 import jakarta.inject.Inject
-import jakarta.ws.rs.Consumes
-import jakarta.ws.rs.GET
-import jakarta.ws.rs.HeaderParam
-import jakarta.ws.rs.PUT
-import jakarta.ws.rs.Path
-import jakarta.ws.rs.PathParam
-import jakarta.ws.rs.Produces
-import jakarta.ws.rs.WebApplicationException
+import jakarta.ws.rs.*
 import jakarta.ws.rs.core.MediaType.APPLICATION_JSON
 import jakarta.ws.rs.core.Response
-import jakarta.ws.rs.core.Response.Status.BAD_REQUEST
-import jakarta.ws.rs.core.Response.Status.FORBIDDEN
-import jakarta.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR
-import jakarta.ws.rs.core.Response.Status.UNAUTHORIZED
+import jakarta.ws.rs.core.Response.Status.*
 import org.slf4j.LoggerFactory
 
 @Path("/platform/organizations/{organizationId}/subscription-policy")

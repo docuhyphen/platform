@@ -2,20 +2,9 @@ package com.docuhyphen.app.api.service.informationrequest.evidence
 
 import com.docuhyphen.app.api.exception.DocumentVersionContentIntegrityException
 import com.docuhyphen.app.api.exception.DocumentVersionContentNotFoundException
-import com.docuhyphen.app.api.model.entity.InformationRequest
-import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceArtifact
-import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceCollectionState
-import com.docuhyphen.app.api.model.entity.InformationRequestRequirement
-import com.docuhyphen.app.api.model.entity.InformationRequestResponseDisposition
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestDocumentVersionEvidenceSource
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceArtifactView
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceContent
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceContentUse
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceList
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceMediaTypes
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceVersionSourceMapper
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestExternalEvidenceSource
+import com.docuhyphen.app.api.model.informationrequest.evidence.*
 import com.docuhyphen.app.api.repository.informationrequest.evidence.InformationRequestEvidenceArtifactRepository
 import com.docuhyphen.app.api.repository.informationrequest.evidence.InformationRequestEvidenceVersionRepository
 import com.docuhyphen.app.api.service.auth.authz.Action
@@ -28,7 +17,7 @@ import com.docuhyphen.app.api.service.informationrequest.response.InformationReq
 import io.quarkus.security.ForbiddenException
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestEvidenceQueryService @Inject constructor(
@@ -88,7 +77,8 @@ class InformationRequestEvidenceQueryService @Inject constructor(
             is InformationRequestExternalEvidenceSource -> throw contentUnavailable()
         }
         contentRelease.requireReleasable(version, access)
-        val documentVersion = documentVersionRecordingService.findVersion(documentVersionId) ?: throw contentUnavailable()
+        val documentVersion =
+            documentVersionRecordingService.findVersion(documentVersionId) ?: throw contentUnavailable()
         val content = try
         {
             documentVersionRecordingService.open(documentVersion)
@@ -138,13 +128,20 @@ class InformationRequestEvidenceQueryService @Inject constructor(
             .firstOrNull { it.informationRequestRequirementId == requirementId }
             ?.disposition
 
-    private fun visibleArtifact(reader: EvidenceReader, requirementId: UUID, artifactId: UUID): InformationRequestEvidenceArtifact =
+    private fun visibleArtifact(
+        reader: EvidenceReader,
+        requirementId: UUID,
+        artifactId: UUID
+    ): InformationRequestEvidenceArtifact =
         artifactRepository.findById(artifactId)
             ?.takeIf { it.informationRequestRequirementId == requirementId && reader.sees(it) }
             ?: throw notFound()
 
     private fun notFound() =
-        InformationRequestLifecycleException(InformationRequestErrorCatalog.NOT_FOUND, "Information Request evidence not found")
+        InformationRequestLifecycleException(
+            InformationRequestErrorCatalog.NOT_FOUND,
+            "Information Request evidence not found"
+        )
 
     private fun contentUnavailable() =
         InformationRequestLifecycleException(

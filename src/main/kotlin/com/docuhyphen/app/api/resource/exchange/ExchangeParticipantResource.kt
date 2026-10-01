@@ -1,8 +1,8 @@
 package com.docuhyphen.app.api.resource.exchange
 
 import com.docuhyphen.app.api.exception.ExchangeNotFoundException
-import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.resource.model.AddExchangeParticipantRequest
+import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.service.exchange.ExchangeParticipantService
 import jakarta.inject.Inject
 import jakarta.ws.rs.*

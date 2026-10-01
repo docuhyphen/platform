@@ -5,7 +5,7 @@ import com.docuhyphen.app.api.model.entity.InformationRequestRequirement
 import com.docuhyphen.app.api.model.entity.InformationRequestResponse
 import com.docuhyphen.app.api.model.entity.InformationRequestTemplateRequirementBinding
 import com.docuhyphen.app.api.model.informationrequest.condition.InformationRequestConditionEvaluationProjection
-import java.util.UUID
+import java.util.*
 
 enum class InformationRequestCompletenessItemState
 {

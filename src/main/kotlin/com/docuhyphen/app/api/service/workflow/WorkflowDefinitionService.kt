@@ -1,26 +1,8 @@
 package com.docuhyphen.app.api.service.workflow
 
-import com.docuhyphen.app.api.model.dto.ExchangeClearanceStatusDto
-import com.docuhyphen.app.api.model.dto.PartyClearanceDto
-import com.docuhyphen.app.api.model.dto.WorkflowDecisionResponseDto
-import com.docuhyphen.app.api.model.dto.WorkflowDefinitionDto
-import com.docuhyphen.app.api.model.dto.WorkflowDefinitionListItemDto
-import com.docuhyphen.app.api.model.dto.WorkflowEntityRefDto
-import com.docuhyphen.app.api.model.dto.WorkflowInstanceDetailResponseDto
-import com.docuhyphen.app.api.model.dto.WorkflowInstanceListItemDto
-import com.docuhyphen.app.api.model.dto.WorkflowPrincipalRefResponseDto
-import com.docuhyphen.app.api.model.dto.WorkflowStepInstanceResponseDto
-import com.docuhyphen.app.api.model.dto.WorkflowStepTransitionResponseDto
-import com.docuhyphen.app.api.model.dto.WorkflowSubjectFieldResponseDto
-import com.docuhyphen.app.api.model.dto.WorkflowTriggerEventResponseDto
-import com.docuhyphen.app.api.model.entity.AppUser
-import com.docuhyphen.app.api.model.entity.ResourceType
-import com.docuhyphen.app.api.model.entity.WorkflowDefinition
-import com.docuhyphen.app.api.model.entity.WorkflowInstance
-import com.docuhyphen.app.api.model.entity.WorkflowInstanceStatus
-import com.docuhyphen.app.api.model.entity.WorkflowScope
-import com.docuhyphen.app.api.model.entity.WorkflowStepInstance
-import com.docuhyphen.app.api.model.entity.OrganizationRoleName
+import com.docuhyphen.app.api.interceptor.EnforceAdminAction
+import com.docuhyphen.app.api.model.dto.*
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.workflow.WorkflowTriggerSubject
 import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
 import com.docuhyphen.app.api.repository.organization.PrincipalGroupRepository
@@ -28,26 +10,16 @@ import com.docuhyphen.app.api.repository.workflow.WorkflowDefinitionRepository
 import com.docuhyphen.app.api.repository.workflow.WorkflowInstanceRepository
 import com.docuhyphen.app.api.repository.workflow.WorkflowStepInstanceRepository
 import com.docuhyphen.app.api.repository.workflow.WorkflowTriggerEventRepository
-import com.docuhyphen.app.api.service.user.AppUserService
-import com.docuhyphen.app.api.service.contactdetails.UserContactService
-import com.docuhyphen.app.api.interceptor.EnforceAdminAction
-import com.docuhyphen.app.api.service.auth.AdminApprovalContext
-import com.docuhyphen.app.api.service.auth.UserRoleService
-import com.docuhyphen.app.api.service.auth.authz.Action
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.Decision
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import com.docuhyphen.app.api.service.auth.authz.ResourceRef
-import com.docuhyphen.app.api.service.audit.AuditCaptureFailedException
-import com.docuhyphen.app.api.service.audit.AuditDraftInvalidException
-import com.docuhyphen.app.api.service.audit.AuditEventDraft
-import com.docuhyphen.app.api.service.audit.AuditOwnerScope
-import com.docuhyphen.app.api.service.audit.AuditRecorder
+import com.docuhyphen.app.api.service.audit.*
 import com.docuhyphen.app.api.service.audit.catalog.AuditActorKind
 import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
 import com.docuhyphen.app.api.service.audit.catalog.AuditOutcome
+import com.docuhyphen.app.api.service.auth.AdminApprovalContext
+import com.docuhyphen.app.api.service.auth.UserRoleService
+import com.docuhyphen.app.api.service.auth.authz.*
+import com.docuhyphen.app.api.service.auth.authz.Decision
+import com.docuhyphen.app.api.service.contactdetails.UserContactService
+import com.docuhyphen.app.api.service.user.AppUserService
 import io.quarkus.security.ForbiddenException
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
@@ -56,7 +28,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.serializer
 import org.slf4j.LoggerFactory
-import java.util.UUID
+import java.util.*
 
 /**
  * Business logic for workflow definition CRUD, clone, and instance queries.
@@ -173,7 +145,13 @@ class WorkflowDefinitionService @Inject constructor(
             createdByAppUserId = principal.id
         }
         val saved = definitionRepository.save(def)
-        recordDefinitionEvent(AuditEventType.WORKFLOW_DEFINITION_CREATE, saved.id, saved.name, principal.id, activeOrgId)
+        recordDefinitionEvent(
+            AuditEventType.WORKFLOW_DEFINITION_CREATE,
+            saved.id,
+            saved.name,
+            principal.id,
+            activeOrgId
+        )
         return saved.toDto()
     }
 
@@ -211,7 +189,13 @@ class WorkflowDefinitionService @Inject constructor(
         request.isActive?.let { def.isActive = it }
 
         val updated = definitionRepository.update(def)
-        recordDefinitionEvent(AuditEventType.WORKFLOW_DEFINITION_UPDATE, updated.id, updated.name, principal.id, def.organizationId)
+        recordDefinitionEvent(
+            AuditEventType.WORKFLOW_DEFINITION_UPDATE,
+            updated.id,
+            updated.name,
+            principal.id,
+            def.organizationId
+        )
         return updated.toDto()
     }
 
@@ -228,7 +212,13 @@ class WorkflowDefinitionService @Inject constructor(
         val updated = definitionRepository.update(def)
         if (isPublished)
         {
-            recordDefinitionEvent(AuditEventType.WORKFLOW_DEFINITION_PUBLISH, updated.id, updated.name, principal.id, def.organizationId)
+            recordDefinitionEvent(
+                AuditEventType.WORKFLOW_DEFINITION_PUBLISH,
+                updated.id,
+                updated.name,
+                principal.id,
+                def.organizationId
+            )
         }
         return updated.toDto()
     }
@@ -266,7 +256,13 @@ class WorkflowDefinitionService @Inject constructor(
         def.isDeleted = true
         def.isActive = false
         definitionRepository.update(def)
-        recordDefinitionEvent(AuditEventType.WORKFLOW_DEFINITION_DELETE, def.id, def.name, principal.id, def.organizationId)
+        recordDefinitionEvent(
+            AuditEventType.WORKFLOW_DEFINITION_DELETE,
+            def.id,
+            def.name,
+            principal.id,
+            def.organizationId
+        )
         logger.info("Workflow definition {} soft-deleted", id)
     }
 
@@ -281,9 +277,9 @@ class WorkflowDefinitionService @Inject constructor(
             ?: throw IllegalArgumentException("Workflow definition not found: $id")
 
         val canClone = (source.scope == WorkflowScope.APP &&
-            (source.isTemplate || userRoleService.isAppAdmin(principal.id)))
-            || (source.scope == WorkflowScope.PERSONAL && source.createdByAppUserId == principal.id)
-            || (source.scope == WorkflowScope.ORG &&
+                (source.isTemplate || userRoleService.isAppAdmin(principal.id)))
+                || (source.scope == WorkflowScope.PERSONAL && source.createdByAppUserId == principal.id)
+                || (source.scope == WorkflowScope.ORG &&
                 authorizationService.authorize(
                     principal, Action.WORKFLOW_CLONE, ResourceRef.workflowDefinition(source.id), context,
                 ) is Decision.Allow)
@@ -355,7 +351,11 @@ class WorkflowDefinitionService @Inject constructor(
                 instance.toListItemDto(defName)
             }
 
-    fun listInstancesForSubject(resourceType: String, resourceId: UUID, organizationId: UUID): List<WorkflowInstanceListItemDto> =
+    fun listInstancesForSubject(
+        resourceType: String,
+        resourceId: UUID,
+        organizationId: UUID
+    ): List<WorkflowInstanceListItemDto> =
         instanceRepository.findForSubject(resourceType, resourceId, organizationId)
             .map { instance ->
                 val defName = runCatching { definitionRepository.findById(instance.definitionId)?.name }.getOrNull()
@@ -368,7 +368,12 @@ class WorkflowDefinitionService @Inject constructor(
         organizationId: UUID,
         callerId: UUID,
     ): List<WorkflowInstanceListItemDto> =
-        instanceRepository.findForSubjectIncludingCrossOrgPendingAssignee(resourceType, resourceId, organizationId, callerId)
+        instanceRepository.findForSubjectIncludingCrossOrgPendingAssignee(
+            resourceType,
+            resourceId,
+            organizationId,
+            callerId
+        )
             .map { instance ->
                 val defName = runCatching { definitionRepository.findById(instance.definitionId)?.name }.getOrNull()
                 instance.toListItemDto(defName)
@@ -395,7 +400,10 @@ class WorkflowDefinitionService @Inject constructor(
         return when
         {
             statuses.any { it.isActive } -> PartyClearanceDto("RUNNING")
-            statuses.any { it == WorkflowInstanceStatus.REJECTED || it == WorkflowInstanceStatus.CANCELLED } -> PartyClearanceDto("BLOCKED")
+            statuses.any { it == WorkflowInstanceStatus.REJECTED || it == WorkflowInstanceStatus.CANCELLED } -> PartyClearanceDto(
+                "BLOCKED"
+            )
+
             statuses.all { it == WorkflowInstanceStatus.COMPLETED } -> PartyClearanceDto("CLEARED")
             else -> PartyClearanceDto("NONE")
         }
@@ -432,6 +440,7 @@ class WorkflowDefinitionService @Inject constructor(
                 if (def.createdByAppUserId == principal.id) return
                 throw ForbiddenException("Access denied to workflow definition ${def.id}")
             }
+
             WorkflowScope.ORG ->
             {
                 val decision = authorizationService.authorize(
@@ -444,6 +453,7 @@ class WorkflowDefinitionService @Inject constructor(
                 if (!isOrgAdmin && !def.isPublished)
                     throw ForbiddenException("Access denied to workflow definition ${def.id}")
             }
+
             WorkflowScope.APP ->
             {
                 if (def.isTemplate || userRoleService.isAppAdmin(principal.id)) return
@@ -461,6 +471,7 @@ class WorkflowDefinitionService @Inject constructor(
                 if (def.createdByAppUserId == principal.id) return
                 throw ForbiddenException("Access denied to workflow definition ${def.id}")
             }
+
             WorkflowScope.ORG ->
             {
                 val decision = authorizationService.authorize(
@@ -469,6 +480,7 @@ class WorkflowDefinitionService @Inject constructor(
                 if (decision is Decision.Deny)
                     throw ForbiddenException("Access denied to workflow definition ${def.id}")
             }
+
             WorkflowScope.APP ->
                 if (!userRoleService.isAppAdmin(principal.id))
                     throw ForbiddenException("App admin role required to modify APP-scoped workflows")
@@ -548,6 +560,7 @@ class WorkflowDefinitionService @Inject constructor(
                             {
                                 is StepAddonSpec.ReminderBeforeDue ->
                                     addon.copy(recipientRef = scrubAssignee(addon.recipientRef))
+
                                 is StepAddonSpec.ReminderIfNoDecision ->
                                     addon.copy(recipientRef = scrubAssignee(addon.recipientRef))
                             }
@@ -606,7 +619,12 @@ class WorkflowDefinitionService @Inject constructor(
         }
         catch (e: AuditCaptureFailedException)
         {
-            logger.error("WorkflowDefinitionService: AuditRecorder capture failed for {}: {}", eventType.key, e.message, e)
+            logger.error(
+                "WorkflowDefinitionService: AuditRecorder capture failed for {}: {}",
+                eventType.key,
+                e.message,
+                e
+            )
         }
     }
 
@@ -842,6 +860,7 @@ class WorkflowDefinitionService @Inject constructor(
                             sublabel = it.contactEmail,
                         )
                     }
+
             "GROUP" ->
                 principalGroupRepository.findByOwnerUser(actor.id)
                     .filter { it.name.contains(q, ignoreCase = true) }
@@ -852,6 +871,7 @@ class WorkflowDefinitionService @Inject constructor(
                             sublabel = it.description,
                         )
                     }
+
             else -> emptyList()
         }
     }

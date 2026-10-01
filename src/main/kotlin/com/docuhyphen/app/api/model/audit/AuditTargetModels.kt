@@ -1,7 +1,7 @@
 package com.docuhyphen.app.api.model.audit
 
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 data class AuditTargetQuery(
     val eventTypePrefix: String? = null,

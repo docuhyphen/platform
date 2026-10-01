@@ -18,8 +18,7 @@ import java.nio.file.StandardOpenOption
 @Local
 class LocalAuditArchiveStorage @Inject constructor(
     private val configService: AuditArchiveConfigService,
-)
-    : AuditArchiveStorage
+) : AuditArchiveStorage
 {
     override fun putObject(key: String, bytes: ByteArray)
     {

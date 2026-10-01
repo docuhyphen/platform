@@ -3,28 +3,16 @@ package com.docuhyphen.app.api.resource.organization
 import com.docuhyphen.app.api.exception.OrganizationTrustValidationException
 import com.docuhyphen.app.api.exception.SubscriptionDenialException
 import com.docuhyphen.app.api.model.dto.OrganizationTrustRelationshipDto
-import com.docuhyphen.app.api.resource.model.OrganizationTrustDecisionRequest
-import com.docuhyphen.app.api.resource.model.OrganizationTrustPolicyUpdateRequest
-import com.docuhyphen.app.api.resource.model.OrganizationTrustRelationshipCreateRequest
-import com.docuhyphen.app.api.resource.model.OrganizationTrustSuspensionRequest
-import com.docuhyphen.app.api.resource.model.OrganizationTrustTerminationRequest
-import com.docuhyphen.app.api.resource.model.OrganizationTrustWithdrawalRequest
+import com.docuhyphen.app.api.resource.model.*
 import com.docuhyphen.app.api.service.organization.OrganizationTrustCommandService
 import com.docuhyphen.app.api.service.organization.OrganizationTrustQueryService
 import jakarta.inject.Inject
-import jakarta.ws.rs.Consumes
-import jakarta.ws.rs.DELETE
-import jakarta.ws.rs.GET
-import jakarta.ws.rs.PATCH
-import jakarta.ws.rs.POST
-import jakarta.ws.rs.Path
-import jakarta.ws.rs.PathParam
-import jakarta.ws.rs.Produces
+import jakarta.ws.rs.*
 import jakarta.ws.rs.core.GenericEntity
 import jakarta.ws.rs.core.MediaType.APPLICATION_JSON
 import jakarta.ws.rs.core.Response
-import java.util.UUID
 import org.slf4j.LoggerFactory
+import java.util.*
 
 @Path("organization-trust-relationships")
 @Produces(APPLICATION_JSON)
@@ -55,7 +43,8 @@ class OrganizationTrustRelationshipResource @Inject constructor(
     {
         val relationships = queryService.listRelationships()
         return Response.ok(
-            object : GenericEntity<List<OrganizationTrustRelationshipDto>>(relationships) {},
+            object : GenericEntity<List<OrganizationTrustRelationshipDto>>(relationships)
+            {},
         ).build()
     }
 

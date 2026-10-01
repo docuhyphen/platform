@@ -9,13 +9,7 @@ import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequ
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
 import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.auth.authz.ResourceRef
-import com.docuhyphen.app.api.service.command.CommandActorRef
-import com.docuhyphen.app.api.service.command.CommandMutationResult
-import com.docuhyphen.app.api.service.command.CommandReceiptDecision
-import com.docuhyphen.app.api.service.command.CommandReceiptRequest
-import com.docuhyphen.app.api.service.command.CommandReceiptService
-import com.docuhyphen.app.api.service.command.CommandRequestFingerprint
-import com.docuhyphen.app.api.service.command.CommandResultReference
+import com.docuhyphen.app.api.service.command.*
 import com.docuhyphen.app.api.service.fields.FieldsAccessContext
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestETag
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestMutationGate
@@ -95,7 +89,10 @@ class InformationRequestAmendmentService @Inject constructor(
         }
     }
 
-    private fun amendLocked(locked: LockedInformationRequest, command: AmendInformationRequestCommand): InformationRequestAmendmentResult
+    private fun amendLocked(
+        locked: LockedInformationRequest,
+        command: AmendInformationRequestCommand
+    ): InformationRequestAmendmentResult
     {
         val request = locked.request
         gate.requireMutation(locked, InformationRequestMutation.AMEND)
@@ -117,7 +114,11 @@ class InformationRequestAmendmentService @Inject constructor(
         request.updatedAt = now
         requestRepository.update(request)
         requestRepository.flushPendingChanges()
-        materializer.advance(request, from.id, FieldsAccessContext(command.access.principal, command.access.authorization))
+        materializer.advance(
+            request,
+            from.id,
+            FieldsAccessContext(command.access.principal, command.access.authorization)
+        )
         val amendment = recorder.record(request, from.id, plan, command.reasonCode, command.access.principal, now)
 
         transitionHistory.record(

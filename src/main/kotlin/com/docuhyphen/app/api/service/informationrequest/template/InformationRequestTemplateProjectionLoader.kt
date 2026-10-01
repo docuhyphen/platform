@@ -1,36 +1,15 @@
 package com.docuhyphen.app.api.service.informationrequest.template
 
 import com.docuhyphen.app.api.model.InformationRequestTemplateDtoMapper
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateConditionRuleDto
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateGroupDto
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateRequirementDto
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateReviewStageDto
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateSectionDto
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateVersionDto
+import com.docuhyphen.app.api.model.dto.*
 import com.docuhyphen.app.api.model.entity.InformationRequestTemplateRequirement
 import com.docuhyphen.app.api.model.entity.InformationRequestTemplateRequirementBinding
 import com.docuhyphen.app.api.model.entity.InformationRequestTemplateVersion
 import com.docuhyphen.app.api.model.informationrequest.template.InformationRequestTemplateProjectionBindingConfiguration
-import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateAttestationPolicyRepository
-import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateAttestationRoleRepository
-import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateBindingDispositionRepository
-import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateBindingEvidenceLinkRepository
-import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateBindingSubstituteRepository
-import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateConditionPredicateLiteralRepository
-import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateConditionPredicateRepository
-import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateConditionRuleRepository
-import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateEvidenceAcceptedValueRepository
-import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateEvidencePolicyRepository
-import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateRequirementBindingRepository
-import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateRequirementGroupRepository
-import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateRequirementRepository
-import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateReviewStageRepository
-import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateReviewStageSectionRepository
-import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateSectionRepository
-import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateVersionCapabilityRepository
+import com.docuhyphen.app.api.repository.informationrequest.template.*
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
-import java.util.UUID
+import java.util.*
 
 /**
  * Reads one Template Version's whole configuration back as the document it was authored as.
@@ -186,20 +165,21 @@ class InformationRequestTemplateProjectionLoader @Inject constructor(
         )
     }
 
-    private fun loadBindingConfiguration(templateVersionId: UUID) = InformationRequestTemplateProjectionBindingConfiguration(
-        dispositionsByBinding = dispositionRepository.findForVersion(templateVersionId)
-            .groupBy { it.templateBindingId },
-        policiesByBinding = evidencePolicyRepository.findForVersion(templateVersionId)
-            .associateBy { it.templateBindingId },
-        acceptedValuesByPolicy = acceptedValueRepository.findForVersion(templateVersionId)
-            .groupBy { it.evidencePolicyId },
-        substitutesByBinding = substituteRepository.findForVersion(templateVersionId)
-            .groupBy { it.templateBindingId },
-        evidenceLinksByBinding = evidenceLinkRepository.findForVersion(templateVersionId)
-            .groupBy { it.templateBindingId },
-        attestationPoliciesByBinding = attestationPolicyRepository.findForVersion(templateVersionId)
-            .associateBy { it.templateBindingId },
-        attestationRolesByPolicy = attestationRoleRepository.findForVersion(templateVersionId)
-            .groupBy { it.attestationPolicyId },
-    )
+    private fun loadBindingConfiguration(templateVersionId: UUID) =
+        InformationRequestTemplateProjectionBindingConfiguration(
+            dispositionsByBinding = dispositionRepository.findForVersion(templateVersionId)
+                .groupBy { it.templateBindingId },
+            policiesByBinding = evidencePolicyRepository.findForVersion(templateVersionId)
+                .associateBy { it.templateBindingId },
+            acceptedValuesByPolicy = acceptedValueRepository.findForVersion(templateVersionId)
+                .groupBy { it.evidencePolicyId },
+            substitutesByBinding = substituteRepository.findForVersion(templateVersionId)
+                .groupBy { it.templateBindingId },
+            evidenceLinksByBinding = evidenceLinkRepository.findForVersion(templateVersionId)
+                .groupBy { it.templateBindingId },
+            attestationPoliciesByBinding = attestationPolicyRepository.findForVersion(templateVersionId)
+                .associateBy { it.templateBindingId },
+            attestationRolesByPolicy = attestationRoleRepository.findForVersion(templateVersionId)
+                .groupBy { it.attestationPolicyId },
+        )
 }

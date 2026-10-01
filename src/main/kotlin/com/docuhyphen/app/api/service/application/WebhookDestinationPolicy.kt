@@ -87,9 +87,9 @@ class WebhookDestinationPolicy
     {
         val raw = addr.address
         return raw.size == 4 &&
-            (raw[0].toInt() and 0xFF) == 169 &&
-            (raw[1].toInt() and 0xFF) == 254 &&
-            (raw[2].toInt() and 0xFF) == 169 &&
-            (raw[3].toInt() and 0xFF) == 254
+                (raw[0].toInt() and 0xFF) == 169 &&
+                (raw[1].toInt() and 0xFF) == 254 &&
+                (raw[2].toInt() and 0xFF) == 169 &&
+                (raw[3].toInt() and 0xFF) == 254
     }
 }

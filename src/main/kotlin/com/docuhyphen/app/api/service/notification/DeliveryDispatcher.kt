@@ -13,7 +13,7 @@ import jakarta.transaction.Transactional
 import org.slf4j.LoggerFactory
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 /**
  * Dispatches a batch of [DeliveryTask]s. For each task:
@@ -28,9 +28,12 @@ class DeliveryDispatcher
 {
     private val logger = LoggerFactory.getLogger(DeliveryDispatcher::class.java)
 
-    @Inject lateinit var channels: Instance<NotificationChannel>
-    @Inject private lateinit var logRepository: NotificationDeliveryLogRepository
-    @Inject private lateinit var orgChannelRepository: OrganizationNotificationChannelRepository
+    @Inject
+    lateinit var channels: Instance<NotificationChannel>
+    @Inject
+    private lateinit var logRepository: NotificationDeliveryLogRepository
+    @Inject
+    private lateinit var orgChannelRepository: OrganizationNotificationChannelRepository
 
     fun dispatchAll(tasks: Collection<DeliveryTask>) = tasks.forEach { dispatch(it) }
 
@@ -73,10 +76,13 @@ class DeliveryDispatcher
         {
             ChannelSendResult.Delivered ->
                 logOutcome(task, NotificationDeliveryOutcome.DELIVERED, attempt = attemptNumber)
+
             ChannelSendResult.Suppressed ->
                 logOutcome(task, NotificationDeliveryOutcome.SUPPRESSED, attempt = attemptNumber)
+
             ChannelSendResult.QuietHours ->
                 logOutcome(task, NotificationDeliveryOutcome.QUIET_HOURS, attempt = attemptNumber)
+
             is ChannelSendResult.Failed ->
                 logOutcome(task, NotificationDeliveryOutcome.FAILED, outcome.errorMessage, attemptNumber)
         }

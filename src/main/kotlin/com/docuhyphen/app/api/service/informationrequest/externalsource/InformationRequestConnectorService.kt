@@ -12,13 +12,7 @@ import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRe
 import com.docuhyphen.app.api.repository.informationrequest.externalsource.InformationRequestConnectorExchangeRepository
 import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.auth.authz.ResourceRef
-import com.docuhyphen.app.api.service.command.CommandActorRef
-import com.docuhyphen.app.api.service.command.CommandMutationResult
-import com.docuhyphen.app.api.service.command.CommandReceiptDecision
-import com.docuhyphen.app.api.service.command.CommandReceiptRequest
-import com.docuhyphen.app.api.service.command.CommandReceiptService
-import com.docuhyphen.app.api.service.command.CommandRequestFingerprint
-import com.docuhyphen.app.api.service.command.CommandResultReference
+import com.docuhyphen.app.api.service.command.*
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestMutationGate
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestQueryService
@@ -30,7 +24,7 @@ import jakarta.inject.Inject
 import jakarta.transaction.Transactional
 import java.sql.Timestamp
 import java.time.Clock
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestConnectorService @Inject constructor(
@@ -61,14 +55,21 @@ class InformationRequestConnectorService @Inject constructor(
         return when (
             val decision = commandReceiptService.runOnce(receipt) {
                 val exchange = requestOnce(command, connectorKey, lookupReference)
-                CommandMutationResult(exchange, CommandResultReference(ResourceType.INFORMATION_REQUEST_EXTERNAL_SOURCE, exchange.id, 1, null))
+                CommandMutationResult(
+                    exchange,
+                    CommandResultReference(ResourceType.INFORMATION_REQUEST_EXTERNAL_SOURCE, exchange.id, 1, null)
+                )
             }
         )
         {
             is CommandReceiptDecision.Recorded -> decision.response
             is CommandReceiptDecision.Replayed ->
             {
-                gate.authorizeRequest(command.access, listOf(Action.INFORMATION_REQUEST_MANAGE_EXTERNAL_SOURCES), command.requestId)
+                gate.authorizeRequest(
+                    command.access,
+                    listOf(Action.INFORMATION_REQUEST_MANAGE_EXTERNAL_SOURCES),
+                    command.requestId
+                )
                 requireNotNull(exchangeRepository.findById(decision.result.resourceId))
             }
         }
@@ -89,7 +90,11 @@ class InformationRequestConnectorService @Inject constructor(
     {
         val locked = gate.lock(command.requestId)
         gate.requireMutation(locked, InformationRequestMutation.REQUEST_EXTERNAL_SOURCE)
-        gate.authorizeRequest(command.access, listOf(Action.INFORMATION_REQUEST_MANAGE_EXTERNAL_SOURCES), command.requestId)
+        gate.authorizeRequest(
+            command.access,
+            listOf(Action.INFORMATION_REQUEST_MANAGE_EXTERNAL_SOURCES),
+            command.requestId
+        )
         gate.requireContinuationEntitlement(locked)
         if (!MACHINE_KEY.matches(connectorKey)) throw InformationRequestCommandRequestException("A connector is named by its lowercase key")
         if (lookupReference != null && (lookupReference.isEmpty() || lookupReference.length > REFERENCE_LENGTH))
@@ -98,13 +103,19 @@ class InformationRequestConnectorService @Inject constructor(
         }
         if (requirementRepository.findForRequest(command.requestId).none { it.id == command.requirementId })
         {
-            throw InformationRequestLifecycleException(InformationRequestErrorCatalog.NOT_FOUND, "Information Request Requirement not found")
+            throw InformationRequestLifecycleException(
+                InformationRequestErrorCatalog.NOT_FOUND,
+                "Information Request Requirement not found"
+            )
         }
         val connector = registry.find(connectorKey)
-            ?: throw InformationRequestLifecycleException(InformationRequestErrorCatalog.CONNECTOR_UNAVAILABLE, "No connector with this key is installed")
+            ?: throw InformationRequestLifecycleException(
+                InformationRequestErrorCatalog.CONNECTOR_UNAVAILABLE,
+                "No connector with this key is installed"
+            )
         val open = exchangeRepository.findForRequest(command.requestId).any { exchange ->
             exchange.connectorKey == connectorKey && exchange.informationRequestRequirementId == command.requirementId &&
-                exchange.state in OPEN_STATES
+                    exchange.state in OPEN_STATES
         }
         if (open)
         {
@@ -152,12 +163,14 @@ class InformationRequestConnectorService @Inject constructor(
         private const val OPERATION = "request-information-request-connector-exchange"
         private const val REFERENCE_LENGTH = 256
         private val MACHINE_KEY = Regex("^[a-z0-9][a-z0-9._-]{0,127}$")
-        private val OPEN_STATES = setOf(InformationRequestConnectorExchangeState.REQUESTED, InformationRequestConnectorExchangeState.PENDING)
+        private val OPEN_STATES =
+            setOf(InformationRequestConnectorExchangeState.REQUESTED, InformationRequestConnectorExchangeState.PENDING)
 
         fun requireRequestingSide(gate: InformationRequestMutationGate, access: RequestAccessContext, requestId: UUID)
         {
-            val permitted = gate.permitsRequest(access, Action.INFORMATION_REQUEST_MANAGE_EXTERNAL_SOURCES, requestId) ||
-                gate.permitsRequest(access, Action.INFORMATION_REQUEST_DECIDE_EXTERNAL_VALUES, requestId)
+            val permitted =
+                gate.permitsRequest(access, Action.INFORMATION_REQUEST_MANAGE_EXTERNAL_SOURCES, requestId) ||
+                        gate.permitsRequest(access, Action.INFORMATION_REQUEST_DECIDE_EXTERNAL_VALUES, requestId)
             if (!permitted) throw ForbiddenException("Access denied to external source records")
         }
     }

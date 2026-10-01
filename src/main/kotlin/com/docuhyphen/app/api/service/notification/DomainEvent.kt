@@ -6,7 +6,7 @@ import com.docuhyphen.app.api.model.entity.PrincipalKind
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import java.util.UUID
+import java.util.*
 
 /**
  * Canonical domain event envelope. Published by [DomainEventPublisher] from any service

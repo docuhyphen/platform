@@ -6,7 +6,7 @@ import com.docuhyphen.app.api.model.entity.InformationRequestSubmissionPackage
 import com.docuhyphen.app.api.model.entity.InformationRequestSubmissionStageOrdering
 import com.docuhyphen.app.api.model.fields.FieldValueRevisionValue
 import com.docuhyphen.app.api.model.informationrequest.attestation.InformationRequestAttestationRequirementEvaluation
-import java.util.UUID
+import java.util.*
 
 data class InformationRequestReadableSubmissionPackage(
     val view: InformationRequestSubmissionPackageView,

@@ -1,31 +1,17 @@
 package com.docuhyphen.app.api.service.informationrequest.clock
 
 import com.docuhyphen.app.api.exception.InformationRequestCommandRequestException
-import com.docuhyphen.app.api.model.entity.InformationRequestClock
-import com.docuhyphen.app.api.model.entity.InformationRequestClockEventKind
-import com.docuhyphen.app.api.model.entity.InformationRequestClockState
-import com.docuhyphen.app.api.model.entity.InformationRequestClockUrgency
-import com.docuhyphen.app.api.model.entity.ResourceType
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.informationrequest.LockedInformationRequest
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
 import com.docuhyphen.app.api.model.informationrequest.access.InformationRequestOwnerRef
-import com.docuhyphen.app.api.model.informationrequest.clock.ChangeInformationRequestClockCommand
-import com.docuhyphen.app.api.model.informationrequest.clock.InformationRequestClockChange
-import com.docuhyphen.app.api.model.informationrequest.clock.InformationRequestClockPolicyVersionView
-import com.docuhyphen.app.api.model.informationrequest.clock.InformationRequestClockView
-import com.docuhyphen.app.api.model.informationrequest.clock.StartInformationRequestClockCommand
+import com.docuhyphen.app.api.model.informationrequest.clock.*
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestMutation
 import com.docuhyphen.app.api.repository.informationrequest.clock.InformationRequestClockEventRepository
 import com.docuhyphen.app.api.repository.informationrequest.clock.InformationRequestClockRepository
 import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.auth.authz.ResourceRef
-import com.docuhyphen.app.api.service.command.CommandActorRef
-import com.docuhyphen.app.api.service.command.CommandMutationResult
-import com.docuhyphen.app.api.service.command.CommandReceiptDecision
-import com.docuhyphen.app.api.service.command.CommandReceiptRequest
-import com.docuhyphen.app.api.service.command.CommandReceiptService
-import com.docuhyphen.app.api.service.command.CommandRequestFingerprint
-import com.docuhyphen.app.api.service.command.CommandResultReference
+import com.docuhyphen.app.api.service.command.*
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestETag
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestMutationGate
@@ -35,7 +21,7 @@ import jakarta.inject.Inject
 import jakarta.transaction.Transactional
 import java.sql.Timestamp
 import java.time.Clock
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestClockService @Inject constructor(
@@ -60,12 +46,19 @@ class InformationRequestClockService @Inject constructor(
         return when (
             val decision = commandReceiptService.runOnce(receipt) {
                 gate.requireMutation(locked, InformationRequestMutation.START_CLOCK)
-                gate.authorizeRequest(command.access, listOf(Action.INFORMATION_REQUEST_MANAGE_CLOCKS), command.requestId)
+                gate.authorizeRequest(
+                    command.access,
+                    listOf(Action.INFORMATION_REQUEST_MANAGE_CLOCKS),
+                    command.requestId
+                )
                 val view = availableVersion(locked, command.policyVersionId)
                 if (!KEY.matches(key)) throw InformationRequestCommandRequestException("A clock key uses lowercase letters, digits, dots, dashes, or underscores")
                 if (clockRepository.findForRequest(command.requestId).any { it.clockKey == key })
                 {
-                    throw InformationRequestLifecycleException(InformationRequestErrorCatalog.CLOCK_KEY_TAKEN, "This request already has a clock with this key")
+                    throw InformationRequestLifecycleException(
+                        InformationRequestErrorCatalog.CLOCK_KEY_TAKEN,
+                        "This request already has a clock with this key"
+                    )
                 }
                 val now = clock.instant()
                 val received = command.receivedAt ?: locked.request.issuedAt?.toInstant() ?: now
@@ -81,7 +74,13 @@ class InformationRequestClockService @Inject constructor(
                     urgency = command.urgency
                     receivedAt = Timestamp.from(received)
                     state = InformationRequestClockState.RUNNING
-                    dueAt = Timestamp.from(InformationRequestClockCalculator.advance(view.calendar, received, minutes * SECONDS_PER_MINUTE))
+                    dueAt = Timestamp.from(
+                        InformationRequestClockCalculator.advance(
+                            view.calendar,
+                            received,
+                            minutes * SECONDS_PER_MINUTE
+                        )
+                    )
                     startedByPrincipalKind = command.access.principal.kind
                     startedByPrincipalId = command.access.principal.id
                     startedAt = Timestamp.from(now)
@@ -103,15 +102,25 @@ class InformationRequestClockService @Inject constructor(
                     locked.request, started, InformationRequestMutation.START_CLOCK, command.access.principal,
                     "information_request.clock_start|${started.id}",
                 )
-                CommandMutationResult(started, CommandResultReference(ResourceType.INFORMATION_REQUEST, command.requestId))
+                CommandMutationResult(
+                    started,
+                    CommandResultReference(ResourceType.INFORMATION_REQUEST, command.requestId)
+                )
             }
         )
         {
             is CommandReceiptDecision.Recorded -> view(decision.response)
             is CommandReceiptDecision.Replayed ->
             {
-                gate.authorizeRequest(command.access, listOf(Action.INFORMATION_REQUEST_MANAGE_CLOCKS), command.requestId)
-                view(requireNotNull(clockRepository.findForRequest(command.requestId).firstOrNull { it.clockKey == key }))
+                gate.authorizeRequest(
+                    command.access,
+                    listOf(Action.INFORMATION_REQUEST_MANAGE_CLOCKS),
+                    command.requestId
+                )
+                view(
+                    requireNotNull(
+                        clockRepository.findForRequest(command.requestId).firstOrNull { it.clockKey == key })
+                )
             }
         }
     }
@@ -133,11 +142,19 @@ class InformationRequestClockService @Inject constructor(
                     InformationRequestClockChange.EXTEND -> InformationRequestMutation.EXTEND_CLOCK
                 }
                 gate.requireMutation(locked, mutation)
-                gate.authorizeRequest(command.access, listOf(Action.INFORMATION_REQUEST_MANAGE_CLOCKS), command.requestId)
+                gate.authorizeRequest(
+                    command.access,
+                    listOf(Action.INFORMATION_REQUEST_MANAGE_CLOCKS),
+                    command.requestId
+                )
                 val reason = command.reasonCode?.trim()?.ifBlank { null }
                     ?: throw InformationRequestCommandRequestException("A clock change states its reason")
-                val target = clockRepository.findForUpdate(command.clockId)?.takeIf { it.informationRequestId == command.requestId }
-                    ?: throw InformationRequestLifecycleException(InformationRequestErrorCatalog.NOT_FOUND, "Request clock not found")
+                val target = clockRepository.findForUpdate(command.clockId)
+                    ?.takeIf { it.informationRequestId == command.requestId }
+                    ?: throw InformationRequestLifecycleException(
+                        InformationRequestErrorCatalog.NOT_FOUND,
+                        "Request clock not found"
+                    )
                 command.precondition.requireSatisfiedBy(InformationRequestETag.clockOf(target))
                 val view = requireNotNull(policies.versionView(target.policyVersionId))
                 val now = clock.instant()
@@ -152,14 +169,21 @@ class InformationRequestClockService @Inject constructor(
                     locked.request, target, mutation, command.access.principal,
                     "information_request.clock_change|${target.id}|${command.idempotencyKey}", reason,
                 )
-                CommandMutationResult(target, CommandResultReference(ResourceType.INFORMATION_REQUEST, command.requestId))
+                CommandMutationResult(
+                    target,
+                    CommandResultReference(ResourceType.INFORMATION_REQUEST, command.requestId)
+                )
             }
         )
         {
             is CommandReceiptDecision.Recorded -> view(decision.response)
             is CommandReceiptDecision.Replayed ->
             {
-                gate.authorizeRequest(command.access, listOf(Action.INFORMATION_REQUEST_MANAGE_CLOCKS), command.requestId)
+                gate.authorizeRequest(
+                    command.access,
+                    listOf(Action.INFORMATION_REQUEST_MANAGE_CLOCKS),
+                    command.requestId
+                )
                 view(requireNotNull(clockRepository.findById(command.clockId)))
             }
         }
@@ -220,14 +244,18 @@ class InformationRequestClockService @Inject constructor(
             ?: throw InformationRequestCommandRequestException("A clock extension adds a positive number of minutes")
         if (target.state == InformationRequestClockState.STOPPED)
         {
-            throw InformationRequestLifecycleException(InformationRequestErrorCatalog.CLOCK_STATE_INVALID, "A stopped clock cannot be extended")
+            throw InformationRequestLifecycleException(
+                InformationRequestErrorCatalog.CLOCK_STATE_INVALID,
+                "A stopped clock cannot be extended"
+            )
         }
         val previousDue = target.dueAt.toInstant()
         val seconds = minutes * SECONDS_PER_MINUTE
         target.dueCycle += 1
         target.overdueAt = null
         if (target.state == InformationRequestClockState.RUNNING)
-            target.dueAt = Timestamp.from(InformationRequestClockCalculator.advance(view.calendar, previousDue, seconds))
+            target.dueAt =
+                Timestamp.from(InformationRequestClockCalculator.advance(view.calendar, previousDue, seconds))
         else
             target.remainingSeconds = requireNotNull(target.remainingSeconds) + seconds
         recorder.append(
@@ -247,7 +275,10 @@ class InformationRequestClockService @Inject constructor(
         }
     }
 
-    private fun availableVersion(locked: LockedInformationRequest, versionId: UUID): InformationRequestClockPolicyVersionView
+    private fun availableVersion(
+        locked: LockedInformationRequest,
+        versionId: UUID
+    ): InformationRequestClockPolicyVersionView
     {
         val owner = policies.ownerOfVersion(versionId)
         val view = policies.versionView(versionId)
@@ -280,7 +311,12 @@ class InformationRequestClockService @Inject constructor(
         operation = operation,
         actor = CommandActorRef.principal(access.principal),
         idempotencyKey = idempotencyKey,
-        requestFingerprint = CommandRequestFingerprint.sha256Hex((listOf(operation, requestId) + facts).joinToString("|")),
+        requestFingerprint = CommandRequestFingerprint.sha256Hex(
+            (listOf(
+                operation,
+                requestId
+            ) + facts).joinToString("|")
+        ),
     )
 
     private companion object

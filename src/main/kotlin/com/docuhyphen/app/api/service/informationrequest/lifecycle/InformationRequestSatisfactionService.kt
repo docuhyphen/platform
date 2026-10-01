@@ -13,7 +13,7 @@ import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import java.sql.Timestamp
 import java.time.Clock
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestSatisfactionService @Inject constructor(
@@ -35,7 +35,8 @@ class InformationRequestSatisfactionService @Inject constructor(
         return scopes.all { scope ->
             val current = active.firstOrNull { it.stageKey == scope } ?: return@all false
             !current.reviewRequired ||
-                reviews.filter { it.packageId == current.id }.maxByOrNull { it.reviewNumber }?.state?.accepted == true
+                    reviews.filter { it.packageId == current.id }
+                        .maxByOrNull { it.reviewNumber }?.state?.accepted == true
         }
     }
 

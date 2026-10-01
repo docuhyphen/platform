@@ -1,10 +1,6 @@
 package com.docuhyphen.app.api.service.informationrequest.attestation
 
-import com.docuhyphen.app.api.model.entity.InformationRequest
-import com.docuhyphen.app.api.model.entity.InformationRequestContributorRole
-import com.docuhyphen.app.api.model.entity.InformationRequestRequirementType
-import com.docuhyphen.app.api.model.entity.InformationRequestShareRoleKey
-import com.docuhyphen.app.api.model.entity.InformationRequestSubmissionAttestation
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.informationrequest.attestation.InformationRequestAttestationRequirementEvaluation
 import com.docuhyphen.app.api.model.informationrequest.attestation.InformationRequestAttestingParty
 import com.docuhyphen.app.api.model.informationrequest.submission.InformationRequestSubmissionContent
@@ -15,7 +11,7 @@ import com.docuhyphen.app.api.service.informationrequest.submission.InformationR
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import java.time.Clock
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestAttestationEvaluationService @Inject constructor(
@@ -37,7 +33,8 @@ class InformationRequestAttestationEvaluationService @Inject constructor(
 
     fun evaluate(content: InformationRequestSubmissionContent): Map<UUID, InformationRequestAttestationRequirementEvaluation>
     {
-        val assertions = content.items.filter { it.requirementType == InformationRequestRequirementType.RESPONSE_ATTESTATION }
+        val assertions =
+            content.items.filter { it.requirementType == InformationRequestRequirementType.RESPONSE_ATTESTATION }
         if (assertions.isEmpty()) return emptyMap()
         val policies = policyLoader.forVersion(content.version.id)
         val attestationsByRequirement = attestationRepository.findForRequest(content.request.id)
@@ -80,6 +77,6 @@ class InformationRequestAttestationEvaluationService @Inject constructor(
         InformationRequestShareRoleKey.ATTESTOR -> InformationRequestContributorRole.ATTESTOR
         InformationRequestShareRoleKey.REVIEWER,
         InformationRequestShareRoleKey.DECISION_MAKER,
-        -> null
+            -> null
     }
 }

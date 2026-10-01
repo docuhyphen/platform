@@ -18,19 +18,14 @@ import io.quarkus.security.ForbiddenException
 import io.quarkus.security.UnauthorizedException
 import jakarta.ws.rs.WebApplicationException
 import jakarta.ws.rs.core.Response
-import jakarta.ws.rs.core.Response.Status.BAD_REQUEST
-import jakarta.ws.rs.core.Response.Status.CONFLICT
-import jakarta.ws.rs.core.Response.Status.FORBIDDEN
-import jakarta.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR
-import jakarta.ws.rs.core.Response.Status.NOT_FOUND
-import jakarta.ws.rs.core.Response.Status.UNAUTHORIZED
+import jakarta.ws.rs.core.Response.Status.*
 import org.jboss.resteasy.reactive.multipart.FileUpload
 import org.slf4j.Logger
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import java.time.LocalDate
 import java.time.format.DateTimeParseException
-import java.util.UUID
+import java.util.*
 
 object InformationRequestEvidenceHttp
 {
@@ -82,7 +77,12 @@ object InformationRequestEvidenceHttp
                 language = text(form.language),
                 issuedOn = date(form.issuedOn, "issue date"),
                 expiresOn = date(form.expiresOn, "expiry date"),
-                coverage = coverageStartsOn?.let { InformationRequestEvidenceCoverage(it, requireNotNull(coverageEndsOn)) },
+                coverage = coverageStartsOn?.let {
+                    InformationRequestEvidenceCoverage(
+                        it,
+                        requireNotNull(coverageEndsOn)
+                    )
+                },
                 certificationReference = text(form.certificationReference),
                 signatureReference = text(form.signatureReference),
             )
@@ -112,6 +112,7 @@ object InformationRequestEvidenceHttp
                     error(NOT_FOUND, exception.message, exception.reasonCode)
                 else
                     error(CONFLICT, exception.message, exception.reasonCode)
+
             is ForbiddenException -> error(FORBIDDEN, exception.message)
             is UnauthorizedException -> error(UNAUTHORIZED, exception.message)
             else ->

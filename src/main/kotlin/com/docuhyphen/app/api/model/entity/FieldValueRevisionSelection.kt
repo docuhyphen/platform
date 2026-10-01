@@ -1,7 +1,10 @@
 package com.docuhyphen.app.api.model.entity
 
-import jakarta.persistence.*
-import java.util.UUID
+import jakarta.persistence.Column
+import jakarta.persistence.Entity
+import jakarta.persistence.Id
+import jakarta.persistence.Table
+import java.util.*
 
 /**
  * A canonical selected option code belonging to one [FieldValueRevision]. Chosen options are part of

@@ -27,7 +27,8 @@ class InformationRequestCompletionGateResource @Inject constructor(
     {
         return try
         {
-            val body = request ?: throw InformationRequestCommandRequestException("A completion gate states whether the request gates its Exchange")
+            val body = request
+                ?: throw InformationRequestCommandRequestException("A completion gate states whether the request gates its Exchange")
             val result = completionGates.change(
                 ChangeInformationRequestCompletionGateCommand(
                     requestId = InformationRequestCommandHttp.uuid(id, "information request id"),
@@ -41,7 +42,11 @@ class InformationRequestCompletionGateResource @Inject constructor(
         }
         catch (exception: Exception)
         {
-            InformationRequestCommandHttp.refused(logger, "Information Request completion gate change failed", exception)
+            InformationRequestCommandHttp.refused(
+                logger,
+                "Information Request completion gate change failed",
+                exception
+            )
         }
     }
 

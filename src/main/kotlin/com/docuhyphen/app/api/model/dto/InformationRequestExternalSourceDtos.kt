@@ -1,19 +1,13 @@
 package com.docuhyphen.app.api.model.dto
 
-import com.docuhyphen.app.api.model.entity.FieldValueType
-import com.docuhyphen.app.api.model.entity.InformationRequestConnectorExchangeState
-import com.docuhyphen.app.api.model.entity.InformationRequestConnectorKind
-import com.docuhyphen.app.api.model.entity.InformationRequestDiscrepancyResolution
-import com.docuhyphen.app.api.model.entity.InformationRequestImportedValueDecisionKind
-import com.docuhyphen.app.api.model.entity.InformationRequestImportedValueSource
-import com.docuhyphen.app.api.model.entity.InformationRequestSourceConfidence
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.informationrequest.externalsource.InformationRequestReconciliationOutcome
 import com.docuhyphen.app.api.serializer.TimestampSerializer
 import com.docuhyphen.app.api.serializer.UUIDSerializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
 import java.sql.Timestamp
-import java.util.UUID
+import java.util.*
 
 @Serializable
 data class InformationRequestConnectorExchangeDto(

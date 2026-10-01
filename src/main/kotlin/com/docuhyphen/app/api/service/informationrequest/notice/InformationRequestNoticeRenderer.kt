@@ -69,7 +69,9 @@ class InformationRequestNoticeRenderer @Inject constructor(
     private fun withSequences(template: String, allocations: List<SequenceAllocation>): String
     {
         val byKey = allocations.associateBy { it.key }
-        return SEQUENCE_TOKEN.replace(template) { match -> byKey[match.groupValues[1].trim()]?.renderedValue ?: match.value }
+        return SEQUENCE_TOKEN.replace(template) { match ->
+            byKey[match.groupValues[1].trim()]?.renderedValue ?: match.value
+        }
     }
 
     private fun senderOf(request: InformationRequest): AppUser =

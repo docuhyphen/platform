@@ -2,7 +2,7 @@ package com.docuhyphen.app.api.model.informationrequest.condition
 
 import com.docuhyphen.app.api.model.entity.InformationRequestConditionHiddenDataPolicy
 import com.docuhyphen.app.api.service.informationrequest.occurrence.InformationRequestOccurrencePath
-import java.util.UUID
+import java.util.*
 
 enum class InformationRequestConditionEvaluationState
 {

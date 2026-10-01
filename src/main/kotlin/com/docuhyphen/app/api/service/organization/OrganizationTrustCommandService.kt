@@ -9,7 +9,7 @@ import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class OrganizationTrustCommandService @Inject constructor(

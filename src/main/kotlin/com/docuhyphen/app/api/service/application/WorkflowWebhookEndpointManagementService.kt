@@ -4,11 +4,7 @@ import com.docuhyphen.app.api.model.entity.ResourceType
 import com.docuhyphen.app.api.model.entity.WorkflowWebhookEndpoint
 import com.docuhyphen.app.api.repository.workflow.WorkflowWebhookEndpointRepository
 import com.docuhyphen.app.api.service.auth.AuthAuditService
-import com.docuhyphen.app.api.service.auth.authz.Action
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import com.docuhyphen.app.api.service.auth.authz.ResourceRef
+import com.docuhyphen.app.api.service.auth.authz.*
 import com.docuhyphen.app.api.service.subscription.OrganizationFeatureSubscriptionGuard
 import com.docuhyphen.app.api.service.subscription.PlanFeature
 import jakarta.enterprise.context.ApplicationScoped
@@ -18,8 +14,7 @@ import org.slf4j.LoggerFactory
 import java.security.SecureRandom
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.Base64
-import java.util.UUID
+import java.util.*
 
 data class RegisterWebhookRequest(
     val workflowDefinitionId: UUID,
@@ -46,7 +41,11 @@ class WorkflowWebhookEndpointManagementService @Inject constructor(
         private const val SECRET_BYTES = 32
     }
 
-    fun listByOrganization(orgId: UUID, principal: PrincipalRef, context: AuthorizationContext): List<WorkflowWebhookEndpoint>
+    fun listByOrganization(
+        orgId: UUID,
+        principal: PrincipalRef,
+        context: AuthorizationContext
+    ): List<WorkflowWebhookEndpoint>
     {
         requireWebhookAdmin(orgId, principal, context)
         subscriptionGuard.requireMutation(orgId, PlanFeature.IDENTITY_AND_INTEGRATIONS)
@@ -62,7 +61,12 @@ class WorkflowWebhookEndpointManagementService @Inject constructor(
     }
 
     @Transactional
-    fun register(orgId: UUID, request: RegisterWebhookRequest, principal: PrincipalRef, context: AuthorizationContext): Pair<WorkflowWebhookEndpoint, WebhookSigningSecret>
+    fun register(
+        orgId: UUID,
+        request: RegisterWebhookRequest,
+        principal: PrincipalRef,
+        context: AuthorizationContext
+    ): Pair<WorkflowWebhookEndpoint, WebhookSigningSecret>
     {
         requireWebhookAdmin(orgId, principal, context)
 
@@ -124,7 +128,12 @@ class WorkflowWebhookEndpointManagementService @Inject constructor(
         endpoint.signingSecretVersion = endpoint.signingSecretVersion + 1
         endpoint.updatedDate = Timestamp.from(Instant.now())
         webhookEndpointRepository.update(endpoint)
-        emitAudit("WEBHOOK_ROTATE_SECRET", principal.id, id, "signing secret rotated to v${endpoint.signingSecretVersion}")
+        emitAudit(
+            "WEBHOOK_ROTATE_SECRET",
+            principal.id,
+            id,
+            "signing secret rotated to v${endpoint.signingSecretVersion}"
+        )
         return WebhookSigningSecret(rawSecret, endpoint.signingSecretVersion)
     }
 

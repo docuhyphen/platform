@@ -1,16 +1,11 @@
 package com.docuhyphen.app.api.model.dto
 
-import com.docuhyphen.app.api.model.entity.InformationRequestClockDueEffect
-import com.docuhyphen.app.api.model.entity.InformationRequestClockEventKind
-import com.docuhyphen.app.api.model.entity.InformationRequestClockState
-import com.docuhyphen.app.api.model.entity.InformationRequestClockType
-import com.docuhyphen.app.api.model.entity.InformationRequestClockUrgency
-import com.docuhyphen.app.api.model.entity.InformationRequestOwnerType
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.serializer.TimestampSerializer
 import com.docuhyphen.app.api.serializer.UUIDSerializer
 import kotlinx.serialization.Serializable
 import java.sql.Timestamp
-import java.util.UUID
+import java.util.*
 
 @Serializable
 data class InformationRequestWorkingPeriodDto(

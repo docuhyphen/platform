@@ -13,7 +13,7 @@ import jakarta.ws.rs.*
 import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
 import org.slf4j.LoggerFactory
-import java.util.UUID
+import java.util.*
 
 @Path("/auth/sessions")
 @Produces(MediaType.APPLICATION_JSON)
@@ -43,8 +43,8 @@ class UserSessionResource @Inject constructor(
                 ?.let { it["exchange_id"] as? String }
             val dtos = sessions.map { s ->
                 val isActive = s.isActive &&
-                    s.revokedAt == null &&
-                    (s.expiresAt == null || s.expiresAt!!.toInstant().isAfter(now))
+                        s.revokedAt == null &&
+                        (s.expiresAt == null || s.expiresAt!!.toInstant().isAfter(now))
                 UserSessionDto(
                     sessionId = s.sessionId.toString(),
                     deviceId = s.deviceId,

@@ -1,11 +1,10 @@
 package com.docuhyphen.app.api.repository.application
 
-import com.docuhyphen.app.api.repository.BaseRepository
-
 import com.docuhyphen.app.api.model.entity.AppRoleAssignment
 import com.docuhyphen.app.api.model.entity.AppRoleName
+import com.docuhyphen.app.api.repository.BaseRepository
 import jakarta.enterprise.context.ApplicationScoped
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class AppRoleAssignmentRepository : BaseRepository<AppRoleAssignment>(AppRoleAssignment::class.java)

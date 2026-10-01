@@ -44,8 +44,8 @@
   under the mandatory TDD protocol.
 - Earlier follow-ups: recorded under the Phase 12 exit gate in
   the evidence file (listing performance task, CloudWatch alarm deploy, IAM, Personal Request Schema
-  decision, audit `organization_id`). Flyway head is V150 (created, not yet applied locally); V151
-  through V160 remain unallocated.
+  decision, audit `organization_id`). Flyway head is V151. V151 was taken on 2026-10-01 by the
+  signup and sign-in security remediation; V152 through V160 remain unallocated.
 - Latest implementation result: see `## Latest Implementation Result`.
 - Carried into Phase 12: external sources have REST and help but no screen (Phase 11 decision 12);
   a remote connector, if ever scoped, needs its own security review and the shared signer noted in
@@ -4668,8 +4668,10 @@ link it follows. |
 
 The provisional program range ended at V139. On 2026-09-26, before the second Phase 9 migration, it
 was extended to V139 through V160; the head was V138 and no other initiative had taken a number
-above it. Remaining unallocated program range: V151 through V160. Flyway head is V150.
-V118 and V119 were taken by prior P5 remediation work before this row was written.
+above it. Remaining unallocated program range: V152 through V160. Flyway head is V151.
+V118 and V119 were taken by prior P5 remediation work before this row was written. V151
+(`V151__sign_up_resend_state_removal.sql`) was taken on 2026-10-01 by the signup and sign-in
+security remediation in `plans/AUTH-SIGNUP-SIGNIN-SECURITY-REMEDIATION.md`.
 
 When verifying that a migration contract test is genuinely red, remove the migration from
 `target/classes/db/migration` as well as from `src/main/resources/db/migration`. Flyway resolves migrations from the

@@ -1,7 +1,6 @@
 package com.docuhyphen.app.api.realtime
 
 import com.docuhyphen.app.api.service.auth.RealtimeTicketService
-import com.docuhyphen.app.api.service.auth.RevocationReasonCode
 import com.docuhyphen.app.api.service.auth.SessionRevocationCache
 import com.docuhyphen.app.api.service.auth.UserSessionService
 import com.docuhyphen.app.api.service.exchange.RealtimeExchangeAccessService
@@ -14,7 +13,7 @@ import jakarta.websocket.Session
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.slf4j.LoggerFactory
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class RealtimeConnectionService @Inject constructor(
@@ -122,6 +121,7 @@ class RealtimeConnectionService @Inject constructor(
                     ),
                 )
             }
+
             RealtimeMessageType.SUBSCRIBE_EXCHANGE ->
             {
                 val exchangeId = parseUuid(message.exchangeId) ?: return
@@ -148,12 +148,14 @@ class RealtimeConnectionService @Inject constructor(
                     ),
                 )
             }
+
             RealtimeMessageType.UNSUBSCRIBE_EXCHANGE ->
             {
                 val exchangeId = parseUuid(message.exchangeId) ?: return
                 registry.unsubscribeFromExchange(userSessionId, exchangeId)
                 viewers.markNotViewing(exchangeId, appUserId, userSessionId)
             }
+
             else -> logger.warn("Unhandled realtime message type={} userSessionId={}", message.type, userSessionId)
         }
     }

@@ -3,11 +3,7 @@
 import com.docuhyphen.app.api.exception.ExchangeDocumentNotFoundException
 import com.docuhyphen.app.api.exception.ExchangeNotFoundException
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
-import com.docuhyphen.app.api.model.document.DocumentVersionContent
-import com.docuhyphen.app.api.model.document.DocumentVersionContentDigests
-import com.docuhyphen.app.api.model.document.DocumentVersionCreatorMapper
-import com.docuhyphen.app.api.model.document.DocumentVersionUpload
-import com.docuhyphen.app.api.model.document.DocumentVersionView
+import com.docuhyphen.app.api.model.document.*
 import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.repository.exchange.DocumentVersionRepository
 import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
@@ -16,15 +12,13 @@ import com.docuhyphen.app.api.service.audit.catalog.AuditActorKind
 import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
 import com.docuhyphen.app.api.service.audit.catalog.AuditOutcome
 import com.docuhyphen.app.api.service.auth.authz.*
-import com.docuhyphen.app.api.service.identity.PrincipalDisplayService
 import com.docuhyphen.app.api.service.document.DocumentVersionRecordingService
+import com.docuhyphen.app.api.service.identity.PrincipalDisplayService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
 import org.slf4j.LoggerFactory
 import java.io.File
-import java.sql.Timestamp
-import java.time.Instant
 import java.util.*
 
 @ApplicationScoped
@@ -251,7 +245,12 @@ class ExchangeDocumentVersionService @Inject constructor(
      * version-file download - same catch-and-log style as
      * [ExchangeDocumentAuditService.recordOnRecorder].
      */
-    private fun recordVersionDownloadEvent(exchange: Exchange, documentId: UUID, documentTitle: String?, versionId: UUID)
+    private fun recordVersionDownloadEvent(
+        exchange: Exchange,
+        documentId: UUID,
+        documentTitle: String?,
+        versionId: UUID
+    )
     {
         val actorId = authTokenContext.authToken.appUser?.id
         try
@@ -277,11 +276,18 @@ class ExchangeDocumentVersionService @Inject constructor(
         }
         catch (e: AuditDraftInvalidException)
         {
-            logger.warn("ExchangeDocumentVersionService: AuditRecorder rejected draft for version download: {}", e.message)
+            logger.warn(
+                "ExchangeDocumentVersionService: AuditRecorder rejected draft for version download: {}",
+                e.message
+            )
         }
         catch (e: AuditCaptureFailedException)
         {
-            logger.error("ExchangeDocumentVersionService: AuditRecorder capture failed (fail-closed) for version download: {}", e.message, e)
+            logger.error(
+                "ExchangeDocumentVersionService: AuditRecorder capture failed (fail-closed) for version download: {}",
+                e.message,
+                e
+            )
         }
     }
 }

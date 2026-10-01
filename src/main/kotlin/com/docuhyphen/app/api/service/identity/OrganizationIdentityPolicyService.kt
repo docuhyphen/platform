@@ -9,7 +9,7 @@ import com.docuhyphen.app.api.repository.organization.OrganizationRepository
 import com.docuhyphen.app.api.service.organization.OrganizationSeatGuard
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
-import java.util.UUID
+import java.util.*
 
 class IdentityProviderNotAllowedException(message: String) : RuntimeException(message)
 

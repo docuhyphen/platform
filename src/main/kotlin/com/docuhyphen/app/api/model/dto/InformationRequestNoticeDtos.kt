@@ -1,16 +1,11 @@
 package com.docuhyphen.app.api.model.dto
 
-import com.docuhyphen.app.api.model.entity.InformationRequestNoticeAttemptOutcome
-import com.docuhyphen.app.api.model.entity.InformationRequestNoticeChannel
-import com.docuhyphen.app.api.model.entity.InformationRequestNoticeDeliveryState
-import com.docuhyphen.app.api.model.entity.InformationRequestNoticeEndpointState
-import com.docuhyphen.app.api.model.entity.InformationRequestNoticeKind
-import com.docuhyphen.app.api.model.entity.InformationRequestNoticeSourceKind
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.serializer.TimestampSerializer
 import com.docuhyphen.app.api.serializer.UUIDSerializer
 import kotlinx.serialization.Serializable
 import java.sql.Timestamp
-import java.util.UUID
+import java.util.*
 
 @Serializable
 data class InformationRequestNoticeAttemptDto(

@@ -138,7 +138,8 @@ class ShareService @Inject constructor(
             .firstOrNull { it.source == source && it.sourceShareId == null }
 
         val previouslyDirect = if (existingDirect == null && source == ShareSource.DIRECT)
-            shareRepository.findDirectForPrincipalOnResource(principalKind, principalId, resourceType, resourceId).firstOrNull()
+            shareRepository.findDirectForPrincipalOnResource(principalKind, principalId, resourceType, resourceId)
+                .firstOrNull()
         else null
 
         val share = (existingDirect ?: previouslyDirect ?: Share()).apply {
@@ -164,7 +165,8 @@ class ShareService @Inject constructor(
             this.revokedByPrincipalKind = null
             this.revokedByPrincipalId = null
         }
-        val persisted = if (existingDirect == null && previouslyDirect == null) shareRepository.save(share) else shareRepository.update(share)
+        val persisted = if (existingDirect == null && previouslyDirect == null) shareRepository.save(share)
+        else shareRepository.update(share)
 
         recordShareEvent(
             eventType = AuditEventType.SHARE_GRANT,
@@ -302,7 +304,8 @@ class ShareService @Inject constructor(
     {
         val share = shareRepository.findById(shareId) ?: return
         if (share.status == ShareStatus.ACTIVE && share.principalKind == PrincipalKind.PRINCIPAL_GROUP &&
-            canExpandTrustedGroup(share))
+            canExpandTrustedGroup(share)
+        )
         {
             materialiseGroupInheritance(share)
         }
@@ -521,10 +524,13 @@ class ShareService @Inject constructor(
     fun retainInformationRequestOwnerRead(requestId: UUID, ownerUserId: UUID)
     {
         val existing = shareRepository.findActiveForPrincipalOnResource(
-            PrincipalKind.USER, ownerUserId, ResourceType.INFORMATION_REQUEST, requestId)
+            PrincipalKind.USER, ownerUserId, ResourceType.INFORMATION_REQUEST, requestId
+        )
         if (existing.isEmpty())
-            grantRoleKeyWithPrincipalProvenance(ResourceType.INFORMATION_REQUEST, requestId,
-                PrincipalKind.USER, ownerUserId, InformationRequestShareRoleKey.SUBJECT.name)
+            grantRoleKeyWithPrincipalProvenance(
+                ResourceType.INFORMATION_REQUEST, requestId,
+                PrincipalKind.USER, ownerUserId, InformationRequestShareRoleKey.SUBJECT.name
+            )
     }
 
     fun revokeAllForResource(
@@ -605,7 +611,12 @@ class ShareService @Inject constructor(
         }
         catch (e: AuditCaptureFailedException)
         {
-            logger.error("ShareService: AuditRecorder capture failed (fail-closed) for eventType={}: {}", eventType.key, e.message, e)
+            logger.error(
+                "ShareService: AuditRecorder capture failed (fail-closed) for eventType={}: {}",
+                eventType.key,
+                e.message,
+                e
+            )
         }
     }
 
@@ -622,6 +633,7 @@ class ShareService @Inject constructor(
 
             is OwnerContext.Personal ->
                 AuditOwnerScope.Personal(owner.userId)
+
             else -> AuditOwnerScope.Platform
         }
     }

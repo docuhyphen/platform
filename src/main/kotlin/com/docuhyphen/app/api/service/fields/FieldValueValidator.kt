@@ -43,7 +43,7 @@ class FieldValueValidator @Inject constructor(
         }
         val options = FieldOption.parseList(contract.optionsJson)
         val isSelect = contract.valueType == com.docuhyphen.app.api.model.entity.FieldValueType.SINGLE_SELECT ||
-            contract.valueType == com.docuhyphen.app.api.model.entity.FieldValueType.MULTI_SELECT
+                contract.valueType == com.docuhyphen.app.api.model.entity.FieldValueType.MULTI_SELECT
         if (isSelect)
         {
             if (options.isEmpty())

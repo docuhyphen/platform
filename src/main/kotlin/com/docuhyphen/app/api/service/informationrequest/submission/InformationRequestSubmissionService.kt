@@ -1,42 +1,17 @@
 package com.docuhyphen.app.api.service.informationrequest.submission
 
-import com.docuhyphen.app.api.model.entity.InformationRequest
-import com.docuhyphen.app.api.model.entity.InformationRequestResponseDisposition
-import com.docuhyphen.app.api.model.entity.InformationRequestSubmissionStageOrdering
-import com.docuhyphen.app.api.model.entity.InformationRequestSubmissionEvidence
-import com.docuhyphen.app.api.model.entity.InformationRequestSubmissionItem
-import com.docuhyphen.app.api.model.entity.InformationRequestSubmissionPackage
-import com.docuhyphen.app.api.model.entity.InformationRequestSubmissionPackageAttestation
-import com.docuhyphen.app.api.model.entity.InformationRequestSubmissionSupportingLink
-import com.docuhyphen.app.api.model.entity.InformationRequestSubmissionWithdrawal
-import com.docuhyphen.app.api.model.entity.ResourceType
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.informationrequest.LockedInformationRequest
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestMutation
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestTransitionHistoryCommand
 import com.docuhyphen.app.api.model.informationrequest.response.InformationRequestCompletenessItemState
-import com.docuhyphen.app.api.model.informationrequest.submission.InformationRequestSubmissionAssessment
-import com.docuhyphen.app.api.model.informationrequest.submission.InformationRequestSubmissionContent
-import com.docuhyphen.app.api.model.informationrequest.submission.InformationRequestSubmissionContentItem
-import com.docuhyphen.app.api.model.informationrequest.submission.InformationRequestSubmissionResult
-import com.docuhyphen.app.api.model.informationrequest.submission.SubmitInformationRequestPackageCommand
-import com.docuhyphen.app.api.model.informationrequest.submission.WithdrawInformationRequestPackageCommand
+import com.docuhyphen.app.api.model.informationrequest.submission.*
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
-import com.docuhyphen.app.api.repository.informationrequest.submission.InformationRequestSubmissionEvidenceRepository
-import com.docuhyphen.app.api.repository.informationrequest.submission.InformationRequestSubmissionItemRepository
-import com.docuhyphen.app.api.repository.informationrequest.submission.InformationRequestSubmissionPackageAttestationRepository
-import com.docuhyphen.app.api.repository.informationrequest.submission.InformationRequestSubmissionPackageRepository
-import com.docuhyphen.app.api.repository.informationrequest.submission.InformationRequestSubmissionSupportingLinkRepository
-import com.docuhyphen.app.api.repository.informationrequest.submission.InformationRequestSubmissionWithdrawalRepository
+import com.docuhyphen.app.api.repository.informationrequest.submission.*
 import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.auth.authz.ResourceRef
-import com.docuhyphen.app.api.service.command.CommandActorRef
-import com.docuhyphen.app.api.service.command.CommandMutationResult
-import com.docuhyphen.app.api.service.command.CommandReceiptDecision
-import com.docuhyphen.app.api.service.command.CommandReceiptRequest
-import com.docuhyphen.app.api.service.command.CommandReceiptService
-import com.docuhyphen.app.api.service.command.CommandRequestFingerprint
-import com.docuhyphen.app.api.service.command.CommandResultReference
+import com.docuhyphen.app.api.service.command.*
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestETag
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestMutationGate
@@ -53,7 +28,7 @@ import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
 import java.sql.Timestamp
 import java.time.Clock
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestSubmissionService @Inject constructor(
@@ -156,7 +131,8 @@ class InformationRequestSubmissionService @Inject constructor(
         val now = Timestamp.from(clock.instant())
         val counted = assessment.attestations.values.flatMap { it.evaluation.counted }
         val itemHashes = content.items.associate { it.requirement.id to itemHash(it) }
-        val reviewRequired = content.items.any { requiresReview(it, assessment.stateByRequirement.getValue(it.requirement.id)) }
+        val reviewRequired =
+            content.items.any { requiresReview(it, assessment.stateByRequirement.getValue(it.requirement.id)) }
         val stagesAfter = submittedStages + stageKey
         val completesRequest = content.stageOrder.isEmpty() || stagesAfter.containsAll(content.stageOrder)
         val withdrawnIds = withdrawalRepository.findForRequest(request.id).map { it.packageId }.toSet()
@@ -171,7 +147,8 @@ class InformationRequestSubmissionService @Inject constructor(
                 schemaVersionId = content.version.schemaVersionId
                 contentHashSha256 = content.contentHash
                 manifestHashSha256 = sha256Hex(
-                    (listOf(content.contentHash) + itemHashes.values.sorted() + counted.map { it.id.toString() }.sorted())
+                    (listOf(content.contentHash) + itemHashes.values.sorted() + counted.map { it.id.toString() }
+                        .sorted())
                         .joinToString("\n"),
                 )
                 this.reviewRequired = reviewRequired
@@ -314,7 +291,10 @@ class InformationRequestSubmissionService @Inject constructor(
         command.precondition.requireSatisfiedBy(InformationRequestETag.responsesOf(request))
         val submission = packageRepository.findById(command.packageId)
             ?.takeIf { it.informationRequestId == request.id }
-            ?: throw InformationRequestLifecycleException(InformationRequestErrorCatalog.NOT_FOUND, "Submission Package not found")
+            ?: throw InformationRequestLifecycleException(
+                InformationRequestErrorCatalog.NOT_FOUND,
+                "Submission Package not found"
+            )
         if (lockService.activePackages(request.id).none { it.id == submission.id })
         {
             throw InformationRequestLifecycleException(
@@ -386,7 +366,11 @@ class InformationRequestSubmissionService @Inject constructor(
         etag = result.responseETag,
     )
 
-    private fun requireStageOrder(content: InformationRequestSubmissionContent, stageKey: String?, submitted: Set<String?>)
+    private fun requireStageOrder(
+        content: InformationRequestSubmissionContent,
+        stageKey: String?,
+        submitted: Set<String?>
+    )
     {
         if (stageKey == null || content.version.submissionStageOrdering != InformationRequestSubmissionStageOrdering.SEQUENTIAL) return
         val earlier = content.stageOrder.takeWhile { it != stageKey }

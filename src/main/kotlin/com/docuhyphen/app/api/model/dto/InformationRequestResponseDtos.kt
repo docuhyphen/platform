@@ -5,7 +5,7 @@ import com.docuhyphen.app.api.serializer.TimestampSerializer
 import com.docuhyphen.app.api.serializer.UUIDSerializer
 import kotlinx.serialization.Serializable
 import java.sql.Timestamp
-import java.util.UUID
+import java.util.*
 
 /**
  * One occurrence's current draft response, projected back to the caller that just patched it.

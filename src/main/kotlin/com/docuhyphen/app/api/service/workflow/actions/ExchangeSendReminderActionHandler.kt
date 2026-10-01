@@ -13,7 +13,7 @@ import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
 import org.slf4j.LoggerFactory
-import java.util.UUID
+import java.util.*
 
 /**
  * Built-in action handler that sends a reminder notification and email to the primary
@@ -28,9 +28,12 @@ class ExchangeSendReminderActionHandler : WorkflowActionHandler
     private val logger = LoggerFactory.getLogger(ExchangeSendReminderActionHandler::class.java)
     private val json = Json { ignoreUnknownKeys = true }
 
-    @Inject private lateinit var appUserRepository: AppUserRepository
-    @Inject private lateinit var appNotificationService: AppNotificationService
-    @Inject private lateinit var emailService: EmailService
+    @Inject
+    private lateinit var appUserRepository: AppUserRepository
+    @Inject
+    private lateinit var appNotificationService: AppNotificationService
+    @Inject
+    private lateinit var emailService: EmailService
 
     override fun key() = "exchange.send-reminder"
 

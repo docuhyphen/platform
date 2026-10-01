@@ -13,8 +13,11 @@ const auditEventTypeLabels: Record<string, string> = {
     // Authentication / session lifecycle.
     "auth.session.request_auth": "Authentication check",
     "auth.sign_in.initiate": "Sign-in started",
-    "auth.sign_in.lookup": "Sign-in account lookup",
+    "auth.sign_in.lookup": "Sign-in method lookup",
     "auth.sign_in.completion": "Signed in",
+    "auth.sign_up.initiate": "Sign-up started",
+    "auth.sign_up.otp_regenerate": "Sign-up verification code resent",
+    "auth.sign_up.completion": "Sign-up completion",
     "auth.sign_out": "Signed out",
     "auth.token.refresh": "Session token refreshed",
     "auth.step_up.initiate": "Step-up verification started",

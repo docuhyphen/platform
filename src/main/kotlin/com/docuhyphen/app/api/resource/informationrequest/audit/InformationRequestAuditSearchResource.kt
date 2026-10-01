@@ -27,7 +27,8 @@ class InformationRequestAuditSearchResource @Inject constructor(
         return try
         {
             val search = InformationRequestAuditQuery.searchOf(
-                requestId?.takeIf { it.isNotBlank() }?.let { InformationRequestCommandHttp.uuid(it, "information request id") },
+                requestId?.takeIf { it.isNotBlank() }
+                    ?.let { InformationRequestCommandHttp.uuid(it, "information request id") },
                 eventClass, eventType, actorId, occurredAfter, occurredBefore, limit, offset,
             )
             Response.ok(InformationRequestAuditDtoMapper.toDto(audit.search(search))).build()

@@ -1,11 +1,9 @@
 package com.docuhyphen.app.api.repository.documentlibrary
 
-import com.docuhyphen.app.api.repository.BaseRepository
-
-import com.docuhyphen.app.api.model.entity.BlueprintScope
 import com.docuhyphen.app.api.model.entity.DocumentLibraryEntry
+import com.docuhyphen.app.api.repository.BaseRepository
 import jakarta.enterprise.context.ApplicationScoped
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class DocumentLibraryRepository :

@@ -8,7 +8,8 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
 
-enum class VariableScope { ORG, PERSONAL }
+enum class VariableScope
+{ ORG, PERSONAL }
 
 @Entity
 @Serializable

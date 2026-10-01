@@ -1,12 +1,11 @@
 package com.docuhyphen.app.api.repository.user
 
-import com.docuhyphen.app.api.repository.BaseRepository
-
 import com.docuhyphen.app.api.model.entity.AppUser
 import com.docuhyphen.app.api.model.entity.OrganizationMembershipStatus
+import com.docuhyphen.app.api.repository.BaseRepository
 import jakarta.enterprise.context.RequestScoped
 import jakarta.persistence.TypedQuery
-import java.util.UUID
+import java.util.*
 
 @RequestScoped
 class AppUserRepository : BaseRepository<AppUser>(AppUser::class.java)

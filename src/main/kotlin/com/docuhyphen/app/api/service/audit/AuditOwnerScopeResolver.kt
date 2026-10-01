@@ -6,7 +6,7 @@ import com.docuhyphen.app.api.service.auth.authz.ResourceAuthorizationContextReg
 import com.docuhyphen.app.api.service.auth.authz.ResourceRef
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
-import java.util.UUID
+import java.util.*
 
 /**
  * Resolves the [AuditOwnerScope] a mutation on a governed resource should file its audit event
@@ -31,7 +31,8 @@ class AuditOwnerScopeResolver @Inject constructor(
      * resource kind that supports personal or organization ownership.
      */
     fun resolve(resourceType: ResourceType, resourceId: UUID): AuditOwnerScope =
-        when (val owner = resourceAuthorizationContextRegistry.resolve(ResourceRef(resourceType, resourceId))?.ownerContext)
+        when (val owner =
+            resourceAuthorizationContextRegistry.resolve(ResourceRef(resourceType, resourceId))?.ownerContext)
         {
             is OwnerContext.Organization -> AuditOwnerScope.Organization(owner.organizationId)
             is OwnerContext.Personal -> AuditOwnerScope.Personal(owner.userId)

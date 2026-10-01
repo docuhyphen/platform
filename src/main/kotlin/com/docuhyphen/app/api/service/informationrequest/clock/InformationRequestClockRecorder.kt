@@ -1,10 +1,6 @@
 package com.docuhyphen.app.api.service.informationrequest.clock
 
-import com.docuhyphen.app.api.model.entity.InformationRequest
-import com.docuhyphen.app.api.model.entity.InformationRequestClock
-import com.docuhyphen.app.api.model.entity.InformationRequestClockEvent
-import com.docuhyphen.app.api.model.entity.InformationRequestClockEventKind
-import com.docuhyphen.app.api.model.entity.InformationRequestClockState
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.informationrequest.clock.InformationRequestClockPoint
 import com.docuhyphen.app.api.model.informationrequest.clock.InformationRequestClockPolicyVersionView
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestMutation
@@ -68,7 +64,14 @@ class InformationRequestClockRecorder @Inject constructor(
         clock.remainingSeconds = null
         clock.stoppedAt = Timestamp.from(at)
         clock.nextPointAt = null
-        append(clock, InformationRequestClockEventKind.STOPPED, actor, at, mapOf("stoppedAt" to at.toString()), reasonCode)
+        append(
+            clock,
+            InformationRequestClockEventKind.STOPPED,
+            actor,
+            at,
+            mapOf("stoppedAt" to at.toString()),
+            reasonCode
+        )
         clock.clockRevision += 1
         clockRepository.update(clock)
     }
@@ -102,7 +105,12 @@ class InformationRequestClockRecorder @Inject constructor(
         )
     }
 
-    fun expiryTransition(request: InformationRequest, fromState: InformationRequestState, clock: InformationRequestClock, actor: PrincipalRef)
+    fun expiryTransition(
+        request: InformationRequest,
+        fromState: InformationRequestState,
+        clock: InformationRequestClock,
+        actor: PrincipalRef
+    )
     {
         transitionHistory.record(
             InformationRequestTransitionHistoryCommand(
@@ -122,7 +130,10 @@ class InformationRequestClockRecorder @Inject constructor(
         )
     }
 
-    fun duePoints(clock: InformationRequestClock, view: InformationRequestClockPolicyVersionView): List<InformationRequestClockPoint>
+    fun duePoints(
+        clock: InformationRequestClock,
+        view: InformationRequestClockPolicyVersionView
+    ): List<InformationRequestClockPoint>
     {
         if (clock.state != InformationRequestClockState.RUNNING) return emptyList()
         val recorded = eventRepository.findForClock(clock.id)
@@ -137,7 +148,11 @@ class InformationRequestClockRecorder @Inject constructor(
                 val ordinal = index + 1
                 if ((InformationRequestClockEventKind.REMINDED to ordinal) in recorded) return@forEachIndexed
                 val at = InformationRequestClockCalculator.retreat(view.calendar, due, minutes * SECONDS_PER_MINUTE)
-                if (!at.isBefore(clock.receivedAt.toInstant())) points += InformationRequestClockPoint(InformationRequestClockEventKind.REMINDED, at, ordinal)
+                if (!at.isBefore(clock.receivedAt.toInstant())) points += InformationRequestClockPoint(
+                    InformationRequestClockEventKind.REMINDED,
+                    at,
+                    ordinal
+                )
             }
             points += InformationRequestClockPoint(InformationRequestClockEventKind.OVERDUE, due, null)
         }

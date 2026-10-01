@@ -19,7 +19,8 @@ class DomainEventDispatcherScheduler
 {
     private val logger = LoggerFactory.getLogger(DomainEventDispatcherScheduler::class.java)
 
-    @Inject private lateinit var dispatcher: DomainEventDispatcher
+    @Inject
+    private lateinit var dispatcher: DomainEventDispatcher
 
     @Scheduled(
         every = "\${app.domain-event.outbox.dispatch-every:10s}",

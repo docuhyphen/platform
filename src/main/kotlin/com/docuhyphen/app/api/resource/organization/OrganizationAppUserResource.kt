@@ -11,13 +11,13 @@ import com.docuhyphen.app.api.service.auth.AdminApprovalContext
 import com.docuhyphen.app.api.service.organization.OrganizationAppUserService
 import com.docuhyphen.app.api.service.organization.OrganizationMembershipService
 import jakarta.inject.Inject
-import java.util.UUID
 import jakarta.transaction.Transactional
 import jakarta.ws.rs.*
 import jakarta.ws.rs.core.MediaType.APPLICATION_JSON
 import jakarta.ws.rs.core.Response
 import jakarta.ws.rs.core.Response.Status.*
 import org.slf4j.LoggerFactory
+import java.util.*
 
 
 enum class APP_USER_CHECK
@@ -342,7 +342,7 @@ class OrganizationAppUserResource @Inject constructor(
                 {
                     APP_USER_CHECK.DELETABLE ->
                     {
-                        if(!organizationAppUserService.isAppUserIsDeletable(organizationId, appUserId))
+                        if (!organizationAppUserService.isAppUserIsDeletable(organizationId, appUserId))
                         {
                             response = Response.status(CONFLICT).build()
                         }

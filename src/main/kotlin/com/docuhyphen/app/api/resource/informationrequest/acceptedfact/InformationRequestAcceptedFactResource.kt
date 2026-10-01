@@ -46,7 +46,11 @@ class InformationRequestAcceptedFactResource @Inject constructor(
         }
         catch (exception: Exception)
         {
-            InformationRequestCommandHttp.refused(logger, "Information Request accepted fact promotion failed", exception)
+            InformationRequestCommandHttp.refused(
+                logger,
+                "Information Request accepted fact promotion failed",
+                exception
+            )
         }
     }
 
@@ -69,7 +73,11 @@ class InformationRequestAcceptedFactResource @Inject constructor(
         }
         catch (exception: Exception)
         {
-            InformationRequestCommandHttp.refused(logger, "Information Request accepted fact revocation failed", exception)
+            InformationRequestCommandHttp.refused(
+                logger,
+                "Information Request accepted fact revocation failed",
+                exception
+            )
         }
     }
 

@@ -1,15 +1,11 @@
 package com.docuhyphen.app.api.service.informationrequest.template
 
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateAttestationPolicyRequest
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateConfigurationRequest
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateGroupRequest
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateRequirementRequest
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateSectionRequest
+import com.docuhyphen.app.api.model.dto.*
 import com.docuhyphen.app.api.model.entity.InformationRequestRequirementType
 import com.docuhyphen.app.api.model.entity.InformationRequestResponseMode
 import com.docuhyphen.app.api.model.entity.InformationRequestSubmissionMode
 import com.docuhyphen.app.api.model.entity.InformationRequestSubmissionStageOrdering
-import java.util.UUID
+import java.util.*
 
 internal object InformationRequestTemplateSubmissionPolicyValidator
 {
@@ -42,14 +38,16 @@ internal object InformationRequestTemplateSubmissionPolicyValidator
             {
                 staged && stated == null -> throw InformationRequestTemplateValidationException(
                     "Section ${section.sectionKey} names no submission stage, and every section of a staged " +
-                        "template version is submitted in one",
+                            "template version is submitted in one",
                     sectionKey = section.sectionKey,
                 )
+
                 !staged && stated != null -> throw InformationRequestTemplateValidationException(
                     "Section ${section.sectionKey} names submission stage $stated, but this template version " +
-                        "submits everything at once",
+                            "submits everything at once",
                     sectionKey = section.sectionKey,
                 )
+
                 stated == null -> section.copy(submissionStageKey = null)
                 else -> section.copy(
                     submissionStageKey = InformationRequestTemplateKey.normalizeOrNull(stated)
@@ -99,8 +97,8 @@ internal object InformationRequestTemplateSubmissionPolicyValidator
                 {
                     throw InformationRequestTemplateValidationException(
                         "Requirement ${conditional.requirementKey} is submitted in stage $conditionalStage but its " +
-                            "condition ${rule.ruleKey} reads $sourceKey from stage $sourceStage, which could change " +
-                            "after this stage is submitted",
+                                "condition ${rule.ruleKey} reads $sourceKey from stage $sourceStage, which could change " +
+                                "after this stage is submitted",
                         requirementKey = conditional.requirementKey,
                     )
                 }
@@ -128,8 +126,8 @@ internal object InformationRequestTemplateSubmissionPolicyValidator
             {
                 throw InformationRequestTemplateValidationException(
                     "Repeatable group ${group.groupKey} and its nested groups are answered in stages " +
-                        "${stages.sorted().joinToString()}, and adding or removing one of its occurrences " +
-                        "would change more than one stage",
+                            "${stages.sorted().joinToString()}, and adding or removing one of its occurrences " +
+                            "would change more than one stage",
                     groupKey = group.groupKey,
                 )
             }
@@ -148,7 +146,7 @@ internal object InformationRequestTemplateSubmissionPolicyValidator
             {
                 throw InformationRequestTemplateValidationException(
                     "An attestation policy belongs to a response attestation, and requirement $key asks for " +
-                        "${requirement.requirementType}",
+                            "${requirement.requirementType}",
                     requirementKey = key,
                 )
             }
@@ -160,7 +158,7 @@ internal object InformationRequestTemplateSubmissionPolicyValidator
             {
                 throw InformationRequestTemplateValidationException(
                     "Requirement $key is ${requirement.responseMode} to the party it nominates, so nobody can " +
-                        "make its assertion under a policy",
+                            "make its assertion under a policy",
                     requirementKey = key,
                 )
             }
@@ -181,7 +179,7 @@ internal object InformationRequestTemplateSubmissionPolicyValidator
         {
             throw InformationRequestTemplateValidationException(
                 "Requirement $key needs an assent from each of ${roles.size} roles, so it cannot be satisfied " +
-                    "by $minimumAssents",
+                        "by $minimumAssents",
                 requirementKey = key,
             )
         }
@@ -190,7 +188,7 @@ internal object InformationRequestTemplateSubmissionPolicyValidator
         {
             throw InformationRequestTemplateValidationException(
                 "Requirement $key keeps an assent valid for $validity hours, and an assent has to stay valid " +
-                    "for at least one",
+                        "for at least one",
                 requirementKey = key,
             )
         }

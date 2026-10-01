@@ -59,7 +59,7 @@ class ResourceAuthorizationContextRegistry
             val kind = provider.supportedKind
             check(kind !in map) {
                 "Duplicate ResourceAuthorizationContextProvider for $kind: " +
-                    "${map[kind]!!::class.qualifiedName} vs ${provider::class.qualifiedName}"
+                        "${map[kind]!!::class.qualifiedName} vs ${provider::class.qualifiedName}"
             }
             map[kind] = provider
         }

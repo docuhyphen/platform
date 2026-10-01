@@ -9,7 +9,7 @@ import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
 import com.docuhyphen.app.api.resource.model.ExchangeRecipientSelectionRequest
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.command.CommandPrecondition
-import java.util.UUID
+import java.util.*
 
 data class InformationRequestAccessLinkView(
     val shareLink: ShareLink,

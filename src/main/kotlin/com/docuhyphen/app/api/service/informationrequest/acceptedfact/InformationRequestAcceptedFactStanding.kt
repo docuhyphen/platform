@@ -10,7 +10,7 @@ import com.docuhyphen.app.api.repository.informationrequest.acceptedfact.Informa
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import java.time.Clock
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestAcceptedFactStanding @Inject constructor(
@@ -60,7 +60,7 @@ class InformationRequestAcceptedFactStanding @Inject constructor(
         views(factRepository.findForKey(ownerType, ownerId, subjectIdentityRefId, fieldDefinitionIds, purposeKey))
             .filter {
                 it.revocation == null && it.supersededByFactId == null &&
-                    it.freshness == InformationRequestAcceptedFactFreshness.CURRENT
+                        it.freshness == InformationRequestAcceptedFactFreshness.CURRENT
             }
             .map { it.fact }
 
@@ -69,9 +69,12 @@ class InformationRequestAcceptedFactStanding @Inject constructor(
         val now = clock.instant()
         return when
         {
-            fact.expiresAt?.toInstant()?.let { !it.isAfter(now) } == true -> InformationRequestAcceptedFactFreshness.EXPIRED
+            fact.expiresAt?.toInstant()
+                ?.let { !it.isAfter(now) } == true -> InformationRequestAcceptedFactFreshness.EXPIRED
+
             fact.validFrom.toInstant().isAfter(now) || fact.validTo?.toInstant()?.let { !it.isAfter(now) } == true ->
                 InformationRequestAcceptedFactFreshness.OUTSIDE_VALID_PERIOD
+
             else -> InformationRequestAcceptedFactFreshness.CURRENT
         }
     }

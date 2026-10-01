@@ -1,11 +1,6 @@
 package com.docuhyphen.app.api.service.informationrequest.response
 
-import com.docuhyphen.app.api.model.entity.InformationRequest
-import com.docuhyphen.app.api.model.entity.InformationRequestRequiredness
-import com.docuhyphen.app.api.model.entity.InformationRequestRequirement
-import com.docuhyphen.app.api.model.entity.InformationRequestResponse
-import com.docuhyphen.app.api.model.entity.InformationRequestResponseDisposition
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateRequirementBinding
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.informationrequest.condition.InformationRequestConditionEvaluationProjection
 import com.docuhyphen.app.api.model.informationrequest.condition.InformationRequestConditionEvaluationState
 import com.docuhyphen.app.api.model.informationrequest.response.InformationRequestCompletenessContribution
@@ -28,7 +23,7 @@ import jakarta.enterprise.context.ApplicationScoped
 import jakarta.enterprise.inject.Any
 import jakarta.enterprise.inject.Instance
 import jakarta.inject.Inject
-import java.util.UUID
+import java.util.*
 
 interface InformationRequestCompletenessContributionEvaluator
 {
@@ -136,10 +131,12 @@ class InformationRequestCompletenessProgressService @Inject constructor(
         val state = when
         {
             binding.requiredness == InformationRequestRequiredness.CONDITIONAL &&
-                conditionState != InformationRequestConditionEvaluationState.TRUE ->
+                    conditionState != InformationRequestConditionEvaluationState.TRUE ->
                 InformationRequestCompletenessItemState.HIDDEN
+
             binding.requiredness == InformationRequestRequiredness.OPTIONAL && !answerComplete ->
                 InformationRequestCompletenessItemState.OPTIONAL_UNANSWERED
+
             answerComplete -> InformationRequestCompletenessItemState.COMPLETE
             else -> InformationRequestCompletenessItemState.INCOMPLETE
         }
@@ -149,7 +146,7 @@ class InformationRequestCompletenessProgressService @Inject constructor(
             occurrencePath = requirement.occurrencePath,
             state = state,
             contributesToDenominator = state == InformationRequestCompletenessItemState.COMPLETE ||
-                state == InformationRequestCompletenessItemState.INCOMPLETE,
+                    state == InformationRequestCompletenessItemState.INCOMPLETE,
             contributesToNumerator = state == InformationRequestCompletenessItemState.COMPLETE,
         )
     }
@@ -164,8 +161,9 @@ class InformationRequestCompletenessProgressService @Inject constructor(
         if (collectedFieldDefinitionIds.isEmpty() || valueSetIds.isEmpty()) return emptyMap()
 
         val values = valueSetIds.flatMap { fieldValueRepository.findByValueSet(it) }
-        val fieldDefinitionIdByContractId = fieldContractRepository.findByIds(values.map { it.fieldContractId }.distinct())
-            .associate { it.id to it.fieldDefinitionId }
+        val fieldDefinitionIdByContractId =
+            fieldContractRepository.findByIds(values.map { it.fieldContractId }.distinct())
+                .associate { it.id to it.fieldDefinitionId }
         return values.mapNotNull { value ->
             val fieldDefinitionId = fieldDefinitionIdByContractId[value.fieldContractId] ?: return@mapNotNull null
             if (fieldDefinitionId !in collectedFieldDefinitionIds) return@mapNotNull null
@@ -193,7 +191,7 @@ class InformationRequestCompletenessProgressService @Inject constructor(
 
     private fun InformationRequestResponseDisposition.isCompletingException(): Boolean =
         this != InformationRequestResponseDisposition.NOT_ANSWERED &&
-            this != InformationRequestResponseDisposition.PROVIDED
+                this != InformationRequestResponseDisposition.PROVIDED
 
     private fun percent(completed: Int, total: Int): Int =
         if (total == 0) 100 else completed * 100 / total

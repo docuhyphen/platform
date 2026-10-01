@@ -1,26 +1,9 @@
 package com.docuhyphen.app.api.service.informationrequest.evidence
 
 import com.docuhyphen.app.api.model.document.DocumentVersionContentVerification
-import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceAttribute
-import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceAttributeRequirement
-import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceConformancePolicy
-import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceWaiverPolicy
-import com.docuhyphen.app.api.model.entity.InformationRequestResponseDisposition
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceAttributes
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceCapturedAttribute
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceConformance
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceCoverage
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceFinding
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceFindingCode
+import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.informationrequest.evidence.*
 import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceFindingCode.*
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceMalwareOutcome
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceMediaTypes
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidencePolicy
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceRequirementEvaluation
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceRequirementState
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceStanding
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceVersionEvaluation
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceVersionFacts
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 
@@ -78,7 +61,9 @@ object InformationRequestEvidencePolicyEvaluator
         }
         if (conforming.isNotEmpty())
         {
-            findings += coverageFindings(policy, currentFacts.filter { facts -> conforming.any { it.versionId == facts.versionId } })
+            findings += coverageFindings(
+                policy,
+                currentFacts.filter { facts -> conforming.any { it.versionId == facts.versionId } })
         }
         if (current.isNotEmpty() && conforming.size < policy.minimumFileCount)
         {
@@ -91,8 +76,10 @@ object InformationRequestEvidencePolicyEvaluator
             {
                 InformationRequestEvidenceWaiverPolicy.RESPONDENT_DECLARED ->
                     return result(InformationRequestEvidenceRequirementState.WAIVED, findings, evaluations)
+
                 InformationRequestEvidenceWaiverPolicy.REVIEW_APPROVAL_REQUIRED ->
                     return result(InformationRequestEvidenceRequirementState.WAIVER_REQUESTED, findings, evaluations)
+
                 InformationRequestEvidenceWaiverPolicy.NOT_PERMITTED ->
                     findings += finding(WAIVER_NOT_PERMITTED)
             }
@@ -108,7 +95,12 @@ object InformationRequestEvidencePolicyEvaluator
         }
         if (substituteSatisfied && everyCurrentFileConforms)
         {
-            return result(InformationRequestEvidenceRequirementState.SATISFIED, findings, evaluations, bySubstitute = true)
+            return result(
+                InformationRequestEvidenceRequirementState.SATISFIED,
+                findings,
+                evaluations,
+                bySubstitute = true
+            )
         }
         if (current.isEmpty())
         {
@@ -117,7 +109,7 @@ object InformationRequestEvidencePolicyEvaluator
 
         val deficient = current.filter {
             it.conformance != InformationRequestEvidenceConformance.CONFORMING &&
-                it.conformance != InformationRequestEvidenceConformance.PENDING
+                    it.conformance != InformationRequestEvidenceConformance.PENDING
         }
         val pending = current.filter { it.conformance == InformationRequestEvidenceConformance.PENDING }
         if (pending.isNotEmpty() && deficient.isEmpty() && requirementDeficiencies.isEmpty())
@@ -125,11 +117,12 @@ object InformationRequestEvidencePolicyEvaluator
             return result(InformationRequestEvidenceRequirementState.PENDING_ASSESSMENT, findings, evaluations)
         }
 
-        val reviewable = policy.conformancePolicy == InformationRequestEvidenceConformancePolicy.DEFICIENCY_REVIEWABLE &&
-            pending.isEmpty() &&
-            deficient.all { version -> version.conformance == InformationRequestEvidenceConformance.DEFICIENT } &&
-            deficient.none { version -> version.findings.any { it.code.excludesReview() } } &&
-            conforming.size + deficient.size >= policy.minimumFileCount
+        val reviewable =
+            policy.conformancePolicy == InformationRequestEvidenceConformancePolicy.DEFICIENCY_REVIEWABLE &&
+                    pending.isEmpty() &&
+                    deficient.all { version -> version.conformance == InformationRequestEvidenceConformance.DEFICIENT } &&
+                    deficient.none { version -> version.findings.any { it.code.excludesReview() } } &&
+                    conforming.size + deficient.size >= policy.minimumFileCount
         if (reviewable)
         {
             return result(InformationRequestEvidenceRequirementState.REVIEWABLE, findings, evaluations)
@@ -155,7 +148,10 @@ object InformationRequestEvidencePolicyEvaluator
         val malware = facts.malware
         when
         {
-            malware?.outcome == InformationRequestEvidenceMalwareOutcome.MALWARE_DETECTED -> findings += finding(MALWARE_DETECTED)
+            malware?.outcome == InformationRequestEvidenceMalwareOutcome.MALWARE_DETECTED -> findings += finding(
+                MALWARE_DETECTED
+            )
+
             !malwareScanRequired -> Unit
             malware == null -> findings += finding(NOT_SCANNED)
             !malware.outcome.settled -> findings += finding(SCAN_INCOMPLETE, malware.outcome.name)
@@ -186,7 +182,8 @@ object InformationRequestEvidencePolicyEvaluator
         {
             findings += finding(CONTENT_TYPE_NOT_ACCEPTED, detected)
         }
-        val declared = facts.declaredMediaType?.let(InformationRequestEvidenceMediaTypes::canonical)?.takeIf { it != UNDECLARED_MEDIA_TYPE }
+        val declared = facts.declaredMediaType?.let(InformationRequestEvidenceMediaTypes::canonical)
+            ?.takeIf { it != UNDECLARED_MEDIA_TYPE }
         if (declared != null && detected != null && declared != detected)
         {
             findings += finding(CONTENT_TYPE_MISMATCH, declared)
@@ -199,7 +196,7 @@ object InformationRequestEvidencePolicyEvaluator
             {
                 pages == null -> findings += finding(PAGE_COUNT_UNKNOWN)
                 policy.minimumPageCount?.let { pages < it } == true ||
-                    policy.maximumPageCount?.let { pages > it } == true ->
+                        policy.maximumPageCount?.let { pages > it } == true ->
                     findings += finding(PAGE_COUNT_OUT_OF_RANGE, "$pages")
             }
         }
@@ -242,7 +239,10 @@ object InformationRequestEvidencePolicyEvaluator
         attributes.issuedOn?.let { issuedOn ->
             if (issuedOn.isAfter(asOf)) findings += finding(ISSUED_IN_FUTURE)
             policy.maximumIssueAgeDays?.let { maximumAge ->
-                if (ChronoUnit.DAYS.between(issuedOn, asOf) > maximumAge) findings += finding(ISSUE_TOO_OLD, "$maximumAge")
+                if (ChronoUnit.DAYS.between(issuedOn, asOf) > maximumAge) findings += finding(
+                    ISSUE_TOO_OLD,
+                    "$maximumAge"
+                )
             }
         }
         attributes.expiresOn?.let { expiresOn ->
@@ -253,7 +253,10 @@ object InformationRequestEvidencePolicyEvaluator
             else
             {
                 policy.minimumRemainingValidityDays?.let { minimum ->
-                    if (ChronoUnit.DAYS.between(asOf, expiresOn) < minimum) findings += finding(VALIDITY_TOO_SHORT, "$minimum")
+                    if (ChronoUnit.DAYS.between(asOf, expiresOn) < minimum) findings += finding(
+                        VALIDITY_TOO_SHORT,
+                        "$minimum"
+                    )
                 }
             }
         }
@@ -272,7 +275,8 @@ object InformationRequestEvidencePolicyEvaluator
             val last = merged.lastOrNull()
             if (last != null && !period.startsOn.isAfter(last.endsOn.plusDays(1)))
             {
-                merged[merged.lastIndex] = InformationRequestEvidenceCoverage(last.startsOn, maxOf(last.endsOn, period.endsOn))
+                merged[merged.lastIndex] =
+                    InformationRequestEvidenceCoverage(last.startsOn, maxOf(last.endsOn, period.endsOn))
             }
             else
             {

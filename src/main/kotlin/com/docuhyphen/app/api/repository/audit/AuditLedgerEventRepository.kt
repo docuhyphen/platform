@@ -18,7 +18,10 @@ class AuditLedgerEventRepository : BaseRepository<AuditLedgerEvent>(AuditLedgerE
     fun findByEventIds(eventIds: Collection<UUID>): List<AuditLedgerEvent>
     {
         if (eventIds.isEmpty()) return emptyList()
-        return entityManager.createQuery("SELECT e FROM AuditLedgerEvent e WHERE e.eventId IN :eventIds", AuditLedgerEvent::class.java)
+        return entityManager.createQuery(
+            "SELECT e FROM AuditLedgerEvent e WHERE e.eventId IN :eventIds",
+            AuditLedgerEvent::class.java
+        )
             .setParameter("eventIds", eventIds)
             .resultList
     }
@@ -427,7 +430,10 @@ class AuditLedgerEventRepository : BaseRepository<AuditLedgerEvent>(AuditLedgerE
 
     fun countAll(): Long
     {
-        return entityManager.createQuery("SELECT COUNT(l) FROM AuditLedgerEvent l", Long::class.javaObjectType).singleResult
+        return entityManager.createQuery(
+            "SELECT COUNT(l) FROM AuditLedgerEvent l",
+            Long::class.javaObjectType
+        ).singleResult
     }
 
     fun countByOrganization(organizationId: UUID?, platformOnly: Boolean): Long

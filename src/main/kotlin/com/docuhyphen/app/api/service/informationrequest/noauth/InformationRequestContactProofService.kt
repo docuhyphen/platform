@@ -1,11 +1,6 @@
 package com.docuhyphen.app.api.service.informationrequest.noauth
 
-import com.docuhyphen.app.api.model.entity.InformationRequestParty
-import com.docuhyphen.app.api.model.entity.PrincipalKind
-import com.docuhyphen.app.api.model.entity.RequestAccessSessionVerificationStrength
-import com.docuhyphen.app.api.model.entity.ShareLink
-import com.docuhyphen.app.api.model.entity.ShareLinkMode
-import com.docuhyphen.app.api.model.entity.ShareLinkStatus
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.informationrequest.noauth.IssuedRequestAccessSession
 import com.docuhyphen.app.api.repository.exchange.ExternalParticipantRepository
 import com.docuhyphen.app.api.repository.exchange.ShareLinkRepository
@@ -129,9 +124,9 @@ class InformationRequestContactProofService @Inject constructor(
     {
         val tokenHash = hash(rawToken)
         val shareLink = (
-            if (lockLink) shareLinkRepository.findByTokenHashForUpdate(tokenHash)
-            else shareLinkRepository.findByTokenHash(tokenHash)
-            )
+                if (lockLink) shareLinkRepository.findByTokenHashForUpdate(tokenHash)
+                else shareLinkRepository.findByTokenHash(tokenHash)
+                )
             ?: throw InformationRequestLifecycleException(
                 InformationRequestErrorCatalog.ACCESS_LINK_INVALID,
                 "Invalid or unknown access link",
@@ -210,8 +205,10 @@ class InformationRequestContactProofService @Inject constructor(
         {
             PrincipalKind.PARTICIPANT ->
                 party.principalId?.let { externalParticipantRepository.findById(it)?.email }
+
             PrincipalKind.USER ->
                 party.principalId?.let { appUserService.getById(it)?.email }
+
             else -> null
         }
 

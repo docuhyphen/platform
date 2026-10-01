@@ -6,7 +6,7 @@ import com.docuhyphen.app.api.service.subscription.SubscriptionAccessService
 import com.docuhyphen.app.api.service.subscription.SubscriptionContext
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestTemplateEntitlementGuard @Inject constructor(
@@ -65,15 +65,16 @@ class InformationRequestTemplateEntitlementGuard @Inject constructor(
     {
         val owner = when (scopeKind)
         {
-            InformationRequestTemplateScopeKind.PLATFORM -> throw
-                InformationRequestTemplateValidationException(
-                    "A PLATFORM information request template has no subscription owner",
-                )
+            InformationRequestTemplateScopeKind.PLATFORM -> throw InformationRequestTemplateValidationException(
+                "A PLATFORM information request template has no subscription owner",
+            )
+
             InformationRequestTemplateScopeKind.ORGANIZATION -> SubscriptionContext.forOrganization(
                 requireNotNull(organizationId) {
                     "An organization-owned information request template names no organization"
                 },
             )
+
             InformationRequestTemplateScopeKind.PERSONAL -> SubscriptionContext.forUser(
                 requireNotNull(userId) {
                     "A personally owned information request template names no person"

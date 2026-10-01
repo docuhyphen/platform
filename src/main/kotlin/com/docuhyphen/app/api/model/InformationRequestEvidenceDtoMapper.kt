@@ -1,21 +1,10 @@
 package com.docuhyphen.app.api.model
 
-import com.docuhyphen.app.api.model.dto.InformationRequestEvidenceArtifactDto
-import com.docuhyphen.app.api.model.dto.InformationRequestEvidenceCommandResultDto
-import com.docuhyphen.app.api.model.dto.InformationRequestEvidenceEvaluationDto
-import com.docuhyphen.app.api.model.dto.InformationRequestEvidenceFindingDto
-import com.docuhyphen.app.api.model.dto.InformationRequestEvidenceListDto
-import com.docuhyphen.app.api.model.dto.InformationRequestEvidenceVersionDto
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceArtifactView
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceCommandResult
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceFinding
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceList
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceRequirementEvaluation
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceVersionEvaluation
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceVersionView
+import com.docuhyphen.app.api.model.dto.*
+import com.docuhyphen.app.api.model.informationrequest.evidence.*
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestETag
-import java.util.UUID
+import java.util.*
 
 object InformationRequestEvidenceDtoMapper
 {
@@ -30,7 +19,10 @@ object InformationRequestEvidenceDtoMapper
         )
     }
 
-    fun toDto(result: InformationRequestEvidenceCommandResult, caller: PrincipalRef): InformationRequestEvidenceCommandResultDto =
+    fun toDto(
+        result: InformationRequestEvidenceCommandResult,
+        caller: PrincipalRef
+    ): InformationRequestEvidenceCommandResultDto =
         InformationRequestEvidenceCommandResultDto(
             artifact = toDto(result.artifact, caller).copy(etag = result.artifactETag),
             evidenceETag = result.evidenceETag,

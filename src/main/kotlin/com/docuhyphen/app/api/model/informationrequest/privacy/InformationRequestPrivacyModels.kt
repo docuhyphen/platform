@@ -1,12 +1,8 @@
 package com.docuhyphen.app.api.model.informationrequest.privacy
 
-import com.docuhyphen.app.api.model.entity.InformationRequestItemCorrection
-import com.docuhyphen.app.api.model.entity.InformationRequestPrivacyRequest
-import com.docuhyphen.app.api.model.entity.InformationRequestPrivacyRequestKind
-import com.docuhyphen.app.api.model.entity.InformationRequestPrivacyTargetOutcome
-import com.docuhyphen.app.api.model.entity.InformationRequestSubjectRestriction
+import com.docuhyphen.app.api.model.entity.*
 import kotlinx.serialization.json.JsonElement
-import java.util.UUID
+import java.util.*
 
 data class InformationRequestItemCorrectionInput(
     val submissionItemId: UUID,

@@ -20,30 +20,30 @@ class ExchangeRepository : BaseRepository<Exchange>(Exchange::class.java)
          */
         private const val PENDING_PRIMARY_ACCESS =
             "EXISTS (SELECT er FROM ExchangeRecipient er, Share psh " +
-                "WHERE er.exchangeId = s.id AND er.purpose = :primaryPurpose " +
-                "AND er.acceptanceStatus = :pendingAcceptanceStatus " +
-                "AND psh.id = er.directShareId AND psh.status = :pendingShareStatus " +
-                "AND ((psh.principalKind = :upk AND psh.principalId = :appUserId) OR " +
-                "(psh.principalKind = :gpk AND EXISTS (SELECT pgm FROM PrincipalGroupMember pgm " +
-                "WHERE pgm.principalGroupId = psh.principalId AND pgm.principalKind = :upk " +
-                "AND pgm.principalId = :appUserId AND pgm.isActive = true " +
-                "AND pgm.groupRole IN :decisionGroupRoles))) " +
-                "AND (psh.expiresAt IS NULL OR psh.expiresAt > CURRENT_TIMESTAMP))"
+                    "WHERE er.exchangeId = s.id AND er.purpose = :primaryPurpose " +
+                    "AND er.acceptanceStatus = :pendingAcceptanceStatus " +
+                    "AND psh.id = er.directShareId AND psh.status = :pendingShareStatus " +
+                    "AND ((psh.principalKind = :upk AND psh.principalId = :appUserId) OR " +
+                    "(psh.principalKind = :gpk AND EXISTS (SELECT pgm FROM PrincipalGroupMember pgm " +
+                    "WHERE pgm.principalGroupId = psh.principalId AND pgm.principalKind = :upk " +
+                    "AND pgm.principalId = :appUserId AND pgm.isActive = true " +
+                    "AND pgm.groupRole IN :decisionGroupRoles))) " +
+                    "AND (psh.expiresAt IS NULL OR psh.expiresAt > CURRENT_TIMESTAMP))"
 
         private const val ACCESSIBLE =
             "(s.initiator.id = :appUserId OR EXISTS (" +
-                "SELECT sh FROM Share sh WHERE sh.resourceType = :srt AND sh.resourceId = s.id " +
-                "AND sh.principalKind = :upk AND sh.principalId = :appUserId AND sh.status = :ass " +
-                "AND (sh.expiresAt IS NULL OR sh.expiresAt > CURRENT_TIMESTAMP)) OR " +
-                PENDING_PRIMARY_ACCESS + ")"
+                    "SELECT sh FROM Share sh WHERE sh.resourceType = :srt AND sh.resourceId = s.id " +
+                    "AND sh.principalKind = :upk AND sh.principalId = :appUserId AND sh.status = :ass " +
+                    "AND (sh.expiresAt IS NULL OR sh.expiresAt > CURRENT_TIMESTAMP)) OR " +
+                    PENDING_PRIMARY_ACCESS + ")"
 
         private const val ARCHIVED_VISIBLE =
             "(s.status IN :archivedStatuses AND (s.initiator.id = :appUserId OR EXISTS (" +
-                "SELECT ash FROM Share ash WHERE ash.resourceType = :srt AND ash.resourceId = s.id " +
-                "AND ash.principalKind = :upk AND ash.principalId = :appUserId " +
-                "AND s.endDate IS NOT NULL AND ash.grantedAt <= s.endDate " +
-                "AND (ash.expiresAt IS NULL OR ash.expiresAt >= s.endDate) " +
-                "AND (ash.revokedAt IS NULL OR ash.revokedAt >= s.endDate))))"
+                    "SELECT ash FROM Share ash WHERE ash.resourceType = :srt AND ash.resourceId = s.id " +
+                    "AND ash.principalKind = :upk AND ash.principalId = :appUserId " +
+                    "AND s.endDate IS NOT NULL AND ash.grantedAt <= s.endDate " +
+                    "AND (ash.expiresAt IS NULL OR ash.expiresAt >= s.endDate) " +
+                    "AND (ash.revokedAt IS NULL OR ash.revokedAt >= s.endDate))))"
 
         private const val ACCESSIBLE_OR_ARCHIVED = "($ACCESSIBLE OR $ARCHIVED_VISIBLE)"
 
@@ -64,9 +64,9 @@ class ExchangeRepository : BaseRepository<Exchange>(Exchange::class.java)
          */
         private const val DRAFT_VISIBLE =
             "(s.status <> :initiatedStatus OR s.initiator.id = :appUserId OR EXISTS (" +
-                "SELECT sh2 FROM Share sh2 WHERE sh2.resourceType = :srt AND sh2.resourceId = s.id " +
-                "AND sh2.principalKind = :upk AND sh2.principalId = :appUserId AND sh2.status = :ass " +
-                "AND (sh2.expiresAt IS NULL OR sh2.expiresAt > CURRENT_TIMESTAMP) " +
+                    "SELECT sh2 FROM Share sh2 WHERE sh2.resourceType = :srt AND sh2.resourceId = s.id " +
+                    "AND sh2.principalKind = :upk AND sh2.principalId = :appUserId AND sh2.status = :ass " +
+                    "AND (sh2.expiresAt IS NULL OR sh2.expiresAt > CURRENT_TIMESTAMP) " +
                     "AND sh2.roleName <> 'PARTICIPANT') OR " + PENDING_PRIMARY_ACCESS + ")"
 
         /**
@@ -80,23 +80,23 @@ class ExchangeRepository : BaseRepository<Exchange>(Exchange::class.java)
          */
         private const val SEARCH_PREDICATE =
             " AND (" +
-                "LOWER(s.name) LIKE LOWER(:query) " +
-                "OR LOWER(s.description) LIKE LOWER(:query) " +
-                "OR LOWER(s.initiator.email) LIKE LOWER(:query) " +
-                "OR EXISTS (SELECT rsh FROM Share rsh, AppUser ru " +
+                    "LOWER(s.name) LIKE LOWER(:query) " +
+                    "OR LOWER(s.description) LIKE LOWER(:query) " +
+                    "OR LOWER(s.initiator.email) LIKE LOWER(:query) " +
+                    "OR EXISTS (SELECT rsh FROM Share rsh, AppUser ru " +
                     "WHERE rsh.resourceType = :srt AND rsh.resourceId = s.id " +
                     "AND rsh.principalKind = :upk AND rsh.status = :ass " +
                     "AND ru.id = rsh.principalId AND LOWER(ru.email) LIKE LOWER(:query)) " +
-                "OR EXISTS (SELECT psh FROM Share psh, ExternalParticipant ep " +
+                    "OR EXISTS (SELECT psh FROM Share psh, ExternalParticipant ep " +
                     "WHERE psh.resourceType = :srt AND psh.resourceId = s.id " +
                     "AND psh.principalKind = :ppk AND psh.status = :ass " +
                     "AND ep.id = psh.principalId " +
                     "AND (LOWER(ep.email) LIKE LOWER(:query) OR LOWER(ep.displayName) LIKE LOWER(:query))) " +
-                "OR EXISTS (SELECT gsh FROM Share gsh, PrincipalGroup pg " +
+                    "OR EXISTS (SELECT gsh FROM Share gsh, PrincipalGroup pg " +
                     "WHERE gsh.resourceType = :srt AND gsh.resourceId = s.id " +
                     "AND gsh.principalKind = :gpk AND gsh.status = :ass " +
                     "AND pg.id = gsh.principalId AND LOWER(pg.name) LIKE LOWER(:query))" +
-            ")"
+                    ")"
     }
 
     /** Binds the extra principal-kind params used by [SEARCH_PREDICATE]. */
@@ -106,14 +106,20 @@ class ExchangeRepository : BaseRepository<Exchange>(Exchange::class.java)
         query.setParameter("gpk", PrincipalKind.PRINCIPAL_GROUP)
     }
 
-    private fun <T> bindAccess(query: jakarta.persistence.TypedQuery<T>, userId: UUID): jakarta.persistence.TypedQuery<T> =
+    private fun <T> bindAccess(
+        query: jakarta.persistence.TypedQuery<T>,
+        userId: UUID
+    ): jakarta.persistence.TypedQuery<T> =
         query
             .setParameter("appUserId", userId)
             .setParameter("srt", ResourceType.EXCHANGE)
             .setParameter("upk", PrincipalKind.USER)
             .setParameter("ass", ShareStatus.ACTIVE)
 
-    private fun <T> bindAccessible(query: jakarta.persistence.TypedQuery<T>, userId: UUID): jakarta.persistence.TypedQuery<T> =
+    private fun <T> bindAccessible(
+        query: jakarta.persistence.TypedQuery<T>,
+        userId: UUID
+    ): jakarta.persistence.TypedQuery<T> =
         bindAccess(query, userId)
             .setParameter("primaryPurpose", ExchangeRecipientPurpose.PRIMARY)
             .setParameter("pendingAcceptanceStatus", ExchangeRecipientAcceptanceStatus.PENDING)
@@ -128,7 +134,8 @@ class ExchangeRepository : BaseRepository<Exchange>(Exchange::class.java)
                 setOf(PrincipalGroupRoleName.OWNER, PrincipalGroupRoleName.MANAGER),
             )
 
-    fun userHasExchanges(userId: UUID): Boolean {
+    fun userHasExchanges(userId: UUID): Boolean
+    {
         val count = bindAccessible(
             entityManager.createQuery(
                 "SELECT COUNT(DISTINCT s) FROM Exchange s WHERE $ACCESSIBLE_OR_ARCHIVED AND s.isDeleted = false",
@@ -310,7 +317,8 @@ class ExchangeRepository : BaseRepository<Exchange>(Exchange::class.java)
 
         queryBuilder.append(" ORDER BY s.$safeSort $safeDirection")
 
-        val jpaQuery = bindAccessible(entityManager.createQuery(queryBuilder.toString(), Exchange::class.java), appUserId)
+        val jpaQuery =
+            bindAccessible(entityManager.createQuery(queryBuilder.toString(), Exchange::class.java), appUserId)
         jpaQuery.setParameter("initiatedStatus", ExchangeStatus.INITIATED)
 
         if (!query.isNullOrBlank())

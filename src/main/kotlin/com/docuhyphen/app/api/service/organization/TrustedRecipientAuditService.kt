@@ -11,7 +11,7 @@ import com.docuhyphen.app.api.service.audit.catalog.AuditOutcome
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class TrustedRecipientAuditService @Inject constructor(

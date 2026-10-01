@@ -1,10 +1,9 @@
 package com.docuhyphen.app.api.repository.auth
 
-import com.docuhyphen.app.api.repository.BaseRepository
-
 import com.docuhyphen.app.api.model.entity.AuthenticatorEnrollment
+import com.docuhyphen.app.api.repository.BaseRepository
 import jakarta.enterprise.context.RequestScoped
-import java.util.UUID
+import java.util.*
 
 @RequestScoped
 class AuthenticatorEnrollmentRepository : BaseRepository<AuthenticatorEnrollment>(AuthenticatorEnrollment::class.java)

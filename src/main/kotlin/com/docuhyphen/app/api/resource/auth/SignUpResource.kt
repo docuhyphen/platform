@@ -1,290 +1,249 @@
 package com.docuhyphen.app.api.resource.auth
 
-import com.docuhyphen.app.api.exception.SubscriptionDenialException
-
-import com.docuhyphen.app.api.resource.ResourceEndpointDelayHelper
-
 import com.docuhyphen.app.api.exception.*
+import com.docuhyphen.app.api.resource.ResourceEndpointDelayHelper
+import com.docuhyphen.app.api.resource.auth.operations.SignUpResourceOperations
 import com.docuhyphen.app.api.resource.model.*
+import com.docuhyphen.app.api.service.auth.ClientIpResolver
 import com.docuhyphen.app.api.service.auth.SignUpService
+import io.vertx.core.http.HttpServerRequest
 import jakarta.inject.Inject
-import jakarta.ws.rs.Consumes
-import jakarta.ws.rs.GET
-import jakarta.ws.rs.POST
-import jakarta.ws.rs.Path
-import jakarta.ws.rs.PathParam
-import jakarta.ws.rs.Produces
-import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
-import jakarta.ws.rs.core.Response.Status.BAD_REQUEST
-import jakarta.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR
-import jakarta.ws.rs.core.Response.Status.NOT_FOUND
+import jakarta.ws.rs.core.Response.Status.*
 import org.slf4j.LoggerFactory
 
-@Path("/auth/sign-up")
-@Produces(MediaType.APPLICATION_JSON)
-@Consumes(MediaType.APPLICATION_JSON)
 class SignUpResource @Inject constructor(
     private val signUpService: SignUpService,
-)
+    private val clientIpResolver: ClientIpResolver,
+) : SignUpResourceOperations
 {
-    companion object
+    override fun initiateSignUp(
+        request: HttpServerRequest,
+        requestId: String?,
+        payload: SignUpInitiateRequest,
+    ): Response
     {
-        private val logger = LoggerFactory.getLogger(SignUpResource::class.java)
-    }
-
-    @POST
-    @Path("/initiation")
-    fun initiateSignUp(payload: SignUpInitiateRequest): Response
-    {
-        val genericInitiationMessage = "If the email is eligible, we've sent a verification code."
-
-        return ResourceEndpointDelayHelper.withFixedFloor(1500) { try
-        {
-            signUpService.initiateSignUp(payload.email)
-
-            val signUpInitiateResponse =
-                SignUpInitiateResponse(message = genericInitiationMessage)
-            Response.ok(signUpInitiateResponse).build()
-        }
-        catch (exception: Exception)
-        {
-            when (exception)
+        return ResourceEndpointDelayHelper.withFixedFloor(1500) {
+            try
             {
-                is ExistingSignUpException ->
+                signUpService.initiateSignUp(payload.email, clientIpResolver.resolve(request), requestId)
+                Response.ok(SignUpInitiateResponse(message = GENERIC_INITIATION_MESSAGE)).build()
+            }
+            catch (exception: Exception)
+            {
+                when (exception)
                 {
-                    val signUpInitiateResponse = SignUpInitiateResponse(message = genericInitiationMessage)
-                    Response.ok(signUpInitiateResponse).build()
-                }
+                    is SignUpRateLimitedException -> tooManyRequests(exception)
 
-                is AppUserExistsException,
-                is EmailExistsException ->
-                {
-                    val signUpInitiateResponse = SignUpInitiateResponse(message = genericInitiationMessage)
-                    Response.ok(signUpInitiateResponse).build()
-                }
+                    is EmailRequiredException,
+                    is DisposableEmailAddressException,
+                    is InvalidEmailException -> badRequest(exception)
 
-                is EmailRequiredException,
-                is DisposableEmailAddressException,
-                is InvalidEmailException -> Response.status(BAD_REQUEST).entity(ResponseError(exception.message))
-                    .build()
-
-                else ->
-                {
-                    logger.error("Error initiating sign up", exception)
-                    val responseError = ResponseError("A server error occurred while signing up.")
-                    Response.status(INTERNAL_SERVER_ERROR).entity(responseError).build()
+                    else ->
+                    {
+                        logger.error("Error initiating sign up", exception)
+                        serverError("A server error occurred while signing up.")
+                    }
                 }
             }
-
-        }
         }
     }
 
-    @POST
-    @Path("/completion")
-    fun completeSignUp(signUpRequest: SignUpCompletionRequest): Response
+    override fun completeSignUp(
+        request: HttpServerRequest,
+        requestId: String?,
+        signUpRequest: SignUpCompletionRequest,
+    ): Response
     {
-        return ResourceEndpointDelayHelper.withFixedFloor(1200) { try
-        {
-            with(signUpRequest) {
-                signUpService.completeSignUp(email, otp, password, confirmationPassword)
-            }
-
-            val signUpCompletionResponse = SignUpCompletionResponse("Sign up successful!")
-
-            Response.ok(signUpCompletionResponse).build()
-        }
-        catch (exception: Exception)
-        {
-            when (exception)
+        return ResourceEndpointDelayHelper.withFixedFloor(1200) {
+            try
             {
-                is SubscriptionDenialException ->
-                {
-                    logger.error("Subscription denied while completing sign up", exception)
-                    throw exception
+                with(signUpRequest) {
+                    signUpService.completeSignUp(
+                        email,
+                        otp,
+                        password,
+                        confirmationPassword,
+                        clientIpResolver.resolve(request),
+                        requestId,
+                    )
                 }
-
-                is EmailRequiredException,
-                is AppUserExistsException,
-                is InvalidEmailException,
-                is InvalidOtpException,
-                is PasswordRequiredException,
-                is ConfirmationPasswordRequiredException,
-                is PasswordRequirementsNotMetException,
-                is PasswordMismatchException,
-                is EmailNotFoundException,
-                is MaxAttemptsOTPExceededException,
-                is IncorrectSignUpCompletionStatusException,
-                is OtpRequiredException,
-                is PasswordContainsEmailException,
-                is OTPExpiredException,
-                is OtpMaxRetryLimitReachedException ->
+                Response.ok(SignUpCompletionResponse("Sign up successful!")).build()
+            }
+            catch (exception: Exception)
+            {
+                when (exception)
                 {
-                    val responseError = ResponseError(exception.message)
-                    Response.status(BAD_REQUEST)
-                        .entity(responseError)
-                        .build()
-                }
+                    is SubscriptionDenialException ->
+                    {
+                        logger.error("Subscription denied while completing sign up", exception)
+                        throw exception
+                    }
 
-                else ->
-                {
-                    logger.error("Error completing sign up", exception)
-                    val responseError = ResponseError("A server error occurred while completing sign up.")
-                    Response.status(INTERNAL_SERVER_ERROR)
-                        .entity(responseError)
-                        .build()
+                    is SignUpRateLimitedException -> tooManyRequests(exception)
+
+                    is EmailRequiredException,
+                    is InvalidEmailException,
+                    is OtpRequiredException,
+                    is PasswordRequiredException,
+                    is ConfirmationPasswordRequiredException,
+                    is PasswordRequirementsNotMetException,
+                    is PasswordMismatchException,
+                    is PasswordContainsEmailException,
+                    is SignUpVerificationRejectedException,
+                    is SignUpVerificationBusyException,
+                    is AppUserExistsException -> badRequest(exception)
+
+                    else ->
+                    {
+                        logger.error("Error completing sign up", exception)
+                        serverError("A server error occurred while completing sign up.")
+                    }
                 }
             }
-        }
         }
     }
 
-    /**
-     * Introspect a verification-link token without consuming it.
-     *
-     * The frontend hits this on /sign-up/email-confirm page load so it can
-     * display "Verifying you@example.com" before the user submits a password
-     *,  and so an invalid/expired link surfaces immediately instead of after
-     * a wasted password entry.
-     *
-     * Returns 404 for any reason the token can't be resolved (missing, expired,
-     * malformed),  never leaks the distinction.
-     */
-    @GET
-    @Path("/email-confirm/{token}")
-    fun checkEmailConfirmToken(@PathParam("token") token: String?): Response
+    override fun checkEmailConfirmToken(token: String?): Response
     {
-        return ResourceEndpointDelayHelper.withFixedFloor(300) { try
-        {
-            val email = signUpService.peekEmailFromConfirmationToken(token)
+        return ResourceEndpointDelayHelper.withFixedFloor(300) {
+            try
+            {
+                val email = signUpService.peekEmailFromConfirmationToken(token)
 
-            if (email.isNullOrBlank())
-            {
-                val responseError = ResponseError("This verification link is invalid or has expired.")
-                Response.status(NOT_FOUND).entity(responseError).build()
+                if (email.isNullOrBlank())
+                {
+                    invalidLink(InvalidSignUpConfirmationTokenException())
+                }
+                else
+                {
+                    Response.ok(SignUpEmailConfirmCheckResponse(email = email)).build()
+                }
             }
-            else
+            catch (exception: Exception)
             {
-                Response.ok(SignUpEmailConfirmCheckResponse(email = email)).build()
+                logger.error("Error checking sign-up confirmation token", exception)
+                serverError("A server error occurred while validating the verification link.")
             }
-        }
-        catch (exception: Exception)
-        {
-            logger.error("Error checking sign-up confirmation token", exception)
-            val responseError = ResponseError("A server error occurred while validating the verification link.")
-            Response.status(INTERNAL_SERVER_ERROR).entity(responseError).build()
-        }
         }
     }
 
-    /**
-     * Complete sign-up via the opaque-token flow (user clicked the email link).
-     * No OTP, email, or other PII is required from the client,  the token alone
-     * resolves to the verified email address, and the user just supplies their
-     * desired password.
-     *
-     * The token is consumed atomically on successful resolution, so a leaked
-     * URL can't be replayed after the first valid use.
-     */
-    @POST
-    @Path("/email-confirm")
-    fun confirmEmailWithToken(request: SignUpEmailConfirmRequest): Response
+    override fun confirmEmailWithToken(
+        request: HttpServerRequest,
+        requestId: String?,
+        confirmRequest: SignUpEmailConfirmRequest,
+    ): Response
     {
-        return ResourceEndpointDelayHelper.withFixedFloor(1200) { try
-        {
-            with(request) {
-                signUpService.completeSignUpViaToken(token, password, confirmationPassword)
-            }
-            Response.ok(SignUpEmailConfirmResponse("Sign up successful!")).build()
-        }
-        catch (exception: Exception)
-        {
-            when (exception)
+        return ResourceEndpointDelayHelper.withFixedFloor(1200) {
+            try
             {
-                is SubscriptionDenialException ->
-                {
-                    logger.error("Subscription denied while confirming sign up via token", exception)
-                    throw exception
+                with(confirmRequest) {
+                    signUpService.completeSignUpViaToken(
+                        token,
+                        password,
+                        confirmationPassword,
+                        clientIpResolver.resolve(request),
+                        requestId,
+                    )
                 }
-
-                is InvalidSignUpConfirmationTokenException ->
+                Response.ok(SignUpEmailConfirmResponse("Sign up successful!")).build()
+            }
+            catch (exception: Exception)
+            {
+                when (exception)
                 {
-                    Response.status(NOT_FOUND)
-                        .entity(ResponseError(exception.message))
-                        .build()
-                }
+                    is SubscriptionDenialException ->
+                    {
+                        logger.error("Subscription denied while confirming sign up via token", exception)
+                        throw exception
+                    }
 
-                is AppUserExistsException,
-                is InvalidEmailException,
-                is PasswordRequiredException,
-                is ConfirmationPasswordRequiredException,
-                is PasswordRequirementsNotMetException,
-                is PasswordMismatchException,
-                is PasswordContainsEmailException,
-                is EmailNotFoundException,
-                is OTPExpiredException ->
-                {
-                    Response.status(BAD_REQUEST)
-                        .entity(ResponseError(exception.message))
-                        .build()
-                }
+                    is SignUpRateLimitedException -> tooManyRequests(exception)
 
-                else ->
-                {
-                    logger.error("Error confirming sign up via token", exception)
-                    val responseError = ResponseError("A server error occurred while completing sign up.")
-                    Response.status(INTERNAL_SERVER_ERROR).entity(responseError).build()
+                    is InvalidSignUpConfirmationTokenException -> invalidLink(exception)
+
+                    is AppUserExistsException,
+                    is PasswordRequiredException,
+                    is ConfirmationPasswordRequiredException,
+                    is PasswordRequirementsNotMetException,
+                    is PasswordMismatchException,
+                    is PasswordContainsEmailException -> badRequest(exception)
+
+                    else ->
+                    {
+                        logger.error("Error confirming sign up via token", exception)
+                        serverError("A server error occurred while completing sign up.")
+                    }
                 }
             }
-        }
         }
     }
 
-    @POST
-    @Path("/otp-regeneration")
-    fun regenerateOtp(request: SignUpRegenerationRequest): Response
+    override fun regenerateOtp(
+        request: HttpServerRequest,
+        requestId: String?,
+        regenerationRequest: SignUpRegenerationRequest,
+    ): Response
     {
-        val genericRegenerationMessage = "If verification is pending for this email, a new code has been sent."
-
-        return ResourceEndpointDelayHelper.withFixedFloor(1200) { try
-        {
-            signUpService.regenerateOtp(request.email)
-            val otpRegenerationResponse =
-                SignUpCompletionResponse(genericRegenerationMessage)
-            Response.ok(otpRegenerationResponse).build()
-        }
-        catch (exception: Exception)
-        {
-            when (exception)
+        return ResourceEndpointDelayHelper.withFixedFloor(1200) {
+            try
             {
-                is EmailNotFoundException,
-                is AppUserExistsException ->
+                signUpService.regenerateOtp(regenerationRequest.email, clientIpResolver.resolve(request), requestId)
+                Response.ok(SignUpCompletionResponse(GENERIC_REGENERATION_MESSAGE)).build()
+            }
+            catch (exception: Exception)
+            {
+                when (exception)
                 {
-                    val otpRegenerationResponse = SignUpCompletionResponse(genericRegenerationMessage)
-                    Response.ok(otpRegenerationResponse).build()
-                }
+                    is SignUpRateLimitedException -> tooManyRequests(exception)
 
-                is EmailRequiredException,
-                is OtpRegenerationCooldownException,
-                is OtpMaxRetryLimitReachedException ->
-                {
-                    val responseError = ResponseError(exception.message)
-                    Response.status(BAD_REQUEST)
-                        .entity(responseError)
-                        .build()
-                }
+                    is SignUpResendCooldownException ->
+                        Response.status(TOO_MANY_REQUESTS)
+                            .header(RETRY_AFTER_HEADER, exception.retryAfterSeconds)
+                            .entity(
+                                ResponseError(
+                                    errorMessage = exception.message,
+                                    reasonCode = RESEND_COOLDOWN_REASON_CODE,
+                                    retryAfterSeconds = exception.retryAfterSeconds,
+                                )
+                            )
+                            .build()
 
-                else ->
-                {
-                    logger.error("Error regenerating OTP", exception)
-                    val responseError = ResponseError("A server error occurred while regenerating OTP.")
-                    Response.status(INTERNAL_SERVER_ERROR)
-                        .entity(responseError)
-                        .build()
+                    is EmailRequiredException,
+                    is InvalidEmailException -> badRequest(exception)
+
+                    else ->
+                    {
+                        logger.error("Error regenerating OTP", exception)
+                        serverError("A server error occurred while regenerating OTP.")
+                    }
                 }
             }
         }
-        }
+    }
+
+    private fun badRequest(exception: Exception): Response =
+        Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
+
+    private fun invalidLink(exception: InvalidSignUpConfirmationTokenException): Response =
+        Response.status(NOT_FOUND)
+            .entity(ResponseError(errorMessage = exception.message, reasonCode = INVALID_LINK_REASON_CODE))
+            .build()
+
+    private fun tooManyRequests(exception: Exception): Response =
+        Response.status(TOO_MANY_REQUESTS).entity(ResponseError(exception.message)).build()
+
+    private fun serverError(message: String): Response =
+        Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError(message)).build()
+
+    private companion object
+    {
+        val logger = LoggerFactory.getLogger(SignUpResource::class.java)
+        const val GENERIC_INITIATION_MESSAGE = "If the email is eligible, we've sent a verification code."
+        const val GENERIC_REGENERATION_MESSAGE = "If verification is pending for this email, a new code has been sent."
+        const val TOO_MANY_REQUESTS = 429
+        const val RETRY_AFTER_HEADER = "Retry-After"
+        const val INVALID_LINK_REASON_CODE = "SIGN_UP_LINK_INVALID"
+        const val RESEND_COOLDOWN_REASON_CODE = "OTP_RATE_LIMITED"
     }
 }

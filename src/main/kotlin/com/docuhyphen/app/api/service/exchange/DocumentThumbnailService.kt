@@ -1,15 +1,14 @@
 package com.docuhyphen.app.api.service.exchange
 
+import com.docuhyphen.app.api.model.dto.DocumentThumbnailResult
 import com.docuhyphen.app.api.model.entity.Document
 import com.docuhyphen.app.api.model.entity.DocumentType
-import com.docuhyphen.app.api.model.dto.DocumentThumbnailResult
 import com.docuhyphen.app.api.service.storage.DocumentThumbnailStorageService
 import com.docuhyphen.app.api.service.storage.FileStorageService
 import jakarta.annotation.PreDestroy
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import org.apache.pdfbox.Loader
-import org.apache.pdfbox.rendering.ImageType as PdfImageType
 import org.apache.pdfbox.rendering.PDFRenderer
 import org.eclipse.microprofile.context.ManagedExecutor
 import org.eclipse.microprofile.context.ThreadContext
@@ -22,6 +21,7 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Semaphore
 import java.util.concurrent.TimeUnit
 import javax.imageio.ImageIO
+import org.apache.pdfbox.rendering.ImageType as PdfImageType
 
 @ApplicationScoped
 class DocumentThumbnailService @Inject constructor(
@@ -141,7 +141,10 @@ class DocumentThumbnailService @Inject constructor(
                 val graphics = scaled.createGraphics()
                 try
                 {
-                    graphics.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC)
+                    graphics.setRenderingHint(
+                        RenderingHints.KEY_INTERPOLATION,
+                        RenderingHints.VALUE_INTERPOLATION_BICUBIC
+                    )
                     graphics.drawImage(rendered, 0, 0, THUMBNAIL_WIDTH, height, null)
                 }
                 finally
@@ -187,4 +190,5 @@ class DocumentThumbnailService @Inject constructor(
     )
 }
 
-class DocumentThumbnailUnavailableException(message: String, cause: Throwable? = null) : RuntimeException(message, cause)
+class DocumentThumbnailUnavailableException(message: String, cause: Throwable? = null) :
+    RuntimeException(message, cause)

@@ -7,15 +7,10 @@ import com.docuhyphen.app.api.resource.model.AdminApprovalInitiateResponse
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.service.auth.AdminApprovalWorkflowService
 import jakarta.inject.Inject
-import jakarta.ws.rs.Consumes
-import jakarta.ws.rs.HeaderParam
-import jakarta.ws.rs.POST
-import jakarta.ws.rs.Path
-import jakarta.ws.rs.PathParam
-import jakarta.ws.rs.Produces
+import jakarta.ws.rs.*
 import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
-import java.util.UUID
+import java.util.*
 
 @Path("/auth/admin-approvals")
 @Produces(MediaType.APPLICATION_JSON)
@@ -40,7 +35,8 @@ class AdminApprovalResource @Inject constructor(
 
             if (!userRoleService.isOrgAdmin(actor.id))
             {
-                return Response.status(Response.Status.FORBIDDEN).entity(ResponseError("Insufficient privileges")).build()
+                return Response.status(Response.Status.FORBIDDEN).entity(ResponseError("Insufficient privileges"))
+                    .build()
             }
 
             if (payload.action.isBlank())
@@ -83,7 +79,8 @@ class AdminApprovalResource @Inject constructor(
 
             if (!userRoleService.isOrgAdmin(actor.id))
             {
-                return Response.status(Response.Status.FORBIDDEN).entity(ResponseError("Insufficient privileges")).build()
+                return Response.status(Response.Status.FORBIDDEN).entity(ResponseError("Insufficient privileges"))
+                    .build()
             }
 
             val approved = adminApprovalWorkflowService.approve(

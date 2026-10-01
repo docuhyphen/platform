@@ -1,13 +1,6 @@
 package com.docuhyphen.app.api.model
 
-import com.docuhyphen.app.api.model.dto.InformationRequestDisposalStandingDto
-import com.docuhyphen.app.api.model.dto.RecordDisposalDto
-import com.docuhyphen.app.api.model.dto.RecordDisposalObjectDto
-import com.docuhyphen.app.api.model.dto.RecordDisposalTombstoneDto
-import com.docuhyphen.app.api.model.dto.RecordPreservationHoldDto
-import com.docuhyphen.app.api.model.dto.RecordPreservationHoldEventDto
-import com.docuhyphen.app.api.model.dto.RecordRetentionScheduleDto
-import com.docuhyphen.app.api.model.dto.RecordRetentionScheduleVersionDto
+import com.docuhyphen.app.api.model.dto.*
 import com.docuhyphen.app.api.model.entity.RecordDisposalTombstone
 import com.docuhyphen.app.api.model.entity.RecordPreservationHold
 import com.docuhyphen.app.api.model.entity.RecordPreservationHoldEvent
@@ -27,29 +20,38 @@ object RecordPreservationDtoMapper
 {
     fun toDto(view: RecordPreservationHoldView): RecordPreservationHoldDto = toDto(view.hold, view.events)
 
-    fun toDto(hold: RecordPreservationHold, events: List<RecordPreservationHoldEvent> = emptyList()) = RecordPreservationHoldDto(
-        id = hold.id,
-        ownerKind = hold.ownerKind,
-        ownerId = hold.ownerId,
-        resourceType = hold.resourceType,
-        resourceId = hold.resourceId,
-        scope = hold.scope,
-        status = hold.status,
-        reason = hold.reason,
-        caseReference = hold.caseReference,
-        effectiveFrom = hold.effectiveFrom,
-        placedByPrincipalKind = hold.placedByPrincipalKind,
-        placedByPrincipalId = hold.placedByPrincipalId,
-        placedAt = hold.placedAt,
-        releasedByPrincipalKind = hold.releasedByPrincipalKind,
-        releasedByPrincipalId = hold.releasedByPrincipalId,
-        releasedAt = hold.releasedAt,
-        releaseReason = hold.releaseReason,
-        holdRevision = hold.holdRevision,
-        events = events.map {
-            RecordPreservationHoldEventDto(it.eventNumber, it.eventKind, it.scope, it.reason, it.principalKind, it.principalId, it.occurredAt)
-        },
-    )
+    fun toDto(hold: RecordPreservationHold, events: List<RecordPreservationHoldEvent> = emptyList()) =
+        RecordPreservationHoldDto(
+            id = hold.id,
+            ownerKind = hold.ownerKind,
+            ownerId = hold.ownerId,
+            resourceType = hold.resourceType,
+            resourceId = hold.resourceId,
+            scope = hold.scope,
+            status = hold.status,
+            reason = hold.reason,
+            caseReference = hold.caseReference,
+            effectiveFrom = hold.effectiveFrom,
+            placedByPrincipalKind = hold.placedByPrincipalKind,
+            placedByPrincipalId = hold.placedByPrincipalId,
+            placedAt = hold.placedAt,
+            releasedByPrincipalKind = hold.releasedByPrincipalKind,
+            releasedByPrincipalId = hold.releasedByPrincipalId,
+            releasedAt = hold.releasedAt,
+            releaseReason = hold.releaseReason,
+            holdRevision = hold.holdRevision,
+            events = events.map {
+                RecordPreservationHoldEventDto(
+                    it.eventNumber,
+                    it.eventKind,
+                    it.scope,
+                    it.reason,
+                    it.principalKind,
+                    it.principalId,
+                    it.occurredAt
+                )
+            },
+        )
 
     fun toDto(resourceType: String, view: RecordRetentionScheduleView) = RecordRetentionScheduleDto(
         resourceType = resourceType.trim().uppercase(),
@@ -79,7 +81,14 @@ object RecordPreservationDtoMapper
         attemptCount = view.claim.attemptCount,
         lastErrorCode = view.claim.lastErrorCode,
         objects = view.objects.map {
-            RecordDisposalObjectDto(it.documentId, it.documentVersionId, it.retained, it.retainedReason, it.deletionOutcome, it.deletedAt)
+            RecordDisposalObjectDto(
+                it.documentId,
+                it.documentVersionId,
+                it.retained,
+                it.retainedReason,
+                it.deletionOutcome,
+                it.deletedAt
+            )
         },
         tombstone = view.tombstone?.let(::toDto),
     )
@@ -103,7 +112,9 @@ object RecordPreservationDtoMapper
 
     private fun toDto(tombstone: RecordDisposalTombstone) = RecordDisposalTombstoneDto(
         removedRowCounts = runCatching {
-            Json.parseToJsonElement(tombstone.removedRowsJson).jsonObject.mapValues { it.value.jsonPrimitive.longOrNull ?: 0 }
+            Json.parseToJsonElement(tombstone.removedRowsJson).jsonObject.mapValues {
+                it.value.jsonPrimitive.longOrNull ?: 0
+            }
         }.getOrDefault(emptyMap()),
         deletedObjectCount = tombstone.deletedObjectCount,
         retainedObjectCount = tombstone.retainedObjectCount,

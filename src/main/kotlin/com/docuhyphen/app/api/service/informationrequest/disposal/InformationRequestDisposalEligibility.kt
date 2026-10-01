@@ -27,16 +27,28 @@ class InformationRequestDisposalEligibility @Inject constructor(
     private val disposals: RecordDisposalService,
 )
 {
-    fun assess(request: InformationRequest, basis: RecordDisposalBasis, now: Instant): InformationRequestDisposalAssessment
+    fun assess(
+        request: InformationRequest,
+        basis: RecordDisposalBasis,
+        now: Instant
+    ): InformationRequestDisposalAssessment
     {
         val owner = ownerOf(request)
         val schedule = schedules.current(owner, RecordPreservationResourceTypes.INFORMATION_REQUEST)
-        fun refused(code: String, detail: String, covering: List<RecordPreservationHold> = emptyList(), from: Instant? = null) =
+        fun refused(
+            code: String,
+            detail: String,
+            covering: List<RecordPreservationHold> = emptyList(),
+            from: Instant? = null
+        ) =
             InformationRequestDisposalAssessment.Refused(owner, schedule, covering, code, detail, from)
 
         if (disposals.viewFor(RecordPreservationResourceTypes.INFORMATION_REQUEST, request.id) != null)
         {
-            return refused(InformationRequestErrorCatalog.DISPOSAL_IN_PROGRESS, "This request is already claimed for disposal")
+            return refused(
+                InformationRequestErrorCatalog.DISPOSAL_IN_PROGRESS,
+                "This request is already claimed for disposal"
+            )
         }
         val finishedAt = finishedAt(request)
             ?: return refused(InformationRequestErrorCatalog.RECORD_NOT_FINISHED, "Only a finished request is disposed")
@@ -44,17 +56,28 @@ class InformationRequestDisposalEligibility @Inject constructor(
             val minimum = finishedAt.plus(Duration.ofDays(it.minimumRetentionDays.toLong()))
             if (now.isBefore(minimum))
             {
-                return refused(InformationRequestErrorCatalog.RETENTION_REQUIRED, "The minimum retention has not elapsed", from = minimum)
+                return refused(
+                    InformationRequestErrorCatalog.RETENTION_REQUIRED,
+                    "The minimum retention has not elapsed",
+                    from = minimum
+                )
             }
         }
         if (basis == RecordDisposalBasis.RETENTION_SCHEDULE)
         {
             val disposalDays = schedule?.disposalAfterDays
-                ?: return refused(InformationRequestErrorCatalog.RETENTION_REQUIRED, "No retention schedule disposes this request automatically")
+                ?: return refused(
+                    InformationRequestErrorCatalog.RETENTION_REQUIRED,
+                    "No retention schedule disposes this request automatically"
+                )
             val due = finishedAt.plus(Duration.ofDays(disposalDays.toLong()))
             if (now.isBefore(due))
             {
-                return refused(InformationRequestErrorCatalog.RETENTION_REQUIRED, "The disposal age has not elapsed", from = due)
+                return refused(
+                    InformationRequestErrorCatalog.RETENTION_REQUIRED,
+                    "The disposal age has not elapsed",
+                    from = due
+                )
             }
         }
         val objects = disposalRepository.storedObjects(request.id)
@@ -62,7 +85,11 @@ class InformationRequestDisposalEligibility @Inject constructor(
         val covering = holds.coveringHolds(owner, keys)
         if (covering.isNotEmpty())
         {
-            return refused(InformationRequestErrorCatalog.RECORD_HELD, "A record preservation hold covers this request", covering)
+            return refused(
+                InformationRequestErrorCatalog.RECORD_HELD,
+                "A record preservation hold covers this request",
+                covering
+            )
         }
         val references = disposalRepository.liveReferences(request.id)
         if (references.isNotEmpty())
@@ -75,18 +102,67 @@ class InformationRequestDisposalEligibility @Inject constructor(
         return InformationRequestDisposalAssessment.Eligible(owner, schedule, keys, objects)
     }
 
-    private fun scopeKeys(request: InformationRequest, objects: List<RecordDisposalObjectCandidate>): List<RecordPreservationKey> =
+    private fun scopeKeys(
+        request: InformationRequest,
+        objects: List<RecordDisposalObjectCandidate>
+    ): List<RecordPreservationKey> =
         buildList {
-            add(RecordPreservationKey(RecordPreservationResourceTypes.INFORMATION_REQUEST, request.id.toString(), direct = true))
-            add(RecordPreservationKey(RecordPreservationResourceTypes.EXCHANGE, request.exchangeId.toString(), direct = false))
-            request.ownerOrganizationId?.let { add(RecordPreservationKey(RecordPreservationResourceTypes.ORGANIZATION, it.toString(), direct = false)) }
-            request.ownerUserId?.let { add(RecordPreservationKey(RecordPreservationResourceTypes.APP_USER, it.toString(), direct = false)) }
+            add(
+                RecordPreservationKey(
+                    RecordPreservationResourceTypes.INFORMATION_REQUEST,
+                    request.id.toString(),
+                    direct = true
+                )
+            )
+            add(
+                RecordPreservationKey(
+                    RecordPreservationResourceTypes.EXCHANGE,
+                    request.exchangeId.toString(),
+                    direct = false
+                )
+            )
+            request.ownerOrganizationId?.let {
+                add(
+                    RecordPreservationKey(
+                        RecordPreservationResourceTypes.ORGANIZATION,
+                        it.toString(),
+                        direct = false
+                    )
+                )
+            }
+            request.ownerUserId?.let {
+                add(
+                    RecordPreservationKey(
+                        RecordPreservationResourceTypes.APP_USER,
+                        it.toString(),
+                        direct = false
+                    )
+                )
+            }
             disposalRepository.subjectsOf(request.id).forEach {
-                add(RecordPreservationKey(RecordPreservationResourceTypes.SUBJECT_IDENTITY, it.toString(), direct = false))
+                add(
+                    RecordPreservationKey(
+                        RecordPreservationResourceTypes.SUBJECT_IDENTITY,
+                        it.toString(),
+                        direct = false
+                    )
+                )
             }
             objects.filter { it.retainedReason == null }.forEach {
-                add(RecordPreservationKey(RecordPreservationResourceTypes.DOCUMENT, it.documentId.toString(), direct = true))
-                add(RecordPreservationKey(RecordPreservationResourceTypes.DOCUMENT_VERSION, it.documentVersionId.toString(), direct = true))
+                add(
+                    RecordPreservationKey(
+                        RecordPreservationResourceTypes.DOCUMENT,
+                        it.documentId.toString(),
+                        direct = true
+                    )
+                )
+                add(
+                    RecordPreservationKey(
+                        RecordPreservationResourceTypes.DOCUMENT_VERSION,
+                        it.documentVersionId.toString(),
+                        direct = true
+                    )
+                )
             }
         }.distinct()
 

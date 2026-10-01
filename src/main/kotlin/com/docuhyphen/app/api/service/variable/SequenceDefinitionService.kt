@@ -1,22 +1,16 @@
 package com.docuhyphen.app.api.service.variable
 
-import com.docuhyphen.app.api.model.dto.SequenceDefinitionDto
+import com.docuhyphen.app.api.interceptor.EnforceAdminAction
 import com.docuhyphen.app.api.model.dto.CreateSequenceRequest
+import com.docuhyphen.app.api.model.dto.SequenceDefinitionDto
 import com.docuhyphen.app.api.model.dto.UpdateSequenceRequest
 import com.docuhyphen.app.api.model.dto.toDto
 import com.docuhyphen.app.api.model.entity.SequenceDefinition
 import com.docuhyphen.app.api.model.entity.SequenceResetPeriod
 import com.docuhyphen.app.api.repository.variable.SequenceDefinitionRepository
-import com.docuhyphen.app.api.interceptor.EnforceAdminAction
 import com.docuhyphen.app.api.service.auth.AdminApprovalContext
 import com.docuhyphen.app.api.service.auth.UserRoleService
-import com.docuhyphen.app.api.service.auth.authz.Action
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.Decision
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import com.docuhyphen.app.api.service.auth.authz.ResourceRef
+import com.docuhyphen.app.api.service.auth.authz.*
 import io.quarkus.security.ForbiddenException
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject

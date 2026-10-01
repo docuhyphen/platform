@@ -3,7 +3,6 @@ package com.docuhyphen.app.api.service.auth.authz
 import com.docuhyphen.app.api.model.entity.DocumentType
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.slf4j.LoggerFactory
@@ -127,7 +126,11 @@ data class ShareConstraints(
             if (json.isNullOrBlank()) return PERMISSIVE
             return runCatching { JSON.decodeFromString<ShareConstraints>(json) }
                 .getOrElse {
-                    logger.warn("Malformed constraints_json denies access ({}): {}", it.javaClass.simpleName, it.message)
+                    logger.warn(
+                        "Malformed constraints_json denies access ({}): {}",
+                        it.javaClass.simpleName,
+                        it.message
+                    )
                     null
                 }
         }
@@ -150,7 +153,7 @@ data class ShareConstraints(
             {
                 throw IllegalArgumentException(
                     "max_views is not a supported constraint. " +
-                        "Server-side view counting is not implemented. Remove max_views from your request."
+                            "Server-side view counting is not implemented. Remove max_views from your request."
                 )
             }
             val parsed = try

@@ -14,15 +14,7 @@ import io.quarkus.security.ForbiddenException
 import io.quarkus.security.UnauthorizedException
 import jakarta.inject.Inject
 import jakarta.ws.rs.core.Response
-import jakarta.ws.rs.core.Response.Status.BAD_REQUEST
-import jakarta.ws.rs.core.Response.Status.CONFLICT
-import jakarta.ws.rs.core.Response.Status.CREATED
-import jakarta.ws.rs.core.Response.Status.FORBIDDEN
-import jakarta.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR
-import jakarta.ws.rs.core.Response.Status.NOT_FOUND
-import jakarta.ws.rs.core.Response.Status.NO_CONTENT
-import jakarta.ws.rs.core.Response.Status.TOO_MANY_REQUESTS
-import jakarta.ws.rs.core.Response.Status.UNAUTHORIZED
+import jakarta.ws.rs.core.Response.Status.*
 import org.slf4j.LoggerFactory
 
 /**
@@ -96,16 +88,22 @@ class InformationRequestNoAuthAccessResource @Inject constructor(
             is InformationRequestRateLimitedException -> Response.status(TOO_MANY_REQUESTS)
                 .header(RETRY_AFTER_HEADER, exception.retryAfterSeconds)
                 .entity(ResponseError(exception.message, exception.reasonCode)).build()
+
             is InformationRequestLifecycleException -> Response.status(CONFLICT)
                 .entity(ResponseError(exception.message, exception.reasonCode)).build()
+
             is IllegalStateException -> Response.status(CONFLICT)
                 .entity(ResponseError(exception.message)).build()
+
             is IllegalArgumentException -> Response.status(NOT_FOUND)
                 .entity(ResponseError(exception.message)).build()
+
             is ForbiddenException -> Response.status(FORBIDDEN)
                 .entity(ResponseError(exception.message)).build()
+
             is UnauthorizedException -> Response.status(UNAUTHORIZED)
                 .entity(ResponseError(exception.message)).build()
+
             else ->
             {
                 logger.error(message, exception)

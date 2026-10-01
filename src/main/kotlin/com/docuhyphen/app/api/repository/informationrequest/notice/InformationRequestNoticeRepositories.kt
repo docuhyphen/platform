@@ -1,16 +1,11 @@
 package com.docuhyphen.app.api.repository.informationrequest.notice
 
-import com.docuhyphen.app.api.model.entity.InformationRequestNoticeAttemptOutcome
-import com.docuhyphen.app.api.model.entity.InformationRequestNoticeClaim
-import com.docuhyphen.app.api.model.entity.InformationRequestNoticeDeliveryAttempt
-import com.docuhyphen.app.api.model.entity.InformationRequestNoticeEndpointState
-import com.docuhyphen.app.api.model.entity.InformationRequestNoticeSequenceAllocation
-import com.docuhyphen.app.api.model.entity.InformationRequestOutboundNotice
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.repository.BaseRepository
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.persistence.LockModeType
 import java.sql.Timestamp
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestNoticeClaimRepository :

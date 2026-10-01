@@ -19,7 +19,13 @@ class InformationRequestPartyContactResolver @Inject constructor(
     fun emailOf(request: InformationRequest, party: InformationRequestParty): String? =
         when (party.principalKind)
         {
-            PrincipalKind.PARTICIPANT -> party.principalId?.let { externalParticipants.findOwned(it, participantOwnerOf(request))?.email }
+            PrincipalKind.PARTICIPANT -> party.principalId?.let {
+                externalParticipants.findOwned(
+                    it,
+                    participantOwnerOf(request)
+                )?.email
+            }
+
             PrincipalKind.USER -> party.principalId?.let { appUserService.getById(it)?.email }
             else -> null
         }?.trim()?.takeIf { it.isNotBlank() }

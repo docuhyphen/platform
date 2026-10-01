@@ -61,7 +61,8 @@ class RecordRetentionScheduleService @Inject constructor(
         return RecordRetentionScheduleView(versions.firstOrNull(), versions)
     }
 
-    fun current(owner: RecordOwnerRef, resourceType: String): RecordRetentionSchedule? = schedule(owner, resourceType).current
+    fun current(owner: RecordOwnerRef, resourceType: String): RecordRetentionSchedule? =
+        schedule(owner, resourceType).current
 
     fun currentSchedules(resourceType: String): List<RecordRetentionSchedule> =
         scheduleRepository.findAllCurrent(resourceTypeOf(resourceType))

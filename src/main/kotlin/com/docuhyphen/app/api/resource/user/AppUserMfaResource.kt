@@ -7,17 +7,10 @@ import com.docuhyphen.app.api.resource.model.MfaConfigurationUpdateRequest
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.service.auth.AuthenticatorMfaService
 import jakarta.inject.Inject
-import jakarta.ws.rs.Consumes
-import jakarta.ws.rs.DELETE
-import jakarta.ws.rs.GET
-import jakarta.ws.rs.PATCH
-import jakarta.ws.rs.POST
-import jakarta.ws.rs.Path
-import jakarta.ws.rs.PathParam
-import jakarta.ws.rs.Produces
+import jakarta.ws.rs.*
 import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
-import java.util.UUID
+import java.util.*
 
 @Path("/app-users/current")
 @Produces(MediaType.APPLICATION_JSON)
@@ -72,7 +65,8 @@ class AppUserMfaResource @Inject constructor(
     private fun withCurrentUser(action: (com.docuhyphen.app.api.model.entity.AppUser) -> Response): Response
     {
         val appUser = authTokenContext.authToken.appUser
-            ?: return Response.status(Response.Status.UNAUTHORIZED).entity(ResponseError("Authentication is required.")).build()
+            ?: return Response.status(Response.Status.UNAUTHORIZED).entity(ResponseError("Authentication is required."))
+                .build()
         return try
         {
             action(appUser)

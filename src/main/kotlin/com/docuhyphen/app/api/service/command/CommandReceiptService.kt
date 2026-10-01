@@ -10,7 +10,7 @@ import jakarta.transaction.Transactional
 import java.security.MessageDigest
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 interface CommandReceiptStore
 {

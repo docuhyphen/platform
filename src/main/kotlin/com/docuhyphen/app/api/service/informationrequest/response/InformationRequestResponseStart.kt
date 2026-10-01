@@ -35,7 +35,8 @@ class InformationRequestResponseStart @Inject constructor(
         InformationRequestMutation.SAVE_RESPONSE,
         InformationRequestMutation.ATTEST_RESPONSE,
         InformationRequestMutation.SUBMIT,
-        -> true
+            -> true
+
         InformationRequestMutation.ADMINISTER_EVIDENCE -> command.evidence?.action in RESPONDENT_EVIDENCE_ACTIONS
         else -> false
     }

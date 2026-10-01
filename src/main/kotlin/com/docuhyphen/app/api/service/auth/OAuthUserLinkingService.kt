@@ -1,25 +1,19 @@
 package com.docuhyphen.app.api.service.auth
 
-import com.docuhyphen.app.api.extension.maskEmailForLogs
-import com.docuhyphen.app.api.model.entity.AppUser
-import com.docuhyphen.app.api.model.entity.IdentityProviderLink
-import com.docuhyphen.app.api.model.entity.IdentityProviderType
-import com.docuhyphen.app.api.model.entity.OrganizationRoleName
-import com.docuhyphen.app.api.model.entity.Organization
 import com.docuhyphen.app.api.exception.InactiveAccountException
 import com.docuhyphen.app.api.exception.SignUpRequiredException
+import com.docuhyphen.app.api.extension.maskEmailForLogs
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.repository.identity.IdentityProviderLinkRepository
-import com.docuhyphen.app.api.service.user.AppUserService
 import com.docuhyphen.app.api.service.auth.idp.OAuthUserInfo
-import com.docuhyphen.app.api.service.organization.OrganizationMembershipService
 import com.docuhyphen.app.api.service.notification.AppAdminNotificationService
+import com.docuhyphen.app.api.service.organization.OrganizationMembershipService
+import com.docuhyphen.app.api.service.user.AppUserService
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
 import org.slf4j.LoggerFactory
-import java.sql.Timestamp
-import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 data class LinkOrCreateResult(
     val appUser: AppUser,
@@ -88,7 +82,7 @@ class OAuthUserLinkingService @Inject constructor(
             {
                 throw ExternalProviderAlreadyLinkedException(
                     "User already has ${existingExternal.provider.displayName} linked. " +
-                        "Unlink it first before linking ${provider.displayName}."
+                            "Unlink it first before linking ${provider.displayName}."
                 )
             }
 
@@ -121,7 +115,7 @@ class OAuthUserLinkingService @Inject constructor(
             )
             throw UnverifiedExternalEmailException(
                 "Your identity provider did not confirm ownership of this email address. " +
-                    "Sign up with this email first, then link ${provider.displayName} from your profile."
+                        "Sign up with this email first, then link ${provider.displayName} from your profile."
             )
         }
 
@@ -188,7 +182,8 @@ class OAuthUserLinkingService @Inject constructor(
     @Transactional
     fun createLink(appUser: AppUser, provider: IdentityProviderType, externalSubjectId: String, externalEmail: String)
     {
-        val existingLink = identityProviderLinkRepository.findByProviderAndExternalSubjectId(provider, externalSubjectId)
+        val existingLink =
+            identityProviderLinkRepository.findByProviderAndExternalSubjectId(provider, externalSubjectId)
         if (existingLink != null)
         {
             logger.warn("IDP link already exists for provider={}", provider)
@@ -204,7 +199,7 @@ class OAuthUserLinkingService @Inject constructor(
             {
                 throw ExternalProviderAlreadyLinkedException(
                     "User already has ${existingExternal.provider.displayName} linked. " +
-                        "Unlink it first before linking ${provider.displayName}."
+                            "Unlink it first before linking ${provider.displayName}."
                 )
             }
         }

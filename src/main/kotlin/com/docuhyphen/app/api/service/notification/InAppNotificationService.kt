@@ -13,13 +13,12 @@ import jakarta.inject.Inject
 import jakarta.transaction.Transactional
 import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.builtins.serializer
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class InAppNotificationService @Inject constructor(
@@ -66,10 +65,12 @@ class InAppNotificationService @Inject constructor(
                 appUserId,
                 criteria.notificationIds,
             )
+
             criteria.eventTypes.isNotEmpty() -> repository.findUnreadByEventTypesForUser(
                 appUserId,
                 criteria.eventTypes,
             )
+
             else -> repository.findUnreadForUser(appUserId)
         }
 

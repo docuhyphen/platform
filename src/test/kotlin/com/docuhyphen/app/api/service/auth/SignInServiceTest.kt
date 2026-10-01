@@ -1,6 +1,8 @@
 package com.docuhyphen.app.api.service.auth
 
 import com.docuhyphen.app.api.service.identity.OrganizationIdentityPolicyService
+import com.docuhyphen.app.api.exception.InactiveAccountException
+import com.docuhyphen.app.api.exception.InvalidSignInCredentialsException
 import com.docuhyphen.app.api.exception.OTPExpiredException
 import com.docuhyphen.app.api.model.entity.AppUser
 import com.docuhyphen.app.api.model.entity.MfaRecord
@@ -20,6 +22,7 @@ import org.mockito.kotlin.any
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
+import org.mockito.kotlin.verifyNoInteractions
 import org.mockito.kotlin.whenever
 import java.sql.Timestamp
 import java.time.Instant
@@ -54,7 +57,7 @@ class SignInServiceTest
     fun `email sign in OTP still expires by email OTP expiry timestamp`()
     {
         val record = expiredMfaRecord(EMAIL)
-        whenever(mfaService.getMfaRecordByEmailAndSessionId("user@example.com", "session-id"))
+        whenever(mfaService.getMfaRecordByEmailAndSessionIdForUpdate("user@example.com", "session-id"))
             .thenReturn(record)
 
         assertThrows<OTPExpiredException> {
@@ -81,7 +84,7 @@ class SignInServiceTest
             refreshTokenJti = "refresh-token-jti",
         )
 
-        whenever(mfaService.getMfaRecordByEmailAndSessionId("user@example.com", "session-id"))
+        whenever(mfaService.getMfaRecordByEmailAndSessionIdForUpdate("user@example.com", "session-id"))
             .thenReturn(record)
         whenever(configurationService.getMaxSignInAttempts()).thenReturn(3)
         whenever(authenticatorMfaService.verifyUserCode(appUser, "123456")).thenReturn(true)
@@ -93,6 +96,57 @@ class SignInServiceTest
         verify(authenticatorMfaService).verifyUserCode(appUser, "123456")
         verify(mfaService).updateRecord(record)
         verify(mfaService).removeMfaRecord(record)
+    }
+
+    @Test
+    fun `placeholder account fails password sign in exactly like an unknown address`()
+    {
+        val placeholder = AppUser().apply {
+            email = "invited@example.com"
+            isTemporary = true
+            isActive = false
+        }
+        whenever(appUserService.findByEmail("invited@example.com")).thenReturn(placeholder)
+
+        val placeholderFailure = assertThrows<InvalidSignInCredentialsException> {
+            service.initiateSignIn("invited@example.com", "Any-Password-42!", CLIENT_IP)
+        }
+        val unknownFailure = assertThrows<InvalidSignInCredentialsException> {
+            service.initiateSignIn("unknown@example.com", "Any-Password-42!", CLIENT_IP)
+        }
+
+        assertEquals(unknownFailure.message, placeholderFailure.message)
+        verifyNoInteractions(mfaService)
+    }
+
+    @Test
+    fun `inactive account with a wrong password fails like an unknown address`()
+    {
+        whenever(appUserService.findByEmail("inactive@example.com")).thenReturn(inactiveUser())
+        whenever(authenticationService.validatePassword("Wrong-Password-42!", "stored-hash")).thenReturn(false)
+
+        assertThrows<InvalidSignInCredentialsException> {
+            service.initiateSignIn("inactive@example.com", "Wrong-Password-42!", CLIENT_IP)
+        }
+        verifyNoInteractions(mfaService)
+    }
+
+    @Test
+    fun `inactive account state is reported only after the password is proven`()
+    {
+        whenever(appUserService.findByEmail("inactive@example.com")).thenReturn(inactiveUser())
+        whenever(authenticationService.validatePassword("Right-Password-42!", "stored-hash")).thenReturn(true)
+
+        assertThrows<InactiveAccountException> {
+            service.initiateSignIn("inactive@example.com", "Right-Password-42!", CLIENT_IP)
+        }
+        verifyNoInteractions(mfaService)
+    }
+
+    private fun inactiveUser(): AppUser = AppUser().apply {
+        email = "inactive@example.com"
+        isActive = false
+        password = "stored-hash"
     }
 
     private fun expiredMfaRecord(
@@ -108,5 +162,10 @@ class SignInServiceTest
         this.mfaType = mfaType
         this.status = PENDING
         this.sessionId = "session-id"
+    }
+
+    private companion object
+    {
+        const val CLIENT_IP = "192.0.2.30"
     }
 }

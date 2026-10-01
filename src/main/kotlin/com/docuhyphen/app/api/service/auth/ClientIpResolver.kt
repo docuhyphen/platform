@@ -95,7 +95,8 @@ class ClientIpResolver @Inject constructor(
 
         // Strip an IPv6 zone index and any "[addr]:port" / "addr:port" wrapper.
         val withoutBrackets = if (value.startsWith("[")) value.substringAfter('[').substringBefore(']') else value
-        val hostOnly = if (withoutBrackets.count { it == ':' } == 1) withoutBrackets.substringBefore(':') else withoutBrackets
+        val hostOnly =
+            if (withoutBrackets.count { it == ':' } == 1) withoutBrackets.substringBefore(':') else withoutBrackets
         val zoneStripped = hostOnly.substringBefore('%')
 
         return zoneStripped.takeIf { IpLiterals.toBytes(it) != null }

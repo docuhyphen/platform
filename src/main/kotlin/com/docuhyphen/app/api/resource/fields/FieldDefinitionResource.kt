@@ -1,7 +1,7 @@
 package com.docuhyphen.app.api.resource.fields
 
-import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.exception.SubscriptionDenialException
+import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.model.entity.FieldLifecycleStatus
 import com.docuhyphen.app.api.model.entity.FieldScopeKind
 import com.docuhyphen.app.api.resource.model.ResponseError
@@ -11,25 +11,13 @@ import com.docuhyphen.app.api.service.fields.FieldDefinitionService
 import com.docuhyphen.app.api.service.fields.FieldValidationException
 import io.quarkus.security.ForbiddenException
 import jakarta.inject.Inject
-import jakarta.ws.rs.Consumes
-import jakarta.ws.rs.GET
-import jakarta.ws.rs.POST
-import jakarta.ws.rs.PATCH
-import jakarta.ws.rs.Path
-import jakarta.ws.rs.PathParam
-import jakarta.ws.rs.Produces
-import jakarta.ws.rs.QueryParam
+import jakarta.ws.rs.*
 import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
-import jakarta.ws.rs.core.Response.Status.BAD_REQUEST
-import jakarta.ws.rs.core.Response.Status.CREATED
-import jakarta.ws.rs.core.Response.Status.FORBIDDEN
-import jakarta.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR
-import jakarta.ws.rs.core.Response.Status.NOT_FOUND
-import jakarta.ws.rs.core.Response.Status.UNAUTHORIZED
+import jakarta.ws.rs.core.Response.Status.*
 import kotlinx.serialization.Serializable
 import org.slf4j.LoggerFactory
-import java.util.UUID
+import java.util.*
 
 /**
  * REST endpoints for Field Definitions, their immutable contract versions, and the field type

@@ -2,13 +2,7 @@ package com.docuhyphen.app.api.resource.auth
 
 import com.docuhyphen.app.api.resource.model.LogoutPropagationInfoResponse
 import com.docuhyphen.app.api.resource.model.ResponseError
-import com.docuhyphen.app.api.service.auth.AuthAuditService
-import com.docuhyphen.app.api.service.auth.AuthRateLimitService
-import com.docuhyphen.app.api.service.auth.ClientIpResolver
-import com.docuhyphen.app.api.service.auth.CsrfProtectionService
-import com.docuhyphen.app.api.service.auth.RevocationReasonCode
-import com.docuhyphen.app.api.service.auth.SignOutService
-import com.docuhyphen.app.api.service.auth.TokenIssuanceService
+import com.docuhyphen.app.api.service.auth.*
 import com.docuhyphen.app.api.service.config.ConfigurationService
 import jakarta.inject.Inject
 import jakarta.ws.rs.*
@@ -54,7 +48,8 @@ class SignOutResource @Inject constructor(
             if (authRateLimitService.isLimited(
                     key = "auth:logout:$clientIp",
                     maxPerMinute = configurationService.getAuthRateLimitLogoutPerMinute(),
-                ))
+                )
+            )
             {
                 authAuditService.emit(
                     action = "SIGN_OUT",

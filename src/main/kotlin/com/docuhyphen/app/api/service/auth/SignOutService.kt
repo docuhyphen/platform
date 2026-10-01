@@ -7,7 +7,7 @@ import com.docuhyphen.app.api.service.config.ConfigurationService
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
 import org.slf4j.LoggerFactory
-import java.util.UUID
+import java.util.*
 
 @RequestScoped
 class SignOutService @Inject constructor(
@@ -47,7 +47,11 @@ class SignOutService @Inject constructor(
 
             authenticationService.deleteAllRefreshTokensForUser(appUser.id, RevocationReasonCode.LOGOUT_ALL_DEVICES)
             // sendNotifications=false: we already notified above.
-            userSessionService.revokeAllUserSessions(appUser.id, RevocationReasonCode.LOGOUT_ALL_DEVICES, sendNotifications = false)
+            userSessionService.revokeAllUserSessions(
+                appUser.id,
+                RevocationReasonCode.LOGOUT_ALL_DEVICES,
+                sendNotifications = false
+            )
             if (configurationService.isAuthSessionVersionEnabled())
             {
                 // Force currently issued access tokens to fail request-time exchange_version checks.

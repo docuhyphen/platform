@@ -2,7 +2,7 @@ package com.docuhyphen.app.api.model.dto
 
 import com.docuhyphen.app.api.serializer.UUIDSerializer
 import kotlinx.serialization.Serializable
-import java.util.UUID
+import java.util.*
 
 /**
  * The commercial position of the paying subject for the current context, returned on the

@@ -84,7 +84,8 @@ class InformationRequestResponseWorkspaceService @Inject constructor(
             request = request,
             access = access,
         )
-        val safeTemplateVersion = recipientSafeTemplateVersion(templateVersionDto, disclosedRequirements, creationGroupKeys)
+        val safeTemplateVersion =
+            recipientSafeTemplateVersion(templateVersionDto, disclosedRequirements, creationGroupKeys)
         val safeConditionEvaluations = InformationRequestWorkspaceOccurrenceProjection.conditions(
             conditionEvaluations, templateVersionDto, disclosedRequirements, activeRequirements,
         )
@@ -95,13 +96,20 @@ class InformationRequestResponseWorkspaceService @Inject constructor(
             .flatMap { it.requirements }
             .associateBy { it.id }
         val authorizedRequirements = disclosedRequirements
-            .filter { requirement -> InformationRequestActiveResponseProjection.isActive(
-                authoredRequirementsByBindingId[requirement.sourceTemplateBindingId]?.conditionalRuleKey,
-                requirement.occurrencePath, conditionEvaluations,
-                responsesByRequirement[requirement.id]?.activeInResponse != false)
+            .filter { requirement ->
+                InformationRequestActiveResponseProjection.isActive(
+                    authoredRequirementsByBindingId[requirement.sourceTemplateBindingId]?.conditionalRuleKey,
+                    requirement.occurrencePath, conditionEvaluations,
+                    responsesByRequirement[requirement.id]?.activeInResponse != false
+                )
             }
         val fieldProjections = authorizedRequirements.associateWith { requirement ->
-            fieldProjection(requestId, requirement, requirementsByBindingId[requirement.sourceTemplateBindingId], access)
+            fieldProjection(
+                requestId,
+                requirement,
+                requirementsByBindingId[requirement.sourceTemplateBindingId],
+                access
+            )
         }
 
         return InformationRequestResponseWorkspaceDtoMapper.toDto(
@@ -132,7 +140,10 @@ class InformationRequestResponseWorkspaceService @Inject constructor(
         )
     }
 
-    private fun executionStandingFor(request: InformationRequest, access: RequestAccessContext): InformationRequestExecutionStanding
+    private fun executionStandingFor(
+        request: InformationRequest,
+        access: RequestAccessContext
+    ): InformationRequestExecutionStanding
     {
         val standing = standingService.standingOf(request, standingService.ownerStanding(request))
         val manages = authorizationService.authorize(
@@ -215,10 +226,10 @@ class InformationRequestResponseWorkspaceService @Inject constructor(
             .toSet()
         val safeRules = templateVersion.conditionRules.filter { rule ->
             fullRequirements.any { it.id in disclosedBindingIds && it.conditionalRuleKey == rule.ruleKey } &&
-                rule.predicates.all { predicate ->
-                    (predicate.sourceRequirementKey == null || predicate.sourceRequirementKey in disclosedRequirementKeys) &&
-                        (predicate.fieldDefinitionId == null || predicate.fieldDefinitionId in disclosedFieldIds)
-                }
+                    rule.predicates.all { predicate ->
+                        (predicate.sourceRequirementKey == null || predicate.sourceRequirementKey in disclosedRequirementKeys) &&
+                                (predicate.fieldDefinitionId == null || predicate.fieldDefinitionId in disclosedFieldIds)
+                    }
         }
         val safeRuleKeys = safeRules.map { it.ruleKey }.toSet()
         val safeSections = templateVersion.sections.mapNotNull { section ->
@@ -254,7 +265,13 @@ class InformationRequestResponseWorkspaceService @Inject constructor(
     {
         val groupsByParent = templateVersion.groups.groupBy { it.parentGroupKey }
         return templateVersion.groups
-            .filter { authorizeGroupMaterialization(request, access, materializedBindings(it, groupsByParent, bindings)) }
+            .filter {
+                authorizeGroupMaterialization(
+                    request,
+                    access,
+                    materializedBindings(it, groupsByParent, bindings)
+                )
+            }
             .map { it.groupKey }
             .toSet()
     }
@@ -283,9 +300,9 @@ class InformationRequestResponseWorkspaceService @Inject constructor(
         bindings: List<InformationRequestTemplateRequirementBinding>,
     ): List<InformationRequestTemplateRequirementBinding> =
         bindings.filter { it.occurrenceAnchorKey == group.groupKey } +
-            groupsByParent[group.groupKey].orEmpty()
-                .filter { it.minOccurrences > 0 }
-                .flatMap { materializedBindings(it, groupsByParent, bindings) }
+                groupsByParent[group.groupKey].orEmpty()
+                    .filter { it.minOccurrences > 0 }
+                    .flatMap { materializedBindings(it, groupsByParent, bindings) }
 
     private fun recipientSafeGroupKeys(
         groups: List<InformationRequestTemplateGroupDto>,

@@ -1,22 +1,14 @@
 package com.docuhyphen.app.api.service.subscription
 
-import com.docuhyphen.app.api.service.auth.AdminApprovalContext
-import com.docuhyphen.app.api.service.auth.AuthAuditService
-import com.docuhyphen.app.api.service.auth.UserRoleService
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.interceptor.EnforceAdminAction
 import com.docuhyphen.app.api.model.entity.AppUser
 import com.docuhyphen.app.api.model.entity.Organization
 import com.docuhyphen.app.api.model.entity.OrganizationSubscriptionPolicy
 import com.docuhyphen.app.api.resource.model.PlatformOrganizationSubscriptionPolicyRequest
-import com.docuhyphen.app.api.service.subscription.PlanCatalog
-import com.docuhyphen.app.api.service.subscription.PlanCode
-import com.docuhyphen.app.api.service.subscription.BillingFrequency
-import com.docuhyphen.app.api.service.subscription.SubscriptionLifecycleUpdate
-import com.docuhyphen.app.api.service.subscription.SubscriptionLifecycleValidator
-import com.docuhyphen.app.api.service.subscription.SubscriptionOwnerType
-import com.docuhyphen.app.api.service.subscription.SubscriptionStatus
-import com.docuhyphen.app.api.service.subscription.SubscriptionPolicyService
+import com.docuhyphen.app.api.service.auth.AdminApprovalContext
+import com.docuhyphen.app.api.service.auth.AuthAuditService
+import com.docuhyphen.app.api.service.auth.UserRoleService
 import com.docuhyphen.app.api.service.organization.OrganizationService
 import io.quarkus.security.ForbiddenException
 import io.quarkus.security.UnauthorizedException
@@ -25,7 +17,7 @@ import jakarta.inject.Inject
 import jakarta.transaction.Transactional
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 data class PolicyResult(
     val organizationId: UUID,

@@ -140,7 +140,7 @@ class SalesEnquiryService @Inject constructor(
 
         val detailRows = rows.joinToString("\n") { (label, value) ->
             "<tr><td style=\"padding:4px 12px 4px 0;font-weight:600;\">${escapeHtml(label)}</td>" +
-                "<td style=\"padding:4px 0;\">${escapeHtml(value.orEmpty())}</td></tr>"
+                    "<td style=\"padding:4px 0;\">${escapeHtml(value.orEmpty())}</td></tr>"
         }
 
         val messageBlock = enquiry.message

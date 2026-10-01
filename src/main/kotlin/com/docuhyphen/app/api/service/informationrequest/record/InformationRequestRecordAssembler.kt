@@ -4,40 +4,22 @@ import com.docuhyphen.app.api.model.entity.InformationRequest
 import com.docuhyphen.app.api.model.entity.InformationRequestSubmissionEvidence
 import com.docuhyphen.app.api.model.entity.InformationRequestSubmissionItem
 import com.docuhyphen.app.api.model.entity.InformationRequestSubmissionPackage
-import com.docuhyphen.app.api.repository.informationrequest.acceptedfact.InformationRequestAcceptedFactRepository
-import com.docuhyphen.app.api.repository.informationrequest.acceptedfact.InformationRequestAcceptedFactRevocationRepository
-import com.docuhyphen.app.api.repository.informationrequest.acceptedfact.InformationRequestBusinessDecisionRepository
-import com.docuhyphen.app.api.repository.informationrequest.acceptedfact.InformationRequestFactRecertificationEvidenceRepository
-import com.docuhyphen.app.api.repository.informationrequest.acceptedfact.InformationRequestFactRecertificationRepository
+import com.docuhyphen.app.api.repository.informationrequest.acceptedfact.*
 import com.docuhyphen.app.api.repository.informationrequest.clock.InformationRequestClockEventRepository
 import com.docuhyphen.app.api.repository.informationrequest.clock.InformationRequestClockRepository
 import com.docuhyphen.app.api.repository.informationrequest.lifecycle.InformationRequestTransitionRepository
 import com.docuhyphen.app.api.repository.informationrequest.party.InformationRequestPartyRepository
-import com.docuhyphen.app.api.repository.informationrequest.review.InformationRequestCorrectionItemRepository
-import com.docuhyphen.app.api.repository.informationrequest.review.InformationRequestCorrectionRepository
-import com.docuhyphen.app.api.repository.informationrequest.review.InformationRequestReviewDecisionRepository
-import com.docuhyphen.app.api.repository.informationrequest.review.InformationRequestReviewFindingRepository
-import com.docuhyphen.app.api.repository.informationrequest.review.InformationRequestReviewRepository
-import com.docuhyphen.app.api.repository.informationrequest.submission.InformationRequestSubmissionAttestationRepository
-import com.docuhyphen.app.api.repository.informationrequest.submission.InformationRequestSubmissionEvidenceRepository
-import com.docuhyphen.app.api.repository.informationrequest.submission.InformationRequestSubmissionItemRepository
-import com.docuhyphen.app.api.repository.informationrequest.submission.InformationRequestSubmissionPackageRepository
-import com.docuhyphen.app.api.repository.informationrequest.submission.InformationRequestSubmissionWithdrawalRepository
+import com.docuhyphen.app.api.repository.informationrequest.review.*
+import com.docuhyphen.app.api.repository.informationrequest.submission.*
 import com.docuhyphen.app.api.service.fields.FieldValueRevisionQueryService
 import com.docuhyphen.app.api.service.informationrequest.externalsource.InformationRequestExternalSourceRecordAssembler
 import com.docuhyphen.app.api.service.informationrequest.notice.InformationRequestNoticeQueryService
 import com.docuhyphen.app.api.service.informationrequest.notice.InformationRequestNoticeStateReader
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
-import kotlinx.serialization.json.JsonArray
-import kotlinx.serialization.json.JsonNull
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.JsonPrimitive
-import kotlinx.serialization.json.buildJsonArray
-import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.put
+import kotlinx.serialization.json.*
 import java.sql.Timestamp
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestRecordAssembler @Inject constructor(
@@ -143,7 +125,8 @@ class InformationRequestRecordAssembler @Inject constructor(
 
     private fun packagesOf(requestId: UUID): JsonArray
     {
-        val packages = packageRepository.findForRequest(requestId).sortedWith(compareBy({ it.submittedAt }, { it.packageNumber }))
+        val packages =
+            packageRepository.findForRequest(requestId).sortedWith(compareBy({ it.submittedAt }, { it.packageNumber }))
         val ids = packages.map { it.id }
         val items = itemRepository.findForPackages(ids).groupBy { it.packageId }
         val evidence = evidenceRepository.findForPackages(ids).groupBy { it.itemId }
@@ -179,80 +162,84 @@ class InformationRequestRecordAssembler @Inject constructor(
         )
     }
 
-    private fun itemOf(item: InformationRequestSubmissionItem, evidence: List<InformationRequestSubmissionEvidence>) = buildJsonObject {
-        put("itemId", item.id.toString())
-        put("requirementId", item.informationRequestRequirementId.toString())
-        put("requirementKey", item.requirementKey)
-        put("requirementType", item.requirementType.name)
-        put("occurrencePath", item.occurrencePath)
-        put("completenessState", item.completenessState.name)
-        put("disposition", item.disposition.name)
-        put("narrative", item.narrative)
-        put("responseRevision", item.responseRevision)
-        put("respondedByPrincipalKind", item.respondedByPrincipalKind?.name)
-        put("respondedByPrincipalId", item.respondedByPrincipalId?.toString())
-        put("itemHashSha256", item.itemHashSha256)
-        val value = item.fieldValueRevisionId?.let(fieldValues::valueOf)
-        put("fieldValueRevisionId", item.fieldValueRevisionId?.toString())
-        put("valueType", value?.valueType?.name)
-        put("valueCleared", value?.cleared)
-        put("value", value?.value ?: JsonNull)
-        put(
-            "evidence",
-            buildJsonArray {
-                evidence.sortedWith(compareBy({ it.evidenceArtifactId }, { it.evidenceVersionNumber })).forEach { stored ->
-                    add(
-                        buildJsonObject {
-                            put("evidenceArtifactId", stored.evidenceArtifactId.toString())
-                            put("evidenceVersionId", stored.evidenceVersionId.toString())
-                            put("evidenceVersionNumber", stored.evidenceVersionNumber)
-                            put("documentVersionId", stored.documentVersionId?.toString())
-                            put("contentHashAlgorithm", stored.contentHashAlgorithm)
-                            put("contentHash", stored.contentHash)
-                            put("contentLength", stored.contentLength)
-                            put("contentVerification", stored.contentVerification)
-                            put("conformance", stored.conformance)
-                        },
-                    )
-                }
-            },
-        )
-    }
-
-    private fun attestationsOf(requestId: UUID): JsonArray = buildJsonArray {
-        attestationRepository.findForRequest(requestId).sortedWith(compareBy({ it.attestedAt }, { it.id })).forEach { attestation ->
-            add(
-                buildJsonObject {
-                    put("attestationId", attestation.id.toString())
-                    put("requirementId", attestation.attestationRequirementId.toString())
-                    put("stageKey", attestation.stageKey)
-                    put("partyId", attestation.partyId.toString())
-                    put("partyRole", attestation.partyRole.name)
-                    put("principalKind", attestation.principalKind.name)
-                    put("principalId", attestation.principalId.toString())
-                    put("delegatedAuthorityId", attestation.delegatedAuthorityId?.toString())
-                    put("decision", attestation.decision.name)
-                    put("authenticationStrength", attestation.authenticationStrength.name)
-                    put("attestedContentHashSha256", attestation.attestedContentHashSha256)
-                    put("statementHashSha256", attestation.statementHashSha256)
-                    put("attestedAt", instant(attestation.attestedAt))
+    private fun itemOf(item: InformationRequestSubmissionItem, evidence: List<InformationRequestSubmissionEvidence>) =
+        buildJsonObject {
+            put("itemId", item.id.toString())
+            put("requirementId", item.informationRequestRequirementId.toString())
+            put("requirementKey", item.requirementKey)
+            put("requirementType", item.requirementType.name)
+            put("occurrencePath", item.occurrencePath)
+            put("completenessState", item.completenessState.name)
+            put("disposition", item.disposition.name)
+            put("narrative", item.narrative)
+            put("responseRevision", item.responseRevision)
+            put("respondedByPrincipalKind", item.respondedByPrincipalKind?.name)
+            put("respondedByPrincipalId", item.respondedByPrincipalId?.toString())
+            put("itemHashSha256", item.itemHashSha256)
+            val value = item.fieldValueRevisionId?.let(fieldValues::valueOf)
+            put("fieldValueRevisionId", item.fieldValueRevisionId?.toString())
+            put("valueType", value?.valueType?.name)
+            put("valueCleared", value?.cleared)
+            put("value", value?.value ?: JsonNull)
+            put(
+                "evidence",
+                buildJsonArray {
+                    evidence.sortedWith(compareBy({ it.evidenceArtifactId }, { it.evidenceVersionNumber }))
+                        .forEach { stored ->
+                            add(
+                                buildJsonObject {
+                                    put("evidenceArtifactId", stored.evidenceArtifactId.toString())
+                                    put("evidenceVersionId", stored.evidenceVersionId.toString())
+                                    put("evidenceVersionNumber", stored.evidenceVersionNumber)
+                                    put("documentVersionId", stored.documentVersionId?.toString())
+                                    put("contentHashAlgorithm", stored.contentHashAlgorithm)
+                                    put("contentHash", stored.contentHash)
+                                    put("contentLength", stored.contentLength)
+                                    put("contentVerification", stored.contentVerification)
+                                    put("conformance", stored.conformance)
+                                },
+                            )
+                        }
                 },
             )
         }
+
+    private fun attestationsOf(requestId: UUID): JsonArray = buildJsonArray {
+        attestationRepository.findForRequest(requestId).sortedWith(compareBy({ it.attestedAt }, { it.id }))
+            .forEach { attestation ->
+                add(
+                    buildJsonObject {
+                        put("attestationId", attestation.id.toString())
+                        put("requirementId", attestation.attestationRequirementId.toString())
+                        put("stageKey", attestation.stageKey)
+                        put("partyId", attestation.partyId.toString())
+                        put("partyRole", attestation.partyRole.name)
+                        put("principalKind", attestation.principalKind.name)
+                        put("principalId", attestation.principalId.toString())
+                        put("delegatedAuthorityId", attestation.delegatedAuthorityId?.toString())
+                        put("decision", attestation.decision.name)
+                        put("authenticationStrength", attestation.authenticationStrength.name)
+                        put("attestedContentHashSha256", attestation.attestedContentHashSha256)
+                        put("statementHashSha256", attestation.statementHashSha256)
+                        put("attestedAt", instant(attestation.attestedAt))
+                    },
+                )
+            }
     }
 
     private fun withdrawalsOf(requestId: UUID): JsonArray = buildJsonArray {
-        withdrawalRepository.findForRequest(requestId).sortedWith(compareBy({ it.withdrawnAt }, { it.id })).forEach { withdrawal ->
-            add(
-                buildJsonObject {
-                    put("packageId", withdrawal.packageId.toString())
-                    put("reasonCode", withdrawal.reasonCode)
-                    put("withdrawnByPrincipalKind", withdrawal.withdrawnByPrincipalKind.name)
-                    put("withdrawnByPrincipalId", withdrawal.withdrawnByPrincipalId.toString())
-                    put("withdrawnAt", instant(withdrawal.withdrawnAt))
-                },
-            )
-        }
+        withdrawalRepository.findForRequest(requestId).sortedWith(compareBy({ it.withdrawnAt }, { it.id }))
+            .forEach { withdrawal ->
+                add(
+                    buildJsonObject {
+                        put("packageId", withdrawal.packageId.toString())
+                        put("reasonCode", withdrawal.reasonCode)
+                        put("withdrawnByPrincipalKind", withdrawal.withdrawnByPrincipalKind.name)
+                        put("withdrawnByPrincipalId", withdrawal.withdrawnByPrincipalId.toString())
+                        put("withdrawnAt", instant(withdrawal.withdrawnAt))
+                    },
+                )
+            }
     }
 
     private fun reviewsOf(requestId: UUID): JsonArray
@@ -321,7 +308,8 @@ class InformationRequestRecordAssembler @Inject constructor(
 
     private fun correctionsOf(requestId: UUID): JsonArray
     {
-        val corrections = correctionRepository.findForRequest(requestId).sortedWith(compareBy({ it.openedAt }, { it.id }))
+        val corrections =
+            correctionRepository.findForRequest(requestId).sortedWith(compareBy({ it.openedAt }, { it.id }))
         val items = correctionItemRepository.findForCorrections(corrections.map { it.id }).groupBy { it.correctionId }
         return buildJsonArray {
             corrections.forEach { correction ->
@@ -374,8 +362,10 @@ class InformationRequestRecordAssembler @Inject constructor(
 
     private fun recertificationsOf(requestId: UUID): JsonArray
     {
-        val recertifications = recertificationRepository.findForRequest(requestId).sortedWith(compareBy({ it.assentedAt }, { it.id }))
-        val evidence = recertificationEvidenceRepository.findForRecertifications(recertifications.map { it.id }).groupBy { it.recertificationId }
+        val recertifications =
+            recertificationRepository.findForRequest(requestId).sortedWith(compareBy({ it.assentedAt }, { it.id }))
+        val evidence = recertificationEvidenceRepository.findForRecertifications(recertifications.map { it.id })
+            .groupBy { it.recertificationId }
         return buildJsonArray {
             recertifications.forEach { recertification ->
                 add(
@@ -400,7 +390,8 @@ class InformationRequestRecordAssembler @Inject constructor(
                         put(
                             "evidenceVersionIds",
                             buildJsonArray {
-                                evidence[recertification.id].orEmpty().map { it.evidenceVersionId.toString() }.sorted().forEach { add(JsonPrimitive(it)) }
+                                evidence[recertification.id].orEmpty().map { it.evidenceVersionId.toString() }.sorted()
+                                    .forEach { add(JsonPrimitive(it)) }
                             },
                         )
                     },
@@ -475,7 +466,10 @@ class InformationRequestRecordAssembler @Inject constructor(
                     put("noticeKind", view.intent.noticeKind.name)
                     put("partyId", view.intent.partyId.toString())
                     put("deliveryState", view.deliveryState.name)
-                    put("maskedEndpoint", InformationRequestNoticeQueryService.maskedEndpoint(view.notice?.recipientEndpoint))
+                    put(
+                        "maskedEndpoint",
+                        InformationRequestNoticeQueryService.maskedEndpoint(view.notice?.recipientEndpoint)
+                    )
                     put("renderedContentHash", view.notice?.renderedContentHash)
                     put("renderedAt", instant(view.notice?.renderedAt))
                     put(

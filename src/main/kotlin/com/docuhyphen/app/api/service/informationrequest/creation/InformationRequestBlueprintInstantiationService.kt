@@ -5,11 +5,7 @@ import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
 import com.docuhyphen.app.api.model.informationrequest.creation.BlueprintInformationRequestPartyDefault
 import com.docuhyphen.app.api.model.informationrequest.creation.CreateInformationRequestFromBlueprintCommand
 import com.docuhyphen.app.api.model.informationrequest.creation.InformationRequestCreationResult
-import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestMutation
-import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestParentSnapshot
-import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestPolicyDecision
-import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestState
-import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestTransitionHistoryCommand
+import com.docuhyphen.app.api.model.informationrequest.lifecycle.*
 import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
 import com.docuhyphen.app.api.repository.informationrequest.creation.InformationRequestDocumentPlaceholderRepository
@@ -183,7 +179,7 @@ class InformationRequestBlueprintInstantiationService @Inject constructor(
                 ExchangeShareRoleName.VIEWER,
                 ExchangeShareRoleName.COMMENTER,
                 ExchangeShareRoleName.PARTICIPANT,
-                -> InformationRequestShareRoleKey.CONTRIBUTOR
+                    -> InformationRequestShareRoleKey.CONTRIBUTOR
             },
             principal = when (default.principalKind.trim().uppercase())
             {
@@ -242,7 +238,7 @@ class InformationRequestBlueprintInstantiationService @Inject constructor(
                 mutation = InformationRequestMutation.CREATE_DRAFT,
                 actor = command.access.principal,
                 idempotencyKey = "information_request.draft.create|$CREATE_FROM_BLUEPRINT_OPERATION|${request.id}|" +
-                    command.idempotencyKey,
+                        command.idempotencyKey,
             ),
         )
     }
@@ -255,7 +251,10 @@ class InformationRequestBlueprintInstantiationService @Inject constructor(
             else -> throw IllegalStateException("Exchange has no owner")
         }
 
-    private fun replayCreationResult(result: CommandResultReference, access: RequestAccessContext): InformationRequestCreationResult
+    private fun replayCreationResult(
+        result: CommandResultReference,
+        access: RequestAccessContext
+    ): InformationRequestCreationResult
     {
         require(result.resourceType == ResourceType.INFORMATION_REQUEST) {
             "Command receipt does not reference an Information Request"

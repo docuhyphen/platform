@@ -7,7 +7,7 @@ import com.docuhyphen.app.api.model.informationrequest.submission.InformationReq
 import com.docuhyphen.app.api.repository.informationrequest.acceptedfact.InformationRequestAcceptedFactEvidenceRepository
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestAcceptedFactEvidenceService @Inject constructor(

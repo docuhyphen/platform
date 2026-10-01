@@ -1,38 +1,26 @@
 package com.docuhyphen.app.api.model
 
-import com.docuhyphen.app.api.model.dto.InformationRequestAttestationStatusDto
-import com.docuhyphen.app.api.model.dto.InformationRequestSubmissionAttestationDto
-import com.docuhyphen.app.api.model.dto.InformationRequestSubmissionAttestationResultDto
-import com.docuhyphen.app.api.model.dto.InformationRequestSubmissionEvidenceDto
-import com.docuhyphen.app.api.model.dto.InformationRequestSubmissionItemDto
-import com.docuhyphen.app.api.model.dto.InformationRequestSubmissionPackageDto
-import com.docuhyphen.app.api.model.dto.InformationRequestSubmissionPreviewDto
-import com.docuhyphen.app.api.model.dto.InformationRequestSubmissionProblemDto
-import com.docuhyphen.app.api.model.dto.InformationRequestSubmissionRefusalDto
-import com.docuhyphen.app.api.model.dto.InformationRequestSubmissionResultDto
-import com.docuhyphen.app.api.model.dto.InformationRequestSubmissionStageDto
-import com.docuhyphen.app.api.model.dto.InformationRequestSupportingEvidenceLinkDto
+import com.docuhyphen.app.api.model.dto.*
 import com.docuhyphen.app.api.model.entity.InformationRequestSubmissionAttestation
 import com.docuhyphen.app.api.model.entity.InformationRequestSubmissionEvidence
 import com.docuhyphen.app.api.model.entity.InformationRequestSubmissionItem
 import com.docuhyphen.app.api.model.fields.FieldValueRevisionValue
-import com.docuhyphen.app.api.model.informationrequest.submission.InformationRequestAttestationStanding
-import com.docuhyphen.app.api.model.informationrequest.submission.InformationRequestReadableSubmissionPackage
-import com.docuhyphen.app.api.model.informationrequest.submission.InformationRequestSubmissionAttestationResult
-import com.docuhyphen.app.api.model.informationrequest.submission.InformationRequestSubmissionItemProblem
-import com.docuhyphen.app.api.model.informationrequest.submission.InformationRequestSubmissionPackageView
-import com.docuhyphen.app.api.model.informationrequest.submission.InformationRequestSubmissionPreview
-import com.docuhyphen.app.api.model.informationrequest.submission.InformationRequestSubmissionReadiness
-import com.docuhyphen.app.api.model.informationrequest.submission.InformationRequestSubmissionResult
+import com.docuhyphen.app.api.model.informationrequest.submission.*
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import java.util.UUID
+import java.util.*
 
 object InformationRequestSubmissionDtoMapper
 {
-    fun toDto(readable: InformationRequestReadableSubmissionPackage, caller: PrincipalRef): InformationRequestSubmissionPackageDto =
+    fun toDto(
+        readable: InformationRequestReadableSubmissionPackage,
+        caller: PrincipalRef
+    ): InformationRequestSubmissionPackageDto =
         toDto(readable.view, readable.visibleRequirementIds, caller, readable.fieldValues)
 
-    fun toDto(preview: InformationRequestSubmissionPreview, caller: PrincipalRef): InformationRequestSubmissionPreviewDto =
+    fun toDto(
+        preview: InformationRequestSubmissionPreview,
+        caller: PrincipalRef
+    ): InformationRequestSubmissionPreviewDto =
         InformationRequestSubmissionPreviewDto(
             informationRequestId = preview.requestId,
             stageKey = preview.stageKey,
@@ -66,14 +54,20 @@ object InformationRequestSubmissionDtoMapper
         submission = toDto(readable, caller),
     )
 
-    fun toDto(result: InformationRequestSubmissionAttestationResult, caller: PrincipalRef): InformationRequestSubmissionAttestationResultDto =
+    fun toDto(
+        result: InformationRequestSubmissionAttestationResult,
+        caller: PrincipalRef
+    ): InformationRequestSubmissionAttestationResultDto =
         InformationRequestSubmissionAttestationResultDto(
             attestation = toDto(result.attestation, caller),
             state = result.evaluation?.evaluation?.state,
             submissionETag = result.submissionETag,
         )
 
-    private fun toDto(standing: InformationRequestAttestationStanding, caller: PrincipalRef): InformationRequestAttestationStatusDto
+    private fun toDto(
+        standing: InformationRequestAttestationStanding,
+        caller: PrincipalRef
+    ): InformationRequestAttestationStatusDto
     {
         val policy = standing.evaluated.policy
         val evaluation = standing.evaluated.evaluation
@@ -122,7 +116,7 @@ object InformationRequestSubmissionDtoMapper
             previousPackageId = submission.previousPackageId,
             submittedAt = submission.submittedAt,
             submittedByCaller = submission.submittedByPrincipalKind == caller.kind &&
-                submission.submittedByPrincipalId == caller.id,
+                    submission.submittedByPrincipalId == caller.id,
             withdrawn = view.withdrawal != null,
             withdrawnAt = view.withdrawal?.withdrawnAt,
             withdrawalReasonCode = view.withdrawal?.reasonCode,
@@ -134,7 +128,12 @@ object InformationRequestSubmissionDtoMapper
                 .map { toDto(it, caller) },
             supportingEvidenceLinks = view.links
                 .filter { it.supportedRequirementId in visibleRequirementIds && it.supportingRequirementId in visibleRequirementIds }
-                .map { InformationRequestSupportingEvidenceLinkDto(it.supportedRequirementId, it.supportingRequirementId) },
+                .map {
+                    InformationRequestSupportingEvidenceLinkDto(
+                        it.supportedRequirementId,
+                        it.supportingRequirementId
+                    )
+                },
             undisclosedItemCount = view.items.size - visibleItems.size,
         )
     }

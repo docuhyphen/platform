@@ -5,7 +5,7 @@ import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestLifecycleException
-import java.util.UUID
+import java.util.*
 
 /**
  * Every command that mutates a runtime request takes the parent Exchange row lock first and the

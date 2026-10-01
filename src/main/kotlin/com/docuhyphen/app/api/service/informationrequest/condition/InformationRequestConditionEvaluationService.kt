@@ -1,17 +1,9 @@
 package com.docuhyphen.app.api.service.informationrequest.condition
 
 import com.docuhyphen.app.api.model.InformationRequestTemplateDtoMapper
-import com.docuhyphen.app.api.model.entity.FieldValue
-import com.docuhyphen.app.api.model.entity.FieldValueType
-import com.docuhyphen.app.api.model.entity.InformationRequestRequirement
-import com.docuhyphen.app.api.model.entity.InformationRequestResponseDisposition
-import com.docuhyphen.app.api.model.entity.ResourceType
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.informationrequest.condition.InformationRequestConditionEvaluationProjection
-import com.docuhyphen.app.api.repository.fields.FieldContractRepository
-import com.docuhyphen.app.api.repository.fields.FieldValueRepository
-import com.docuhyphen.app.api.repository.fields.FieldValueSelectionRepository
-import com.docuhyphen.app.api.repository.fields.FieldValueSetRepository
-import com.docuhyphen.app.api.repository.fields.SchemaAssignmentRepository
+import com.docuhyphen.app.api.repository.fields.*
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRequirementRepository
 import com.docuhyphen.app.api.repository.informationrequest.occurrence.InformationRequestGroupOccurrenceRepository
@@ -27,7 +19,7 @@ import com.docuhyphen.app.api.service.informationrequest.response.InformationReq
 import com.docuhyphen.app.api.service.informationrequest.template.InformationRequestTemplateProjectionLoader
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestConditionEvaluationService @Inject constructor(
@@ -164,11 +156,11 @@ class InformationRequestConditionEvaluationService @Inject constructor(
             .mapNotNull { requirement ->
                 requirementKeyById[requirement.sourceTemplateRequirementId]?.let { key ->
                     key to (
-                        requirement.occurrencePath to (
-                            dispositionByRequirementId[requirement.id]
-                                ?: InformationRequestResponseDisposition.NOT_ANSWERED
+                            requirement.occurrencePath to (
+                                    dispositionByRequirementId[requirement.id]
+                                        ?: InformationRequestResponseDisposition.NOT_ANSWERED
+                                    )
                             )
-                        )
                 }
             }
             .groupBy({ it.first }, { it.second })

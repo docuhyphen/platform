@@ -10,7 +10,7 @@ import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 import java.time.Duration
-import java.util.Locale
+import java.util.*
 import java.util.concurrent.atomic.AtomicReference
 
 @ApplicationScoped
@@ -65,7 +65,10 @@ class DisposableEmailDomainService(
         refreshDomainList()
     }
 
-    @Scheduled(every = "\${app.auth.signup.disposable-email.refresh-every:24h}", concurrentExecution = Scheduled.ConcurrentExecution.SKIP)
+    @Scheduled(
+        every = "\${app.auth.signup.disposable-email.refresh-every:24h}",
+        concurrentExecution = Scheduled.ConcurrentExecution.SKIP
+    )
     fun refreshDomainList()
     {
         if (!enabled) return

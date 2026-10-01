@@ -28,13 +28,22 @@ class InformationRequestNoAuthAcceptedFactOfferResource @Inject constructor(
     {
         return try
         {
-            InformationRequestCommandHttp.withNoAuthAccess(readAccessService, id, accessLinkToken, sessionToken) { requestId, access ->
+            InformationRequestCommandHttp.withNoAuthAccess(
+                readAccessService,
+                id,
+                accessLinkToken,
+                sessionToken
+            ) { requestId, access ->
                 handler.offers(requestId, access)
             }
         }
         catch (exception: Exception)
         {
-            InformationRequestCommandHttp.refused(logger, "No-auth Information Request accepted fact offer lookup failed", exception)
+            InformationRequestCommandHttp.refused(
+                logger,
+                "No-auth Information Request accepted fact offer lookup failed",
+                exception
+            )
         }
     }
 

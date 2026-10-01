@@ -1,16 +1,14 @@
 package com.docuhyphen.app.api.service.auth
 
+import com.docuhyphen.app.api.model.AuthenticatorMfaDtoMapper
 import com.docuhyphen.app.api.model.dto.AuthenticatorEnrollmentDto
 import com.docuhyphen.app.api.model.dto.MfaConfigurationDto
-import com.docuhyphen.app.api.model.AuthenticatorMfaDtoMapper
 import com.docuhyphen.app.api.model.entity.AppUser
 import com.docuhyphen.app.api.model.entity.AuthenticatorEnrollment
 import com.docuhyphen.app.api.model.entity.MultifactorAuthenticationType
-import com.docuhyphen.app.api.model.entity.MultifactorAuthenticationType.GOOGLE_AUTHENTICATOR
-import com.docuhyphen.app.api.model.entity.MultifactorAuthenticationType.MICROSOFT_AUTHENTICATOR
 import com.docuhyphen.app.api.repository.auth.AuthenticatorEnrollmentRepository
-import com.docuhyphen.app.api.service.user.AppUserService
 import com.docuhyphen.app.api.service.config.ConfigurationService
+import com.docuhyphen.app.api.service.user.AppUserService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.transaction.Transactional
 import java.net.URLEncoder
@@ -21,8 +19,7 @@ import java.security.SecureRandom
 import java.sql.Timestamp
 import java.time.Instant
 import java.time.temporal.ChronoUnit
-import java.util.Base64
-import java.util.UUID
+import java.util.*
 import javax.crypto.Cipher
 import javax.crypto.Mac
 import javax.crypto.spec.GCMParameterSpec
@@ -151,9 +148,9 @@ class AuthenticatorMfaService(
         val hash = mac.doFinal(ByteBuffer.allocate(Long.SIZE_BYTES).putLong(counter).array())
         val offset = hash.last().toInt() and 0x0f
         val binary = ((hash[offset].toInt() and 0x7f) shl 24) or
-            ((hash[offset + 1].toInt() and 0xff) shl 16) or
-            ((hash[offset + 2].toInt() and 0xff) shl 8) or
-            (hash[offset + 3].toInt() and 0xff)
+                ((hash[offset + 1].toInt() and 0xff) shl 16) or
+                ((hash[offset + 2].toInt() and 0xff) shl 8) or
+                (hash[offset + 3].toInt() and 0xff)
         val modulus = 1_000_000
         return (binary % modulus).toString().padStart(CODE_DIGITS, '0')
     }

@@ -1,11 +1,6 @@
 package com.docuhyphen.app.api.service.informationrequest.submission
 
-import com.docuhyphen.app.api.model.entity.InformationRequest
-import com.docuhyphen.app.api.model.entity.InformationRequestRequirementType
-import com.docuhyphen.app.api.model.entity.InformationRequestSubmissionMode
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateRequirementBinding
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateVersion
-import com.docuhyphen.app.api.model.entity.ResourceType
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.informationrequest.submission.InformationRequestSubmissionContent
 import com.docuhyphen.app.api.model.informationrequest.submission.InformationRequestSubmissionContentItem
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRequirementRepository
@@ -27,7 +22,7 @@ import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestSubmissionContentCollector @Inject constructor(
@@ -58,7 +53,8 @@ class InformationRequestSubmissionContentCollector @Inject constructor(
         val templateRequirements = templateRequirementRepository.findAllByDefinition(version.templateDefinitionId)
             .associateBy { it.id }
         val activePaths = occurrenceRepository.findForRequest(request.id).map { it.occurrencePath }.toSet()
-        val revisions = revisionRepository.findCurrentForRequest(request.id).associateBy { it.informationRequestRequirementId }
+        val revisions =
+            revisionRepository.findCurrentForRequest(request.id).associateBy { it.informationRequestRequirementId }
         val responses = responseStore.findCurrentForRequest(request.id)
             .filter { it.activeInResponse }
             .associateBy { it.informationRequestRequirementId }
@@ -102,7 +98,11 @@ class InformationRequestSubmissionContentCollector @Inject constructor(
         )
     }
 
-    private fun requireKnownScope(version: InformationRequestTemplateVersion, stageOrder: List<String>, stageKey: String?)
+    private fun requireKnownScope(
+        version: InformationRequestTemplateVersion,
+        stageOrder: List<String>,
+        stageKey: String?
+    )
     {
         val known = if (version.submissionMode == InformationRequestSubmissionMode.STAGED)
             stageKey != null && stageKey in stageOrder
@@ -120,7 +120,11 @@ class InformationRequestSubmissionContentCollector @Inject constructor(
         }
     }
 
-    private fun fieldRevisionOf(requestId: UUID, binding: InformationRequestTemplateRequirementBinding, valueSetId: UUID?): UUID?
+    private fun fieldRevisionOf(
+        requestId: UUID,
+        binding: InformationRequestTemplateRequirementBinding,
+        valueSetId: UUID?
+    ): UUID?
     {
         val fieldDefinitionId = binding.collectedFieldDefinitionId ?: return null
         val set = valueSetId ?: return null

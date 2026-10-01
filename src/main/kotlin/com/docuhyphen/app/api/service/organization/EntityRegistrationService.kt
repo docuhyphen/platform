@@ -1,6 +1,5 @@
 package com.docuhyphen.app.api.service.organization
 
-import com.docuhyphen.app.api.service.user.AppUserService
 import com.docuhyphen.app.api.exception.InvalidOrganizationRegistrationException
 import com.docuhyphen.app.api.exception.InvalidPersonRegistrationException
 import com.docuhyphen.app.api.exception.OrganizationAlreadyExistsException
@@ -13,6 +12,7 @@ import com.docuhyphen.app.api.repository.user.PersonRepositoryRepository
 import com.docuhyphen.app.api.service.communication.EmailService
 import com.docuhyphen.app.api.service.communication.EmailTemplateService
 import com.docuhyphen.app.api.service.notification.AppAdminNotificationService
+import com.docuhyphen.app.api.service.user.AppUserService
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
 import jakarta.persistence.EntityManager
@@ -193,7 +193,13 @@ class EntityRegistrationService @Inject constructor(
                 organizationEmail = email,
                 organizationPhone = phoneNumber,
             )
-        }.onFailure { logger.warn("Failed to notify an App Administrator about organization {}", registrationNumber, it) }
+        }.onFailure {
+            logger.warn(
+                "Failed to notify an App Administrator about organization {}",
+                registrationNumber,
+                it
+            )
+        }
 
         emailService.sendEmail(
             appUser.email,

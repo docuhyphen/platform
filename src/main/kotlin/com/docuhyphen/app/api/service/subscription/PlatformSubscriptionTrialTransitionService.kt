@@ -1,25 +1,22 @@
 package com.docuhyphen.app.api.service.subscription
 
-import com.docuhyphen.app.api.service.auth.AdminApprovalContext
-import com.docuhyphen.app.api.service.auth.AuthAuditService
-import com.docuhyphen.app.api.service.auth.UserRoleService
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.interceptor.EnforceAdminAction
 import com.docuhyphen.app.api.model.entity.AppUser
 import com.docuhyphen.app.api.resource.model.PlatformSubscriptionTrialConversionRequest
 import com.docuhyphen.app.api.resource.model.PlatformSubscriptionTrialEndRequest
-import com.docuhyphen.app.api.service.user.AppUserService
+import com.docuhyphen.app.api.service.auth.AdminApprovalContext
+import com.docuhyphen.app.api.service.auth.AuthAuditService
+import com.docuhyphen.app.api.service.auth.UserRoleService
 import com.docuhyphen.app.api.service.organization.OrganizationService
-import com.docuhyphen.app.api.service.subscription.BillingFrequency
-import com.docuhyphen.app.api.service.subscription.SubscriptionTrialTransition
-import com.docuhyphen.app.api.service.subscription.SubscriptionTrialTransitionService
+import com.docuhyphen.app.api.service.user.AppUserService
 import io.quarkus.security.ForbiddenException
 import io.quarkus.security.UnauthorizedException
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 @RequestScoped
 class PlatformSubscriptionTrialTransitionService @Inject constructor(

@@ -21,7 +21,7 @@ object SubscriptionDenialFactory
             feature = feature,
             upgradePlanCode = subscription.upgradePlanCode,
             message = "${describeFeature(feature)} is not included in the " +
-                "${describePlan(subscription.planCode)} plan.${upgradeHint(subscription)}",
+                    "${describePlan(subscription.planCode)} plan.${upgradeHint(subscription)}",
         )
     }
 
@@ -42,7 +42,7 @@ object SubscriptionDenialFactory
             limit = limit,
             upgradePlanCode = subscription.upgradePlanCode,
             message = "The ${describePlan(subscription.planCode)} plan includes " +
-                "$allowanceDescription.${upgradeHint(subscription)}",
+                    "$allowanceDescription.${upgradeHint(subscription)}",
         )
     }
 
@@ -59,7 +59,7 @@ object SubscriptionDenialFactory
             currentValue = activeSeats,
             limit = purchasedSeats,
             message = "All $purchasedSeats purchased seats are in use. Free a seat or purchase " +
-                "more seats before adding another member.",
+                    "more seats before adding another member.",
         )
     }
 
@@ -78,19 +78,19 @@ object SubscriptionDenialFactory
         {
             SubscriptionDenialReason.SUBSCRIPTION_PAST_DUE ->
                 "Payment for this subscription is overdue, so new changes are paused. Existing " +
-                    "content stays available to read and export."
+                        "content stays available to read and export."
 
             SubscriptionDenialReason.SUBSCRIPTION_CANCELED ->
                 "This subscription has been canceled, so new changes are paused. Existing " +
-                    "content stays available to read and export."
+                        "content stays available to read and export."
 
             SubscriptionDenialReason.TRIAL_ENDED ->
                 "The trial has ended, so new changes are paused. Existing content stays " +
-                    "available to read and export."
+                        "available to read and export."
 
             else ->
                 "This subscription is suspended, so new changes are paused. Existing content " +
-                    "stays available to read and export."
+                        "stays available to read and export."
         }
 
         return SubscriptionDenial(
@@ -110,7 +110,7 @@ object SubscriptionDenialFactory
             feature = feature,
             upgradePlanCode = PlanCode.BUSINESS,
             message = "${describeFeature(feature)} belongs to an organization. Select an " +
-                "organization with a Business plan to continue.",
+                    "organization with a Business plan to continue.",
         )
     }
 

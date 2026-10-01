@@ -5,7 +5,7 @@ import com.docuhyphen.app.api.model.entity.Exchange
 import jakarta.enterprise.context.ApplicationScoped
 import java.security.MessageDigest
 import java.security.SecureRandom
-import java.util.Base64
+import java.util.*
 
 @ApplicationScoped
 class NoAuthExchangeAccessTokenService

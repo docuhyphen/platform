@@ -24,6 +24,7 @@ class InformationRequestNoAuthRateLimit @Inject constructor(
         {
             InformationRequestNoAuthAttempt.CHALLENGE ->
                 limits.noAuthChallengesPerMinute to InformationRequestAbuseControl.NO_AUTH_CHALLENGE_RATE
+
             InformationRequestNoAuthAttempt.SESSION ->
                 limits.noAuthSessionsPerMinute to InformationRequestAbuseControl.NO_AUTH_SESSION_RATE
         }

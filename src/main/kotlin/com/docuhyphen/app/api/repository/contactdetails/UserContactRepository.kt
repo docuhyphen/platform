@@ -1,8 +1,7 @@
 package com.docuhyphen.app.api.repository.contactdetails
 
-import com.docuhyphen.app.api.repository.BaseRepository
-
 import com.docuhyphen.app.api.model.entity.UserContact
+import com.docuhyphen.app.api.repository.BaseRepository
 import jakarta.enterprise.context.RequestScoped
 import jakarta.persistence.TypedQuery
 import jakarta.transaction.Transactional

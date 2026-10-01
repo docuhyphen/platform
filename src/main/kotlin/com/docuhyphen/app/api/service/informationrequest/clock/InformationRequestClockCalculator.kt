@@ -2,11 +2,7 @@ package com.docuhyphen.app.api.service.informationrequest.clock
 
 import com.docuhyphen.app.api.model.entity.InformationRequestClockType
 import com.docuhyphen.app.api.model.informationrequest.clock.InformationRequestClockCalendar
-import java.time.Duration
-import java.time.Instant
-import java.time.LocalDate
-import java.time.LocalDateTime
-import java.time.LocalTime
+import java.time.*
 
 object InformationRequestClockCalculator
 {

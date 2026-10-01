@@ -9,7 +9,7 @@ import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
 import com.docuhyphen.app.api.service.command.CommandPrecondition
 import com.docuhyphen.app.api.service.fields.FieldValueEntry
 import com.docuhyphen.app.api.service.fields.FieldsPrecondition
-import java.util.UUID
+import java.util.*
 
 sealed interface ResponseNarrativePatch
 {

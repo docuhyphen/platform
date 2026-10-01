@@ -23,11 +23,16 @@ class InformationRequestConnectorExchangeResource @Inject constructor(
         {
             val access = accessContextFactory.currentAuthenticated()
             val listed = exchanges.exchanges(requestId(id), access)
-            Response.ok(listed.map { InformationRequestExternalSourceDtoMapper.toDto(it, access.principal) }.toTypedArray()).build()
+            Response.ok(listed.map { InformationRequestExternalSourceDtoMapper.toDto(it, access.principal) }
+                .toTypedArray()).build()
         }
         catch (exception: Exception)
         {
-            InformationRequestCommandHttp.refused(logger, "Information Request connector exchange list failed", exception)
+            InformationRequestCommandHttp.refused(
+                logger,
+                "Information Request connector exchange list failed",
+                exception
+            )
         }
     }
 
@@ -40,17 +45,30 @@ class InformationRequestConnectorExchangeResource @Inject constructor(
         return try
         {
             val requestId = requestId(id)
-            val body = request ?: throw InformationRequestCommandRequestException("A connector exchange names its Requirement and connector")
+            val body = request
+                ?: throw InformationRequestCommandRequestException("A connector exchange names its Requirement and connector")
             val key = InformationRequestCommandHttp.idempotencyKey(idempotencyKey)
             val access = accessContextFactory.currentAuthenticated()
             val exchange = exchanges.request(
-                RequestInformationRequestConnectorExchangeCommand(requestId, body.requirementId, body.connectorKey, body.lookupReference, access, key),
+                RequestInformationRequestConnectorExchangeCommand(
+                    requestId,
+                    body.requirementId,
+                    body.connectorKey,
+                    body.lookupReference,
+                    access,
+                    key
+                ),
             )
-            Response.status(Response.Status.CREATED).entity(InformationRequestExternalSourceDtoMapper.toDto(exchange, access.principal)).build()
+            Response.status(Response.Status.CREATED)
+                .entity(InformationRequestExternalSourceDtoMapper.toDto(exchange, access.principal)).build()
         }
         catch (exception: Exception)
         {
-            InformationRequestCommandHttp.refused(logger, "Information Request connector exchange request failed", exception)
+            InformationRequestCommandHttp.refused(
+                logger,
+                "Information Request connector exchange request failed",
+                exception
+            )
         }
     }
 

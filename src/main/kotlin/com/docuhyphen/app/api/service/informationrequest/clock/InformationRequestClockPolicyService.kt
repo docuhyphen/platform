@@ -1,26 +1,10 @@
 package com.docuhyphen.app.api.service.informationrequest.clock
 
 import com.docuhyphen.app.api.exception.InformationRequestCommandRequestException
-import com.docuhyphen.app.api.model.entity.CommunicationScope
-import com.docuhyphen.app.api.model.entity.InformationRequestClockPolicy
-import com.docuhyphen.app.api.model.entity.InformationRequestClockPolicyHoliday
-import com.docuhyphen.app.api.model.entity.InformationRequestClockPolicyPeriod
-import com.docuhyphen.app.api.model.entity.InformationRequestClockPolicyReminder
-import com.docuhyphen.app.api.model.entity.InformationRequestClockPolicyVersion
-import com.docuhyphen.app.api.model.entity.InformationRequestClockType
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.informationrequest.access.InformationRequestOwnerRef
-import com.docuhyphen.app.api.model.informationrequest.clock.DefineInformationRequestClockPolicyCommand
-import com.docuhyphen.app.api.model.informationrequest.clock.InformationRequestClockCalendar
-import com.docuhyphen.app.api.model.informationrequest.clock.InformationRequestClockPolicyDefinition
-import com.docuhyphen.app.api.model.informationrequest.clock.InformationRequestClockPolicyVersionView
-import com.docuhyphen.app.api.model.informationrequest.clock.InformationRequestClockPolicyView
-import com.docuhyphen.app.api.model.informationrequest.clock.InformationRequestWorkingPeriod
-import com.docuhyphen.app.api.model.informationrequest.clock.PublishInformationRequestClockPolicyVersionCommand
-import com.docuhyphen.app.api.repository.informationrequest.clock.InformationRequestClockPolicyHolidayRepository
-import com.docuhyphen.app.api.repository.informationrequest.clock.InformationRequestClockPolicyPeriodRepository
-import com.docuhyphen.app.api.repository.informationrequest.clock.InformationRequestClockPolicyReminderRepository
-import com.docuhyphen.app.api.repository.informationrequest.clock.InformationRequestClockPolicyRepository
-import com.docuhyphen.app.api.repository.informationrequest.clock.InformationRequestClockPolicyVersionRepository
+import com.docuhyphen.app.api.model.informationrequest.clock.*
+import com.docuhyphen.app.api.repository.informationrequest.clock.*
 import com.docuhyphen.app.api.service.audit.AuditEventDraft
 import com.docuhyphen.app.api.service.audit.AuditRecorder
 import com.docuhyphen.app.api.service.audit.catalog.AuditActorKind
@@ -40,7 +24,7 @@ import java.time.Clock
 import java.time.DateTimeException
 import java.time.DayOfWeek
 import java.time.ZoneId
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestClockPolicyService @Inject constructor(
@@ -62,12 +46,16 @@ class InformationRequestClockPolicyService @Inject constructor(
         val principal = ownerAccess.requireAccess(owner, Action.INFORMATION_REQUEST_TEMPLATE_EDIT)
         val key = command.policyKey.trim().lowercase()
         if (!KEY.matches(key)) throw InformationRequestCommandRequestException("A clock policy key uses lowercase letters, digits, dots, dashes, or underscores")
-        val name = command.displayName.trim().ifBlank { throw InformationRequestCommandRequestException("A clock policy has a name") }
+        val name = command.displayName.trim()
+            .ifBlank { throw InformationRequestCommandRequestException("A clock policy has a name") }
         validate(command.definition)
         requireVisibleCommunications(command.definition, owner)
         if (policyRepository.findByKey(owner.ownerType, owner.ownerId, key) != null)
         {
-            throw InformationRequestLifecycleException(InformationRequestErrorCatalog.CLOCK_POLICY_KEY_TAKEN, "A clock policy with this key already exists")
+            throw InformationRequestLifecycleException(
+                InformationRequestErrorCatalog.CLOCK_POLICY_KEY_TAKEN,
+                "A clock policy with this key already exists"
+            )
         }
         val policy = policyRepository.save(
             InformationRequestClockPolicy().apply {
@@ -89,7 +77,10 @@ class InformationRequestClockPolicyService @Inject constructor(
     fun publishVersion(command: PublishInformationRequestClockPolicyVersionCommand): InformationRequestClockPolicyView
     {
         val policy = policyRepository.findById(command.policyId)
-            ?: throw InformationRequestLifecycleException(InformationRequestErrorCatalog.NOT_FOUND, "Clock policy not found")
+            ?: throw InformationRequestLifecycleException(
+                InformationRequestErrorCatalog.NOT_FOUND,
+                "Clock policy not found"
+            )
         val owner = ownerOf(policy)
         val principal = ownerAccess.requireAccess(owner, Action.INFORMATION_REQUEST_TEMPLATE_EDIT)
         validate(command.definition)
@@ -108,7 +99,10 @@ class InformationRequestClockPolicyService @Inject constructor(
     fun get(policyId: UUID): InformationRequestClockPolicyView
     {
         val policy = policyRepository.findById(policyId)
-            ?: throw InformationRequestLifecycleException(InformationRequestErrorCatalog.NOT_FOUND, "Clock policy not found")
+            ?: throw InformationRequestLifecycleException(
+                InformationRequestErrorCatalog.NOT_FOUND,
+                "Clock policy not found"
+            )
         ownerAccess.requireAccess(ownerOf(policy), Action.INFORMATION_REQUEST_TEMPLATE_VIEW)
         return view(policy)
     }
@@ -161,7 +155,9 @@ class InformationRequestClockPolicyService @Inject constructor(
             )
         }
         definition.holidays.distinct().forEach { date ->
-            holidayRepository.save(InformationRequestClockPolicyHoliday().apply { policyVersionId = version.id; holidayDate = date })
+            holidayRepository.save(InformationRequestClockPolicyHoliday().apply {
+                policyVersionId = version.id; holidayDate = date
+            })
         }
         definition.reminderMinutesBeforeDue.sortedDescending().forEachIndexed { index, minutes ->
             reminderRepository.save(
@@ -236,7 +232,10 @@ class InformationRequestClockPolicyService @Inject constructor(
         }
     }
 
-    private fun requireVisibleCommunications(definition: InformationRequestClockPolicyDefinition, owner: InformationRequestOwnerRef)
+    private fun requireVisibleCommunications(
+        definition: InformationRequestClockPolicyDefinition,
+        owner: InformationRequestOwnerRef
+    )
     {
         listOfNotNull(definition.reminderCommunicationId, definition.overdueCommunicationId).forEach { id ->
             val source = communications.sourceOf(id)

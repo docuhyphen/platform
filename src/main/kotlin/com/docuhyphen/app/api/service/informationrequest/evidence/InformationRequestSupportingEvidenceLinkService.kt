@@ -9,7 +9,7 @@ import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestSupportingEvidenceLinkService @Inject constructor(
@@ -27,7 +27,10 @@ class InformationRequestSupportingEvidenceLinkService @Inject constructor(
             .map { it.supportedRequirementId to it.supportingRequirementId }
             .toSet()
         val now = Timestamp.from(Instant.now())
-        InformationRequestSupportingEvidenceLinkResolver.resolve(templateLinks, requirementRepository.findForRequest(request.id))
+        InformationRequestSupportingEvidenceLinkResolver.resolve(
+            templateLinks,
+            requirementRepository.findForRequest(request.id)
+        )
             .filter { (it.supportedRequirementId to it.supportingRequirementId) !in recorded }
             .forEach { target ->
                 linkRepository.save(
@@ -42,10 +45,16 @@ class InformationRequestSupportingEvidenceLinkService @Inject constructor(
             }
     }
 
-    fun linksFrom(request: InformationRequest, supportedRequirementIds: Set<UUID>): List<InformationRequestSupportingEvidenceLink> =
+    fun linksFrom(
+        request: InformationRequest,
+        supportedRequirementIds: Set<UUID>
+    ): List<InformationRequestSupportingEvidenceLink> =
         currentLinks(request).filter { it.supportedRequirementId in supportedRequirementIds }
 
-    fun visibleLinks(request: InformationRequest, visibleRequirementIds: Set<UUID>): List<InformationRequestSupportingEvidenceLink> =
+    fun visibleLinks(
+        request: InformationRequest,
+        visibleRequirementIds: Set<UUID>
+    ): List<InformationRequestSupportingEvidenceLink> =
         currentLinks(request).filter {
             it.supportedRequirementId in visibleRequirementIds && it.supportingRequirementId in visibleRequirementIds
         }
@@ -53,9 +62,13 @@ class InformationRequestSupportingEvidenceLinkService @Inject constructor(
     private fun currentLinks(request: InformationRequest): List<InformationRequestSupportingEvidenceLink>
     {
         val linked = InformationRequestSupportingEvidenceLinkResolver
-            .resolve(templateLinkRepository.findForVersion(request.templateVersionId), requirementRepository.findForRequest(request.id))
+            .resolve(
+                templateLinkRepository.findForVersion(request.templateVersionId),
+                requirementRepository.findForRequest(request.id)
+            )
             .map { it.supportedRequirementId to it.supportingRequirementId }
             .toSet()
-        return linkRepository.findForRequest(request.id).filter { (it.supportedRequirementId to it.supportingRequirementId) in linked }
+        return linkRepository.findForRequest(request.id)
+            .filter { (it.supportedRequirementId to it.supportingRequirementId) in linked }
     }
 }

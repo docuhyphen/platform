@@ -1,20 +1,20 @@
 package com.docuhyphen.app.api.service.identity
 
-import com.docuhyphen.app.api.service.auth.RevocationReasonCode
-import com.docuhyphen.app.api.service.security.SecurityIncidentService
 import com.docuhyphen.app.api.model.entity.IdentityProviderType
 import com.docuhyphen.app.api.model.entity.SecurityIncidentSeverity
 import com.docuhyphen.app.api.model.entity.SecurityIncidentType
 import com.docuhyphen.app.api.repository.identity.OrganizationIdentityProviderConfigRepository
+import com.docuhyphen.app.api.service.auth.RevocationReasonCode
 import com.docuhyphen.app.api.service.auth.idp.OAuthJsonParser
 import com.docuhyphen.app.api.service.auth.idp.RuntimeIdpCredentials
 import com.docuhyphen.app.api.service.config.AwsSecretsManagerService
 import com.docuhyphen.app.api.service.config.ConfigurationService
+import com.docuhyphen.app.api.service.security.SecurityIncidentService
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
 import org.slf4j.LoggerFactory
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 @RequestScoped
 class OrganizationIdpRuntimeCredentialService @Inject constructor(
@@ -158,7 +158,8 @@ class OrganizationIdpRuntimeCredentialService @Inject constructor(
             throw IllegalArgumentException("Organization IdP client secret is not available during rotation phase $currentPhase")
         }
 
-        val currentValue = runCatching { awsSecretsManagerService.getSecretString(clientSecretRef, region, "AWSCURRENT") }.getOrNull()
+        val currentValue =
+            runCatching { awsSecretsManagerService.getSecretString(clientSecretRef, region, "AWSCURRENT") }.getOrNull()
         val currentSecret = extractSecretValue(currentValue)
         if (!currentSecret.isNullOrBlank())
         {
@@ -169,7 +170,13 @@ class OrganizationIdpRuntimeCredentialService @Inject constructor(
         val allowPreviousDuringOverlap = configurationService.isSecretsRotationAllowPreviousDuringOverlapEnabled()
         if (allowPreviousDuringOverlap && overlapActive)
         {
-            val previousValue = runCatching { awsSecretsManagerService.getSecretString(clientSecretRef, region, "AWSPREVIOUS") }.getOrNull()
+            val previousValue = runCatching {
+                awsSecretsManagerService.getSecretString(
+                    clientSecretRef,
+                    region,
+                    "AWSPREVIOUS"
+                )
+            }.getOrNull()
             val previousSecret = extractSecretValue(previousValue)
             if (!previousSecret.isNullOrBlank())
             {

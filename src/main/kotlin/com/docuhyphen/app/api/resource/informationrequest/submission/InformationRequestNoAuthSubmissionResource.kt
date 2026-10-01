@@ -28,13 +28,22 @@ class InformationRequestNoAuthSubmissionResource @Inject constructor(
     {
         return try
         {
-            InformationRequestCommandHttp.withNoAuthAccess(readAccessService, id, accessLinkToken, sessionToken) { requestId, access ->
+            InformationRequestCommandHttp.withNoAuthAccess(
+                readAccessService,
+                id,
+                accessLinkToken,
+                sessionToken
+            ) { requestId, access ->
                 handler.list(requestId, access)
             }
         }
         catch (exception: Exception)
         {
-            InformationRequestCommandHttp.refused(logger, "No-auth Information Request submission list failed", exception)
+            InformationRequestCommandHttp.refused(
+                logger,
+                "No-auth Information Request submission list failed",
+                exception
+            )
         }
     }
 
@@ -47,13 +56,22 @@ class InformationRequestNoAuthSubmissionResource @Inject constructor(
     {
         return try
         {
-            InformationRequestCommandHttp.withNoAuthAccess(readAccessService, id, accessLinkToken, sessionToken) { requestId, access ->
+            InformationRequestCommandHttp.withNoAuthAccess(
+                readAccessService,
+                id,
+                accessLinkToken,
+                sessionToken
+            ) { requestId, access ->
                 handler.detail(requestId, packageId(packageId), access)
             }
         }
         catch (exception: Exception)
         {
-            InformationRequestCommandHttp.refused(logger, "No-auth Information Request submission lookup failed", exception)
+            InformationRequestCommandHttp.refused(
+                logger,
+                "No-auth Information Request submission lookup failed",
+                exception
+            )
         }
     }
 
@@ -68,7 +86,12 @@ class InformationRequestNoAuthSubmissionResource @Inject constructor(
     {
         return try
         {
-            InformationRequestCommandHttp.withNoAuthAccess(readAccessService, id, accessLinkToken, sessionToken) { requestId, access ->
+            InformationRequestCommandHttp.withNoAuthAccess(
+                readAccessService,
+                id,
+                accessLinkToken,
+                sessionToken
+            ) { requestId, access ->
                 handler.submit(requestId, request?.stageKey, access, ifMatch, idempotencyKey)
             }
         }
@@ -90,13 +113,22 @@ class InformationRequestNoAuthSubmissionResource @Inject constructor(
     {
         return try
         {
-            InformationRequestCommandHttp.withNoAuthAccess(readAccessService, id, accessLinkToken, sessionToken) { requestId, access ->
+            InformationRequestCommandHttp.withNoAuthAccess(
+                readAccessService,
+                id,
+                accessLinkToken,
+                sessionToken
+            ) { requestId, access ->
                 handler.withdraw(requestId, packageId(packageId), request?.reasonCode, access, ifMatch, idempotencyKey)
             }
         }
         catch (exception: Exception)
         {
-            InformationRequestCommandHttp.refused(logger, "No-auth Information Request submission withdrawal failed", exception)
+            InformationRequestCommandHttp.refused(
+                logger,
+                "No-auth Information Request submission withdrawal failed",
+                exception
+            )
         }
     }
 

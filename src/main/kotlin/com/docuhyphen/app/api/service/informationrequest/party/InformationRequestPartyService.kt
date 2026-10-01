@@ -5,17 +5,8 @@ import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.informationrequest.LockedInformationRequest
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
 import com.docuhyphen.app.api.model.informationrequest.creation.BlueprintInformationRequestPartyDefault
-import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestMutation
-import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestParentSnapshot
-import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestPolicyDecision
-import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestState
-import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestTransitionHistoryCommand
-import com.docuhyphen.app.api.model.informationrequest.party.AssignExternalParticipantInformationRequestPartyCommand
-import com.docuhyphen.app.api.model.informationrequest.party.AssignInformationRequestPartyCommand
-import com.docuhyphen.app.api.model.informationrequest.party.AssignTrustedRecipientInformationRequestPartyCommand
-import com.docuhyphen.app.api.model.informationrequest.party.InformationRequestPartyAssignmentResult
-import com.docuhyphen.app.api.model.informationrequest.party.ReassignInformationRequestPartyCommand
-import com.docuhyphen.app.api.model.informationrequest.party.RevokeInformationRequestPartyCommand
+import com.docuhyphen.app.api.model.informationrequest.lifecycle.*
+import com.docuhyphen.app.api.model.informationrequest.party.*
 import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
 import com.docuhyphen.app.api.repository.informationrequest.party.InformationRequestPartyRepository
@@ -434,7 +425,8 @@ class InformationRequestPartyService @Inject constructor(
             resolved.principalId,
             ResourceType.EXCHANGE,
             request.exchangeId,
-        ) ?: throw IllegalArgumentException("Trusted recipient must be invited on the parent Exchange before assignment")
+        )
+            ?: throw IllegalArgumentException("Trusted recipient must be invited on the parent Exchange before assignment")
         val recipient = exchangeRecipientService.findByDirectShareId(directShare.id)
             ?: throw IllegalArgumentException("Trusted recipient Exchange binding was not found")
         requireAssignableRecipient(recipient.id, request.exchangeId, principal)
@@ -560,12 +552,17 @@ class InformationRequestPartyService @Inject constructor(
     fun revokeForOwnershipChange(requestId: UUID, partyId: UUID): InformationRequestParty?
     {
         val (_, request) = lockPartyMutationRequest(requestId)
-        val party = partyRepository.findByIdForUpdate(partyId)?.takeIf { it.informationRequestId == request.id && it.active }
-            ?: return null
+        val party =
+            partyRepository.findByIdForUpdate(partyId)?.takeIf { it.informationRequestId == request.id && it.active }
+                ?: return null
         return revokeParty(request, party, OWNERSHIP_CHANGE_ACTOR)
     }
 
-    private fun revokeParty(request: InformationRequest, party: InformationRequestParty, revokedBy: PrincipalRef): InformationRequestParty
+    private fun revokeParty(
+        request: InformationRequest,
+        party: InformationRequestParty,
+        revokedBy: PrincipalRef
+    ): InformationRequestParty
     {
         val now = Timestamp.from(Instant.now())
         party.active = false
@@ -800,7 +797,8 @@ class InformationRequestPartyService @Inject constructor(
     ): ResolvedExchangeRecipientSelection
     {
         if (selection !is TrustedPersonRecipientSelectionRequest &&
-            selection !is TrustedGroupRecipientSelectionRequest)
+            selection !is TrustedGroupRecipientSelectionRequest
+        )
         {
             throw IllegalArgumentException(
                 "A trusted request party must be a verified member or published group from a Trusted Organization",
@@ -844,6 +842,7 @@ class InformationRequestPartyService @Inject constructor(
                     SubjectIdentityOwnerType.ORGANIZATION,
                     requireNotNull(request.ownerOrganizationId),
                 )
+
             InformationRequestOwnerType.USER ->
                 subjectIdentityRefRepository.findOwned(
                     subjectIdentityRefId,
@@ -866,11 +865,15 @@ class InformationRequestPartyService @Inject constructor(
         {
             InformationRequestOwnerType.ORGANIZATION ->
                 ExternalParticipantOwner.Organization(requireNotNull(request.ownerOrganizationId))
+
             InformationRequestOwnerType.USER ->
                 ExternalParticipantOwner.Personal(requireNotNull(request.ownerUserId))
         }
 
-    private fun replayPartyResult(result: CommandResultReference, access: RequestAccessContext): InformationRequestPartyAssignmentResult
+    private fun replayPartyResult(
+        result: CommandResultReference,
+        access: RequestAccessContext
+    ): InformationRequestPartyAssignmentResult
     {
         require(result.resourceType == ResourceType.INFORMATION_REQUEST_PARTY) {
             "Command receipt does not reference an Information Request party"
@@ -960,12 +963,14 @@ class InformationRequestPartyService @Inject constructor(
         {
             is TrustedPersonRecipientSelectionRequest ->
                 listOf("TRUSTED_PERSON", selection.resolutionId.trim()).joinToString("|")
+
             is TrustedGroupRecipientSelectionRequest ->
                 listOf(
                     "TRUSTED_GROUP",
                     selection.organizationId.trim(),
                     selection.groupId.trim(),
                 ).joinToString("|")
+
             else -> selection::class.qualifiedName.orEmpty()
         }
 

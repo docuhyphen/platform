@@ -6,7 +6,7 @@ import jakarta.inject.Inject
 import jakarta.ws.rs.container.ContainerRequestContext
 import jakarta.ws.rs.container.ContainerRequestFilter
 import jakarta.ws.rs.ext.Provider
-import java.util.UUID
+import java.util.*
 
 /**
  * Establishes server-trusted correlation context for every request, before authentication and

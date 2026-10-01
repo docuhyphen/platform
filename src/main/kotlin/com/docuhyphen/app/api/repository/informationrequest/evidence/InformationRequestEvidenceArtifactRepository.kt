@@ -3,7 +3,7 @@ package com.docuhyphen.app.api.repository.informationrequest.evidence
 import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceArtifact
 import com.docuhyphen.app.api.repository.BaseRepository
 import jakarta.enterprise.context.ApplicationScoped
-import java.util.UUID
+import java.util.*
 
 /**
  * Persistence for evidence artifacts. Every lookup names the Requirement occurrence or the request

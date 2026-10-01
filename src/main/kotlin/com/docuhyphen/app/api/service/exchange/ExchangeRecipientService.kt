@@ -44,10 +44,12 @@ class ExchangeRecipientService @Inject constructor(
         }
         validateSelectionPrincipal(selectionType, directShare.principalKind)
         exchangeRecipientRepository.findByDirectShareId(directShare.id)?.let { existing ->
-            require(existing.exchangeId == exchangeId &&
-                existing.purpose == purpose &&
-                existing.selectionType == selectionType &&
-                existing.targetOrganizationId == targetOrganizationId) {
+            require(
+                existing.exchangeId == exchangeId &&
+                        existing.purpose == purpose &&
+                        existing.selectionType == selectionType &&
+                        existing.targetOrganizationId == targetOrganizationId
+            ) {
                 "Recipient Share already has a different binding"
             }
             return existing
@@ -61,7 +63,7 @@ class ExchangeRecipientService @Inject constructor(
         if (purpose == ExchangeRecipientPurpose.PARTICIPANT)
         {
             val trustedParticipant = selectionType == ExchangeRecipientSelectionType.TRUSTED_PERSON ||
-                selectionType == ExchangeRecipientSelectionType.TRUSTED_GROUP
+                    selectionType == ExchangeRecipientSelectionType.TRUSTED_GROUP
             require(
                 acceptanceStatus == if (trustedParticipant)
                     ExchangeRecipientAcceptanceStatus.PENDING
@@ -186,7 +188,7 @@ class ExchangeRecipientService @Inject constructor(
                 validateTrustedAttestation(recipient, attestation)
                 attestationService.markAcceptanceVerified(attestation)
                 recordDecision(recipient, appUserId, accepted = true) to
-                    (ownerOrganizationId ?: attestation.callerOrganizationId)
+                        (ownerOrganizationId ?: attestation.callerOrganizationId)
             }
             catch (exception: Exception)
             {
@@ -218,6 +220,7 @@ class ExchangeRecipientService @Inject constructor(
             {
                 ExchangeRecipientSelectionType.EXTERNAL_EMAIL ->
                     externalEmailAcceptancePolicyService.validate(exchange, share, appUserId)
+
                 else -> Unit
             }
         }
@@ -261,7 +264,7 @@ class ExchangeRecipientService @Inject constructor(
         }
         require(
             recipient.selectionType == ExchangeRecipientSelectionType.TRUSTED_PERSON ||
-                recipient.selectionType == ExchangeRecipientSelectionType.TRUSTED_GROUP,
+                    recipient.selectionType == ExchangeRecipientSelectionType.TRUSTED_GROUP,
         ) {
             "Only trusted participant invitations require an independent decision"
         }
@@ -367,15 +370,17 @@ class ExchangeRecipientService @Inject constructor(
         {
             ExchangeRecipientSelectionType.TRUSTED_PERSON ->
                 trustedRecipientValidationService.validatePersonAttestation(attestation)
+
             ExchangeRecipientSelectionType.TRUSTED_GROUP ->
                 trustedRecipientValidationService.validateGroupAttestation(attestation)
+
             else -> error("Trusted recipient selection is required")
         }
     }
 
     private fun ExchangeRecipient.isTrusted(): Boolean =
         selectionType == ExchangeRecipientSelectionType.TRUSTED_PERSON ||
-            selectionType == ExchangeRecipientSelectionType.TRUSTED_GROUP
+                selectionType == ExchangeRecipientSelectionType.TRUSTED_GROUP
 
     private fun validateSelectionPrincipal(
         selectionType: ExchangeRecipientSelectionType,
@@ -389,10 +394,12 @@ class ExchangeRecipientService @Inject constructor(
                 require(principalKind == PrincipalKind.USER) {
                     "$selectionType requires a user Share"
                 }
+
             ExchangeRecipientSelectionType.EXTERNAL_EMAIL ->
                 require(principalKind == PrincipalKind.USER || principalKind == PrincipalKind.PARTICIPANT) {
                     "EXTERNAL_EMAIL requires a user or participant Share"
                 }
+
             ExchangeRecipientSelectionType.INTERNAL_GROUP,
             ExchangeRecipientSelectionType.PERSONAL_GROUP,
             ExchangeRecipientSelectionType.TRUSTED_GROUP ->
@@ -408,6 +415,7 @@ class ExchangeRecipientService @Inject constructor(
             PrincipalKind.USER -> share.principalId == appUserId
             PrincipalKind.PRINCIPAL_GROUP ->
                 organizationGroupService.isActiveDecisionMaker(share.principalId, appUserId)
+
             else -> false
         }
 }

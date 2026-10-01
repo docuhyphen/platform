@@ -1,15 +1,10 @@
 package com.docuhyphen.app.api.model.entity
 
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestState
-import jakarta.persistence.Column
-import jakarta.persistence.Entity
-import jakarta.persistence.EnumType
-import jakarta.persistence.Enumerated
-import jakarta.persistence.Id
-import jakarta.persistence.Table
+import jakarta.persistence.*
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 /**
  * Runtime aggregate for one request attached to an Exchange and one exact published Template

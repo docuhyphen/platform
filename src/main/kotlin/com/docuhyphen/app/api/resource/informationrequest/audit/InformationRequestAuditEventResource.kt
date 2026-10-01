@@ -29,8 +29,25 @@ class InformationRequestAuditEventResource @Inject constructor(
         return try
         {
             val requestId = InformationRequestCommandHttp.uuid(id, "information request id")
-            val search = InformationRequestAuditQuery.searchOf(null, eventClass, eventType, actorId, occurredAfter, occurredBefore, limit, offset)
-            Response.ok(InformationRequestAuditDtoMapper.toDto(audit.events(requestId, accessContextFactory.currentAuthenticated(), search))).build()
+            val search = InformationRequestAuditQuery.searchOf(
+                null,
+                eventClass,
+                eventType,
+                actorId,
+                occurredAfter,
+                occurredBefore,
+                limit,
+                offset
+            )
+            Response.ok(
+                InformationRequestAuditDtoMapper.toDto(
+                    audit.events(
+                        requestId,
+                        accessContextFactory.currentAuthenticated(),
+                        search
+                    )
+                )
+            ).build()
         }
         catch (exception: Exception)
         {

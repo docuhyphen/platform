@@ -7,7 +7,7 @@ import com.docuhyphen.app.api.service.variable.VariableResolutionContext
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import org.slf4j.LoggerFactory
-import java.util.UUID
+import java.util.*
 
 /**
  * Resolves a [Communication] at workflow execution time: looks up the communication by ID,

@@ -8,7 +8,7 @@ import com.docuhyphen.app.api.service.audit.catalog.AuditOutcome
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import org.slf4j.LoggerFactory
-import java.util.UUID
+import java.util.*
 
 data class AnalyticsReconciliationReport(
     val organizationId: UUID?,

@@ -6,7 +6,7 @@ import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 /** One requested decision: the feature code it is about and whether the owner is to hold it. */
 data class FeatureEntitlementDecision(

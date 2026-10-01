@@ -326,7 +326,13 @@ class AuditExportService @Inject constructor(
             throw AuditExportAccessException("Export download limit has been reached")
         }
         requireDownloadAuthorized(export, actor)
-        requireEngagementPermitsExport(actor, export.organizationId, parseCategories(export.categoriesCsv), occurredAfter = null, occurredBefore = null)
+        requireEngagementPermitsExport(
+            actor,
+            export.organizationId,
+            parseCategories(export.categoriesCsv),
+            occurredAfter = null,
+            occurredBefore = null
+        )
 
         export.downloadCount += 1
         export.updatedAt = Timestamp.from(Instant.now())
@@ -365,7 +371,12 @@ class AuditExportService @Inject constructor(
     fun recordDownloadIntegrityFailure(exportId: UUID, actorId: UUID)
     {
         val export = requireExport(exportId)
-        recordLifecycleEvent(AuditEventType.AUDIT_EXPORT_DOWNLOAD_INTEGRITY_FAILED, actorId, export, AuditOutcome.FAILURE)
+        recordLifecycleEvent(
+            AuditEventType.AUDIT_EXPORT_DOWNLOAD_INTEGRITY_FAILED,
+            actorId,
+            export,
+            AuditOutcome.FAILURE
+        )
     }
 
     fun getExport(exportId: UUID): AuditExport = requireExport(exportId)
@@ -388,7 +399,8 @@ class AuditExportService @Inject constructor(
         auditExportRepository.findById(exportId) ?: throw AuditExportNotFoundException("Audit export not found")
 
     private fun requireExportForUpdate(exportId: UUID): AuditExport =
-        auditExportRepository.findByIdForUpdate(exportId) ?: throw AuditExportNotFoundException("Audit export not found")
+        auditExportRepository.findByIdForUpdate(exportId)
+            ?: throw AuditExportNotFoundException("Audit export not found")
 
     /**
      * Every export is built at full fidelity ([AuditExportBuilder] applies no redaction), so
@@ -561,7 +573,12 @@ class AuditExportService @Inject constructor(
         }
         catch (e: AuditCaptureFailedException)
         {
-            logger.error("AuditExportService: AuditRecorder capture failed for lifecycle event {}: {}", eventType, e.message, e)
+            logger.error(
+                "AuditExportService: AuditRecorder capture failed for lifecycle event {}: {}",
+                eventType,
+                e.message,
+                e
+            )
         }
     }
 }

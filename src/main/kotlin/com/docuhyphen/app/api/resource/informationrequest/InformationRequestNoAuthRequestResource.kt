@@ -30,16 +30,9 @@ import io.quarkus.security.ForbiddenException
 import io.quarkus.security.UnauthorizedException
 import jakarta.inject.Inject
 import jakarta.ws.rs.core.Response
-import jakarta.ws.rs.core.Response.Status.BAD_REQUEST
-import jakarta.ws.rs.core.Response.Status.CONFLICT
-import jakarta.ws.rs.core.Response.Status.FORBIDDEN
-import jakarta.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR
-import jakarta.ws.rs.core.Response.Status.NOT_FOUND
-import jakarta.ws.rs.core.Response.Status.PRECONDITION_FAILED
-import jakarta.ws.rs.core.Response.Status.PRECONDITION_REQUIRED
-import jakarta.ws.rs.core.Response.Status.UNAUTHORIZED
+import jakarta.ws.rs.core.Response.Status.*
 import org.slf4j.LoggerFactory
-import java.util.UUID
+import java.util.*
 
 class InformationRequestNoAuthRequestResource @Inject constructor(
     private val readAccessService: InformationRequestNoAuthReadAccessService,
@@ -327,18 +320,25 @@ class InformationRequestNoAuthRequestResource @Inject constructor(
             is FieldsPreconditionException -> fieldsPreconditionRefused(exception)
             is CommandReceiptConflictException -> Response.status(CONFLICT)
                 .entity(ResponseError(exception.message, exception.reasonCode)).build()
+
             is InformationRequestLifecycleException -> Response.status(CONFLICT)
                 .entity(ResponseError(exception.message, exception.reasonCode)).build()
+
             is FieldValidationException -> Response.status(BAD_REQUEST)
                 .entity(ResponseError(exception.message)).build()
+
             is IllegalStateException -> Response.status(CONFLICT)
                 .entity(ResponseError(exception.message)).build()
+
             is IllegalArgumentException -> Response.status(NOT_FOUND)
                 .entity(ResponseError(exception.message)).build()
+
             is ForbiddenException -> Response.status(FORBIDDEN)
                 .entity(ResponseError(exception.message)).build()
+
             is UnauthorizedException -> Response.status(UNAUTHORIZED)
                 .entity(ResponseError(exception.message)).build()
+
             else ->
             {
                 logger.error(message, exception)

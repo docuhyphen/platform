@@ -8,7 +8,7 @@ import com.docuhyphen.app.api.service.auth.authz.ResourceAuthorizationContextPro
 import com.docuhyphen.app.api.service.auth.authz.ResourceKind
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
-import java.util.UUID
+import java.util.*
 
 /**
  * Resolves [ResourceAuthorizationContext] for [ResourceKind.EXCHANGE] resources.
@@ -35,14 +35,16 @@ class ExchangeAuthorizationContextProvider : ResourceAuthorizationContextProvide
         {
             exchange.ownerOrganizationId != null ->
                 OwnerContext.Organization(exchange.ownerOrganizationId!!)
+
             exchange.ownerUserId != null ->
                 OwnerContext.Personal(exchange.ownerUserId!!)
+
             else -> return null
         }
 
         val isArchived = exchange.isDeleted ||
-            exchange.status == ExchangeStatus.ENDED ||
-            exchange.status == ExchangeStatus.RESCINDED
+                exchange.status == ExchangeStatus.ENDED ||
+                exchange.status == ExchangeStatus.RESCINDED
 
         return ResourceAuthorizationContext(
             ownerContext = ownerContext,

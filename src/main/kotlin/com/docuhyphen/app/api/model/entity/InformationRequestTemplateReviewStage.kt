@@ -1,12 +1,7 @@
 package com.docuhyphen.app.api.model.entity
 
-import jakarta.persistence.Column
-import jakarta.persistence.Entity
-import jakarta.persistence.EnumType
-import jakarta.persistence.Enumerated
-import jakarta.persistence.Id
-import jakarta.persistence.Table
-import java.util.UUID
+import jakarta.persistence.*
+import java.util.*
 
 @Entity
 @Table(name = "information_request_template_review_stage")

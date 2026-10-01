@@ -7,7 +7,7 @@ import io.vertx.mutiny.redis.client.Request
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import org.slf4j.LoggerFactory
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class RedisRefreshTokenStore @Inject constructor(
@@ -222,7 +222,8 @@ class RedisRefreshTokenStore @Inject constructor(
         }
 
         val statusRaw = response.get(0)?.toString() ?: return RefreshRotationResult(RefreshRotationStatus.INVALID)
-        val status = runCatching { RefreshRotationStatus.valueOf(statusRaw) }.getOrDefault(RefreshRotationStatus.INVALID)
+        val status =
+            runCatching { RefreshRotationStatus.valueOf(statusRaw) }.getOrDefault(RefreshRotationStatus.INVALID)
         val resolvedFamilyId = if (response.size() > 1) response.get(1)?.toString() else null
         val successorJti = if (response.size() > 2) response.get(2)?.toString()?.ifBlank { null } else null
 

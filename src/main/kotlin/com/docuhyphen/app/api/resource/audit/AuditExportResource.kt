@@ -1,7 +1,7 @@
 package com.docuhyphen.app.api.resource.audit
 
-import com.docuhyphen.app.api.model.dto.AuditExportCreateRequestDto
 import com.docuhyphen.app.api.model.dto.AuditExportApprovalRequestDto
+import com.docuhyphen.app.api.model.dto.AuditExportCreateRequestDto
 import com.docuhyphen.app.api.model.dto.AuditExportDtoMapper
 import com.docuhyphen.app.api.model.entity.ResourceType
 import com.docuhyphen.app.api.resource.model.ResponseError
@@ -11,22 +11,12 @@ import com.docuhyphen.app.api.service.audit.export.AuditExportAccessException
 import com.docuhyphen.app.api.service.audit.export.AuditExportNotFoundException
 import com.docuhyphen.app.api.service.audit.export.AuditExportService
 import com.docuhyphen.app.api.service.audit.export.AuditIntegrityService
-import com.docuhyphen.app.api.service.auth.authz.Action
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.Decision
-import com.docuhyphen.app.api.service.auth.authz.ResourceRef
+import com.docuhyphen.app.api.service.auth.authz.*
 import jakarta.inject.Inject
-import jakarta.ws.rs.Consumes
-import jakarta.ws.rs.GET
-import jakarta.ws.rs.POST
-import jakarta.ws.rs.Path
-import jakarta.ws.rs.PathParam
-import jakarta.ws.rs.Produces
+import jakarta.ws.rs.*
 import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
-import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 /**
  * Thin REST adapter for platform-scope verifiable evidence exports. All business logic, state-machine transitions, and
@@ -107,7 +97,8 @@ class AuditExportResource @Inject constructor(
     @GET
     @Path("/platform/audit-integrity")
     fun getPlatformIntegrity(): Response = withAuthorizedPlatform(Action.APP_READ_AUDIT) { actor ->
-        val report = auditIntegrityService.checkOrganization(null, platformOnly = true, requestedByUserId = actor.principal.id)
+        val report =
+            auditIntegrityService.checkOrganization(null, platformOnly = true, requestedByUserId = actor.principal.id)
         Response.ok(AuditExportDtoMapper.toIntegrityDto(report)).build()
     }
 

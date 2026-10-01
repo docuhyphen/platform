@@ -8,13 +8,7 @@ import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequ
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
 import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.auth.authz.ResourceRef
-import com.docuhyphen.app.api.service.command.CommandActorRef
-import com.docuhyphen.app.api.service.command.CommandMutationResult
-import com.docuhyphen.app.api.service.command.CommandReceiptDecision
-import com.docuhyphen.app.api.service.command.CommandReceiptRequest
-import com.docuhyphen.app.api.service.command.CommandReceiptService
-import com.docuhyphen.app.api.service.command.CommandRequestFingerprint
-import com.docuhyphen.app.api.service.command.CommandResultReference
+import com.docuhyphen.app.api.service.command.*
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestETag
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestMutationGate
 import jakarta.enterprise.context.ApplicationScoped
@@ -49,7 +43,11 @@ class InformationRequestCompletionGateService @Inject constructor(
             val decision = commandReceiptService.runOnce(receipt) {
                 gate.requireMutation(locked, InformationRequestMutation.CHANGE_COMPLETION_GATE)
                 command.precondition.requireSatisfiedBy(InformationRequestETag.aggregateOf(locked.request))
-                gate.authorizeRequest(command.access, listOf(Action.INFORMATION_REQUEST_CONFIGURE_COMPLETION), command.requestId)
+                gate.authorizeRequest(
+                    command.access,
+                    listOf(Action.INFORMATION_REQUEST_CONFIGURE_COMPLETION),
+                    command.requestId
+                )
                 val request = locked.request
                 if (request.gatesExchangeClosure != command.gatesExchangeClosure)
                 {
@@ -72,7 +70,12 @@ class InformationRequestCompletionGateService @Inject constructor(
                 val etag = InformationRequestETag.aggregateOf(request)
                 CommandMutationResult(
                     InformationRequestLifecycleResult(request, etag),
-                    CommandResultReference(ResourceType.INFORMATION_REQUEST, request.id, request.aggregateRevision, etag),
+                    CommandResultReference(
+                        ResourceType.INFORMATION_REQUEST,
+                        request.id,
+                        request.aggregateRevision,
+                        etag
+                    ),
                 )
             }
         )
@@ -80,7 +83,11 @@ class InformationRequestCompletionGateService @Inject constructor(
             is CommandReceiptDecision.Recorded -> decision.response
             is CommandReceiptDecision.Replayed ->
             {
-                gate.authorizeRequest(command.access, listOf(Action.INFORMATION_REQUEST_CONFIGURE_COMPLETION), command.requestId)
+                gate.authorizeRequest(
+                    command.access,
+                    listOf(Action.INFORMATION_REQUEST_CONFIGURE_COMPLETION),
+                    command.requestId
+                )
                 InformationRequestLifecycleResult(
                     locked.request,
                     requireNotNull(decision.result.etag) { "A completion gate receipt records the request ETag" },

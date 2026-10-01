@@ -8,12 +8,7 @@ import com.docuhyphen.app.api.model.entity.RecordPreservationHold
 import com.docuhyphen.app.api.model.entity.RecordPreservationHoldEvent
 import com.docuhyphen.app.api.model.entity.RecordPreservationHoldEventKind
 import com.docuhyphen.app.api.model.entity.RecordPreservationHoldStatus
-import com.docuhyphen.app.api.model.recordpreservation.ChangeRecordPreservationHoldScopeCommand
-import com.docuhyphen.app.api.model.recordpreservation.PlaceRecordPreservationHoldCommand
-import com.docuhyphen.app.api.model.recordpreservation.RecordOwnerRef
-import com.docuhyphen.app.api.model.recordpreservation.RecordPreservationHoldView
-import com.docuhyphen.app.api.model.recordpreservation.RecordPreservationKey
-import com.docuhyphen.app.api.model.recordpreservation.ReleaseRecordPreservationHoldCommand
+import com.docuhyphen.app.api.model.recordpreservation.*
 import com.docuhyphen.app.api.repository.recordpreservation.RecordDisposalClaimRepository
 import com.docuhyphen.app.api.repository.recordpreservation.RecordPreservationHoldEventRepository
 import com.docuhyphen.app.api.repository.recordpreservation.RecordPreservationHoldRepository
@@ -25,7 +20,7 @@ import jakarta.transaction.Transactional
 import java.sql.Timestamp
 import java.time.Clock
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class RecordPreservationHoldService @Inject constructor(
@@ -70,7 +65,10 @@ class RecordPreservationHoldService @Inject constructor(
         val hold = activeHold(command.holdId, command.owner)
         if (hold.scope == command.scope)
         {
-            throw RecordPreservationException(RecordPreservationErrorCatalog.HOLD_SCOPE_UNCHANGED, "The hold already has this scope")
+            throw RecordPreservationException(
+                RecordPreservationErrorCatalog.HOLD_SCOPE_UNCHANGED,
+                "The hold already has this scope"
+            )
         }
         val now = clock.instant()
         hold.scope = command.scope
@@ -111,14 +109,18 @@ class RecordPreservationHoldService @Inject constructor(
     fun coveringHolds(owner: RecordOwnerRef, keys: Collection<RecordPreservationKey>): List<RecordPreservationHold> =
         holdRepository.findActiveCovering(owner, keys)
 
-    fun isPreserved(owner: RecordOwnerRef, keys: Collection<RecordPreservationKey>): Boolean = coveringHolds(owner, keys).isNotEmpty()
+    fun isPreserved(owner: RecordOwnerRef, keys: Collection<RecordPreservationKey>): Boolean =
+        coveringHolds(owner, keys).isNotEmpty()
 
     private fun activeHold(holdId: UUID, owner: RecordOwnerRef): RecordPreservationHold
     {
         val hold = ownedHold(holdRepository.findForUpdate(holdId), owner)
         if (hold.status != RecordPreservationHoldStatus.ACTIVE)
         {
-            throw RecordPreservationException(RecordPreservationErrorCatalog.HOLD_RELEASED, "A released hold does not change")
+            throw RecordPreservationException(
+                RecordPreservationErrorCatalog.HOLD_RELEASED,
+                "A released hold does not change"
+            )
         }
         return hold
     }
@@ -160,7 +162,8 @@ class RecordPreservationHoldService @Inject constructor(
         )
     }
 
-    private fun view(hold: RecordPreservationHold) = RecordPreservationHoldView(hold, eventRepository.findForHold(hold.id))
+    private fun view(hold: RecordPreservationHold) =
+        RecordPreservationHoldView(hold, eventRepository.findForHold(hold.id))
 
     private fun requireText(raw: String, message: String): String =
         raw.trim().takeIf { it.isNotEmpty() } ?: throw RecordPreservationRequestException(message)

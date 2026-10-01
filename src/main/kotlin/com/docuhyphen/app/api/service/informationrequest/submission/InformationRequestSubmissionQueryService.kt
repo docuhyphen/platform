@@ -1,19 +1,10 @@
 package com.docuhyphen.app.api.service.informationrequest.submission
 
-import com.docuhyphen.app.api.model.entity.ExchangeStatus
-import com.docuhyphen.app.api.model.entity.InformationRequest
-import com.docuhyphen.app.api.model.entity.InformationRequestRequirementType
-import com.docuhyphen.app.api.model.entity.InformationRequestSubmissionMode
-import com.docuhyphen.app.api.model.entity.InformationRequestSubmissionStageOrdering
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
 import com.docuhyphen.app.api.model.informationrequest.attestation.InformationRequestAttestationRequirementEvaluation
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestState
-import com.docuhyphen.app.api.model.informationrequest.submission.InformationRequestAttestationStanding
-import com.docuhyphen.app.api.model.informationrequest.submission.InformationRequestReadableSubmissionPackage
-import com.docuhyphen.app.api.model.informationrequest.submission.InformationRequestSubmissionContent
-import com.docuhyphen.app.api.model.informationrequest.submission.InformationRequestSubmissionPackageView
-import com.docuhyphen.app.api.model.informationrequest.submission.InformationRequestSubmissionPreview
-import com.docuhyphen.app.api.model.informationrequest.submission.InformationRequestSubmissionStageStanding
+import com.docuhyphen.app.api.model.informationrequest.submission.*
 import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
 import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.fields.FieldValueRevisionQueryService
@@ -23,7 +14,7 @@ import com.docuhyphen.app.api.service.informationrequest.InformationRequestQuery
 import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestRequirementAuthorizationContextProvider
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestSubmissionQueryService @Inject constructor(
@@ -45,13 +36,20 @@ class InformationRequestSubmissionQueryService @Inject constructor(
         return readable(packageReader.views(requestId), access)
     }
 
-    fun packageDetail(requestId: UUID, packageId: UUID, access: RequestAccessContext): InformationRequestReadableSubmissionPackage
+    fun packageDetail(
+        requestId: UUID,
+        packageId: UUID,
+        access: RequestAccessContext
+    ): InformationRequestReadableSubmissionPackage
     {
         queryService.findById(requestId, access)
         return readable(listOf(packageReader.view(requestId, packageId)), access).single()
     }
 
-    fun readable(view: InformationRequestSubmissionPackageView, access: RequestAccessContext): InformationRequestReadableSubmissionPackage =
+    fun readable(
+        view: InformationRequestSubmissionPackageView,
+        access: RequestAccessContext
+    ): InformationRequestReadableSubmissionPackage =
         readable(listOf(view), access).single()
 
     fun preview(requestId: UUID, stageKey: String?, access: RequestAccessContext): InformationRequestSubmissionPreview
@@ -68,8 +66,8 @@ class InformationRequestSubmissionQueryService @Inject constructor(
         val assessment = readinessEvaluator.assess(content, access)
         val scopeOpen = scope !in submittedStages && (scope == null || null !in submittedStages)
         val orderMet = version.submissionStageOrdering != InformationRequestSubmissionStageOrdering.SEQUENTIAL ||
-            scope == null ||
-            stageOrder.takeWhile { it != scope }.all { it in submittedStages }
+                scope == null ||
+                stageOrder.takeWhile { it != scope }.all { it in submittedStages }
         val accepting = acceptsSubmission(request)
 
         return InformationRequestSubmissionPreview(
@@ -79,12 +77,22 @@ class InformationRequestSubmissionQueryService @Inject constructor(
             submissionStageOrdering = version.submissionStageOrdering,
             submissionETag = InformationRequestETag.submissionOf(scope, content.contentHash),
             readiness = assessment.readiness,
-            attestations = attestationStandings(request, content, assessment.attestations, access, scopeOpen && accepting),
+            attestations = attestationStandings(
+                request,
+                content,
+                assessment.attestations,
+                access,
+                scopeOpen && accepting
+            ),
             stages = if (version.submissionMode == InformationRequestSubmissionMode.STAGED)
-                stageOrder.map { stage -> InformationRequestSubmissionStageStanding(stage, activePackages.lastOrNull { it.stageKey == stage }) }
+                stageOrder.map { stage ->
+                    InformationRequestSubmissionStageStanding(
+                        stage,
+                        activePackages.lastOrNull { it.stageKey == stage })
+                }
             else emptyList(),
             canSubmit = assessment.readiness.ready && scopeOpen && orderMet && accepting &&
-                gate.permitsRequest(access, Action.INFORMATION_REQUEST_SUBMIT, request.id),
+                    gate.permitsRequest(access, Action.INFORMATION_REQUEST_SUBMIT, request.id),
             packages = readable(packageReader.views(request.id), access),
         )
     }
@@ -108,8 +116,13 @@ class InformationRequestSubmissionQueryService @Inject constructor(
                     prompt = item.binding.prompt,
                     evaluated = evaluated,
                     callerCanAttest = attestable &&
-                        requirementContext.actingPartiesFor(request, roles, access.principal, item.requirement.id).isNotEmpty() &&
-                        gate.permitsRequirement(access, Action.INFORMATION_REQUEST_REQUIREMENT_ATTEST, item.requirement.id),
+                            requirementContext.actingPartiesFor(request, roles, access.principal, item.requirement.id)
+                                .isNotEmpty() &&
+                            gate.permitsRequirement(
+                                access,
+                                Action.INFORMATION_REQUEST_REQUIREMENT_ATTEST,
+                                item.requirement.id
+                            ),
                     attestations = (evaluated.evaluation.counted + evaluated.evaluation.refusals)
                         .distinctBy { it.id }
                         .sortedBy { it.sequenceNumber },
@@ -120,8 +133,8 @@ class InformationRequestSubmissionQueryService @Inject constructor(
     {
         val exchange = exchangeRepository.findById(request.exchangeId) ?: return false
         return !exchange.isDeleted &&
-            exchange.status == ExchangeStatus.ACCEPTED_STARTED &&
-            request.state in ACTIVE_RESPONSE_STATES
+                exchange.status == ExchangeStatus.ACCEPTED_STARTED &&
+                request.state in ACTIVE_RESPONSE_STATES
     }
 
     private fun readable(

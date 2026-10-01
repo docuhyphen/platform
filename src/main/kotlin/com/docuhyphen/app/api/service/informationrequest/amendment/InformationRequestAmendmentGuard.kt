@@ -18,11 +18,18 @@ class InformationRequestAmendmentGuard @Inject constructor(
     private val lockService: InformationRequestSubmissionLockService,
 )
 {
-    fun requireAmendable(request: InformationRequest, from: InformationRequestTemplateVersionDto, plan: InformationRequestAmendmentPlan)
+    fun requireAmendable(
+        request: InformationRequest,
+        from: InformationRequestTemplateVersionDto,
+        plan: InformationRequestAmendmentPlan
+    )
     {
         if (plan.schemaChanged)
         {
-            refuse(InformationRequestErrorCatalog.AMENDMENT_SCHEMA_CHANGED, "A later Version with another Schema Version needs a supplemental or superseding request")
+            refuse(
+                InformationRequestErrorCatalog.AMENDMENT_SCHEMA_CHANGED,
+                "A later Version with another Schema Version needs a supplemental or superseding request"
+            )
         }
         requireOccurrenceStructureKept(request, from, plan)
         requireSubmittedScopesKept(request, plan)
@@ -67,9 +74,9 @@ class InformationRequestAmendmentGuard @Inject constructor(
             .toSet()
         val reachesSubmission = plan.submissionPolicyChanged || plan.changes.any { change ->
             null in submittedStages ||
-                change.templateRequirementId in lockedTemplateRequirements ||
-                (change.fromStageKey != null && change.fromStageKey in submittedStages) ||
-                (change.toStageKey != null && change.toStageKey in submittedStages)
+                    change.templateRequirementId in lockedTemplateRequirements ||
+                    (change.fromStageKey != null && change.fromStageKey in submittedStages) ||
+                    (change.toStageKey != null && change.toStageKey in submittedStages)
         }
         if (reachesSubmission)
         {

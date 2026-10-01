@@ -1,21 +1,8 @@
 package com.docuhyphen.app.api.service.informationrequest.review
 
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewAggregation
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewAssignmentState
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewDecisionKind
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewOutcome
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewStageOrdering
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewState
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewTieResolution
-import com.docuhyphen.app.api.model.informationrequest.review.InformationRequestReviewAssignmentFact
-import com.docuhyphen.app.api.model.informationrequest.review.InformationRequestReviewDecisionFact
-import com.docuhyphen.app.api.model.informationrequest.review.InformationRequestReviewItemResult
-import com.docuhyphen.app.api.model.informationrequest.review.InformationRequestReviewItemStanding
-import com.docuhyphen.app.api.model.informationrequest.review.InformationRequestReviewResult
-import com.docuhyphen.app.api.model.informationrequest.review.InformationRequestReviewStageInput
-import com.docuhyphen.app.api.model.informationrequest.review.InformationRequestReviewStageResult
-import com.docuhyphen.app.api.model.informationrequest.review.InformationRequestReviewStageState
-import java.util.UUID
+import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.informationrequest.review.*
+import java.util.*
 
 object InformationRequestReviewAggregator
 {
@@ -63,7 +50,8 @@ object InformationRequestReviewAggregator
             null, InformationRequestReviewOutcome.SATISFIED -> InformationRequestReviewState.SATISFIED
             InformationRequestReviewOutcome.SATISFIED_WITH_EXCEPTION,
             InformationRequestReviewOutcome.WAIVED,
-            -> InformationRequestReviewState.SATISFIED_WITH_EXCEPTION
+                -> InformationRequestReviewState.SATISFIED_WITH_EXCEPTION
+
             InformationRequestReviewOutcome.CHANGES_REQUIRED -> InformationRequestReviewState.CHANGES_REQUESTED
             InformationRequestReviewOutcome.REJECTED -> InformationRequestReviewState.REJECTED
         }
@@ -122,8 +110,13 @@ object InformationRequestReviewAggregator
         {
             InformationRequestReviewAggregation.ANY ->
                 counted.firstOrNull()?.let { decided(itemId, it.outcome) } ?: pending(itemId)
+
             InformationRequestReviewAggregation.ALL ->
-                if (everyoneDecided && outcomes.isNotEmpty()) decided(itemId, mostSevere(outcomes)!!) else pending(itemId)
+                if (everyoneDecided && outcomes.isNotEmpty()) decided(itemId, mostSevere(outcomes)!!)
+                else pending(
+                    itemId
+                )
+
             InformationRequestReviewAggregation.QUORUM ->
             {
                 val quorum = plan.quorumCount ?: plan.minimumReviewerCount
@@ -135,6 +128,7 @@ object InformationRequestReviewAggregator
                     else -> pending(itemId)
                 }
             }
+
             InformationRequestReviewAggregation.CONSENSUS -> when
             {
                 !everyoneDecided || outcomes.isEmpty() -> pending(itemId)
@@ -173,7 +167,13 @@ object InformationRequestReviewAggregator
     private fun waiting(input: InformationRequestReviewStageInput) = InformationRequestReviewStageResult(
         stageKey = input.plan.stageKey,
         state = InformationRequestReviewStageState.WAITING,
-        items = input.coveredItemIds.map { InformationRequestReviewItemResult(it, InformationRequestReviewItemStanding.PENDING, null) },
+        items = input.coveredItemIds.map {
+            InformationRequestReviewItemResult(
+                it,
+                InformationRequestReviewItemStanding.PENDING,
+                null
+            )
+        },
     )
 
     private fun decided(itemId: UUID, outcome: InformationRequestReviewOutcome) =

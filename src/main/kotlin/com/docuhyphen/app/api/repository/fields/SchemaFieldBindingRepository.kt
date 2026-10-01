@@ -1,11 +1,10 @@
 package com.docuhyphen.app.api.repository.fields
 
-import com.docuhyphen.app.api.repository.BaseRepository
-
 import com.docuhyphen.app.api.model.entity.SchemaFieldBinding
+import com.docuhyphen.app.api.repository.BaseRepository
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.transaction.Transactional
-import java.util.UUID
+import java.util.*
 
 /** Persistence for [SchemaFieldBinding] rows composing a [com.docuhyphen.app.api.model.entity.SchemaVersion]. */
 @ApplicationScoped

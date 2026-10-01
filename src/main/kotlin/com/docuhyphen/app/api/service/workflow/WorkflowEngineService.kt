@@ -2,7 +2,7 @@
 
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import kotlinx.serialization.Serializable
-import java.util.UUID
+import java.util.*
 
 /**
  * Generic workflow engine. The first registered workflow (`session-approval-in-group`,

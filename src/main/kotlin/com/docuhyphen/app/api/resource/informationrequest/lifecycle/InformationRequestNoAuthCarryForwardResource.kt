@@ -22,15 +22,25 @@ class InformationRequestNoAuthCarryForwardResource @Inject constructor(
     {
         return try
         {
-            InformationRequestCommandHttp.withNoAuthAccess(readAccessService, id, accessLinkToken, sessionToken) { requestId, access ->
+            InformationRequestCommandHttp.withNoAuthAccess(
+                readAccessService,
+                id,
+                accessLinkToken,
+                sessionToken
+            ) { requestId, access ->
                 Response.ok(
-                    lineageQueryService.carryForwards(requestId, access).map(InformationRequestLineageDtoMapper::toDto).toTypedArray(),
+                    lineageQueryService.carryForwards(requestId, access).map(InformationRequestLineageDtoMapper::toDto)
+                        .toTypedArray(),
                 ).build()
             }
         }
         catch (exception: Exception)
         {
-            InformationRequestCommandHttp.refused(logger, "No-auth Information Request carry-forward lookup failed", exception)
+            InformationRequestCommandHttp.refused(
+                logger,
+                "No-auth Information Request carry-forward lookup failed",
+                exception
+            )
         }
     }
 

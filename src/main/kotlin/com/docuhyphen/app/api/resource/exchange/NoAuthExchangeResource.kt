@@ -1,36 +1,28 @@
 package com.docuhyphen.app.api.resource.exchange
 
-import com.docuhyphen.app.api.resource.ResourceEndpointDelayHelper
-
-import com.docuhyphen.app.api.exception.NoAuthOtpException
-import com.docuhyphen.app.api.exception.ExchangeRecipientEligibilityException
 import com.docuhyphen.app.api.exception.ExchangeDocumentNotFoundException
 import com.docuhyphen.app.api.exception.ExchangeNotFoundException
+import com.docuhyphen.app.api.exception.ExchangeRecipientEligibilityException
+import com.docuhyphen.app.api.exception.NoAuthOtpException
 import com.docuhyphen.app.api.model.DetailedEntityToDtoTransformer
 import com.docuhyphen.app.api.model.dto.DocumentDetailedDto
 import com.docuhyphen.app.api.model.entity.DocumentEncryptionMode
 import com.docuhyphen.app.api.model.entity.DocumentType
+import com.docuhyphen.app.api.resource.ResourceEndpointDelayHelper
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.resource.model.UpdateNoAuthExchange
-import com.docuhyphen.app.api.service.exchange.DocumentThumbnailUnavailableException
-import com.docuhyphen.app.api.service.exchange.ExchangeDocumentService
-import com.docuhyphen.app.api.service.exchange.ExchangeRetrievalService
-import com.docuhyphen.app.api.service.exchange.NoAuthExchangeAccessExpiredException
-import com.docuhyphen.app.api.service.exchange.ExchangeUpdateService
-import com.docuhyphen.app.api.service.exchange.ShareLinkValidationService
+import com.docuhyphen.app.api.service.exchange.*
 import com.docuhyphen.app.api.service.storage.FileStorageService
 import io.quarkus.security.ForbiddenException
 import jakarta.inject.Inject
 import jakarta.ws.rs.*
 import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
-import jakarta.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR
-import jakarta.ws.rs.core.Response.Status.NOT_FOUND
-import jakarta.ws.rs.core.Response.Status.TOO_MANY_REQUESTS
+import jakarta.ws.rs.core.Response.Status.*
 import org.jboss.resteasy.reactive.RestForm
 import org.slf4j.LoggerFactory
 import java.io.File
-import java.util.UUID
+import java.util.*
 
 @Path("no-auth/exchanges")
 @Produces(MediaType.APPLICATION_JSON)
@@ -166,67 +158,76 @@ class NoAuthExchangeResource @Inject constructor(
         @HeaderParam("x-no-auth-access-token") noAuthAccessToken: String?,
     ): Response
     {
-        return ResourceEndpointDelayHelper.withFixedFloor(1000) { try
-        {
-            exchangeUpdateService.issueRecipientOtp(exchangeId, noAuthAccessToken)
-            Response.status(Response.Status.NO_CONTENT).build()
-        }
-        catch (exception: Exception)
-        {
-            when (exception)
+        return ResourceEndpointDelayHelper.withFixedFloor(1000) {
+            try
             {
-                is ForbiddenException ->
+                exchangeUpdateService.issueRecipientOtp(exchangeId, noAuthAccessToken)
+                Response.status(Response.Status.NO_CONTENT).build()
+            }
+            catch (exception: Exception)
+            {
+                when (exception)
                 {
-                    logger.warn("OTP request denied", exception)
-                    Response.status(Response.Status.FORBIDDEN)
-                        .entity(ResponseError(exception.message))
-                        .build()
-                }
-                is ExchangeNotFoundException ->
-                {
-                    logger.warn("OTP request for missing session", exception)
-                    Response.status(NOT_FOUND)
-                        .entity(ResponseError(exception.message))
-                        .build()
-                }
-                is NoAuthOtpException ->
-                {
-                    logger.warn("OTP request rejected: reasonCode={} retryAfter={}", exception.reasonCode, exception.retryAfterSeconds)
-                    val response = Response.status(
-                        if (exception.reasonCode == "OTP_RATE_LIMITED" || exception.reasonCode == "OTP_LOCKED")
-                            TOO_MANY_REQUESTS
-                        else
-                            Response.Status.BAD_REQUEST,
-                    )
-                        .entity(
-                            ResponseError(
-                                errorMessage = exception.message,
-                                reasonCode = exception.reasonCode,
-                                retryAfterSeconds = exception.retryAfterSeconds,
-                            )
-                        )
-                    if (exception.retryAfterSeconds != null)
+                    is ForbiddenException ->
                     {
-                        response.header("Retry-After", exception.retryAfterSeconds)
+                        logger.warn("OTP request denied", exception)
+                        Response.status(Response.Status.FORBIDDEN)
+                            .entity(ResponseError(exception.message))
+                            .build()
                     }
-                    response.build()
-                }
-                is IllegalArgumentException ->
-                {
-                    logger.warn("OTP request rejected", exception)
-                    Response.status(Response.Status.BAD_REQUEST)
-                        .entity(ResponseError(exception.message))
-                        .build()
-                }
-                else ->
-                {
-                    logger.error("Error issuing exchange OTP", exception)
-                    Response.status(INTERNAL_SERVER_ERROR)
-                        .entity(ResponseError("An error occurred while issuing the verification code"))
-                        .build()
+
+                    is ExchangeNotFoundException ->
+                    {
+                        logger.warn("OTP request for missing session", exception)
+                        Response.status(NOT_FOUND)
+                            .entity(ResponseError(exception.message))
+                            .build()
+                    }
+
+                    is NoAuthOtpException ->
+                    {
+                        logger.warn(
+                            "OTP request rejected: reasonCode={} retryAfter={}",
+                            exception.reasonCode,
+                            exception.retryAfterSeconds
+                        )
+                        val response = Response.status(
+                            if (exception.reasonCode == "OTP_RATE_LIMITED" || exception.reasonCode == "OTP_LOCKED")
+                                TOO_MANY_REQUESTS
+                            else
+                                Response.Status.BAD_REQUEST,
+                        )
+                            .entity(
+                                ResponseError(
+                                    errorMessage = exception.message,
+                                    reasonCode = exception.reasonCode,
+                                    retryAfterSeconds = exception.retryAfterSeconds,
+                                )
+                            )
+                        if (exception.retryAfterSeconds != null)
+                        {
+                            response.header("Retry-After", exception.retryAfterSeconds)
+                        }
+                        response.build()
+                    }
+
+                    is IllegalArgumentException ->
+                    {
+                        logger.warn("OTP request rejected", exception)
+                        Response.status(Response.Status.BAD_REQUEST)
+                            .entity(ResponseError(exception.message))
+                            .build()
+                    }
+
+                    else ->
+                    {
+                        logger.error("Error issuing exchange OTP", exception)
+                        Response.status(INTERNAL_SERVER_ERROR)
+                            .entity(ResponseError("An error occurred while issuing the verification code"))
+                            .build()
+                    }
                 }
             }
-        }
         }
     }
 
@@ -240,7 +241,8 @@ class NoAuthExchangeResource @Inject constructor(
     {
         return try
         {
-            val updatedSession = exchangeUpdateService.verifyNoAuthAccessCode(exchangeId, request.otp, noAuthAccessToken)
+            val updatedSession =
+                exchangeUpdateService.verifyNoAuthAccessCode(exchangeId, request.otp, noAuthAccessToken)
             Response.ok(updatedSession).build()
         }
         catch (exception: Exception)
@@ -340,7 +342,11 @@ class NoAuthExchangeResource @Inject constructor(
 
                 is NoAuthOtpException ->
                 {
-                    logger.error("Error updating exchange: reasonCode={} retryAfter={}", exception.reasonCode, exception.retryAfterSeconds)
+                    logger.error(
+                        "Error updating exchange: reasonCode={} retryAfter={}",
+                        exception.reasonCode,
+                        exception.retryAfterSeconds
+                    )
 
                     val response = Response
                         .status(
@@ -551,7 +557,8 @@ class NoAuthExchangeResource @Inject constructor(
     {
         return try
         {
-            val thumbnail = exchangeDocumentService.getNoAuthDocumentThumbnail(exchangeId, documentId, noAuthAccessToken)
+            val thumbnail =
+                exchangeDocumentService.getNoAuthDocumentThumbnail(exchangeId, documentId, noAuthAccessToken)
             val etag = "\"${thumbnail.etag}\""
             if (ifNoneMatch == etag)
             {

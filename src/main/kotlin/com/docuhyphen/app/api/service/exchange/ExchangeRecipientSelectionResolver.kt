@@ -2,31 +2,15 @@ package com.docuhyphen.app.api.service.exchange
 
 import com.docuhyphen.app.api.exception.AppUserNotFoundException
 import com.docuhyphen.app.api.exception.OrganizationGroupNotFoundException
-import com.docuhyphen.app.api.model.entity.AppUser
-import com.docuhyphen.app.api.model.entity.ExchangeRecipientSelectionType
-import com.docuhyphen.app.api.model.entity.ExchangeRecipientType
-import com.docuhyphen.app.api.model.entity.PrincipalGroup
-import com.docuhyphen.app.api.model.entity.PrincipalGroupScope
-import com.docuhyphen.app.api.model.entity.PrincipalKind
-import com.docuhyphen.app.api.model.entity.Person
-import com.docuhyphen.app.api.resource.model.ExchangeRecipientSelectionRequest
-import com.docuhyphen.app.api.resource.model.ExternalEmailRecipientSelectionRequest
-import com.docuhyphen.app.api.resource.model.InternalGroupRecipientSelectionRequest
-import com.docuhyphen.app.api.resource.model.PersonalGroupRecipientSelectionRequest
-import com.docuhyphen.app.api.resource.model.RegisteredUserRecipientSelectionRequest
-import com.docuhyphen.app.api.resource.model.TrustedGroupRecipientSelectionRequest
-import com.docuhyphen.app.api.resource.model.TrustedPersonRecipientSelectionRequest
-import com.docuhyphen.app.api.service.user.AppUserService
+import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.resource.model.*
 import com.docuhyphen.app.api.service.identity.ExternalIdentityResolutionService
 import com.docuhyphen.app.api.service.identity.ExternalIdentityResolutionService.PreparedPersonResolution
-import com.docuhyphen.app.api.service.organization.OrganizationExchangePolicyService
-import com.docuhyphen.app.api.service.organization.OrganizationGroupService
-import com.docuhyphen.app.api.service.organization.TrustedGroupValidation
-import com.docuhyphen.app.api.service.organization.TrustedRecipientAuditService
-import com.docuhyphen.app.api.service.organization.TrustedRecipientValidationService
+import com.docuhyphen.app.api.service.organization.*
+import com.docuhyphen.app.api.service.user.AppUserService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
-import java.util.UUID
+import java.util.*
 
 data class ResolvedExchangeRecipientSelection(
     val recipientType: ExchangeRecipientType,

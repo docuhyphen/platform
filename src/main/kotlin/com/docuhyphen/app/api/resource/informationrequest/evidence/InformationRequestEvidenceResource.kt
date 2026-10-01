@@ -58,7 +58,11 @@ class InformationRequestEvidenceResource @Inject constructor(
         }
         catch (exception: Exception)
         {
-            InformationRequestEvidenceHttp.refused(logger, "Information Request evidence artifact read failed", exception)
+            InformationRequestEvidenceHttp.refused(
+                logger,
+                "Information Request evidence artifact read failed",
+                exception
+            )
         }
     }
 

@@ -9,11 +9,7 @@ import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.service.exchange.ExchangeAcceptanceService
 import io.quarkus.security.ForbiddenException
 import jakarta.inject.Inject
-import jakarta.ws.rs.Consumes
-import jakarta.ws.rs.POST
-import jakarta.ws.rs.Path
-import jakarta.ws.rs.PathParam
-import jakarta.ws.rs.Produces
+import jakarta.ws.rs.*
 import jakarta.ws.rs.core.MediaType.APPLICATION_JSON
 import jakarta.ws.rs.core.Response
 
@@ -40,20 +36,26 @@ class ExchangeAcceptanceResource @Inject constructor(
             {
                 is ExchangeNotFoundException ->
                     Response.status(Response.Status.NOT_FOUND).entity(ResponseError(exception.message)).build()
+
                 is ForbiddenException ->
                     Response.status(Response.Status.FORBIDDEN).entity(ResponseError(exception.message)).build()
+
                 is WorkflowConflictException ->
                     Response.status(Response.Status.CONFLICT).entity(ResponseError(exception.message)).build()
+
                 is OrganizationTrustException ->
                     Response.status(Response.Status.CONFLICT)
                         .entity(ResponseError("This Exchange can no longer be accepted"))
                         .build()
+
                 is ExchangeRecipientEligibilityException ->
                     Response.status(Response.Status.CONFLICT)
                         .entity(ResponseError("This Exchange can no longer be accepted"))
                         .build()
+
                 is IllegalArgumentException ->
                     Response.status(Response.Status.BAD_REQUEST).entity(ResponseError(exception.message)).build()
+
                 else ->
                     Response.status(Response.Status.INTERNAL_SERVER_ERROR)
                         .entity(ResponseError("An error occurred while deciding Exchange acceptance"))

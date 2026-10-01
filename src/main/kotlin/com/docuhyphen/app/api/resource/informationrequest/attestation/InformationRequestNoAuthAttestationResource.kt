@@ -29,7 +29,12 @@ class InformationRequestNoAuthAttestationResource @Inject constructor(
     {
         return try
         {
-            InformationRequestCommandHttp.withNoAuthAccess(readAccessService, id, accessLinkToken, sessionToken) { requestId, access ->
+            InformationRequestCommandHttp.withNoAuthAccess(
+                readAccessService,
+                id,
+                accessLinkToken,
+                sessionToken
+            ) { requestId, access ->
                 handler.record(
                     requestId,
                     InformationRequestCommandHttp.uuid(requirementId, "requirement id"),

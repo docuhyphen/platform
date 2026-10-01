@@ -4,7 +4,7 @@ import com.docuhyphen.app.api.service.audit.catalog.AuditCategory
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import org.eclipse.microprofile.config.inject.ConfigProperty
-import java.util.Optional
+import java.util.*
 
 /**
  * Resolves the [AuditFailurePolicy] for a given [AuditCategory].

@@ -46,7 +46,14 @@ class InformationRequestEvidenceScanProducer @Inject constructor(
     @Produces
     @Singleton
     fun settings(): InformationRequestEvidenceScanSettings =
-        InformationRequestEvidenceScanSettings(timeout, maximumSignatureAge, reuseWindow, retryAfter, rescanAfter, batchSize)
+        InformationRequestEvidenceScanSettings(
+            timeout,
+            maximumSignatureAge,
+            reuseWindow,
+            retryAfter,
+            rescanAfter,
+            batchSize
+        )
 
     private companion object
     {

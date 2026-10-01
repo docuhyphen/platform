@@ -9,7 +9,7 @@ import com.docuhyphen.app.api.repository.informationrequest.template.Information
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateVersionRepository
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
-import java.util.UUID
+import java.util.*
 
 /**
  * The one way another domain resolves an exact Information Request Template Version.
@@ -42,12 +42,11 @@ class InformationRequestTemplateReferenceService @Inject constructor(
         {
             InformationRequestTemplateStatus.PUBLISHED -> Unit
             InformationRequestTemplateStatus.RETIRED -> throw retired(version)
-            InformationRequestTemplateStatus.DRAFT -> throw
-                InformationRequestTemplateVersionUnavailableException(
-                    InformationRequestTemplateVersionUnavailableException.NOT_PUBLISHED,
-                    "Information request template version ${version.versionNumber} is still being " +
+            InformationRequestTemplateStatus.DRAFT -> throw InformationRequestTemplateVersionUnavailableException(
+                InformationRequestTemplateVersionUnavailableException.NOT_PUBLISHED,
+                "Information request template version ${version.versionNumber} is still being " +
                         "authored and its configuration can still change",
-                )
+            )
         }
         return reference(version, definition)
     }
@@ -68,12 +67,11 @@ class InformationRequestTemplateReferenceService @Inject constructor(
         {
             InformationRequestTemplateStatus.PUBLISHED -> Unit
             InformationRequestTemplateStatus.RETIRED -> throw retired(version)
-            InformationRequestTemplateStatus.DRAFT -> throw
-                InformationRequestTemplateVersionUnavailableException(
-                    InformationRequestTemplateVersionUnavailableException.NOT_PUBLISHED,
-                    "Information request template version ${version.versionNumber} has not been " +
+            InformationRequestTemplateStatus.DRAFT -> throw InformationRequestTemplateVersionUnavailableException(
+                InformationRequestTemplateVersionUnavailableException.NOT_PUBLISHED,
+                "Information request template version ${version.versionNumber} has not been " +
                         "published, so nothing can be created from it",
-                )
+            )
         }
         return reference(version, definition)
     }
@@ -112,7 +110,7 @@ class InformationRequestTemplateReferenceService @Inject constructor(
         InformationRequestTemplateVersionUnavailableException(
             InformationRequestTemplateVersionUnavailableException.RETIRED,
             "Information request template version ${version.versionNumber} has been retired; " +
-                "select a currently published version",
+                    "select a currently published version",
         )
 
     private fun reference(

@@ -7,25 +7,8 @@ import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import org.slf4j.LoggerFactory
 import java.security.SecureRandom
-import java.util.Base64
+import java.util.*
 
-/**
- * Issues, peeks, and consumes opaque single-use confirmation tokens used in
- * the sign-up email verification link.
- *
- * Each token is a 32-byte cryptographically random value, base64url-encoded
- * (43 ASCII chars, no padding). Tokens map to the user's email address and
- * are stored in Redis with a TTL matching the OTP expiry window.
- *
- * Replaces the previous design of passing `?email=&otp=` in the URL,  those
- * values leaked through browser history, Referer headers, and proxy access
- * logs. An opaque token has no exploitable structure and is consumed atomically
- * on the first valid verification (via GETDEL), so even a replay from a
- * leaked URL won't help an attacker once the original user has clicked it.
- *
- * The 6-digit OTP remains in the DB as a fallback for users who type the
- * code by hand instead of clicking the email link.
- */
 @ApplicationScoped
 class SignUpEmailConfirmationTokenService @Inject constructor(
     private val redis: Redis,
@@ -80,26 +63,17 @@ class SignUpEmailConfirmationTokenService @Inject constructor(
         return response?.toString()?.takeIf { it.isNotBlank() }
     }
 
-    /**
-     * Atomically read & delete the email mapping for [token].
-     * Returns null if the token was already consumed, expired, or never existed.
-     *
-     * GETDEL is single-round-trip atomic in Redis 6.2+; we rely on that to
-     * make consumption single-use across concurrent clicks.
-     */
-    fun consumeToken(token: String): String?
+    fun revokeToken(token: String)
     {
         if (!isWellFormed(token))
         {
-            logger.debug("Sign-up confirmation token rejected: malformed input")
-            return null
+            logger.debug("Sign-up confirmation token revocation skipped: malformed input")
+            return
         }
 
-        val response = redis.send(
-            Request.cmd(Command.GETDEL).arg("$KEY_PREFIX$token")
+        redis.send(
+            Request.cmd(Command.DEL).arg("$KEY_PREFIX$token")
         ).await().indefinitely()
-
-        return response?.toString()?.takeIf { it.isNotBlank() }
     }
 
     private fun generateToken(): String

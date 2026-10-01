@@ -1,7 +1,7 @@
 ﻿package com.docuhyphen.app.api.model
 
-import com.docuhyphen.app.api.model.dto.*
 import com.docuhyphen.app.api.model.document.DocumentVersionView
+import com.docuhyphen.app.api.model.dto.*
 import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.service.application.SettingsService
 import org.hibernate.Hibernate
@@ -256,7 +256,9 @@ class DetailedEntityToDtoTransformer
                         notifyDocUpload = notifyDocUpload,
                         notifyShareStartChannels = SettingsService.parseNotificationChannels(notifyShareStartChannels),
                         notifyShareAcceptChannels = SettingsService.parseNotificationChannels(notifyShareAcceptChannels),
-                        notifyShareDeclineChannels = SettingsService.parseNotificationChannels(notifyShareDeclineChannels),
+                        notifyShareDeclineChannels = SettingsService.parseNotificationChannels(
+                            notifyShareDeclineChannels
+                        ),
                         notifyShareEndChannels = SettingsService.parseNotificationChannels(notifyShareEndChannels),
                         notifyDocCommentChannels = SettingsService.parseNotificationChannels(notifyDocCommentChannels),
                         notifyDocDeleteChannels = SettingsService.parseNotificationChannels(notifyDocDeleteChannels),

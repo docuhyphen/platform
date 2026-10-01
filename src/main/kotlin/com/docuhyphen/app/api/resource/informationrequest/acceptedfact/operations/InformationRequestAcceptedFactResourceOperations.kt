@@ -3,13 +3,7 @@ package com.docuhyphen.app.api.resource.informationrequest.acceptedfact.operatio
 import com.docuhyphen.app.api.resource.informationrequest.InformationRequestCommandHttp.IDEMPOTENCY_KEY_HEADER
 import com.docuhyphen.app.api.resource.model.PromoteInformationRequestAcceptedFactRequest
 import com.docuhyphen.app.api.resource.model.RevokeInformationRequestAcceptedFactRequest
-import jakarta.ws.rs.Consumes
-import jakarta.ws.rs.GET
-import jakarta.ws.rs.HeaderParam
-import jakarta.ws.rs.POST
-import jakarta.ws.rs.Path
-import jakarta.ws.rs.PathParam
-import jakarta.ws.rs.Produces
+import jakarta.ws.rs.*
 import jakarta.ws.rs.core.MediaType.APPLICATION_JSON
 import jakarta.ws.rs.core.Response
 

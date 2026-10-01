@@ -28,6 +28,7 @@ class SubscriptionLifecycleValidator
         {
             SubscriptionStatus.TRIALING ->
                 require(periodEnd != null) { "A trial must have a current period end" }
+
             SubscriptionStatus.PAST_DUE ->
             {
                 val graceEnd = update.gracePeriodEnd
@@ -39,11 +40,13 @@ class SubscriptionLifecycleValidator
                     }
                 }
             }
+
             SubscriptionStatus.CANCELED ->
                 require(periodEnd != null) { "A canceled subscription must retain its paid-through period end" }
+
             SubscriptionStatus.ACTIVE,
             SubscriptionStatus.SUSPENDED,
-            -> require(update.gracePeriodEnd == null) {
+                -> require(update.gracePeriodEnd == null) {
                 "Grace period end is only valid for a past-due subscription"
             }
         }

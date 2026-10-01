@@ -30,7 +30,11 @@ class InternalIdentityProvider : IdentityProviderStrategy
         throw UnsupportedOperationException("Internal IDP does not support OAuth code exchange")
     }
 
-    override fun validateIdToken(idToken: String, expectedNonce: String, runtimeCredentials: RuntimeIdpCredentials?): OAuthUserInfo
+    override fun validateIdToken(
+        idToken: String,
+        expectedNonce: String,
+        runtimeCredentials: RuntimeIdpCredentials?
+    ): OAuthUserInfo
     {
         throw UnsupportedOperationException("Internal IDP does not support external ID token validation")
     }

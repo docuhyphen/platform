@@ -24,7 +24,14 @@ object InformationRequestPrivacyDtoMapper
         recordedByPrincipalId = view.request.recordedByPrincipalId,
         recordedAt = view.request.recordedAt,
         completedAt = view.request.completedAt,
-        targets = view.targets.map { InformationRequestPrivacyTargetDto(it.requestId, it.outcome, it.reasonCode, it.disposalClaimId) },
+        targets = view.targets.map {
+            InformationRequestPrivacyTargetDto(
+                it.requestId,
+                it.outcome,
+                it.reasonCode,
+                it.disposalClaimId
+            )
+        },
         restriction = view.restriction?.let(::toDto),
         correction = view.correction?.let(::toDto),
     )

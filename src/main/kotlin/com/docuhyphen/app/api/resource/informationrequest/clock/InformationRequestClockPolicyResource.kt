@@ -50,7 +50,11 @@ class InformationRequestClockPolicyResource @Inject constructor(
         }
         catch (exception: Exception)
         {
-            InformationRequestCommandHttp.refused(logger, "Information Request clock policy definition failed", exception)
+            InformationRequestCommandHttp.refused(
+                logger,
+                "Information Request clock policy definition failed",
+                exception
+            )
         }
     }
 
@@ -65,7 +69,11 @@ class InformationRequestClockPolicyResource @Inject constructor(
         }
         catch (exception: Exception)
         {
-            InformationRequestCommandHttp.refused(logger, "Information Request clock policy version publication failed", exception)
+            InformationRequestCommandHttp.refused(
+                logger,
+                "Information Request clock policy version publication failed",
+                exception
+            )
         }
     }
 

@@ -6,7 +6,7 @@ import com.docuhyphen.app.api.service.config.AwsSecretsManagerService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import java.security.MessageDigest
-import java.util.Base64
+import java.util.*
 import java.util.concurrent.locks.ReentrantLock
 
 /**
@@ -19,8 +19,7 @@ import java.util.concurrent.locks.ReentrantLock
 class SecretsManagerAuditIdentityVaultMasterKeyProvider @Inject constructor(
     private val configService: AuditIdentityVaultConfigService,
     private val secretsManagerService: AwsSecretsManagerService,
-)
-    : AuditIdentityVaultMasterKeyProvider
+) : AuditIdentityVaultMasterKeyProvider
 {
     private val lock = ReentrantLock()
 
@@ -37,7 +36,8 @@ class SecretsManagerAuditIdentityVaultMasterKeyProvider @Inject constructor(
         try
         {
             cachedKey?.let { return it }
-            val secretString = secretsManagerService.getSecretString(configService.getSecretId(), configService.getRegion())
+            val secretString =
+                secretsManagerService.getSecretString(configService.getSecretId(), configService.getRegion())
             val key = decodeOrDeriveKey(secretString)
             cachedKey = key
             return key

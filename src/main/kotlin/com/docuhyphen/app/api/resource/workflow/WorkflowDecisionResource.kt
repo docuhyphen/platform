@@ -1,24 +1,17 @@
 package com.docuhyphen.app.api.resource.workflow
 
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
-import com.docuhyphen.app.api.model.dto.ExchangeBasicDto
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.workflow.Decision
-import com.docuhyphen.app.api.service.workflow.PendingWorkflowStepDto
 import com.docuhyphen.app.api.service.workflow.WorkflowEngineService
 import jakarta.inject.Inject
-import jakarta.ws.rs.Consumes
-import jakarta.ws.rs.GET
-import jakarta.ws.rs.POST
-import jakarta.ws.rs.Path
-import jakarta.ws.rs.PathParam
-import jakarta.ws.rs.Produces
+import jakarta.ws.rs.*
 import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
 import kotlinx.serialization.Serializable
 import org.slf4j.LoggerFactory
-import java.util.UUID
+import java.util.*
 
 /**
  * Lets an assignee record an approve/reject decision on a pending workflow step (e.g. the
@@ -53,7 +46,8 @@ class WorkflowDecisionResource @Inject constructor(
             ?: return Response.status(Response.Status.UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
 
         val stepId = runCatching { UUID.fromString(stepInstanceId) }.getOrNull()
-            ?: return Response.status(Response.Status.BAD_REQUEST).entity(ResponseError("Invalid step instance id")).build()
+            ?: return Response.status(Response.Status.BAD_REQUEST).entity(ResponseError("Invalid step instance id"))
+                .build()
 
         val decision = when (payload.decision?.trim()?.uppercase())
         {

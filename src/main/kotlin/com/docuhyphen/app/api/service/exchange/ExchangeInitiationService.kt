@@ -13,11 +13,7 @@ import com.docuhyphen.app.api.service.auth.AuthAuditService
 import com.docuhyphen.app.api.service.auth.AuthRateLimitService
 import com.docuhyphen.app.api.service.auth.AuthenticationService
 import com.docuhyphen.app.api.service.auth.RevocationReasonCode
-import com.docuhyphen.app.api.service.auth.authz.Action
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import com.docuhyphen.app.api.service.auth.authz.ResourceRef
+import com.docuhyphen.app.api.service.auth.authz.*
 import com.docuhyphen.app.api.service.communication.EmailTemplateService
 import com.docuhyphen.app.api.service.communication.OtpService
 import com.docuhyphen.app.api.service.config.ConfigurationService
@@ -202,11 +198,14 @@ class ExchangeInitiationService @Inject constructor(
             this.createdDate = Timestamp.from(Instant.now())
             this.lastActivity = Timestamp.from(Instant.now())
             this.requireRecipientSignIn = sessionInitiationDto.requestRecipientSignIn == true ||
-                resolvedPrimary.selectionType == ExchangeRecipientSelectionType.TRUSTED_GROUP ||
-                resolvedPrimary.selectionType == ExchangeRecipientSelectionType.TRUSTED_PERSON
-            if (orgId0 != null) {
+                    resolvedPrimary.selectionType == ExchangeRecipientSelectionType.TRUSTED_GROUP ||
+                    resolvedPrimary.selectionType == ExchangeRecipientSelectionType.TRUSTED_PERSON
+            if (orgId0 != null)
+            {
                 this.ownerOrganizationId = orgId0
-            } else {
+            }
+            else
+            {
                 this.ownerUserId = initiator.id
             }
         }
@@ -249,7 +248,12 @@ class ExchangeInitiationService @Inject constructor(
             }
             catch (e: Exception)
             {
-                logger.warn("Failed to pre-populate exchange document {} from library entry {}: {}", document.id, libId, e.message)
+                logger.warn(
+                    "Failed to pre-populate exchange document {} from library entry {}: {}",
+                    document.id,
+                    libId,
+                    e.message
+                )
             }
         }
 
@@ -300,7 +304,7 @@ class ExchangeInitiationService @Inject constructor(
         // preserves the trusted assurance contract: their direct Share is held until the attested
         // recipient decides.
         val trustedRecipient = resolvedPrimary.selectionType == ExchangeRecipientSelectionType.TRUSTED_GROUP ||
-            resolvedPrimary.selectionType == ExchangeRecipientSelectionType.TRUSTED_PERSON
+                resolvedPrimary.selectionType == ExchangeRecipientSelectionType.TRUSTED_PERSON
         val requireAcceptance = trustedRecipient || (orgSettings?.requireRecipientAcceptance ?: true)
         val recipientNeedsApproval: Boolean
 
@@ -461,6 +465,7 @@ class ExchangeInitiationService @Inject constructor(
         {
             GROUP -> recipientGroupId?.let { PrincipalKind.PRINCIPAL_GROUP to it }
                 ?: throw IllegalArgumentException("Recipient group is required")
+
             else -> recipientAppUser?.let { PrincipalKind.USER to it.id }
                 ?: throw IllegalArgumentException("Recipient user is required")
         }
@@ -532,7 +537,12 @@ class ExchangeInitiationService @Inject constructor(
                 exchangeRecipientAttestationService.createGroupAttestation(recipient, validation)
             }
             selection.preparedPersonResolution?.let { prepared ->
-                consumeTrustedPersonResolution(prepared, initiator.id, authTokenContext.activeOrganizationId, session.id)
+                consumeTrustedPersonResolution(
+                    prepared,
+                    initiator.id,
+                    authTokenContext.activeOrganizationId,
+                    session.id
+                )
                 exchangeRecipientAttestationService.createPersonAttestation(recipient, prepared)
             }
         }
@@ -626,7 +636,7 @@ class ExchangeInitiationService @Inject constructor(
                 .getOrElse { throw IllegalArgumentException("Invalid Exchange Share role: $explicit") }
         }
         val canWrite = dto.allowDocumentAddition == true || dto.allowDocumentDeletion == true ||
-            dto.allowDocumentUpdate == true || dto.allowDocumentUpload == true
+                dto.allowDocumentUpdate == true || dto.allowDocumentUpload == true
         return if (canWrite) ExchangeShareRoleName.EDITOR else ExchangeShareRoleName.VIEWER
     }
 
@@ -797,7 +807,7 @@ class ExchangeInitiationService @Inject constructor(
         val exchangeIdStr = exchange.id.toString()
         val subjectTitle = configurationService.emailSubjectTitle
         val trustedPrimary = primarySelectionType == ExchangeRecipientSelectionType.TRUSTED_PERSON ||
-            primarySelectionType == ExchangeRecipientSelectionType.TRUSTED_GROUP
+                primarySelectionType == ExchangeRecipientSelectionType.TRUSTED_GROUP
         val notifyPrimary = !draftApprovalPending && (trustedPrimary || !recipientNeedsApproval)
         val primaryAudience = if (notifyPrimary)
             notificationAudience(
@@ -810,7 +820,7 @@ class ExchangeInitiationService @Inject constructor(
         val trustedParticipantAudience = participants
             .filter {
                 it.selection.selectionType == ExchangeRecipientSelectionType.TRUSTED_PERSON ||
-                    it.selection.selectionType == ExchangeRecipientSelectionType.TRUSTED_GROUP
+                        it.selection.selectionType == ExchangeRecipientSelectionType.TRUSTED_GROUP
             }
             .flatMap { participant ->
                 notificationAudience(
@@ -824,7 +834,7 @@ class ExchangeInitiationService @Inject constructor(
         val ordinaryParticipantAudience = participants
             .filterNot {
                 it.selection.selectionType == ExchangeRecipientSelectionType.TRUSTED_PERSON ||
-                    it.selection.selectionType == ExchangeRecipientSelectionType.TRUSTED_GROUP
+                        it.selection.selectionType == ExchangeRecipientSelectionType.TRUSTED_GROUP
             }
             .flatMap { participant ->
                 notificationAudience(
@@ -840,16 +850,17 @@ class ExchangeInitiationService @Inject constructor(
         {
             GROUP -> recipientGroupId?.let { organizationGroupService.getById(it.toString())?.name }
                 ?.let { "Group: $it" } ?: "Group"
+
             else -> recipientPersonLabel(recipientAppUser, externalEmailSelection)
         }
 
         val requireSignInForRecipient = recipientType == EMAIL &&
-            recipientAppUser?.isTemporary == true &&
-            exchange.requireRecipientSignIn
+                recipientAppUser?.isTemporary == true &&
+                exchange.requireRecipientSignIn
 
         val isNoAuthTempRecipient = recipientType == EMAIL &&
-            recipientAppUser?.isTemporary == true &&
-            !exchange.requireRecipientSignIn
+                recipientAppUser?.isTemporary == true &&
+                !exchange.requireRecipientSignIn
         val emails = mutableListOf<ExchangeEmailDelivery>()
 
         if (notifyPrimary)

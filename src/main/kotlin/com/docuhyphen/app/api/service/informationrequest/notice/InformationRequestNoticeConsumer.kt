@@ -5,7 +5,7 @@ import com.docuhyphen.app.api.service.notification.DomainEvent
 import com.docuhyphen.app.api.service.notification.DomainEventConsumer
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestNoticeConsumer @Inject constructor(
@@ -16,7 +16,7 @@ class InformationRequestNoticeConsumer @Inject constructor(
 
     override fun handles(event: DomainEvent): Boolean =
         event.subject?.type == SUBJECT_TYPE &&
-            NOTICE_COUNT_KEYS.any { key -> (event.payload[key]?.toIntOrNull() ?: 0) > 0 }
+                NOTICE_COUNT_KEYS.any { key -> (event.payload[key]?.toIntOrNull() ?: 0) > 0 }
 
     override fun consume(event: DomainEvent): DomainEventConsumptionResult
     {

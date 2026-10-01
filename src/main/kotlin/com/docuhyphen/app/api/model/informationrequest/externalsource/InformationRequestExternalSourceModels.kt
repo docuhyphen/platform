@@ -1,23 +1,12 @@
 package com.docuhyphen.app.api.model.informationrequest.externalsource
 
-import com.docuhyphen.app.api.model.entity.FieldContract
-import com.docuhyphen.app.api.model.entity.FieldValueType
-import com.docuhyphen.app.api.model.entity.InformationRequestConnectorExchangeState
-import com.docuhyphen.app.api.model.entity.InformationRequestConnectorKind
-import com.docuhyphen.app.api.model.entity.InformationRequestDiscrepancyResolution
-import com.docuhyphen.app.api.model.entity.InformationRequestImportedValue
-import com.docuhyphen.app.api.model.entity.InformationRequestImportedValueDecision
-import com.docuhyphen.app.api.model.entity.InformationRequestImportedValueDecisionKind
-import com.docuhyphen.app.api.model.entity.InformationRequestImportedValueDiscrepancy
-import com.docuhyphen.app.api.model.entity.InformationRequestImportedValueDiscrepancyResolution
-import com.docuhyphen.app.api.model.entity.InformationRequestRequirement
-import com.docuhyphen.app.api.model.entity.InformationRequestSourceConfidence
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
 import com.docuhyphen.app.api.service.informationrequest.externalsource.InformationRequestConnector
 import kotlinx.serialization.json.JsonElement
 import java.time.Duration
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 data class InformationRequestConnectorContract(
     val key: String,
@@ -66,7 +55,8 @@ sealed interface InformationRequestConnectorOutcome
 {
     data class Pending(val externalReference: String, val retryAfter: Duration) : InformationRequestConnectorOutcome
 
-    data class Completed(val externalReference: String, val result: InformationRequestConnectorResult) : InformationRequestConnectorOutcome
+    data class Completed(val externalReference: String, val result: InformationRequestConnectorResult) :
+        InformationRequestConnectorOutcome
 
     data class Failed(val reasonCode: String) : InformationRequestConnectorOutcome
 }
@@ -186,9 +176,14 @@ data class InformationRequestImportedValueView(
 
 internal sealed interface InformationRequestConnectorClaim
 {
-    data class Due(val call: InformationRequestConnectorCall, val connector: InformationRequestConnector) : InformationRequestConnectorClaim
+    data class Due(val call: InformationRequestConnectorCall, val connector: InformationRequestConnector) :
+        InformationRequestConnectorClaim
 
     data class Ended(val state: InformationRequestConnectorExchangeState) : InformationRequestConnectorClaim
 }
 
-internal data class InformationRequestImportedValueFieldTarget(val fieldDefinitionId: UUID, val contract: FieldContract, val scale: Int?)
+internal data class InformationRequestImportedValueFieldTarget(
+    val fieldDefinitionId: UUID,
+    val contract: FieldContract,
+    val scale: Int?
+)

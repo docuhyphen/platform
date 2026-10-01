@@ -5,7 +5,7 @@ import com.docuhyphen.app.api.model.informationrequest.evidence.InformationReque
 import com.docuhyphen.app.api.repository.BaseRepository
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import jakarta.enterprise.context.ApplicationScoped
-import java.util.UUID
+import java.util.*
 
 /**
  * Persistence for recorded evidence versions. Rows are only inserted and read: rewriting or

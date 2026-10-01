@@ -7,7 +7,7 @@ import com.docuhyphen.app.api.service.subscription.SubscriptionAccessService
 import com.docuhyphen.app.api.service.subscription.SubscriptionContext
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
-import java.util.UUID
+import java.util.*
 
 /** Applies the commercial workflow-automation boundary without interrupting running instances. */
 @ApplicationScoped
@@ -43,11 +43,13 @@ class WorkflowSubscriptionGuard @Inject constructor(
                 definition.organizationId,
                 definition.createdByAppUserId,
             )
+
             WorkflowScope.PERSONAL -> ownerContext(
                 definition.scope,
                 definition.organizationId,
                 definition.createdByAppUserId,
             )
+
             WorkflowScope.APP -> requestOrganizationId?.let(SubscriptionContext::forOrganization) ?: return
         }
         requireWorkflowMutation(context)
@@ -70,9 +72,11 @@ class WorkflowSubscriptionGuard @Inject constructor(
             WorkflowScope.ORG -> SubscriptionContext.forOrganization(
                 requireNotNull(organizationId) { "Organization workflow has no subscription owner" },
             )
+
             WorkflowScope.PERSONAL -> SubscriptionContext.forUser(
                 requireNotNull(createdByAppUserId) { "Personal workflow has no subscription owner" },
             )
+
             WorkflowScope.APP -> throw IllegalArgumentException("Platform workflows have no customer subscription owner")
         }
     }

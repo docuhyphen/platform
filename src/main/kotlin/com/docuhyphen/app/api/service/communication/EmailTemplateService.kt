@@ -3,9 +3,9 @@
 import com.docuhyphen.app.api.model.entity.ExchangeStatus
 import com.docuhyphen.app.api.service.communication.templates.AuthEmailTemplateService
 import com.docuhyphen.app.api.service.communication.templates.EmailTemplateRenderer
+import com.docuhyphen.app.api.service.communication.templates.ExchangeEmailTemplateService
 import com.docuhyphen.app.api.service.communication.templates.OrganizationEmailTemplateService
 import com.docuhyphen.app.api.service.communication.templates.RenderedEmailTemplate
-import com.docuhyphen.app.api.service.communication.templates.ExchangeEmailTemplateService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 
@@ -26,7 +26,12 @@ class EmailTemplateService @Inject constructor(
     fun renderTemplate(templateName: String, model: Map<String, Any>): String =
         renderer.render(templateName, model)
 
-    fun renderSignUpInitiationEmail(email: String, otp: String, confirmationToken: String, expiryMinutes: Long): String =
+    fun renderSignUpInitiationEmail(
+        email: String,
+        otp: String,
+        confirmationToken: String,
+        expiryMinutes: Long
+    ): String =
         authTemplates.renderSignUpInitiationEmail(email, otp, confirmationToken, expiryMinutes)
 
     fun renderSignUpCompletionEmail(email: String): String =

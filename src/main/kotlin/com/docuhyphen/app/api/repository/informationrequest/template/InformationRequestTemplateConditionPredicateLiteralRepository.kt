@@ -3,7 +3,7 @@ package com.docuhyphen.app.api.repository.informationrequest.template
 import com.docuhyphen.app.api.model.entity.InformationRequestTemplateConditionPredicateLiteral
 import com.docuhyphen.app.api.repository.BaseRepository
 import jakarta.enterprise.context.ApplicationScoped
-import java.util.UUID
+import java.util.*
 
 /**
  * Persistence for [InformationRequestTemplateConditionPredicateLiteral]. Literals belong to one

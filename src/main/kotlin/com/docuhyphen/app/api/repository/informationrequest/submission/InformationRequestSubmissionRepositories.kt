@@ -1,15 +1,9 @@
 package com.docuhyphen.app.api.repository.informationrequest.submission
 
-import com.docuhyphen.app.api.model.entity.InformationRequestSubmissionAttestation
-import com.docuhyphen.app.api.model.entity.InformationRequestSubmissionEvidence
-import com.docuhyphen.app.api.model.entity.InformationRequestSubmissionItem
-import com.docuhyphen.app.api.model.entity.InformationRequestSubmissionPackage
-import com.docuhyphen.app.api.model.entity.InformationRequestSubmissionPackageAttestation
-import com.docuhyphen.app.api.model.entity.InformationRequestSubmissionSupportingLink
-import com.docuhyphen.app.api.model.entity.InformationRequestSubmissionWithdrawal
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.repository.BaseRepository
 import jakarta.enterprise.context.ApplicationScoped
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestSubmissionPackageRepository :
@@ -30,18 +24,18 @@ class InformationRequestSubmissionPackageRepository :
 
     fun nextPackageNumber(requestId: UUID): Int =
         (
-            entityManager.createQuery(
-                """
+                entityManager.createQuery(
+                    """
                 SELECT MAX(submission.packageNumber)
                 FROM InformationRequestSubmissionPackage submission
                 WHERE submission.informationRequestId = :requestId
                 """.trimIndent(),
-                Integer::class.java,
-            )
-                .setParameter("requestId", requestId)
-                .singleResult
-                ?.toInt() ?: 0
-            ) + 1
+                    Integer::class.java,
+                )
+                    .setParameter("requestId", requestId)
+                    .singleResult
+                    ?.toInt() ?: 0
+                ) + 1
 }
 
 @ApplicationScoped
@@ -125,18 +119,18 @@ class InformationRequestSubmissionAttestationRepository :
 
     fun nextSequenceNumber(requestId: UUID): Int =
         (
-            entityManager.createQuery(
-                """
+                entityManager.createQuery(
+                    """
                 SELECT MAX(attestation.sequenceNumber)
                 FROM InformationRequestSubmissionAttestation attestation
                 WHERE attestation.informationRequestId = :requestId
                 """.trimIndent(),
-                Integer::class.java,
-            )
-                .setParameter("requestId", requestId)
-                .singleResult
-                ?.toInt() ?: 0
-            ) + 1
+                    Integer::class.java,
+                )
+                    .setParameter("requestId", requestId)
+                    .singleResult
+                    ?.toInt() ?: 0
+                ) + 1
 }
 
 @ApplicationScoped

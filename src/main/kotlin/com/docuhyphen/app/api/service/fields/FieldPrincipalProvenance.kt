@@ -40,8 +40,8 @@ data class FieldPrincipalProvenance(
     /** True when [value] already records exactly this authorship, so rewriting it changes nothing. */
     fun matches(value: FieldValue): Boolean =
         value.updatedByPrincipalKind == principal.kind &&
-            value.updatedByPrincipalId == principal.id &&
-            value.updatedBySessionRef == sessionRef
+                value.updatedByPrincipalId == principal.id &&
+                value.updatedBySessionRef == sessionRef
 
     companion object
     {

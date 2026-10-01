@@ -19,11 +19,16 @@ class EventRouter
 {
     private val logger = LoggerFactory.getLogger(EventRouter::class.java)
 
-    @Inject private lateinit var ruleEngine: NotificationRuleEngine
-    @Inject private lateinit var dispatcher: DeliveryDispatcher
-    @Inject private lateinit var sessionApprovalEventHandler: com.docuhyphen.app.api.service.exchange.ExchangeApprovalEventHandler
-    @Inject private lateinit var consumers: jakarta.enterprise.inject.Instance<DomainEventConsumer>
-    @Inject private lateinit var consumption: DomainEventConsumptionService
+    @Inject
+    private lateinit var ruleEngine: NotificationRuleEngine
+    @Inject
+    private lateinit var dispatcher: DeliveryDispatcher
+    @Inject
+    private lateinit var sessionApprovalEventHandler: com.docuhyphen.app.api.service.exchange.ExchangeApprovalEventHandler
+    @Inject
+    private lateinit var consumers: jakarta.enterprise.inject.Instance<DomainEventConsumer>
+    @Inject
+    private lateinit var consumption: DomainEventConsumptionService
 
     fun route(event: DomainEvent)
     {

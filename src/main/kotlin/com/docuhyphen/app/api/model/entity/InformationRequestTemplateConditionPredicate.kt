@@ -1,16 +1,11 @@
 package com.docuhyphen.app.api.model.entity
 
 import com.docuhyphen.app.api.service.fields.FieldOperator
-import jakarta.persistence.Column
-import jakarta.persistence.Entity
-import jakarta.persistence.EnumType
-import jakarta.persistence.Enumerated
-import jakarta.persistence.Id
-import jakarta.persistence.Table
+import jakarta.persistence.*
 import java.math.BigDecimal
 import java.sql.Timestamp
 import java.time.LocalDate
-import java.util.UUID
+import java.util.*
 
 /**
  * One term of an [InformationRequestTemplateConditionRule]. A predicate reads exactly one source: a

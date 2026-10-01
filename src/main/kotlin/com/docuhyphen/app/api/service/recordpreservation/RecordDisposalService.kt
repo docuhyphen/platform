@@ -19,7 +19,7 @@ import jakarta.inject.Inject
 import jakarta.transaction.Transactional
 import java.sql.Timestamp
 import java.time.Clock
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class RecordDisposalService @Inject constructor(
@@ -34,7 +34,10 @@ class RecordDisposalService @Inject constructor(
     {
         if (claimRepository.findForResource(command.resourceType, command.resourceId) != null)
         {
-            throw RecordPreservationException(RecordPreservationErrorCatalog.DISPOSAL_IN_PROGRESS, "This record is already claimed for disposal")
+            throw RecordPreservationException(
+                RecordPreservationErrorCatalog.DISPOSAL_IN_PROGRESS,
+                "This record is already claimed for disposal"
+            )
         }
         val claim = claimRepository.save(
             RecordDisposalClaim().apply {
@@ -85,7 +88,8 @@ class RecordDisposalService @Inject constructor(
     @Transactional(Transactional.TxType.MANDATORY)
     fun recordObjectDeleted(objectId: UUID, outcome: RecordDisposalDeletionOutcome): RecordDisposalObject
     {
-        val stored = objectRepository.findById(objectId) ?: throw RecordPreservationNotFoundException("Disposal object not found")
+        val stored = objectRepository.findById(objectId)
+            ?: throw RecordPreservationNotFoundException("Disposal object not found")
         if (stored.deletedAt != null || stored.retained) return stored
         stored.deletionOutcome = outcome
         stored.deletedAt = Timestamp.from(clock.instant())
@@ -109,7 +113,10 @@ class RecordDisposalService @Inject constructor(
         if (claim.state != RecordDisposalState.CLAIMED) return claim
         if (objectRepository.findForClaim(claimId).any { !it.retained && it.deletedAt == null })
         {
-            throw RecordPreservationException(RecordPreservationErrorCatalog.DISPOSAL_STATE_INVALID, "Every claimed object is deleted before the record")
+            throw RecordPreservationException(
+                RecordPreservationErrorCatalog.DISPOSAL_STATE_INVALID,
+                "Every claimed object is deleted before the record"
+            )
         }
         claim.state = RecordDisposalState.OBJECTS_DELETED
         claim.objectsDeletedAt = Timestamp.from(clock.instant())
@@ -125,12 +132,18 @@ class RecordDisposalService @Inject constructor(
         val claim = lockedOpen(claimId)
         if (claim.state != RecordDisposalState.OBJECTS_DELETED)
         {
-            throw RecordPreservationException(RecordPreservationErrorCatalog.DISPOSAL_STATE_INVALID, "A record is finalized after its objects are deleted")
+            throw RecordPreservationException(
+                RecordPreservationErrorCatalog.DISPOSAL_STATE_INVALID,
+                "A record is finalized after its objects are deleted"
+            )
         }
         when (claim.resourceType)
         {
             INFORMATION_REQUEST -> claimRepository.disposeInformationRequest(claimId)
-            else -> throw RecordPreservationException(RecordPreservationErrorCatalog.DISPOSAL_STATE_INVALID, "This record type has no disposal")
+            else -> throw RecordPreservationException(
+                RecordPreservationErrorCatalog.DISPOSAL_STATE_INVALID,
+                "This record type has no disposal"
+            )
         }
         claimRepository.entityManager.refresh(claim)
         return view(claim)
@@ -138,10 +151,14 @@ class RecordDisposalService @Inject constructor(
 
     private fun lockedOpen(claimId: UUID): RecordDisposalClaim
     {
-        val claim = claimRepository.findForUpdate(claimId) ?: throw RecordPreservationNotFoundException("Disposal claim not found")
+        val claim = claimRepository.findForUpdate(claimId)
+            ?: throw RecordPreservationNotFoundException("Disposal claim not found")
         if (claim.state == RecordDisposalState.FINALIZED)
         {
-            throw RecordPreservationException(RecordPreservationErrorCatalog.DISPOSAL_STATE_INVALID, "A finalized disposal does not change")
+            throw RecordPreservationException(
+                RecordPreservationErrorCatalog.DISPOSAL_STATE_INVALID,
+                "A finalized disposal does not change"
+            )
         }
         return claim
     }

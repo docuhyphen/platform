@@ -4,15 +4,10 @@ import com.docuhyphen.app.api.exception.ApplicationNotFoundException
 import com.docuhyphen.app.api.model.entity.Application
 import com.docuhyphen.app.api.model.entity.ApplicationRoleName
 import com.docuhyphen.app.api.model.entity.ApplicationType
-import com.docuhyphen.app.api.model.entity.PrincipalKind
 import com.docuhyphen.app.api.model.entity.ResourceType
 import com.docuhyphen.app.api.repository.application.ApplicationRepository
 import com.docuhyphen.app.api.service.auth.AuthAuditService
-import com.docuhyphen.app.api.service.auth.authz.Action
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import com.docuhyphen.app.api.service.auth.authz.ResourceRef
+import com.docuhyphen.app.api.service.auth.authz.*
 import com.docuhyphen.app.api.service.subscription.OrganizationFeatureSubscriptionGuard
 import com.docuhyphen.app.api.service.subscription.PlanFeature
 import jakarta.enterprise.context.ApplicationScoped
@@ -21,8 +16,7 @@ import jakarta.transaction.Transactional
 import org.mindrot.jbcrypt.BCrypt
 import org.slf4j.LoggerFactory
 import java.security.SecureRandom
-import java.util.Base64
-import java.util.UUID
+import java.util.*
 
 data class RotateCredentialsResult(val apiKey: String, val rawSecret: String)
 
@@ -64,7 +58,11 @@ class ApplicationManagementService @Inject constructor(
     }
 
     @Transactional
-    fun create(request: CreateApplicationRequest, principal: PrincipalRef, context: AuthorizationContext): Pair<Application, String>
+    fun create(
+        request: CreateApplicationRequest,
+        principal: PrincipalRef,
+        context: AuthorizationContext
+    ): Pair<Application, String>
     {
         requireCapability(principal, Action.APP_REG_CREATE, platformRef(), context)
         require(request.name.isNotBlank()) { "Application name is required" }
@@ -90,7 +88,12 @@ class ApplicationManagementService @Inject constructor(
     @Transactional
     fun rotateCredentials(id: UUID, principal: PrincipalRef, context: AuthorizationContext): RotateCredentialsResult
     {
-        requireCapability(principal, Action.APP_REG_ROTATE_CREDENTIALS, ResourceRef(ResourceType.APPLICATION, id), context)
+        requireCapability(
+            principal,
+            Action.APP_REG_ROTATE_CREDENTIALS,
+            ResourceRef(ResourceType.APPLICATION, id),
+            context
+        )
         val application = applicationRepository.findById(id) ?: throw ApplicationNotFoundException()
         subscriptionGuard.requireMutation(application.ownerOrganizationId, PlanFeature.IDENTITY_AND_INTEGRATIONS)
 
@@ -103,9 +106,19 @@ class ApplicationManagementService @Inject constructor(
     }
 
     @Transactional
-    fun updateGrantedCapabilities(id: UUID, capabilities: List<String>, principal: PrincipalRef, context: AuthorizationContext)
+    fun updateGrantedCapabilities(
+        id: UUID,
+        capabilities: List<String>,
+        principal: PrincipalRef,
+        context: AuthorizationContext
+    )
     {
-        requireCapability(principal, Action.APP_REG_GRANT_CAPABILITIES, ResourceRef(ResourceType.APPLICATION, id), context)
+        requireCapability(
+            principal,
+            Action.APP_REG_GRANT_CAPABILITIES,
+            ResourceRef(ResourceType.APPLICATION, id),
+            context
+        )
         val application = applicationRepository.findById(id) ?: throw ApplicationNotFoundException()
         subscriptionGuard.requireMutation(application.ownerOrganizationId, PlanFeature.IDENTITY_AND_INTEGRATIONS)
         application.grantedCapabilitiesJson = buildCapabilitiesJson(capabilities)
@@ -127,7 +140,12 @@ class ApplicationManagementService @Inject constructor(
 
     // -------------------------------------------------------------------------
 
-    private fun requireCapability(principal: PrincipalRef, action: Action, resource: ResourceRef, context: AuthorizationContext)
+    private fun requireCapability(
+        principal: PrincipalRef,
+        action: Action,
+        resource: ResourceRef,
+        context: AuthorizationContext
+    )
     {
         val decision = authorizationService.authorize(principal, action, resource, context)
         if (!decision.isAllowed)

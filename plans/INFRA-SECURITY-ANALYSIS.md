@@ -4,6 +4,8 @@ Date: 2026-08-04
 
 Scope: Static review of the files under `infra/`.
 
+Rechecked on 2026-10-01. Use [the current browser, infrastructure, and secrets assessment](C:/Users/Black/IdeaProjects/doc-hyphen/plans/BROWSER-INFRA-SECRETS-SECURITY-REMEDIATION.md) for updated source locations, severity, new findings, and verification limits. The sections below retain the earlier assessment and have not been rewritten as current findings.
+
 ## Executive summary
 
 The infrastructure configuration is not fully security-hardened. The review identified four high-risk and seven medium-risk findings. No obvious hardcoded passwords, AWS access keys, API tokens, or private keys were found.

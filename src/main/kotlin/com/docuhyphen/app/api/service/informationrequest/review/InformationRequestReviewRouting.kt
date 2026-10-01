@@ -28,12 +28,13 @@ object InformationRequestReviewRouting
             InformationRequestReviewPolicy.REQUIRED -> true
             InformationRequestReviewPolicy.REQUIRED_ON_EXCEPTION ->
                 disposition != null &&
-                    disposition != InformationRequestResponseDisposition.PROVIDED &&
-                    disposition != InformationRequestResponseDisposition.NOT_ANSWERED
+                        disposition != InformationRequestResponseDisposition.PROVIDED &&
+                        disposition != InformationRequestResponseDisposition.NOT_ANSWERED
+
             InformationRequestReviewPolicy.NOT_REQUIRED -> false
         }
         return byPolicy ||
-            (requirementType == InformationRequestRequirementType.DOCUMENT && evidenceState in REVIEW_ROUTED_EVIDENCE_STATES)
+                (requirementType == InformationRequestRequirementType.DOCUMENT && evidenceState in REVIEW_ROUTED_EVIDENCE_STATES)
     }
 
     fun routes(item: InformationRequestSubmissionItem, reviewPolicy: InformationRequestReviewPolicy): Boolean =

@@ -7,7 +7,7 @@ import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceVersion
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
 import com.docuhyphen.app.api.service.command.CommandPrecondition
 import java.io.File
-import java.util.UUID
+import java.util.*
 
 enum class InformationRequestEvidenceAction
 {

@@ -2,6 +2,7 @@ package com.docuhyphen.app.api.service.notification
 
 import com.docuhyphen.app.api.model.entity.DomainEventOutboxEntry
 import com.docuhyphen.app.api.repository.notification.DomainEventOutboxRepository
+import com.docuhyphen.app.api.service.notification.DomainEventDispatcher.Companion.MAX_BACKOFF
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
@@ -47,8 +48,10 @@ class DomainEventDispatcher
 {
     private val logger = LoggerFactory.getLogger(DomainEventDispatcher::class.java)
 
-    @Inject private lateinit var outboxRepository: DomainEventOutboxRepository
-    @Inject private lateinit var eventRouter: EventRouter
+    @Inject
+    private lateinit var outboxRepository: DomainEventOutboxRepository
+    @Inject
+    private lateinit var eventRouter: EventRouter
 
     /**
      * Contextual reference to this bean's CDI proxy. Per-row delivery must cross the proxy so the
@@ -56,7 +59,8 @@ class DomainEventDispatcher
      * self-invocation would bypass the interceptor). Falls back to `this` when running outside CDI,
      * such as in a plain unit test, where transactions are a no-op anyway.
      */
-    @Inject private lateinit var self: DomainEventDispatcher
+    @Inject
+    private lateinit var self: DomainEventDispatcher
 
     private val json = DomainEventJson.instance
 
@@ -103,7 +107,11 @@ class DomainEventDispatcher
                 entry.attemptCount += 1
                 entry.lastError = safeError("envelope decode failed", e)
                 outboxRepository.update(entry)
-                logger.error("Domain event outbox row id={} type={} has an undecodable envelope; marked FAILED", entry.id, entry.eventType)
+                logger.error(
+                    "Domain event outbox row id={} type={} has an undecodable envelope; marked FAILED",
+                    entry.id,
+                    entry.eventType
+                )
                 return DeliveryOutcome.FAILED
             }
 
@@ -163,7 +171,8 @@ class DomainEventDispatcher
         return "$context: ${t.javaClass.simpleName}: $detail".take(1024)
     }
 
-    enum class DeliveryOutcome { NONE, DELIVERED, RETRIED, FAILED }
+    enum class DeliveryOutcome
+    { NONE, DELIVERED, RETRIED, FAILED }
 
     companion object
     {

@@ -18,7 +18,7 @@ import kotlinx.serialization.json.booleanOrNull
 import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDate
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestConditionEvaluator
@@ -77,16 +77,28 @@ class InformationRequestConditionEvaluator
         {
             FieldValueType.SHORT_TEXT, FieldValueType.LONG_TEXT ->
                 booleanState(matchesText(predicate.operator, stored.textValue, predicate.value))
+
             FieldValueType.BOOLEAN ->
                 booleanState(matchesBoolean(predicate.operator, stored.boolValue, predicate.value))
+
             FieldValueType.INTEGER, FieldValueType.DECIMAL ->
                 booleanState(matchesNumber(predicate.operator, stored.numberValue, predicate.value))
+
             FieldValueType.DATE ->
                 booleanState(matchesDate(predicate.operator, stored.dateValue, predicate.value))
+
             FieldValueType.DATE_TIME ->
                 booleanState(matchesDateTime(predicate.operator, stored.datetimeValue, predicate.value))
+
             FieldValueType.SINGLE_SELECT ->
-                booleanState(matchesSingleSelect(predicate.operator, stored.selectionCodes.firstOrNull(), predicate.value))
+                booleanState(
+                    matchesSingleSelect(
+                        predicate.operator,
+                        stored.selectionCodes.firstOrNull(),
+                        predicate.value
+                    )
+                )
+
             FieldValueType.MULTI_SELECT ->
                 booleanState(matchesMultiSelect(predicate.operator, stored.selectionCodes, predicate.value))
         }

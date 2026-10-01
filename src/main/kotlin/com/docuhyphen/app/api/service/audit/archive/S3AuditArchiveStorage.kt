@@ -25,8 +25,7 @@ import java.io.ByteArrayOutputStream
 @Aws
 class S3AuditArchiveStorage @Inject constructor(
     private val configService: AuditArchiveConfigService,
-)
-    : AuditArchiveStorage
+) : AuditArchiveStorage
 {
     override fun putObject(key: String, bytes: ByteArray)
     {

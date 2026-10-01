@@ -24,7 +24,8 @@ class WorkflowEscalationScheduler
 {
     private val logger = LoggerFactory.getLogger(WorkflowEscalationScheduler::class.java)
 
-    @Inject private lateinit var engine: WorkflowEngineService
+    @Inject
+    private lateinit var engine: WorkflowEngineService
 
     @Scheduled(
         every = "\${app.workflow.escalation.every:60s}",

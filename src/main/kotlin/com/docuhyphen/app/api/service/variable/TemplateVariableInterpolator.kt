@@ -3,7 +3,6 @@ package com.docuhyphen.app.api.service.variable
 import com.docuhyphen.app.api.model.dto.formatSequenceValue
 import com.docuhyphen.app.api.model.entity.AppUser
 import com.docuhyphen.app.api.model.entity.Organization
-import com.docuhyphen.app.api.model.entity.VariableScope
 import com.docuhyphen.app.api.model.variable.SequenceAllocation
 import com.docuhyphen.app.api.repository.variable.SequenceDefinitionRepository
 import com.docuhyphen.app.api.repository.variable.VariableDefinitionRepository
@@ -16,7 +15,7 @@ import org.slf4j.LoggerFactory
 import java.time.Instant
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
-import java.util.UUID
+import java.util.*
 
 data class VariableResolutionContext(
     val user: AppUser,
@@ -125,7 +124,12 @@ class TemplateVariableInterpolator @Inject constructor(
         return SequenceAllocation(
             key = key,
             value = value,
-            renderedValue = formatSequenceValue(value, (row[1] as Number).toInt(), row[2] as String?, row[3] as String?),
+            renderedValue = formatSequenceValue(
+                value,
+                (row[1] as Number).toInt(),
+                row[2] as String?,
+                row[3] as String?
+            ),
         )
     }
 
@@ -187,19 +191,20 @@ class TemplateVariableInterpolator @Inject constructor(
         return when (token)
         {
             "USER_FIRST_NAME" -> context.user.person?.firstName ?: ""
-            "USER_LAST_NAME"  -> context.user.person?.lastName ?: ""
-            "USER_FULL_NAME"  ->
+            "USER_LAST_NAME" -> context.user.person?.lastName ?: ""
+            "USER_FULL_NAME" ->
             {
                 val first = context.user.person?.firstName ?: ""
                 val last = context.user.person?.lastName ?: ""
                 "$first $last".trim()
             }
-            "USER_EMAIL"          -> context.user.email
-            "ORG_NAME"            -> context.organization?.name ?: ""
-            "ORG_REG_NUMBER"      -> context.organization?.registrationNumber ?: ""
-            "CURRENT_DATE"        -> DateTimeFormatter.ofPattern("yyyy-MM-dd").format(dt)
-            "CURRENT_YEAR"        -> dt.year.toString()
-            "CURRENT_MONTH"       -> DateTimeFormatter.ofPattern("MMMM").format(dt)
+
+            "USER_EMAIL" -> context.user.email
+            "ORG_NAME" -> context.organization?.name ?: ""
+            "ORG_REG_NUMBER" -> context.organization?.registrationNumber ?: ""
+            "CURRENT_DATE" -> DateTimeFormatter.ofPattern("yyyy-MM-dd").format(dt)
+            "CURRENT_YEAR" -> dt.year.toString()
+            "CURRENT_MONTH" -> DateTimeFormatter.ofPattern("MMMM").format(dt)
             "CURRENT_MONTH_NUMBER" -> DateTimeFormatter.ofPattern("MM").format(dt)
             else -> null
         }

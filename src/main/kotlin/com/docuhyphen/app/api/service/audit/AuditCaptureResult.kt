@@ -1,6 +1,6 @@
 package com.docuhyphen.app.api.service.audit
 
-import java.util.UUID
+import java.util.*
 
 /**
  * Outcome of [AuditRecorder.record].

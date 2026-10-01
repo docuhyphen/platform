@@ -69,7 +69,8 @@ class MfaService(
     }
 
     @Transactional
-    fun regenerateOtp(mfaRecord: MfaRecord): String {
+    fun regenerateOtp(mfaRecord: MfaRecord): String
+    {
         // Generate new OTP
         val newOtp = otpService.generateEmailOtp()
         val hashedOtp = otpService.hashOtp(newOtp)
@@ -90,7 +91,8 @@ class MfaService(
         return newOtp
     }
 
-    fun enforceRateLimits(email: String, ipAddress: String) {
+    fun enforceRateLimits(email: String, ipAddress: String)
+    {
         val threshold = Timestamp.from(Instant.now().minusSeconds(60))
         val requestCount = mfaRecordRepository.countRecentRequestsByEmailAndIp(email, ipAddress, threshold)
 
@@ -185,5 +187,11 @@ class MfaService(
     fun getMfaRecordByEmailAndSessionId(email: String, sessionId: String): MfaRecord?
     {
         return mfaRecordRepository.findByEmailAndSessionId(email, sessionId)
+    }
+
+    fun getMfaRecordByEmailAndSessionIdForUpdate(email: String, sessionId: String): MfaRecord?
+    {
+        val record = mfaRecordRepository.findByEmailAndSessionId(email, sessionId) ?: return null
+        return mfaRecordRepository.lockById(record.id)
     }
 }

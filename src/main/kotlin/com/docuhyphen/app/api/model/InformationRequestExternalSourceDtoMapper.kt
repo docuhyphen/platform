@@ -1,12 +1,6 @@
 package com.docuhyphen.app.api.model
 
-import com.docuhyphen.app.api.model.dto.InformationRequestConnectorExchangeDto
-import com.docuhyphen.app.api.model.dto.InformationRequestDiscrepancyResolutionDto
-import com.docuhyphen.app.api.model.dto.InformationRequestGeneratedOutputDto
-import com.docuhyphen.app.api.model.dto.InformationRequestImportedValueDecisionDto
-import com.docuhyphen.app.api.model.dto.InformationRequestImportedValueDiscrepancyDto
-import com.docuhyphen.app.api.model.dto.InformationRequestImportedValueDto
-import com.docuhyphen.app.api.model.dto.InformationRequestImportedValueReconciliationDto
+import com.docuhyphen.app.api.model.dto.*
 import com.docuhyphen.app.api.model.entity.InformationRequestConnectorExchange
 import com.docuhyphen.app.api.model.entity.InformationRequestGeneratedOutput
 import com.docuhyphen.app.api.model.entity.PrincipalKind
@@ -15,11 +9,14 @@ import com.docuhyphen.app.api.model.informationrequest.externalsource.Informatio
 import com.docuhyphen.app.api.model.informationrequest.externalsource.InformationRequestImportedValueView
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import kotlinx.serialization.json.Json
-import java.util.UUID
+import java.util.*
 
 object InformationRequestExternalSourceDtoMapper
 {
-    fun toDto(exchange: InformationRequestConnectorExchange, caller: PrincipalRef): InformationRequestConnectorExchangeDto =
+    fun toDto(
+        exchange: InformationRequestConnectorExchange,
+        caller: PrincipalRef
+    ): InformationRequestConnectorExchangeDto =
         InformationRequestConnectorExchangeDto(
             id = exchange.id,
             requirementId = exchange.informationRequestRequirementId,
@@ -61,14 +58,20 @@ object InformationRequestExternalSourceDtoMapper
                     decision = decision.decision,
                     reasonCode = decision.reasonCode,
                     decidedAt = decision.decidedAt,
-                    decidedByCaller = caller.isPrincipal(decision.decidedByPrincipalKind, decision.decidedByPrincipalId),
+                    decidedByCaller = caller.isPrincipal(
+                        decision.decidedByPrincipalKind,
+                        decision.decidedByPrincipalId
+                    ),
                 )
             },
             discrepancies = view.discrepancies.map { toDto(it, caller) },
         )
     }
 
-    fun toDto(view: InformationRequestDiscrepancyView, caller: PrincipalRef): InformationRequestImportedValueDiscrepancyDto
+    fun toDto(
+        view: InformationRequestDiscrepancyView,
+        caller: PrincipalRef
+    ): InformationRequestImportedValueDiscrepancyDto
     {
         val discrepancy = view.discrepancy
         return InformationRequestImportedValueDiscrepancyDto(
@@ -84,7 +87,10 @@ object InformationRequestExternalSourceDtoMapper
                     resolution = resolution.resolution,
                     reasonCode = resolution.reasonCode,
                     resolvedAt = resolution.resolvedAt,
-                    resolvedByCaller = caller.isPrincipal(resolution.resolvedByPrincipalKind, resolution.resolvedByPrincipalId),
+                    resolvedByCaller = caller.isPrincipal(
+                        resolution.resolvedByPrincipalKind,
+                        resolution.resolvedByPrincipalId
+                    ),
                 )
             },
         )

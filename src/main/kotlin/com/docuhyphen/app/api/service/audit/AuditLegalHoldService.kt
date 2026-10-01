@@ -17,7 +17,7 @@ import com.docuhyphen.app.api.service.subscription.PlanFeature
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class AuditLegalHoldService @Inject constructor(
@@ -70,7 +70,10 @@ class AuditLegalHoldService @Inject constructor(
     }
 
     fun isUnderHold(organizationId: UUID?, resourceType: String, resourceId: String): Boolean =
-        holds.isPreserved(ownerOf(organizationId), listOf(RecordPreservationKey(resourceType, resourceId, direct = true)))
+        holds.isPreserved(
+            ownerOf(organizationId),
+            listOf(RecordPreservationKey(resourceType, resourceId, direct = true))
+        )
 
     fun listActiveHolds(organizationId: UUID?): List<RecordPreservationHold> =
         holds.holds(ownerOf(organizationId), setOf(RecordPreservationHoldStatus.ACTIVE))

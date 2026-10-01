@@ -9,11 +9,7 @@ import com.docuhyphen.app.api.model.dto.OrganizationDirectoryEntryDto
 import com.docuhyphen.app.api.model.entity.OrganizationTrustRelationshipStatus
 import com.docuhyphen.app.api.model.entity.PrincipalKind
 import com.docuhyphen.app.api.service.auth.DirectoryLookupGuardService
-import com.docuhyphen.app.api.service.auth.authz.Action
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.Decision
-import com.docuhyphen.app.api.service.auth.authz.ResourceRef
+import com.docuhyphen.app.api.service.auth.authz.*
 import com.docuhyphen.app.api.service.config.ConfigurationService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
@@ -55,7 +51,7 @@ class OrganizationDirectorySearchService @Inject constructor(
         val currentPartnerIds = relationshipService.listForParty(activeOrganizationId)
             .filter {
                 it.status == OrganizationTrustRelationshipStatus.PENDING ||
-                    it.status == OrganizationTrustRelationshipStatus.ACTIVE
+                        it.status == OrganizationTrustRelationshipStatus.ACTIVE
             }
             .map { it.partnerOf(activeOrganizationId) }
             .toSet()

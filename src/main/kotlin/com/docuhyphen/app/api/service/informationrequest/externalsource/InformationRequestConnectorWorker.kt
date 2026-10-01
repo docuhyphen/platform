@@ -19,7 +19,7 @@ import java.sql.Timestamp
 import java.time.Clock
 import java.time.Duration
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestConnectorWorker @Inject constructor(
@@ -33,10 +33,17 @@ class InformationRequestConnectorWorker @Inject constructor(
 {
     fun processDue(limit: Int = BATCH_SIZE): Int
     {
-        val due = QuarkusTransaction.requiringNew().call { exchangeRepository.findDueIds(Timestamp.from(clock.instant()), limit) }
+        val due = QuarkusTransaction.requiringNew()
+            .call { exchangeRepository.findDueIds(Timestamp.from(clock.instant()), limit) }
         return due.count { exchangeId ->
             runCatching { process(exchangeId) }
-                .onFailure { logger.warn("Information Request connector exchange {} could not be processed; it will be retried", exchangeId, it) }
+                .onFailure {
+                    logger.warn(
+                        "Information Request connector exchange {} could not be processed; it will be retried",
+                        exchangeId,
+                        it
+                    )
+                }
                 .getOrNull() != null
         }
     }
@@ -50,11 +57,22 @@ class InformationRequestConnectorWorker @Inject constructor(
             is InformationRequestConnectorClaim.Due ->
             {
                 val outcome = runCatching {
-                    if (claim.call.externalReference == null) claim.connector.request(claim.call) else claim.connector.poll(claim.call)
+                    if (claim.call.externalReference == null) claim.connector.request(claim.call)
+                    else claim.connector.poll(
+                        claim.call
+                    )
                 }
-                    .onFailure { logger.warn("Information Request connector {} call failed for exchange {}", claim.call.connectorKey, exchangeId, it) }
+                    .onFailure {
+                        logger.warn(
+                            "Information Request connector {} call failed for exchange {}",
+                            claim.call.connectorKey,
+                            exchangeId,
+                            it
+                        )
+                    }
                     .getOrNull()
-                QuarkusTransaction.requiringNew().call { record(exchangeId, claim.call.attempt, claim.connector.contract, outcome) }
+                QuarkusTransaction.requiringNew()
+                    .call { record(exchangeId, claim.call.attempt, claim.connector.contract, outcome) }
             }
         }
     }
@@ -114,15 +132,28 @@ class InformationRequestConnectorWorker @Inject constructor(
             outcome == null ->
                 if (attempt >= MAXIMUM_ATTEMPTS) exchange.fail(ATTEMPTS_EXHAUSTED, now)
                 else exchange.nextAttemptAt = Timestamp.from(now.plus(RETRY_DELAY.multipliedBy(attempt.toLong())))
+
             outcome is InformationRequestConnectorOutcome.Failed ->
                 exchange.fail(outcome.reasonCode.trim().ifEmpty { CONNECTOR_FAILED }, now)
+
             outcome is InformationRequestConnectorOutcome.Pending -> pending(exchange, attempt, outcome, now)
-            outcome is InformationRequestConnectorOutcome.Completed -> complete(locked, exchange, contract, outcome, now)
+            outcome is InformationRequestConnectorOutcome.Completed -> complete(
+                locked,
+                exchange,
+                contract,
+                outcome,
+                now
+            )
         }
         return exchange.state
     }
 
-    private fun pending(exchange: InformationRequestConnectorExchange, attempt: Int, outcome: InformationRequestConnectorOutcome.Pending, now: Instant)
+    private fun pending(
+        exchange: InformationRequestConnectorExchange,
+        attempt: Int,
+        outcome: InformationRequestConnectorOutcome.Pending,
+        now: Instant
+    )
     {
         val reference = outcome.externalReference.trim()
         when
@@ -147,9 +178,17 @@ class InformationRequestConnectorWorker @Inject constructor(
     )
     {
         val reference = outcome.externalReference.trim()
-        val prepared = runCatching { importedValues.prepareConnectorResult(locked.request, exchange, contract, outcome.result) }
-            .onFailure { logger.warn("Information Request connector {} result for exchange {} was rejected", exchange.connectorKey, exchange.id, it) }
-            .getOrNull()
+        val prepared =
+            runCatching { importedValues.prepareConnectorResult(locked.request, exchange, contract, outcome.result) }
+                .onFailure {
+                    logger.warn(
+                        "Information Request connector {} result for exchange {} was rejected",
+                        exchange.connectorKey,
+                        exchange.id,
+                        it
+                    )
+                }
+                .getOrNull()
         if (prepared == null || reference.isEmpty() || reference.length > REFERENCE_LENGTH)
         {
             exchange.fail(RESULT_REJECTED, now)

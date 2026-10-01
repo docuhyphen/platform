@@ -1,11 +1,7 @@
 package com.docuhyphen.app.api.service.informationrequest.disposal
 
 import com.docuhyphen.app.api.model.document.DocumentVersionDeletionOutcome
-import com.docuhyphen.app.api.model.entity.PrincipalKind
-import com.docuhyphen.app.api.model.entity.RecordDisposalBasis
-import com.docuhyphen.app.api.model.entity.RecordDisposalDeletionOutcome
-import com.docuhyphen.app.api.model.entity.RecordDisposalObject
-import com.docuhyphen.app.api.model.entity.RecordDisposalState
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.informationrequest.disposal.InformationRequestDisposalAssessment
 import com.docuhyphen.app.api.model.informationrequest.disposal.InformationRequestDisposalOutcome
 import com.docuhyphen.app.api.model.recordpreservation.OpenRecordDisposalClaimCommand
@@ -25,7 +21,7 @@ import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import org.slf4j.LoggerFactory
 import java.time.Clock
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestDisposalService @Inject constructor(
@@ -37,25 +33,43 @@ class InformationRequestDisposalService @Inject constructor(
     private val clock: Clock,
 )
 {
-    fun claim(requestId: UUID, basis: RecordDisposalBasis, privacyRequestId: UUID?, actor: PrincipalRef): InformationRequestDisposalOutcome =
+    fun claim(
+        requestId: UUID,
+        basis: RecordDisposalBasis,
+        privacyRequestId: UUID?,
+        actor: PrincipalRef
+    ): InformationRequestDisposalOutcome =
         QuarkusTransaction.requiringNew().call { assessAndOpen(requestId, basis, privacyRequestId, actor) }
 
-    private fun assessAndOpen(requestId: UUID, basis: RecordDisposalBasis, privacyRequestId: UUID?, actor: PrincipalRef): InformationRequestDisposalOutcome
+    private fun assessAndOpen(
+        requestId: UUID,
+        basis: RecordDisposalBasis,
+        privacyRequestId: UUID?,
+        actor: PrincipalRef
+    ): InformationRequestDisposalOutcome
     {
         val request = requestRepository.findRequestByIdForUpdate(requestId)
-            ?: return InformationRequestDisposalOutcome.Refused(InformationRequestErrorCatalog.NOT_FOUND, "Information Request not found")
+            ?: return InformationRequestDisposalOutcome.Refused(
+                InformationRequestErrorCatalog.NOT_FOUND,
+                "Information Request not found"
+            )
         return when (val assessment = eligibility.assess(request, basis, clock.instant()))
         {
             is InformationRequestDisposalAssessment.Refused ->
             {
                 audit.disposal(
                     AuditEventType.RECORD_DISPOSAL_DENIED, assessment.owner, TARGET, request.id.toString(), actor,
-                    mapOf("reasonCode" to assessment.reasonCode, "basis" to basis.name, "holdCount" to assessment.holds.size.toString()),
+                    mapOf(
+                        "reasonCode" to assessment.reasonCode,
+                        "basis" to basis.name,
+                        "holdCount" to assessment.holds.size.toString()
+                    ),
                     "${AuditEventType.RECORD_DISPOSAL_DENIED.key}|${request.id}|${basis.name}|${assessment.reasonCode}|${clock.instant()}",
                     AuditOutcome.DENIED,
                 )
                 InformationRequestDisposalOutcome.Refused(assessment.reasonCode, assessment.detail)
             }
+
             is InformationRequestDisposalAssessment.Eligible ->
             {
                 val view = disposals.open(
@@ -95,8 +109,13 @@ class InformationRequestDisposalService @Inject constructor(
             view.objects.filter { !it.retained && it.deletedAt == null }.forEach { stored ->
                 val outcome = runCatching { content.delete(stored.storageLocatorKind, stored.storageLocator) }
                     .getOrElse { failure ->
-                        logger.warn("Disposal claim {} could not delete a stored object; it will be retried", claimId, failure)
-                        QuarkusTransaction.requiringNew().run { disposals.recordAttemptFailure(claimId, failure.javaClass.simpleName) }
+                        logger.warn(
+                            "Disposal claim {} could not delete a stored object; it will be retried",
+                            claimId,
+                            failure
+                        )
+                        QuarkusTransaction.requiringNew()
+                            .run { disposals.recordAttemptFailure(claimId, failure.javaClass.simpleName) }
                         return RecordDisposalState.CLAIMED
                     }
                 QuarkusTransaction.requiringNew().run { recordDeleted(view, owner, stored, outcome) }
@@ -108,7 +127,8 @@ class InformationRequestDisposalService @Inject constructor(
             runCatching { QuarkusTransaction.requiringNew().run { finalize(claimId, owner, view) } }
                 .onFailure { failure ->
                     logger.warn("Disposal claim {} could not be finalized; it will be retried", claimId, failure)
-                    QuarkusTransaction.requiringNew().run { disposals.recordAttemptFailure(claimId, failure.javaClass.simpleName) }
+                    QuarkusTransaction.requiringNew()
+                        .run { disposals.recordAttemptFailure(claimId, failure.javaClass.simpleName) }
                     return RecordDisposalState.OBJECTS_DELETED
                 }
         }
@@ -129,14 +149,24 @@ class InformationRequestDisposalService @Inject constructor(
         )
     }
 
-    fun claimAndProcess(requestId: UUID, basis: RecordDisposalBasis, privacyRequestId: UUID?, actor: PrincipalRef): InformationRequestDisposalOutcome
+    fun claimAndProcess(
+        requestId: UUID,
+        basis: RecordDisposalBasis,
+        privacyRequestId: UUID?,
+        actor: PrincipalRef
+    ): InformationRequestDisposalOutcome
     {
         val outcome = claim(requestId, basis, privacyRequestId, actor)
         if (outcome is InformationRequestDisposalOutcome.Claimed) process(outcome.view.claim.id)
         return outcome
     }
 
-    private fun recordDeleted(view: RecordDisposalView, owner: RecordOwnerRef, stored: RecordDisposalObject, outcome: DocumentVersionDeletionOutcome)
+    private fun recordDeleted(
+        view: RecordDisposalView,
+        owner: RecordOwnerRef,
+        stored: RecordDisposalObject,
+        outcome: DocumentVersionDeletionOutcome
+    )
     {
         disposals.recordObjectDeleted(
             stored.id,

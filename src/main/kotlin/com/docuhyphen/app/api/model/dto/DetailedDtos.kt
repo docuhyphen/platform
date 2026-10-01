@@ -124,7 +124,7 @@ data class PersonDetailedDto(
     val lastName: String?,
     val identificationNumber: String?,
     val personIDType: String?,
-    val contactDetails: ContactDetailsDetailedDto? 
+    val contactDetails: ContactDetailsDetailedDto?
 )
 
 @Serializable

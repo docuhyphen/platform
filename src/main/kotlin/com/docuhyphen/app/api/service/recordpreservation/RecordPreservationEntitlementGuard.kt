@@ -26,6 +26,7 @@ class RecordPreservationEntitlementGuard @Inject constructor(
                 subscriptions.requireMutationAllowed(context)
                 subscriptions.requireFeature(context, PlanFeature.INFORMATION_REQUESTS)
             }
+
             RecordOwnerKind.PLATFORM -> Unit
         }
     }

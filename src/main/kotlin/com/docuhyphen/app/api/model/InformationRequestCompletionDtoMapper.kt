@@ -5,9 +5,10 @@ import com.docuhyphen.app.api.service.informationrequest.parent.InformationReque
 
 object InformationRequestCompletionDtoMapper
 {
-    fun refusal(exception: InformationRequestExchangeCompletionException) = InformationRequestExchangeCompletionRefusalDto(
-        errorMessage = exception.message,
-        reasonCode = exception.reasonCode,
-        informationRequestIds = exception.requestIds.map { it.toString() },
-    )
+    fun refusal(exception: InformationRequestExchangeCompletionException) =
+        InformationRequestExchangeCompletionRefusalDto(
+            errorMessage = exception.message,
+            reasonCode = exception.reasonCode,
+            informationRequestIds = exception.requestIds.map { it.toString() },
+        )
 }

@@ -41,6 +41,7 @@ object CanonicalValueCodec
                 target.datetimeValue = canonical.datetimeValue?.let { Timestamp.from(it) }
                 target.datetimeOffsetMinutes = canonical.datetimeOffsetMinutes
             }
+
             FieldValueType.SINGLE_SELECT, FieldValueType.MULTI_SELECT -> Unit // codes stored as child rows
         }
     }
@@ -55,25 +56,31 @@ object CanonicalValueCodec
      */
     fun toJson(value: FieldValue, selectionCodes: List<String>, numberScale: Int? = null): JsonElement =
         when (value.valueType)
-    {
-        FieldValueType.SHORT_TEXT, FieldValueType.LONG_TEXT ->
-            value.textValue?.let { JsonPrimitive(it) } ?: JsonNull
-        FieldValueType.BOOLEAN ->
-            value.boolValue?.let { JsonPrimitive(it) } ?: JsonNull
-        FieldValueType.INTEGER, FieldValueType.DECIMAL ->
-            value.numberValue?.let { JsonPrimitive(CanonicalNumber.text(value.valueType, it, numberScale)) }
-                ?: JsonNull
-        FieldValueType.DATE ->
-            value.dateValue?.let { JsonPrimitive(it.toString()) } ?: JsonNull
-        FieldValueType.DATE_TIME ->
-            value.datetimeValue?.let {
-                JsonPrimitive(CanonicalDateTime.format(it.toInstant(), value.datetimeOffsetMinutes))
-            } ?: JsonNull
-        FieldValueType.SINGLE_SELECT ->
-            selectionCodes.firstOrNull()?.let { JsonPrimitive(it) } ?: JsonNull
-        FieldValueType.MULTI_SELECT ->
-            JsonArray(selectionCodes.map { JsonPrimitive(it) })
-    }
+        {
+            FieldValueType.SHORT_TEXT, FieldValueType.LONG_TEXT ->
+                value.textValue?.let { JsonPrimitive(it) } ?: JsonNull
+
+            FieldValueType.BOOLEAN ->
+                value.boolValue?.let { JsonPrimitive(it) } ?: JsonNull
+
+            FieldValueType.INTEGER, FieldValueType.DECIMAL ->
+                value.numberValue?.let { JsonPrimitive(CanonicalNumber.text(value.valueType, it, numberScale)) }
+                    ?: JsonNull
+
+            FieldValueType.DATE ->
+                value.dateValue?.let { JsonPrimitive(it.toString()) } ?: JsonNull
+
+            FieldValueType.DATE_TIME ->
+                value.datetimeValue?.let {
+                    JsonPrimitive(CanonicalDateTime.format(it.toInstant(), value.datetimeOffsetMinutes))
+                } ?: JsonNull
+
+            FieldValueType.SINGLE_SELECT ->
+                selectionCodes.firstOrNull()?.let { JsonPrimitive(it) } ?: JsonNull
+
+            FieldValueType.MULTI_SELECT ->
+                JsonArray(selectionCodes.map { JsonPrimitive(it) })
+        }
 
     fun toCanonical(value: FieldValue, selectionCodes: List<String>): CanonicalFieldValue = CanonicalFieldValue(
         type = value.valueType,

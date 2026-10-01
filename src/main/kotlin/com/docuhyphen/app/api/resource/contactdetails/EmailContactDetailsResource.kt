@@ -17,7 +17,7 @@ import org.slf4j.LoggerFactory
 @Consumes(MediaType.APPLICATION_JSON)
 class EmailContactDetailsResource @Inject constructor(
     private val emailContactDetailsService: EmailContactDetailsService
-): BaseResource()
+) : BaseResource()
 {
     override val logger: Logger
         get() = LoggerFactory.getLogger(EmailContactDetailsResource::class.java)

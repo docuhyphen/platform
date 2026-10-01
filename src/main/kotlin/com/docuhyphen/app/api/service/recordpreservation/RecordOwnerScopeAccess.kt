@@ -4,13 +4,7 @@ import com.docuhyphen.app.api.model.entity.PrincipalKind
 import com.docuhyphen.app.api.model.entity.RecordOwnerKind
 import com.docuhyphen.app.api.model.recordpreservation.RecordOwnerRef
 import com.docuhyphen.app.api.service.auth.UserRoleService
-import com.docuhyphen.app.api.service.auth.authz.Action
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.Decision
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import com.docuhyphen.app.api.service.auth.authz.ResourceRef
-import com.docuhyphen.app.api.service.auth.authz.RoleCapabilities
+import com.docuhyphen.app.api.service.auth.authz.*
 import io.quarkus.security.ForbiddenException
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
@@ -43,15 +37,17 @@ class RecordOwnerScopeAccess @Inject constructor(
         {
             val organizationId = requireNotNull(owner.id)
             principal.kind == PrincipalKind.USER &&
-                authorizationContextFactory.currentContext().activeOrgId == organizationId &&
-                userRoleService.orgRolesIn(principal.id, organizationId).any { action.required in RoleCapabilities.forOrganizationRole(it) } &&
-                authorizationService.authorize(
-                    principal,
-                    action,
-                    ResourceRef.organization(organizationId),
-                    authorizationContextFactory.currentContext(),
-                ) is Decision.Allow
+                    authorizationContextFactory.currentContext().activeOrgId == organizationId &&
+                    userRoleService.orgRolesIn(principal.id, organizationId)
+                        .any { action.required in RoleCapabilities.forOrganizationRole(it) } &&
+                    authorizationService.authorize(
+                        principal,
+                        action,
+                        ResourceRef.organization(organizationId),
+                        authorizationContextFactory.currentContext(),
+                    ) is Decision.Allow
         }
+
         RecordOwnerKind.PLATFORM -> false
     }
 

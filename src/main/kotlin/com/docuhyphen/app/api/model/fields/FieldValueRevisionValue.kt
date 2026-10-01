@@ -2,7 +2,7 @@ package com.docuhyphen.app.api.model.fields
 
 import com.docuhyphen.app.api.model.entity.FieldValueType
 import kotlinx.serialization.json.JsonElement
-import java.util.UUID
+import java.util.*
 
 data class FieldValueRevisionValue(
     val revisionId: UUID,

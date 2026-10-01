@@ -1,32 +1,9 @@
 package com.docuhyphen.app.api.service.informationrequest.externalsource
 
 import com.docuhyphen.app.api.exception.InformationRequestCommandRequestException
-import com.docuhyphen.app.api.model.entity.InformationRequest
-import com.docuhyphen.app.api.model.entity.InformationRequestConnectorExchange
-import com.docuhyphen.app.api.model.entity.InformationRequestImportedValue
-import com.docuhyphen.app.api.model.entity.InformationRequestImportedValueDecision
-import com.docuhyphen.app.api.model.entity.InformationRequestImportedValueDecisionKind
-import com.docuhyphen.app.api.model.entity.InformationRequestImportedValueDiscrepancy
-import com.docuhyphen.app.api.model.entity.InformationRequestImportedValueDiscrepancyResolution
-import com.docuhyphen.app.api.model.entity.InformationRequestImportedValueSource
-import com.docuhyphen.app.api.model.entity.InformationRequestRequirement
-import com.docuhyphen.app.api.model.entity.InformationRequestSourceConfidence
-import com.docuhyphen.app.api.model.entity.ResourceType
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
-import com.docuhyphen.app.api.model.informationrequest.externalsource.DecideInformationRequestImportedValueCommand
-import com.docuhyphen.app.api.model.informationrequest.externalsource.InformationRequestConnectorContract
-import com.docuhyphen.app.api.model.informationrequest.externalsource.InformationRequestConnectorResult
-import com.docuhyphen.app.api.model.informationrequest.externalsource.InformationRequestDiscrepancyView
-import com.docuhyphen.app.api.model.informationrequest.externalsource.InformationRequestImportedValueProvenance
-import com.docuhyphen.app.api.model.informationrequest.externalsource.InformationRequestImportedValueReconciliation
-import com.docuhyphen.app.api.model.informationrequest.externalsource.InformationRequestImportedValueView
-import com.docuhyphen.app.api.model.informationrequest.externalsource.InformationRequestPreparedConnectorResult
-import com.docuhyphen.app.api.model.informationrequest.externalsource.InformationRequestPreparedValue
-import com.docuhyphen.app.api.model.informationrequest.externalsource.InformationRequestReconciliationOutcome
-import com.docuhyphen.app.api.model.informationrequest.externalsource.InformationRequestValueComparison
-import com.docuhyphen.app.api.model.informationrequest.externalsource.ProposeInformationRequestImportedValueCommand
-import com.docuhyphen.app.api.model.informationrequest.externalsource.ReconcileInformationRequestImportedValuesCommand
-import com.docuhyphen.app.api.model.informationrequest.externalsource.ResolveInformationRequestDiscrepancyCommand
+import com.docuhyphen.app.api.model.informationrequest.externalsource.*
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestMutation
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestTransitionHistoryCommand
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRequirementRepository
@@ -37,13 +14,7 @@ import com.docuhyphen.app.api.repository.informationrequest.externalsource.Infor
 import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.auth.authz.ResourceRef
-import com.docuhyphen.app.api.service.command.CommandActorRef
-import com.docuhyphen.app.api.service.command.CommandMutationResult
-import com.docuhyphen.app.api.service.command.CommandReceiptDecision
-import com.docuhyphen.app.api.service.command.CommandReceiptRequest
-import com.docuhyphen.app.api.service.command.CommandReceiptService
-import com.docuhyphen.app.api.service.command.CommandRequestFingerprint
-import com.docuhyphen.app.api.service.command.CommandResultReference
+import com.docuhyphen.app.api.service.command.*
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestMutationGate
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestQueryService
@@ -57,7 +28,7 @@ import java.sql.Timestamp
 import java.time.Clock
 import java.time.Duration
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestImportedValueService @Inject constructor(
@@ -79,13 +50,33 @@ class InformationRequestImportedValueService @Inject constructor(
     fun propose(command: ProposeInformationRequestImportedValueCommand): InformationRequestImportedValueView
     {
         val fingerprint = listOf(
-            PROPOSE_OPERATION, command.requestId, command.requirementId, command.resultKey, command.valueType, command.value,
-            command.sourceReference, command.confidence, command.verifiedAt ?: "", command.expiresAt ?: "", command.provenanceReference,
+            PROPOSE_OPERATION,
+            command.requestId,
+            command.requirementId,
+            command.resultKey,
+            command.valueType,
+            command.value,
+            command.sourceReference,
+            command.confidence,
+            command.verifiedAt ?: "",
+            command.expiresAt ?: "",
+            command.provenanceReference,
         ).joinToString("|")
-        return once(command.requestId, PROPOSE_OPERATION, command.access, command.idempotencyKey, fingerprint, Action.INFORMATION_REQUEST_MANAGE_EXTERNAL_SOURCES) {
+        return once(
+            command.requestId,
+            PROPOSE_OPERATION,
+            command.access,
+            command.idempotencyKey,
+            fingerprint,
+            Action.INFORMATION_REQUEST_MANAGE_EXTERNAL_SOURCES
+        ) {
             val locked = gate.lock(command.requestId)
             gate.requireMutation(locked, InformationRequestMutation.RECORD_EXTERNAL_VALUE)
-            gate.authorizeRequest(command.access, listOf(Action.INFORMATION_REQUEST_MANAGE_EXTERNAL_SOURCES), command.requestId)
+            gate.authorizeRequest(
+                command.access,
+                listOf(Action.INFORMATION_REQUEST_MANAGE_EXTERNAL_SOURCES),
+                command.requestId
+            )
             val requirement = requirementOf(command.requestId, command.requirementId)
             val provenance = InformationRequestImportedValueProvenance(
                 command.sourceReference.trim(),
@@ -160,7 +151,16 @@ class InformationRequestImportedValueService @Inject constructor(
     ): List<InformationRequestImportedValue>
     {
         val requester = PrincipalRef(exchange.requestedByPrincipalKind, exchange.requestedByPrincipalId)
-        return prepared.values.map { value -> save(request, prepared.requirement, exchange.id, value, prepared.provenance, requester) }
+        return prepared.values.map { value ->
+            save(
+                request,
+                prepared.requirement,
+                exchange.id,
+                value,
+                prepared.provenance,
+                requester
+            )
+        }
     }
 
     @Transactional
@@ -168,10 +168,21 @@ class InformationRequestImportedValueService @Inject constructor(
     {
         val reasonCode = command.reasonCode.trim()
         val fingerprint = "$DECIDE_OPERATION|${command.importedValueId}|${command.decision}|$reasonCode"
-        return once(command.requestId, DECIDE_OPERATION, command.access, command.idempotencyKey, fingerprint, Action.INFORMATION_REQUEST_DECIDE_EXTERNAL_VALUES) {
+        return once(
+            command.requestId,
+            DECIDE_OPERATION,
+            command.access,
+            command.idempotencyKey,
+            fingerprint,
+            Action.INFORMATION_REQUEST_DECIDE_EXTERNAL_VALUES
+        ) {
             val locked = gate.lock(command.requestId)
             gate.requireMutation(locked, InformationRequestMutation.DECIDE_EXTERNAL_VALUE)
-            gate.authorizeRequest(command.access, listOf(Action.INFORMATION_REQUEST_DECIDE_EXTERNAL_VALUES), command.requestId)
+            gate.authorizeRequest(
+                command.access,
+                listOf(Action.INFORMATION_REQUEST_DECIDE_EXTERNAL_VALUES),
+                command.requestId
+            )
             requireReason(reasonCode, "A decision on an imported value states its reason")
             val value = valueOf(command.requestId, command.importedValueId)
             if (decisionRepository.findForRequest(command.requestId).any { it.importedValueId == value.id })
@@ -194,7 +205,10 @@ class InformationRequestImportedValueService @Inject constructor(
             val now = clock.instant()
             if (command.decision == InformationRequestImportedValueDecisionKind.ACCEPTED && value.isExpiredAt(now))
             {
-                throw InformationRequestLifecycleException(InformationRequestErrorCatalog.IMPORTED_VALUE_EXPIRED, "An expired value cannot be accepted")
+                throw InformationRequestLifecycleException(
+                    InformationRequestErrorCatalog.IMPORTED_VALUE_EXPIRED,
+                    "An expired value cannot be accepted"
+                )
             }
             val decision = decisionRepository.save(
                 InformationRequestImportedValueDecision().apply {
@@ -208,7 +222,10 @@ class InformationRequestImportedValueService @Inject constructor(
                 },
             )
             history(
-                locked.request, command.access.principal, InformationRequestMutation.DECIDE_EXTERNAL_VALUE, "decision|${decision.id}",
+                locked.request,
+                command.access.principal,
+                InformationRequestMutation.DECIDE_EXTERNAL_VALUE,
+                "decision|${decision.id}",
                 mapOf("importedValueId" to value.id.toString(), "importedValueDecision" to command.decision.name),
             )
             value.id
@@ -220,43 +237,65 @@ class InformationRequestImportedValueService @Inject constructor(
     {
         val locked = gate.lock(command.requestId)
         gate.requireMutation(locked, InformationRequestMutation.DECIDE_EXTERNAL_VALUE)
-        gate.authorizeRequest(command.access, listOf(Action.INFORMATION_REQUEST_DECIDE_EXTERNAL_VALUES), command.requestId)
+        gate.authorizeRequest(
+            command.access,
+            listOf(Action.INFORMATION_REQUEST_DECIDE_EXTERNAL_VALUES),
+            command.requestId
+        )
         val rejected = decisionRepository.findForRequest(command.requestId)
             .filter { it.decision == InformationRequestImportedValueDecisionKind.REJECTED }
             .map { it.importedValueId }
             .toSet()
         val recorded = discrepancyRepository.findForRequest(command.requestId)
-        val responses = responseStore.findCurrentForRequest(command.requestId).associateBy { it.informationRequestRequirementId }
+        val responses =
+            responseStore.findCurrentForRequest(command.requestId).associateBy { it.informationRequestRequirementId }
         val requirements = requirementRepository.findForRequest(command.requestId).associateBy { it.id }
         val now = clock.instant()
         val created = mutableListOf<InformationRequestImportedValueDiscrepancy>()
         val results = valueRepository.findForRequest(command.requestId).filter { it.id !in rejected }.map { value ->
             val response = responses[value.informationRequestRequirementId]
             val comparison = if (value.isExpiredAt(now)) null
-            else canonicalizer.compare(requireNotNull(requirements[value.informationRequestRequirementId]), value, response)
+            else canonicalizer.compare(
+                requireNotNull(requirements[value.informationRequestRequirementId]),
+                value,
+                response
+            )
             when (comparison)
             {
                 null -> reconciliation(value, InformationRequestReconciliationOutcome.EXPIRED)
-                InformationRequestValueComparison.NotComparable -> reconciliation(value, InformationRequestReconciliationOutcome.NOT_COMPARABLE)
-                InformationRequestValueComparison.NoAnswer -> reconciliation(value, InformationRequestReconciliationOutcome.NO_ANSWER)
-                InformationRequestValueComparison.Matches -> reconciliation(value, InformationRequestReconciliationOutcome.MATCHES)
+                InformationRequestValueComparison.NotComparable -> reconciliation(
+                    value,
+                    InformationRequestReconciliationOutcome.NOT_COMPARABLE
+                )
+
+                InformationRequestValueComparison.NoAnswer -> reconciliation(
+                    value,
+                    InformationRequestReconciliationOutcome.NO_ANSWER
+                )
+
+                InformationRequestValueComparison.Matches -> reconciliation(
+                    value,
+                    InformationRequestReconciliationOutcome.MATCHES
+                )
+
                 is InformationRequestValueComparison.Differs ->
                 {
                     val answered = requireNotNull(response)
-                    val discrepancy = recorded.firstOrNull { it.importedValueId == value.id && it.responseRevision == answered.responseRevision }
-                        ?: discrepancyRepository.save(
-                            InformationRequestImportedValueDiscrepancy().apply {
-                                importedValueId = value.id
-                                informationRequestId = command.requestId
-                                responseId = answered.id
-                                responseRevision = answered.responseRevision
-                                importedCanonicalValue = value.canonicalValue
-                                responseCanonicalValue = comparison.responseCanonicalValue
-                                recordedByPrincipalKind = command.access.principal.kind
-                                recordedByPrincipalId = command.access.principal.id
-                                recordedAt = Timestamp.from(now)
-                            },
-                        ).also(created::add)
+                    val discrepancy =
+                        recorded.firstOrNull { it.importedValueId == value.id && it.responseRevision == answered.responseRevision }
+                            ?: discrepancyRepository.save(
+                                InformationRequestImportedValueDiscrepancy().apply {
+                                    importedValueId = value.id
+                                    informationRequestId = command.requestId
+                                    responseId = answered.id
+                                    responseRevision = answered.responseRevision
+                                    importedCanonicalValue = value.canonicalValue
+                                    responseCanonicalValue = comparison.responseCanonicalValue
+                                    recordedByPrincipalKind = command.access.principal.kind
+                                    recordedByPrincipalId = command.access.principal.id
+                                    recordedAt = Timestamp.from(now)
+                                },
+                            ).also(created::add)
                     InformationRequestImportedValueReconciliation(
                         value.id,
                         value.informationRequestRequirementId,
@@ -269,7 +308,10 @@ class InformationRequestImportedValueService @Inject constructor(
         }
         created.firstOrNull()?.let { first ->
             history(
-                locked.request, command.access.principal, InformationRequestMutation.DECIDE_EXTERNAL_VALUE, "reconciliation|${first.id}",
+                locked.request,
+                command.access.principal,
+                InformationRequestMutation.DECIDE_EXTERNAL_VALUE,
+                "reconciliation|${first.id}",
                 mapOf("discrepancyId" to first.id.toString(), "discrepancyCount" to created.size.toString()),
             )
         }
@@ -290,19 +332,28 @@ class InformationRequestImportedValueService @Inject constructor(
         val discrepancyId = when (
             val decision = commandReceiptService.runOnce(receipt) {
                 val id = resolveOnce(command, reasonCode)
-                CommandMutationResult(id, CommandResultReference(ResourceType.INFORMATION_REQUEST_EXTERNAL_SOURCE, id, 1, null))
+                CommandMutationResult(
+                    id,
+                    CommandResultReference(ResourceType.INFORMATION_REQUEST_EXTERNAL_SOURCE, id, 1, null)
+                )
             }
         )
         {
             is CommandReceiptDecision.Recorded -> decision.response
             is CommandReceiptDecision.Replayed ->
             {
-                gate.authorizeRequest(command.access, listOf(Action.INFORMATION_REQUEST_DECIDE_EXTERNAL_VALUES), command.requestId)
+                gate.authorizeRequest(
+                    command.access,
+                    listOf(Action.INFORMATION_REQUEST_DECIDE_EXTERNAL_VALUES),
+                    command.requestId
+                )
                 decision.result.resourceId
             }
         }
         val discrepancy = requireNotNull(discrepancyRepository.findById(discrepancyId))
-        return InformationRequestDiscrepancyView(discrepancy, resolutionRepository.findForRequest(command.requestId).firstOrNull { it.discrepancyId == discrepancyId })
+        return InformationRequestDiscrepancyView(
+            discrepancy,
+            resolutionRepository.findForRequest(command.requestId).firstOrNull { it.discrepancyId == discrepancyId })
     }
 
     fun values(requestId: UUID, access: RequestAccessContext): List<InformationRequestImportedValueView>
@@ -316,13 +367,24 @@ class InformationRequestImportedValueService @Inject constructor(
     {
         val locked = gate.lock(command.requestId)
         gate.requireMutation(locked, InformationRequestMutation.DECIDE_EXTERNAL_VALUE)
-        gate.authorizeRequest(command.access, listOf(Action.INFORMATION_REQUEST_DECIDE_EXTERNAL_VALUES), command.requestId)
+        gate.authorizeRequest(
+            command.access,
+            listOf(Action.INFORMATION_REQUEST_DECIDE_EXTERNAL_VALUES),
+            command.requestId
+        )
         requireReason(reasonCode, "A resolution states its reason")
-        val discrepancy = discrepancyRepository.findById(command.discrepancyId)?.takeIf { it.informationRequestId == command.requestId }
-            ?: throw InformationRequestLifecycleException(InformationRequestErrorCatalog.NOT_FOUND, "Discrepancy not found")
+        val discrepancy = discrepancyRepository.findById(command.discrepancyId)
+            ?.takeIf { it.informationRequestId == command.requestId }
+            ?: throw InformationRequestLifecycleException(
+                InformationRequestErrorCatalog.NOT_FOUND,
+                "Discrepancy not found"
+            )
         if (resolutionRepository.findForRequest(command.requestId).any { it.discrepancyId == discrepancy.id })
         {
-            throw InformationRequestLifecycleException(InformationRequestErrorCatalog.DISCREPANCY_ALREADY_RESOLVED, "This discrepancy is already resolved")
+            throw InformationRequestLifecycleException(
+                InformationRequestErrorCatalog.DISCREPANCY_ALREADY_RESOLVED,
+                "This discrepancy is already resolved"
+            )
         }
         val resolution = resolutionRepository.save(
             InformationRequestImportedValueDiscrepancyResolution().apply {
@@ -336,7 +398,10 @@ class InformationRequestImportedValueService @Inject constructor(
             },
         )
         history(
-            locked.request, command.access.principal, InformationRequestMutation.DECIDE_EXTERNAL_VALUE, "resolution|${resolution.id}",
+            locked.request,
+            command.access.principal,
+            InformationRequestMutation.DECIDE_EXTERNAL_VALUE,
+            "resolution|${resolution.id}",
             mapOf("discrepancyId" to discrepancy.id.toString(), "discrepancyResolution" to command.resolution.name),
         )
         return discrepancy.id
@@ -363,7 +428,10 @@ class InformationRequestImportedValueService @Inject constructor(
         val valueId = when (
             val decision = commandReceiptService.runOnce(receipt) {
                 val id = mutation()
-                CommandMutationResult(id, CommandResultReference(ResourceType.INFORMATION_REQUEST_EXTERNAL_SOURCE, id, 1, null))
+                CommandMutationResult(
+                    id,
+                    CommandResultReference(ResourceType.INFORMATION_REQUEST_EXTERNAL_SOURCE, id, 1, null)
+                )
             }
         )
         {
@@ -391,7 +459,8 @@ class InformationRequestImportedValueService @Inject constructor(
             InformationRequestImportedValue().apply {
                 informationRequestId = request.id
                 informationRequestRequirementId = requirement.id
-                sourceKind = if (exchangeId == null) InformationRequestImportedValueSource.MANUAL else InformationRequestImportedValueSource.CONNECTOR
+                sourceKind =
+                    if (exchangeId == null) InformationRequestImportedValueSource.MANUAL else InformationRequestImportedValueSource.CONNECTOR
                 connectorExchangeId = exchangeId
                 sourceReference = provenance.source
                 resultKey = value.resultKey
@@ -419,7 +488,11 @@ class InformationRequestImportedValueService @Inject constructor(
         return saved
     }
 
-    private fun requireProvenance(resultKey: String, provenance: InformationRequestImportedValueProvenance, now: Instant)
+    private fun requireProvenance(
+        resultKey: String,
+        provenance: InformationRequestImportedValueProvenance,
+        now: Instant
+    )
     {
         if (!MACHINE_KEY.matches(resultKey)) throw InformationRequestCommandRequestException("An imported value names its result with a lowercase key")
         if (provenance.source.isEmpty() || provenance.reference.isEmpty())
@@ -473,21 +546,39 @@ class InformationRequestImportedValueService @Inject constructor(
         )
     }
 
-    private fun reconciliation(value: InformationRequestImportedValue, outcome: InformationRequestReconciliationOutcome) =
-        InformationRequestImportedValueReconciliation(value.id, value.informationRequestRequirementId, outcome, null, null)
+    private fun reconciliation(
+        value: InformationRequestImportedValue,
+        outcome: InformationRequestReconciliationOutcome
+    ) =
+        InformationRequestImportedValueReconciliation(
+            value.id,
+            value.informationRequestRequirementId,
+            outcome,
+            null,
+            null
+        )
 
     private fun InformationRequestImportedValue.isExpiredAt(now: Instant): Boolean =
         expiresAt?.toInstant()?.isAfter(now) == false
 
     private fun requirementOf(requestId: UUID, requirementId: UUID): InformationRequestRequirement =
         requirementRepository.findForRequest(requestId).firstOrNull { it.id == requirementId }
-            ?: throw InformationRequestLifecycleException(InformationRequestErrorCatalog.NOT_FOUND, "Information Request Requirement not found")
+            ?: throw InformationRequestLifecycleException(
+                InformationRequestErrorCatalog.NOT_FOUND,
+                "Information Request Requirement not found"
+            )
 
     private fun valueOf(requestId: UUID, valueId: UUID): InformationRequestImportedValue =
         valueRepository.findById(valueId)?.takeIf { it.informationRequestId == requestId }
-            ?: throw InformationRequestLifecycleException(InformationRequestErrorCatalog.NOT_FOUND, "Imported value not found")
+            ?: throw InformationRequestLifecycleException(
+                InformationRequestErrorCatalog.NOT_FOUND,
+                "Imported value not found"
+            )
 
-    private fun views(requestId: UUID, values: List<InformationRequestImportedValue>): List<InformationRequestImportedValueView>
+    private fun views(
+        requestId: UUID,
+        values: List<InformationRequestImportedValue>
+    ): List<InformationRequestImportedValueView>
     {
         val decisions = decisionRepository.findForRequest(requestId).associateBy { it.importedValueId }
         val resolutions = resolutionRepository.findForRequest(requestId).associateBy { it.discrepancyId }
@@ -496,7 +587,8 @@ class InformationRequestImportedValueService @Inject constructor(
             InformationRequestImportedValueView(
                 value = value,
                 decision = decisions[value.id],
-                discrepancies = discrepancies[value.id].orEmpty().map { InformationRequestDiscrepancyView(it, resolutions[it.id]) },
+                discrepancies = discrepancies[value.id].orEmpty()
+                    .map { InformationRequestDiscrepancyView(it, resolutions[it.id]) },
             )
         }
     }

@@ -107,13 +107,19 @@ class PasswordResetService @Inject constructor(
 
         val appUser = appUserRepository.findByEmail(email!!)
             ?: throw EmailNotFoundException().also {
-                logger.error("Password reset failed. App user not found for {} after OTP verification", email!!.maskEmailForLogs())
+                logger.error(
+                    "Password reset failed. App user not found for {} after OTP verification",
+                    email!!.maskEmailForLogs()
+                )
             }
 
         if (!appUser.isActive || appUser.deprovisionedAt != null)
         {
             throw EmailNotFoundException().also {
-                logger.warn("Password reset completion blocked: inactive/deprovisioned account for {}", email!!.maskEmailForLogs())
+                logger.warn(
+                    "Password reset completion blocked: inactive/deprovisioned account for {}",
+                    email!!.maskEmailForLogs()
+                )
             }
         }
 

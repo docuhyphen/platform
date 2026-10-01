@@ -6,22 +6,13 @@ import com.docuhyphen.app.api.model.dto.AuditEngagementDtoMapper
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.service.audit.AuditEngagementNotFoundException
 import com.docuhyphen.app.api.service.audit.AuditEngagementService
-import com.docuhyphen.app.api.service.auth.authz.Action
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.Decision
-import com.docuhyphen.app.api.service.auth.authz.ResourceRef
+import com.docuhyphen.app.api.service.auth.authz.*
 import jakarta.inject.Inject
-import jakarta.ws.rs.Consumes
-import jakarta.ws.rs.GET
-import jakarta.ws.rs.POST
-import jakarta.ws.rs.Path
-import jakarta.ws.rs.PathParam
-import jakarta.ws.rs.Produces
+import jakarta.ws.rs.*
 import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
 import org.slf4j.LoggerFactory
-import java.util.UUID
+import java.util.*
 
 /** Given its own class-level path; see AuditOrganizationEventsResource for why this class is not merged with others. */
 @Path("/organizations/{organizationId}/audit-engagements")
@@ -102,12 +93,16 @@ class AuditOrganizationEngagementResource @Inject constructor(
         }
         catch (e: SubscriptionDenialException)
         {
-            logger.warn("An organization audit engagement mutation was refused by the subscription plan check: plan={}", e.denial.planCode)
+            logger.warn(
+                "An organization audit engagement mutation was refused by the subscription plan check: plan={}",
+                e.denial.planCode
+            )
             throw e
         }
         catch (e: IllegalArgumentException)
         {
-            val status = if (e is AuditEngagementNotFoundException) Response.Status.NOT_FOUND else Response.Status.BAD_REQUEST
+            val status =
+                if (e is AuditEngagementNotFoundException) Response.Status.NOT_FOUND else Response.Status.BAD_REQUEST
             Response.status(status).entity(ResponseError(e.message)).build()
         }
     }

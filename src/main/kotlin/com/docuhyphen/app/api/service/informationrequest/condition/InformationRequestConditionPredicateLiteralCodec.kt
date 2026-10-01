@@ -41,10 +41,12 @@ object InformationRequestConditionPredicateLiteralCodec
             FieldValueType.SHORT_TEXT, FieldValueType.LONG_TEXT,
             FieldValueType.SINGLE_SELECT, FieldValueType.MULTI_SELECT ->
                 target.textValue = literalString(value)
+
             FieldValueType.BOOLEAN -> target.boolValue = literalBoolean(value)
             FieldValueType.INTEGER, FieldValueType.DECIMAL -> target.numberValue = literalNumber(value)
             FieldValueType.DATE ->
                 target.dateValue = literalString(value)?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
+
             FieldValueType.DATE_TIME -> literalString(value)?.let(CanonicalDateTime::parse)?.let { reading ->
                 target.datetimeValue = Timestamp.from(reading.instant)
                 target.datetimeOffsetMinutes = reading.offsetMinutes
@@ -62,7 +64,8 @@ object InformationRequestConditionPredicateLiteralCodec
     {
         if (predicate.operator in LIST_OPERATORS)
         {
-            return literalValues.takeIf { it.isNotEmpty() }?.let { values -> JsonArray(values.map { JsonPrimitive(it) }) }
+            return literalValues.takeIf { it.isNotEmpty() }
+                ?.let { values -> JsonArray(values.map { JsonPrimitive(it) }) }
         }
         return when (predicate.valueType)
         {
@@ -70,9 +73,11 @@ object InformationRequestConditionPredicateLiteralCodec
             FieldValueType.SHORT_TEXT, FieldValueType.LONG_TEXT,
             FieldValueType.SINGLE_SELECT, FieldValueType.MULTI_SELECT ->
                 predicate.textValue?.let { JsonPrimitive(it) }
+
             FieldValueType.BOOLEAN -> predicate.boolValue?.let { JsonPrimitive(it) }
             FieldValueType.INTEGER, FieldValueType.DECIMAL ->
                 predicate.numberValue?.let { JsonPrimitive(CanonicalNumber.text(predicate.valueType!!, it, null)) }
+
             FieldValueType.DATE -> predicate.dateValue?.let { JsonPrimitive(it.toString()) }
             FieldValueType.DATE_TIME -> predicate.datetimeValue?.let {
                 JsonPrimitive(CanonicalDateTime.format(it.toInstant(), predicate.datetimeOffsetMinutes))

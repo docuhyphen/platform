@@ -1,13 +1,7 @@
 package com.docuhyphen.app.api.model.informationrequest.review
 
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewAggregation
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewAssignmentState
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewDecisionKind
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewOutcome
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewStageOrdering
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewState
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewTieResolution
-import java.util.UUID
+import com.docuhyphen.app.api.model.entity.*
+import java.util.*
 
 data class InformationRequestReviewStagePlan(
     val id: UUID,

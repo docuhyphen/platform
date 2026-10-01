@@ -9,7 +9,7 @@ import com.docuhyphen.app.api.service.fields.FieldValueRevisionQueryService
 import com.docuhyphen.app.api.service.workflow.WorkflowRequirementOperandSource
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestWorkflowOperandService @Inject constructor(
@@ -30,7 +30,7 @@ class InformationRequestWorkflowOperandService @Inject constructor(
             ?: return WorkflowRequirementOperand.Unavailable(PACKAGE_MISMATCH)
         val matching = itemRepository.findForPackages(listOf(packageId)).filter { item ->
             item.occurrencePath == occurrencePath &&
-                requirementRepository.findById(item.informationRequestRequirementId)?.sourceTemplateRequirementId == templateRequirementId
+                    requirementRepository.findById(item.informationRequestRequirementId)?.sourceTemplateRequirementId == templateRequirementId
         }
         val item = when (matching.size)
         {

@@ -1,18 +1,12 @@
 package com.docuhyphen.app.api.service.informationrequest.submission
 
 import com.docuhyphen.app.api.model.informationrequest.submission.InformationRequestSubmissionPackageView
-import com.docuhyphen.app.api.repository.informationrequest.submission.InformationRequestSubmissionAttestationRepository
-import com.docuhyphen.app.api.repository.informationrequest.submission.InformationRequestSubmissionEvidenceRepository
-import com.docuhyphen.app.api.repository.informationrequest.submission.InformationRequestSubmissionItemRepository
-import com.docuhyphen.app.api.repository.informationrequest.submission.InformationRequestSubmissionPackageAttestationRepository
-import com.docuhyphen.app.api.repository.informationrequest.submission.InformationRequestSubmissionPackageRepository
-import com.docuhyphen.app.api.repository.informationrequest.submission.InformationRequestSubmissionSupportingLinkRepository
-import com.docuhyphen.app.api.repository.informationrequest.submission.InformationRequestSubmissionWithdrawalRepository
+import com.docuhyphen.app.api.repository.informationrequest.submission.*
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestLifecycleException
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestSubmissionPackageReader @Inject constructor(
@@ -27,7 +21,10 @@ class InformationRequestSubmissionPackageReader @Inject constructor(
 {
     fun view(requestId: UUID, packageId: UUID): InformationRequestSubmissionPackageView =
         views(requestId).firstOrNull { it.submissionPackage.id == packageId }
-            ?: throw InformationRequestLifecycleException(InformationRequestErrorCatalog.NOT_FOUND, "Submission Package not found")
+            ?: throw InformationRequestLifecycleException(
+                InformationRequestErrorCatalog.NOT_FOUND,
+                "Submission Package not found"
+            )
 
     fun views(requestId: UUID): List<InformationRequestSubmissionPackageView>
     {

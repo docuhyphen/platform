@@ -11,7 +11,7 @@ import com.docuhyphen.app.api.service.informationrequest.InformationRequestMutat
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestQueryService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestAmendmentQueryService @Inject constructor(
@@ -28,7 +28,11 @@ class InformationRequestAmendmentQueryService @Inject constructor(
         return readable(request, reader.views(requestId), access)
     }
 
-    fun readable(request: InformationRequest, view: InformationRequestAmendmentView, access: RequestAccessContext): InformationRequestReadableAmendment =
+    fun readable(
+        request: InformationRequest,
+        view: InformationRequestAmendmentView,
+        access: RequestAccessContext
+    ): InformationRequestReadableAmendment =
         readable(request, listOf(view), access).single()
 
     private fun readable(

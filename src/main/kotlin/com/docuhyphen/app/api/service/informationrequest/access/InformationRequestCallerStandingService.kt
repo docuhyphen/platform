@@ -14,7 +14,7 @@ import com.docuhyphen.app.api.service.informationrequest.submission.InformationR
 import com.docuhyphen.app.api.service.informationrequest.submission.InformationRequestSubmissionStages
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestCallerStandingService @Inject constructor(
@@ -39,7 +39,7 @@ class InformationRequestCallerStandingService @Inject constructor(
         val permissions = InformationRequestSummaryPermissions(
             canManage = gate.permitsRequest(access, Action.INFORMATION_REQUEST_MANAGE_PARTIES, request.id),
             canRespond = gate.permitsRequest(access, Action.INFORMATION_REQUEST_SUBMIT, request.id) ||
-                roles.any { it in ATTESTING_ROLES },
+                    roles.any { it in ATTESTING_ROLES },
             canReview = gate.permitsRequest(access, Action.INFORMATION_REQUEST_REVIEW, request.id),
         )
         return InformationRequestCallerStanding(
@@ -59,6 +59,7 @@ class InformationRequestCallerStandingService @Inject constructor(
             request.state.isTerminal -> InformationRequestNextAction.VIEW
             request.state == InformationRequestState.DRAFT ->
                 if (permissions.canManage) InformationRequestNextAction.COMPLETE_SETUP else InformationRequestNextAction.VIEW
+
             permissions.canReview && reviewAwaited -> InformationRequestNextAction.REVIEW
             permissions.canRespond && awaitsResponse(request) -> InformationRequestNextAction.RESPOND
             permissions.canManage -> InformationRequestNextAction.MANAGE

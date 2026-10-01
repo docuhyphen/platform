@@ -4,7 +4,7 @@ import com.docuhyphen.app.api.model.entity.InformationRequestGroupOccurrence
 import com.docuhyphen.app.api.repository.BaseRepository
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.persistence.LockModeType
-import java.util.UUID
+import java.util.*
 
 /** Persistence for [InformationRequestGroupOccurrence]. Occurrences belong to one request. */
 @ApplicationScoped

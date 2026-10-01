@@ -53,7 +53,7 @@ class ExchangeParticipantService @Inject constructor(
         )
             .filter {
                 it.roleName == ExchangeShareRoleName.PARTICIPANT.name &&
-                    it.source == ShareSource.DIRECT
+                        it.source == ShareSource.DIRECT
             }
             .forEach { exchangeAccessManagementService.revokeAccess(sessionUuid, it.id) }
 

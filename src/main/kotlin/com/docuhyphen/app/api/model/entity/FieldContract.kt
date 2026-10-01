@@ -3,7 +3,7 @@ package com.docuhyphen.app.api.model.entity
 import jakarta.persistence.*
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 /**
  * An immutable published version of a [FieldDefinition]. Once used by a published Schema Version

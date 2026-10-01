@@ -1,15 +1,10 @@
 package com.docuhyphen.app.api.model.informationrequest.acceptedfact
 
-import com.docuhyphen.app.api.model.entity.InformationRequestAcceptedFact
-import com.docuhyphen.app.api.model.entity.InformationRequestAcceptedFactRevocation
-import com.docuhyphen.app.api.model.entity.InformationRequestAcceptedFactVisibility
-import com.docuhyphen.app.api.model.entity.InformationRequestBusinessDecision
-import com.docuhyphen.app.api.model.entity.InformationRequestBusinessDecisionKind
-import com.docuhyphen.app.api.model.entity.InformationRequestFactRecertification
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
 import com.docuhyphen.app.api.service.command.CommandPrecondition
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 data class PromoteInformationRequestAcceptedFactCommand(
     val requestId: UUID,

@@ -3,7 +3,7 @@ package com.docuhyphen.app.api.repository.informationrequest.noauth
 import com.docuhyphen.app.api.model.entity.RequestAccessSession
 import com.docuhyphen.app.api.repository.BaseRepository
 import jakarta.enterprise.context.ApplicationScoped
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class RequestAccessSessionRepository :
@@ -16,12 +16,17 @@ class RequestAccessSessionRepository :
             SELECT parent FROM Exchange parent, InformationRequest request, Share share
             WHERE share.id = :shareId AND share.resourceType = :type
               AND share.resourceId = request.id AND request.exchangeId = parent.id
-            """.trimIndent(), com.docuhyphen.app.api.model.entity.Exchange::class.java,
+            """.trimIndent(),
+            com.docuhyphen.app.api.model.entity.Exchange::class.java,
         ).setParameter("shareId", shareId)
             .setParameter("type", com.docuhyphen.app.api.model.entity.ResourceType.INFORMATION_REQUEST)
             .resultList.firstOrNull() ?: return null
         entityManager.refresh(parent, jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
-        return com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestParentSnapshot(parent.status, parent.isDeleted, true)
+        return com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestParentSnapshot(
+            parent.status,
+            parent.isDeleted,
+            true
+        )
     }
 
     fun findSessionByIdForUpdate(id: UUID): RequestAccessSession?
@@ -42,7 +47,8 @@ class RequestAccessSessionRepository :
               AND share.resourceType = :type AND share.resourceId = :requestId
               AND session.revokedAt IS NULL
             ORDER BY session.id
-            """.trimIndent(), RequestAccessSession::class.java,
+            """.trimIndent(),
+            RequestAccessSession::class.java,
         ).setParameter("type", com.docuhyphen.app.api.model.entity.ResourceType.INFORMATION_REQUEST)
             .setParameter("requestId", requestId).resultList
 

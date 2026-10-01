@@ -4,12 +4,7 @@ import com.docuhyphen.app.api.model.entity.InformationRequestResponseMode
 import com.docuhyphen.app.api.model.informationrequest.access.InformationRequestRequirementCorrectionScope
 import com.docuhyphen.app.api.model.informationrequest.access.InformationRequestRequirementPolicyFacts
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestState
-import com.docuhyphen.app.api.service.auth.authz.Action
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import com.docuhyphen.app.api.service.auth.authz.ResourceKind
-import com.docuhyphen.app.api.service.auth.authz.ResourcePolicyEvaluator
-import com.docuhyphen.app.api.service.auth.authz.ResourcePolicyOutcome
-import com.docuhyphen.app.api.service.auth.authz.ResourcePolicyRequest
+import com.docuhyphen.app.api.service.auth.authz.*
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
 import com.docuhyphen.app.api.service.informationrequest.parent.InformationRequestParentPolicy
 import jakarta.enterprise.context.ApplicationScoped
@@ -51,7 +46,8 @@ class InformationRequestRequirementPolicyEvaluator : ResourcePolicyEvaluator
         }
 
         if (facts.responseMode == InformationRequestResponseMode.NOT_DISCLOSED &&
-            request.action in partyDisclosureActions)
+            request.action in partyDisclosureActions
+        )
         {
             return deny(
                 InformationRequestErrorCatalog.CONFIDENTIALITY_DENIED,
@@ -64,7 +60,7 @@ class InformationRequestRequirementPolicyEvaluator : ResourcePolicyEvaluator
             return deny(
                 InformationRequestErrorCatalog.PARTY_NOT_ASSIGNED,
                 "Principal ${request.principal.kind}/${request.principal.id} is not assigned to requirement " +
-                    facts.requirementId,
+                        facts.requirementId,
             )
         }
 
@@ -93,7 +89,8 @@ class InformationRequestRequirementPolicyEvaluator : ResourcePolicyEvaluator
         }
 
         if (request.action in answerMutationActions &&
-            facts.correctionScope == InformationRequestRequirementCorrectionScope.CORRECTION_EXCLUDED)
+            facts.correctionScope == InformationRequestRequirementCorrectionScope.CORRECTION_EXCLUDED
+        )
         {
             return deny(
                 InformationRequestErrorCatalog.CORRECTION_SCOPE_DENIED,
@@ -112,11 +109,11 @@ class InformationRequestRequirementPolicyEvaluator : ResourcePolicyEvaluator
         val roles = if (action in attestationActions) attestingRoleKeys + assignedRoleKey else setOf(assignedRoleKey)
         return assignedParties.any { party ->
             party.roleKey in roles &&
-                (
-                    party.principal == principal ||
-                        principal in party.equivalentPrincipals ||
-                        hasActiveAuthorityFor(principal, party.partyId)
-                    )
+                    (
+                            party.principal == principal ||
+                                    principal in party.equivalentPrincipals ||
+                                    hasActiveAuthorityFor(principal, party.partyId)
+                            )
         }
     }
 
@@ -126,10 +123,10 @@ class InformationRequestRequirementPolicyEvaluator : ResourcePolicyEvaluator
     ): Boolean =
         delegatedAuthorityFacts.any { authority ->
             authority.active &&
-                authority.assignedPartyId == assignedPartyId &&
-                authority.delegatePrincipal == principal &&
-                authority.requestId == requestId &&
-                (authority.requirementId == null || authority.requirementId == requirementId)
+                    authority.assignedPartyId == assignedPartyId &&
+                    authority.delegatePrincipal == principal &&
+                    authority.requestId == requestId &&
+                    (authority.requirementId == null || authority.requirementId == requirementId)
         }
 
     private fun deny(reasonCode: String, message: String): ResourcePolicyOutcome.Deny =

@@ -1,27 +1,12 @@
 package com.docuhyphen.app.api.service.informationrequest.review
 
-import com.docuhyphen.app.api.model.entity.InformationRequestCorrection
-import com.docuhyphen.app.api.model.entity.InformationRequestCorrectionState
-import com.docuhyphen.app.api.model.entity.InformationRequestFindingCorrectionScope
-import com.docuhyphen.app.api.model.entity.InformationRequestReview
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewDecision
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewDecisionKind
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewKind
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewRemediation
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewState
-import com.docuhyphen.app.api.model.entity.InformationRequestSubmissionPackage
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.informationrequest.LockedInformationRequest
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestMutation
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestTransitionHistoryCommand
 import com.docuhyphen.app.api.model.informationrequest.review.InformationRequestReviewItemStanding
 import com.docuhyphen.app.api.model.informationrequest.review.InformationRequestReviewStageState
-import com.docuhyphen.app.api.repository.informationrequest.review.InformationRequestCorrectionItemRepository
-import com.docuhyphen.app.api.repository.informationrequest.review.InformationRequestCorrectionRepository
-import com.docuhyphen.app.api.repository.informationrequest.review.InformationRequestReviewAssignmentRepository
-import com.docuhyphen.app.api.repository.informationrequest.review.InformationRequestReviewDecisionRepository
-import com.docuhyphen.app.api.repository.informationrequest.review.InformationRequestReviewFindingRepository
-import com.docuhyphen.app.api.repository.informationrequest.review.InformationRequestReviewRemediationRepository
-import com.docuhyphen.app.api.repository.informationrequest.review.InformationRequestReviewRepository
+import com.docuhyphen.app.api.repository.informationrequest.review.*
 import com.docuhyphen.app.api.repository.informationrequest.submission.InformationRequestSubmissionItemRepository
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
@@ -68,7 +53,8 @@ class InformationRequestReviewOpeningService @Inject constructor(
                 informationRequestId = submission.informationRequestId
                 packageId = submission.id
                 reviewNumber = reviewRepository.nextReviewNumber(submission.informationRequestId)
-                kind = if (prior == null) InformationRequestReviewKind.INITIAL else InformationRequestReviewKind.RESUBMISSION
+                kind =
+                    if (prior == null) InformationRequestReviewKind.INITIAL else InformationRequestReviewKind.RESUBMISSION
                 priorReviewId = prior?.id
                 templateVersionId = submission.templateVersionId
                 state = InformationRequestReviewState.PENDING
@@ -86,9 +72,10 @@ class InformationRequestReviewOpeningService @Inject constructor(
 
     fun requireWithdrawable(submission: InformationRequestSubmissionPackage, actor: PrincipalRef)
     {
-        val reviews = reviewRepository.findForRequest(submission.informationRequestId).filter { it.packageId == submission.id }
+        val reviews =
+            reviewRepository.findForRequest(submission.informationRequestId).filter { it.packageId == submission.id }
         val underReview = reviews.any { it.state != InformationRequestReviewState.PENDING } ||
-            assignmentRepository.findForReviews(reviews.map { it.id }).isNotEmpty()
+                assignmentRepository.findForReviews(reviews.map { it.id }).isNotEmpty()
         if (underReview)
         {
             throw InformationRequestLifecycleException(
@@ -143,7 +130,8 @@ class InformationRequestReviewOpeningService @Inject constructor(
         correction.resubmittedPackageId = submission.id
         correctionRepository.update(correction)
         entityManager.flush()
-        val returned = correctionItemRepository.findForCorrections(listOf(correction.id)).map { it.requirementId }.toSet()
+        val returned =
+            correctionItemRepository.findForCorrections(listOf(correction.id)).map { it.requirementId }.toSet()
         val resubmittedItems = itemRepository.findForPackages(listOf(submission.id))
             .associateBy { it.informationRequestRequirementId }
         findingRepository.findForReview(correction.reviewId)

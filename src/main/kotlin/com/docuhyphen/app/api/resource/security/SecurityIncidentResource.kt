@@ -3,15 +3,10 @@ package com.docuhyphen.app.api.resource.security
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.resource.model.SecurityIncidentResponse
-import com.docuhyphen.app.api.service.security.SecurityIncidentService
 import com.docuhyphen.app.api.service.auth.UserRoleService
+import com.docuhyphen.app.api.service.security.SecurityIncidentService
 import jakarta.inject.Inject
-import jakarta.ws.rs.Consumes
-import jakarta.ws.rs.DefaultValue
-import jakarta.ws.rs.GET
-import jakarta.ws.rs.Path
-import jakarta.ws.rs.Produces
-import jakarta.ws.rs.QueryParam
+import jakarta.ws.rs.*
 import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
 

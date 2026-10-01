@@ -50,7 +50,8 @@ fun SequenceDefinition.toDto(): SequenceDefinitionDto = SequenceDefinitionDto(
     previewValue = formatSequenceValue(currentValue + 1, padWidth, prefix, suffix),
 )
 
-fun formatSequenceValue(value: Long, padWidth: Int, prefix: String?, suffix: String?): String {
+fun formatSequenceValue(value: Long, padWidth: Int, prefix: String?, suffix: String?): String
+{
     val padded = if (padWidth > 0) value.toString().padStart(padWidth, '0') else value.toString()
     return "${prefix ?: ""}$padded${suffix ?: ""}"
 }

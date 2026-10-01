@@ -5,7 +5,7 @@ import com.docuhyphen.app.api.serializer.UUIDSerializer
 import com.docuhyphen.app.api.service.fields.FieldValueEntry
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import java.util.UUID
+import java.util.*
 
 @Serializable
 data class ResponseError(
@@ -75,23 +75,14 @@ data class SignInCompletionResponse(
 @Serializable
 data class SignInLookupRequest(
     val email: String? = null,
-    val orgId: String? = null,
 )
 
 @Serializable
 data class SignInLookupResponse(
     val authMethod: String,
     val redirectUrl: String? = null,
-    val outcome: String? = null,
     val fallbackAuthMethod: String? = null,
-    val organizations: List<SignInLookupOrganizationOption> = emptyList(),
     val availableProviders: List<String> = emptyList(),
-)
-
-@Serializable
-data class SignInLookupOrganizationOption(
-    val id: String,
-    val name: String,
 )
 
 @Serializable
@@ -432,6 +423,7 @@ class ExchangeRequestDocumentRequest
     var type: DocumentType? = null
     var restrictType: Boolean = false
     var required: Boolean = false
+
     @Serializable(with = UUIDSerializer::class)
     var libraryDocumentId: UUID? = null
 }

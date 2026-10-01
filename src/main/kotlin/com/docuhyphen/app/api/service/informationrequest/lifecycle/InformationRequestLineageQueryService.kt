@@ -15,7 +15,7 @@ import com.docuhyphen.app.api.service.informationrequest.InformationRequestMutat
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestQueryService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestLineageQueryService @Inject constructor(
@@ -51,7 +51,13 @@ class InformationRequestLineageQueryService @Inject constructor(
     {
         queryService.findById(requestId, access)
         return carryForwardRepository.findForRequest(requestId)
-            .filter { gate.permitsRequirement(access, Action.INFORMATION_REQUEST_REQUIREMENT_VIEW, it.informationRequestRequirementId) }
+            .filter {
+                gate.permitsRequirement(
+                    access,
+                    Action.INFORMATION_REQUEST_REQUIREMENT_VIEW,
+                    it.informationRequestRequirementId
+                )
+            }
             .map { carryForward ->
                 val item = carryForward.takeIf { it.decision == InformationRequestCarryForwardDecision.OFFERED }
                     ?.let { itemRepository.findById(it.sourceItemId) }

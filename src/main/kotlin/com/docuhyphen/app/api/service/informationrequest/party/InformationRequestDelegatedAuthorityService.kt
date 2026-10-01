@@ -12,18 +12,8 @@ import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRe
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRequirementRepository
 import com.docuhyphen.app.api.repository.informationrequest.party.InformationRequestDelegatedAuthorityRepository
 import com.docuhyphen.app.api.repository.informationrequest.party.InformationRequestPartyRepository
-import com.docuhyphen.app.api.service.auth.authz.Action
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.Decision
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import com.docuhyphen.app.api.service.auth.authz.ResourceRef
-import com.docuhyphen.app.api.service.command.CommandActorRef
-import com.docuhyphen.app.api.service.command.CommandMutationResult
-import com.docuhyphen.app.api.service.command.CommandReceiptDecision
-import com.docuhyphen.app.api.service.command.CommandReceiptRequest
-import com.docuhyphen.app.api.service.command.CommandReceiptService
-import com.docuhyphen.app.api.service.command.CommandRequestFingerprint
-import com.docuhyphen.app.api.service.command.CommandResultReference
+import com.docuhyphen.app.api.service.auth.authz.*
+import com.docuhyphen.app.api.service.command.*
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestETag
 import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestReadAuthorization
 import io.quarkus.security.ForbiddenException
@@ -32,7 +22,7 @@ import jakarta.inject.Inject
 import jakarta.transaction.Transactional
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 /**
  * Command-safe lifecycle for the minimal delegated-authority fact rows the central Requirement
@@ -212,7 +202,10 @@ class InformationRequestDelegatedAuthorityService @Inject constructor(
         }
     }
 
-    private fun replayResult(result: CommandResultReference, access: RequestAccessContext): InformationRequestDelegatedAuthorityResult
+    private fun replayResult(
+        result: CommandResultReference,
+        access: RequestAccessContext
+    ): InformationRequestDelegatedAuthorityResult
     {
         require(result.resourceType == ResourceType.INFORMATION_REQUEST_DELEGATED_AUTHORITY) {
             "Command receipt does not reference a delegated authority grant"

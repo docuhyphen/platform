@@ -8,17 +8,11 @@ import com.docuhyphen.app.api.model.dto.NoAuthExchangeBasicDto
 import com.docuhyphen.app.api.model.entity.Document
 import com.docuhyphen.app.api.model.entity.Exchange
 import com.docuhyphen.app.api.model.entity.ExchangeStatus
-import com.docuhyphen.app.api.model.entity.PrincipalKind
 import com.docuhyphen.app.api.model.entity.ExchangeStatus.ACCEPTED_STARTED
 import com.docuhyphen.app.api.model.entity.ExchangeStatus.INITIATED
+import com.docuhyphen.app.api.model.entity.PrincipalKind
 import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
-import com.docuhyphen.app.api.service.auth.authz.Action
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.Decision
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import com.docuhyphen.app.api.service.auth.authz.ResourceRef
-import com.docuhyphen.app.api.service.auth.authz.ShareConstraints
+import com.docuhyphen.app.api.service.auth.authz.*
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.persistence.EntityManager
@@ -71,7 +65,8 @@ class ExchangeRetrievalService @Inject constructor(
         )
         if (decision is Decision.Deny &&
             !canViewPendingPrimaryInvitation(session, principal) &&
-            !canViewArchivedExchange(session, principal))
+            !canViewArchivedExchange(session, principal)
+        )
         {
             throw ExchangeNotFoundException("Exchange not found")
         }
@@ -177,13 +172,13 @@ class ExchangeRetrievalService @Inject constructor(
         val constraintsJson = shareService.recipientConstraintsJson(session.id)
         val constraints = ShareConstraints.parse(constraintsJson)
         val downloadAllowed = constraints?.canDownload != false &&
-            (constraintsJson?.contains("\"allow_document_download\":true") == true ||
-                constraints?.canDownload == true)
+                (constraintsJson?.contains("\"allow_document_download\":true") == true ||
+                        constraints?.canDownload == true)
         dto.allowDocumentDownload = downloadAllowed
         // A draft still awaiting the accept/decline decision is verified by the one-time code on
         // that decision, so it is not treated as needing a separate access-code prompt here.
         dto.accessVerificationRequired = session.status == ACCEPTED_STARTED &&
-            !noAuthExchangeAccessWindowService.isActive(session)
+                !noAuthExchangeAccessWindowService.isActive(session)
 
         return dto
     }
@@ -204,8 +199,14 @@ class ExchangeRetrievalService @Inject constructor(
             authTokenContext.authToken.appUser?.id ?: throw IllegalArgumentException("User not authenticated")
 
         val parsedStatuses = status?.split(",")?.mapNotNull {
-            try { ExchangeStatus.valueOf(it.trim()) }
-            catch (e: IllegalArgumentException) { null }
+            try
+            {
+                ExchangeStatus.valueOf(it.trim())
+            }
+            catch (e: IllegalArgumentException)
+            {
+                null
+            }
         }?.takeIf { it.isNotEmpty() }
 
         val safePage = page.coerceAtLeast(0)
@@ -246,23 +247,23 @@ class ExchangeRetrievalService @Inject constructor(
             context = authorizationContextFactory.currentContext(),
         )
         return decision is Decision.Allow ||
-            canViewPendingPrimaryInvitation(exchange, principal) ||
-            canViewArchivedExchange(exchange, principal)
+                canViewPendingPrimaryInvitation(exchange, principal) ||
+                canViewArchivedExchange(exchange, principal)
     }
 
     private fun canViewPendingPrimaryInvitation(exchange: Exchange, principal: PrincipalRef): Boolean =
         principal.kind == PrincipalKind.USER &&
-            exchange.status == ExchangeStatus.INITIATED &&
-            exchangeRecipientService.canViewPendingPrimaryInvitation(exchange.id, principal.id)
+                exchange.status == ExchangeStatus.INITIATED &&
+                exchangeRecipientService.canViewPendingPrimaryInvitation(exchange.id, principal.id)
 
     private fun canViewArchivedExchange(exchange: Exchange, principal: PrincipalRef): Boolean =
         principal.kind == PrincipalKind.USER &&
-            (
-                exchange.status == ExchangeStatus.ENDED ||
-                    exchange.status == ExchangeStatus.REJECTED ||
-                    exchange.status == ExchangeStatus.RESCINDED
-            ) &&
-            exchangeRepository.hasHistoricalArchiveAccess(exchange.id, principal.id)
+                (
+                        exchange.status == ExchangeStatus.ENDED ||
+                                exchange.status == ExchangeStatus.REJECTED ||
+                                exchange.status == ExchangeStatus.RESCINDED
+                        ) &&
+                exchangeRepository.hasHistoricalArchiveAccess(exchange.id, principal.id)
 
     fun getExchangesLinkedToAppUserId(appUserId: UUID): List<Exchange>
     {

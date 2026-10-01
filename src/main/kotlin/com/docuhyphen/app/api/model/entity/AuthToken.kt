@@ -9,7 +9,8 @@ import java.util.*
 
 @Entity
 @Table(name = "auth_token")
-class AuthToken {
+class AuthToken
+{
 
     @Id
     @Serializable(with = UUIDSerializer::class)

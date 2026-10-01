@@ -8,8 +8,8 @@ import com.docuhyphen.app.api.resource.model.AppAdminDto
 import com.docuhyphen.app.api.resource.model.AppUserSearchResultDto
 import com.docuhyphen.app.api.resource.model.GrantAppAdminRequest
 import com.docuhyphen.app.api.resource.model.ResponseError
-import com.docuhyphen.app.api.service.user.AppUserService
 import com.docuhyphen.app.api.service.application.AppRoleAssignmentService
+import com.docuhyphen.app.api.service.user.AppUserService
 import jakarta.inject.Inject
 import jakarta.ws.rs.*
 import jakarta.ws.rs.core.GenericEntity
@@ -17,7 +17,7 @@ import jakarta.ws.rs.core.MediaType.APPLICATION_JSON
 import jakarta.ws.rs.core.Response
 import jakarta.ws.rs.core.Response.Status.*
 import org.slf4j.LoggerFactory
-import java.util.UUID
+import java.util.*
 
 /**
  * App Admin (APP-scope role) provisioning. Every route requires the caller to already
@@ -53,7 +53,8 @@ class AppRoleResource @Inject constructor(
                 grantedAt = ra.grantedAt.toInstant().toString(),
             )
         }
-        Response.ok(object : GenericEntity<List<AppAdminDto>>(admins) {}).build()
+        Response.ok(object : GenericEntity<List<AppAdminDto>>(admins)
+        {}).build()
     }
 
     @POST
@@ -100,7 +101,8 @@ class AppRoleResource @Inject constructor(
                 lastName = u.person?.lastName,
             )
         }
-        Response.ok(object : GenericEntity<List<AppUserSearchResultDto>>(hits) {}).build()
+        Response.ok(object : GenericEntity<List<AppUserSearchResultDto>>(hits)
+        {}).build()
     }
 
     // -------------------------------------------------------------------------
@@ -127,12 +129,16 @@ class AppRoleResource @Inject constructor(
             {
                 is LastAppAdminException ->
                     Response.status(CONFLICT).entity(ResponseError(exception.message)).build()
+
                 is AppUserNotFoundException ->
                     Response.status(NOT_FOUND).entity(ResponseError(exception.message)).build()
+
                 is IllegalArgumentException ->
                     Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
+
                 is SecurityException ->
                     Response.status(FORBIDDEN).entity(ResponseError(exception.message)).build()
+
                 else ->
                     Response.status(INTERNAL_SERVER_ERROR)
                         .entity(ResponseError("An error occurred while managing app roles")).build()

@@ -9,7 +9,7 @@ import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.persistence.EntityManager
 import jakarta.persistence.PersistenceContext
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestTemplateReviewPlanWriter @Inject constructor(

@@ -1,28 +1,15 @@
 package com.docuhyphen.app.api.service.informationrequest.response
 
-import com.docuhyphen.app.api.model.entity.Exchange
-import com.docuhyphen.app.api.model.entity.InformationRequest
-import com.docuhyphen.app.api.model.entity.InformationRequestConditionHiddenDataPolicy
 import com.docuhyphen.app.api.model.dto.SchemaAssignmentDto
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.fields.FieldValueClearCommand
-import com.docuhyphen.app.api.model.entity.InformationRequestRequirement
-import com.docuhyphen.app.api.model.entity.InformationRequestRequirementRevision
-import com.docuhyphen.app.api.model.entity.InformationRequestResponse
-import com.docuhyphen.app.api.model.entity.InformationRequestResponseDisposition
-import com.docuhyphen.app.api.model.entity.RequestExecutionGrant
-import com.docuhyphen.app.api.model.entity.ResourceType
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
 import com.docuhyphen.app.api.model.informationrequest.condition.InformationRequestConditionEvaluationState
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestMutation
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestParentSnapshot
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestPolicyDecision
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestTransitionHistoryCommand
-import com.docuhyphen.app.api.model.informationrequest.response.InformationRequestFieldResponsePatchResult
-import com.docuhyphen.app.api.model.informationrequest.response.InformationRequestResponseDraftResult
-import com.docuhyphen.app.api.model.informationrequest.response.InformationRequestResponsePatch
-import com.docuhyphen.app.api.model.informationrequest.response.InformationRequestStructuredResponseValidationContext
-import com.docuhyphen.app.api.model.informationrequest.response.PatchInformationRequestResponsesCommand
-import com.docuhyphen.app.api.model.informationrequest.response.ResponseNarrativePatch
+import com.docuhyphen.app.api.model.informationrequest.response.*
 import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
 import com.docuhyphen.app.api.repository.fields.FieldContractRepository
 import com.docuhyphen.app.api.repository.fields.FieldValueSetRepository
@@ -37,21 +24,8 @@ import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
 import com.docuhyphen.app.api.service.auth.authz.Decision
 import com.docuhyphen.app.api.service.auth.authz.ResourceRef
-import com.docuhyphen.app.api.service.command.CommandActorRef
-import com.docuhyphen.app.api.service.command.CommandMutationResult
-import com.docuhyphen.app.api.service.command.CommandReceiptDecision
-import com.docuhyphen.app.api.service.command.CommandReceiptRequest
-import com.docuhyphen.app.api.service.command.CommandReceiptService
-import com.docuhyphen.app.api.service.command.CommandRequestFingerprint
-import com.docuhyphen.app.api.service.command.CommandResultReference
-import com.docuhyphen.app.api.service.fields.FieldValueEntry
-import com.docuhyphen.app.api.service.fields.FieldValueReadCommand
-import com.docuhyphen.app.api.service.fields.FieldValueSetRef
-import com.docuhyphen.app.api.service.fields.FieldValueWriteCommand
-import com.docuhyphen.app.api.service.fields.FieldsAccessContext
-import com.docuhyphen.app.api.service.fields.FieldsPrecondition
-import com.docuhyphen.app.api.service.fields.FieldsResourceRef
-import com.docuhyphen.app.api.service.fields.SchemaAssignmentService
+import com.docuhyphen.app.api.service.command.*
+import com.docuhyphen.app.api.service.fields.*
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestETag
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
 import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestEntitlementGuard
@@ -70,7 +44,7 @@ import jakarta.inject.Inject
 import jakarta.transaction.Transactional
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 interface InformationRequestResponseStore
 {
@@ -199,8 +173,11 @@ class InformationRequestResponseDraftService @Inject constructor(
             }
         }
 
-        val fieldResultsByRequirement = writeBatchedFieldValues(request.id, requirements, command.access, command.patches)
-        fieldResultsByRequirement.forEach { (requirementId, result) -> fieldValueProjections[requirementId] = result.projection }
+        val fieldResultsByRequirement =
+            writeBatchedFieldValues(request.id, requirements, command.access, command.patches)
+        fieldResultsByRequirement.forEach { (requirementId, result) ->
+            fieldValueProjections[requirementId] = result.projection
+        }
 
         command.patches.forEach { patch ->
             val requirement = requirements.getValue(patch.requirementId)
@@ -365,7 +342,7 @@ class InformationRequestResponseDraftService @Inject constructor(
     ): InformationRequestResponse?
     {
         val nextDisposition = patch.disposition ?: current?.disposition
-            ?: InformationRequestResponseDisposition.NOT_ANSWERED
+        ?: InformationRequestResponseDisposition.NOT_ANSWERED
         val nextNarrative = when (patch.narrative)
         {
             ResponseNarrativePatch.Unchanged -> current?.narrative
@@ -382,7 +359,8 @@ class InformationRequestResponseDraftService @Inject constructor(
             current.hiddenDataPolicy == null &&
             current.hiddenAt == null &&
             current.reconfirmationRequiredByAmendmentId == null &&
-            !fieldValuesChanged)
+            !fieldValuesChanged
+        )
         {
             return null
         }
@@ -459,9 +437,16 @@ class InformationRequestResponseDraftService @Inject constructor(
                     now = now,
                 )
             }
-            val fieldsCleared = if (evaluation.hiddenDataPolicy == InformationRequestConditionHiddenDataPolicy.CLEAR_WITH_CONFIRMATION)
-                clearHiddenFields(request.id, requirement, binding.collectedFieldDefinitionId, confirmedClears, access)
-            else false
+            val fieldsCleared =
+                if (evaluation.hiddenDataPolicy == InformationRequestConditionHiddenDataPolicy.CLEAR_WITH_CONFIRMATION)
+                    clearHiddenFields(
+                        request.id,
+                        requirement,
+                        binding.collectedFieldDefinitionId,
+                        confirmedClears,
+                        access
+                    )
+                else false
             val responseToHide = response ?: if (fieldsCleared)
                 responseStore.save(InformationRequestResponse().apply {
                     informationRequestId = request.id
@@ -497,7 +482,8 @@ class InformationRequestResponseDraftService @Inject constructor(
         if (response.activeInResponse ||
             response.hiddenByConditionRuleKey != ruleKey ||
             response.hiddenDataPolicy == null ||
-            response.hiddenAt == null)
+            response.hiddenAt == null
+        )
         {
             return null
         }
@@ -543,7 +529,8 @@ class InformationRequestResponseDraftService @Inject constructor(
         if (!response.activeInResponse &&
             response.hiddenByConditionRuleKey == ruleKey &&
             response.hiddenDataPolicy == policy &&
-            response.hiddenAt != null)
+            response.hiddenAt != null
+        )
         {
             if (!fieldsCleared) return null
         }
@@ -559,8 +546,8 @@ class InformationRequestResponseDraftService @Inject constructor(
 
     private fun InformationRequestResponse.hasActiveResponseData(): Boolean =
         disposition != InformationRequestResponseDisposition.NOT_ANSWERED ||
-            narrative != null ||
-            fieldValueSetId != null
+                narrative != null ||
+                fieldValueSetId != null
 
     private fun clearHiddenFields(
         requestId: UUID,
@@ -575,18 +562,27 @@ class InformationRequestResponseDraftService @Inject constructor(
         val resource = FieldsResourceRef(ResourceType.INFORMATION_REQUEST.name, requestId)
         val fieldsAccess = FieldsAccessContext(access.principal, access.authorization)
         val projection = schemaAssignmentService.getAssignment(FieldValueReadCommand(resource, fieldsAccess, valueSet))
-            ?: throw InformationRequestLifecycleException(InformationRequestErrorCatalog.STATE_INVALID,
-                "The collected Field cannot be resolved for clearing")
-        val field = InformationRequestActiveResponseProjection.field(projection, fieldDefinitionId).fields.singleOrNull()
-            ?: throw ForbiddenException("Access denied to clear the collected Field")
+            ?: throw InformationRequestLifecycleException(
+                InformationRequestErrorCatalog.STATE_INVALID,
+                "The collected Field cannot be resolved for clearing"
+            )
+        val field =
+            InformationRequestActiveResponseProjection.field(projection, fieldDefinitionId).fields.singleOrNull()
+                ?: throw ForbiddenException("Access denied to clear the collected Field")
         if (field.isEmpty) return false
         if (requirement.id !in confirmedClears)
-            throw InformationRequestLifecycleException(InformationRequestErrorCatalog.HIDDEN_RESPONSE_CLEAR_CONFIRMATION_REQUIRED,
-                "Hidden response data requires explicit clearing confirmation")
+            throw InformationRequestLifecycleException(
+                InformationRequestErrorCatalog.HIDDEN_RESPONSE_CLEAR_CONFIRMATION_REQUIRED,
+                "Hidden response data requires explicit clearing confirmation"
+            )
         authorize(access, requirement.id)
-        schemaAssignmentService.clearValues(FieldValueClearCommand(resource, fieldsAccess,
-            setOf(field.fieldContractId), valueSet,
-            FieldsPrecondition.ExpectedRevision(requireNotNull(projection.etag))))
+        schemaAssignmentService.clearValues(
+            FieldValueClearCommand(
+                resource, fieldsAccess,
+                setOf(field.fieldContractId), valueSet,
+                FieldsPrecondition.ExpectedRevision(requireNotNull(projection.etag))
+            )
+        )
         return true
     }
 
@@ -639,7 +635,7 @@ class InformationRequestResponseDraftService @Inject constructor(
             fieldValueProjectionsByRequirementId = command.patches
                 .filter {
                     it.fieldValues != null &&
-                        responses.any { response -> response.informationRequestRequirementId == it.requirementId }
+                            responses.any { response -> response.informationRequestRequirementId == it.requirementId }
                 }
                 .associate { patch ->
                     val requirement = replayedRequirements.getValue(patch.requirementId)
@@ -659,22 +655,22 @@ class InformationRequestResponseDraftService @Inject constructor(
     private fun fingerprint(command: PatchInformationRequestResponsesCommand): String =
         CommandRequestFingerprint.sha256Hex(
             (listOf(PATCH_RESPONSES_OPERATION, command.requestId.toString()) +
-                command.patches.map { patch ->
-                    val narrative = when (val value = patch.narrative)
-                    {
-                        ResponseNarrativePatch.Unchanged -> "narrative:unchanged"
-                        ResponseNarrativePatch.Clear -> "narrative:clear"
-                        is ResponseNarrativePatch.Set -> "narrative:set:${value.value}"
-                    }
-                    val fields = patch.fieldValues?.let { fieldPatch ->
-                        fieldPatch.entries.joinToString(
-                            prefix = "fields:${fieldPreconditionFingerprint(fieldPatch.precondition)}:",
-                            separator = ",",
-                        ) { entry -> "${entry.fieldContractId}=${entry.value}" }
-                    }.orEmpty()
-                    "${patch.requirementId}|${patch.disposition?.name.orEmpty()}|$narrative|$fields"
-                } +
-                command.confirmedHiddenResponseClears.map { "confirmed-clear:$it" }.sorted()).joinToString("|"),
+                    command.patches.map { patch ->
+                        val narrative = when (val value = patch.narrative)
+                        {
+                            ResponseNarrativePatch.Unchanged -> "narrative:unchanged"
+                            ResponseNarrativePatch.Clear -> "narrative:clear"
+                            is ResponseNarrativePatch.Set -> "narrative:set:${value.value}"
+                        }
+                        val fields = patch.fieldValues?.let { fieldPatch ->
+                            fieldPatch.entries.joinToString(
+                                prefix = "fields:${fieldPreconditionFingerprint(fieldPatch.precondition)}:",
+                                separator = ",",
+                            ) { entry -> "${entry.fieldContractId}=${entry.value}" }
+                        }.orEmpty()
+                        "${patch.requirementId}|${patch.disposition?.name.orEmpty()}|$narrative|$fields"
+                    } +
+                    command.confirmedHiddenResponseClears.map { "confirmed-clear:$it" }.sorted()).joinToString("|"),
         )
 
     /**
@@ -682,9 +678,13 @@ class InformationRequestResponseDraftService @Inject constructor(
      * patches against it must resolve to that same Field, never a Field bound to a different
      * Requirement that happens to share the same occurrence.
      */
-    private fun requireEntriesBoundToRequirement(requirement: InformationRequestRequirement, entries: List<FieldValueEntry>)
+    private fun requireEntriesBoundToRequirement(
+        requirement: InformationRequestRequirement,
+        entries: List<FieldValueEntry>
+    )
     {
-        val collectedFieldDefinitionId = bindingRepository.findById(requirement.sourceTemplateBindingId)?.collectedFieldDefinitionId
+        val collectedFieldDefinitionId =
+            bindingRepository.findById(requirement.sourceTemplateBindingId)?.collectedFieldDefinitionId
         entries.forEach { entry ->
             val fieldDefinitionId = fieldContractRepository.findById(entry.fieldContractId)?.fieldDefinitionId
             if (fieldDefinitionId == null || fieldDefinitionId != collectedFieldDefinitionId)
@@ -730,12 +730,16 @@ class InformationRequestResponseDraftService @Inject constructor(
                         precondition = precondition,
                     ),
                 )
-                val assignment = schemaAssignmentRepository.findByResource(ResourceType.INFORMATION_REQUEST.name, requestId)
-                    ?: throw IllegalStateException("No schema is assigned")
+                val assignment =
+                    schemaAssignmentRepository.findByResource(ResourceType.INFORMATION_REQUEST.name, requestId)
+                        ?: throw IllegalStateException("No schema is assigned")
                 val valueSetId = when (valueSet)
                 {
                     FieldValueSetRef.Root -> fieldValueSetRepository.findRoot(assignment.id)?.id
-                    is FieldValueSetRef.Occurrence -> fieldValueSetRepository.findOccurrence(assignment.id, valueSet.occurrencePath)?.id
+                    is FieldValueSetRef.Occurrence -> fieldValueSetRepository.findOccurrence(
+                        assignment.id,
+                        valueSet.occurrencePath
+                    )?.id
                 } ?: throw IllegalStateException("Field Value Set was not stored")
                 val changed = when (precondition)
                 {
@@ -777,15 +781,25 @@ class InformationRequestResponseDraftService @Inject constructor(
         return activeFieldProjection(requestId, requirement, projection)
     }
 
-    private fun activeFieldProjection(requestId: UUID, requirement: InformationRequestRequirement,
-                                      projection: SchemaAssignmentDto): SchemaAssignmentDto
+    private fun activeFieldProjection(
+        requestId: UUID, requirement: InformationRequestRequirement,
+        projection: SchemaAssignmentDto
+    ): SchemaAssignmentDto
     {
         val binding = bindingRepository.findById(requirement.sourceTemplateBindingId)
-            ?: bindingRepository.findOrdered(requirement.sourceTemplateVersionId).firstOrNull { it.id == requirement.sourceTemplateBindingId }
-        val response = responseStore.findAllForRequest(requestId).firstOrNull { it.informationRequestRequirementId == requirement.id }
-        val active = InformationRequestActiveResponseProjection.isActive(binding?.conditionalRuleKey,
-            requirement.occurrencePath, conditionEvaluationService.evaluate(requestId), response?.activeInResponse != false)
-        return InformationRequestActiveResponseProjection.field(projection, binding?.collectedFieldDefinitionId.takeIf { active })
+            ?: bindingRepository.findOrdered(requirement.sourceTemplateVersionId)
+                .firstOrNull { it.id == requirement.sourceTemplateBindingId }
+        val response = responseStore.findAllForRequest(requestId)
+            .firstOrNull { it.informationRequestRequirementId == requirement.id }
+        val active = InformationRequestActiveResponseProjection.isActive(
+            binding?.conditionalRuleKey,
+            requirement.occurrencePath,
+            conditionEvaluationService.evaluate(requestId),
+            response?.activeInResponse != false
+        )
+        return InformationRequestActiveResponseProjection.field(
+            projection,
+            binding?.collectedFieldDefinitionId.takeIf { active })
     }
 
     private fun activeResponses(requestId: UUID, maxResponseRevision: Long? = null): List<InformationRequestResponse>
@@ -799,9 +813,12 @@ class InformationRequestResponseDraftService @Inject constructor(
             if (maxResponseRevision != null && response.responseRevision > maxResponseRevision) return@filter false
             val requirement = requirements[response.informationRequestRequirementId] ?: return@filter false
             val binding = bindingRepository.findById(requirement.sourceTemplateBindingId)
-                ?: bindingRepository.findOrdered(requirement.sourceTemplateVersionId).firstOrNull { it.id == requirement.sourceTemplateBindingId }
-            InformationRequestActiveResponseProjection.isActive(binding?.conditionalRuleKey, requirement.occurrencePath,
-                evaluations, response.activeInResponse)
+                ?: bindingRepository.findOrdered(requirement.sourceTemplateVersionId)
+                    .firstOrNull { it.id == requirement.sourceTemplateBindingId }
+            InformationRequestActiveResponseProjection.isActive(
+                binding?.conditionalRuleKey, requirement.occurrencePath,
+                evaluations, response.activeInResponse
+            )
         }
     }
 

@@ -30,7 +30,7 @@ class InformationRequestAttestationCompletenessEvaluator @Inject constructor(
             val binding = bindingsById[requirement.sourceTemplateBindingId] ?: return@mapNotNull null
             val disposition = responsesByRequirement[requirement.id]?.disposition
             val complete = evaluation.evaluation.state == InformationRequestAttestationState.SATISFIED ||
-                disposition.isCompletingException()
+                    disposition.isCompletingException()
             val conditionState = binding.conditionalRuleKey?.let { ruleKey ->
                 (conditionByScope[ruleKey to requirement.occurrencePath]
                     ?: conditionByScope[ruleKey to InformationRequestOccurrencePath.ROOT])?.state
@@ -38,10 +38,12 @@ class InformationRequestAttestationCompletenessEvaluator @Inject constructor(
             val state = when
             {
                 binding.requiredness == InformationRequestRequiredness.CONDITIONAL &&
-                    conditionState != InformationRequestConditionEvaluationState.TRUE ->
+                        conditionState != InformationRequestConditionEvaluationState.TRUE ->
                     InformationRequestCompletenessItemState.HIDDEN
+
                 binding.requiredness == InformationRequestRequiredness.OPTIONAL && !complete ->
                     InformationRequestCompletenessItemState.OPTIONAL_UNANSWERED
+
                 complete -> InformationRequestCompletenessItemState.COMPLETE
                 else -> InformationRequestCompletenessItemState.INCOMPLETE
             }
@@ -51,7 +53,7 @@ class InformationRequestAttestationCompletenessEvaluator @Inject constructor(
                 occurrencePath = requirement.occurrencePath,
                 state = state,
                 contributesToDenominator = state == InformationRequestCompletenessItemState.COMPLETE ||
-                    state == InformationRequestCompletenessItemState.INCOMPLETE,
+                        state == InformationRequestCompletenessItemState.INCOMPLETE,
                 contributesToNumerator = state == InformationRequestCompletenessItemState.COMPLETE,
             )
         }
@@ -59,6 +61,6 @@ class InformationRequestAttestationCompletenessEvaluator @Inject constructor(
 
     private fun InformationRequestResponseDisposition?.isCompletingException(): Boolean =
         this != null &&
-            this != InformationRequestResponseDisposition.NOT_ANSWERED &&
-            this != InformationRequestResponseDisposition.PROVIDED
+                this != InformationRequestResponseDisposition.NOT_ANSWERED &&
+                this != InformationRequestResponseDisposition.PROVIDED
 }

@@ -3,7 +3,7 @@ package com.docuhyphen.app.api.model.entity
 import jakarta.persistence.*
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 /**
  * An immutable published contract of a [SchemaDefinition]. Publishing a changed draft creates a
