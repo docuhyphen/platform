@@ -3,42 +3,32 @@ package com.docuhyphen.app.api.resource.informationrequest
 import com.docuhyphen.app.api.model.InformationRequestGroupOccurrenceDtoMapper
 import com.docuhyphen.app.api.model.InformationRequestResponseDtoMapper
 import com.docuhyphen.app.api.model.InformationRequestResponsePatchRequestMapper
+import com.docuhyphen.app.api.model.informationrequest.occurrence.AddInformationRequestGroupOccurrenceCommand
+import com.docuhyphen.app.api.model.informationrequest.occurrence.InformationRequestGroupOccurrenceResult
+import com.docuhyphen.app.api.model.informationrequest.occurrence.RemoveInformationRequestGroupOccurrenceCommand
+import com.docuhyphen.app.api.model.informationrequest.occurrence.ReorderInformationRequestGroupOccurrencesCommand
+import com.docuhyphen.app.api.model.informationrequest.response.InformationRequestResponseDraftResult
+import com.docuhyphen.app.api.model.informationrequest.response.PatchInformationRequestResponsesCommand
 import com.docuhyphen.app.api.resource.command.CommandPreconditionHeader
 import com.docuhyphen.app.api.resource.command.CommandPreconditionResponse
+import com.docuhyphen.app.api.resource.informationrequest.operations.InformationRequestNoAuthRequestResourceOperations
 import com.docuhyphen.app.api.resource.model.CreateInformationRequestGroupOccurrenceRequest
 import com.docuhyphen.app.api.resource.model.PatchInformationRequestResponsesRequest
 import com.docuhyphen.app.api.resource.model.ReorderInformationRequestGroupOccurrencesRequest
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.service.command.CommandPreconditionException
 import com.docuhyphen.app.api.service.command.CommandReceiptConflictException
-import com.docuhyphen.app.api.service.informationrequest.AddInformationRequestGroupOccurrenceCommand
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestGroupOccurrenceResult
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestGroupOccurrenceService
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestLifecycleException
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestNoAuthReadAccessService
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestPartyQueryService
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestResponseDraftResult
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestResponseDraftService
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestResponseWorkspaceService
-import com.docuhyphen.app.api.service.informationrequest.PatchInformationRequestResponsesCommand
-import com.docuhyphen.app.api.service.informationrequest.RemoveInformationRequestGroupOccurrenceCommand
-import com.docuhyphen.app.api.service.informationrequest.ReorderInformationRequestGroupOccurrencesCommand
 import com.docuhyphen.app.api.service.fields.FieldValidationException
 import com.docuhyphen.app.api.service.fields.FieldsPreconditionException
+import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestLifecycleException
+import com.docuhyphen.app.api.service.informationrequest.noauth.InformationRequestNoAuthReadAccessService
+import com.docuhyphen.app.api.service.informationrequest.occurrence.InformationRequestGroupOccurrenceService
+import com.docuhyphen.app.api.service.informationrequest.party.InformationRequestPartyQueryService
+import com.docuhyphen.app.api.service.informationrequest.response.InformationRequestResponseDraftService
+import com.docuhyphen.app.api.service.informationrequest.response.InformationRequestResponseWorkspaceService
 import io.quarkus.security.ForbiddenException
 import io.quarkus.security.UnauthorizedException
 import jakarta.inject.Inject
-import jakarta.ws.rs.Consumes
-import jakarta.ws.rs.DELETE
-import jakarta.ws.rs.GET
-import jakarta.ws.rs.HeaderParam
-import jakarta.ws.rs.PATCH
-import jakarta.ws.rs.POST
-import jakarta.ws.rs.Path
-import jakarta.ws.rs.PathParam
-import jakarta.ws.rs.Produces
-import jakarta.ws.rs.core.HttpHeaders.IF_MATCH
-import jakarta.ws.rs.core.MediaType.APPLICATION_JSON
 import jakarta.ws.rs.core.Response
 import jakarta.ws.rs.core.Response.Status.BAD_REQUEST
 import jakarta.ws.rs.core.Response.Status.CONFLICT
@@ -51,22 +41,18 @@ import jakarta.ws.rs.core.Response.Status.UNAUTHORIZED
 import org.slf4j.LoggerFactory
 import java.util.UUID
 
-@Path("no-auth/information-requests/{id}")
-@Produces(APPLICATION_JSON)
-@Consumes(APPLICATION_JSON)
 class InformationRequestNoAuthRequestResource @Inject constructor(
     private val readAccessService: InformationRequestNoAuthReadAccessService,
     private val partyQueryService: InformationRequestPartyQueryService,
     private val responseDraftService: InformationRequestResponseDraftService,
     private val occurrenceService: InformationRequestGroupOccurrenceService,
     private val responseWorkspaceService: InformationRequestResponseWorkspaceService,
-)
+) : InformationRequestNoAuthRequestResourceOperations
 {
-    @GET
-    fun get(
-        @PathParam("id") id: String,
-        @HeaderParam(ACCESS_LINK_TOKEN_HEADER) accessLinkToken: String?,
-        @HeaderParam("X-Request-Session-Token") sessionToken: String? = null,
+    override fun get(
+        id: String,
+        accessLinkToken: String?,
+        sessionToken: String?,
     ): Response
     {
         return try
@@ -86,12 +72,10 @@ class InformationRequestNoAuthRequestResource @Inject constructor(
         }
     }
 
-    @GET
-    @Path("/parties")
-    fun parties(
-        @PathParam("id") id: String,
-        @HeaderParam(ACCESS_LINK_TOKEN_HEADER) accessLinkToken: String?,
-        @HeaderParam("X-Request-Session-Token") sessionToken: String? = null,
+    override fun parties(
+        id: String,
+        accessLinkToken: String?,
+        sessionToken: String?,
     ): Response
     {
         return try
@@ -112,12 +96,10 @@ class InformationRequestNoAuthRequestResource @Inject constructor(
         }
     }
 
-    @GET
-    @Path("/response-workspace")
-    fun responseWorkspace(
-        @PathParam("id") id: String,
-        @HeaderParam(ACCESS_LINK_TOKEN_HEADER) accessLinkToken: String?,
-        @HeaderParam("X-Request-Session-Token") sessionToken: String? = null,
+    override fun responseWorkspace(
+        id: String,
+        accessLinkToken: String?,
+        sessionToken: String?,
     ): Response
     {
         return try
@@ -137,15 +119,13 @@ class InformationRequestNoAuthRequestResource @Inject constructor(
         }
     }
 
-    @PATCH
-    @Path("/responses")
-    fun patchResponses(
-        @PathParam("id") id: String,
+    override fun patchResponses(
+        id: String,
         request: PatchInformationRequestResponsesRequest,
-        @HeaderParam(ACCESS_LINK_TOKEN_HEADER) accessLinkToken: String?,
-        @HeaderParam(IF_MATCH) ifMatch: String?,
-        @HeaderParam(IDEMPOTENCY_KEY_HEADER) idempotencyKey: String?,
-        @HeaderParam("X-Request-Session-Token") sessionToken: String? = null,
+        accessLinkToken: String?,
+        ifMatch: String?,
+        idempotencyKey: String?,
+        sessionToken: String?,
     ): Response
     {
         return try
@@ -182,15 +162,13 @@ class InformationRequestNoAuthRequestResource @Inject constructor(
         }
     }
 
-    @POST
-    @Path("/group-occurrences")
-    fun addGroupOccurrence(
-        @PathParam("id") id: String,
+    override fun addGroupOccurrence(
+        id: String,
         request: CreateInformationRequestGroupOccurrenceRequest,
-        @HeaderParam(ACCESS_LINK_TOKEN_HEADER) accessLinkToken: String?,
-        @HeaderParam(IF_MATCH) ifMatch: String?,
-        @HeaderParam(IDEMPOTENCY_KEY_HEADER) idempotencyKey: String?,
-        @HeaderParam("X-Request-Session-Token") sessionToken: String? = null,
+        accessLinkToken: String?,
+        ifMatch: String?,
+        idempotencyKey: String?,
+        sessionToken: String?,
     ): Response
     {
         return try
@@ -224,15 +202,13 @@ class InformationRequestNoAuthRequestResource @Inject constructor(
         }
     }
 
-    @DELETE
-    @Path("/group-occurrences/{occurrenceId}")
-    fun removeGroupOccurrence(
-        @PathParam("id") id: String,
-        @PathParam("occurrenceId") occurrenceId: String,
-        @HeaderParam(ACCESS_LINK_TOKEN_HEADER) accessLinkToken: String?,
-        @HeaderParam(IF_MATCH) ifMatch: String?,
-        @HeaderParam(IDEMPOTENCY_KEY_HEADER) idempotencyKey: String?,
-        @HeaderParam("X-Request-Session-Token") sessionToken: String? = null,
+    override fun removeGroupOccurrence(
+        id: String,
+        occurrenceId: String,
+        accessLinkToken: String?,
+        ifMatch: String?,
+        idempotencyKey: String?,
+        sessionToken: String?,
     ): Response
     {
         return try
@@ -265,15 +241,13 @@ class InformationRequestNoAuthRequestResource @Inject constructor(
         }
     }
 
-    @PATCH
-    @Path("/group-occurrences/order")
-    fun reorderGroupOccurrences(
-        @PathParam("id") id: String,
+    override fun reorderGroupOccurrences(
+        id: String,
         request: ReorderInformationRequestGroupOccurrencesRequest,
-        @HeaderParam(ACCESS_LINK_TOKEN_HEADER) accessLinkToken: String?,
-        @HeaderParam(IF_MATCH) ifMatch: String?,
-        @HeaderParam(IDEMPOTENCY_KEY_HEADER) idempotencyKey: String?,
-        @HeaderParam("X-Request-Session-Token") sessionToken: String? = null,
+        accessLinkToken: String?,
+        ifMatch: String?,
+        idempotencyKey: String?,
+        sessionToken: String?,
     ): Response
     {
         return try
@@ -386,8 +360,6 @@ class InformationRequestNoAuthRequestResource @Inject constructor(
 
     private companion object
     {
-        const val ACCESS_LINK_TOKEN_HEADER = "X-Request-Access-Token"
-        const val IDEMPOTENCY_KEY_HEADER = "Idempotency-Key"
         val logger = LoggerFactory.getLogger(InformationRequestNoAuthRequestResource::class.java)
     }
 }

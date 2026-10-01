@@ -3,8 +3,8 @@ package com.docuhyphen.app.api.service.informationrequest
 import com.docuhyphen.app.api.model.entity.InformationRequest
 import com.docuhyphen.app.api.model.entity.InformationRequestTemplateDefinition
 import com.docuhyphen.app.api.model.entity.InformationRequestTemplateVersion
-import com.docuhyphen.app.api.repository.informationrequest.InformationRequestTemplateDefinitionRepository
-import com.docuhyphen.app.api.repository.informationrequest.InformationRequestTemplateVersionRepository
+import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateDefinitionRepository
+import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateVersionRepository
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any

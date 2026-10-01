@@ -4,7 +4,7 @@ import com.docuhyphen.app.api.migration.SubmissionRuntimeSqlFixture
 import com.docuhyphen.app.api.migration.execute
 import com.docuhyphen.app.api.model.entity.InformationRequestOwnerType
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
-import com.docuhyphen.app.api.repository.informationrequest.RequestExecutionGrantRepository
+import com.docuhyphen.app.api.repository.informationrequest.execution.RequestExecutionGrantRepository
 import com.docuhyphen.app.api.service.exchange.DocumentVersionStoragePostgreSQLResource
 import com.docuhyphen.app.api.service.subscription.SubscriptionOwnerType
 import io.quarkus.narayana.jta.QuarkusTransaction

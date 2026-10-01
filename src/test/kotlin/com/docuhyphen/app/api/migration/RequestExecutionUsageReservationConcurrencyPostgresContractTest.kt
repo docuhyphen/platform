@@ -118,7 +118,7 @@ class RequestExecutionUsageReservationConcurrencyPostgresContractTest
     }
 
     /**
-     * Mirrors [com.docuhyphen.app.api.service.informationrequest.InformationRequestExecutionUsageReservationService.reserve]'s
+     * Mirrors [com.docuhyphen.app.api.service.informationrequest.execution.InformationRequestExecutionUsageReservationService.reserve]'s
      * lock-then-check-then-insert sequence directly in SQL so the pessimistic lock's actual
      * serialization can be exercised by real concurrent transactions, something a mocked
      * repository cannot prove.

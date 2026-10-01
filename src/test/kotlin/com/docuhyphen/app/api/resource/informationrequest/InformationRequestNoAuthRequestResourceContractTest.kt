@@ -17,26 +17,27 @@ import com.docuhyphen.app.api.model.entity.InformationRequestResponseDisposition
 import com.docuhyphen.app.api.model.entity.InformationRequestShareRoleKey
 import com.docuhyphen.app.api.model.entity.PrincipalKind
 import com.docuhyphen.app.api.model.entity.SchemaAssignmentSource
+import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
+import com.docuhyphen.app.api.model.informationrequest.condition.InformationRequestConditionEvaluationProjection
+import com.docuhyphen.app.api.model.informationrequest.condition.InformationRequestConditionEvaluationState
+import com.docuhyphen.app.api.model.informationrequest.noauth.InformationRequestNoAuthAccess
+import com.docuhyphen.app.api.model.informationrequest.occurrence.InformationRequestGroupOccurrenceResult
+import com.docuhyphen.app.api.model.informationrequest.response.InformationRequestResponseDraftResult
+import com.docuhyphen.app.api.model.informationrequest.response.PatchInformationRequestResponsesCommand
+import com.docuhyphen.app.api.resource.informationrequest.operations.InformationRequestNoAuthRequestResourceOperations
 import com.docuhyphen.app.api.resource.model.CreateInformationRequestGroupOccurrenceRequest
 import com.docuhyphen.app.api.resource.model.InformationRequestResponsePatchRequest
 import com.docuhyphen.app.api.resource.model.PatchInformationRequestResponsesRequest
 import com.docuhyphen.app.api.resource.model.ReorderInformationRequestGroupOccurrencesRequest
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestConditionEvaluationProjection
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestConditionEvaluationState
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestGroupOccurrenceResult
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestGroupOccurrenceService
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestLifecycleException
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestNoAuthAccess
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestNoAuthReadAccessService
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestPartyQueryService
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestResponseDraftResult
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestResponseDraftService
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestResponseWorkspaceService
-import com.docuhyphen.app.api.service.informationrequest.PatchInformationRequestResponsesCommand
-import com.docuhyphen.app.api.service.informationrequest.RequestAccessContext
+import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestLifecycleException
+import com.docuhyphen.app.api.service.informationrequest.noauth.InformationRequestNoAuthReadAccessService
+import com.docuhyphen.app.api.service.informationrequest.occurrence.InformationRequestGroupOccurrenceService
+import com.docuhyphen.app.api.service.informationrequest.party.InformationRequestPartyQueryService
+import com.docuhyphen.app.api.service.informationrequest.response.InformationRequestResponseDraftService
+import com.docuhyphen.app.api.service.informationrequest.response.InformationRequestResponseWorkspaceService
 import kotlinx.serialization.json.JsonPrimitive
 import io.quarkus.security.ForbiddenException
 import jakarta.ws.rs.DELETE
@@ -163,7 +164,7 @@ class InformationRequestNoAuthRequestResourceContractTest
     @Test
     fun `resource is mounted under the no-auth request prefix and exposes get, parties, and response patch`()
     {
-        val resourceClass = InformationRequestNoAuthRequestResource::class.java
+        val resourceClass = InformationRequestNoAuthRequestResourceOperations::class.java
         val methods = resourceClass.declaredMethods.associateBy { it.name }
         for (name in listOf("get", "parties", "responseWorkspace", "patchResponses", "addGroupOccurrence",
             "removeGroupOccurrence", "reorderGroupOccurrences"))
@@ -261,7 +262,7 @@ class InformationRequestNoAuthRequestResourceContractTest
 
         assertEquals(Response.Status.OK.statusCode, response.status)
         @Suppress("UNCHECKED_CAST")
-        val body = response.entity as List<InformationRequestPartyDto>
+        val body = response.entity as Array<InformationRequestPartyDto>
         assertEquals(1, body.size)
     }
 

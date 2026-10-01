@@ -25,7 +25,7 @@ import com.docuhyphen.app.api.resource.model.ReplacePrimaryRecipientRequest
 import com.docuhyphen.app.api.resource.model.UpdateExchangeRequest
 import com.docuhyphen.app.api.service.exchange.*
 import com.docuhyphen.app.api.service.fields.FieldValidationException
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestExchangeCompletionException
+import com.docuhyphen.app.api.service.informationrequest.parent.InformationRequestExchangeCompletionException
 import com.docuhyphen.app.api.service.user.AppUserService
 import com.docuhyphen.app.api.service.workflow.WorkflowDefinitionService
 import com.docuhyphen.app.api.service.storage.FileStorageService

@@ -3,8 +3,8 @@ package com.docuhyphen.app.api.model
 import com.docuhyphen.app.api.model.dto.InformationRequestExchangeListingDto
 import com.docuhyphen.app.api.model.dto.InformationRequestSummaryDto
 import com.docuhyphen.app.api.model.dto.InformationRequestSummaryPermissionsDto
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestExchangeListing
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestSummary
+import com.docuhyphen.app.api.model.informationrequest.parent.InformationRequestExchangeListing
+import com.docuhyphen.app.api.model.informationrequest.parent.InformationRequestSummary
 import java.sql.Timestamp
 
 object InformationRequestSummaryDtoMapper

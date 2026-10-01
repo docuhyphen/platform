@@ -4,8 +4,8 @@ import com.docuhyphen.app.api.model.dto.InformationRequestNoticeAttemptDto
 import com.docuhyphen.app.api.model.dto.InformationRequestNoticeHistoryDto
 import com.docuhyphen.app.api.model.dto.InformationRequestNoticeSequenceAllocationDto
 import com.docuhyphen.app.api.model.entity.InformationRequestNoticeSequenceAllocation
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestNoticeView
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestNoticeQueryService
+import com.docuhyphen.app.api.model.informationrequest.notice.InformationRequestNoticeView
+import com.docuhyphen.app.api.service.informationrequest.notice.InformationRequestNoticeQueryService
 
 object InformationRequestNoticeDtoMapper
 {

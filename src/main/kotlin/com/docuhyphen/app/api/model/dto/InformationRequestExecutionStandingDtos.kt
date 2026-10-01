@@ -1,7 +1,7 @@
 package com.docuhyphen.app.api.model.dto
 
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestExecutionStandingKind
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestStandingReason
+import com.docuhyphen.app.api.model.informationrequest.execution.InformationRequestExecutionStandingKind
+import com.docuhyphen.app.api.model.informationrequest.execution.InformationRequestStandingReason
 import kotlinx.serialization.Serializable
 
 @Serializable

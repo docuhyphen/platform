@@ -1,8 +1,8 @@
 package com.docuhyphen.app.api.config
 
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestEvidenceScanSettings
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestEvidenceMalwareScanner
-import com.docuhyphen.app.api.service.informationrequest.UnconfiguredInformationRequestEvidenceMalwareScanner
+import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceScanSettings
+import com.docuhyphen.app.api.service.informationrequest.evidence.InformationRequestEvidenceMalwareScanner
+import com.docuhyphen.app.api.service.informationrequest.evidence.UnconfiguredInformationRequestEvidenceMalwareScanner
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.enterprise.inject.Produces
 import jakarta.inject.Inject

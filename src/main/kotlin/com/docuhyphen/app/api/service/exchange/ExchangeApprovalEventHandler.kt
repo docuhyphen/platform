@@ -3,6 +3,9 @@ package com.docuhyphen.app.api.service.exchange
 import com.docuhyphen.app.api.model.entity.ExchangeStatus
 import com.docuhyphen.app.api.model.entity.ResourceType
 import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
+import com.docuhyphen.app.api.service.informationrequest.parent.InformationRequestExchangeCompletionException
+import com.docuhyphen.app.api.service.informationrequest.parent.InformationRequestExchangeCompletionService
+import com.docuhyphen.app.api.service.informationrequest.parent.InformationRequestParentLifecycleService
 import com.docuhyphen.app.api.service.notification.DomainEvent
 import com.docuhyphen.app.api.service.organization.OrganizationService
 import com.docuhyphen.app.api.service.workflow.TriggerRequest
@@ -17,9 +20,6 @@ import java.util.UUID
 import com.docuhyphen.app.api.model.entity.Exchange
 import com.docuhyphen.app.api.model.entity.PrincipalKind
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestExchangeCompletionException
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestExchangeCompletionService
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestParentLifecycleService
 
 /**
  * Applies the side-effects of workflow lifecycle events to the Exchange and Share models.

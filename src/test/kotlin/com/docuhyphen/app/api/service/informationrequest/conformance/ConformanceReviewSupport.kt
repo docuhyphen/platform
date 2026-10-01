@@ -8,17 +8,17 @@ import com.docuhyphen.app.api.model.entity.InformationRequestReviewDecisionKind
 import com.docuhyphen.app.api.model.entity.InformationRequestReviewFinding
 import com.docuhyphen.app.api.model.entity.InformationRequestReviewOutcome
 import com.docuhyphen.app.api.model.entity.InformationRequestReviewVisibility
-import com.docuhyphen.app.api.model.informationrequest.AssignInformationRequestReviewerCommand
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestReviewCommandResult
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestReviewDraftPatch
-import com.docuhyphen.app.api.model.informationrequest.RecordInformationRequestReviewDecisionsCommand
-import com.docuhyphen.app.api.model.informationrequest.RecordInformationRequestReviewFindingCommand
-import com.docuhyphen.app.api.model.informationrequest.SaveInformationRequestReviewDraftCommand
-import com.docuhyphen.app.api.repository.informationrequest.InformationRequestReviewRepository
+import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
+import com.docuhyphen.app.api.model.informationrequest.review.AssignInformationRequestReviewerCommand
+import com.docuhyphen.app.api.model.informationrequest.review.InformationRequestReviewCommandResult
+import com.docuhyphen.app.api.model.informationrequest.review.InformationRequestReviewDraftPatch
+import com.docuhyphen.app.api.model.informationrequest.review.RecordInformationRequestReviewDecisionsCommand
+import com.docuhyphen.app.api.model.informationrequest.review.RecordInformationRequestReviewFindingCommand
+import com.docuhyphen.app.api.model.informationrequest.review.SaveInformationRequestReviewDraftCommand
+import com.docuhyphen.app.api.repository.informationrequest.review.InformationRequestReviewRepository
 import com.docuhyphen.app.api.service.command.CommandPrecondition
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestRuntimeServices
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestRuntimeTestServices
-import com.docuhyphen.app.api.service.informationrequest.RequestAccessContext
 import io.quarkus.narayana.jta.QuarkusTransaction
 import java.util.UUID
 

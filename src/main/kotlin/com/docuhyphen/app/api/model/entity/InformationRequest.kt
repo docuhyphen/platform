@@ -1,6 +1,6 @@
 package com.docuhyphen.app.api.model.entity
 
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestState
+import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestState
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.EnumType

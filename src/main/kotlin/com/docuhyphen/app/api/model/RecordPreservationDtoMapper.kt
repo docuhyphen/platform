@@ -12,8 +12,8 @@ import com.docuhyphen.app.api.model.entity.RecordDisposalTombstone
 import com.docuhyphen.app.api.model.entity.RecordPreservationHold
 import com.docuhyphen.app.api.model.entity.RecordPreservationHoldEvent
 import com.docuhyphen.app.api.model.entity.RecordRetentionSchedule
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestDisposalAssessment
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestDisposalStanding
+import com.docuhyphen.app.api.model.informationrequest.disposal.InformationRequestDisposalAssessment
+import com.docuhyphen.app.api.model.informationrequest.disposal.InformationRequestDisposalStanding
 import com.docuhyphen.app.api.model.recordpreservation.RecordDisposalView
 import com.docuhyphen.app.api.model.recordpreservation.RecordPreservationHoldView
 import com.docuhyphen.app.api.model.recordpreservation.RecordRetentionScheduleView

@@ -6,9 +6,9 @@ import com.docuhyphen.app.api.model.dto.InformationRequestClockPolicyDto
 import com.docuhyphen.app.api.model.dto.InformationRequestClockPolicyVersionDto
 import com.docuhyphen.app.api.model.dto.InformationRequestWorkingPeriodDto
 import com.docuhyphen.app.api.model.entity.InformationRequestClockEvent
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestClockPolicyVersionView
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestClockPolicyView
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestClockView
+import com.docuhyphen.app.api.model.informationrequest.clock.InformationRequestClockPolicyVersionView
+import com.docuhyphen.app.api.model.informationrequest.clock.InformationRequestClockPolicyView
+import com.docuhyphen.app.api.model.informationrequest.clock.InformationRequestClockView
 
 object InformationRequestClockDtoMapper
 {

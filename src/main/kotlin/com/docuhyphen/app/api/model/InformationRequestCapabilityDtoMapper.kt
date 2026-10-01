@@ -1,7 +1,7 @@
 package com.docuhyphen.app.api.model
 
 import com.docuhyphen.app.api.model.dto.InformationRequestCapabilitiesDto
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestCapabilities
+import com.docuhyphen.app.api.model.informationrequest.capability.InformationRequestCapabilities
 
 object InformationRequestCapabilityDtoMapper
 {

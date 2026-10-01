@@ -2,10 +2,10 @@ package com.docuhyphen.app.api.model
 
 import com.docuhyphen.app.api.model.entity.InformationRequest
 import com.docuhyphen.app.api.model.entity.InformationRequestOwnerType
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestConditionEvaluationProjection
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestConditionEvaluationState
+import com.docuhyphen.app.api.model.informationrequest.condition.InformationRequestConditionEvaluationProjection
+import com.docuhyphen.app.api.model.informationrequest.condition.InformationRequestConditionEvaluationState
+import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestState
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestETag
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestState
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import java.util.UUID

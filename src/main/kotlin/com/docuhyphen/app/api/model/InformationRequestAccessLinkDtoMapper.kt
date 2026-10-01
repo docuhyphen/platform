@@ -3,7 +3,7 @@ package com.docuhyphen.app.api.model
 import com.docuhyphen.app.api.model.dto.InformationRequestAccessLinkDto
 import com.docuhyphen.app.api.model.dto.InformationRequestAccessLinkIssuedDto
 import com.docuhyphen.app.api.model.entity.ShareLink
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestBootstrapShareLinkIssuance
+import com.docuhyphen.app.api.model.informationrequest.noauth.InformationRequestBootstrapShareLinkIssuance
 import java.util.*
 
 object InformationRequestAccessLinkDtoMapper

@@ -1,6 +1,6 @@
 package com.docuhyphen.app.api.config
 
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestAbuseLimits
+import com.docuhyphen.app.api.model.informationrequest.noauth.InformationRequestAbuseLimits
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.enterprise.inject.Produces
 import jakarta.inject.Inject

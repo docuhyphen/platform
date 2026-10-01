@@ -3,8 +3,8 @@ package com.docuhyphen.app.api.model
 import com.docuhyphen.app.api.model.dto.InformationRequestOperationsAssigneeDto
 import com.docuhyphen.app.api.model.dto.InformationRequestOperationsPageDto
 import com.docuhyphen.app.api.model.dto.InformationRequestOperationsRowDto
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestOperationsPage
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestOperationsRow
+import com.docuhyphen.app.api.model.informationrequest.oversight.InformationRequestOperationsPage
+import com.docuhyphen.app.api.model.informationrequest.oversight.InformationRequestOperationsRow
 import java.sql.Timestamp
 
 object InformationRequestOperationsDtoMapper

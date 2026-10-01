@@ -4,10 +4,10 @@ import com.docuhyphen.app.api.model.entity.InformationRequestRequirementType
 import com.docuhyphen.app.api.model.entity.InformationRequestResponseDisposition
 import com.docuhyphen.app.api.model.entity.InformationRequestSubmissionItem
 import com.docuhyphen.app.api.model.entity.InformationRequestSubmissionPackage
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestReadableSubmissionPackage
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestSubmissionPackageView
+import com.docuhyphen.app.api.model.informationrequest.response.InformationRequestCompletenessItemState
+import com.docuhyphen.app.api.model.informationrequest.submission.InformationRequestReadableSubmissionPackage
+import com.docuhyphen.app.api.model.informationrequest.submission.InformationRequestSubmissionPackageView
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import com.docuhyphen.app.api.service.informationrequest.model.InformationRequestCompletenessItemState
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import java.util.UUID

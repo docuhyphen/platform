@@ -1,9 +1,9 @@
 package com.docuhyphen.app.api.model
 
+import com.docuhyphen.app.api.model.informationrequest.response.InformationRequestResponsePatch
+import com.docuhyphen.app.api.model.informationrequest.response.ResponseFieldValuesPatch
+import com.docuhyphen.app.api.model.informationrequest.response.ResponseNarrativePatch
 import com.docuhyphen.app.api.resource.model.InformationRequestResponsePatchRequest
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestResponsePatch
-import com.docuhyphen.app.api.service.informationrequest.ResponseFieldValuesPatch
-import com.docuhyphen.app.api.service.informationrequest.ResponseNarrativePatch
 import com.docuhyphen.app.api.service.fields.FieldsPrecondition
 
 /**

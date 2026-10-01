@@ -10,9 +10,9 @@ import com.docuhyphen.app.api.model.dto.InformationRequestImportedValueReconcili
 import com.docuhyphen.app.api.model.entity.InformationRequestConnectorExchange
 import com.docuhyphen.app.api.model.entity.InformationRequestGeneratedOutput
 import com.docuhyphen.app.api.model.entity.PrincipalKind
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestDiscrepancyView
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestImportedValueReconciliation
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestImportedValueView
+import com.docuhyphen.app.api.model.informationrequest.externalsource.InformationRequestDiscrepancyView
+import com.docuhyphen.app.api.model.informationrequest.externalsource.InformationRequestImportedValueReconciliation
+import com.docuhyphen.app.api.model.informationrequest.externalsource.InformationRequestImportedValueView
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import kotlinx.serialization.json.Json
 import java.util.UUID

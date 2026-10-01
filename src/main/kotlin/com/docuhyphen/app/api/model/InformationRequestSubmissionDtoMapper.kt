@@ -16,14 +16,14 @@ import com.docuhyphen.app.api.model.entity.InformationRequestSubmissionAttestati
 import com.docuhyphen.app.api.model.entity.InformationRequestSubmissionEvidence
 import com.docuhyphen.app.api.model.entity.InformationRequestSubmissionItem
 import com.docuhyphen.app.api.model.fields.FieldValueRevisionValue
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestAttestationStanding
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestReadableSubmissionPackage
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestSubmissionAttestationResult
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestSubmissionItemProblem
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestSubmissionPackageView
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestSubmissionPreview
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestSubmissionReadiness
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestSubmissionResult
+import com.docuhyphen.app.api.model.informationrequest.submission.InformationRequestAttestationStanding
+import com.docuhyphen.app.api.model.informationrequest.submission.InformationRequestReadableSubmissionPackage
+import com.docuhyphen.app.api.model.informationrequest.submission.InformationRequestSubmissionAttestationResult
+import com.docuhyphen.app.api.model.informationrequest.submission.InformationRequestSubmissionItemProblem
+import com.docuhyphen.app.api.model.informationrequest.submission.InformationRequestSubmissionPackageView
+import com.docuhyphen.app.api.model.informationrequest.submission.InformationRequestSubmissionPreview
+import com.docuhyphen.app.api.model.informationrequest.submission.InformationRequestSubmissionReadiness
+import com.docuhyphen.app.api.model.informationrequest.submission.InformationRequestSubmissionResult
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import java.util.UUID
 

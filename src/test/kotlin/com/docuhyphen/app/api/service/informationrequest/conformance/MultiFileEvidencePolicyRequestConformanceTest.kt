@@ -17,63 +17,63 @@ import com.docuhyphen.app.api.model.entity.InformationRequestResponseDisposition
 import com.docuhyphen.app.api.model.entity.InformationRequestResponseMode
 import com.docuhyphen.app.api.model.entity.InformationRequestReviewAggregation
 import com.docuhyphen.app.api.model.entity.InformationRequestReviewPolicy
-import com.docuhyphen.app.api.model.informationrequest.ChangeInformationRequestEvidenceStateCommand
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestEvidenceAttributes
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestEvidenceCommandResult
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestEvidenceConformance
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestEvidenceCoverage
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestEvidenceFile
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestEvidenceFindingCode
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestEvidenceRequirementEvaluation
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestEvidenceRequirementState
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestEvidenceScanSettings
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestEvidenceScanVerdict
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestEvidenceScannerEngine
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestEvidenceSignatureState
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestEvidenceStanding
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestEvidenceSurface
-import com.docuhyphen.app.api.model.informationrequest.ReplaceInformationRequestEvidenceCommand
-import com.docuhyphen.app.api.model.informationrequest.SubmitInformationRequestPackageCommand
-import com.docuhyphen.app.api.model.informationrequest.UploadInformationRequestEvidenceCommand
-import com.docuhyphen.app.api.model.informationrequest.WithdrawInformationRequestPackageCommand
+import com.docuhyphen.app.api.model.informationrequest.evidence.ChangeInformationRequestEvidenceStateCommand
+import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceAttributes
+import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceCommandResult
+import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceConformance
+import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceCoverage
+import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceFile
+import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceFindingCode
+import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceRequirementEvaluation
+import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceRequirementState
+import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceScanSettings
+import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceScanVerdict
+import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceScannerEngine
+import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceSignatureState
+import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceStanding
+import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceSurface
+import com.docuhyphen.app.api.model.informationrequest.evidence.ReplaceInformationRequestEvidenceCommand
+import com.docuhyphen.app.api.model.informationrequest.evidence.UploadInformationRequestEvidenceCommand
+import com.docuhyphen.app.api.model.informationrequest.response.InformationRequestResponsePatch
+import com.docuhyphen.app.api.model.informationrequest.response.PatchInformationRequestResponsesCommand
+import com.docuhyphen.app.api.model.informationrequest.response.ResponseNarrativePatch
+import com.docuhyphen.app.api.model.informationrequest.submission.SubmitInformationRequestPackageCommand
+import com.docuhyphen.app.api.model.informationrequest.submission.WithdrawInformationRequestPackageCommand
 import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
-import com.docuhyphen.app.api.repository.informationrequest.InformationRequestEvidenceArtifactRepository
-import com.docuhyphen.app.api.repository.informationrequest.InformationRequestEvidenceAssessmentRepository
-import com.docuhyphen.app.api.repository.informationrequest.InformationRequestEvidenceVersionRepository
-import com.docuhyphen.app.api.repository.informationrequest.InformationRequestGroupOccurrenceRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRequirementRepository
-import com.docuhyphen.app.api.repository.informationrequest.InformationRequestSubmissionEvidenceRepository
-import com.docuhyphen.app.api.repository.informationrequest.InformationRequestTemplateDefinitionRepository
-import com.docuhyphen.app.api.repository.informationrequest.InformationRequestTemplateRequirementRepository
-import com.docuhyphen.app.api.repository.informationrequest.InformationRequestTemplateVersionCapabilityRepository
-import com.docuhyphen.app.api.repository.informationrequest.InformationRequestTemplateVersionRepository
+import com.docuhyphen.app.api.repository.informationrequest.evidence.InformationRequestEvidenceArtifactRepository
+import com.docuhyphen.app.api.repository.informationrequest.evidence.InformationRequestEvidenceAssessmentRepository
+import com.docuhyphen.app.api.repository.informationrequest.evidence.InformationRequestEvidenceVersionRepository
+import com.docuhyphen.app.api.repository.informationrequest.occurrence.InformationRequestGroupOccurrenceRepository
+import com.docuhyphen.app.api.repository.informationrequest.submission.InformationRequestSubmissionEvidenceRepository
+import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateDefinitionRepository
+import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateRequirementRepository
+import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateVersionCapabilityRepository
+import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateVersionRepository
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
 import com.docuhyphen.app.api.service.command.CommandPrecondition
 import com.docuhyphen.app.api.service.command.CommandReceiptService
 import com.docuhyphen.app.api.service.document.DocumentVersionRecordingService
 import com.docuhyphen.app.api.service.exchange.DocumentVersionStoragePostgreSQLResource
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestETag
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestEvidenceCollectionService
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestEvidenceContentRelease
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestEvidenceEvaluationService
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestEvidenceGate
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestEvidenceIntake
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestEvidenceMalwareAssessmentService
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestEvidenceMalwareScanner
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestEvidenceScanAudit
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestEvidenceUploadService
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestEvidenceViewLoader
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestExecutionGrantService
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestResponsePatch
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestRuntimeTestServices
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestSubmissionContentCollector
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestSubmissionLockService
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestTemplateConfigurationWriter
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestTemplateMaterializer
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestTransitionHistoryService
-import com.docuhyphen.app.api.service.informationrequest.PatchInformationRequestResponsesCommand
-import com.docuhyphen.app.api.service.informationrequest.ResponseNarrativePatch
+import com.docuhyphen.app.api.service.informationrequest.evidence.InformationRequestEvidenceCollectionService
+import com.docuhyphen.app.api.service.informationrequest.evidence.InformationRequestEvidenceContentRelease
+import com.docuhyphen.app.api.service.informationrequest.evidence.InformationRequestEvidenceEvaluationService
+import com.docuhyphen.app.api.service.informationrequest.evidence.InformationRequestEvidenceGate
+import com.docuhyphen.app.api.service.informationrequest.evidence.InformationRequestEvidenceIntake
+import com.docuhyphen.app.api.service.informationrequest.evidence.InformationRequestEvidenceMalwareAssessmentService
+import com.docuhyphen.app.api.service.informationrequest.evidence.InformationRequestEvidenceMalwareScanner
+import com.docuhyphen.app.api.service.informationrequest.evidence.InformationRequestEvidenceScanAudit
+import com.docuhyphen.app.api.service.informationrequest.evidence.InformationRequestEvidenceUploadService
+import com.docuhyphen.app.api.service.informationrequest.evidence.InformationRequestEvidenceViewLoader
+import com.docuhyphen.app.api.service.informationrequest.execution.InformationRequestExecutionGrantService
+import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestTransitionHistoryService
+import com.docuhyphen.app.api.service.informationrequest.submission.InformationRequestSubmissionContentCollector
+import com.docuhyphen.app.api.service.informationrequest.submission.InformationRequestSubmissionLockService
+import com.docuhyphen.app.api.service.informationrequest.template.InformationRequestTemplateConfigurationWriter
+import com.docuhyphen.app.api.service.informationrequest.template.InformationRequestTemplateMaterializer
 import io.quarkus.narayana.jta.QuarkusTransaction
 import io.quarkus.test.common.QuarkusTestResource
 import io.quarkus.test.junit.QuarkusTest
@@ -125,7 +125,7 @@ class MultiFileEvidencePolicyRequestConformanceTest
     @Inject lateinit var scanAudit: InformationRequestEvidenceScanAudit
     @Inject lateinit var clock: Clock
     @Inject lateinit var authorizationService: AuthorizationService
-    @Inject lateinit var responseRepository: com.docuhyphen.app.api.repository.informationrequest.InformationRequestResponseRepository
+    @Inject lateinit var responseRepository: com.docuhyphen.app.api.repository.informationrequest.response.InformationRequestResponseRepository
 
     private val published by lazy {
         PublishedRequestSupport(
@@ -333,7 +333,7 @@ class MultiFileEvidencePolicyRequestConformanceTest
         QuarkusTransaction.requiringNew().call {
             val artifact = requireNotNull(artifactRepository.findById(artifactId))
             InformationRequestEvidenceCommandResult(
-                artifact = com.docuhyphen.app.api.model.informationrequest.InformationRequestEvidenceArtifactView(artifact, emptyList()),
+                artifact = com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceArtifactView(artifact, emptyList()),
                 evidenceETag = "",
                 artifactETag = InformationRequestETag.artifactOf(artifact),
             )

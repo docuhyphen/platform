@@ -1,7 +1,7 @@
 package com.docuhyphen.app.api.model
 
 import com.docuhyphen.app.api.model.dto.InformationRequestExecutionStandingDto
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestExecutionStanding
+import com.docuhyphen.app.api.model.informationrequest.execution.InformationRequestExecutionStanding
 
 object InformationRequestExecutionStandingDtoMapper
 {

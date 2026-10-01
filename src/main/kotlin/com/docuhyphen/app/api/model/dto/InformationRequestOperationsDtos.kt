@@ -3,11 +3,11 @@ package com.docuhyphen.app.api.model.dto
 import com.docuhyphen.app.api.model.entity.InformationRequestNoticeDeliveryState
 import com.docuhyphen.app.api.model.entity.InformationRequestShareRoleKey
 import com.docuhyphen.app.api.model.entity.PrincipalKind
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestOperationsException
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestSlaStatus
+import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestState
+import com.docuhyphen.app.api.model.informationrequest.oversight.InformationRequestOperationsException
+import com.docuhyphen.app.api.model.informationrequest.oversight.InformationRequestSlaStatus
 import com.docuhyphen.app.api.serializer.TimestampSerializer
 import com.docuhyphen.app.api.serializer.UUIDSerializer
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestState
 import kotlinx.serialization.Serializable
 import java.sql.Timestamp
 import java.util.*

@@ -107,6 +107,26 @@ An "Exchange" is a first class word and should be used as a noun. For example, i
   example `exchange/`, `workflow/`, or `organization/`). Keep related layers aligned under the
   same domain when that ownership is clear, and leave only genuinely shared, cross-cutting base
   abstractions at a layer's root. Do not add new domain classes to flat root directories.
+- JAX-RS annotations must live on a dedicated interface, never on the resource class. The interface carries the class-level `@Path`,
+  `@Produces` and `@Consumes`, every HTTP method annotation (`@GET`, `@POST`, `@PUT`, `@PATCH`,
+  `@DELETE`), every method-level `@Path`, `@Produces` and `@Consumes`, all parameter annotations
+  (`@PathParam`, `@QueryParam`, `@HeaderParam`, `@RestForm` and similar), and any default parameter
+  values. The resource class declares `: [Name]ResourceOperations`, implements each method with
+  `override fun` without repeating any JAX-RS annotation, and keeps only constructor injection, the
+  `return try {} catch {}` bodies, and private helpers. Values used inside the interface annotations,
+  such as header names, must come from shared constants (for example `InformationRequestCommandHttp`)
+  and never from the resource's companion object, which the interface cannot see. The interface lives
+  in an `operations` subpackage of the resource's own package, for example
+  `resource.informationrequest.review.operations.InformationRequestReviewResourceOperations` for
+  `resource.informationrequest.review.InformationRequestReviewResource`.
+- When two or more resources share the same request handling (for example an authenticated resource
+  and its no-auth counterpart under `/no-auth/`), the shared part lives in a plain
+  `[Name]RequestHandler` class in a `handler` subpackage of the resources' package, for example
+  `resource.informationrequest.attestation.handler.InformationRequestAttestationRequestHandler`. A
+  request handler turns a parsed request and the caller's access context into a service command, calls
+  the service, and maps the result to a `Response`. It carries no JAX-RS annotations and no business
+  logic, and each resource constructs it from its own injected services. Never name these classes
+  `...Endpoint`, because an endpoint is a route, not a helper.
 ---
 
 ---

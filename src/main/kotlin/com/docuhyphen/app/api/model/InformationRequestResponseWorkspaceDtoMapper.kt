@@ -2,7 +2,7 @@ package com.docuhyphen.app.api.model
 
 import com.docuhyphen.app.api.model.dto.*
 import com.docuhyphen.app.api.model.entity.*
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestExecutionStanding
+import com.docuhyphen.app.api.model.informationrequest.execution.InformationRequestExecutionStanding
 import java.sql.Timestamp
 
 object InformationRequestResponseWorkspaceDtoMapper

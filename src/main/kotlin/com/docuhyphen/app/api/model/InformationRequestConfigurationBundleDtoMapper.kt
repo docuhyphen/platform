@@ -2,7 +2,7 @@ package com.docuhyphen.app.api.model
 
 import com.docuhyphen.app.api.model.dto.InformationRequestConfigurationBundleProblemDto
 import com.docuhyphen.app.api.model.dto.InformationRequestConfigurationBundleValidationDto
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestConfigurationBundleProblem
+import com.docuhyphen.app.api.model.informationrequest.template.InformationRequestConfigurationBundleProblem
 
 object InformationRequestConfigurationBundleDtoMapper
 {

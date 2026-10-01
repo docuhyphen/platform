@@ -2,7 +2,7 @@ package com.docuhyphen.app.api.model
 
 import com.docuhyphen.app.api.model.dto.*
 import com.docuhyphen.app.api.model.entity.*
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestConditionPredicateLiteralCodec
+import com.docuhyphen.app.api.service.informationrequest.condition.InformationRequestConditionPredicateLiteralCodec
 
 /**
  * Maps stored Information Request Template configuration onto its read contract.

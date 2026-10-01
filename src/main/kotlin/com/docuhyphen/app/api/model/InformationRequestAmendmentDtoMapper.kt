@@ -5,8 +5,8 @@ import com.docuhyphen.app.api.model.dto.InformationRequestAmendmentDto
 import com.docuhyphen.app.api.model.dto.InformationRequestAmendmentResultDto
 import com.docuhyphen.app.api.model.dto.InformationRequestNoticeIntentDto
 import com.docuhyphen.app.api.model.entity.InformationRequestNoticeDeliveryState
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestAmendmentResult
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestReadableAmendment
+import com.docuhyphen.app.api.model.informationrequest.amendment.InformationRequestAmendmentResult
+import com.docuhyphen.app.api.model.informationrequest.amendment.InformationRequestReadableAmendment
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 
 object InformationRequestAmendmentDtoMapper

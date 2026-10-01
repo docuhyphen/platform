@@ -5,7 +5,7 @@ import com.docuhyphen.app.api.model.entity.InformationRequestAcceptedFactConfide
 import com.docuhyphen.app.api.model.entity.InformationRequestAcceptedFactConflictState
 import com.docuhyphen.app.api.model.entity.InformationRequestAcceptedFactVisibility
 import com.docuhyphen.app.api.model.entity.InformationRequestBusinessDecisionKind
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestAcceptedFactFreshness
+import com.docuhyphen.app.api.model.informationrequest.acceptedfact.InformationRequestAcceptedFactFreshness
 import com.docuhyphen.app.api.serializer.TimestampSerializer
 import com.docuhyphen.app.api.serializer.UUIDSerializer
 import kotlinx.serialization.Serializable

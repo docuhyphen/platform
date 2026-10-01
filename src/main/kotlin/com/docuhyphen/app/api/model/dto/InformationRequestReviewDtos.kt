@@ -16,11 +16,11 @@ import com.docuhyphen.app.api.model.entity.InformationRequestReviewStageOrdering
 import com.docuhyphen.app.api.model.entity.InformationRequestReviewState
 import com.docuhyphen.app.api.model.entity.InformationRequestReviewTieResolution
 import com.docuhyphen.app.api.model.entity.InformationRequestReviewVisibility
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestReviewItemStanding
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestReviewStageState
+import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestState
+import com.docuhyphen.app.api.model.informationrequest.review.InformationRequestReviewItemStanding
+import com.docuhyphen.app.api.model.informationrequest.review.InformationRequestReviewStageState
 import com.docuhyphen.app.api.serializer.TimestampSerializer
 import com.docuhyphen.app.api.serializer.UUIDSerializer
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestState
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
 import java.sql.Timestamp

@@ -22,11 +22,8 @@ export const informationRequestReviewArticle = (
 
         <h3 id={"information-request-review-queue-heading"}>Your reviews</h3>
         <p id={"information-request-review-queue-help"}>
-            Select <b>Reviews assigned to you</b> in the top menu to see the reviews waiting for you,
-            with their due dates, and select <b>Open review</b>. The link appears when your active
-            account&apos;s plan includes Information Requests or you hold assigned request work.
-            Whatever your own plan, an assigned review also opens from the
-            Exchange&apos;s Information Requests tab with <b>Review</b>. The review shows each routed
+            Open an assigned review from the Exchange&apos;s Information Requests tab with
+            <b> Review</b>, whatever your own plan. The review shows each routed
             item as it was submitted. Items you are not allowed to read show only that they exist.
         </p>
 

@@ -1,7 +1,7 @@
 package com.docuhyphen.app.api.model
 
 import com.docuhyphen.app.api.model.dto.InformationRequestParticipantAccountUpgradeDto
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestParticipantAccountUpgrade
+import com.docuhyphen.app.api.model.informationrequest.noauth.InformationRequestParticipantAccountUpgrade
 
 object InformationRequestParticipantAccountUpgradeDtoMapper
 {

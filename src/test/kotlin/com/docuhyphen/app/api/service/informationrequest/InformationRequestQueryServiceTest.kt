@@ -2,6 +2,9 @@ package com.docuhyphen.app.api.service.informationrequest
 
 import com.docuhyphen.app.api.model.entity.Exchange
 import com.docuhyphen.app.api.model.entity.InformationRequest
+import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
+import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestParentSnapshot
+import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestState
 import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
 import com.docuhyphen.app.api.service.auth.authz.Action
@@ -10,6 +13,7 @@ import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
 import com.docuhyphen.app.api.service.auth.authz.Decision
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.auth.authz.ResourceRef
+import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestPolicyEvaluator
 import io.quarkus.security.ForbiddenException
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
@@ -53,7 +57,7 @@ class InformationRequestQueryServiceTest
                     Action.INFORMATION_REQUEST_VIEW, ResourceRef.informationRequest(request.id),
                     com.docuhyphen.app.api.service.auth.authz.ResourceAuthorizationContext(
                         com.docuhyphen.app.api.service.auth.authz.OwnerContext.Organization(exchange.ownerOrganizationId!!),
-                        policyFacts = com.docuhyphen.app.api.model.informationrequest.InformationRequestParentPolicyFacts(
+                        policyFacts = com.docuhyphen.app.api.model.informationrequest.access.InformationRequestParentPolicyFacts(
                             InformationRequestParentSnapshot(exchange.status, exchange.isDeleted))),
                     setOf(com.docuhyphen.app.api.service.auth.authz.Capability.INFORMATION_REQUEST_READ), access.authorization))
             when (outcome) {
@@ -122,7 +126,7 @@ class InformationRequestQueryServiceTest
                 Action.INFORMATION_REQUEST_VIEW, ResourceRef.informationRequest(requestId),
                 com.docuhyphen.app.api.service.auth.authz.ResourceAuthorizationContext(
                     com.docuhyphen.app.api.service.auth.authz.OwnerContext.Organization(exchange.ownerOrganizationId!!),
-                    policyFacts = com.docuhyphen.app.api.model.informationrequest.InformationRequestParentPolicyFacts(
+                    policyFacts = com.docuhyphen.app.api.model.informationrequest.access.InformationRequestParentPolicyFacts(
                         InformationRequestParentSnapshot(exchange.status, exchange.isDeleted))),
                 capabilities.toSet(), access.authorization))
         return when (outcome) {

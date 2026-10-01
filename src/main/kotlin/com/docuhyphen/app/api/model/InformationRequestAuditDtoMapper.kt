@@ -6,9 +6,9 @@ import com.docuhyphen.app.api.model.dto.InformationRequestAuditReconciliationDto
 import com.docuhyphen.app.api.model.dto.InformationRequestReconciliationGapDto
 import com.docuhyphen.app.api.model.dto.InformationRequestReconciliationStrayDto
 import com.docuhyphen.app.api.model.dto.InformationRequestRecordExportDto
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestAuditPage
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestAuditReconciliation
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestRecordExportView
+import com.docuhyphen.app.api.model.informationrequest.audit.InformationRequestAuditPage
+import com.docuhyphen.app.api.model.informationrequest.audit.InformationRequestAuditReconciliation
+import com.docuhyphen.app.api.model.informationrequest.audit.InformationRequestRecordExportView
 import kotlinx.serialization.json.Json
 import java.sql.Timestamp
 

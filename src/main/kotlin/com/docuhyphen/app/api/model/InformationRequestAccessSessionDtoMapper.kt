@@ -1,7 +1,7 @@
 package com.docuhyphen.app.api.model
 
 import com.docuhyphen.app.api.model.dto.InformationRequestAccessSessionDto
-import com.docuhyphen.app.api.model.informationrequest.IssuedRequestAccessSession
+import com.docuhyphen.app.api.model.informationrequest.noauth.IssuedRequestAccessSession
 
 object InformationRequestAccessSessionDtoMapper
 {

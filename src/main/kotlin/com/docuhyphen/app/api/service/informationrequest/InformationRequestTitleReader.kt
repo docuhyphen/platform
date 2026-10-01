@@ -1,8 +1,8 @@
 package com.docuhyphen.app.api.service.informationrequest
 
 import com.docuhyphen.app.api.model.entity.InformationRequest
-import com.docuhyphen.app.api.repository.informationrequest.InformationRequestTemplateDefinitionRepository
-import com.docuhyphen.app.api.repository.informationrequest.InformationRequestTemplateVersionRepository
+import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateDefinitionRepository
+import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateVersionRepository
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import java.util.UUID

@@ -28,6 +28,8 @@ import com.docuhyphen.app.api.service.communication.EmailService
 import com.docuhyphen.app.api.service.communication.EmailTemplateService
 import com.docuhyphen.app.api.service.communication.OtpService
 import com.docuhyphen.app.api.service.contactdetails.UserContactService
+import com.docuhyphen.app.api.service.informationrequest.parent.InformationRequestExchangeCompletionService
+import com.docuhyphen.app.api.service.informationrequest.parent.InformationRequestParentLifecycleService
 import com.docuhyphen.app.api.service.user.AppUserService
 import com.docuhyphen.app.api.service.workflow.Decision
 import com.docuhyphen.app.api.service.workflow.TriggerRequest
@@ -46,8 +48,6 @@ import java.time.format.DateTimeFormatter
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import com.docuhyphen.app.api.service.auth.authz.Decision as AuthDecision
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestExchangeCompletionService
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestParentLifecycleService
 
 @ApplicationScoped
 class ExchangeUpdateService @Inject constructor(

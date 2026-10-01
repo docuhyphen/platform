@@ -2,21 +2,41 @@ package com.docuhyphen.app.api.resource.informationrequest
 
 import com.docuhyphen.app.api.exception.SubscriptionDenialException
 import com.docuhyphen.app.api.model.InformationRequestDtoMapper
+import com.docuhyphen.app.api.model.informationrequest.creation.CreateAdHocInformationRequestCommand
+import com.docuhyphen.app.api.model.informationrequest.creation.CreateInformationRequestFromBlueprintCommand
+import com.docuhyphen.app.api.model.informationrequest.creation.CreateInformationRequestFromTemplateVersionCommand
+import com.docuhyphen.app.api.model.informationrequest.creation.InformationRequestCreationResult
+import com.docuhyphen.app.api.model.informationrequest.lifecycle.CancelInformationRequestCommand
+import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestLifecycleResult
+import com.docuhyphen.app.api.model.informationrequest.lifecycle.IssueInformationRequestCommand
+import com.docuhyphen.app.api.model.informationrequest.lifecycle.SupersedeInformationRequestCommand
 import com.docuhyphen.app.api.resource.command.CommandPreconditionHeader
 import com.docuhyphen.app.api.resource.command.CommandPreconditionResponse
+import com.docuhyphen.app.api.resource.informationrequest.operations.InformationRequestResourceOperations
+import com.docuhyphen.app.api.resource.informationrequest.template.InformationRequestTemplateRefusalResponse
 import com.docuhyphen.app.api.resource.model.CancelInformationRequestRequest
 import com.docuhyphen.app.api.resource.model.CreateInformationRequestDraftRequest
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.resource.model.SupersedeInformationRequestRequest
 import com.docuhyphen.app.api.service.command.CommandPreconditionException
 import com.docuhyphen.app.api.service.command.CommandReceiptConflictException
-import com.docuhyphen.app.api.service.informationrequest.*
+import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
+import com.docuhyphen.app.api.service.informationrequest.InformationRequestQueryService
+import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestAccessContextFactory
+import com.docuhyphen.app.api.service.informationrequest.capability.InformationRequestCapabilityNotInstalledException
+import com.docuhyphen.app.api.service.informationrequest.creation.InformationRequestAdHocCreationService
+import com.docuhyphen.app.api.service.informationrequest.creation.InformationRequestBlueprintInstantiationService
+import com.docuhyphen.app.api.service.informationrequest.creation.InformationRequestTemplateInstantiationService
+import com.docuhyphen.app.api.service.informationrequest.execution.RequestExecutionUsageExhaustedException
+import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestLifecycleException
+import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestLifecycleService
+import com.docuhyphen.app.api.service.informationrequest.response.InformationRequestResponseWorkspaceService
+import com.docuhyphen.app.api.service.informationrequest.template.InformationRequestTemplateValidationException
+import com.docuhyphen.app.api.service.informationrequest.template.InformationRequestTemplateVersionUnavailableException
 import io.quarkus.security.ForbiddenException
 import io.quarkus.security.UnauthorizedException
 import jakarta.inject.Inject
 import jakarta.ws.rs.*
-import jakarta.ws.rs.core.HttpHeaders.IF_MATCH
-import jakarta.ws.rs.core.MediaType.APPLICATION_JSON
 import jakarta.ws.rs.core.Response
 import jakarta.ws.rs.core.Response.Status.*
 import org.slf4j.LoggerFactory
@@ -28,9 +48,6 @@ import java.util.*
  * replacement. Issuance and every respondent-facing action are deliberately not exposed here; those
  * need the dual-access authorization surface and runtime executors this resource does not depend on.
  */
-@Path("/information-requests")
-@Produces(APPLICATION_JSON)
-@Consumes(APPLICATION_JSON)
 class InformationRequestResource @Inject constructor(
     private val queryService: InformationRequestQueryService,
     private val creationService: InformationRequestAdHocCreationService,
@@ -39,10 +56,9 @@ class InformationRequestResource @Inject constructor(
     private val responseWorkspaceService: InformationRequestResponseWorkspaceService,
     private val blueprintInstantiationService: InformationRequestBlueprintInstantiationService,
     private val templateInstantiationService: InformationRequestTemplateInstantiationService,
-)
+) : InformationRequestResourceOperations
 {
-    @GET
-    fun list(@QueryParam("exchangeId") exchangeIdParam: String?): Response
+    override fun list(exchangeIdParam: String?): Response
     {
         return try
         {
@@ -57,9 +73,7 @@ class InformationRequestResource @Inject constructor(
         }
     }
 
-    @GET
-    @Path("/{id}")
-    fun get(@PathParam("id") id: String): Response
+    override fun get(id: String): Response
     {
         return try
         {
@@ -72,9 +86,7 @@ class InformationRequestResource @Inject constructor(
         }
     }
 
-    @GET
-    @Path("/{id}/response-workspace")
-    fun responseWorkspace(@PathParam("id") id: String): Response
+    override fun responseWorkspace(id: String): Response
     {
         return try
         {
@@ -89,10 +101,9 @@ class InformationRequestResource @Inject constructor(
         }
     }
 
-    @POST
-    fun create(
+    override fun create(
         request: CreateInformationRequestDraftRequest,
-        @HeaderParam(IDEMPOTENCY_KEY_HEADER) idempotencyKey: String?,
+        idempotencyKey: String?,
     ): Response
     {
         return try
@@ -150,12 +161,10 @@ class InformationRequestResource @Inject constructor(
         }
     }
 
-    @POST
-    @Path("/{id}/issuance")
-    fun issue(
-        @PathParam("id") id: String,
-        @HeaderParam(IF_MATCH) ifMatch: String?,
-        @HeaderParam(IDEMPOTENCY_KEY_HEADER) idempotencyKey: String?,
+    override fun issue(
+        id: String,
+        ifMatch: String?,
+        idempotencyKey: String?,
     ): Response
     {
         return try
@@ -180,13 +189,11 @@ class InformationRequestResource @Inject constructor(
         }
     }
 
-    @POST
-    @Path("/{id}/cancellation")
-    fun cancel(
-        @PathParam("id") id: String,
+    override fun cancel(
+        id: String,
         request: CancelInformationRequestRequest?,
-        @HeaderParam(IF_MATCH) ifMatch: String?,
-        @HeaderParam(IDEMPOTENCY_KEY_HEADER) idempotencyKey: String?,
+        ifMatch: String?,
+        idempotencyKey: String?,
     ): Response
     {
         return try
@@ -212,13 +219,11 @@ class InformationRequestResource @Inject constructor(
         }
     }
 
-    @POST
-    @Path("/{id}/supersession")
-    fun supersede(
-        @PathParam("id") id: String,
+    override fun supersede(
+        id: String,
         request: SupersedeInformationRequestRequest,
-        @HeaderParam(IF_MATCH) ifMatch: String?,
-        @HeaderParam(IDEMPOTENCY_KEY_HEADER) idempotencyKey: String?,
+        ifMatch: String?,
+        idempotencyKey: String?,
     ): Response
     {
         return try
@@ -307,7 +312,6 @@ class InformationRequestResource @Inject constructor(
 
     private companion object
     {
-        const val IDEMPOTENCY_KEY_HEADER = "Idempotency-Key"
         val logger = LoggerFactory.getLogger(InformationRequestResource::class.java)
     }
 }

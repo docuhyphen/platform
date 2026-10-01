@@ -1,11 +1,11 @@
 package com.docuhyphen.app.api.model.dto
 
 import com.docuhyphen.app.api.model.entity.InformationRequestShareRoleKey
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestNextAction
+import com.docuhyphen.app.api.model.informationrequest.execution.InformationRequestStandingReason
+import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestState
+import com.docuhyphen.app.api.model.informationrequest.parent.InformationRequestNextAction
 import com.docuhyphen.app.api.serializer.TimestampSerializer
 import com.docuhyphen.app.api.serializer.UUIDSerializer
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestState
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestStandingReason
 import kotlinx.serialization.Serializable
 import java.sql.Timestamp
 import java.util.UUID

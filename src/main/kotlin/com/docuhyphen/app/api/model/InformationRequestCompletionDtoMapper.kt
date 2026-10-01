@@ -1,7 +1,7 @@
 package com.docuhyphen.app.api.model
 
 import com.docuhyphen.app.api.model.dto.InformationRequestExchangeCompletionRefusalDto
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestExchangeCompletionException
+import com.docuhyphen.app.api.service.informationrequest.parent.InformationRequestExchangeCompletionException
 
 object InformationRequestCompletionDtoMapper
 {

@@ -20,7 +20,9 @@ Refusals carry `{"errorMessage": ..., "reasonCode": ...}`. Request codes start w
 reused. Plan refusals use the subscription denial body (`reasonCode`, `planCode`, `featureCode`,
 `currentValue`, `limit`, `upgradePlanCode`), with reasons `FEATURE_NOT_INCLUDED`,
 `PLAN_LIMIT_REACHED`, `SUBSCRIPTION_PAST_DUE`, `SUBSCRIPTION_SUSPENDED`, `SUBSCRIPTION_CANCELED`,
-`TRIAL_ENDED`, `SEAT_LIMIT_REACHED`, and `ORGANIZATION_SUBSCRIPTION_REQUIRED`.
+`TRIAL_ENDED`, `SEAT_LIMIT_REACHED`, and `ORGANIZATION_SUBSCRIPTION_REQUIRED`. A request body that
+is not valid JSON, or that leaves out a required field, answers `400` with the reason
+`REQUEST_BODY_INVALID`.
 
 ## Discovery and listing
 

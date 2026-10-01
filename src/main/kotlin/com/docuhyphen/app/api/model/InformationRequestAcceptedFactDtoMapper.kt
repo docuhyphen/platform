@@ -6,9 +6,9 @@ import com.docuhyphen.app.api.model.dto.InformationRequestReusableFactDto
 import com.docuhyphen.app.api.model.dto.InformationRequestBusinessDecisionDto
 import com.docuhyphen.app.api.model.dto.InformationRequestFactRecertificationDto
 import com.docuhyphen.app.api.model.entity.InformationRequestBusinessDecision
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestAcceptedFactOffer
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestAcceptedFactView
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestFactRecertificationView
+import com.docuhyphen.app.api.model.informationrequest.acceptedfact.InformationRequestAcceptedFactOffer
+import com.docuhyphen.app.api.model.informationrequest.acceptedfact.InformationRequestAcceptedFactView
+import com.docuhyphen.app.api.model.informationrequest.acceptedfact.InformationRequestFactRecertificationView
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import kotlinx.serialization.json.Json
 

@@ -3,10 +3,10 @@ package com.docuhyphen.app.api.service.informationrequest.conformance
 import com.docuhyphen.app.api.migration.execute
 import com.docuhyphen.app.api.migration.queryInt
 import com.docuhyphen.app.api.migration.queryString
+import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestState
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
 import com.docuhyphen.app.api.service.exchange.DocumentVersionStoragePostgreSQLResource
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestRuntimeTestServices
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestState
 import io.quarkus.test.common.QuarkusTestResource
 import io.quarkus.test.junit.QuarkusTest
 import jakarta.inject.Inject

@@ -4,9 +4,9 @@ import com.docuhyphen.app.api.model.entity.InformationRequestCarryForwardDecisio
 import com.docuhyphen.app.api.model.entity.InformationRequestLineageKind
 import com.docuhyphen.app.api.model.entity.InformationRequestRecurrenceUnit
 import com.docuhyphen.app.api.model.entity.InformationRequestResponseDisposition
+import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestState
 import com.docuhyphen.app.api.serializer.TimestampSerializer
 import com.docuhyphen.app.api.serializer.UUIDSerializer
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestState
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
 import java.sql.Timestamp

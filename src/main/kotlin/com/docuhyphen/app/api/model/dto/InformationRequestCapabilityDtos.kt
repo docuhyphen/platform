@@ -1,6 +1,6 @@
 package com.docuhyphen.app.api.model.dto
 
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestStandingReason
+import com.docuhyphen.app.api.model.informationrequest.execution.InformationRequestStandingReason
 import com.docuhyphen.app.api.service.subscription.PlanCode
 import com.docuhyphen.app.api.service.subscription.SubscriptionEnforcementMode
 import com.docuhyphen.app.api.service.subscription.SubscriptionOwnerType

@@ -6,7 +6,7 @@ import com.docuhyphen.app.api.model.entity.OrganizationMembershipStatus
 import com.docuhyphen.app.api.model.entity.OrganizationRoleName
 import com.docuhyphen.app.api.repository.user.AppUserRepository
 import com.docuhyphen.app.api.repository.organization.OrganizationMembershipRepository
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestOwnershipChangeService
+import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestOwnershipChangeService
 import com.docuhyphen.app.api.service.subscription.OrganizationFeatureSubscriptionGuard
 import com.docuhyphen.app.api.service.subscription.PlanFeature
 import jakarta.enterprise.context.ApplicationScoped

@@ -10,7 +10,8 @@ import AccountMenu from "./main-menu/account-menu/AccountMenu.tsx";
 import NotificationsPanel from "./main-menu/notifications-panel/NotificationsPanel.tsx";
 import OperationsNavigation from "./main-menu/operations-navigation/OperationsNavigation.tsx";
 import PlatformNavigation from "./main-menu/platform-navigation/PlatformNavigation.tsx";
-import ReviewQueueNavigation from "./main-menu/review-queue-navigation/ReviewQueueNavigation.tsx";
+// The review queue button is disabled for now and will be enabled in a future release.
+// import ReviewQueueNavigation from "./main-menu/review-queue-navigation/ReviewQueueNavigation.tsx";
 import {useMainMenuStyles} from "./MainMenuStyles.tsx";
 
 const LAST_EXCHANGES_QUERY_STORAGE_KEY = "exchanges.lastRoute.query";
@@ -71,7 +72,8 @@ const MainMenu: React.FC<{onToggleHelpSidebar: () => void}> = ({onToggleHelpSide
                 className={menuStyles.tourAnchor}>
                 <NotificationsPanel/>
             </div>
-            <ReviewQueueNavigation/>
+            {/* The review queue button is disabled for now and will be enabled in a future release. */}
+            {/* <ReviewQueueNavigation/> */}
             <OperationsNavigation/>
             <PlatformNavigation/>
             <AccountMenu onToggleHelpSidebar={onToggleHelpSidebar}/>

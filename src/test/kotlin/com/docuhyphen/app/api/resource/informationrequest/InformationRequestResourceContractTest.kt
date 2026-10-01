@@ -8,6 +8,20 @@ import com.docuhyphen.app.api.model.dto.InformationRequestTemplateRefusalDto
 import com.docuhyphen.app.api.model.entity.InformationRequest
 import com.docuhyphen.app.api.model.entity.InformationRequestOwnerType
 import com.docuhyphen.app.api.model.entity.RequestExecutionUsageKind
+import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
+import com.docuhyphen.app.api.model.informationrequest.capability.InformationRequestCapability
+import com.docuhyphen.app.api.model.informationrequest.capability.InformationRequestCapabilityRequirement
+import com.docuhyphen.app.api.model.informationrequest.condition.InformationRequestConditionEvaluationProjection
+import com.docuhyphen.app.api.model.informationrequest.condition.InformationRequestConditionEvaluationState
+import com.docuhyphen.app.api.model.informationrequest.creation.CreateAdHocInformationRequestCommand
+import com.docuhyphen.app.api.model.informationrequest.creation.CreateInformationRequestFromBlueprintCommand
+import com.docuhyphen.app.api.model.informationrequest.creation.CreateInformationRequestFromTemplateVersionCommand
+import com.docuhyphen.app.api.model.informationrequest.creation.InformationRequestCreationResult
+import com.docuhyphen.app.api.model.informationrequest.lifecycle.CancelInformationRequestCommand
+import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestLifecycleResult
+import com.docuhyphen.app.api.model.informationrequest.lifecycle.IssueInformationRequestCommand
+import com.docuhyphen.app.api.model.informationrequest.lifecycle.SupersedeInformationRequestCommand
+import com.docuhyphen.app.api.resource.informationrequest.operations.InformationRequestResourceOperations
 import com.docuhyphen.app.api.resource.model.CancelInformationRequestRequest
 import com.docuhyphen.app.api.resource.model.CreateInformationRequestDraftRequest
 import com.docuhyphen.app.api.resource.model.ResponseError
@@ -15,7 +29,19 @@ import com.docuhyphen.app.api.resource.model.SupersedeInformationRequestRequest
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.command.CommandPrecondition
-import com.docuhyphen.app.api.service.informationrequest.*
+import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
+import com.docuhyphen.app.api.service.informationrequest.InformationRequestQueryService
+import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestAccessContextFactory
+import com.docuhyphen.app.api.service.informationrequest.capability.InformationRequestCapabilityNotInstalledException
+import com.docuhyphen.app.api.service.informationrequest.creation.InformationRequestAdHocCreationService
+import com.docuhyphen.app.api.service.informationrequest.creation.InformationRequestBlueprintInstantiationService
+import com.docuhyphen.app.api.service.informationrequest.creation.InformationRequestTemplateInstantiationService
+import com.docuhyphen.app.api.service.informationrequest.execution.RequestExecutionUsageExhaustedException
+import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestLifecycleException
+import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestLifecycleService
+import com.docuhyphen.app.api.service.informationrequest.response.InformationRequestResponseWorkspaceService
+import com.docuhyphen.app.api.service.informationrequest.template.InformationRequestTemplateValidationException
+import com.docuhyphen.app.api.service.informationrequest.template.InformationRequestTemplateVersionUnavailableException
 import io.quarkus.security.ForbiddenException
 import jakarta.ws.rs.GET
 import jakarta.ws.rs.POST
@@ -68,7 +94,7 @@ class InformationRequestResourceContractTest
     @Test
     fun `runtime request administration uses resource based paths and verbs`()
     {
-        val resourceClass = InformationRequestResource::class.java
+        val resourceClass = InformationRequestResourceOperations::class.java
         val methods = resourceClass.declaredMethods.associateBy { it.name }
 
         assertEquals("/information-requests", resourceClass.getAnnotation(Path::class.java).value)
@@ -90,7 +116,7 @@ class InformationRequestResourceContractTest
     @Test
     fun `issuance is a subordinate resource that needs a precondition and a key and no respondent action is exposed`()
     {
-        val methods = InformationRequestResource::class.java.declaredMethods.associateBy { it.name }
+        val methods = InformationRequestResourceOperations::class.java.declaredMethods.associateBy { it.name }
         assertTrue(methods.getValue("issue").isAnnotationPresent(POST::class.java))
         assertEquals("/{id}/issuance", methods.getValue("issue").getAnnotation(Path::class.java).value)
         assertTrue(methods.keys.none { it.contains("respond", ignoreCase = true) })
@@ -133,7 +159,7 @@ class InformationRequestResourceContractTest
     @Test
     fun `get exposes the runtime request by id and rejects an invalid id`()
     {
-        val resourceClass = InformationRequestResource::class.java
+        val resourceClass = InformationRequestResourceOperations::class.java
         val methods = resourceClass.declaredMethods.associateBy { it.name }
         assertTrue(methods.getValue("get").isAnnotationPresent(GET::class.java))
         assertEquals("/{id}", methods.getValue("get").getAnnotation(Path::class.java).value)
@@ -188,7 +214,7 @@ class InformationRequestResourceContractTest
         assertEquals(Response.Status.BAD_REQUEST.statusCode, invalid.status)
         assertEquals(Response.Status.OK.statusCode, listed.status)
         @Suppress("UNCHECKED_CAST")
-        val body = listed.entity as List<InformationRequestDto>
+        val body = listed.entity as Array<InformationRequestDto>
         assertEquals(1, body.size)
         assertEquals(requestId, body.single().id)
     }

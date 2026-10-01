@@ -1,10 +1,10 @@
 package com.docuhyphen.app.api.model.dto
 
 import com.docuhyphen.app.api.model.entity.InformationRequestOwnerType
+import com.docuhyphen.app.api.model.informationrequest.condition.InformationRequestConditionEvaluationState
+import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestState
 import com.docuhyphen.app.api.serializer.TimestampSerializer
 import com.docuhyphen.app.api.serializer.UUIDSerializer
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestConditionEvaluationState
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestState
 import kotlinx.serialization.Serializable
 import java.sql.Timestamp
 import java.util.UUID

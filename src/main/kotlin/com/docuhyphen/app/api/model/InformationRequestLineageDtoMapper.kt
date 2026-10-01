@@ -10,9 +10,9 @@ import com.docuhyphen.app.api.model.entity.InformationRequestCarryForwardDecisio
 import com.docuhyphen.app.api.model.entity.InformationRequestLineage
 import com.docuhyphen.app.api.model.entity.InformationRequestRecurrence
 import com.docuhyphen.app.api.model.entity.InformationRequestRefreshRule
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestCarryForwardOffer
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestLineageView
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestSuccessorResult
+import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestCarryForwardOffer
+import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestLineageView
+import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestSuccessorResult
 
 object InformationRequestLineageDtoMapper
 {

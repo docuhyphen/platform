@@ -1,7 +1,7 @@
 package com.docuhyphen.app.api.service.exchange
 
+import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestParentSnapshot
 import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestParentSnapshot
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import java.util.UUID

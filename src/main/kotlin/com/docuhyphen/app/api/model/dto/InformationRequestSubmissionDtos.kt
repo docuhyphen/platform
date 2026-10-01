@@ -9,12 +9,12 @@ import com.docuhyphen.app.api.model.entity.InformationRequestRequirementType
 import com.docuhyphen.app.api.model.entity.InformationRequestResponseDisposition
 import com.docuhyphen.app.api.model.entity.InformationRequestSubmissionMode
 import com.docuhyphen.app.api.model.entity.InformationRequestSubmissionStageOrdering
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestAttestationState
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestSubmissionProblemCode
+import com.docuhyphen.app.api.model.informationrequest.attestation.InformationRequestAttestationState
+import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestState
+import com.docuhyphen.app.api.model.informationrequest.response.InformationRequestCompletenessItemState
+import com.docuhyphen.app.api.model.informationrequest.submission.InformationRequestSubmissionProblemCode
 import com.docuhyphen.app.api.serializer.TimestampSerializer
 import com.docuhyphen.app.api.serializer.UUIDSerializer
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestState
-import com.docuhyphen.app.api.service.informationrequest.model.InformationRequestCompletenessItemState
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
 import java.sql.Timestamp

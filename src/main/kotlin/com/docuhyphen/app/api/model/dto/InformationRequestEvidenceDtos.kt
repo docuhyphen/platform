@@ -4,9 +4,9 @@ import com.docuhyphen.app.api.model.document.DocumentVersionContentHashAlgorithm
 import com.docuhyphen.app.api.model.document.DocumentVersionContentVerification
 import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceCollectionState
 import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceSourceKind
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestEvidenceConformance
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestEvidenceFindingCode
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestEvidenceRequirementState
+import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceConformance
+import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceFindingCode
+import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceRequirementState
 import com.docuhyphen.app.api.serializer.TimestampSerializer
 import com.docuhyphen.app.api.serializer.UUIDSerializer
 import kotlinx.serialization.Serializable

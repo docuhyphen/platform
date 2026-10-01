@@ -1,6 +1,6 @@
 package com.docuhyphen.app.api.model.dto
 
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestHealthIndicatorKey
+import com.docuhyphen.app.api.model.informationrequest.oversight.InformationRequestHealthIndicatorKey
 import com.docuhyphen.app.api.serializer.TimestampSerializer
 import kotlinx.serialization.Serializable
 import java.sql.Timestamp

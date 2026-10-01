@@ -12,7 +12,7 @@ import com.docuhyphen.app.api.service.auth.AdminApprovalContext
 import com.docuhyphen.app.api.service.auth.UserRoleService
 import com.docuhyphen.app.api.service.auth.authz.*
 import com.docuhyphen.app.api.service.fields.SchemaDefinitionService
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestTemplateReferenceService
+import com.docuhyphen.app.api.service.informationrequest.template.InformationRequestTemplateReferenceService
 import io.quarkus.security.ForbiddenException
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject

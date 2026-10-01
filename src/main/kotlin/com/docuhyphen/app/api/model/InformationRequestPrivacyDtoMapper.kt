@@ -6,7 +6,7 @@ import com.docuhyphen.app.api.model.dto.InformationRequestPrivacyTargetDto
 import com.docuhyphen.app.api.model.dto.InformationRequestSubjectRestrictionDto
 import com.docuhyphen.app.api.model.entity.InformationRequestItemCorrection
 import com.docuhyphen.app.api.model.entity.InformationRequestSubjectRestriction
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestPrivacyRequestView
+import com.docuhyphen.app.api.model.informationrequest.privacy.InformationRequestPrivacyRequestView
 
 object InformationRequestPrivacyDtoMapper
 {

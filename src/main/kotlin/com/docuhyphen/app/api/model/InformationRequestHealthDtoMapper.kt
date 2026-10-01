@@ -2,7 +2,7 @@ package com.docuhyphen.app.api.model
 
 import com.docuhyphen.app.api.model.dto.InformationRequestHealthIndicatorDto
 import com.docuhyphen.app.api.model.dto.InformationRequestHealthReportDto
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestHealthReport
+import com.docuhyphen.app.api.model.informationrequest.oversight.InformationRequestHealthReport
 import java.sql.Timestamp
 
 object InformationRequestHealthDtoMapper

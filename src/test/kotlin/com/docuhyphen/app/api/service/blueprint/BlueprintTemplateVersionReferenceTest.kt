@@ -6,6 +6,7 @@ import com.docuhyphen.app.api.model.dto.UpdateBlueprintRequest
 import com.docuhyphen.app.api.model.entity.BlueprintDefinition
 import com.docuhyphen.app.api.model.entity.BlueprintScope
 import com.docuhyphen.app.api.model.entity.InformationRequestTemplateScopeKind
+import com.docuhyphen.app.api.model.informationrequest.template.InformationRequestTemplateVersionReference
 import com.docuhyphen.app.api.repository.blueprint.BlueprintDefinitionRepository
 import com.docuhyphen.app.api.repository.blueprint.BlueprintDocumentDefaultRepository
 import com.docuhyphen.app.api.repository.blueprint.BlueprintFieldDefaultRepository
@@ -21,9 +22,8 @@ import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
 import com.docuhyphen.app.api.service.auth.authz.Decision
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.fields.SchemaDefinitionService
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestTemplateReferenceService
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestTemplateVersionReference
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestTemplateVersionUnavailableException
+import com.docuhyphen.app.api.service.informationrequest.template.InformationRequestTemplateReferenceService
+import com.docuhyphen.app.api.service.informationrequest.template.InformationRequestTemplateVersionUnavailableException
 import io.quarkus.security.ForbiddenException
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull

@@ -335,7 +335,8 @@ describe('help documentation states what the platform actually does', () =>
 
         expect(operations).toMatch(/still owns requests/i);
         expect(operations).not.toMatch(/When your plan includes Information Requests/);
-        expect(review).toMatch(/assigned request work/i);
+        expect(review).toMatch(/whatever your own plan/i);
+        expect(review).not.toMatch(/Reviews assigned to you/);
         expect(review).not.toMatch(/When your plan includes Information Requests/);
         expect(records).toMatch(/stays readable/i);
     });

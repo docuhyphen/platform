@@ -21,9 +21,9 @@ import com.docuhyphen.app.api.service.auth.authz.Decision
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.exchange.ExchangeRecipientService
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestExchangeCompletionException
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestExchangeCompletionService
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestParentLifecycleService
+import com.docuhyphen.app.api.service.informationrequest.parent.InformationRequestExchangeCompletionException
+import com.docuhyphen.app.api.service.informationrequest.parent.InformationRequestExchangeCompletionService
+import com.docuhyphen.app.api.service.informationrequest.parent.InformationRequestParentLifecycleService
 import com.docuhyphen.app.api.service.workflow.WorkflowEngineService
 import io.quarkus.security.ForbiddenException
 import org.junit.jupiter.api.Test

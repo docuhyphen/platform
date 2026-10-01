@@ -7,7 +7,7 @@ import com.docuhyphen.app.api.model.entity.InformationRequestDiscrepancyResoluti
 import com.docuhyphen.app.api.model.entity.InformationRequestImportedValueDecisionKind
 import com.docuhyphen.app.api.model.entity.InformationRequestImportedValueSource
 import com.docuhyphen.app.api.model.entity.InformationRequestSourceConfidence
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestReconciliationOutcome
+import com.docuhyphen.app.api.model.informationrequest.externalsource.InformationRequestReconciliationOutcome
 import com.docuhyphen.app.api.serializer.TimestampSerializer
 import com.docuhyphen.app.api.serializer.UUIDSerializer
 import kotlinx.serialization.Serializable

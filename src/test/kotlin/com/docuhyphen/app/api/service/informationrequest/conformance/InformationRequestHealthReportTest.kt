@@ -2,9 +2,9 @@ package com.docuhyphen.app.api.service.informationrequest.conformance
 
 import com.docuhyphen.app.api.migration.SubmissionRuntimeSqlFixture
 import com.docuhyphen.app.api.migration.execute
-import com.docuhyphen.app.api.model.informationrequest.InformationRequestHealthIndicatorKey
+import com.docuhyphen.app.api.model.informationrequest.oversight.InformationRequestHealthIndicatorKey
 import com.docuhyphen.app.api.service.exchange.DocumentVersionStoragePostgreSQLResource
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestHealthService
+import com.docuhyphen.app.api.service.informationrequest.oversight.InformationRequestHealthService
 import io.quarkus.narayana.jta.QuarkusTransaction
 import io.quarkus.test.common.QuarkusTestResource
 import io.quarkus.test.junit.QuarkusTest
