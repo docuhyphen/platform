@@ -4,8 +4,6 @@ export const SOCIAL_IMAGE_PATH = "/social/docuhyphen-social-card.webp";
 export const INDEXABLE_ROUTES = [
     "/",
     "/security",
-    "/about",
-    "/contact",
     "/privacy-policy",
     "/terms-of-service",
     "/industries/real-estate",

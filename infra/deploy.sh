@@ -185,7 +185,7 @@ populate_audit_signing_secret() {
     -pubout \
     -out "$TEMP_DIR/public.pem"
 
-  node -e '
+  command node -e '
     const fs = require("fs");
     const privateKeyPem = fs.readFileSync(process.argv[1], "utf8");
     const publicKeyPem = fs.readFileSync(process.argv[2], "utf8");
@@ -261,6 +261,7 @@ stack_output() {
 
 configure_spa_fallback() {
   local distribution_id="$1"
+  local site_type="$2"
   local response_file
   local config_file
   local config_cli_path
@@ -283,7 +284,7 @@ configure_spa_fallback() {
     --output json \
     > "$response_file"
 
-  changed="$(node "$SPA_FALLBACK_SCRIPT" "$response_file" "$config_file" "$etag_file")"
+  changed="$(command node "$SPA_FALLBACK_SCRIPT" "$response_file" "$config_file" "$etag_file" "$site_type")"
   if [[ "$changed" != "true" ]]; then
     log "CloudFront SPA fallback is already configured"
     return
@@ -299,11 +300,44 @@ configure_spa_fallback() {
     --id "$distribution_id" \
     --if-match "$etag" \
     --distribution-config "file://${config_cli_path}" \
-    --query 'Distribution.Id' \
-    --output text \
-    >/dev/null
+    --output off
 
-  log "Configured CloudFront 403 and 404 responses to serve /index.html"
+  log "Configured CloudFront 403 and 404 responses for ${site_type}"
+}
+
+upload_website_route_aliases() {
+  local bucket="$1"
+  local website_dir="$2"
+  local index_file
+  local relative_path
+  local route_key
+  local route_count=0
+
+  while IFS= read -r index_file; do
+    relative_path="${index_file#"${website_dir}/dist/"}"
+    route_key="${relative_path%/index.html}"
+    if [[ "$route_key" == "404" ]]; then
+      continue
+    fi
+
+    aws s3api put-object \
+      --bucket "$bucket" \
+      --key "$route_key" \
+      --body "$index_file" \
+      --content-type text/html \
+      --region "$WEBSITE_REGION" \
+      --output off
+    aws s3api put-object \
+      --bucket "$bucket" \
+      --key "${route_key}/" \
+      --body "$index_file" \
+      --content-type text/html \
+      --region "$WEBSITE_REGION" \
+      --output off
+    ((route_count += 1))
+  done < <(find "${website_dir}/dist" -mindepth 2 -type f -name index.html)
+
+  log "Published ${route_count} website routes at direct URL keys"
 }
 
 deploy_website() {
@@ -359,7 +393,10 @@ deploy_website() {
     --delete \
     --region "$WEBSITE_REGION"
 
-  log_section "Skipping website SPA route fallback configuration"
+  log_section "Publishing website routes"
+  upload_website_route_aliases "$bucket" "$website_dir"
+  log_section "Configuring website error page"
+  configure_spa_fallback "$distribution_id" website
 
   log_section "Creating CloudFront invalidation"
   invalidation_id="$(aws cloudfront create-invalidation \
@@ -424,7 +461,8 @@ deploy_web_app() {
     --delete \
     --region "$WEB_APP_REGION"
 
-  log_section "Skipping web app SPA route fallback configuration"
+  log_section "Configuring web app SPA route fallback"
+  configure_spa_fallback "$distribution_id" web-app
 
   log_section "Creating web app CloudFront invalidation"
   invalidation_id="$(aws cloudfront create-invalidation \
