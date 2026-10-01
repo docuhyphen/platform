@@ -1,0 +1,1511 @@
+package com.docuhyphen.app.api.service.informationrequest.party
+
+import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
+import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestMutation
+import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestState
+import com.docuhyphen.app.api.model.informationrequest.party.AssignExternalParticipantInformationRequestPartyCommand
+import com.docuhyphen.app.api.model.informationrequest.party.AssignInformationRequestPartyCommand
+import com.docuhyphen.app.api.model.informationrequest.party.AssignTrustedRecipientInformationRequestPartyCommand
+import com.docuhyphen.app.api.model.informationrequest.party.ReassignInformationRequestPartyCommand
+import com.docuhyphen.app.api.model.informationrequest.party.RevokeInformationRequestPartyCommand
+import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
+import com.docuhyphen.app.api.repository.informationrequest.lifecycle.InformationRequestTransitionRepository
+import com.docuhyphen.app.api.repository.informationrequest.party.InformationRequestPartyRepository
+import com.docuhyphen.app.api.repository.informationrequest.party.SubjectIdentityRefRepository
+import com.docuhyphen.app.api.service.informationrequest.InformationRequestETag
+import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
+import com.docuhyphen.app.api.service.informationrequest.InformationRequestMutationGate
+import com.docuhyphen.app.api.service.informationrequest.execution.InformationRequestExecutionGrantService
+import com.docuhyphen.app.api.service.informationrequest.execution.InformationRequestExecutionUsageReservationService
+import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestLifecycleException
+import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestTransitionHistoryService
+import com.docuhyphen.app.api.service.informationrequest.noauth.InformationRequestBootstrapShareLinkService
+import com.docuhyphen.app.api.service.informationrequest.response.InformationRequestResponseStart
+import org.mockito.kotlin.never
+import org.mockito.kotlin.doThrow
+import org.junit.jupiter.api.assertThrows
+import org.junit.jupiter.api.Assertions.assertFalse
+import com.docuhyphen.app.api.service.subscription.SubscriptionOwnerType
+import com.docuhyphen.app.api.service.subscription.SubscriptionDenialReason
+import com.docuhyphen.app.api.service.subscription.SubscriptionDenial
+import com.docuhyphen.app.api.service.subscription.PlanCode
+import com.docuhyphen.app.api.exception.SubscriptionDenialException
+import com.docuhyphen.app.api.exception.OrganizationTrustNotFoundException
+import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
+import com.docuhyphen.app.api.resource.model.TrustedGroupRecipientSelectionRequest
+import com.docuhyphen.app.api.resource.model.TrustedPersonRecipientSelectionRequest
+import com.docuhyphen.app.api.service.audit.AuditCaptureResult
+import com.docuhyphen.app.api.service.audit.AuditEventDraft
+import com.docuhyphen.app.api.service.audit.AuditRecorder
+import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
+import com.docuhyphen.app.api.service.auth.authz.*
+import com.docuhyphen.app.api.service.command.CommandPrecondition
+import com.docuhyphen.app.api.service.command.CommandReceiptRequest
+import com.docuhyphen.app.api.service.command.CommandReceiptService
+import com.docuhyphen.app.api.service.command.CommandReceiptStore
+import com.docuhyphen.app.api.service.exchange.*
+import com.docuhyphen.app.api.service.notification.DomainEvent
+import com.docuhyphen.app.api.service.notification.DomainEventPublisher
+import com.docuhyphen.app.api.service.user.AppUserService
+import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Test
+import org.mockito.kotlin.*
+import java.util.*
+
+class InformationRequestPartyServiceTest
+{
+    @Test
+    fun `assigning an acting party materializes a request scoped Share and advances party revision`()
+    {
+        val fixture = Fixture()
+        val actor = PrincipalRef.user(UUID.randomUUID())
+        val contributor = PrincipalRef.participant(UUID.randomUUID())
+        val exchangeRecipient = fixture.exchangeRecipient()
+        val command = AssignInformationRequestPartyCommand(
+            requestId = fixture.request.id,
+            roleKey = InformationRequestShareRoleKey.CONTRIBUTOR,
+            principal = contributor,
+            exchangeRecipientId = exchangeRecipient.id,
+            access = RequestAccessContext(actor, fixture.authorizationContext),
+            precondition = CommandPrecondition.ExpectedRevision(InformationRequestETag.partiesOf(fixture.request)),
+            idempotencyKey = "assign-contributor",
+        )
+
+        val result = fixture.service.assign(command)
+
+        val party = argumentCaptor<InformationRequestParty>()
+        verify(fixture.partyRepository).save(party.capture())
+        assertEquals(contributor.kind, party.firstValue.principalKind)
+        assertEquals(contributor.id, party.firstValue.principalId)
+        assertEquals(exchangeRecipient.id, party.firstValue.exchangeRecipientId)
+        assertEquals(fixture.share.id, party.firstValue.shareId)
+        assertEquals(2, fixture.request.partyRevision)
+        assertEquals(InformationRequestETag.partiesOf(fixture.request), result.partiesETag)
+        verify(fixture.shareService).grantRoleKeyWithPrincipalProvenance(
+            resourceType = eq(ResourceType.INFORMATION_REQUEST),
+            resourceId = eq(fixture.request.id),
+            principalKind = eq(PrincipalKind.PARTICIPANT),
+            principalId = eq(contributor.id),
+            roleName = eq(InformationRequestShareRoleKey.CONTRIBUTOR.name),
+            grantedByPrincipal = eq(actor),
+            source = eq(ShareSource.DIRECT),
+            constraintsJson = eq(null),
+            expiresAt = eq(null),
+            status = eq(ShareStatus.ACTIVE),
+            resourceLabel = eq("Information Request"),
+        )
+        val receipt = fixture.receiptStore.receipts.single()
+        assertEquals(ResourceType.INFORMATION_REQUEST, receipt.resourceType)
+        assertEquals(fixture.request.id, receipt.resourceId)
+        assertEquals("assign-information-request-party", receipt.operationName)
+        assertEquals(ResourceType.INFORMATION_REQUEST_PARTY, receipt.resultResourceType)
+        assertEquals(party.firstValue.id, receipt.resultResourceId)
+        assertEquals(result.partiesETag, receipt.resultETag)
+    }
+
+    @Test
+    fun `party mutation requires the current party ETag`()
+    {
+        val fixture = Fixture()
+        val actor = PrincipalRef.user(UUID.randomUUID())
+        val command = AssignInformationRequestPartyCommand(
+            requestId = fixture.request.id,
+            roleKey = InformationRequestShareRoleKey.REVIEWER,
+            principal = PrincipalRef.user(UUID.randomUUID()),
+            access = RequestAccessContext(actor, fixture.authorizationContext),
+            precondition = CommandPrecondition.Absent,
+            idempotencyKey = "assign-reviewer",
+        )
+
+        assertThrows(com.docuhyphen.app.api.service.command.CommandPreconditionException::class.java) {
+            fixture.service.assign(command)
+        }
+    }
+
+    @Test
+    fun `acting party assignment rejects an Exchange recipient from another Exchange`()
+    {
+        val fixture = Fixture()
+        val actor = PrincipalRef.user(UUID.randomUUID())
+        val exchangeRecipient = fixture.exchangeRecipient(exchangeId = UUID.randomUUID())
+        val contributor = PrincipalRef.participant(UUID.randomUUID())
+        whenever(
+            fixture.exchangeRecipientService.requireAssignablePartyRecipient(
+                exchangeRecipient.id,
+                fixture.request.exchangeId,
+                contributor,
+            ),
+        ).thenThrow(IllegalArgumentException("Exchange recipient belongs to a different Exchange"))
+        val command = AssignInformationRequestPartyCommand(
+            requestId = fixture.request.id,
+            roleKey = InformationRequestShareRoleKey.CONTRIBUTOR,
+            principal = contributor,
+            exchangeRecipientId = exchangeRecipient.id,
+            access = RequestAccessContext(actor, fixture.authorizationContext),
+            precondition = CommandPrecondition.ExpectedRevision(InformationRequestETag.partiesOf(fixture.request)),
+            idempotencyKey = "assign-cross-exchange-recipient",
+        )
+
+        assertThrows(IllegalArgumentException::class.java) {
+            fixture.service.assign(command)
+        }
+        verify(fixture.partyRepository, never()).save(any())
+        verify(fixture.shareService, never()).grantRoleKeyWithPrincipalProvenance(
+            any(),
+            any(),
+            any(),
+            any(),
+            any(),
+            anyOrNull(),
+            any(),
+            anyOrNull(),
+            anyOrNull(),
+            any(),
+            anyOrNull(),
+        )
+    }
+
+    @Test
+    fun `acting party assignment rejects an Exchange recipient bound to another principal`()
+    {
+        val fixture = Fixture()
+        val actor = PrincipalRef.user(UUID.randomUUID())
+        val contributor = PrincipalRef.participant(UUID.randomUUID())
+        val exchangeRecipient = fixture.exchangeRecipient()
+        whenever(
+            fixture.exchangeRecipientService.requireAssignablePartyRecipient(
+                exchangeRecipient.id,
+                fixture.request.exchangeId,
+                contributor,
+            ),
+        ).thenThrow(IllegalArgumentException("Exchange recipient principal does not match the request party"))
+        val command = AssignInformationRequestPartyCommand(
+            requestId = fixture.request.id,
+            roleKey = InformationRequestShareRoleKey.CONTRIBUTOR,
+            principal = contributor,
+            exchangeRecipientId = exchangeRecipient.id,
+            access = RequestAccessContext(actor, fixture.authorizationContext),
+            precondition = CommandPrecondition.ExpectedRevision(InformationRequestETag.partiesOf(fixture.request)),
+            idempotencyKey = "assign-mismatched-recipient",
+        )
+
+        assertThrows(IllegalArgumentException::class.java) {
+            fixture.service.assign(command)
+        }
+        verify(fixture.partyRepository, never()).save(any())
+        verify(fixture.shareService, never()).grantRoleKeyWithPrincipalProvenance(
+            any(),
+            any(),
+            any(),
+            any(),
+            any(),
+            anyOrNull(),
+            any(),
+            anyOrNull(),
+            anyOrNull(),
+            any(),
+            anyOrNull(),
+        )
+    }
+
+    @Test
+    fun `acting party assignment rejects unsupported principal kinds`()
+    {
+        val fixture = Fixture()
+        val actor = PrincipalRef.user(UUID.randomUUID())
+        val command = AssignInformationRequestPartyCommand(
+            requestId = fixture.request.id,
+            roleKey = InformationRequestShareRoleKey.CONTRIBUTOR,
+            principal = PrincipalRef.publicLink(UUID.randomUUID()),
+            access = RequestAccessContext(actor, fixture.authorizationContext),
+            precondition = CommandPrecondition.ExpectedRevision(InformationRequestETag.partiesOf(fixture.request)),
+            idempotencyKey = "assign-public-link-party",
+        )
+
+        assertThrows(IllegalArgumentException::class.java) {
+            fixture.service.assign(command)
+        }
+        verify(fixture.partyRepository, never()).save(any())
+        verify(fixture.shareService, never()).grantRoleKeyWithPrincipalProvenance(
+            any(),
+            any(),
+            any(),
+            any(),
+            any(),
+            anyOrNull(),
+            any(),
+            anyOrNull(),
+            anyOrNull(),
+            any(),
+            anyOrNull(),
+        )
+    }
+
+    @Test
+    fun `external contact assignment creates an owner scoped participant and materializes a request Share`()
+    {
+        val fixture = Fixture()
+        val actor = PrincipalRef.user(UUID.randomUUID())
+        val participantId = UUID.randomUUID()
+        val command = AssignExternalParticipantInformationRequestPartyCommand(
+            requestId = fixture.request.id,
+            roleKey = InformationRequestShareRoleKey.CONTRIBUTOR,
+            email = " contributor@example.test ",
+            displayName = "Contributor",
+            access = RequestAccessContext(actor, fixture.authorizationContext),
+            precondition = CommandPrecondition.ExpectedRevision(InformationRequestETag.partiesOf(fixture.request)),
+            idempotencyKey = "assign-external-contact",
+        )
+        whenever(
+            fixture.externalParticipantService.findOrCreate(
+                ExternalParticipantOwner.Organization(requireNotNull(fixture.request.ownerOrganizationId)),
+                " contributor@example.test ",
+                "Contributor",
+            ),
+        ).thenReturn(com.docuhyphen.app.api.model.entity.ExternalParticipant().apply {
+            id = participantId
+            ownerOrganizationId = fixture.request.ownerOrganizationId
+            email = "contributor@example.test"
+            emailLower = "contributor@example.test"
+        })
+
+        val result = fixture.service.assignExternalParticipant(command)
+
+        val party = argumentCaptor<InformationRequestParty>()
+        verify(fixture.partyRepository).save(party.capture())
+        assertEquals(PrincipalKind.PARTICIPANT, party.firstValue.principalKind)
+        assertEquals(participantId, party.firstValue.principalId)
+        assertEquals(null, party.firstValue.exchangeRecipientId)
+        verify(fixture.shareService).grantRoleKeyWithPrincipalProvenance(
+            resourceType = eq(ResourceType.INFORMATION_REQUEST),
+            resourceId = eq(fixture.request.id),
+            principalKind = eq(PrincipalKind.PARTICIPANT),
+            principalId = eq(participantId),
+            roleName = eq(InformationRequestShareRoleKey.CONTRIBUTOR.name),
+            grantedByPrincipal = eq(actor),
+            source = eq(ShareSource.DIRECT),
+            constraintsJson = eq(null),
+            expiresAt = eq(null),
+            status = eq(ShareStatus.ACTIVE),
+            resourceLabel = eq("Information Request"),
+        )
+        val receipt = fixture.receiptStore.receipts.single()
+        assertEquals("assign-external-participant-information-request-party", receipt.operationName)
+        assertEquals(result.partiesETag, receipt.resultETag)
+    }
+
+    @Test
+    fun `external contact assignment uses a personal participant owner for personal requests`()
+    {
+        val fixture = Fixture()
+        val actor = PrincipalRef.user(UUID.randomUUID())
+        val participantId = UUID.randomUUID()
+        fixture.request.ownerType = InformationRequestOwnerType.USER
+        fixture.request.ownerUserId = UUID.randomUUID()
+        fixture.request.ownerOrganizationId = null
+        whenever(
+            fixture.externalParticipantService.findOrCreate(
+                ExternalParticipantOwner.Personal(requireNotNull(fixture.request.ownerUserId)),
+                "actor@example.test",
+                null,
+            ),
+        ).thenReturn(com.docuhyphen.app.api.model.entity.ExternalParticipant().apply {
+            id = participantId
+            ownerAppUserId = fixture.request.ownerUserId
+            email = "actor@example.test"
+            emailLower = "actor@example.test"
+        })
+
+        fixture.service.assignExternalParticipant(
+            AssignExternalParticipantInformationRequestPartyCommand(
+                requestId = fixture.request.id,
+                roleKey = InformationRequestShareRoleKey.PREPARER,
+                email = "actor@example.test",
+                access = RequestAccessContext(actor, fixture.authorizationContext),
+                precondition = CommandPrecondition.ExpectedRevision(InformationRequestETag.partiesOf(fixture.request)),
+                idempotencyKey = "assign-personal-external-contact",
+            ),
+        )
+
+        val party = argumentCaptor<InformationRequestParty>()
+        verify(fixture.partyRepository).save(party.capture())
+        assertEquals(PrincipalKind.PARTICIPANT, party.firstValue.principalKind)
+        assertEquals(participantId, party.firstValue.principalId)
+    }
+
+    @Test
+    fun `email assignment on a sign-in-required Exchange grants the matching account access`()
+    {
+        val fixture = Fixture()
+        fixture.requireRecipientSignIn()
+        val actor = PrincipalRef.user(UUID.randomUUID())
+        val recipient = AppUser().apply {
+            id = UUID.randomUUID()
+            email = "recipient@example.test"
+        }
+        whenever(fixture.appUserService.findByEmail("recipient@example.test")).thenReturn(recipient)
+
+        fixture.service.assignExternalParticipant(
+            AssignExternalParticipantInformationRequestPartyCommand(
+                requestId = fixture.request.id,
+                roleKey = InformationRequestShareRoleKey.CONTRIBUTOR,
+                email = "recipient@example.test",
+                access = RequestAccessContext(actor, fixture.authorizationContext),
+                precondition = CommandPrecondition.ExpectedRevision(InformationRequestETag.partiesOf(fixture.request)),
+                idempotencyKey = "assign-signed-in-recipient",
+            ),
+        )
+
+        val party = argumentCaptor<InformationRequestParty>()
+        verify(fixture.partyRepository).save(party.capture())
+        assertEquals(PrincipalKind.USER, party.firstValue.principalKind)
+        assertEquals(recipient.id, party.firstValue.principalId)
+        verify(fixture.externalParticipantService, never()).findOrCreate(any(), any(), anyOrNull())
+    }
+
+    @Test
+    fun `trusted person selection materializes a request party from an accepted Exchange recipient`()
+    {
+        val fixture = Fixture()
+        val actor = PrincipalRef.user(UUID.randomUUID())
+        val trustedUser = AppUser().apply {
+            id = UUID.randomUUID()
+            email = "trusted.person@example.test"
+        }
+        val directExchangeShare = Share().apply {
+            id = UUID.randomUUID()
+            resourceType = ResourceType.EXCHANGE
+            resourceId = fixture.request.exchangeId
+            principalKind = PrincipalKind.USER
+            principalId = trustedUser.id
+            roleName = ExchangeShareRoleName.VIEWER.name
+            source = ShareSource.DIRECT
+            status = ShareStatus.ACTIVE
+        }
+        val recipient = fixture.exchangeRecipient(directExchangeShare.id).apply {
+            selectionType = ExchangeRecipientSelectionType.TRUSTED_PERSON
+            purpose = ExchangeRecipientPurpose.PARTICIPANT
+            acceptanceStatus = ExchangeRecipientAcceptanceStatus.ACCEPTED
+            targetOrganizationId = UUID.randomUUID()
+        }
+        val selection = TrustedPersonRecipientSelectionRequest(UUID.randomUUID().toString())
+        whenever(
+            fixture.exchangeRecipientSelectionResolver.resolve(
+                selection,
+                fixture.initiator,
+                fixture.request.ownerOrganizationId,
+            ),
+        ).thenReturn(
+            ResolvedExchangeRecipientSelection(
+                recipientType = ExchangeRecipientType.APP_USER,
+                selectionType = ExchangeRecipientSelectionType.TRUSTED_PERSON,
+                appUser = trustedUser,
+                targetOrganizationId = recipient.targetOrganizationId,
+                preparedPersonResolution = mock(),
+            ),
+        )
+        whenever(
+            fixture.shareService.findDirectForPrincipalOnResource(
+                PrincipalKind.USER,
+                trustedUser.id,
+                ResourceType.EXCHANGE,
+                fixture.request.exchangeId,
+            ),
+        ).thenReturn(directExchangeShare)
+
+        val result = fixture.service.assignTrustedRecipientSelection(
+            AssignTrustedRecipientInformationRequestPartyCommand(
+                requestId = fixture.request.id,
+                roleKey = InformationRequestShareRoleKey.CONTRIBUTOR,
+                selection = selection,
+                initiator = fixture.initiator,
+                access = RequestAccessContext(actor, fixture.authorizationContext),
+                precondition = CommandPrecondition.ExpectedRevision(InformationRequestETag.partiesOf(fixture.request)),
+                idempotencyKey = "assign-trusted-person-selection",
+            ),
+        )
+
+        val party = argumentCaptor<InformationRequestParty>()
+        verify(fixture.partyRepository).save(party.capture())
+        assertEquals(PrincipalKind.USER, party.firstValue.principalKind)
+        assertEquals(trustedUser.id, party.firstValue.principalId)
+        assertEquals(recipient.id, party.firstValue.exchangeRecipientId)
+        assertEquals(fixture.share.id, party.firstValue.shareId)
+        assertEquals(InformationRequestETag.partiesOf(fixture.request), result.partiesETag)
+        verify(fixture.exchangeRecipientService).requireAssignablePartyRecipient(
+            recipient.id,
+            fixture.request.exchangeId,
+            PrincipalRef.user(trustedUser.id),
+        )
+        verify(fixture.shareService).grantRoleKeyWithPrincipalProvenance(
+            resourceType = eq(ResourceType.INFORMATION_REQUEST),
+            resourceId = eq(fixture.request.id),
+            principalKind = eq(PrincipalKind.USER),
+            principalId = eq(trustedUser.id),
+            roleName = eq(InformationRequestShareRoleKey.CONTRIBUTOR.name),
+            grantedByPrincipal = eq(actor),
+            source = eq(ShareSource.DIRECT),
+            constraintsJson = eq(null),
+            expiresAt = eq(null),
+            status = eq(ShareStatus.ACTIVE),
+            resourceLabel = eq("Information Request"),
+        )
+        val receipt = fixture.receiptStore.receipts.single()
+        assertEquals("assign-trusted-recipient-information-request-party", receipt.operationName)
+        assertEquals(ResourceType.INFORMATION_REQUEST_PARTY, receipt.resultResourceType)
+        assertEquals(party.firstValue.id, receipt.resultResourceId)
+    }
+
+    @Test
+    fun `trusted person selection preserves the Exchange recipient acceptance guard`()
+    {
+        val fixture = Fixture()
+        val actor = PrincipalRef.user(UUID.randomUUID())
+        val trustedUser = AppUser().apply {
+            id = UUID.randomUUID()
+            email = "pending.person@example.test"
+        }
+        val directExchangeShare = Share().apply {
+            id = UUID.randomUUID()
+            resourceType = ResourceType.EXCHANGE
+            resourceId = fixture.request.exchangeId
+            principalKind = PrincipalKind.USER
+            principalId = trustedUser.id
+            roleName = ExchangeShareRoleName.VIEWER.name
+            source = ShareSource.DIRECT
+            status = ShareStatus.PENDING_APPROVAL
+        }
+        val recipient = fixture.exchangeRecipient(directExchangeShare.id).apply {
+            selectionType = ExchangeRecipientSelectionType.TRUSTED_PERSON
+            purpose = ExchangeRecipientPurpose.PARTICIPANT
+            acceptanceStatus = ExchangeRecipientAcceptanceStatus.PENDING
+            targetOrganizationId = UUID.randomUUID()
+        }
+        val selection = TrustedPersonRecipientSelectionRequest(UUID.randomUUID().toString())
+        whenever(
+            fixture.exchangeRecipientSelectionResolver.resolve(
+                selection,
+                fixture.initiator,
+                fixture.request.ownerOrganizationId,
+            ),
+        ).thenReturn(
+            ResolvedExchangeRecipientSelection(
+                recipientType = ExchangeRecipientType.APP_USER,
+                selectionType = ExchangeRecipientSelectionType.TRUSTED_PERSON,
+                appUser = trustedUser,
+                targetOrganizationId = recipient.targetOrganizationId,
+                preparedPersonResolution = mock(),
+            ),
+        )
+        whenever(
+            fixture.shareService.findDirectForPrincipalOnResource(
+                PrincipalKind.USER,
+                trustedUser.id,
+                ResourceType.EXCHANGE,
+                fixture.request.exchangeId,
+            ),
+        ).thenReturn(directExchangeShare)
+        whenever(
+            fixture.exchangeRecipientService.requireAssignablePartyRecipient(
+                recipient.id,
+                fixture.request.exchangeId,
+                PrincipalRef.user(trustedUser.id),
+            ),
+        ).thenThrow(IllegalArgumentException("Trusted recipient invitation must be accepted before request party assignment"))
+
+        assertThrows(IllegalArgumentException::class.java) {
+            fixture.service.assignTrustedRecipientSelection(
+                AssignTrustedRecipientInformationRequestPartyCommand(
+                    requestId = fixture.request.id,
+                    roleKey = InformationRequestShareRoleKey.CONTRIBUTOR,
+                    selection = selection,
+                    initiator = fixture.initiator,
+                    access = RequestAccessContext(actor, fixture.authorizationContext),
+                    precondition = CommandPrecondition.ExpectedRevision(InformationRequestETag.partiesOf(fixture.request)),
+                    idempotencyKey = "assign-pending-trusted-person-selection",
+                ),
+            )
+        }
+
+        verify(fixture.partyRepository, never()).save(any())
+        verify(fixture.shareService, never()).grantRoleKeyWithPrincipalProvenance(
+            any(),
+            any(),
+            any(),
+            any(),
+            any(),
+            anyOrNull(),
+            any(),
+            anyOrNull(),
+            anyOrNull(),
+            any(),
+            anyOrNull(),
+        )
+    }
+
+    @Test
+    fun `trusted group selection materializes a request party from an accepted Exchange recipient`()
+    {
+        val fixture = Fixture()
+        val actor = PrincipalRef.user(UUID.randomUUID())
+        val group = PrincipalGroup().apply {
+            id = UUID.randomUUID()
+            name = "Published response group"
+        }
+        val targetOrganizationId = UUID.randomUUID()
+        val directExchangeShare = Share().apply {
+            id = UUID.randomUUID()
+            resourceType = ResourceType.EXCHANGE
+            resourceId = fixture.request.exchangeId
+            principalKind = PrincipalKind.PRINCIPAL_GROUP
+            principalId = group.id
+            roleName = ExchangeShareRoleName.VIEWER.name
+            source = ShareSource.DIRECT
+            status = ShareStatus.ACTIVE
+        }
+        val recipient = fixture.exchangeRecipient(directExchangeShare.id).apply {
+            selectionType = ExchangeRecipientSelectionType.TRUSTED_GROUP
+            purpose = ExchangeRecipientPurpose.PARTICIPANT
+            acceptanceStatus = ExchangeRecipientAcceptanceStatus.ACCEPTED
+            this.targetOrganizationId = targetOrganizationId
+        }
+        val selection = TrustedGroupRecipientSelectionRequest(
+            organizationId = targetOrganizationId.toString(),
+            groupId = group.id.toString(),
+        )
+        whenever(
+            fixture.exchangeRecipientSelectionResolver.resolve(
+                selection,
+                fixture.initiator,
+                fixture.request.ownerOrganizationId,
+            ),
+        ).thenReturn(
+            ResolvedExchangeRecipientSelection(
+                recipientType = ExchangeRecipientType.GROUP,
+                selectionType = ExchangeRecipientSelectionType.TRUSTED_GROUP,
+                group = group,
+                targetOrganizationId = targetOrganizationId,
+                trustedGroupValidation = mock(),
+            ),
+        )
+        whenever(
+            fixture.shareService.findDirectForPrincipalOnResource(
+                PrincipalKind.PRINCIPAL_GROUP,
+                group.id,
+                ResourceType.EXCHANGE,
+                fixture.request.exchangeId,
+            ),
+        ).thenReturn(directExchangeShare)
+
+        fixture.service.assignTrustedRecipientSelection(
+            AssignTrustedRecipientInformationRequestPartyCommand(
+                requestId = fixture.request.id,
+                roleKey = InformationRequestShareRoleKey.REVIEWER,
+                selection = selection,
+                initiator = fixture.initiator,
+                access = RequestAccessContext(actor, fixture.authorizationContext),
+                precondition = CommandPrecondition.ExpectedRevision(InformationRequestETag.partiesOf(fixture.request)),
+                idempotencyKey = "assign-trusted-group-selection",
+            ),
+        )
+
+        val party = argumentCaptor<InformationRequestParty>()
+        verify(fixture.partyRepository).save(party.capture())
+        assertEquals(PrincipalKind.PRINCIPAL_GROUP, party.firstValue.principalKind)
+        assertEquals(group.id, party.firstValue.principalId)
+        assertEquals(recipient.id, party.firstValue.exchangeRecipientId)
+        verify(fixture.exchangeRecipientService).requireAssignablePartyRecipient(
+            recipient.id,
+            fixture.request.exchangeId,
+            PrincipalRef.group(group.id),
+        )
+        verify(fixture.shareService).grantRoleKeyWithPrincipalProvenance(
+            resourceType = eq(ResourceType.INFORMATION_REQUEST),
+            resourceId = eq(fixture.request.id),
+            principalKind = eq(PrincipalKind.PRINCIPAL_GROUP),
+            principalId = eq(group.id),
+            roleName = eq(InformationRequestShareRoleKey.REVIEWER.name),
+            grantedByPrincipal = eq(actor),
+            source = eq(ShareSource.DIRECT),
+            constraintsJson = eq(null),
+            expiresAt = eq(null),
+            status = eq(ShareStatus.ACTIVE),
+            resourceLabel = eq("Information Request"),
+        )
+    }
+
+    @Test
+    fun `subject parties name only a stable subject identity and create no Share`()
+    {
+        val fixture = Fixture()
+        val actor = PrincipalRef.user(UUID.randomUUID())
+        val subjectIdentityRefId = UUID.randomUUID()
+        val command = AssignInformationRequestPartyCommand(
+            requestId = fixture.request.id,
+            roleKey = InformationRequestShareRoleKey.SUBJECT,
+            subjectIdentityRefId = subjectIdentityRefId,
+            access = RequestAccessContext(actor, fixture.authorizationContext),
+            precondition = CommandPrecondition.ExpectedRevision(InformationRequestETag.partiesOf(fixture.request)),
+            idempotencyKey = "assign-subject",
+        )
+
+        fixture.service.assign(command)
+
+        val party = argumentCaptor<InformationRequestParty>()
+        verify(fixture.partyRepository).save(party.capture())
+        assertEquals(subjectIdentityRefId, party.firstValue.subjectIdentityRefId)
+        assertEquals(null, party.firstValue.principalKind)
+        assertEquals(null, party.firstValue.principalId)
+        assertEquals(null, party.firstValue.shareId)
+        verify(fixture.shareService, never()).grantRoleKeyWithPrincipalProvenance(
+            any(),
+            any(),
+            any(),
+            any(),
+            any(),
+            anyOrNull(),
+            any(),
+            anyOrNull(),
+            anyOrNull(),
+            any(),
+            anyOrNull(),
+        )
+    }
+
+    @Test
+    fun `replaying assignment with the same idempotency key returns the stored party without another Share grant`()
+    {
+        val fixture = Fixture()
+        val actor = PrincipalRef.user(UUID.randomUUID())
+        val contributor = PrincipalRef.participant(UUID.randomUUID())
+        val command = AssignInformationRequestPartyCommand(
+            requestId = fixture.request.id,
+            roleKey = InformationRequestShareRoleKey.CONTRIBUTOR,
+            principal = contributor,
+            access = RequestAccessContext(actor, fixture.authorizationContext),
+            precondition = CommandPrecondition.ExpectedRevision(InformationRequestETag.partiesOf(fixture.request)),
+            idempotencyKey = "assign-once",
+        )
+
+        val first = fixture.service.assign(command)
+        val replay = fixture.service.assign(command)
+
+        assertEquals(first.party.id, replay.party.id)
+        assertEquals(first.partiesETag, replay.partiesETag)
+        verify(fixture.shareService).grantRoleKeyWithPrincipalProvenance(
+            any(),
+            any(),
+            any(),
+            any(),
+            any(),
+            anyOrNull(),
+            any(),
+            anyOrNull(),
+            anyOrNull(),
+            any(),
+            anyOrNull(),
+        )
+    }
+
+    @Test
+    fun `assigning an acting party to an issued request consumes one frozen recipient slot`()
+    {
+        val fixture = Fixture()
+        fixture.request.state = InformationRequestState.ISSUED
+        val grant = RequestExecutionGrant().apply {
+            id = UUID.randomUUID()
+            requestId = fixture.request.id
+            actingPartyCap = 1
+        }
+        whenever(fixture.executionGrantService.findForRequest(fixture.request.id)).thenReturn(grant)
+        val reservation = RequestExecutionUsageReservation().apply { id = UUID.randomUUID() }
+        whenever(
+            fixture.executionUsageReservationService.reserve(
+                eq(grant.id),
+                eq(RequestExecutionUsageKind.ACTING_PARTY),
+                any(),
+                eq(1L),
+            ),
+        ).thenReturn(reservation)
+        val actor = PrincipalRef.user(UUID.randomUUID())
+        val contributor = PrincipalRef.participant(UUID.randomUUID())
+
+        fixture.service.assign(
+            AssignInformationRequestPartyCommand(
+                requestId = fixture.request.id,
+                roleKey = InformationRequestShareRoleKey.CONTRIBUTOR,
+                principal = contributor,
+                access = RequestAccessContext(actor, fixture.authorizationContext),
+                precondition = CommandPrecondition.ExpectedRevision(InformationRequestETag.partiesOf(fixture.request)),
+                idempotencyKey = "assign-issued-contributor",
+            ),
+        )
+
+        verify(fixture.executionUsageReservationService).consume(reservation.id)
+    }
+
+    @Test
+    fun `replaying an issued acting party assignment does not reserve capacity twice`()
+    {
+        val fixture = Fixture()
+        fixture.request.state = InformationRequestState.ISSUED
+        val grant = RequestExecutionGrant().apply {
+            id = UUID.randomUUID()
+            requestId = fixture.request.id
+            actingPartyCap = 1
+        }
+        whenever(fixture.executionGrantService.findForRequest(fixture.request.id)).thenReturn(grant)
+        val reservation = RequestExecutionUsageReservation().apply { id = UUID.randomUUID() }
+        whenever(
+            fixture.executionUsageReservationService.reserve(
+                eq(grant.id),
+                eq(RequestExecutionUsageKind.ACTING_PARTY),
+                any(),
+                eq(1L),
+            ),
+        ).thenReturn(reservation)
+        val actor = PrincipalRef.user(UUID.randomUUID())
+        val contributor = PrincipalRef.participant(UUID.randomUUID())
+        val command = AssignInformationRequestPartyCommand(
+            requestId = fixture.request.id,
+            roleKey = InformationRequestShareRoleKey.CONTRIBUTOR,
+            principal = contributor,
+            access = RequestAccessContext(actor, fixture.authorizationContext),
+            precondition = CommandPrecondition.ExpectedRevision(InformationRequestETag.partiesOf(fixture.request)),
+            idempotencyKey = "assign-issued-contributor-once",
+        )
+
+        fixture.service.assign(command)
+        fixture.service.assign(command)
+
+        verify(fixture.executionUsageReservationService, times(1)).reserve(
+            eq(grant.id),
+            eq(RequestExecutionUsageKind.ACTING_PARTY),
+            any(),
+            eq(1L),
+        )
+        verify(fixture.executionUsageReservationService, times(1)).consume(reservation.id)
+    }
+
+    @Test
+    fun `issued acting party assignment releases a reservation when Share creation fails`()
+    {
+        val fixture = Fixture()
+        fixture.request.state = InformationRequestState.ISSUED
+        val grant = RequestExecutionGrant().apply {
+            id = UUID.randomUUID()
+            requestId = fixture.request.id
+            actingPartyCap = 1
+        }
+        whenever(fixture.executionGrantService.findForRequest(fixture.request.id)).thenReturn(grant)
+        val reservation = RequestExecutionUsageReservation().apply { id = UUID.randomUUID() }
+        whenever(
+            fixture.executionUsageReservationService.reserve(
+                eq(grant.id),
+                eq(RequestExecutionUsageKind.ACTING_PARTY),
+                any(),
+                eq(1L),
+            ),
+        ).thenReturn(reservation)
+        whenever(
+            fixture.shareService.grantRoleKeyWithPrincipalProvenance(
+                any(),
+                any(),
+                any(),
+                any(),
+                any(),
+                anyOrNull(),
+                any(),
+                anyOrNull(),
+                anyOrNull(),
+                any(),
+                anyOrNull(),
+            ),
+        ).thenThrow(IllegalStateException("share creation failed"))
+        val actor = PrincipalRef.user(UUID.randomUUID())
+        val contributor = PrincipalRef.participant(UUID.randomUUID())
+
+        assertThrows(IllegalStateException::class.java) {
+            fixture.service.assign(
+                AssignInformationRequestPartyCommand(
+                    requestId = fixture.request.id,
+                    roleKey = InformationRequestShareRoleKey.CONTRIBUTOR,
+                    principal = contributor,
+                    access = RequestAccessContext(actor, fixture.authorizationContext),
+                    precondition = CommandPrecondition.ExpectedRevision(InformationRequestETag.partiesOf(fixture.request)),
+                    idempotencyKey = "assign-issued-contributor-release",
+                ),
+            )
+        }
+
+        verify(fixture.executionUsageReservationService).release(reservation.id)
+        verify(fixture.partyRepository, never()).save(any())
+    }
+
+    @Test
+    fun `revoking a party deactivates it revokes its Share and advances party revision`()
+    {
+        val fixture = Fixture()
+        val actor = PrincipalRef.user(UUID.randomUUID())
+        val existingParty = fixture.activeActingParty()
+        val command = RevokeInformationRequestPartyCommand(
+            requestId = fixture.request.id,
+            partyId = existingParty.id,
+            access = RequestAccessContext(actor, fixture.authorizationContext),
+            precondition = CommandPrecondition.ExpectedRevision(InformationRequestETag.partiesOf(fixture.request)),
+            idempotencyKey = "revoke-contributor",
+        )
+
+        val result = fixture.service.revoke(command)
+
+        assertFalse(existingParty.active)
+        assertNotNull(existingParty.revokedAt)
+        assertEquals(2, existingParty.partyRevision)
+        assertEquals(2, fixture.request.partyRevision)
+        assertEquals(InformationRequestETag.partiesOf(fixture.request), result.partiesETag)
+        verify(fixture.shareService).revoke(
+            shareId = eq(fixture.share.id),
+            revokedBy = eq(actor),
+            resourceLabel = eq("Information Request"),
+        )
+        verify(fixture.bootstrapShareLinkService).revokeAllForShare(fixture.share.id)
+        val receipt = fixture.receiptStore.receipts.single()
+        assertEquals("revoke-information-request-party", receipt.operationName)
+        assertEquals(ResourceType.INFORMATION_REQUEST_PARTY, receipt.resultResourceType)
+        assertEquals(existingParty.id, receipt.resultResourceId)
+    }
+
+    @Test
+    fun `revoking an issued acting party rolls back its consumed recipient slot`()
+    {
+        val fixture = Fixture()
+        fixture.request.state = InformationRequestState.ISSUED
+        val actor = PrincipalRef.user(UUID.randomUUID())
+        val existingParty = fixture.activeActingParty()
+        val grant = RequestExecutionGrant().apply {
+            id = UUID.randomUUID()
+            requestId = fixture.request.id
+            actingPartyCap = 1
+        }
+        whenever(fixture.executionGrantService.findForRequest(fixture.request.id)).thenReturn(grant)
+
+        fixture.service.revoke(
+            RevokeInformationRequestPartyCommand(
+                requestId = fixture.request.id,
+                partyId = existingParty.id,
+                access = RequestAccessContext(actor, fixture.authorizationContext),
+                precondition = CommandPrecondition.ExpectedRevision(InformationRequestETag.partiesOf(fixture.request)),
+                idempotencyKey = "revoke-issued-contributor",
+            ),
+        )
+
+        verify(fixture.executionUsageReservationService).returnCapacity(
+            grant.id,
+            RequestExecutionUsageKind.ACTING_PARTY,
+            "information_request.party|${existingParty.id}",
+        )
+        verify(fixture.executionUsageReservationService, never()).reserve(any(), any(), any(), any())
+    }
+
+    @Test
+    fun `revoking a subject after issuance takes no capacity it never held`()
+    {
+        val fixture = Fixture()
+        fixture.request.state = InformationRequestState.ISSUED
+        val subject = InformationRequestParty().apply {
+            informationRequestId = fixture.request.id
+            roleKey = InformationRequestShareRoleKey.SUBJECT
+            subjectIdentityRefId = UUID.randomUUID()
+        }
+        fixture.partyRepository.save(subject)
+        whenever(fixture.executionGrantService.findForRequest(fixture.request.id)).thenReturn(
+            RequestExecutionGrant().apply { requestId = fixture.request.id },
+        )
+
+        val revoked = fixture.service.revoke(
+            RevokeInformationRequestPartyCommand(
+                requestId = fixture.request.id,
+                partyId = subject.id,
+                access = RequestAccessContext(PrincipalRef.user(UUID.randomUUID()), fixture.authorizationContext),
+                precondition = CommandPrecondition.ExpectedRevision(InformationRequestETag.partiesOf(fixture.request)),
+                idempotencyKey = "revoke-issued-subject",
+            ),
+        )
+
+        assertFalse(revoked.party.active)
+        verify(fixture.executionUsageReservationService, never()).reserve(any(), any(), any(), any())
+    }
+
+    @Test
+    fun `a new party answers to the continuation gate while a revocation does not`()
+    {
+        val fixture = Fixture()
+        fixture.request.state = InformationRequestState.ISSUED
+        val existingParty = fixture.activeActingParty()
+        doThrow(
+            SubscriptionDenialException(
+                SubscriptionDenial(
+                    reason = SubscriptionDenialReason.SUBSCRIPTION_SUSPENDED,
+                    planCode = PlanCode.BUSINESS,
+                    ownerType = SubscriptionOwnerType.ORGANIZATION,
+                    message = "This subscription is suspended.",
+                ),
+            ),
+        ).whenever(fixture.mutationGate).requireContinuationEntitlement(any())
+        val access = RequestAccessContext(PrincipalRef.user(UUID.randomUUID()), fixture.authorizationContext)
+
+        assertThrows<SubscriptionDenialException> {
+            fixture.service.assign(
+                AssignInformationRequestPartyCommand(
+                    requestId = fixture.request.id,
+                    roleKey = InformationRequestShareRoleKey.CONTRIBUTOR,
+                    principal = PrincipalRef.participant(UUID.randomUUID()),
+                    access = access,
+                    precondition = CommandPrecondition.ExpectedRevision(InformationRequestETag.partiesOf(fixture.request)),
+                    idempotencyKey = "assign-while-suspended",
+                ),
+            )
+        }
+        val revoked = fixture.service.revoke(
+            RevokeInformationRequestPartyCommand(
+                requestId = fixture.request.id,
+                partyId = existingParty.id,
+                access = access,
+                precondition = CommandPrecondition.ExpectedRevision(InformationRequestETag.partiesOf(fixture.request)),
+                idempotencyKey = "revoke-while-suspended",
+            ),
+        )
+
+        assertFalse(revoked.party.active)
+    }
+
+    @Test
+    fun `a suspended trust relationship refuses a trusted recipient with a stable reason`()
+    {
+        val fixture = Fixture()
+        val recipient = fixture.exchangeRecipient()
+        whenever(fixture.exchangeRecipientService.trustSuspended(recipient.id)).thenReturn(true)
+
+        val refusal = assertThrows<InformationRequestLifecycleException> {
+            fixture.service.assign(assignRecipient(fixture, recipient.id, "assign-suspended-trust"))
+        }
+
+        assertEquals(InformationRequestErrorCatalog.TRUST_SUSPENDED, refusal.reasonCode)
+        verify(fixture.shareService, never()).grantRoleKeyWithPrincipalProvenance(
+            any(), any(), any(), any(), any(), anyOrNull(), any(), anyOrNull(), anyOrNull(), any(), anyOrNull(),
+        )
+    }
+
+    @Test
+    fun `any other unavailable trusted recipient is refused with a stable reason`()
+    {
+        val fixture = Fixture()
+        val recipient = fixture.exchangeRecipient()
+        whenever(fixture.exchangeRecipientService.requireAssignablePartyRecipient(eq(recipient.id), any(), any()))
+            .thenThrow(OrganizationTrustNotFoundException("Published trusted group is unavailable"))
+
+        val refusal = assertThrows<InformationRequestLifecycleException> {
+            fixture.service.assign(assignRecipient(fixture, recipient.id, "assign-unavailable-trust"))
+        }
+
+        assertEquals(InformationRequestErrorCatalog.TRUSTED_RECIPIENT_UNAVAILABLE, refusal.reasonCode)
+    }
+
+    private fun assignRecipient(fixture: Fixture, recipientId: UUID, key: String) =
+        AssignInformationRequestPartyCommand(
+            requestId = fixture.request.id,
+            roleKey = InformationRequestShareRoleKey.CONTRIBUTOR,
+            principal = PrincipalRef.user(UUID.randomUUID()),
+            exchangeRecipientId = recipientId,
+            access = RequestAccessContext(PrincipalRef.user(UUID.randomUUID()), fixture.authorizationContext),
+            precondition = CommandPrecondition.ExpectedRevision(InformationRequestETag.partiesOf(fixture.request)),
+            idempotencyKey = key,
+        )
+
+    @Test
+    fun `reassigning a party revokes the old Share grants a new Share and advances party revision`()
+    {
+        val fixture = Fixture()
+        val actor = PrincipalRef.user(UUID.randomUUID())
+        val existingParty = fixture.activeActingParty()
+        val newContributor = PrincipalRef.participant(UUID.randomUUID())
+        val command = ReassignInformationRequestPartyCommand(
+            requestId = fixture.request.id,
+            partyId = existingParty.id,
+            principal = newContributor,
+            access = RequestAccessContext(actor, fixture.authorizationContext),
+            precondition = CommandPrecondition.ExpectedRevision(InformationRequestETag.partiesOf(fixture.request)),
+            idempotencyKey = "reassign-contributor",
+        )
+
+        val result = fixture.service.reassign(command)
+
+        assertEquals(newContributor.kind, existingParty.principalKind)
+        assertEquals(newContributor.id, existingParty.principalId)
+        assertEquals(fixture.share.id, existingParty.shareId)
+        assertEquals(2, existingParty.partyRevision)
+        assertEquals(2, fixture.request.partyRevision)
+        assertEquals(InformationRequestETag.partiesOf(fixture.request), result.partiesETag)
+        verify(fixture.shareService).revoke(
+            shareId = eq(fixture.share.id),
+            revokedBy = eq(actor),
+            resourceLabel = eq("Information Request"),
+        )
+        verify(fixture.bootstrapShareLinkService).revokeAllForShare(fixture.share.id)
+        verify(fixture.shareService).grantRoleKeyWithPrincipalProvenance(
+            resourceType = eq(ResourceType.INFORMATION_REQUEST),
+            resourceId = eq(fixture.request.id),
+            principalKind = eq(PrincipalKind.PARTICIPANT),
+            principalId = eq(newContributor.id),
+            roleName = eq(InformationRequestShareRoleKey.CONTRIBUTOR.name),
+            grantedByPrincipal = eq(actor),
+            source = eq(ShareSource.DIRECT),
+            constraintsJson = eq(null),
+            expiresAt = eq(null),
+            status = eq(ShareStatus.ACTIVE),
+            resourceLabel = eq("Information Request"),
+        )
+        val receipt = fixture.receiptStore.receipts.single()
+        assertEquals("reassign-information-request-party", receipt.operationName)
+        assertEquals(ResourceType.INFORMATION_REQUEST_PARTY, receipt.resultResourceType)
+        assertEquals(existingParty.id, receipt.resultResourceId)
+    }
+
+    @Test
+    fun `reassigning a party while the request is active records party scoped history and audit`()
+    {
+        val fixture = Fixture()
+        fixture.request.state = InformationRequestState.ISSUED
+        val actor = PrincipalRef.user(UUID.randomUUID())
+        val existingParty = fixture.activeActingParty()
+        val newContributor = PrincipalRef.participant(UUID.randomUUID())
+        val command = ReassignInformationRequestPartyCommand(
+            requestId = fixture.request.id,
+            partyId = existingParty.id,
+            principal = newContributor,
+            access = RequestAccessContext(actor, fixture.authorizationContext),
+            precondition = CommandPrecondition.ExpectedRevision(InformationRequestETag.partiesOf(fixture.request)),
+            idempotencyKey = "reassign-active-request",
+        )
+
+        fixture.service.reassign(command)
+
+        assertEquals(1, fixture.savedTransitions.size)
+        val transition = fixture.savedTransitions.single()
+        assertEquals(InformationRequestMutation.REASSIGN, transition.mutation)
+        assertEquals(InformationRequestState.ISSUED, transition.fromState)
+        assertEquals(InformationRequestState.ISSUED, transition.toState)
+        assertEquals(existingParty.id, transition.partyId)
+
+        val audit = argumentCaptor<AuditEventDraft>()
+        verify(fixture.auditRecorder).record(audit.capture())
+        assertEquals(AuditEventType.INFORMATION_REQUEST_PARTY_REASSIGN.key, audit.firstValue.eventTypeKey)
+        assertEquals(1, fixture.events.size)
+        assertEquals(AuditEventType.INFORMATION_REQUEST_PARTY_REASSIGN.key, fixture.events.single().type)
+    }
+
+    @Test
+    fun `assigning a party and a contact records party scoped history and audit`()
+    {
+        val fixture = Fixture()
+        val actor = PrincipalRef.user(UUID.randomUUID())
+        whenever(fixture.externalParticipantService.findOrCreate(any(), eq("contact@example.test"), anyOrNull()))
+            .thenReturn(ExternalParticipant().apply { id = UUID.randomUUID() })
+
+        val assigned = fixture.service.assign(
+            AssignInformationRequestPartyCommand(
+                requestId = fixture.request.id,
+                roleKey = InformationRequestShareRoleKey.DECISION_MAKER,
+                principal = actor,
+                access = RequestAccessContext(actor, fixture.authorizationContext),
+                precondition = CommandPrecondition.ExpectedRevision(InformationRequestETag.partiesOf(fixture.request)),
+                idempotencyKey = "assign-decision-maker",
+            ),
+        )
+        val contact = fixture.service.assignExternalParticipant(
+            AssignExternalParticipantInformationRequestPartyCommand(
+                requestId = fixture.request.id,
+                roleKey = InformationRequestShareRoleKey.CONTRIBUTOR,
+                email = "contact@example.test",
+                access = RequestAccessContext(actor, fixture.authorizationContext),
+                precondition = CommandPrecondition.ExpectedRevision(InformationRequestETag.partiesOf(fixture.request)),
+                idempotencyKey = "assign-contact",
+            ),
+        )
+
+        assertEquals(
+            listOf(InformationRequestMutation.ASSIGN_PARTY, InformationRequestMutation.ASSIGN_PARTY),
+            fixture.savedTransitions.map { it.mutation },
+        )
+        assertEquals(listOf(assigned.party.id, contact.party.id), fixture.savedTransitions.map { it.partyId })
+        val audit = argumentCaptor<AuditEventDraft>()
+        verify(fixture.auditRecorder, times(2)).record(audit.capture())
+        assertTrue(audit.allValues.all { it.eventTypeKey == AuditEventType.INFORMATION_REQUEST_PARTY_ASSIGN.key })
+    }
+
+    @Test
+    fun `revoking a party records party scoped history and audit`()
+    {
+        val fixture = Fixture()
+        val actor = PrincipalRef.user(UUID.randomUUID())
+        val existingParty = fixture.activeActingParty()
+
+        fixture.service.revoke(
+            RevokeInformationRequestPartyCommand(
+                requestId = fixture.request.id,
+                partyId = existingParty.id,
+                access = RequestAccessContext(actor, fixture.authorizationContext),
+                precondition = CommandPrecondition.ExpectedRevision(InformationRequestETag.partiesOf(fixture.request)),
+                idempotencyKey = "revoke-with-history",
+            ),
+        )
+
+        val transition = fixture.savedTransitions.single()
+        assertEquals(InformationRequestMutation.REVOKE_PARTY, transition.mutation)
+        assertEquals(existingParty.id, transition.partyId)
+        val audit = argumentCaptor<AuditEventDraft>()
+        verify(fixture.auditRecorder).record(audit.capture())
+        assertEquals(AuditEventType.INFORMATION_REQUEST_PARTY_REVOKE.key, audit.firstValue.eventTypeKey)
+    }
+
+    @Test
+    fun `a finished request takes no new party and keeps the parties it has`()
+    {
+        val fixture = Fixture()
+        fixture.request.state = InformationRequestState.CANCELLED
+        val actor = PrincipalRef.user(UUID.randomUUID())
+        val existingParty = fixture.activeActingParty()
+
+        val assignment = assertThrows(InformationRequestLifecycleException::class.java) {
+            fixture.service.assign(
+                AssignInformationRequestPartyCommand(
+                    requestId = fixture.request.id,
+                    roleKey = InformationRequestShareRoleKey.CONTRIBUTOR,
+                    principal = PrincipalRef.participant(UUID.randomUUID()),
+                    access = RequestAccessContext(actor, fixture.authorizationContext),
+                    precondition = CommandPrecondition.ExpectedRevision(InformationRequestETag.partiesOf(fixture.request)),
+                    idempotencyKey = "assign-after-cancel",
+                ),
+            )
+        }
+        val revocation = assertThrows(InformationRequestLifecycleException::class.java) {
+            fixture.service.revoke(
+                RevokeInformationRequestPartyCommand(
+                    requestId = fixture.request.id,
+                    partyId = existingParty.id,
+                    access = RequestAccessContext(actor, fixture.authorizationContext),
+                    precondition = CommandPrecondition.ExpectedRevision(InformationRequestETag.partiesOf(fixture.request)),
+                    idempotencyKey = "revoke-after-cancel",
+                ),
+            )
+        }
+
+        assertEquals(InformationRequestErrorCatalog.STATE_INVALID, assignment.reasonCode)
+        assertEquals(InformationRequestErrorCatalog.STATE_INVALID, revocation.reasonCode)
+        assertTrue(existingParty.active)
+        assertTrue(fixture.savedTransitions.isEmpty())
+        verify(fixture.shareService, never()).grantRoleKeyWithPrincipalProvenance(
+            any(), any(), any(), any(), any(), anyOrNull(), any(), anyOrNull(), anyOrNull(), any(), anyOrNull(),
+        )
+    }
+
+    @Test
+    fun `assigning an acting party locks the parent Exchange before the request row`()
+    {
+        val fixture = Fixture()
+        val actor = PrincipalRef.user(UUID.randomUUID())
+        val contributor = PrincipalRef.participant(UUID.randomUUID())
+        val command = AssignInformationRequestPartyCommand(
+            requestId = fixture.request.id,
+            roleKey = InformationRequestShareRoleKey.CONTRIBUTOR,
+            principal = contributor,
+            access = RequestAccessContext(actor, fixture.authorizationContext),
+            precondition = CommandPrecondition.ExpectedRevision(InformationRequestETag.partiesOf(fixture.request)),
+            idempotencyKey = "assign-lock-order",
+        )
+
+        fixture.service.assign(command)
+
+        val locks = inOrder(fixture.exchangeRepository, fixture.requestRepository)
+        locks.verify(fixture.exchangeRepository).findByIdForUpdate(fixture.request.exchangeId)
+        locks.verify(fixture.requestRepository).findRequestByIdForUpdate(fixture.request.id)
+    }
+
+    @Test
+    fun `reassigning a party locks the parent Exchange before the request row`()
+    {
+        val fixture = Fixture()
+        val actor = PrincipalRef.user(UUID.randomUUID())
+        val existingParty = fixture.activeActingParty()
+        val newContributor = PrincipalRef.participant(UUID.randomUUID())
+        val command = ReassignInformationRequestPartyCommand(
+            requestId = fixture.request.id,
+            partyId = existingParty.id,
+            principal = newContributor,
+            access = RequestAccessContext(actor, fixture.authorizationContext),
+            precondition = CommandPrecondition.ExpectedRevision(InformationRequestETag.partiesOf(fixture.request)),
+            idempotencyKey = "reassign-lock-order",
+        )
+
+        fixture.service.reassign(command)
+
+        val locks = inOrder(fixture.exchangeRepository, fixture.requestRepository)
+        locks.verify(fixture.exchangeRepository).findByIdForUpdate(fixture.request.exchangeId)
+        locks.verify(fixture.requestRepository).findRequestByIdForUpdate(fixture.request.id)
+    }
+
+    @Test
+    fun `revoking a party locks the parent Exchange before the request row`()
+    {
+        val fixture = Fixture()
+        val actor = PrincipalRef.user(UUID.randomUUID())
+        val existingParty = fixture.activeActingParty()
+        val command = RevokeInformationRequestPartyCommand(
+            requestId = fixture.request.id,
+            partyId = existingParty.id,
+            access = RequestAccessContext(actor, fixture.authorizationContext),
+            precondition = CommandPrecondition.ExpectedRevision(InformationRequestETag.partiesOf(fixture.request)),
+            idempotencyKey = "revoke-lock-order",
+        )
+
+        fixture.service.revoke(command)
+
+        val locks = inOrder(fixture.exchangeRepository, fixture.requestRepository)
+        locks.verify(fixture.exchangeRepository).findByIdForUpdate(fixture.request.exchangeId)
+        locks.verify(fixture.requestRepository).findRequestByIdForUpdate(fixture.request.id)
+    }
+
+    @Test
+    fun `reassigning a party rechecks the locked parent Exchange and denies when it is terminal`()
+    {
+        val fixture = Fixture(parentStatus = ExchangeStatus.ENDED)
+        val actor = PrincipalRef.user(UUID.randomUUID())
+        val existingParty = fixture.activeActingParty()
+        val originalPrincipalId = existingParty.principalId
+        val newContributor = PrincipalRef.participant(UUID.randomUUID())
+        val command = ReassignInformationRequestPartyCommand(
+            requestId = fixture.request.id,
+            partyId = existingParty.id,
+            principal = newContributor,
+            access = RequestAccessContext(actor, fixture.authorizationContext),
+            precondition = CommandPrecondition.ExpectedRevision(InformationRequestETag.partiesOf(fixture.request)),
+            idempotencyKey = "reassign-after-parent-end",
+        )
+
+        val failure = assertThrows(InformationRequestLifecycleException::class.java) {
+            fixture.service.reassign(command)
+        }
+
+        assertEquals(InformationRequestErrorCatalog.PARENT_STATE_INVALID, failure.reasonCode)
+        assertEquals(originalPrincipalId, existingParty.principalId)
+        assertEquals(1, existingParty.partyRevision)
+        assertTrue(fixture.savedTransitions.isEmpty())
+        verify(fixture.shareService, never()).revoke(
+            shareId = any(),
+            revokedBy = anyOrNull(),
+            resourceLabel = anyOrNull(),
+        )
+    }
+
+    private class Fixture(parentStatus: ExchangeStatus = ExchangeStatus.ACCEPTED_STARTED)
+    {
+        private val savedParties = mutableMapOf<UUID, InformationRequestParty>()
+        val request = InformationRequest().apply {
+            id = UUID.randomUUID()
+            exchangeId = UUID.randomUUID()
+            templateVersionId = UUID.randomUUID()
+            ownerType = InformationRequestOwnerType.ORGANIZATION
+            ownerOrganizationId = UUID.randomUUID()
+            partyRevision = 1
+        }
+        val share = Share().apply {
+            id = UUID.randomUUID()
+            resourceType = ResourceType.INFORMATION_REQUEST
+            resourceId = request.id
+            principalKind = PrincipalKind.PARTICIPANT
+            principalId = UUID.randomUUID()
+            roleName = InformationRequestShareRoleKey.CONTRIBUTOR.name
+        }
+        private val exchange = Exchange().apply {
+            id = request.exchangeId
+            ownerOrganizationId = request.ownerOrganizationId
+            status = parentStatus
+            isDeleted = false
+        }
+
+        fun requireRecipientSignIn()
+        {
+            exchange.requireRecipientSignIn = true
+        }
+        val authorizationContext = com.docuhyphen.app.api.service.auth.authz.AuthorizationContext(
+            activeOrgId = request.ownerOrganizationId,
+        )
+        val requestRepository = mock<InformationRequestRepository>()
+        val partyRepository = mock<InformationRequestPartyRepository>()
+        val subjectIdentityRefRepository = mock<SubjectIdentityRefRepository>()
+        val externalParticipantService = mock<ExternalParticipantService>()
+        val appUserService = mock<AppUserService>()
+        val exchangeRecipientService = mock<ExchangeRecipientService>()
+        val exchangeRecipientSelectionResolver = mock<ExchangeRecipientSelectionResolver>()
+        val shareService = mock<ShareService>()
+        val bootstrapShareLinkService = mock<InformationRequestBootstrapShareLinkService>()
+        val authorizationService = mock<AuthorizationService>()
+        val exchangeRepository = mock<ExchangeRepository>()
+        val transitionRepository = mock<InformationRequestTransitionRepository>()
+        val executionGrantService = mock<InformationRequestExecutionGrantService>()
+        val executionUsageReservationService = mock<InformationRequestExecutionUsageReservationService>()
+        val mutationGate = mock<InformationRequestMutationGate>()
+        val auditRecorder = mock<AuditRecorder>()
+        val receiptStore = InMemoryCommandReceiptStore()
+        val commandReceiptService = CommandReceiptService(receiptStore)
+        val savedTransitions = mutableListOf<InformationRequestTransition>()
+        val events = mutableListOf<DomainEvent>()
+        private val eventPublisher = CapturingPartyDomainEventPublisher(events)
+        private val transitionHistory = InformationRequestTransitionHistoryService(
+            transitionRepository = transitionRepository,
+            auditRecorder = auditRecorder,
+            domainEventPublisher = eventPublisher,
+            responseStart = InformationRequestResponseStart(requestRepository, java.time.Clock.systemUTC()),
+        )
+        val initiator = AppUser().apply {
+            id = UUID.randomUUID()
+            email = "initiator@example.test"
+        }
+        val service = InformationRequestPartyService(
+            requestRepository = requestRepository,
+            partyRepository = partyRepository,
+            subjectIdentityRefRepository = subjectIdentityRefRepository,
+            externalParticipantService = externalParticipantService,
+            appUserService = appUserService,
+            exchangeRecipientService = exchangeRecipientService,
+            exchangeRecipientSelectionResolver = exchangeRecipientSelectionResolver,
+            shareService = shareService,
+            bootstrapShareLinkService = bootstrapShareLinkService,
+            authorizationService = authorizationService,
+            commandReceiptService = commandReceiptService,
+            exchangeRepository = exchangeRepository,
+            transitionHistory = transitionHistory,
+            executionGrantService = executionGrantService,
+            executionUsageReservationService = executionUsageReservationService,
+            mutationGate = mutationGate,
+        )
+
+        init
+        {
+            whenever(exchangeRepository.findByIdForUpdate(request.exchangeId)).thenReturn(exchange)
+            whenever(transitionRepository.nextSequenceNumber(request.id)).thenAnswer { savedTransitions.size + 1 }
+            whenever(transitionRepository.save(any())).thenAnswer {
+                it.getArgument<InformationRequestTransition>(0).also { transition -> savedTransitions += transition }
+            }
+            whenever(auditRecorder.record(any())).thenReturn(
+                AuditCaptureResult.Captured(UUID.randomUUID(), UUID.randomUUID()),
+            )
+            whenever(requestRepository.findById(request.id)).thenReturn(request)
+            whenever(requestRepository.findRequestByIdForUpdate(request.id)).thenReturn(request)
+            whenever(requestRepository.update(any())).thenAnswer { it.getArgument(0) }
+            whenever(partyRepository.save(any())).thenAnswer {
+                it.getArgument<InformationRequestParty>(0).also { party ->
+                    savedParties[party.id] = party
+                }
+            }
+            whenever(partyRepository.update(any())).thenAnswer {
+                it.getArgument<InformationRequestParty>(0).also { party ->
+                    savedParties[party.id] = party
+                }
+            }
+            whenever(partyRepository.findById(any())).thenAnswer {
+                savedParties[it.getArgument(0)]
+            }
+            whenever(partyRepository.findByIdForUpdate(any())).thenAnswer {
+                savedParties[it.getArgument(0)]
+            }
+            whenever(
+                shareService.grantRoleKeyWithPrincipalProvenance(
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    anyOrNull(),
+                    any(),
+                    anyOrNull(),
+                    anyOrNull(),
+                    any(),
+                    anyOrNull(),
+                ),
+            )
+                .thenReturn(share)
+            whenever(
+                authorizationService.authorize(
+                    any(),
+                    eq(Action.INFORMATION_REQUEST_MANAGE_PARTIES),
+                    any<ResourceRef>(),
+                    any(),
+                ),
+            ).thenReturn(Decision.Allow())
+            whenever(subjectIdentityRefRepository.findOwned(any(), any(), any())).thenReturn(mock())
+        }
+
+        fun activeActingParty(): InformationRequestParty =
+            InformationRequestParty().apply {
+                informationRequestId = request.id
+                roleKey = InformationRequestShareRoleKey.CONTRIBUTOR
+                principalKind = PrincipalKind.PARTICIPANT
+                principalId = UUID.randomUUID()
+                shareId = share.id
+            }.also { party ->
+                savedParties[party.id] = party
+            }
+
+        fun exchangeRecipient(
+            directShareId: UUID = UUID.randomUUID(),
+            exchangeId: UUID = request.exchangeId,
+        ): ExchangeRecipient =
+            ExchangeRecipient().apply {
+                this.exchangeId = exchangeId
+                this.directShareId = directShareId
+            }.also { recipient ->
+                whenever(exchangeRecipientService.getById(recipient.id)).thenReturn(recipient)
+                whenever(exchangeRecipientService.findByDirectShareId(directShareId)).thenReturn(recipient)
+                whenever(
+                    exchangeRecipientService.requireAssignablePartyRecipient(
+                        eq(recipient.id),
+                        eq(exchangeId),
+                        any<PrincipalRef>(),
+                    ),
+                ).thenReturn(recipient)
+            }
+    }
+}
+
+private class InMemoryCommandReceiptStore : CommandReceiptStore
+{
+    val receipts = mutableListOf<CommandReceipt>()
+
+    override fun findForCommand(request: CommandReceiptRequest): CommandReceipt? =
+        receipts.firstOrNull {
+            it.resourceType == request.resource.type &&
+                it.resourceId == request.resource.id &&
+                it.operationName == request.operation &&
+                it.actorKind == request.actor.kind &&
+                it.actorId == request.actor.id &&
+                it.idempotencyKey == request.idempotencyKey
+        }
+
+    override fun insert(receipt: CommandReceipt): CommandReceipt
+    {
+        receipts += receipt
+        return receipt
+    }
+}
+
+private class CapturingPartyDomainEventPublisher(
+    private val events: MutableList<DomainEvent>,
+) : DomainEventPublisher
+{
+    override fun publish(event: DomainEvent)
+    {
+        events += event
+    }
+}
